@@ -243,6 +243,19 @@ async def set_language(request: Request):
     return Response(status_code=204, headers={"HX-Refresh": "true"})
 
 
+@app.post("/api/settings/abrp", response_class=HTMLResponse)
+async def save_abrp(request: Request):
+    """Save the optional ABRP live-data settings (per-user token + enable flag).
+    The poller reads these from the DB each cycle and pushes telemetry when enabled."""
+    form = await request.form()
+    token = (form.get("abrp_token", "") or "").strip()
+    enabled = "1" if form.get("abrp_enabled") == "1" else "0"
+    db_reader.set_setting("abrp_token", token)
+    db_reader.set_setting("abrp_enabled", enabled)
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e">✓ {t("saved")}</span>')
+
+
 # ── HTMX partial ─────────────────────────────────────────────────────────────
 
 @app.get("/api/charging-live", response_class=HTMLResponse)
@@ -636,6 +649,11 @@ async def setup_submit(request: Request):
     db_reader.set_setting("leapmotor_pin", pin)
     db_reader.set_setting("battery_capacity_kwh", str(battery_kwh))
     db_reader.set_setting("language", lang if lang in ("en", "it", "fr") else "en")
+
+    # Optional ABRP live-data: token is per-user, enabled implicitly when one is given.
+    abrp_token = (form.get("abrp_token", "") or "").strip()
+    db_reader.set_setting("abrp_token", abrp_token)
+    db_reader.set_setting("abrp_enabled", "1" if abrp_token else "0")
 
     # Pre-populate vehicles table so the UI shows model info before the first poller run
     if vin and car_type:

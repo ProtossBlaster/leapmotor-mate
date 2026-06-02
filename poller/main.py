@@ -6,6 +6,7 @@ import time
 
 _PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 
+import abrp
 from client import LeapmotorMateClient
 from db import Database
 from recorder import Recorder
@@ -133,6 +134,10 @@ def main():
                 " (boost)" if boosting else "",
             )
             recorder.mark_online()
+            # Optional ABRP live-data push — no-op unless enabled, token set and our
+            # integrator api_key is present. Fire-and-forget; never breaks the poll.
+            if db.get_setting("abrp_enabled", "0") == "1":
+                abrp.push(data, db.get_setting("abrp_token", "") or "")
         except KeyboardInterrupt:
             log.info("Stopped by user")
             break

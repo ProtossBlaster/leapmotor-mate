@@ -158,6 +158,15 @@
     <!-- Detection result (hidden until first detect attempt) -->
     <div id="detect-result" style="display:none"></div>
 
+    <!-- Optional ABRP token (revealed together with the submit button) -->
+    <div id="abrp-wrap" style="display:none" class="mt-1">
+      <label id="lbl-abrp" class="block text-sm font-medium text-slate-300 mb-1.5">ABRP Generic Token (optional)</label>
+      <input type="text" name="abrp_token" id="inp-abrp"
+             class="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-white
+                    placeholder-slate-500 focus:outline-none focus:border-brand text-sm font-mono">
+      <div id="hint-abrp" class="text-xs text-slate-500 mt-1"></div>
+    </div>
+
     <!-- Submit (hidden until detection done) -->
     <button type="submit" id="btn-submit" style="display:none"
             class="w-full py-3 rounded-xl bg-brand text-white font-semibold text-sm
@@ -215,6 +224,9 @@ const strings = {
     certSaved:     "✓ Certificate saved",
     certCrtLabel:  "app.crt (certificate)",
     certKeyLabel:  "app.key (private key)",
+    abrpLabel:     "ABRP Generic Token (optional)",
+    abrpPh:        "paste your token",
+    abrpHint:      "Push live data to A Better Routeplanner. Leave empty to skip — you can add it later in Settings.",
   },
   it: {
     title:         "Benvenuto in LeapMotor Mate",
@@ -247,6 +259,9 @@ const strings = {
     certSaved:     "✓ Certificato salvato",
     certCrtLabel:  "app.crt (certificato)",
     certKeyLabel:  "app.key (chiave privata)",
+    abrpLabel:     "Token generico ABRP (opzionale)",
+    abrpPh:        "incolla il tuo token",
+    abrpHint:      "Invia i dati live a A Better Routeplanner. Lascia vuoto per saltare — puoi aggiungerlo dopo nelle Impostazioni.",
   },
   fr: {
     title:         "Bienvenue sur LeapMotor Mate",
@@ -279,6 +294,9 @@ const strings = {
     certSaved:     "✓ Certificat enregistré",
     certCrtLabel:  "app.crt (certificat)",
     certKeyLabel:  "app.key (clé privée)",
+    abrpLabel:     "Jeton générique ABRP (optionnel)",
+    abrpPh:        "collez votre jeton",
+    abrpHint:      "Envoie les données live à A Better Routeplanner. Laissez vide pour ignorer — vous pourrez l'ajouter plus tard dans les Réglages.",
   },
 };
 
@@ -356,6 +374,9 @@ function setLang(lang) {
   document.getElementById('cert-toggle-mode').textContent = certPasteMode ? s.certToFile : s.certToPaste;
   document.getElementById('lbl-crt').textContent          = s.certCrtLabel;
   document.getElementById('lbl-key').textContent          = s.certKeyLabel;
+  document.getElementById('lbl-abrp').textContent         = s.abrpLabel;
+  document.getElementById('inp-abrp').placeholder         = s.abrpPh;
+  document.getElementById('hint-abrp').textContent        = s.abrpHint;
 
   const active   = 'px-4 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer bg-brand/20 border-brand text-brand';
   const inactive = 'px-4 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer border-slate-600 text-slate-400 hover:border-slate-400';
@@ -500,6 +521,7 @@ async function detectCar() {
         ${batteryBlock}`);
     }
 
+    document.getElementById('abrp-wrap').style.display = 'block';
     document.getElementById('btn-submit').style.display = 'block';
   } catch (err) {
     showResult(`
@@ -510,6 +532,7 @@ async function detectCar() {
         ${buildManualInput()}
       </div>`);
     document.getElementById('h-battery').value = '67.1';
+    document.getElementById('abrp-wrap').style.display = 'block';
     document.getElementById('btn-submit').style.display = 'block';
   } finally {
     document.getElementById('detect-label').textContent = s.detectBtn;

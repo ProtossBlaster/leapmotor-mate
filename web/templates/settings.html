@@ -56,6 +56,29 @@
     </form>
   </div>
 
+  <!-- ABRP live data -->
+  <div class="card">
+    <h2 class="font-semibold text-white mb-1">{{ t('abrp_section') }}</h2>
+    <div class="text-xs text-slate-400 mb-4">{{ t('abrp_desc') }}</div>
+    <form hx-post="api/settings/abrp" hx-trigger="change" hx-target="#abrp-result" hx-swap="innerHTML" class="space-y-3">
+      <label class="flex items-center gap-2 text-sm text-white cursor-pointer">
+        <input type="checkbox" name="abrp_enabled" value="1"
+               {% if settings.get('abrp_enabled') == '1' %}checked{% endif %}
+               class="accent-brand w-4 h-4 cursor-pointer">
+        {{ t('abrp_enable') }}
+      </label>
+      <div>
+        <label class="block text-xs font-medium text-slate-400 mb-1">{{ t('abrp_token') }}</label>
+        <input type="text" name="abrp_token" value="{{ settings.get('abrp_token', '') }}"
+               placeholder="{{ t('abrp_token_ph') }}"
+               class="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-white
+                      placeholder-slate-500 text-sm font-mono focus:outline-none focus:border-brand">
+        <div class="text-xs text-slate-500 mt-1">{{ t('abrp_token_hint') }}</div>
+      </div>
+      <span id="abrp-result" class="text-sm block"></span>
+    </form>
+  </div>
+
   <!-- Polling cadence -->
   <div class="card">
     <h2 class="font-semibold text-white mb-1">{{ t('polling_section') }}</h2>

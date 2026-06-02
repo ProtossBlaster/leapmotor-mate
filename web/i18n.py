@@ -220,6 +220,14 @@ _T: dict[str, dict[str, str]] = {
         "ac_desc":              "Public AC stations up to 22 kW",
         "fast_desc":            "DC fast chargers up to 100 kW",
         "hpc_desc":             "High Power Charging 150 kW+",
+        # ABRP
+        "abrp_section":         "ABRP Live Data",
+        "abrp_desc":            "Push live telemetry to A Better Routeplanner for better range and charge planning. Optional.",
+        "abrp_enable":          "Enable ABRP push",
+        "abrp_token":           "ABRP Generic Token",
+        "abrp_token_hint":      "From the ABRP app: Settings → Car model → Live data → Generic. One token per car.",
+        "abrp_token_ph":        "paste your token",
+        "saved":                "Saved",
         # Setup
         "setup_title":          "Welcome to LeapMotor Mate",
         "setup_subtitle":       "Configure your vehicle connection to get started",
@@ -455,6 +463,14 @@ _T: dict[str, dict[str, str]] = {
         "ac_desc":              "Stazioni AC pubbliche fino a 22 kW",
         "fast_desc":            "DC rapido fino a 100 kW",
         "hpc_desc":             "High Power Charging 150 kW+",
+        # ABRP
+        "abrp_section":         "Dati live ABRP",
+        "abrp_desc":            "Invia la telemetria in tempo reale a A Better Routeplanner per stime di autonomia e ricarica migliori. Opzionale.",
+        "abrp_enable":          "Abilita invio ad ABRP",
+        "abrp_token":           "Token generico ABRP",
+        "abrp_token_hint":      "Dall'app ABRP: Impostazioni → Modello auto → Dati live → Generic. Un token per auto.",
+        "abrp_token_ph":        "incolla il tuo token",
+        "saved":                "Salvato",
         # Setup
         "setup_title":          "Benvenuto in LeapMotor Mate",
         "setup_subtitle":       "Configura la connessione al tuo veicolo per iniziare",
@@ -690,6 +706,14 @@ _T: dict[str, dict[str, str]] = {
         "ac_desc":              "Bornes AC publiques jusqu'à 22 kW",
         "fast_desc":            "Recharge rapide DC jusqu'à 100 kW",
         "hpc_desc":             "Recharge haute puissance 150 kW+",
+        # ABRP
+        "abrp_section":         "Données live ABRP",
+        "abrp_desc":            "Envoie la télémétrie en temps réel à A Better Routeplanner pour de meilleures estimations d'autonomie et de recharge. Optionnel.",
+        "abrp_enable":          "Activer l'envoi vers ABRP",
+        "abrp_token":           "Jeton générique ABRP",
+        "abrp_token_hint":      "Depuis l'app ABRP : Réglages → Modèle de voiture → Données live → Generic. Un jeton par voiture.",
+        "abrp_token_ph":        "collez votre jeton",
+        "saved":                "Enregistré",
         # Setup
         "setup_title":          "Bienvenue sur LeapMotor Mate",
         "setup_subtitle":       "Configurez la connexion à votre véhicule pour commencer",
