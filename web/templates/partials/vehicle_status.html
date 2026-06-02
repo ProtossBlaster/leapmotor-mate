@@ -3,9 +3,11 @@
 {% else %}
 
 {# ── Mushroom-style info card: tinted gradient, rounded 18px, icon + label + value ── #}
-{% macro card(icon, label, value, rgb) %}
+{% macro card(icon_class, label, value, rgb) %}
 <div style="border-radius:18px;background:linear-gradient(135deg, rgba({{ rgb }},0.16), rgba({{ rgb }},0.04));border:1px solid rgba({{ rgb }},0.24);padding:14px;display:flex;align-items:center;gap:12px">
-  <div style="width:42px;height:42px;border-radius:12px;background:rgba({{ rgb }},0.18);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">{{ icon }}</div>
+  <div style="width:42px;height:42px;border-radius:12px;background:rgba({{ rgb }},0.18);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">
+    <i class="mdi {{ icon_class }}"></i>
+  </div>
   <div style="min-width:0">
     <div style="font-size:12px;color:#94a3b8;line-height:1.2">{{ label }}</div>
     <div style="font-size:16px;font-weight:700;color:#f1f5f9;line-height:1.35">{{ value }}</div>
@@ -17,7 +19,7 @@
 
 {% macro state_card(icon_closed, icon_open, label, st, open_rgb=RED) %}
   {% if st is none %}
-    {{ card('—', label, t('no_data'), GRAY) }}
+    {{ card('mdi-help-circle-outline', label, t('no_data'), GRAY) }}
   {% elif st %}
     {{ card(icon_open, label, t('open_state'), open_rgb) }}
   {% else %}
@@ -29,46 +31,47 @@
 
   <!-- Tyre pressure -->
   <div>
-    <div class="text-white font-semibold mb-2">🛞 {{ t('tyre_pressure') }}</div>
+    <div class="text-white font-semibold mb-2"><i class="mdi mdi-tire mr-1"></i> {{ t('tyre_pressure') }}</div>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {% for tp, label in [(vs.tyres.fl, t('tyre_fl')), (vs.tyres.fr, t('tyre_fr')), (vs.tyres.rl, t('tyre_rl')), (vs.tyres.rr, t('tyre_rr'))] %}
         {% set val = ('%.2f'|format(tp.bar) ~ ' bar') if tp.bar is not none else '—' %}
-        {% if tp.low %}{{ card('⚠️', label, val ~ ' · ' ~ t('tyre_low'), RED) }}
-        {% else %}{{ card('🛞', label, val, BLUE) }}{% endif %}
+        {% if tp.low %}{{ card('mdi-alert-circle-outline', label, val ~ ' · ' ~ t('tyre_low'), RED) }}
+        {% else %}{{ card('mdi-tire', label, val, BLUE) }}{% endif %}
       {% endfor %}
     </div>
   </div>
 
   <!-- Doors -->
   <div>
-    <div class="text-white font-semibold mb-2">🚪 {{ t('doors') }}</div>
+    <div class="text-white font-semibold mb-2"><i class="mdi mdi-car-door mr-1"></i> {{ t('doors') }}</div>
     <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
-      {{ state_card('🚪', '🚪', t('door_driver'),     vs.doors.driver) }}
-      {{ state_card('🚪', '🚪', t('door_passenger'),  vs.doors.passenger) }}
-      {{ state_card('🚪', '🚪', t('door_rear_left'),  vs.doors.rear_left) }}
-      {{ state_card('🚪', '🚪', t('door_rear_right'), vs.doors.rear_right) }}
-      {{ state_card('🧳', '🧳', t('door_trunk'),      vs.doors.trunk) }}
+      {{ state_card('mdi-door-closed', 'mdi-door-open', t('door_driver'),     vs.doors.driver) }}
+      {{ state_card('mdi-door-closed', 'mdi-door-open', t('door_passenger'),  vs.doors.passenger) }}
+      {{ state_card('mdi-door-closed', 'mdi-door-open', t('door_rear_left'),  vs.doors.rear_left) }}
+      {{ state_card('mdi-door-closed', 'mdi-door-open', t('door_rear_right'), vs.doors.rear_right) }}
+      {{ state_card('mdi-car-back',     'mdi-car-back', t('door_trunk'),      vs.doors.trunk, open_rgb=AMBER) }}
     </div>
   </div>
 
   <!-- Windows + roof -->
   <div>
-    <div class="text-white font-semibold mb-2">🪟 {{ t('windows') }}</div>
+    <div class="text-white font-semibold mb-2"><i class="mdi mdi-window-closed mr-1"></i> {{ t('windows') }}</div>
     <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
-      {{ state_card('🪟', '🪟', t('win_fl'), vs.windows.fl) }}
-      {{ state_card('🪟', '🪟', t('win_fr'), vs.windows.fr) }}
-      {{ state_card('🪟', '🪟', t('win_rl'), vs.windows.rl) }}
-      {{ state_card('🪟', '🪟', t('win_rr'), vs.windows.rr) }}
-      {{ state_card('🌅', '🌅', t('win_sunshade'), vs.windows.sunshade, open_rgb=AMBER) }}
+      {{ state_card('mdi-window-closed-variant', 'mdi-window-open-variant', t('win_fl'), vs.windows.fl, open_rgb=BLUE) }}
+      {{ state_card('mdi-window-closed-variant', 'mdi-window-open-variant', t('win_fr'), vs.windows.fr, open_rgb=BLUE) }}
+      {{ state_card('mdi-window-closed-variant', 'mdi-window-open-variant', t('win_rl'), vs.windows.rl, open_rgb=BLUE) }}
+      {{ state_card('mdi-window-closed-variant', 'mdi-window-open-variant', t('win_rr'), vs.windows.rr, open_rgb=BLUE) }}
+      {{ state_card('mdi-blinds', 'mdi-blinds-open', t('win_sunshade'), vs.windows.sunshade, open_rgb=AMBER) }}
     </div>
   </div>
 
   <!-- Temperatures -->
   <div>
-    <div class="text-white font-semibold mb-2">🌡️ {{ t('temperatures') }}</div>
+    <div class="text-white font-semibold mb-2"><i class="mdi mdi-thermometer mr-1"></i> {{ t('temperatures') }}</div>
     <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
-      {{ card('🔋', t('temp_battery'), ('%.0f'|format(vs.temps.battery) ~ '°C') if vs.temps.battery is not none else '—', BLUE) }}
-      {{ card('🌡️', t('temp_cabin'), ('%.0f'|format(vs.temps.cabin) ~ '°C') if vs.temps.cabin is not none else '—', CYAN) }}
+      {{ card('mdi-thermometer-alert', t('temp_battery'), ('%.0f'|format(vs.temps.battery) ~ '°C') if vs.temps.battery is not none else '—', BLUE) }}
+      {{ card('mdi-thermometer', t('temp_cabin'), ('%.0f'|format(vs.temps.cabin) ~ '°C') if vs.temps.cabin is not none else '—', CYAN) }}
+      {{ card('mdi-thermometer-low', t('temp_outside'), ('%.0f'|format(vs.temps.outside) ~ '°C') if vs.temps.outside is not none else '—', AMBER) }}
     </div>
   </div>
 

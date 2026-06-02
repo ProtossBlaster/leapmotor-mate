@@ -7,6 +7,7 @@
   <base href="{{ request.headers.get('x-ingress-path', '') }}/">
   <title>{% block title %}LeapMotor Mate{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.6.96/css/materialdesignicons.min.css">
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <script>
@@ -78,29 +79,29 @@
     <!-- Nav -->
     <nav class="flex-1 px-3 py-4 space-y-1">
       <a href="."           class="nav-link {% if page=='overview'    %}active{% endif %}">
-        <span class="text-lg">⚡</span> {{ t('nav_overview') }}
+        <i class="mdi mdi-flash text-xl"></i> {{ t('nav_overview') }}
       </a>
       <a href="trips"       class="nav-link {% if page=='trips'       %}active{% endif %}">
-        <span class="text-lg">🗺</span> {{ t('nav_trips') }}
+        <i class="mdi mdi-map-marker-distance text-xl"></i> {{ t('nav_trips') }}
       </a>
       <a href="charges"     class="nav-link {% if page=='charges'     %}active{% endif %}">
-        <span class="text-lg">🔌</span> {{ t('nav_charges') }}
+        <i class="mdi mdi-ev-station text-xl"></i> {{ t('nav_charges') }}
       </a>
       <a href="statistics"  class="nav-link {% if page=='statistics'  %}active{% endif %}">
-        <span class="text-lg">📊</span> {{ t('nav_statistics') }}
+        <i class="mdi mdi-chart-bar text-xl"></i> {{ t('nav_statistics') }}
       </a>
       <a href="commands"    class="nav-link {% if page=='commands'    %}active{% endif %}">
-        <span class="text-lg">🎮</span> {{ t('nav_commands') }}
+        <i class="mdi mdi-remote text-xl"></i> {{ t('nav_commands') }}
       </a>
       <a href="vehicle"     class="nav-link {% if page=='vehicle'     %}active{% endif %}">
-        <span class="text-lg">🚗</span> {{ t('nav_vehicle') }}
+        <i class="mdi mdi-car-info text-xl"></i> {{ t('nav_vehicle') }}
       </a>
     </nav>
 
     <!-- Settings at bottom -->
     <div class="px-3 py-4 border-t border-slate-700">
       <a href="settings" class="nav-link {% if page=='settings' %}active{% endif %}">
-        <span class="text-lg">⚙️</span> {{ t('nav_settings') }}
+        <i class="mdi mdi-cog text-xl"></i> {{ t('nav_settings') }}
       </a>
     </div>
   </aside>

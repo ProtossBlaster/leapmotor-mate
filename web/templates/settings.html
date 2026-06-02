@@ -166,5 +166,154 @@
     </form>
   </div>
 
+  <!-- ABRP Integration -->
+  <div class="card">
+    <h2 class="font-semibold text-white mb-1">{{ t('abrp_section') }}</h2>
+    <p class="text-xs text-slate-400 mb-4">{{ t('abrp_desc') }}</p>
+
+    <form hx-post="api/settings/abrp"
+          hx-target="#abrp-feedback"
+          hx-swap="innerHTML">
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-white" for="abrp_enabled">{{ t('abrp_enabled_label') }}</label>
+          <input type="checkbox" name="abrp_enabled" id="abrp_enabled" value="1"
+                 {% if settings.get('abrp_enabled') == '1' %}checked{% endif %}
+                 class="w-4 h-4 rounded border-slate-700 bg-slate-800 text-brand focus:ring-brand">
+        </div>
+
+        <div>
+          <label class="block text-sm text-white mb-1" for="abrp_token">{{ t('abrp_token_label') }}</label>
+          <input type="password" name="abrp_token" id="abrp_token"
+                 value="{{ settings.get('abrp_token', '') }}"
+                 placeholder="{{ t('abrp_token_ph') }}"
+                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-6">
+        <div id="abrp-feedback" class="text-xs text-slate-500"></div>
+        <button type="submit"
+                class="bg-brand text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors">
+          {{ t('save_settings') }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Home Assistant Webhook -->
+  <div class="card">
+    <h2 class="font-semibold text-white mb-1">{{ t('ha_webhook_section') }}</h2>
+    <p class="text-xs text-slate-400 mb-4">{{ t('ha_webhook_desc') }}</p>
+
+    <form hx-post="api/settings/homeassistant"
+          hx-target="#ha-feedback"
+          hx-swap="innerHTML">
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-white mb-1" for="ha_webhook_url">{{ t('ha_webhook_url_label') }}</label>
+          <input type="text" name="ha_webhook_url" id="ha_webhook_url"
+                 value="{{ settings.get('ha_webhook_url', '') }}"
+                 placeholder="{{ t('ha_webhook_url_ph') }}"
+                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-6">
+        <div id="ha-feedback" class="text-xs text-slate-500"></div>
+        <button type="submit"
+                class="bg-brand text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors">
+          {{ t('save_settings') }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MQTT Integration -->
+  <div class="card">
+    <h2 class="font-semibold text-white mb-1">{{ t('mqtt_section') }}</h2>
+    <p class="text-xs text-slate-400 mb-4">{{ t('mqtt_desc') }}</p>
+
+    <form hx-post="api/settings/mqtt"
+          hx-target="#mqtt-feedback"
+          hx-swap="innerHTML">
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-white" for="mqtt_enabled">{{ t('mqtt_enabled_label') }}</label>
+          <input type="checkbox" name="mqtt_enabled" id="mqtt_enabled" value="1"
+                 {% if settings.get('mqtt_enabled') == '1' %}checked{% endif %}
+                 class="w-4 h-4 rounded border-slate-700 bg-slate-800 text-brand focus:ring-brand">
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-white" for="mqtt_discovery">{{ t('mqtt_discovery_label') }}</label>
+          <input type="checkbox" name="mqtt_discovery" id="mqtt_discovery" value="1"
+                 {% if settings.get('mqtt_discovery', '1') == '1' %}checked{% endif %}
+                 class="w-4 h-4 rounded border-slate-700 bg-slate-800 text-brand focus:ring-brand">
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-white" for="mqtt_tls">{{ t('mqtt_tls_label') }}</label>
+          <input type="checkbox" name="mqtt_tls" id="mqtt_tls" value="1"
+                 {% if settings.get('mqtt_tls') == '1' %}checked{% endif %}
+                 class="w-4 h-4 rounded border-slate-700 bg-slate-800 text-brand focus:ring-brand">
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-white" for="mqtt_tls_insecure">{{ t('mqtt_tls_insecure_label') }}</label>
+          <input type="checkbox" name="mqtt_tls_insecure" id="mqtt_tls_insecure" value="1"
+                 {% if settings.get('mqtt_tls_insecure') == '1' %}checked{% endif %}
+                 class="w-4 h-4 rounded border-slate-700 bg-slate-800 text-brand focus:ring-brand">
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div class="col-span-2">
+            <label class="block text-sm text-white mb-1" for="mqtt_broker">{{ t('mqtt_broker_label') }}</label>
+            <input type="text" name="mqtt_broker" id="mqtt_broker"
+                   value="{{ settings.get('mqtt_broker', '') }}"
+                   placeholder="192.168.1.50"
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none">
+          </div>
+          <div>
+            <label class="block text-sm text-white mb-1" for="mqtt_port">{{ t('mqtt_port_label') }}</label>
+            <input type="text" name="mqtt_port" id="mqtt_port"
+                   value="{{ settings.get('mqtt_port', '1883') }}"
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm text-white mb-1" for="mqtt_user">{{ t('mqtt_user_label') }}</label>
+            <input type="text" name="mqtt_user" id="mqtt_user"
+                   value="{{ settings.get('mqtt_user', '') }}"
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none">
+          </div>
+          <div>
+            <label class="block text-sm text-white mb-1" for="mqtt_pass">{{ t('mqtt_pass_label') }}</label>
+            <input type="password" name="mqtt_pass" id="mqtt_pass"
+                   value="{{ settings.get('mqtt_pass', '') }}"
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm text-white mb-1" for="mqtt_prefix">{{ t('mqtt_prefix_label') }}</label>
+          <input type="text" name="mqtt_prefix" id="mqtt_prefix"
+                 value="{{ settings.get('mqtt_prefix', 'leapmotor') }}"
+                 class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-6">
+        <div id="mqtt-feedback" class="text-xs text-slate-500"></div>
+        <button type="submit"
+                class="bg-brand text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors">
+          {{ t('save_settings') }}
+        </button>
+      </div>
+    </form>
+  </div>
+
 </div>
 {% endblock %}

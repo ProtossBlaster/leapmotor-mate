@@ -1,2 +1,4 @@
 leapmotor-api==0.1.4
 python-dotenv>=1.0.0
+requests>=2.31.0
+paho-mqtt>=1.6.1

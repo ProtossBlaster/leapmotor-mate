@@ -231,6 +231,38 @@ async def save_prices(request: Request):
             except ValueError:
                 pass
     return HTMLResponse('<span style="color:#22c55e;font-size:13px">✓ Saved — costs recalculated</span>')
+    
+    
+@app.post("/api/settings/abrp", response_class=HTMLResponse)
+async def save_abrp_settings(request: Request):
+    form = await request.form()
+    enabled = "1" if form.get("abrp_enabled") else "0"
+    token = form.get("abrp_token", "").strip()
+    db_reader.set_setting("abrp_enabled", enabled)
+    db_reader.set_setting("abrp_token", token)
+    return HTMLResponse('<span style="color:#22c55e">✓ Settings saved</span>')
+
+
+@app.post("/api/settings/mqtt", response_class=HTMLResponse)
+async def save_mqtt_settings(request: Request):
+    form = await request.form()
+    db_reader.set_setting("mqtt_enabled", "1" if form.get("mqtt_enabled") else "0")
+    db_reader.set_setting("mqtt_discovery", "1" if form.get("mqtt_discovery") else "0")
+    db_reader.set_setting("mqtt_tls", "1" if form.get("mqtt_tls") else "0")
+    db_reader.set_setting("mqtt_tls_insecure", "1" if form.get("mqtt_tls_insecure") else "0")
+    for key in ["mqtt_broker", "mqtt_port", "mqtt_user", "mqtt_pass", "mqtt_prefix"]:
+        val = form.get(key, "").strip()
+        db_reader.set_setting(key, val)
+    return HTMLResponse('<span style="color:#22c55e">✓ Settings saved</span>')
+
+
+@app.post("/api/settings/homeassistant", response_class=HTMLResponse)
+async def save_ha(request: Request):
+    form = await request.form()
+    url = (form.get("ha_webhook_url", "") or "").strip()
+    db_reader.set_setting("ha_webhook_url", url)
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e">✓ {t("saved")}</span>')
 
 
 @app.post("/api/settings/language")

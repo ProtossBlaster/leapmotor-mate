@@ -43,10 +43,22 @@ class VehicleData:
     windows_open: bool
     sunshade_open: bool
     any_door_open: bool       # driver/passenger/rear doors or trunk
+    door_driver_open: bool
+    door_passenger_open: bool
+    door_rear_left_open: bool
+    door_rear_right_open: bool
+    window_fl_open: bool
+    window_fr_open: bool
+    window_rl_open: bool
+    window_rr_open: bool
     plug_connected: bool      # cable inserted (signal 1149)
     remaining_charge_min: int # minutes to full (signal 1200), 0 when not charging
     charge_voltage_v: float   # charging voltage (signal 1177)
     charge_current_a: float   # charging current (signal 1178)
+    tire_fl_bar: float
+    tire_fr_bar: float
+    tire_rl_bar: float
+    tire_rr_bar: float
 
     def fingerprint(self) -> tuple:
         """Compact snapshot of signals that indicate car activity."""
@@ -124,6 +136,21 @@ class LeapmotorMateClient:
     def get_status(self) -> VehicleData:
         raw = self._api.get_vehicle_raw_status(self._vehicle)
         return _parse_signal(self._vehicle.vin, raw["data"]["signal"])
+
+    def get_image(self) -> bytes | None:
+        """Download the vehicle picture (PNG) from the cloud ZIP package."""
+        import io, zipfile
+        try:
+            meta = self._api.get_car_picture(self._vehicle)
+            key = (meta.get("data") or {}).get("key") if isinstance(meta, dict) else None
+            if not key:
+                return None
+            pkg = self._api.download_car_picture_package(picture_key=key)
+            with zipfile.ZipFile(io.BytesIO(pkg)) as z:
+                return z.read("android/xxhdpi/carpic_for_tripsum.png")
+        except Exception as e:
+            log.warning("Failed to fetch car picture: %s", e)
+            return None
 
     def close(self):
         self._api.close()
@@ -236,8 +263,20 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
             int(sig.get(k) or 0) != 0
             for k in ("1277", "1278", "1279", "1280", "1281")
         ),
+        door_driver_open=int(sig.get("1277") or 0) != 0,
+        door_passenger_open=int(sig.get("1278") or 0) != 0,
+        door_rear_left_open=int(sig.get("1279") or 0) != 0,
+        door_rear_right_open=int(sig.get("1280") or 0) != 0,
+        window_fl_open=int(sig.get("1693") or 0) != 0,
+        window_fr_open=int(sig.get("1694") or 0) != 0,
+        window_rl_open=int(sig.get("1695") or 0) != 0,
+        window_rr_open=int(sig.get("1696") or 0) != 0,
         plug_connected=_is_plugged_in(sig),
         remaining_charge_min=int(sig.get("1200") or 0),
         charge_voltage_v=float(sig.get("1177") or 0),
         charge_current_a=float(sig.get("1178") or 0),
+        tire_fl_bar=round(float(sig.get("2646") or 0) / 100.0, 2),
+        tire_fr_bar=round(float(sig.get("2653") or 0) / 100.0, 2),
+        tire_rl_bar=round(float(sig.get("2660") or 0) / 100.0, 2),
+        tire_rr_bar=round(float(sig.get("2667") or 0) / 100.0, 2),
     )

@@ -6,10 +6,12 @@ import time
 
 _PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 
-import abrp
+import homeassistant
 from client import LeapmotorMateClient
 from db import Database
 from recorder import Recorder
+from abrp import AbrpService
+from mqtt import MqttService
 
 logging.basicConfig(
     level=logging.INFO,
@@ -98,6 +100,55 @@ def main():
     # Recorder._resume_or_close(), which RESUMES a still-ongoing session (avoiding
     # fragmentation) and only closes it if the activity has actually ended.
     recorder = Recorder(db, vehicle_id)
+    
+    def execute_mqtt_command(vin: str, cmd: str, payload: str | None = None):
+        if vin != v.vin:
+            log.warning("MQTT command for unknown VIN: %s", vin)
+            return
+
+        log.info("Executing MQTT command: %s (payload: %s)", cmd, payload)
+        try:
+            # Map MQTT commands to client methods
+            # Case 1: Direct commands (buttons)
+            if cmd == "lock": client._api.lock_vehicle(vin)
+            elif cmd == "unlock": client._api.unlock_vehicle(vin)
+            elif cmd == "open_trunk": client._api.open_trunk(vin)
+            elif cmd == "close_trunk": client._api.close_trunk(vin)
+            elif cmd == "find_car": client._api._remote_control(vin=vin, action="find_car")
+            # Case 2: Entity sets (switches/numbers)
+            elif cmd == "climate":
+                if payload == "ON": client._api.ac_switch(vin)
+                else: client._api.ac_switch(vin, stop=True)
+            else:
+                log.warning("Unknown MQTT command: %s", cmd)
+        except Exception as e:
+            log.error("Failed to execute MQTT command: %s", e)
+
+    # Initialize MQTT once if enabled
+    mqtt_service = None
+    mqtt_enabled = db.get_setting("mqtt_enabled")
+    if mqtt_enabled == "1":
+        broker = db.get_setting("mqtt_broker")
+        if broker:
+            mqtt_service = MqttService(
+                broker=broker,
+                port=db.get_setting("mqtt_port", "1883"),
+                username=db.get_setting("mqtt_user"),
+                password=db.get_setting("mqtt_pass"),
+                topic_prefix=db.get_setting("mqtt_prefix", "leapmotor"),
+                use_tls=db.get_setting("mqtt_tls") == "1",
+                tls_insecure=db.get_setting("mqtt_tls_insecure") == "1",
+                discovery_enabled=db.get_setting("mqtt_discovery", "1") == "1"
+            )
+            mqtt_service.on_command = execute_mqtt_command
+            if mqtt_service.connect():
+                # Store vehicle picture to be published with discovery
+                try:
+                    img = client.get_image()
+                    if img:
+                        mqtt_service.set_vehicle_image(img)
+                except Exception as e:
+                    log.error("Failed to fetch vehicle image for MQTT: %s", e)
 
     log.info("Polling VIN %s (vehicle_id=%d)", v.vin, vehicle_id)
 
@@ -113,8 +164,31 @@ def main():
                 )
             except (TypeError, ValueError):
                 pass
+
             data = client.get_status()
             recorder.process(data)
+
+            # ABRP Telemetry
+            if db.get_setting("abrp_enabled") == "1":
+                abrp_token = db.get_setting("abrp_token")
+                if abrp_token:
+                    try:
+                        AbrpService(abrp_token).send(data)
+                    except Exception as e:
+                        log.error("ABRP error: %s", e)
+
+            # MQTT Telemetry
+            if mqtt_service:
+                try:
+                    mqtt_service.publish_status(data)
+                except Exception as e:
+                    log.error("MQTT error: %s", e)
+            
+            # Home Assistant Webhook push
+            ha_url = db.get_setting("ha_webhook_url", "")
+            if ha_url:
+                homeassistant.push_to_webhook(ha_url, data)
+
             interval = recorder.poll_interval
             # Boost window (set via POST /api/boost, e.g. an iPhone BT shortcut relayed
             # by HA when you get in the car): poll fast so we catch the trip start that
@@ -134,10 +208,6 @@ def main():
                 " (boost)" if boosting else "",
             )
             recorder.mark_online()
-            # Optional ABRP live-data push — no-op unless enabled, token set and our
-            # integrator api_key is present. Fire-and-forget; never breaks the poll.
-            if db.get_setting("abrp_enabled", "0") == "1":
-                abrp.push(data, db.get_setting("abrp_token", "") or "")
         except KeyboardInterrupt:
             log.info("Stopped by user")
             break
