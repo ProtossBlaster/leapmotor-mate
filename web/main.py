@@ -4,8 +4,8 @@ import sys
 import time
 from pathlib import Path
 
-from fastapi import FastAPI, Request, BackgroundTasks
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response, FileResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -365,7 +365,8 @@ _energy_cache: dict = {"data": None, "ts": 0.0}
 async def energy_breakdown(request: Request, refresh: int = 0):
     """Last-week energy split (driving / A/C / other) as an HTML partial. Cached 6h
     (weekly data changes slowly) to avoid an API call on every Statistics page load."""
-    import time, asyncio
+    import time
+    import asyncio
     if refresh or not _energy_cache["data"] or time.time() - _energy_cache["ts"] >= 6 * 3600:
         data = await asyncio.get_event_loop().run_in_executor(None, command_client.get_energy_breakdown)
         if data:
@@ -380,7 +381,8 @@ _rank_cache: dict = {"data": None, "ts": 0.0}
 @app.get("/api/consumption-rank", response_class=HTMLResponse)
 async def consumption_rank(request: Request, refresh: int = 0):
     """6-week consumption trend (kWh/100km) + driver ranking, as an HTML partial. Cached 6h."""
-    import time, asyncio
+    import time
+    import asyncio
     if refresh or not _rank_cache["data"] or time.time() - _rank_cache["ts"] >= 6 * 3600:
         data = await asyncio.get_event_loop().run_in_executor(None, command_client.get_consumption_rank)
         if data:
