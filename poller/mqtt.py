@@ -130,7 +130,8 @@ class MqttService:
     def _publish_sensors(self, base_topic, data):
         def pub(sub, val, retain=True):
             v = str(val) if val is not None else ""
-            if isinstance(val, bool): v = "ON" if val else "OFF"
+            if isinstance(val, bool):
+                v = "ON" if val else "OFF"
             self.client.publish(f"{base_topic}/{sub}", v, retain=retain)
 
         pub("soc", data.soc)
@@ -231,9 +232,12 @@ class MqttService:
                 "state_topic": f"{prefix}/{vin}/{s['key']}",
                 "device": device_info,
             }
-            if "unit" in s: config["unit_of_measurement"] = s["unit"]
-            if "dc" in s: config["device_class"] = s["dc"]
-            if "icon" in s: config["icon"] = s["icon"]
+            if "unit" in s:
+                config["unit_of_measurement"] = s["unit"]
+            if "dc" in s:
+                config["device_class"] = s["dc"]
+            if "icon" in s:
+                config["icon"] = s["icon"]
             
             topic = f"{disc_p}/sensor/{device_id}/{s['key']}/config"
             self.client.publish(topic, json.dumps(config), retain=True)
@@ -269,8 +273,10 @@ class MqttService:
                 "payload_on": "ON", "payload_off": "OFF",
                 "device": device_info,
             }
-            if "dc" in bs: config["device_class"] = bs["dc"]
-            if "icon" in bs: config["icon"] = bs["icon"]
+            if "dc" in bs:
+                config["device_class"] = bs["dc"]
+            if "icon" in bs:
+                config["icon"] = bs["icon"]
             topic = f"{disc_p}/binary_sensor/{device_id}/{bs['key']}/config"
             self.client.publish(topic, json.dumps(config), retain=True)
 

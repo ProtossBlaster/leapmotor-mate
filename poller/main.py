@@ -110,15 +110,22 @@ def main():
         try:
             # Map MQTT commands to client methods
             # Case 1: Direct commands (buttons)
-            if cmd == "lock": client._api.lock_vehicle(vin)
-            elif cmd == "unlock": client._api.unlock_vehicle(vin)
-            elif cmd == "open_trunk": client._api.open_trunk(vin)
-            elif cmd == "close_trunk": client._api.close_trunk(vin)
-            elif cmd == "find_car": client._api._remote_control(vin=vin, action="find_car")
+            if cmd == "lock":
+                client._api.lock_vehicle(vin)
+            elif cmd == "unlock":
+                client._api.unlock_vehicle(vin)
+            elif cmd == "open_trunk":
+                client._api.open_trunk(vin)
+            elif cmd == "close_trunk":
+                client._api.close_trunk(vin)
+            elif cmd == "find_car":
+                client._api._remote_control(vin=vin, action="find_car")
             # Case 2: Entity sets (switches/numbers)
             elif cmd == "climate":
-                if payload == "ON": client._api.ac_switch(vin)
-                else: client._api.ac_switch(vin, stop=True)
+                if payload == "ON":
+                    client._api.ac_switch(vin)
+                else:
+                    client._api.ac_switch(vin, stop=True)
             else:
                 log.warning("Unknown MQTT command: %s", cmd)
         except Exception as e:
