@@ -47,6 +47,19 @@ def _state_color(pos: dict) -> str:
     if pos.get("speed_kmh", 0) > 1: return "text-blue-400"
     return "text-green-400"
 
+def _poll_interval(status: dict, settings: dict) -> str:
+    if not status: return "—"
+    try:
+        boost_until = float(settings.get("boost_until", "0") or 0)
+        if time.time() < boost_until:
+            return "10s (boost)"
+    except (TypeError, ValueError):
+        pass
+    is_driving = status.get("gear") in ("D", "R", "N") or status.get("speed_kmh", 0) > 1
+    if is_driving:
+        return f"{settings.get('poll_driving', '10')}s"
+    return f"{settings.get('poll_parked', '30')}s"
+
 def _ctx(**kwargs):
     """Add shared helpers + i18n to every template context."""
     lang = db_reader.get_language()
@@ -55,8 +68,13 @@ def _ctx(**kwargs):
         if pos.get("charging"): return t("state_charging")
         if pos.get("speed_kmh", 0) > 1: return t("state_driving")
         return t("state_parked")
+    
+    # Pre-calculate poll interval if status and settings are present
+    poll_int = _poll_interval(kwargs.get("status"), kwargs.get("settings", {}))
+    
     return {**kwargs, "lang": lang, "t": t,
-            "soc_color": _soc_color, "state_label": state_label, "state_color": _state_color}
+            "soc_color": _soc_color, "state_label": state_label, "state_color": _state_color,
+            "poll_interval": poll_int}
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -289,9 +307,9 @@ async def charging_live(request: Request):
 @app.get("/api/status-card", response_class=HTMLResponse)
 async def status_card(request: Request):
     status = db_reader.get_latest_status()
-    vehicle, _ = db_reader.get_vehicle()
+    vehicle, settings = db_reader.get_vehicle()
     return templates.TemplateResponse(request, "partials/status_card.html", _ctx(
-        status=status, vehicle=vehicle,
+        status=status, vehicle=vehicle, settings=settings,
     ))
 
 

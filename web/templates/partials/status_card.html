@@ -58,9 +58,13 @@
       {% if status.battery_min_temp %}{{ "%.0f"|format(status.battery_min_temp) }}°C{% else %}—{% endif %}
     </span>
   </div>
-  <div class="flex justify-between text-slate-400 col-span-2">
+  <div class="flex justify-between text-slate-400">
     <span>{{ t('last_seen') }}</span>
     <span class="text-white font-medium">{{ status.last_seen }}</span>
+  </div>
+  <div class="flex justify-between text-slate-400">
+    <span>{{ t('poll_rate') }}</span>
+    <span class="text-white font-medium">{{ poll_interval }}</span>
   </div>
 </div>
 
