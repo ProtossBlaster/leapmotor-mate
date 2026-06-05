@@ -10,6 +10,7 @@ _T: dict[str, dict[str, str]] = {
         "nav_commands":    "Commands",
         "nav_vehicle":     "Vehicle",
         "nav_settings":    "Settings",
+        "nav_logout":      "Sign out",
         "nav_wallbox":     "Wallbox",
         "nav_navigation":  "Navigation",
         # Navigation page
@@ -397,6 +398,7 @@ _T: dict[str, dict[str, str]] = {
         "nav_commands":    "Comandi",
         "nav_vehicle":     "Veicolo",
         "nav_settings":    "Impostazioni",
+        "nav_logout":      "Esci",
         "nav_wallbox":     "Wallbox",
         "nav_navigation":  "Navigazione",
         # Navigation page
@@ -784,6 +786,7 @@ _T: dict[str, dict[str, str]] = {
         "nav_commands":    "Commandes",
         "nav_vehicle":     "Véhicule",
         "nav_settings":    "Paramètres",
+        "nav_logout":      "Se déconnecter",
         "nav_wallbox":     "Wallbox",
         "nav_navigation":  "Navigation",
         # Navigation page
@@ -1171,6 +1174,7 @@ _T: dict[str, dict[str, str]] = {
         "nav_commands":    "Befehle",
         "nav_vehicle":     "Fahrzeug",
         "nav_settings":    "Einstellungen",
+        "nav_logout":      "Abmelden",
         "nav_wallbox":     "Wallbox",
         "nav_navigation":  "Navigation",
         # Navigation page

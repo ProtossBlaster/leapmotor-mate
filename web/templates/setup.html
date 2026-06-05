@@ -6,7 +6,7 @@
   <!-- Resolve relative URLs against the HA ingress path (empty when standalone) -->
   <base href="{{ request.headers.get('x-ingress-path', '') }}/">
   <title>LeapMotor Mate — Setup</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="static/vendor/tailwind.js"></script>
   <script>tailwind.config = { theme: { extend: { colors: { brand: '#14b8a6' } } } }</script>
 </head>
 <body class="min-h-full bg-slate-900 text-slate-100 flex items-center justify-center p-4">

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LeapMotor Mate — Access denied</title>
+  <script src="static/vendor/tailwind.js"></script>
+</head>
+<body class="h-full bg-slate-900 text-slate-100 flex items-center justify-center min-h-screen">
+  <div class="max-w-md w-full mx-4 bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
+    <div class="text-5xl mb-4">🔒</div>
+    {% if reason == "login_failed" %}
+    <h1 class="text-xl font-semibold mb-2">Sign-in failed</h1>
+    <p class="text-slate-400 text-sm mb-6">
+      The login could not be completed (the link may have expired). Please try again.
+    </p>
+    {% else %}
+    <h1 class="text-xl font-semibold mb-2">Access denied</h1>
+    <p class="text-slate-400 text-sm mb-6">
+      Your account is not on the allow-list for this LeapMotor Mate instance.
+      Ask the administrator to add you to <code class="text-slate-300">OIDC_ALLOWED_USERS</code>.
+    </p>
+    {% endif %}
+    <a href="auth/login"
+       class="inline-block px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:opacity-90"
+       style="background:#14b8a6">Try again</a>
+  </div>
+</body>
+</html>

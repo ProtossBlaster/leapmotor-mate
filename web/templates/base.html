@@ -6,9 +6,9 @@
   <!-- Resolve all relative URLs against the HA ingress path (empty when standalone) -->
   <base href="{{ request.headers.get('x-ingress-path', '') }}/">
   <title>{% block title %}LeapMotor Mate{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="static/vendor/tailwind.js"></script>
+  <script src="static/vendor/htmx-1.9.10.min.js"></script>
+  <script src="static/vendor/apexcharts-3.49.1.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -213,6 +213,13 @@
       <a href="settings" class="nav-link {% if page=='settings' %}active{% endif %}">
         <span class="text-lg">⚙️</span> {{ t('nav_settings') }}
       </a>
+      {% if oidc_enabled %}
+      {% set _u = request.session.get('user', {}) %}
+      <a href="auth/logout" class="nav-link" title="{{ _u.get('email') or _u.get('name') or '' }}">
+        <span class="text-lg">🔒</span>
+        <span class="truncate">{{ t('nav_logout') }}</span>
+      </a>
+      {% endif %}
     </div>
   </aside>
 

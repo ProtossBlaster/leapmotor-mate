@@ -26,5 +26,8 @@ RUN chmod a+x /run.sh
 ENV PYTHONUNBUFFERED=1
 ENV CERT_DIR=/app/certs
 ENV DB_PATH=/data/leapmotor_mate.db
+# Bind all interfaces inside the container; real exposure is controlled by the
+# Docker port mapping / HA ingress. run.sh also sets this.
+ENV WEB_HOST=0.0.0.0
 
 CMD ["/run.sh"]

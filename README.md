@@ -41,7 +41,11 @@ Leapmotor Cloud  ──►  Poller (state machine)  ──►  SQLite  ──►
                        trips / charges / regen                   + remote commands
 ```
 
-The data lives in a local SQLite database. Nothing is sent anywhere except to the official Leapmotor cloud.
+The data lives in a local SQLite database; the server itself talks only to the official
+Leapmotor cloud. (For completeness: your **browser** also loads OpenStreetMap map tiles and
+geocoding when you open a map or the Navigation page, and the optional ABRP/MQTT/Home
+Assistant integrations talk to whatever you configure — all standard, and the keyless
+geocoding/tiles need no account.)
 
 ---
 
@@ -82,6 +86,47 @@ docker compose up -d
 Then open **http://localhost:4000** and follow the setup wizard.
 
 The database is stored in `./data/` (mounted at `/data` in the container).
+
+> ⚠️ **The web UI can unlock and drive the car.** By default `docker compose` publishes
+> the port on the host **loopback only** (`127.0.0.1:4000:4000`), so it is *not* reachable
+> from the LAN or internet. Before exposing it to anything beyond `localhost`, read
+> **[Authentication](#authentication)** below and enable OIDC.
+
+---
+
+## Authentication
+
+Mate's web UI has **no built‑in password** — anyone who can reach it can control the car.
+How it's protected depends on how you run it:
+
+- **Home Assistant add‑on** — protected by **HA ingress**: only logged‑in Home Assistant
+  users reach the panel. Nothing to configure (OIDC is skipped automatically).
+- **Standalone** — bound to **`127.0.0.1` by default**. Keep it that way (and reach it via
+  SSH tunnel/VPN), **or** put an authenticating reverse proxy in front, **or** enable the
+  built‑in **OIDC login** below.
+
+### OIDC login (standalone)
+
+Set these environment variables (e.g. in `docker-compose.yml` or your `.env`) to require
+sign‑in through any OpenID Connect provider — **Keycloak, Authentik, Google, Entra ID**, etc.
+Only the users you list may log in; everyone else is rejected.
+
+| Variable | Required | Meaning |
+|---|---|---|
+| `OIDC_ISSUER` | ✅ | Issuer URL (discovery at `{issuer}/.well-known/openid-configuration`) |
+| `OIDC_CLIENT_ID` | ✅ | OAuth client ID |
+| `OIDC_CLIENT_SECRET` | ✅ | OAuth client secret |
+| `OIDC_ALLOWED_USERS` | ✅ | Comma‑separated allow‑list — matched against the token's `email` / `preferred_username` / `sub` |
+| `OIDC_SESSION_SECRET` | ▲ | Cookie‑signing key; set a long random value (else sessions reset on restart) |
+| `OIDC_SCOPES` | — | Default `openid email profile` |
+| `OIDC_REDIRECT_URI` | — | Explicit callback URL for reverse‑proxy/TLS setups (e.g. `https://mate.example.com/auth/callback`) |
+| `OIDC_COOKIE_SECURE` | — | Set `true` when served over HTTPS (marks the session cookie `Secure`) |
+
+Register a **confidential client** at your IdP with the redirect URI
+`https://<your-mate-host>/auth/callback` (or `http://localhost:4000/auth/callback` for local
+testing). With OIDC enabled the login guard also covers the first‑run setup wizard, and a
+**Sign out** link appears in the sidebar. If `OIDC_ALLOWED_USERS` is empty, **all** logins are
+denied (fail‑closed).
 
 ---
 

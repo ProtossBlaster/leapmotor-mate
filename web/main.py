@@ -17,11 +17,14 @@ import i18n
 import ha_client
 import geocode
 import mqtt_test
+import auth
 
-MATE_VERSION = "1.8.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "1.9.0"  # bump together with the git tag + add-on config.yaml at release
 
 app = FastAPI(title="LeapMotor Mate")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+# Expose to templates so the sidebar can show the signed-in user + a logout link.
+templates.env.globals["oidc_enabled"] = auth.is_active()
 
 
 def _nice(x) -> str:
@@ -58,7 +61,8 @@ app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")
 @app.middleware("http")
 async def setup_check(request: Request, call_next):
     path = request.url.path
-    if path.startswith("/setup") or path.startswith("/api/") or path.startswith("/static/"):
+    if (path.startswith("/setup") or path.startswith("/api/")
+            or path.startswith("/static/") or path.startswith("/auth")):
         return await call_next(request)
     # If env vars are set, skip wizard (dev mode)
     if os.environ.get("LEAPMOTOR_USER"):
@@ -1202,7 +1206,18 @@ async def setup_submit(request: Request):
     return RedirectResponse(request.headers.get("x-ingress-path", "") + "/", status_code=303)
 
 
+# Install CSRF + OIDC auth. Registered here (after setup_check above) so the auth guard
+# and SessionMiddleware nest OUTSIDE setup_check — an unauthenticated user is sent to the
+# OIDC login before the setup wizard, closing the previously-open wizard too.
+auth.register(app, templates)
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("WEB_PORT", 4000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+    # Default to loopback so a bare run isn't LAN/internet-open. The container sets
+    # WEB_HOST=0.0.0.0 (Docker/ingress controls real exposure); proxy_headers lets the
+    # OIDC redirect_uri reflect X-Forwarded-Proto/Host behind a TLS-terminating proxy.
+    host = os.environ.get("WEB_HOST", "127.0.0.1")
+    uvicorn.run("main:app", host=host, port=port, reload=False, proxy_headers=True,
+                forwarded_allow_ips="*")

@@ -6,10 +6,23 @@ services:
       args:
         BUILD_FROM: python:3.12-slim
     ports:
-      - "4000:4000"
+      # Publish on the host LOOPBACK only by default — the UI controls the car, so it
+      # must not be LAN/internet-open out of the box. To expose it, put an
+      # authenticating reverse proxy in front, enable OIDC below, and only then change
+      # this to "0.0.0.0:4000:4000" (or a proxy network).
+      - "127.0.0.1:4000:4000"
     volumes:
       - ./data:/data            # persistent DB only (code is baked into the image)
     environment:
       - DB_PATH=/data/leapmotor_mate.db
       - TZ=Europe/Rome          # local time for the UI (HA passes this automatically to add-ons)
+      # ── Optional: require OIDC login (recommended if exposing beyond localhost) ──
+      # Only the users in OIDC_ALLOWED_USERS may sign in. See README → Authentication.
+      # - OIDC_ISSUER=https://id.example.com/realms/main
+      # - OIDC_CLIENT_ID=leapmotor-mate
+      # - OIDC_CLIENT_SECRET=change-me
+      # - OIDC_ALLOWED_USERS=you@example.com
+      # - OIDC_SESSION_SECRET=generate-a-long-random-string
+      # - OIDC_REDIRECT_URI=https://mate.example.com/auth/callback   # behind a proxy
+      # - OIDC_COOKIE_SECURE=true                                    # when served over HTTPS
     restart: unless-stopped

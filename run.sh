@@ -13,6 +13,9 @@ fi
 
 export DB_PATH="${DB_PATH:-/data/leapmotor_mate.db}"
 export CERT_DIR="/app/certs"
+# Inside the container the Docker/ingress layer controls exposure, so bind all
+# interfaces here. (The code default is 127.0.0.1 for bare `python main.py` runs.)
+export WEB_HOST="${WEB_HOST:-0.0.0.0}"
 
 echo "[LeapMotor Mate] Starting..."
 echo "[LeapMotor Mate] DB: ${DB_PATH}"

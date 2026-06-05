@@ -3,6 +3,36 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.0] — 2026-06-05
+
+### Added
+- **OIDC login with a user allow-list (standalone).** Mate can now require sign-in
+  through any OpenID Connect provider (Keycloak, Authentik, Google, Entra ID, …).
+  Only the identities listed in **`OIDC_ALLOWED_USERS`** (matched against the token's
+  email / username / sub) may log in — everyone else is rejected with an
+  "access denied" page. Configured entirely via **environment variables**
+  (`OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_ALLOWED_USERS`,
+  `OIDC_SESSION_SECRET`, optional `OIDC_REDIRECT_URI` / `OIDC_COOKIE_SECURE`), so the
+  auth boundary is never configured through the UI it protects. When enabled, the
+  guard also covers the first-run setup wizard. See README → **Authentication**.
+  - In **Home Assistant add-on** mode OIDC is skipped — HA ingress already
+    authenticates the panel (detected via `SUPERVISOR_TOKEN`).
+
+### Security
+- **CSRF protection.** State-changing requests (commands, settings, navigation) are
+  now rejected unless their `Origin`/`Referer` is same-origin, and the session cookie
+  is `SameSite=Lax` — so a malicious web page can no longer forge car commands.
+  (Standalone only; HA ingress already enforces this in add-on mode.)
+- **No more third-party CDN scripts.** Tailwind, htmx, ApexCharts, Chart.js and
+  Leaflet are now **self-hosted** under `web/static/vendor/` (pinned versions) instead
+  of being fetched from `unpkg`/`jsdelivr`/`cdn.tailwindcss.com`. A compromised CDN can
+  no longer inject JavaScript into the UI, and the browser no longer discloses your IP
+  to those CDNs. (Map tiles still load from OpenStreetMap.)
+- **Loopback bind by default.** A bare `python main.py` now binds `127.0.0.1`
+  (override with `WEB_HOST`), and `docker-compose.yml` publishes the port on the host
+  **loopback only** (`127.0.0.1:4000:4000`). The car-controlling UI is no longer
+  LAN/internet-open out of the box; expose it deliberately behind a proxy + OIDC.
+
 ## [1.8.0] — 2026-06-04
 
 ### Added
