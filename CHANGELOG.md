@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.11.7] — 2026-06-07
+
+### Changed
+- **Self-hosted front-end assets (no CDN).** Tailwind, htmx, ApexCharts, Chart.js and Leaflet are now
+  served from the add-on itself (`web/static/vendor/`) instead of public CDNs (cdn.tailwindcss.com /
+  unpkg / jsdelivr). Benefits: privacy (the UI no longer leaks your IP to third-party CDNs), reliability
+  (it keeps working offline or when a CDN is down/blocked), and security (no third-party script in a
+  car-control app). No visible change to the interface; verified in both standalone and HA ingress.
+  Idea from PR #20 by @LeeTeng2001.
+
 ## [1.11.6] — 2026-06-07
 
 ### Added

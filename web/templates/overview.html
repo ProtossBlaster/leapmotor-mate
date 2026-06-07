@@ -23,8 +23,8 @@
     {% if status and status.latitude and status.longitude %}
     <div class="stat-label mb-3">{{ t('last_position') }}</div>
     <div id="map" class="w-full rounded-lg" style="height:280px"></div>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="static/vendor/leaflet/leaflet.css"/>
+    <script src="static/vendor/leaflet/leaflet.js"></script>
     <script>
       const map = L.map('map').setView([{{ status.latitude }}, {{ status.longitude }}], 15);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

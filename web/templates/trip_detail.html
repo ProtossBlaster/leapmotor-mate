@@ -89,8 +89,8 @@
   <div class="card lg:col-span-2 p-0 overflow-hidden">
     {% if trip.positions and trip.positions|length > 1 %}
     <div id="map" style="height:460px"></div>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="static/vendor/leaflet/leaflet.css"/>
+    <script src="static/vendor/leaflet/leaflet.js"></script>
     <script>
       const coords = {{ trip.positions | tojson }};
       const latlngs = coords.map(p => [p.latitude, p.longitude]);

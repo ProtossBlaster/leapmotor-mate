@@ -6,9 +6,9 @@
   <!-- Resolve all relative URLs against the HA ingress path (empty when standalone) -->
   <base href="{{ request.headers.get('x-ingress-path', '') }}/">
   <title>{% block title %}LeapMotor Mate{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="static/vendor/tailwind.js"></script>
+  <script src="static/vendor/htmx.min.js"></script>
+  <script src="static/vendor/apexcharts.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
