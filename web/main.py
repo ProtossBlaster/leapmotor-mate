@@ -705,7 +705,11 @@ def _integrate_kwh(points: list) -> float:
 
 def _session_energy(curve: dict) -> dict:
     """Energy comparison for one charge: DC into battery vs AC from the wallbox,
-    both integrated from real power (so AC ≥ DC and efficiency < 100%)."""
+    both integrated from real power (so AC ≥ DC and efficiency < 100%).
+    
+    For AC, resamples the HA history onto the car curve's timestamps using step-hold
+    (same approach as the overlay chart) to ensure consistency between the visual
+    chart and the calculated energy values."""
     times = curve.get("times") or []
     dc = ac = eff = None
     if times:
@@ -718,8 +722,25 @@ def _session_energy(curve: dict) -> dict:
     if (db_reader.get_setting("wallbox_enabled", "0") == "1" and times
             and ha_client.is_configured() and mapping.get("power")):
         hist = ha_client.get_history(mapping["power"], times[0], times[-1])
-        if len(hist) > 1:
-            ac = round(_integrate_kwh(hist), 2)
+        if hist:
+            # Resample hist onto car curve's timestamps using step-hold (same as chart overlay)
+            resampled_ac = []
+            j, last = 0, None
+            for t in times:
+                e = ha_client.epoch(t)
+                if e is None:
+                    resampled_ac.append(None)
+                    continue
+                while j < len(hist) and hist[j][0] <= e:
+                    last = hist[j][1]
+                    j += 1
+                resampled_ac.append(last)
+            # Integrate only the resampled points that have values
+            if resampled_ac and any(v is not None for v in resampled_ac):
+                ac_pts = [(ha_client.epoch(t), p) for t, p in zip(times, resampled_ac)
+                          if p is not None and ha_client.epoch(t) is not None]
+                if len(ac_pts) > 1:
+                    ac = round(_integrate_kwh(ac_pts), 2)
     if dc and ac and ac > 0:
         eff = round(100 * dc / ac, 1)
     return {"dc_kwh": dc, "ac_kwh": ac, "eff": eff}
