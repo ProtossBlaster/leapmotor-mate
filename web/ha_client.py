@@ -33,6 +33,20 @@ _WB_KEYWORDS = (
 _WB_DEVICE_CLASSES = ("power", "energy", "current", "voltage")
 
 
+def get_wallbox_keywords() -> tuple:
+    """Get wallbox keywords from settings, with fallback to defaults."""
+    custom = db_reader.get_setting("wb_keywords", "").strip()
+    if custom:
+        # Parse comma-separated keywords, strip whitespace from each
+        return tuple(k.strip().lower() for k in custom.split(",") if k.strip())
+    return _WB_KEYWORDS
+
+
+def is_custom_keywords() -> bool:
+    """Return True if user has set custom keywords (not using defaults)."""
+    return bool(db_reader.get_setting("wb_keywords", "").strip())
+
+
 def _creds() -> tuple[str | None, str | None]:
     """Return (base_url, token). Supervisor token wins when present (add-on)."""
     sup = os.environ.get("SUPERVISOR_TOKEN") or os.environ.get("HASSIO_TOKEN")
@@ -115,8 +129,10 @@ def list_entities(only_wallbox: bool = True) -> list[dict]:
         dclass = attrs.get("device_class", "")
         unit = attrs.get("unit_of_measurement", "")
         hay = f"{eid} {name}".lower()
-        kw_match = any(k in hay for k in _WB_KEYWORDS)
-        cls_match = dclass in _WB_DEVICE_CLASSES
+        kw_match = any(k in hay for k in get_wallbox_keywords())
+        # Only use device_class fallback when using default keywords;
+        # when user specifies custom keywords, match only those.
+        cls_match = dclass in _WB_DEVICE_CLASSES if not is_custom_keywords() else False
         if only_wallbox and not (kw_match or cls_match):
             continue
         out.append({

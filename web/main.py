@@ -545,6 +545,8 @@ async def settings_page(request: Request):
         ha_url=db_reader.get_setting("ha_url", ""),
         ha_has_token=bool(db_reader.get_setting("ha_token", "")),
         ha_supervisor=bool(os.environ.get("SUPERVISOR_TOKEN")),
+        wallbox_enabled=db_reader.get_setting("wallbox_enabled", "0") == "1",
+        wb_keywords=db_reader.get_setting("wb_keywords", ""),
         currencies=db_reader.CURRENCIES,
         currency_code=db_reader.get_currency_code(),
     ))
@@ -666,6 +668,16 @@ async def save_wallbox_entities(request: Request):
     mapping = {role: form.get(role, "").strip()
                for role in ha_client.WB_ROLES if form.get(role, "").strip()}
     db_reader.set_setting("wallbox_entities", json.dumps(mapping))
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("wallbox_saved")}</span>')
+
+
+@app.post("/api/settings/wallbox-keywords", response_class=HTMLResponse)
+async def save_wallbox_keywords(request: Request):
+    """Save custom wallbox keywords for entity filtering."""
+    form = await request.form()
+    keywords = (form.get("wb_keywords", "") or "").strip()
+    db_reader.set_setting("wb_keywords", keywords)
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("wallbox_saved")}</span>')
 

@@ -268,6 +268,20 @@
         </form>
         {% endif %}
 
+        <!-- Keywords for filtering wallbox entities -->
+        <form hx-post="api/settings/wallbox-keywords" hx-trigger="change" hx-target="#wb-keywords-result" hx-swap="innerHTML" class="mt-4">
+          <div>
+            <label class="block text-sm text-white mb-2">{{ t('wb_keywords_label') }}</label>
+            <input type="text" name="wb_keywords" value="{{ wb_keywords }}" 
+                   placeholder="wallbox, charger, charging, evse, keba"
+                   spellcheck="false"
+                   class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-white
+                          text-sm focus:outline-none focus:border-brand">
+            <div class="text-[11px] text-slate-500 mt-1">{{ t('wb_keywords_hint') }}</div>
+          </div>
+          <div id="wb-keywords-result" class="text-xs mt-2"></div>
+        </form>
+
         {% if ha_supervisor or ha_has_token %}
         <!-- Sensor list: expandable -->
         <details class="mt-4 group" open>
