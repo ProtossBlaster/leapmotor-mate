@@ -363,10 +363,10 @@ def set_charge_limit(percent: int):
 
 
 # ── Scheduling (native B10 support) ───────────────────────────────────────────
-# Reads are safe (no actuation). The charge schedule (cmd 190) is a flat object; the
-# climate schedule (cmd 171) is a FULL-STATE-REPLACEMENT list, so its write is read-only
-# here for now (editing it would have to read-modify-write all controls to avoid wiping
-# schedules set in the official app).
+# Reads are safe. Both writes work on the B10: charge (cmd 190, flat object) and climate
+# (cmd 171, full-state-replacement list). The climate write was thought blocked (code -2) until
+# 2026-06-07, when it turned out the -2 was an EXPIRED start_time, not the endpoint — see
+# ClimaSchedulerT01 + _next_climate_start / save_climate_schedule below.
 def get_charge_schedule() -> dict | None:
     return _session.get_charge_schedule()
 
@@ -375,52 +375,93 @@ def get_climate_schedule() -> list | None:
     return _session.get_climate_schedule()
 
 
-def save_climate_schedule(*, enabled: bool, mode: str, temperature: int, start_hhmm: str,
-                          day_positions, wshld: str = "0", windlevel: str = "7"):
-    """Write the climate (pre-conditioning) schedule (cmd 171) — a FULL-STATE-REPLACEMENT list.
+# Climate "quick" presets — the exact payloads the official app emits, validated on-car
+# (ClimaSchedulerT01, 2026-06-07). ONLY cool/heat lock the temperature (18/32); vent/defrost/none
+# leave it FREE (temperature=None → use the user's slider value). vent pulls fresh air (circle=out);
+# defrost is the windshield-defrost flag wshld=2; none = the neutral nohotcold/auto state (no quick mode).
+CLIMATE_PRESETS = {
+    "cool":    {"mode": "cold",      "operate": "manual", "temperature": "18", "circle": "in",  "windlevel": "7", "wshld": "1"},
+    "heat":    {"mode": "hot",       "operate": "manual", "temperature": "32", "circle": "in",  "windlevel": "7", "wshld": "1"},
+    "vent":    {"mode": "nohotcold", "operate": "manual", "temperature": None, "circle": "out", "windlevel": "4", "wshld": "1"},
+    "defrost": {"mode": "nohotcold", "operate": "auto",   "temperature": None, "circle": "in",  "windlevel": "7", "wshld": "2"},
+    "none":    {"mode": "nohotcold", "operate": "auto",   "temperature": None, "circle": "in",  "windlevel": "7", "wshld": "1"},
+}
 
-    ⚠️ DOES NOT WORK ON THE B10 — kept staged/UNWIRED (no route calls it). Confirmed on-car
-    2026-06-07: the SET is rejected by the cloud with **code -2 "Request failed"** even when
-    re-sending the car's OWN current schedule verbatim (PIN verify returns code 0 first, then the
-    ac_schedule step fails). So it's the endpoint/library path that the B10 refuses, not our
-    payload — the official app must use a different `setAppointment` endpoint the lib doesn't
-    implement. The READ (get_climate_schedule) works fine, so Mate shows climate schedules
-    read-only. Re-wire this only if a future leapmotor-api / kerniger payload makes the SET work.
-    (Charge schedule via cmd 190 / RemoteActionCtlChargePlan DOES work — see save_charge_schedule.)
 
-    SAFETY (if ever re-wired): Mate manages a SINGLE schedule tagged `set_id` `mate_`; every OTHER
-    (app-set) entry is read back and re-sent UNTOUCHED so app schedules are never wiped. `days`
-    convention + `set_id` acceptance would need on-car confirmation. `mode`: cold|hot|wind;
-    `wshld`: "1" = windshield defrost."""
+def _next_climate_start(day_positions, hhmm) -> str:
+    """Strictly-future "YYYY-MM-DD HH:MM:00" for the climate schedule. `day_positions`: ints
+    0=Sun..6=Sat ([] = one-time). The B10 cloud rejects PAST appointments with code -2 (the
+    historic "climate write blocked" was just an expired start_time, ClimaSchedulerT01), so we
+    anchor start_time to the next upcoming occurrence; the `days` list drives the recurrence."""
+    import datetime
+    try:
+        h, m = (int(x) for x in str(hhmm).split(":"))
+    except Exception:
+        h, m = 7, 0
+    now = datetime.datetime.now()
+    base = now.replace(hour=h, minute=m, second=0, microsecond=0)
+    if not day_positions:
+        if base <= now:
+            base += datetime.timedelta(days=1)
+        return base.strftime("%Y-%m-%d %H:%M:00")
+    want = {(int(p) - 1) % 7 for p in day_positions}     # our Sun=0..Sat=6 → py weekday Mon=0..Sun=6
+    for add in range(0, 8):
+        cand = base + datetime.timedelta(days=add)
+        if cand > now and cand.weekday() in want:
+            return cand.strftime("%Y-%m-%d %H:%M:00")
+    return (base + datetime.timedelta(days=1)).strftime("%Y-%m-%d %H:%M:00")
+
+
+def _mint_climate_set_id() -> str:
+    """Fresh set_id in the cloud-accepted `ios_<32hex><epochSec>` shape (used only when there is no
+    existing entry to edit in place)."""
+    import time, hashlib
+    try:
+        import sys, pathlib
+        sys.path.insert(0, str(pathlib.Path(__file__).parent))
+        import db_reader as _dr
+        seed = _dr.get_or_create_device_id()
+    except Exception:
+        seed = "mate"
+    return "ios_%s%d" % (hashlib.md5(str(seed).encode()).hexdigest(), int(time.time()))
+
+
+def save_climate_schedule(*, enabled: bool, preset: str, start_hhmm: str, day_positions,
+                          temperature: int | None = None):
+    """Write Mate's climate (pre-conditioning) schedule (cmd 171). WORKS on the B10 (verified
+    on-car 2026-06-07, ClimaSchedulerT01): `set_climate_schedule` is fine — the historic code -2
+    was an EXPIRED start_time, so we always anchor start_time to the next future occurrence.
+
+    Mate manages the climate schedule as a SINGLE entry (full-state replacement; it edits the
+    existing entry in place by reusing its `set_id`). `preset` ∈ cool|heat|vent|defrost|none — the
+    validated app payloads (cool/heat LOCK temp 18/32; vent/defrost/none take a free `temperature`;
+    vent = fresh-air intake, defrost = windshield-defrost flag wshld=2, none = neutral nohotcold/auto).
+    `day_positions`: ints 0=Sun..6=Sat ([] = one-time). enabled=False cancels (sends an empty list)."""
+    if not enabled:
+        return _session.execute(lambda api, vin: api.set_climate_schedule(vin, controls=[]))
+    spec = CLIMATE_PRESETS.get(preset)
+    if spec is None:
+        return False, f"unknown climate preset: {preset}"
     import time as _t
     cur = _session.get_climate_schedule() or []
-    controls = [c for c in cur if not str(c.get("set_id", "")).startswith("mate_")]
-    if enabled:
-        try:
-            import sys, pathlib
-            sys.path.insert(0, str(pathlib.Path(__file__).parent))
-            import db_reader as _dr
-            dev = _dr.get_or_create_device_id()
-        except Exception:
-            dev = "mate"
-        now_ms = int(_t.time() * 1000)
-        prior = next((c for c in cur if str(c.get("set_id", "")).startswith("mate_")), None)
-        set_id = prior.get("set_id") if prior else f"mate_{dev}_{now_ms}"
-        controls.append({
-            "circle": "in",
-            "days": sorted({int(d) for d in day_positions}),  # Mon-first 0..6 (to confirm on-car)
-            "mode": mode,
-            "on": "1",
-            "operate": "manual",
-            "position": "all",
-            "set_id": set_id,
-            "start_time": f"{_t.strftime('%Y-%m-%d')} {start_hhmm}:00",
-            "temperature": str(int(temperature)),
-            "update_time": str(now_ms),
-            "windlevel": str(windlevel),
-            "wshld": str(wshld),
-        })
-    return _session.execute(lambda api, vin: api.set_climate_schedule(vin, controls=controls))
+    set_id = cur[0].get("set_id") if (cur and cur[0].get("set_id")) else _mint_climate_set_id()
+    days = sorted({int(d) for d in day_positions})
+    temp = spec["temperature"] or str(int(temperature if temperature is not None else 25))
+    entry = {
+        "circle": spec["circle"],
+        "days": days,                                    # 0=Sun..6=Sat (confirmed on-car)
+        "mode": spec["mode"],
+        "on": "1",
+        "operate": spec["operate"],
+        "position": "all",
+        "set_id": set_id,
+        "start_time": _next_climate_start(days, start_hhmm),
+        "temperature": temp,
+        "update_time": str(int(_t.time() * 1000)),
+        "windlevel": spec["windlevel"],
+        "wshld": spec["wshld"],
+    }
+    return _session.execute(lambda api, vin: api.set_climate_schedule(vin, controls=[entry]))
 
 
 # `cycles` is the charge schedule's per-weekday mask: a 7-field comma string where field i is

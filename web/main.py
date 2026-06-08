@@ -20,7 +20,7 @@ import geocode
 import mqtt_check
 import auth
 
-MATE_VERSION = "1.11.7"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "1.11.8"  # bump together with the git tag + add-on config.yaml at release
 
 app = FastAPI(title="LeapMotor Mate")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -427,9 +427,9 @@ def _parse_vehicle_status(sig: dict) -> dict:
 
 @app.get("/scheduling", response_class=HTMLResponse)
 async def scheduling_page(request: Request):
-    """Dedicated page for the charge schedule (cmd 190). The card lazy-loads its current values
-    from the car via api/charge-schedule. Climate (pre-conditioning) scheduling is intentionally
-    NOT shown here — the B10 rejects the climate write (code -2); tracked as ClimaSchedulerT01."""
+    """Charge schedule (cmd 190) + climate pre-conditioning schedule (cmd 171). Both cards lazy-load
+    their current values from the car. The climate write works on the B10 (ClimaSchedulerT01 solved
+    2026-06-07 — the old code -2 was an expired start_time, now anchored to the next occurrence)."""
     vehicle, _ = db_reader.get_vehicle()
     return templates.TemplateResponse(request, "scheduling.html", _ctx(
         page="scheduling", vehicle=vehicle,
@@ -1422,22 +1422,49 @@ async def save_charge_schedule_api(request: Request):
         None, lambda: command_client.save_charge_schedule(
             enabled=enabled, soc_limit=soc, start_time=start, end_time=end, cycles=cycles))
     if ok:
-        return HTMLResponse(f'<span style="color:#22c55e">✓ {t("sched_saved")}</span>')
+        return HTMLResponse(f'<span style="color:#22c55e">✓ {t("sched_saved")}</span>',
+                            headers={"HX-Trigger": "chargeScheduleSaved"})
     return HTMLResponse(f'<span style="color:#ef4444">✗ {msg}</span>')
 
 
-@app.get("/api/climate-schedule", response_class=HTMLResponse)
-async def climate_schedule_api(request: Request):
-    """Read-only list of the car's climate (pre-conditioning) schedules, as an HTML partial.
-    STAGED / not currently surfaced by any page (ClimaSchedulerT01): climate was taken off the
-    Scheduling page because the SET (cmd 171) is rejected by the B10 cloud (code -2 "Request
-    failed") even with valid data. The GET works, so this route+partial are kept ready to surface
-    a read-only card once the write path is solved. The write stays unwired in
-    command_client.save_climate_schedule. Edit climate schedules in the Leapmotor app meanwhile."""
+@app.get("/api/climate-schedule")
+async def get_climate_schedule_api():
+    """Current climate (pre-conditioning) schedule (read-only) — populates the Scheduling-page form.
+    Returns the first entry (Mate manages a single climate schedule) or {}."""
     import asyncio
     sched = await asyncio.get_event_loop().run_in_executor(None, command_client.get_climate_schedule)
-    return templates.TemplateResponse(request, "partials/climate_schedule.html",
-                                      _ctx(climate_schedule=sched or []))
+    return (sched or [{}])[0] if sched else {}
+
+
+@app.post("/api/climate-schedule", response_class=HTMLResponse)
+async def save_climate_schedule_api(request: Request):
+    """Write the climate (pre-conditioning) schedule (cmd 171). WORKS on the B10 — the historic
+    code -2 was an expired start_time (ClimaSchedulerT01, solved 2026-06-07); save_climate_schedule
+    anchors start_time to the next future occurrence. Mate manages a single climate entry (full
+    replacement). `preset` ∈ cool|heat|vent|defrost|none; `days` are 0=Sun..6=Sat. Fired only on save."""
+    import re, asyncio
+    form = await request.form()
+    enabled = (form.get("enabled") or "") in ("1", "on", "true", "True")
+    preset = (form.get("preset") or "cool").strip()
+    start = (form.get("start_time") or "").strip()
+    days = sorted(int(d) for d in form.getlist("days") if str(d).isdigit() and 0 <= int(d) <= 6)
+    try:
+        temp = int(form.get("temperature") or 25)
+    except (ValueError, TypeError):
+        temp = 25
+    t = i18n.get_t(db_reader.get_language())
+    if preset not in command_client.CLIMATE_PRESETS:
+        return HTMLResponse('<span style="color:#ef4444">✗ preset</span>', status_code=400)
+    if enabled and not re.match(r"^\d{2}:\d{2}$", start):
+        return HTMLResponse(f'<span style="color:#ef4444">✗ {t("sched_bad_time")}</span>', status_code=400)
+    ok, msg = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: command_client.save_climate_schedule(
+            enabled=enabled, preset=preset, start_hhmm=start or "07:00",
+            day_positions=days, temperature=temp))
+    if ok:
+        return HTMLResponse(f'<span style="color:#22c55e">✓ {t("sched_saved")}</span>',
+                            headers={"HX-Trigger": "climateScheduleSaved"})
+    return HTMLResponse(f'<span style="color:#ef4444">✗ {msg}</span>')
 
 
 _OPTIMISTIC = {

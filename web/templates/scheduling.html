@@ -8,8 +8,9 @@
 </div>
 
 <div class="space-y-6">
-  <!-- Charge schedule (cmd 190) — works on the B10. Climate (cmd 171) write is rejected by the
-       car (code -2); under investigation (ClimaSchedulerT01) → kept off this page until solved. -->
+  <!-- Charge schedule (cmd 190) + climate pre-conditioning schedule (cmd 171). Both write on the
+       B10; climate was unblocked 2026-06-07 (ClimaSchedulerT01 — the -2 was an expired start_time). -->
   {% include "partials/charge_schedule.html" %}
+  {% include "partials/climate_schedule.html" %}
 </div>
 {% endblock %}

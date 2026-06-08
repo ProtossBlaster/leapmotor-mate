@@ -1,8 +1,9 @@
+{% import 'partials/_icons.html' as ico %}
 <!-- Charge schedule (native cmd 190) — charge only inside a time window. Self-contained card
      (form + populate script); included on the Scheduling page. -->
 <div class="card">
   <div class="flex items-center gap-2 mb-1">
-    <span class="text-xl">⏰</span>
+    {{ ico.mdi('clock-outline', 'w-6 h-6 text-brand') }}
     <span class="font-semibold text-white">{{ t('sched_charge_title') }}</span>
     <span id="cs-badge" class="ml-auto text-sm font-bold px-3 py-1 rounded-full text-slate-400 bg-slate-700 border border-slate-600">—</span>
   </div>
@@ -36,18 +37,18 @@
             class="px-4 py-2 rounded-lg text-sm font-medium text-white border border-slate-600 hover:bg-slate-600 active:scale-95 transition-all cursor-pointer self-end">
       {{ t('sched_save') }}
     </button>
-    <span id="cs-result" class="text-xs self-center min-w-[60px]"></span>
+    <span id="cs-result" class="text-sm font-medium self-center min-w-[60px]"></span>
 
     <!-- Days of week. Chips are shown in the Leapmotor app's order (Dom→Sab) but each chip's
          VALUE is its position in the `cycles` mask. Confirmed on-car 2026-06-07: cycles is
          MONDAY-first → Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6. -->
-    <div class="w-full">
+    <div class="w-full" id="cs-days-wrap">
       <span class="text-xs text-slate-400 block mb-1">{{ t('sched_days') }}</span>
       <div class="flex flex-wrap gap-1.5">
         {% set _days = [(t('dow_sun'), 6), (t('dow_mon'), 0), (t('dow_tue'), 1), (t('dow_wed'), 2), (t('dow_thu'), 3), (t('dow_fri'), 4), (t('dow_sat'), 5)] %}
         {% for label, pos in _days %}
         <label class="cursor-pointer">
-          <input type="checkbox" name="days" value="{{ pos }}" id="cs-day-{{ pos }}" class="peer sr-only" checked>
+          <input type="checkbox" name="days" value="{{ pos }}" id="cs-day-{{ pos }}" class="peer sr-only">
           <span class="inline-flex items-center justify-center min-w-[2.4rem] px-2 py-1 rounded-md text-xs font-medium border border-slate-600 text-slate-400
                        peer-checked:bg-brand/20 peer-checked:border-brand peer-checked:text-white transition-colors">
             {{ label }}
@@ -57,27 +58,57 @@
       </div>
     </div>
   </form>
+  <div class="flex items-start gap-2 mt-3 text-xs text-amber-200/90 bg-amber-400/10 border border-amber-400/25 rounded-lg px-3 py-2">
+    {{ ico.mdi('information-outline', 'w-4 h-4 shrink-0 mt-0.5 text-amber-300') }}
+    <span>{{ t('sched_charge_hint') }}</span>
+  </div>
 </div>
 <script>
-// Populate the charge-schedule form from the car's current plan (read-only fetch)
-fetch('api/charge-schedule').then(r => r.json()).then(d => {
-  if (!d || Object.keys(d).length === 0) return;
-  var badge = document.getElementById('cs-badge');
-  var on = (d.chargeEnable == 1 || d.chargeEnable === true);
-  document.getElementById('cs-enabled').checked = on;
-  badge.textContent = on ? '{{ t("sched_active") }}' : '{{ t("sched_inactive") }}';
-  badge.className = 'ml-auto text-sm font-bold px-3 py-1 rounded-full ' + (on
-    ? 'text-green-400 bg-green-400/10 border border-green-400/30'
-    : 'text-slate-400 bg-slate-700 border border-slate-600');
-  if (d.starttime) document.getElementById('cs-start').value = d.starttime;
-  if (d.endtime)   document.getElementById('cs-end').value   = d.endtime;
-  if (d.chargesoc) document.getElementById('cs-soc').value   = d.chargesoc;
-  if (d.cycles) {                       // 7-flag mask, Monday-first (0=Mon..6=Sun) — tick matching days
-    var flags = String(d.cycles).split(',');
-    for (var i = 0; i < 7; i++) {
-      var box = document.getElementById('cs-day-' + i);
-      if (box) box.checked = (flags[i] !== undefined && flags[i].trim() === '1');
-    }
+(function () {
+  // Populate the form from the car's current plan. Days reflect the car's stored mask whenever
+  // present (a disabled-but-configured schedule really keeps its days), but the row is DIMMED when
+  // off so it doesn't read as active — and no stored days silently vanish (which would coerce to
+  // all-days on the next save).
+  function refresh() {
+    fetch('api/charge-schedule').then(function (r) { return r.json(); }).then(function (d) {
+      var on = !!(d && (d.chargeEnable == 1 || d.chargeEnable === true));
+      var badge = document.getElementById('cs-badge');
+      document.getElementById('cs-enabled').checked = on;
+      badge.textContent = on ? '{{ t("sched_active") }}' : '{{ t("sched_inactive") }}';
+      badge.className = 'ml-auto text-sm font-bold px-3 py-1 rounded-full ' + (on
+        ? 'text-green-400 bg-green-400/10 border border-green-400/30'
+        : 'text-slate-400 bg-slate-700 border border-slate-600');
+      if (d && d.starttime) document.getElementById('cs-start').value = d.starttime;
+      if (d && d.endtime)   document.getElementById('cs-end').value   = d.endtime;
+      if (d && d.chargesoc) document.getElementById('cs-soc').value   = d.chargesoc;
+      // "Active" is the master switch: when OFF the schedule doesn't restrict anything (the car may
+      // charge anytime), so we show NO days. When ON we show the picked days — but the car's "every
+      // day" default is cycles=all-1, which we treat as "no specific days" (chips empty) so clicking
+      // a day SELECTS it rather than de-selecting one of seven. A partial 1–6 selection is shown
+      // as-is. An empty save coerces to all-days server-side, so it round-trips.
+      var sel = (on && d && d.cycles) ? String(d.cycles).split(',').map(function (s) { return s.trim() === '1'; }) : [];
+      var n = sel.filter(Boolean).length;          // Mon-first 0=Mon..6=Sun
+      var show = (n > 0 && n < 7) ? sel : [];
+      for (var i = 0; i < 7; i++) {
+        var box = document.getElementById('cs-day-' + i);
+        if (box) box.checked = !!show[i];
+      }
+      var dw = document.getElementById('cs-days-wrap');
+      if (dw) dw.style.opacity = on ? '1' : '0.55';
+    }).catch(function () {});
   }
-}).catch(() => {});
+  refresh();
+  // Re-read only after a CONFIRMED save: the server fires HX-Trigger 'chargeScheduleSaved' on the
+  // success branch only — never on validation 400s or a server-side failure (which returns 200 with
+  // an ✗ message) — so a failed save shows its error without the form snapping back.
+  document.body.addEventListener('chargeScheduleSaved', function () { setTimeout(refresh, 400); });
+  // Toggling "Active" off resets the day picks (off = no schedule = charge anytime); the days row is
+  // dimmed when off and only meaningful when on.
+  var enabledBox = document.getElementById('cs-enabled');
+  enabledBox.addEventListener('change', function () {
+    var on = enabledBox.checked;
+    if (!on) for (var i = 0; i < 7; i++) { var b = document.getElementById('cs-day-' + i); if (b) b.checked = false; }
+    var dw = document.getElementById('cs-days-wrap'); if (dw) dw.style.opacity = on ? '1' : '0.55';
+  });
+})();
 </script>

@@ -1,42 +1,170 @@
 {% import 'partials/_icons.html' as ico %}
-{# Read-only list of the car's climate (pre-conditioning) schedules — cmd 171. The GET works, but
-   the B10 cloud REJECTS the SET (code -2 "Request failed") even with the car's own valid data, so
-   Mate shows these read-only; set/edit them in the Leapmotor app. days: 0=Sun…6=Sat (lib doc;
-   the sibling charge `cycles` is Mon-first, so this may be off for schedules with specific days —
-   moot for the common empty/"once" case). #}
-{% set _dow = [t('dow_sun'), t('dow_mon'), t('dow_tue'), t('dow_wed'), t('dow_thu'), t('dow_fri'), t('dow_sat')] %}
-{% if climate_schedule %}
-<ul class="space-y-2">
-  {% for s in climate_schedule %}
-  {% set on = (s.on in ['1', 1, true]) %}
-  {% set mode = s.mode or '' %}
-  <li class="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-2">
-    <span class="shrink-0 {% if on %}text-sky-400{% else %}text-slate-500{% endif %}">
-      {%- if mode == 'cold' %}{{ ico.mdi('snowflake', 'w-5 h-5') }}
-      {%- elif mode == 'hot' %}{{ ico.mdi('heat-wave', 'w-5 h-5') }}
-      {%- elif mode == 'wind' %}{{ ico.mdi('fan', 'w-5 h-5') }}
-      {%- else %}{{ ico.mdi('air-conditioner', 'w-5 h-5') }}{% endif -%}
-    </span>
-    <div class="flex-1 min-w-0">
-      <div class="text-sm font-medium text-slate-200">
-        {{ s.start_time[11:16] if (s.start_time and s.start_time|length >= 16) else (s.start_time or '—') }}
-        {% if s.temperature %}<span class="text-slate-400 font-normal">· {{ s.temperature }}°</span>{% endif %}
-      </div>
-      <div class="text-xs text-slate-400">
-        {% if not s.days %}{{ t('sched_once') }}
-        {% elif s.days|length >= 7 %}{{ t('sched_every_day') }}
-        {% else %}{% for d in s.days %}{% if 0 <= d|int <= 6 %}{{ _dow[d|int] }}{% if not loop.last %}, {% endif %}{% endif %}{% endfor %}{% endif %}
+<!-- Climate (pre-conditioning) schedule — native cmd 171. Self-contained card (form + populate
+     script); included on the Scheduling page. The WRITE works on the B10 (ClimaSchedulerT01, solved
+     2026-06-07): the old code -2 was an EXPIRED start_time, now anchored to the next occurrence by
+     command_client.save_climate_schedule. `days` list is 0=Sun..6=Sat (confirmed on-car — NOTE the
+     charge `cycles` mask uses a DIFFERENT Mon-first order). Mate manages a single climate entry.
+     Preset = 5 segmented buttons; the temperature slider locks ONLY for cool(18)/heat(32) and is
+     free for ventilation / defrost / none (validated app behaviour). MDI icons via _icons.html. -->
+<div class="card">
+  <div class="flex items-center gap-2 mb-1">
+    {{ ico.mdi('air-conditioner', 'w-6 h-6 text-sky-400') }}
+    <span class="font-semibold text-white">{{ t('sched_climate_title') }}</span>
+    <span id="cls-badge" class="ml-auto text-sm font-bold px-3 py-1 rounded-full text-slate-400 bg-slate-700 border border-slate-600">—</span>
+  </div>
+  <div class="text-xs text-slate-500 mb-3">{{ t('sched_climate_desc') }}</div>
+  <form hx-post="api/climate-schedule" hx-target="#cls-result" hx-swap="innerHTML"
+        hx-confirm="{{ t('sched_climate_confirm') }}" class="space-y-4">
+
+    <!-- Preset: 5 segmented buttons (single-select radio group), MDI icons -->
+    <div>
+      <span class="text-xs text-slate-400 block mb-1">{{ t('sched_clima_mode') }}</span>
+      <div class="flex flex-wrap gap-1.5">
+        {% set _presets = [('cool', 'snowflake', t('sched_clima_cool')), ('heat', 'heat-wave', t('sched_clima_heat')), ('vent', 'fan', t('sched_clima_vent')), ('defrost', 'car-defrost-front', t('sched_clima_defrost')), ('none', 'air-conditioner', t('sched_clima_none'))] %}
+        {% for val, icon, label in _presets %}
+        <label class="cursor-pointer">
+          <input type="radio" name="preset" value="{{ val }}" id="cls-preset-{{ val }}" class="peer sr-only"{% if val == 'cool' %} checked{% endif %}>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-600 text-slate-400
+                       peer-checked:bg-brand/20 peer-checked:border-brand peer-checked:text-white transition-colors">
+            {{ ico.mdi(icon, 'w-4 h-4') }}{{ label }}
+          </span>
+        </label>
+        {% endfor %}
       </div>
     </div>
-    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0
-      {% if on %}text-green-400 bg-green-400/10 border border-green-400/30
-      {% else %}text-slate-400 bg-slate-700 border border-slate-600{% endif %}">
-      {% if on %}{{ t('sched_active') }}{% else %}{{ t('sched_inactive') }}{% endif %}
-    </span>
-  </li>
-  {% endfor %}
-</ul>
-{% else %}
-<div class="text-sm text-slate-400">{{ t('sched_climate_none') }}</div>
-{% endif %}
-<div class="text-[11px] text-slate-500 mt-2">{{ t('sched_climate_hint') }}</div>
+
+    <!-- Controls: enable · time · temperature slider -->
+    <div class="flex flex-wrap gap-4 items-end">
+      <label class="flex items-center gap-2 text-sm text-slate-300 self-end pb-1.5">
+        <input id="cls-enabled" type="checkbox" name="enabled" value="1" class="w-4 h-4 accent-brand">
+        {{ t('sched_enabled') }}
+      </label>
+      <div class="flex flex-col gap-1">
+        <span class="text-xs text-slate-400">{{ t('sched_start') }}</span>
+        <input id="cls-start" type="time" name="start_time" value="07:00"
+               class="px-2 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+      </div>
+      <div id="cls-temp-wrap" class="flex flex-col gap-1 flex-1 min-w-[170px]">
+        <span class="text-xs text-slate-400">{{ t('sched_temp') }}
+          <span id="cls-temp-val" class="text-slate-200 font-semibold ml-1">22°C</span>
+        </span>
+        <input id="cls-temp" type="range" name="temperature" min="18" max="32" step="1" value="22"
+               aria-label="{{ t('sched_temp') }}"
+               class="w-full accent-brand cursor-pointer disabled:cursor-not-allowed">
+      </div>
+    </div>
+
+    <!-- Days of week. Climate `days` list is 0=Sun..6=Sat (confirmed on-car 2026-06-07). -->
+    <div id="cls-days-wrap">
+      <span class="text-xs text-slate-400 block mb-1">{{ t('sched_days') }}</span>
+      <div class="flex flex-wrap gap-1.5">
+        {% set _cdays = [(t('dow_sun'), 0), (t('dow_mon'), 1), (t('dow_tue'), 2), (t('dow_wed'), 3), (t('dow_thu'), 4), (t('dow_fri'), 5), (t('dow_sat'), 6)] %}
+        {% for label, pos in _cdays %}
+        <label class="cursor-pointer">
+          <input type="checkbox" name="days" value="{{ pos }}" id="cls-day-{{ pos }}" class="peer sr-only">
+          <span class="inline-flex items-center justify-center min-w-[2.4rem] px-2 py-1 rounded-md text-xs font-medium border border-slate-600 text-slate-400
+                       peer-checked:bg-brand/20 peer-checked:border-brand peer-checked:text-white transition-colors">
+            {{ label }}
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit"
+              class="px-4 py-2 rounded-lg text-sm font-medium text-white border border-slate-600 hover:bg-slate-600 active:scale-95 transition-all cursor-pointer">
+        {{ t('sched_save') }}
+      </button>
+      <span id="cls-result" class="text-sm font-medium min-w-[60px]"></span>
+    </div>
+  </form>
+  <div class="flex items-start gap-2 mt-3 text-xs text-amber-200/90 bg-amber-400/10 border border-amber-400/25 rounded-lg px-3 py-2">
+    {{ ico.mdi('information-outline', 'w-4 h-4 shrink-0 mt-0.5 text-amber-300') }}
+    <span>{{ t('sched_climate_hint') }}</span>
+  </div>
+</div>
+<script>
+(function () {
+  // Only cool/heat LOCK the temperature to the validated app value; vent/defrost/none are user-set.
+  var PRESET_TEMP = { cool: 18, heat: 32 };
+  var lastTemp = 22;                              // remembered slider value for the free presets
+  var slider = document.getElementById('cls-temp');
+  var valLbl = document.getElementById('cls-temp-val');
+  var wrap = document.getElementById('cls-temp-wrap');
+
+  function curPreset() {
+    var c = document.querySelector('input[name="preset"]:checked');
+    return c ? c.value : 'cool';
+  }
+  function isLocked(p) { return PRESET_TEMP[p] != null; }
+  function clampTemp(v) { v = parseInt(v, 10); return isNaN(v) ? 22 : Math.min(32, Math.max(18, v)); }
+  function showVal(v) { valLbl.textContent = v + '°C'; }
+  function syncTemp() {
+    var p = curPreset();
+    if (isLocked(p)) {
+      slider.disabled = true; wrap.style.opacity = '0.5';
+      slider.value = PRESET_TEMP[p];
+    } else {
+      slider.disabled = false; wrap.style.opacity = '1';
+      slider.value = lastTemp;                    // <input type=range> silently clamps to 18..32
+    }
+    showVal(slider.value);                        // label always mirrors the (clamped) slider value
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="preset"]'), function (r) {
+    r.addEventListener('change', syncTemp);
+  });
+  slider.addEventListener('input', function () {
+    showVal(this.value);
+    if (!isLocked(curPreset())) lastTemp = clampTemp(this.value);
+  });
+  syncTemp();                                     // match the slider to the default-checked preset on load (before the async fetch)
+
+  // Populate from the car's current climate schedule. The badge always reflects on/off (never the
+  // placeholder "—" once loaded); the stored days are shown but the row is DIMMED when off.
+  function refresh() {
+    fetch('api/climate-schedule').then(function (r) { return r.json(); }).then(function (d) {
+      var has = !!(d && Object.keys(d).length);
+      var on = has && (d.on == '1' || d.on === 1 || d.on === true);
+      var badge = document.getElementById('cls-badge');
+      document.getElementById('cls-enabled').checked = !!on;
+      badge.textContent = on ? '{{ t("sched_active") }}' : '{{ t("sched_inactive") }}';
+      badge.className = 'ml-auto text-sm font-bold px-3 py-1 rounded-full ' + (on
+        ? 'text-green-400 bg-green-400/10 border border-green-400/30'
+        : 'text-slate-400 bg-slate-700 border border-slate-600');
+      for (var i = 0; i < 7; i++) { var b0 = document.getElementById('cls-day-' + i); if (b0) b0.checked = false; }
+      if (has) {
+        var preset;                               // map the stored entry back to a preset button
+        if (d.mode === 'hot') preset = 'heat';
+        else if (d.mode === 'cold') preset = 'cool';
+        else if (String(d.wshld) === '2') preset = 'defrost';
+        else if (d.circle === 'out') preset = 'vent';
+        else preset = 'none';                     // nohotcold + recirculate = neutral/auto
+        var rb = document.getElementById('cls-preset-' + preset);
+        if (rb) rb.checked = true;
+        if (!isLocked(preset) && d.temperature) lastTemp = clampTemp(d.temperature);
+        if (d.start_time && String(d.start_time).length >= 16)
+          document.getElementById('cls-start').value = String(d.start_time).substring(11, 16);
+        if (on && Array.isArray(d.days)) d.days.forEach(function (n) {
+          var box = document.getElementById('cls-day-' + n); if (box) box.checked = true;
+        });
+      }
+      var dw = document.getElementById('cls-days-wrap');
+      if (dw) dw.style.opacity = on ? '1' : '0.55';
+      syncTemp();
+    }).catch(function () { syncTemp(); });
+  }
+  refresh();
+  // Re-read only after a CONFIRMED save: the server fires HX-Trigger 'climateScheduleSaved' on the
+  // success branch only (not on validation 400s or a 200-with-✗ failure), so a failed save shows its
+  // error without the form snapping back.
+  document.body.addEventListener('climateScheduleSaved', function () { setTimeout(refresh, 400); });
+  // Toggling "Active" off resets the day picks (off = no schedule); the days row is dimmed when off.
+  var enabledBox = document.getElementById('cls-enabled');
+  enabledBox.addEventListener('change', function () {
+    var on = enabledBox.checked;
+    if (!on) for (var i = 0; i < 7; i++) { var b = document.getElementById('cls-day-' + i); if (b) b.checked = false; }
+    var dw = document.getElementById('cls-days-wrap'); if (dw) dw.style.opacity = on ? '1' : '0.55';
+  });
+})();
+</script>

@@ -3,6 +3,25 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.11.8] — 2026-06-08
+
+### Added
+- **Climate pre-conditioning scheduling.** The **Scheduling** page now also writes the **climate
+  schedule** (cmd 171) on the B10 — five quick presets (**Quick Cool / Quick Heat / Ventilation /
+  Defrost / Auto**), time, days of the week, and (for ventilation / auto) a target temperature on a
+  slider; cool/heat lock to their preset temperature. The earlier "the B10 rejects the climate write
+  (code -2)" turned out to be a stale/expired `start_time`, not a blocked endpoint — Mate now anchors
+  the start to the next occurrence, so the write works. Read / write / edit / cancel all stay in sync
+  with the official Leapmotor app. (Reverse-engineered on-car; details shared upstream at
+  markoceri/leapmotor-api#5 and kerniger/leapmotor-ha#43.)
+
+### Changed
+- **Scheduling UX (charge + climate).** "Active" is now a clear master switch: turning it off resets
+  the day selection (the car may charge anytime); the day chips start clean so clicking a day
+  *selects* it instead of de-selecting one of seven. Plus an active/inactive badge on both cards, a
+  prominent "Mate manages this schedule" note, MDI icons across the page, and an immediate refresh of
+  the card after a successful save.
+
 ## [1.11.7] — 2026-06-07
 
 ### Changed
