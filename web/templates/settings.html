@@ -271,6 +271,21 @@
       </form>
 
       {% if wallbox_enabled %}
+      <form hx-post="api/settings/wallbox-auto-home" hx-trigger="change"
+            hx-target="#wb-auto-home-result" hx-swap="innerHTML"
+            class="mt-4 pt-4 border-t border-slate-700">
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <div>
+            <div class="text-sm text-white">{{ t('wallbox_auto_home') }}</div>
+            <div class="text-xs text-slate-400">{{ t('wallbox_auto_home_desc') }}</div>
+          </div>
+          <input type="checkbox" name="wallbox_auto_home" value="1"
+                 {% if settings.wallbox_auto_home == "1" %}checked{% endif %}
+                 class="w-5 h-5 accent-brand cursor-pointer flex-shrink-0">
+        </label>
+        <div id="wb-auto-home-result" class="text-xs mt-1 h-4"></div>
+      </form>
+
       <div class="mt-5 pt-5 border-t border-slate-700">
         {% if not ha_supervisor %}
         <form hx-post="api/settings/ha" hx-target="#ha-test-result" hx-swap="innerHTML" class="space-y-3">

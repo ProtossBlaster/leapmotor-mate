@@ -667,6 +667,7 @@ async def settings_page(request: Request):
                 "charge_reconstruct_min_pct": db_reader.get_setting("charge_reconstruct_min_pct", "2.0"),
                 "vampire_min_drop_pct": db_reader.get_setting("vampire_min_drop_pct", "0.2"),
                 "charge_dc_min_kw": db_reader.get_setting("charge_dc_min_kw", "11"),
+                "wallbox_auto_home": db_reader.get_setting("wallbox_auto_home", "0"),
                 "db_size_mb": round(db_reader.get_db_size_bytes() / 1048576, 1)}
     # Per-card open/collapsed state for the settings accordion — saved in the DB (shared
     # across devices). Cards start collapsed so the page stays compact, EXCEPT 'vehicle': it's
@@ -822,6 +823,16 @@ async def save_wallbox_keywords(request: Request):
     form = await request.form()
     keywords = (form.get("wb_keywords", "") or "").strip()
     db_reader.set_setting("wb_keywords", keywords)
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("wallbox_saved")}</span>')
+
+
+@app.post("/api/settings/wallbox-auto-home", response_class=HTMLResponse)
+async def save_wallbox_auto_home(request: Request):
+    """Toggle automatic HOME charge-type assignment when the wallbox is detected."""
+    form = await request.form()
+    val = "1" if form.get("wallbox_auto_home") in ("1", "on", "true") else "0"
+    db_reader.set_setting("wallbox_auto_home", val)
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("wallbox_saved")}</span>')
 

@@ -995,5 +995,30 @@ class Database:
         )
         self._conn.commit()
 
+    def auto_confirm_home(self, charge_id: int) -> bool:
+        """If wallbox_auto_home is enabled and this charge has wallbox-measured AC energy,
+        automatically set location_type = 'HOME' and compute the flat-rate cost.
+        Returns True when the assignment was made (logs it; caller may log too)."""
+        if self.get_setting("wallbox_auto_home", "0") != "1":
+            return False
+        row = self._conn.execute(
+            "SELECT ac_energy_kwh, energy_added_kwh FROM charges WHERE id=?",
+            (charge_id,)).fetchone()
+        if not row or not (row["ac_energy_kwh"] or 0) > 0:
+            return False
+        ac_kwh = float(row["ac_energy_kwh"])
+        try:
+            price = float(self.get_setting("price_home_kwh", "0") or 0)
+        except (TypeError, ValueError):
+            price = 0.0
+        cost = round(ac_kwh * price, 2) if price > 0 else None
+        self._conn.execute(
+            "UPDATE charges SET location_type='HOME', cost=? WHERE id=?",
+            (cost, charge_id))
+        self._conn.commit()
+        log.info("Charge #%d: auto-confirmed HOME — %.3f kWh AC%s",
+                 charge_id, ac_kwh, f" | cost {cost}" if cost is not None else "")
+        return True
+
     def close(self):
         self._conn.close()

@@ -219,5 +219,6 @@ class Recorder:
                 self._db.finalize_charge(
                     self._active_charge_id, data, max_power_kw=self._max_charge_kw,
                 )
+                self._db.auto_confirm_home(self._active_charge_id)
             self._active_charge_id = None
             self._max_charge_kw = 0.0
