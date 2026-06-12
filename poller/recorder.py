@@ -2,11 +2,13 @@
 Recorder: reacts to state machine events to persist trips, charges, and positions.
 """
 import logging
+import threading
 from typing import Optional
 
 from db import Database, _now_iso
 from state_machine import State, StateMachine, StateEvent, _PARKED_STATES
 from client import VehicleData
+import charger_locator
 
 log = logging.getLogger(__name__)
 
@@ -159,6 +161,22 @@ class Recorder:
         for e in events:
             self._handle_event(e, None)
 
+    def _lookup_charge_location(self, charge_id: int, lat: float, lon: float) -> None:
+        """Background thread: find the nearest charging station and save its name."""
+        try:
+            provider = self._db.get_setting("charger_locator_provider", "osm")
+            if provider == "none":
+                return
+            api_key = self._db.get_secret("charger_locator_key", "") or None
+            name = charger_locator.find_charging_station(lat, lon, provider=provider, api_key=api_key)
+            if name:
+                self._db.set_charge_location_name(charge_id, name)
+                log.info("Charge #%d location: %s", charge_id, name)
+            else:
+                log.debug("Charge #%d: no charging station found nearby", charge_id)
+        except Exception as exc:
+            log.warning("Charge #%d location lookup failed: %s", charge_id, exc)
+
     def _read_wallbox_energy(self) -> Optional[float]:
         """Current wallbox kWh-counter reading from Home Assistant (best-effort, never raises).
         Returns None when no wallbox is configured/reachable → the charge falls back to DC billing.
@@ -208,6 +226,12 @@ class Recorder:
                         self._db.set_charge_wallbox_start(self._active_charge_id, start_wb)
                         log.info("Charge #%d: wallbox counter at start = %.3f kWh",
                                  self._active_charge_id, start_wb)
+                    if data.latitude and data.longitude:
+                        threading.Thread(
+                            target=self._lookup_charge_location,
+                            args=(self._active_charge_id, data.latitude, data.longitude),
+                            daemon=True,
+                        ).start()
 
         elif frm == State.CHARGING and to in _PARKED_STATES:
             if self._active_charge_id and data:

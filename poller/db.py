@@ -253,6 +253,8 @@ class Database:
         # cloud during the charge, so it was never seen live — recorded from the SoC delta instead).
         if "reconstructed" not in ccols:
             self._conn.execute("ALTER TABLE charges ADD COLUMN reconstructed INTEGER DEFAULT 0")
+        if "location_name" not in ccols:
+            self._conn.execute("ALTER TABLE charges ADD COLUMN location_name TEXT DEFAULT NULL")
         # migration: manual trip-merge link — a child trip points to the parent it was merged into
         tcols = {r[1] for r in self._conn.execute("PRAGMA table_info(trips)").fetchall()}
         if "merged_into_id" not in tcols:
@@ -680,6 +682,12 @@ class Database:
         charge_id = cur.lastrowid
         log.info("Charge #%d started — SOC %.1f%%", charge_id, data.soc)
         return charge_id
+
+    def set_charge_location_name(self, charge_id: int, name: str) -> None:
+        self._conn.execute(
+            "UPDATE charges SET location_name=? WHERE id=?", (name, charge_id)
+        )
+        self._conn.commit()
 
     def create_reconstructed_charge(self, vehicle_id: int, start_soc: float,
                                     started_at: str, data) -> int:

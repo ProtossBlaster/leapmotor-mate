@@ -667,6 +667,8 @@ async def settings_page(request: Request):
                 "mqtt_discovery": db_reader.get_setting("mqtt_discovery", "1"),
                 "geocoder_provider": db_reader.get_setting("geocoder_provider", ""),
                 "geocoder_key_set": bool(db_reader.get_setting("geocoder_key", "")),
+                "charger_locator_provider": db_reader.get_setting("charger_locator_provider", "osm"),
+                "charger_locator_key_set": bool(db_reader.get_setting("charger_locator_key", "")),
                 "positions_retention_days": db_reader.get_setting("positions_retention_days", "0"),
                 "charge_reconstruct_min_pct": db_reader.get_setting("charge_reconstruct_min_pct", "2.0"),
                 "vampire_min_drop_pct": db_reader.get_setting("vampire_min_drop_pct", "0.2"),
@@ -1155,6 +1157,19 @@ async def save_geocoder(request: Request):
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("geocoder_saved")}</span>')
 
 
+@app.post("/api/settings/charger-locator", response_class=HTMLResponse)
+async def save_charger_locator(request: Request):
+    form = await request.form()
+    if "charger_locator_provider" in form:
+        db_reader.set_setting("charger_locator_provider",
+                              (form.get("charger_locator_provider") or "osm").strip())
+    ckey = (form.get("charger_locator_key") or "").strip()
+    if ckey:
+        db_reader.set_secret("charger_locator_key", ckey)
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("charger_locator_saved")}</span>')
+
+
 @app.post("/api/settings/retention", response_class=HTMLResponse)
 async def save_retention(request: Request):
     """Save GPS-sample retention (positions_retention_days; 0 = keep forever). The poller
@@ -1267,7 +1282,8 @@ async def test_mqtt(request: Request):
 # Every collapsible card on the Settings accordion. Used both to build the initial
 # open/collapsed map and as the allowlist for the ui-state save endpoint.
 _UI_CARD_KEYS = {"locale", "vehicle", "battery", "polling", "charge_detect", "advanced",
-                 "abrp", "geocoder", "wallbox", "mqtt", "database", "export", "diagnostics"}
+                 "abrp", "geocoder", "charger_locator", "wallbox", "mqtt",
+                 "database", "export", "diagnostics"}
 
 
 def _card_open(key: str, default: bool) -> bool:

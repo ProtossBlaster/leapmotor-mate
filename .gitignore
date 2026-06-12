@@ -12,6 +12,9 @@ data/
 .drafts/
 # certs/ are bundled in the image — tracked by git intentionally
 
+# Encryption key generated at runtime — never distribute
+secret.key
+
 # App certificate (provided by user at setup — see README / markoceri/leapmotor-certs)
 certs/app.crt
 certs/app.key

@@ -256,6 +256,41 @@
       </form>
     {% endcall %}
 
+    <!-- Charger locator -->
+    {% call scard('charger_locator', t('charger_locator_section'), card_open.get('charger_locator')) %}
+      <p class="text-xs text-slate-400 mb-4">{{ t('charger_locator_desc') }}</p>
+      <form hx-post="api/settings/charger-locator" hx-target="#charger-locator-feedback" hx-swap="innerHTML" class="space-y-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">{{ t('charger_locator_provider_label') }}</label>
+          <select name="charger_locator_provider"
+                  class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-white
+                         text-sm focus:outline-none focus:border-brand cursor-pointer"
+                  onchange="document.getElementById('cl-key-row').style.display=this.value==='google'?'block':'none'">
+            {% set clp = settings.get('charger_locator_provider', 'osm') %}
+            <option value="none"   {% if clp == 'none'   %}selected{% endif %}>{{ t('charger_locator_none') }}</option>
+            <option value="osm"    {% if clp == 'osm'    %}selected{% endif %}>{{ t('charger_locator_osm') }}</option>
+            <option value="google" {% if clp == 'google' %}selected{% endif %}>{{ t('charger_locator_google') }}</option>
+          </select>
+        </div>
+        <div id="cl-key-row" {% if settings.get('charger_locator_provider','osm') != 'google' %}style="display:none"{% endif %}>
+          <label class="block text-xs text-slate-400 mb-1">{{ t('charger_locator_key_label') }}</label>
+          <input type="password" name="charger_locator_key"
+                 placeholder="{% if settings.get('charger_locator_key_set') %}••••••••{% else %}{{ t('charger_locator_key_ph') }}{% endif %}"
+                 autocomplete="off" spellcheck="false"
+                 class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-white
+                        text-sm font-mono focus:outline-none focus:border-brand">
+          <div class="text-[11px] text-slate-500 mt-1">{{ t('charger_locator_key_hint') }}</div>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <div id="charger-locator-feedback" class="text-xs"></div>
+          <button type="submit"
+                  class="bg-brand text-white text-sm font-semibold rounded-lg px-4 py-2 flex-shrink-0">
+            {{ t('charger_locator_save') }}
+          </button>
+        </div>
+      </form>
+    {% endcall %}
+
     <!-- Wallbox -->
     {% call scard('wallbox', t('wallbox_section'), card_open.get('wallbox'), 'api/wallbox/status' if wallbox_enabled else '') %}
       <form hx-post="api/settings/wallbox" hx-trigger="change">

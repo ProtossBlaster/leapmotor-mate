@@ -284,6 +284,9 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
                       {% set is_dc = c.charge_type == 'DC' or (c.charge_type is none and (c.max_power_kw or 0) > 11) %}
                       · <span style="color:{% if is_dc %}#fb923c{% else %}#38bdf8{% endif %};font-weight:700">{% if is_dc %}DC{% else %}AC{% endif %}</span>
                     </div>
+                    {% if c.location_name %}
+                    <div class="text-[11px] text-slate-400 mt-0.5">📍 {{ c.location_name }}</div>
+                    {% endif %}
                     {% if c.reconstructed %}
                     <div class="text-[11px] text-amber-400/90 mt-0.5" title="{{ t('charge_reconstructed_hint') }}">
                       ✨ {{ t('charge_reconstructed') }}
