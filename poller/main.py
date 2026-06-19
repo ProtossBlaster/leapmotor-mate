@@ -11,6 +11,7 @@ _PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 import abrp
 from client import (LeapmotorMateClient, set_charge_current_min, EmptyStatusError,
                     seed_coord_signs, get_coord_signs)
+from state_machine import State
 from db import Database
 from mqtt import MqttService
 from recorder import Recorder
@@ -243,6 +244,113 @@ def _mqtt_tick(db, client, data, service):
     return service
 
 
+_NEXT_WP_INTERVAL_S   = 60     # poll ABRP for next waypoint every 60 s while driving
+_PREHEAT_DEBOUNCE_S   = 600    # don't re-trigger within 10 min
+_PREHEAT_CONFIRM_S    = 180    # wait up to 3 min for the BMS to confirm heating
+_last_next_wp_ts: float = 0.0
+_preheat_last_ts: float = 0.0
+_preheat_sent_ts: float = 0.0  # when the last preheat command was sent (0 = none pending)
+
+
+def _maybe_preheat(client, db, data, vin: str, mqtt_service) -> None:
+    """While driving with an active ABRP plan: trigger battery preconditioning when
+    approaching a DC fast charger and the battery is too cold. Best-effort — never raises."""
+    global _last_next_wp_ts, _preheat_last_ts
+    now = time.time()
+    if now - _last_next_wp_ts < _NEXT_WP_INTERVAL_S:
+        return
+    _last_next_wp_ts = now
+
+    token = db.get_secret("abrp_token")
+    wp = abrp.get_next_wp(token)
+    if not wp:
+        return
+
+    try:
+        dist_km = float(db.get_setting("abrp_preheat_dist_km", "20") or 20)
+        temp_c  = float(db.get_setting("abrp_preheat_temp_c",  "20") or 20)
+    except (TypeError, ValueError):
+        dist_km, temp_c = 20.0, 20.0
+
+    # ABRP's own signal OR local proximity+type check
+    batt_heat  = bool(wp.get("batt_heat") or wp.get("batt_heat_req"))
+    next_wp    = wp.get("next_charge_wp") or {}
+    is_dc_fast = next_wp.get("charger_type") == "dc_fast"
+    dist_m     = float(next_wp.get("dist_m") or 999_999)
+    is_close   = dist_m < dist_km * 1000
+
+    if not (batt_heat or (is_dc_fast and is_close)):
+        return
+    bat_temp = data.battery_min_temp or 0.0
+    if bat_temp >= temp_c:
+        return   # already warm enough
+    if now - _preheat_last_ts < _PREHEAT_DEBOUNCE_S:
+        return   # recently triggered — avoid hammering the car
+
+    charger_name = next_wp.get("name") or ""
+    log.info(
+        "ABRP preheat: DC fast charger %.1f km away, battery %.0f°C — triggering battery preheat",
+        dist_m / 1000, bat_temp,
+    )
+    try:
+        with _API_LOCK:
+            client._api.battery_preheat(vin)
+        _preheat_last_ts = now
+        global _preheat_sent_ts
+        _preheat_sent_ts = now   # arm the confirmation watchdog
+    except Exception as exc:  # noqa: BLE001
+        log.warning("ABRP preheat: battery_preheat command failed: %s", exc)
+        return
+
+    # Notify via MQTT so HA automations (→ iPhone / CarPlay) can pick it up
+    if mqtt_service:
+        mqtt_service.publish_event(vin, "battery_preheat", {
+            "batt_temp_c": round(bat_temp, 1),
+            "dist_km":     round(dist_m / 1000, 1),
+            "charger":     charger_name,
+        })
+
+
+def _check_preheat_confirmation(data, vin: str, mqtt_service) -> None:
+    """After a battery_preheat() command, watch signal 1186 (batteryThermalRequest) to
+    confirm whether the BMS actually started heating. Clears itself after confirmation or
+    timeout. Best-effort — never raises."""
+    global _preheat_sent_ts
+    if _preheat_sent_ts == 0.0:
+        return
+    now = time.time()
+    age = now - _preheat_sent_ts
+    thermal = data.battery_thermal_request   # 0=none 1=cooling 2=heating
+
+    if thermal == 2:
+        log.info("ABRP preheat CONFIRMED: BMS is actively heating the battery (signal 1186=2)")
+        if mqtt_service:
+            mqtt_service.publish_event(vin, "battery_preheat_confirmed", {
+                "batt_temp_c": round(data.battery_min_temp or 0, 1),
+            })
+        _preheat_sent_ts = 0.0
+    elif thermal == 1:
+        log.info("ABRP preheat: BMS is COOLING (signal 1186=1) — battery already warm, preheat not needed")
+        if mqtt_service:
+            mqtt_service.publish_event(vin, "battery_preheat_not_needed", {
+                "batt_temp_c": round(data.battery_min_temp or 0, 1),
+                "reason": "bms_cooling",
+            })
+        _preheat_sent_ts = 0.0
+    elif age > _PREHEAT_CONFIRM_S:
+        log.info(
+            "ABRP preheat: no BMS response after %.0fs (signal 1186=0) — "
+            "battery may already be at target temp or command had no effect",
+            age,
+        )
+        if mqtt_service:
+            mqtt_service.publish_event(vin, "battery_preheat_not_needed", {
+                "batt_temp_c": round(data.battery_min_temp or 0, 1),
+                "reason": "no_bms_response",
+            })
+        _preheat_sent_ts = 0.0
+
+
 def load_config(db: "Database") -> dict:
     """Load credentials from DB settings, falling back to env vars (dev mode).
     DB takes precedence over env — same order as the web layer — so a stray
@@ -372,6 +480,7 @@ def main():
                 data = client.get_status()
             recorder.process(data)
             _write_comfort_state(db, data)
+            _check_preheat_confirmation(data, v.vin, mqtt_service)
 
             # Persist the authoritative GPS sign the moment a signed poll refreshes it (#43),
             # so the next restart starts on dry land. Only writes when it actually changes
@@ -398,6 +507,10 @@ def main():
             # ABRP live telemetry (opt-in, off by default)
             if db.get_setting("abrp_enabled") == "1":
                 abrp.send(db.get_secret("abrp_token"), data)
+                # Battery preconditioning: trigger before a DC fast charge if enabled
+                if (db.get_setting("abrp_preheat_enabled") == "1"
+                        and recorder.state == State.DRIVING):
+                    _maybe_preheat(client, db, data, v.vin, mqtt_service)
 
             # MQTT → Home Assistant bridge (opt-in, off by default)
             mqtt_service = _mqtt_tick(db, client, data, mqtt_service)

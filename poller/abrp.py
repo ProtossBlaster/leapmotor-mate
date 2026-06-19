@@ -14,7 +14,8 @@ import urllib.request
 
 log = logging.getLogger(__name__)
 
-_API_URL = "https://api.iternio.com/1/tlm/send"
+_API_URL      = "https://api.iternio.com/1/tlm/send"
+_NEXT_WP_URL  = "https://api.iternio.com/1/tlm/get_next_wp"
 _API_KEY = "6f6a554f-d8c8-4c72-8914-d5895f58b1eb"  # public shared telemetry key
 _TIMEOUT = 10
 
@@ -36,6 +37,28 @@ def send(token: str, data) -> None:
             log.warning("ABRP: %s", body)
     except Exception as exc:  # noqa: BLE001 — telemetry must never break polling
         log.warning("ABRP: send failed: %s", exc)
+
+
+def get_next_wp(token: str) -> dict | None:
+    """Poll ABRP for the next waypoint on the active plan.
+
+    Returns a dict with at minimum the keys the caller needs:
+      batt_heat (bool)  — ABRP's own signal to start battery preconditioning
+      next_charge_wp    — dict with charger_type ("dc_fast"/"ac"), dist_m, name
+    Returns None when there is no active plan, the token is missing, or the
+    request fails. Best-effort: never raises to the caller."""
+    if not token:
+        return None
+    qs = urllib.parse.urlencode({"api_key": _API_KEY, "token": token})
+    try:
+        with urllib.request.urlopen(f"{_NEXT_WP_URL}?{qs}", timeout=_TIMEOUT) as resp:
+            body = json.loads(resp.read().decode("utf-8", "replace"))
+        if body.get("status") == "ok":
+            return body.get("result") or None
+        log.debug("ABRP get_next_wp: %s", body)
+    except Exception as exc:  # noqa: BLE001
+        log.debug("ABRP: get_next_wp failed: %s", exc)
+    return None
 
 
 def _build_tlm(data) -> dict:

@@ -840,6 +840,9 @@ async def settings_page(request: Request):
     settings = {**settings, **prices,
                 "abrp_enabled": db_reader.get_setting("abrp_enabled", "0"),
                 "abrp_token_set": bool(db_reader.get_setting("abrp_token", "")),
+                "abrp_preheat_enabled": db_reader.get_setting("abrp_preheat_enabled", "0"),
+                "abrp_preheat_dist_km": db_reader.get_setting("abrp_preheat_dist_km", "20"),
+                "abrp_preheat_temp_c":  db_reader.get_setting("abrp_preheat_temp_c",  "20"),
                 "mqtt_enabled": db_reader.get_setting("mqtt_enabled", "0"),
                 "mqtt_broker": db_reader.get_setting("mqtt_broker", ""),
                 "mqtt_port": db_reader.get_setting("mqtt_port", "1883"),
@@ -1339,6 +1342,18 @@ async def save_abrp(request: Request):
     tok = (form.get("abrp_token") or "").strip()
     if tok:  # masked field: only overwrite on a non-empty submit (keep existing otherwise)
         db_reader.set_secret("abrp_token", tok)
+    db_reader.set_setting("abrp_preheat_enabled",
+                          "1" if form.get("abrp_preheat_enabled") in ("1", "on", "true") else "0")
+    try:
+        dist_km = max(1, min(200, int(form.get("abrp_preheat_dist_km") or 20)))
+    except (TypeError, ValueError):
+        dist_km = 20
+    db_reader.set_setting("abrp_preheat_dist_km", str(dist_km))
+    try:
+        temp_c = max(-20, min(40, int(form.get("abrp_preheat_temp_c") or 20)))
+    except (TypeError, ValueError):
+        temp_c = 20
+    db_reader.set_setting("abrp_preheat_temp_c", str(temp_c))
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("abrp_saved")}</span>')
 

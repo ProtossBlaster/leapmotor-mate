@@ -140,6 +140,7 @@ class MqttService:
         pub("seat_vent_driver", data.seat_vent_driver);     pub("seat_vent_passenger", data.seat_vent_passenger)
         pub("steering_heat", data.steering_heat)
         pub("mirror_heat_left", data.mirror_heat_left);     pub("mirror_heat_right", data.mirror_heat_right)
+        pub("battery_thermal_request", data.battery_thermal_request)
         pub("last_seen", datetime.now(timezone.utc).isoformat())
         self._publish_evcc(base, data)
         self.client.publish(f"{base}/location",
@@ -171,6 +172,18 @@ class MqttService:
         else:
             v = "" if value is None else str(value)
         self.client.publish(f"{self.topic_prefix}/{vin}/{key}", v, retain=True)
+
+    def publish_event(self, vin: str, event_type: str, payload: dict) -> None:
+        """Publish a one-shot (non-retained) event to {prefix}/{vin}/event.
+        Used for transient signals like battery preconditioning that should trigger
+        HA automations but must NOT be replayed to new subscribers as stale state."""
+        if not self.client or not self.client.is_connected():
+            return
+        try:
+            body = json.dumps({"type": event_type, **payload}, separators=(",", ":"))
+            self.client.publish(f"{self.topic_prefix}/{vin}/event", body, retain=False)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("MQTT: publish_event failed: %s", exc)
 
     def publish_discovery(self, data):
         vin = data.vin
@@ -210,6 +223,7 @@ class MqttService:
             ("tire_rr", "Tyre RR", {"dc": "pressure", "unit": "bar", "icon": "mdi:tire"}),
             ("gear", "Gear", {"icon": "mdi:car-shift-pattern"}),
             ("state", "State", {"icon": "mdi:car-info"}),
+            ("battery_thermal_request", "Battery Thermal Request", {"icon": "mdi:thermometer-lines"}),
             ("last_seen", "Last Seen", {"dc": "timestamp", "icon": "mdi:clock-outline"}),
         ]
         for key, name, extra in sensors:

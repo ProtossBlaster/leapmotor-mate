@@ -425,6 +425,116 @@ Sends the car's telemetry to ABRP for real-time trip planning.
    account).
 3. Save. The integration's status appears in the card's header.
 
+#### ABRP — Battery preconditioning before a DC fast charge
+
+When you travel with an **active ABRP plan** and MQTT is enabled, Mate can automatically send a
+**battery preheating** command before a DC fast charger stop. This gives the BMS time to bring
+the battery to the optimal temperature, which can significantly improve peak charging power in
+cold weather.
+
+**How it works:**
+
+1. Every 60 s while driving, Mate queries ABRP for the next waypoint on your active plan.
+2. If the next stop is a **DC fast charger** closer than the configured distance *and* the battery
+   temperature is below the configured threshold, Mate sends the `battery_preheat` command to the car.
+3. A 10-minute debounce prevents repeated commands on the same stop.
+4. After sending the command, Mate monitors BMS signal 1186 (`batteryThermalRequest`) for up to 3 minutes:
+
+| BMS response | Event published | Meaning |
+|---|---|---|
+| Signal = 2 (heating) | `battery_preheat_confirmed` | BMS started active heating |
+| Signal = 1 (cooling) | `battery_preheat_not_needed` (`reason: bms_cooling`) | Battery already warm, BMS is cooling |
+| No change after 3 min | `battery_preheat_not_needed` (`reason: no_bms_response`) | BMS decided no heating is needed |
+
+> **Note**: The `battery_preheat` command is the same as the "Battery preheating" toggle in the
+> Leapmotor app's Charging Centre. The BMS uses its own internal temperature sensor and may decide
+> not to heat even if the command is sent. The events above let you know exactly what happened.
+
+**Setup:**
+
+1. In *Settings → ABRP*, make sure ABRP is enabled with a valid token.
+2. Enable **Battery preconditioning** and configure:
+   - **Distance (km)**: trigger when the next DC charger is closer than this value (default 20 km).
+   - **Max battery temperature (°C)**: only trigger if battery temperature is below this (default 20 °C).
+3. MQTT must be configured and connected — events arrive on `<prefix>/<vin>/event`.
+
+**MQTT event payloads:**
+
+```json
+// battery_preheat — command sent
+{"type": "battery_preheat", "batt_temp_c": 3.5, "dist_km": 14.2, "charger": "Ionity A4 km 42"}
+
+// battery_preheat_confirmed — BMS heating active
+{"type": "battery_preheat_confirmed", "batt_temp_c": 5.1}
+
+// battery_preheat_not_needed — BMS declined
+{"type": "battery_preheat_not_needed", "batt_temp_c": 18.3, "reason": "no_bms_response"}
+```
+
+**Home Assistant automation example:**
+
+```yaml
+alias: "Leapmotor – Battery preconditioning notification"
+description: "Notifies when Mate triggers (or confirms) battery preconditioning before a DC fast charger."
+mode: single
+trigger:
+  - platform: mqtt
+    topic: leapmotor/+/event          # replace 'leapmotor' with your prefix if changed
+condition:
+  - condition: template
+    value_template: >
+      {{ trigger.payload_json.type in [
+           'battery_preheat',
+           'battery_preheat_confirmed',
+           'battery_preheat_not_needed'
+         ] }}
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.payload_json.type == 'battery_preheat' }}"
+        sequence:
+          - service: notify.mobile_app_YOUR_PHONE   # ← your HA notify service
+            data:
+              title: "Leapmotor B10 – Battery preconditioning"
+              message: >
+                Battery at {{ trigger.payload_json.batt_temp_c }}°C —
+                preheating command sent.
+                {{ trigger.payload_json.dist_km }} km to
+                {{ trigger.payload_json.charger }}.
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.payload_json.type == 'battery_preheat_confirmed' }}"
+        sequence:
+          - service: notify.mobile_app_YOUR_PHONE
+            data:
+              title: "Leapmotor B10 – Battery heating confirmed ✓"
+              message: >
+                BMS is actively heating the battery
+                ({{ trigger.payload_json.batt_temp_c }}°C).
+                Ready for fast charging.
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.payload_json.type == 'battery_preheat_not_needed' }}"
+        sequence:
+          - service: notify.mobile_app_YOUR_PHONE
+            data:
+              title: "Leapmotor B10 – Battery OK, no heating"
+              message: >
+                {% if trigger.payload_json.reason == 'bms_cooling' %}
+                BMS is already cooling — battery is warm enough.
+                {% else %}
+                BMS did not start heating — battery temperature is probably adequate.
+                {% endif %}
+                ({{ trigger.payload_json.batt_temp_c }}°C)
+```
+
+Replace `notify.mobile_app_YOUR_PHONE` with your actual HA notification service (e.g.
+`notify.mobile_app_iphone_di_marco`). You can find the exact name under
+*Developer Tools → Services* in Home Assistant.
+
 ### MQTT → Home Assistant
 Publishes the car's status (charge, range, position, doors, charge status…) as **entities in Home
 Assistant**, with **auto-discovery**. You can also **command** the car from the HA entities.

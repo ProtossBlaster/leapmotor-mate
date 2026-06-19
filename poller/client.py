@@ -74,6 +74,10 @@ class VehicleData:
     security_active: bool = False   # signal 1255 vehicleSecurityActive — locked + alarm armed (validate on-car)
     charge_limit_percent: int | None = None  # configured max-charge SoC (from the config block, not a
                                              # signal); None if unknown / model doesn't report it
+    # Battery thermal management state from the BMS (signal 1186 batteryThermalRequest).
+    # 0 = none  1 = cooling requested  2 = heating requested (preconditioning active)
+    # Used to confirm whether a battery_preheat() command actually took effect.
+    battery_thermal_request: int = 0
 
     def fingerprint(self) -> tuple:
         """Compact snapshot of signals that indicate car activity."""
@@ -507,4 +511,5 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         ready=int(sig.get("1258") or 0) == 1,   # B10 faithful READY (ON3) sensor
         charge_completed=int(sig.get("3736") or 0) != 0,  # 3736 chargeCompleted — truthy (confirm value at a real full charge)
         security_active=int(sig.get("1255") or 0) != 0,   # 1255 vehicleSecurityActive — B10 reads 2 when armed; truthy, matches kerniger bool()
+        battery_thermal_request=int(sig.get("1186") or 0),  # 0=none 1=cooling 2=heating (preconditioning)
     )

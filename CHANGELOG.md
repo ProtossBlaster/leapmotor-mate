@@ -3,6 +3,27 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **ABRP: automatic battery preconditioning before DC fast charging.** When travelling with an
+  active ABRP plan, Mate now monitors the next waypoint every 60 s and sends the `battery_preheat`
+  command when a DC fast charger is within the configured distance *and* the battery temperature is
+  below the configured threshold. A 10-minute debounce prevents repeated commands on the same stop.
+  Configurable in *Settings → ABRP*: enable the feature, set the trigger distance (km) and the
+  maximum battery temperature (°C).
+- **ABRP preconditioning confirmation via BMS signal 1186** (`batteryThermalRequest`). After
+  sending the command, Mate watches the BMS thermal state for up to 3 minutes and publishes one of
+  three MQTT events on `<prefix>/<vin>/event`:
+  - `battery_preheat` — command sent (payload: `batt_temp_c`, `dist_km`, `charger`).
+  - `battery_preheat_confirmed` — BMS confirmed active heating (signal 1186 = 2).
+  - `battery_preheat_not_needed` — BMS did not start heating (signal 1 = already cooling;
+    or no response after 3 min), with a `reason` field (`bms_cooling` / `no_bms_response`).
+- **New MQTT sensor `battery_thermal_request`** (signal 1186): exposes the BMS thermal management
+  state as a Home Assistant entity (0 = none, 1 = cooling, 2 = heating/preconditioning).
+- **Docs**: all four language manuals now document the preconditioning feature with a full
+  Home Assistant automation example for mobile push notifications.
+
 ## [1.25.2] — 2026-06-19
 
 ### Fixed
