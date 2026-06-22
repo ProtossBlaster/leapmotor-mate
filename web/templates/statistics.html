@@ -134,7 +134,13 @@
   {% endif %}
 {% endmacro %}
 
-<div class="space-y-3" id="stats-tree">
+<div class="flex justify-end mb-3">
+  <button type="button" id="collapse-all-stats"
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-slate-400/50 transition-all">
+    ⊟ {{ t('collapse_all') }}
+  </button>
+</div>
+<div class="space-y-3" id="stats-tree" data-ls-key="lm_stats_open">
 {% for year in grouped %}
 
   <!-- YEAR -->
@@ -150,6 +156,7 @@
         <span class="text-white font-semibold whitespace-nowrap">{{ year.total_km | dist(0) }}</span>
         <span class="text-slate-400 whitespace-nowrap">{{ year.total_kwh }} kWh</span>
         {{ eff_badge(year.avg_efficiency) }}
+        <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
       </div>
     </summary>
 
@@ -169,6 +176,7 @@
             <span class="text-slate-200 font-semibold whitespace-nowrap">{{ month.total_km | dist(0) }}</span>
             <span class="text-slate-400 whitespace-nowrap">{{ month.total_kwh }} kWh</span>
             {{ eff_badge(month.avg_efficiency) }}
+            <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
           </div>
         </summary>
 
@@ -273,6 +281,15 @@
       st[el.id] = el.open;
       localStorage.setItem(LS_KEY, JSON.stringify(st));
     });
+  });
+
+  document.getElementById('collapse-all-stats')?.addEventListener('click', () => {
+    const st = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    document.querySelectorAll('#stats-tree details').forEach(el => {
+      el.open = false;
+      st[el.id] = false;
+    });
+    localStorage.setItem(LS_KEY, JSON.stringify(st));
   });
 })();
 </script>

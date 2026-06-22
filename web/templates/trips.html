@@ -13,10 +13,14 @@
     <p class="text-slate-400 text-sm mt-1">{{ total }} {{ t('recorded_trips') }}</p>
   </div>
   {% if total %}
-  <div class="shrink-0 flex items-center gap-2">
+  <div class="shrink-0 flex items-center gap-2 flex-wrap justify-end">
     <button type="button" id="merge-toggle"
             class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-yellow-500/50 transition-all">
       🔗 {{ t('merge_mode') }}
+    </button>
+    <button type="button" id="collapse-all-trips"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-slate-400/50 transition-all">
+      ⊟ {{ t('collapse_all') }}
     </button>
     <a href="api/export/trips.csv" download
        class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-brand/50 transition-all">
@@ -82,7 +86,7 @@
 <!-- ── Trips (year / month / day tree) ──────────────────────────── -->
 {% if grouped %}
 <section>
-  <div class="space-y-3" id="trips-tree">
+  <div class="space-y-3" id="trips-tree" data-ls-key="lm_trips_open">
   {% for year in grouped %}
 
     <!-- YEAR -->
@@ -100,6 +104,7 @@
             {{ year.avg_eff | eff }}
           </span>
           {% endif %}
+          <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
         </div>
       </summary>
 
@@ -121,6 +126,7 @@
                 {{ month.avg_eff | eff }}
               </span>
               {% endif %}
+              <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
             </div>
           </summary>
 
@@ -258,6 +264,16 @@ document.querySelectorAll('#trips-tree details').forEach(el => {
     st[el.id] = el.open;
     localStorage.setItem(LS_KEY, JSON.stringify(st));
   });
+});
+
+// Collapse all
+document.getElementById('collapse-all-trips')?.addEventListener('click', () => {
+  const st = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+  document.querySelectorAll('#trips-tree details').forEach(el => {
+    el.open = false;
+    st[el.id] = false;
+  });
+  localStorage.setItem(LS_KEY, JSON.stringify(st));
 });
 
 // ── Highlight and scroll to the selected trip ────────────────────────────────

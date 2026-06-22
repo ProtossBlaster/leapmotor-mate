@@ -10,11 +10,17 @@
     <p class="text-slate-400 text-sm mt-1">{{ total }} {{ t('sessions_recorded') }}</p>
   </div>
   {% if total %}
-  <a href="api/export/charges.csv" download
-     class="shrink-0 inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-brand/50 transition-all">
-    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
-    {{ t('export_csv') }}
-  </a>
+  <div class="shrink-0 flex items-center gap-2 flex-wrap justify-end">
+    <button type="button" id="collapse-all-charges"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-slate-400/50 transition-all">
+      ⊟ {{ t('collapse_all') }}
+    </button>
+    <a href="api/export/charges.csv" download
+       class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-brand/50 transition-all">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
+      {{ t('export_csv') }}
+    </a>
+  </div>
   {% endif %}
 </div>
 
@@ -196,7 +202,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 
 <!-- Grouped accordion -->
 {% if grouped %}
-<div class="space-y-3" id="charges-tree">
+<div class="space-y-3" id="charges-tree" data-ls-key="lm_charges_open">
 {% for year in grouped %}
 
   <!-- YEAR -->
@@ -213,6 +219,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
         {% if year.has_cost %}
         <span class="text-green-400 font-semibold whitespace-nowrap">{{ year.cost | money }}</span>
         {% endif %}
+        <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
       </div>
     </summary>
 
@@ -233,6 +240,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
             {% if month.has_cost %}
             <span class="text-green-400 font-medium whitespace-nowrap">{{ month.cost | money }}</span>
             {% endif %}
+            <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
           </div>
         </summary>
 
@@ -479,6 +487,16 @@ document.querySelectorAll('#charges-tree details').forEach(el => {
     st[el.id] = el.open;
     localStorage.setItem(LS_KEY, JSON.stringify(st));
   });
+});
+
+// Collapse all
+document.getElementById('collapse-all-charges')?.addEventListener('click', () => {
+  const st = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+  document.querySelectorAll('#charges-tree details').forEach(el => {
+    el.open = false;
+    st[el.id] = false;
+  });
+  localStorage.setItem(LS_KEY, JSON.stringify(st));
 });
 
 if (HIGHLIGHT) {
