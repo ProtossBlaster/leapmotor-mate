@@ -4,7 +4,9 @@
 {% block content %}
 <div class="mb-6 flex items-center gap-3">
   <span class="text-2xl">🔋</span>
-  <h1 class="text-2xl font-bold text-white">{{ t('wallbox_title') }}</h1>
+  <h1 class="text-2xl font-bold text-white">
+    {{ t('wallbox_title') }}{% if wb_active_profile_name %} <span class="text-base font-normal text-slate-400">({{ wb_active_profile_name }})</span>{% endif %}
+  </h1>
 </div>
 
 {% if not configured %}

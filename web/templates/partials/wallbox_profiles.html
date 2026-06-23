@@ -1,0 +1,63 @@
+{# Wallbox saved profiles — lazy-loaded and refreshed in-place by HTMX after save/load/delete.
+   Each profile stores the full wallbox connection snapshot (HA URL, encrypted token, keywords,
+   entity mapping). Clicking a profile name restores all its settings and reloads the page. #}
+<div id="wb-profiles-panel">
+
+  {% if wb_profile_error %}
+  <p class="text-xs text-red-400 mb-2">{{ wb_profile_error }}</p>
+  {% endif %}
+
+  {% if profiles %}
+  <div class="flex flex-wrap gap-2 mb-3">
+    {% for p in profiles %}
+    {% set is_active = (p.id == wb_active_profile_id) %}
+    <div class="flex items-center">
+      <button type="button"
+              hx-post="api/settings/wallbox-profiles/{{ p.id }}/load"
+              hx-confirm="{{ t('wb_profile_load_confirm').format(name=p.name) }}"
+              hx-swap="none"
+              class="px-3 py-1.5 rounded-l-lg text-sm border transition-colors
+                     {% if is_active %}
+                     bg-brand/20 border-brand text-brand font-semibold cursor-default
+                     {% else %}
+                     bg-slate-700 border-slate-600 text-white hover:border-brand hover:text-brand
+                     {% endif %}">
+        {% if is_active %}✓ {% endif %}{{ p.name }}
+      </button>
+      <button type="button"
+              hx-post="api/settings/wallbox-profiles/{{ p.id }}/delete"
+              hx-confirm="{{ t('wb_profile_delete_confirm').format(name=p.name) }}"
+              hx-target="#wb-profiles-panel" hx-swap="outerHTML"
+              title="{{ t('wb_profile_delete_confirm').format(name=p.name) }}"
+              class="px-2 py-1.5 rounded-r-lg text-xs border border-l-0 transition-colors
+                     {% if is_active %}
+                     bg-brand/10 border-brand text-brand/60 hover:text-rose-400 hover:border-rose-500 hover:bg-rose-500/10
+                     {% else %}
+                     bg-slate-700 border-slate-600 text-slate-500 hover:text-rose-400 hover:border-rose-500 hover:bg-rose-500/10
+                     {% endif %} leading-none">
+        ✕
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-xs text-slate-500 mb-3">{{ t('wb_profile_no_profiles') }}</p>
+  {% endif %}
+
+  <form hx-post="api/settings/wallbox-profiles/save"
+        hx-target="#wb-profiles-panel" hx-swap="outerHTML"
+        class="flex items-center gap-2">
+    <input type="text" name="name"
+           placeholder="{{ t('wb_profile_name_ph') }}"
+           autocomplete="off" spellcheck="false"
+           class="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600
+                  text-white text-sm focus:outline-none focus:border-brand">
+    <button type="submit"
+            class="bg-slate-700 border border-slate-600 text-white text-sm font-medium
+                   rounded-lg px-3 py-1.5 flex-shrink-0 hover:border-brand hover:text-brand
+                   transition-colors">
+      {{ t('wb_profile_save_btn') }}
+    </button>
+  </form>
+
+</div>

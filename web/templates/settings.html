@@ -409,6 +409,15 @@
         </details>
         {% endif %}
       </div>
+
+      <!-- Saved wallbox profiles -->
+      <div class="mt-5 pt-5 border-t border-slate-700">
+        <div class="text-sm font-medium text-white mb-1">{{ t('wb_profiles_title') }}</div>
+        <div class="text-[11px] text-slate-500 mb-3">{{ t('wb_profile_save_hint') }}</div>
+        <div hx-get="api/settings/wallbox-profiles" hx-trigger="load" hx-swap="outerHTML"
+             class="text-xs text-slate-500">…</div>
+      </div>
+
       {% endif %}
     {% endcall %}
 

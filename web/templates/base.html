@@ -268,7 +268,13 @@
       </a>
       {% if wallbox_enabled %}
       <a href="wallbox"     class="nav-link {% if page=='wallbox'     %}active{% endif %}">
-        <span class="text-lg">🔋</span> {{ t('nav_wallbox') }}
+        <span class="text-lg">🔋</span>
+        <span class="flex-1 min-w-0">
+          {{ t('nav_wallbox') }}
+          {% if wb_active_profile_name %}
+          <span class="block text-[10px] text-slate-400 truncate leading-tight">{{ wb_active_profile_name }}</span>
+          {% endif %}
+        </span>
       </a>
       {% endif %}
     </nav>
