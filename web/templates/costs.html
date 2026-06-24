@@ -51,7 +51,18 @@
 
   <!-- ── Base prices (also the off-band price in TOU mode) ────────────── -->
   <div class="card">
-    <h2 class="font-semibold text-white mb-1">{{ t('cost_base_prices') }}</h2>
+    <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
+      <h2 class="font-semibold text-white">{{ t('cost_base_prices') }}</h2>
+      {% if wallbox_enabled and wb_active_profile_name %}
+      <a href="settings#wallbox"
+         class="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full
+                bg-brand/15 border border-brand/30 text-brand hover:bg-brand/25 transition-colors"
+         title="{{ t('wb_profiles_title') }}">
+        <span>🔌</span>
+        <span>{{ wb_active_profile_name }}</span>
+      </a>
+      {% endif %}
+    </div>
     <p class="text-xs text-slate-400 mb-4">
       {{ t('charge_prices_desc') }}
       <span id="base-note" class="{% if cost_mode != 'tou' %}hidden{% endif %}">{{ t('cost_base_note') }}</span>
