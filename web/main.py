@@ -1453,7 +1453,25 @@ async def save_prices(request: Request):
                 db_reader.update_charge_price(key, float(val))
             except ValueError:
                 pass
-    db_reader.set_setting("wallbox_active_profile", "")  # prices edited directly → stale
+    # If a profile is active, keep the indicator and sync the new prices into its snapshot
+    # so that reloading the profile later restores the updated values.
+    active_id = db_reader.get_setting("wallbox_active_profile", "")
+    if active_id:
+        profiles = _get_wallbox_profiles()
+        updated = False
+        for p in profiles:
+            if p["id"] == active_id:
+                for price_key in ("price_home_kwh", "price_ac_kwh", "price_fast_kwh", "price_hpc_kwh"):
+                    val = form.get(price_key)
+                    if val:
+                        try:
+                            p[price_key] = float(val)
+                            updated = True
+                        except ValueError:
+                            pass
+                break
+        if updated:
+            _set_wallbox_profiles(profiles)
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("costs_saved")}</span>')
 
