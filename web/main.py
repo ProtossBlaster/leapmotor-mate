@@ -1664,7 +1664,7 @@ async def set_language(request: Request):
     (HX-Refresh) so every server-rendered string switches to the new language."""
     form = await request.form()
     lang = form.get("language", "en")
-    db_reader.set_setting("language", lang if lang in ("en", "it", "fr", "de") else "en")
+    db_reader.set_setting("language", lang if lang in ("en", "it", "fr", "de", "pl") else "en")
     return Response(status_code=204, headers={"HX-Refresh": "true"})
 
 
@@ -2873,7 +2873,7 @@ async def setup_submit(request: Request):
     db_reader.set_secret("leapmotor_pass", pwd)
     db_reader.set_secret("leapmotor_pin", pin)
     db_reader.set_setting("battery_capacity_kwh", str(battery_kwh))
-    db_reader.set_setting("language", lang if lang in ("en", "it", "fr", "de") else "en")
+    db_reader.set_setting("language", lang if lang in ("en", "it", "fr", "de", "pl") else "en")
 
     # Pre-populate vehicles table so the UI shows model info before the first poller run
     if vin and car_type:
