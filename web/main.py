@@ -977,6 +977,7 @@ async def save_ha(request: Request):
         db_reader.set_setting("ha_url", (form.get("ha_url") or "").strip())
     if form.get("ha_token"):  # don't wipe a saved token on an empty submit
         db_reader.set_secret("ha_token", form.get("ha_token").strip())
+    db_reader.set_setting("wallbox_active_profile", "")  # settings edited directly → stale
     return HTMLResponse(_ha_test_html())
 
 
@@ -1037,6 +1038,7 @@ async def save_wallbox_entities(request: Request):
     mapping = {role: form.get(role, "").strip()
                for role in ha_client.WB_ROLES if form.get(role, "").strip()}
     db_reader.set_setting("wallbox_entities", json.dumps(mapping))
+    db_reader.set_setting("wallbox_active_profile", "")  # settings edited directly → stale
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("wallbox_saved")}</span>')
 
@@ -1047,6 +1049,7 @@ async def save_wallbox_keywords(request: Request):
     form = await request.form()
     keywords = (form.get("wb_keywords", "") or "").strip()
     db_reader.set_setting("wb_keywords", keywords)
+    db_reader.set_setting("wallbox_active_profile", "")  # settings edited directly → stale
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("wallbox_saved")}</span>')
 
@@ -1092,8 +1095,9 @@ async def wallbox_profiles_list(request: Request):
 
 @app.post("/api/settings/wallbox-profiles/save", response_class=HTMLResponse)
 async def wallbox_profile_save(request: Request):
-    """Snapshot the active wallbox settings (HA URL, token, keywords, entity mapping)
-    under a user-chosen name so it can be restored later with one click."""
+    """Snapshot the active wallbox settings (HA URL, token, keywords, entity mapping,
+    energy prices and wallbox flags) under a user-chosen name so it can be restored
+    later with one click."""
     import uuid
     form = await request.form()
     name = (form.get("name") or "").strip()
@@ -1104,13 +1108,25 @@ async def wallbox_profile_save(request: Request):
             profiles=profiles,
             wb_profile_error=t("wb_profile_name_required"),
         ))
+    if any(p["name"].strip().lower() == name.lower() for p in profiles):
+        return templates.TemplateResponse(request, "partials/wallbox_profiles.html", _ctx(
+            profiles=profiles,
+            wb_profile_error=t("wb_profile_name_taken"),
+        ))
+    prices = db_reader.get_charge_prices()
     profiles.append({
         "id": uuid.uuid4().hex[:8],
         "name": name,
-        "ha_url":           db_reader.get_setting("ha_url", ""),
-        "ha_token":         db_reader.get_setting("ha_token", ""),   # stored encrypted
-        "wb_keywords":      db_reader.get_setting("wb_keywords", ""),
-        "wallbox_entities": db_reader.get_setting("wallbox_entities", ""),
+        "ha_url":            db_reader.get_setting("ha_url", ""),
+        "ha_token":          db_reader.get_setting("ha_token", ""),   # stored encrypted
+        "wb_keywords":       db_reader.get_setting("wb_keywords", ""),
+        "wallbox_entities":  db_reader.get_setting("wallbox_entities", ""),
+        "wallbox_enabled":   db_reader.get_setting("wallbox_enabled", "0"),
+        "wallbox_auto_home": db_reader.get_setting("wallbox_auto_home", "0"),
+        "price_home_kwh":    prices.get("price_home_kwh"),
+        "price_ac_kwh":      prices.get("price_ac_kwh"),
+        "price_fast_kwh":    prices.get("price_fast_kwh"),
+        "price_hpc_kwh":     prices.get("price_hpc_kwh"),
     })
     _set_wallbox_profiles(profiles)
     new_id = profiles[-1]["id"]
@@ -1123,10 +1139,18 @@ async def wallbox_profile_save(request: Request):
 @app.post("/api/settings/wallbox-profiles/{profile_id}/load", response_class=HTMLResponse)
 async def wallbox_profile_load(request: Request, profile_id: str):
     """Restore a saved wallbox profile as the active configuration and reload the page."""
+    t = i18n.get_t(db_reader.get_language())
     profiles = _get_wallbox_profiles()
+    # Guard: refuse to switch while a charge is active (switching mid-charge would blend
+    # two physical wallboxes into the same session's energy counter).
+    status = db_reader.get_latest_status()
+    if status and status.get("charging"):
+        return templates.TemplateResponse(request, "partials/wallbox_profiles.html", _ctx(
+            profiles=profiles,
+            wb_profile_error=t("wb_profile_charging_blocked"),
+        ))
     profile = next((p for p in profiles if p["id"] == profile_id), None)
     if profile is None:
-        t = i18n.get_t(db_reader.get_language())
         return templates.TemplateResponse(request, "partials/wallbox_profiles.html", _ctx(
             profiles=profiles,
             wb_profile_error=t("wb_profile_not_found"),
@@ -1136,6 +1160,15 @@ async def wallbox_profile_load(request: Request, profile_id: str):
         db_reader.set_setting("ha_token", profile["ha_token"])  # already encrypted
     db_reader.set_setting("wb_keywords", profile.get("wb_keywords", ""))
     db_reader.set_setting("wallbox_entities", profile.get("wallbox_entities", ""))
+    db_reader.set_setting("wallbox_enabled", profile.get("wallbox_enabled", "0"))
+    db_reader.set_setting("wallbox_auto_home", profile.get("wallbox_auto_home", "0"))
+    for price_key in ("price_home_kwh", "price_ac_kwh", "price_fast_kwh", "price_hpc_kwh"):
+        val = profile.get(price_key)
+        if val is not None:
+            try:
+                db_reader.update_charge_price(price_key, float(val))
+            except (ValueError, TypeError):
+                pass
     db_reader.set_setting("wallbox_active_profile", profile_id)
     return Response(status_code=204, headers={"HX-Refresh": "true"})
 
@@ -1420,6 +1453,7 @@ async def save_prices(request: Request):
                 db_reader.update_charge_price(key, float(val))
             except ValueError:
                 pass
+    db_reader.set_setting("wallbox_active_profile", "")  # prices edited directly → stale
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("costs_saved")}</span>')
 
