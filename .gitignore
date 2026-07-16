@@ -6,6 +6,9 @@ __pycache__/
 *.pyc
 .DS_Store
 data/
+# local Python virtualenv (used to run the test suite on the host) — never distribute
+venv/
+.venv/
 # local Claude Code state (scheduled-task locks, session config) — never distribute
 .claude/
 # scratch drafts (issue replies etc.) — not for distribution
