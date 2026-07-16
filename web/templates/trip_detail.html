@@ -318,19 +318,53 @@
       var pts = coords.filter(function (p) { return p.soc != null || p.speed_kmh != null; });
       if (!pts.length) return;
 
-      // X labels = minutes since trip start (or sample index if timestamps absent).
+      // X labels = minutes since trip start (or sample index if timestamps absent). The axis is
+      // categorical, so every sample takes an equal slot no matter the time between them — hence
+      // the blank filling below, without which a gap would silently close up.
       var t0 = pts[0].recorded_at ? new Date(pts[0].recorded_at).getTime() : NaN;
       var useTime = !isNaN(t0);
       var labels = [], socArr = [], spdArr = [];
-      pts.forEach(function (p, i) {
-        var lbl = String(i);
-        if (useTime) {
-          var t = new Date(p.recorded_at).getTime();
-          lbl = isNaN(t) ? String(i) : Math.max(0, Math.round((t - t0) / 60000)) + "′";
+      var plot = [];        // mirrors the series (blanks included) so hover indices stay aligned
+
+      // Typical spacing between samples — the yardstick for telling a gap from a sample. Median,
+      // so the gaps we are looking for don't skew the very measure meant to find them.
+      var step = 0;
+      if (useTime) {
+        var deltas = [];
+        for (var j = 1; j < pts.length; j++) {
+          var d = new Date(pts[j].recorded_at).getTime() - new Date(pts[j - 1].recorded_at).getTime();
+          if (d > 0) deltas.push(d);
         }
-        labels.push(lbl);
+        deltas.sort(function (a, b) { return a - b; });
+        step = deltas.length ? deltas[Math.floor(deltas.length / 2)] : 0;
+      }
+
+      function pushLabel(ms) {
+        labels.push(useTime && !isNaN(ms)
+          ? Math.max(0, Math.round((ms - t0) / 60000)) + "′"
+          : String(labels.length));
+      }
+
+      pts.forEach(function (p, i) {
+        var t = useTime ? new Date(p.recorded_at).getTime() : NaN;
+        // A hole in the recording: the car was off-grid and the cloud was re-serving its last frame,
+        // so the poller wrote nothing rather than invent samples (#128). Fill the stretch with blanks
+        // — ApexCharts breaks a line on null — so the hole shows at its true width. Joining the two
+        // ends instead would draw a straight, plausible-looking line over minutes that never existed.
+        if (useTime && step > 0 && i > 0 && !isNaN(t)) {
+          var prev = new Date(pts[i - 1].recorded_at).getTime();
+          if (!isNaN(prev) && t - prev > step * 3) {
+            var blanks = Math.min(Math.round((t - prev) / step) - 1, 300);   // sanity cap
+            for (var k = 1; k <= blanks; k++) {
+              pushLabel(prev + step * k);
+              socArr.push(null); spdArr.push(null); plot.push(null);
+            }
+          }
+        }
+        pushLabel(t);
         socArr.push(p.soc != null ? p.soc : null);
         spdArr.push(p.speed_kmh != null ? p.speed_kmh : 0);
+        plot.push(p);
       });
 
       var nmSoc = {{ t('soc')|tojson }};
@@ -351,11 +385,13 @@
       var socHi = Math.min(100, Math.ceil(sMax + 1));
       if (socHi - socLo < 4) { socLo = Math.max(0, socHi - 4); }   // keep a sane minimum span
 
-      // Cursor marker: shown on the map while hovering the chart.
+      // Cursor marker: shown on the map while hovering the chart. Indexes plot[] (not pts[]) —
+      // the blanks inserted for gaps shift every later sample, and a null there hides the marker,
+      // which is right: over a gap we have no position to point at.
       var cursorMarker = null;
       function showCursor(i) {
-        if (i < 0 || !pts[i] || pts[i].latitude == null) { hideCursor(); return; }
-        var ll = [pts[i].latitude, pts[i].longitude];
+        if (i < 0 || !plot[i] || plot[i].latitude == null) { hideCursor(); return; }
+        var ll = [plot[i].latitude, plot[i].longitude];
         if (!cursorMarker) {
           cursorMarker = L.circleMarker(ll, {
             radius: 7, color: '#fff', weight: 2,

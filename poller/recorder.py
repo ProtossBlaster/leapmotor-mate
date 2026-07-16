@@ -29,6 +29,8 @@ class Recorder:
         # moves, so any jump while parked = a drive we missed offline. Whole-km signal → 1 km floor.
         self._last_odometer: Optional[float] = None
         self._reconstruct_min_km: float = 1.0
+        # Timestamp of the last cloud frame (#128) — see process() for what a repeat means.
+        self._last_frame_ts: Optional[int] = None
 
     @property
     def state(self) -> State:
@@ -93,7 +95,23 @@ class Recorder:
             # poll back (odometer-jump trip reconstruction, #118). None on a fresh DB → first poll just seeds it.
             self._last_odometer = self._db.get_last_odometer(self._vehicle_id)
 
-        self._db.save_position(self._vehicle_id, data)
+        # When the car is unreachable (4G dead zone, or the eSIM re-registering on a foreign network
+        # at a border) the cloud does not say so — it re-serves the LAST frame it received: identical
+        # payload, identical timestamp, poll after poll. While DRIVING that is a lie, because a car
+        # that is really moving pushes a fresh frame every single time. Recording the repeats invents
+        # data: a flat speed plateau, a route that stands still, regen accrued from a frozen current
+        # (#128). Frame identity is the test — it needs no threshold, so a host clock skewed against
+        # the cloud (−48s in the wild) cannot fool it.
+        stale = bool(data.timestamp_ms) and data.timestamp_ms == self._last_frame_ts
+        if data.timestamp_ms:
+            self._last_frame_ts = data.timestamp_ms
+
+        # NB: the state machine below must still see every frame, repeats included. If the last real
+        # frame said gear P (car parked, then the modem dropped), the SM needs its PARKED_CONFIRM
+        # readings to close the trip — hiding them would strand the trip open until the link returns,
+        # which is the very bug #128 reports.
+        if not (stale and self._sm.state == State.DRIVING):
+            self._db.save_position(self._vehicle_id, data)
 
         events = self._sm.update(data)
         for event in events:
@@ -105,7 +123,7 @@ class Recorder:
         # (1178 < 0 = into pack, per the Leapmotor convention). The B10 sign still needs
         # on-road verification — gating this way stays conservative: at worst it counts 0,
         # never mistaking driving discharge for regen.
-        if self._sm.state == State.DRIVING and self._active_trip_id:
+        if self._sm.state == State.DRIVING and self._active_trip_id and not stale:
             self._db.add_trip_position(self._active_trip_id, data)
             if not data.plug_connected and data.charge_current_a < -3.0:
                 self._regen_kwh += data.charge_power_kw * (self._sm.poll_driving / 3600)

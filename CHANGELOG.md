@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.16] — 2026-07-16
+
+### Fixed
+- **Trips no longer record phantom data when the car goes off-grid.** When the car can't reach Leapmotor's cloud — a 4G dead zone, or the eSIM re-registering onto a foreign network after a border crossing — the cloud doesn't report the outage: it keeps re-serving the **last frame it received**, unchanged, for as long as the car stays away. Mate was recording each of those repeats as a real sample, which invented data: a speed plateau frozen at the last reading, dozens of GPS points stacked on the same spot, and an **average speed inflated** by them. Mate now recognises a re-served frame (the frame's own timestamp doesn't change) and, while driving, records nothing for it — so the trip chart shows an honest **gap** for the stretch the car was unreachable, instead of a confident flat line through minutes that never happened. Distance and efficiency were already correct and are unchanged: the odometer catches up the moment the link returns. Parked cars are unaffected — a sleeping car legitimately freezes for hours. Thanks to @Wartopia for the report and the diagnostics that pinned it down (#128).
+
 ## [2.5.15] — 2026-07-15
 
 ### Added
