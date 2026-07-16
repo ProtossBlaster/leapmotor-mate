@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.15] — 2026-07-15
+
+### Added
+- **Portuguese: the Maintenance page is now translated too.** The maintenance schedule — service items, categories and the due/overdue wording — was the last part of the interface still showing in English for Portuguese users, and is now fully in European Portuguese. Thanks to @danielvilhena for the contribution (#139).
+
 ## [2.5.14] — 2026-07-15
 
 ### Added
