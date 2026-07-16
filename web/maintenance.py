@@ -24,7 +24,7 @@ SOON_DAYS = 30           # within this many days of due → "due soon"
 _DAYS_PER_MONTH = 30.44
 
 # ── Localisation (self-contained; chrome nav label lives in i18n.py) ──────────
-# Item + category + phrase strings for it/en; fr/de/pt-PT fall back to en.
+# Item + category + phrase strings for en/it/fr/de/pt-PT; a missing key falls back to en.
 _LABELS = {
     "brake_fluid_replace":   {"en": "Brake fluid — replace",        "it": "Liquido freni — sostituzione",        "fr": "Liquide de frein — remplacer",            "de": "Bremsflüssigkeit — wechseln", "pt-PT": "Líquido dos travões — substituição"},
     "brake_fluid_inspect":   {"en": "Brake fluid level — check",    "it": "Livello liquido freni — controllo",    "fr": "Niveau de liquide de frein — vérifier",   "de": "Bremsflüssigkeitsstand — prüfen", "pt-PT": "Nível do líquido dos travões — verificação"},
@@ -227,7 +227,7 @@ def _add_months(d: date, months: int) -> date:
     return date(y, m, day)
 
 
-# Dynamic phrase fragments (5 languages; fr/de/pt-PT fall back to en if a key is missing).
+# Dynamic phrase fragments (5 languages: en/it/fr/de/pt-PT; a missing key falls back to en).
 _P = {
     "en": {"first": "First service: in ", "in_": "In ", "overdue": "Overdue by ", "every": "every ", "or": " or ",
            "yN": "{n} years", "y1": "1 year", "moN": "{n} months", "mo1": "1 month", "dN": "{n} days", "d1": "1 day"},
