@@ -25,7 +25,7 @@ import mqtt_check
 import auth
 import update_check
 
-MATE_VERSION = "2.5.16"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.5.17"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -3722,11 +3722,34 @@ _EU_BATTERY_MAP: dict[str, list[dict]] = {
 }
 
 
+def battery_options_for_build() -> dict[str, list[dict]]:
+    """The wizard's battery list, as the build that is serving it is allowed to show it.
+
+    REEV packs belong to MateBetaTesterOnly ONLY. The official Mate has no REEV support — its energy
+    pipeline assumes SoC-down = energy-used, which a generator refilling the pack mid-drive breaks —
+    so offering the pack would promise a support that isn't there, and whoever picked it would end up
+    with statistics that quietly don't add up. Both builds ship from this one image, so the split is
+    made here, at runtime, and NOT by removing the packs (that would blind the beta too).
+
+    Single source of truth on purpose: the wizard page and the detect-vehicle endpoint both render
+    from this. They used to keep separate copies, which is exactly how the REEV packs stayed in the
+    official wizard for ten days after the gate that was supposed to remove them (#141)."""
+    if research.research_enabled():
+        return _EU_BATTERY_MAP
+    return {ct: [o for o in opts if not o.get("reev")] for ct, opts in _EU_BATTERY_MAP.items()}
+
+
 # ── Setup wizard ─────────────────────────────────────────────────────────────
 
 @app.get("/setup", response_class=HTMLResponse)
 async def setup_page(request: Request):
-    return templates.TemplateResponse(request, "setup.html", {})
+    # The battery list is rendered from the server's map (already filtered for this build), so the
+    # official wizard's HTML never even contains the REEV packs — and the page can't drift from what
+    # detect-vehicle answers, since both read battery_options_for_build().
+    return templates.TemplateResponse(request, "setup.html", {
+        "battery_options": battery_options_for_build(),
+        "research": research.research_enabled(),
+    })
 
 
 def _restart_container() -> None:
@@ -3826,7 +3849,7 @@ async def detect_vehicle_api(request: Request):
     )
     if "error" in result:
         return JSONResponse(result, status_code=400)
-    options = _EU_BATTERY_MAP.get(result["car_type"], [])
+    options = battery_options_for_build().get(result["car_type"], [])
     if len(options) == 1:
         # Single EU variant — tell the frontend to auto-set, no selector needed
         result["battery_kwh"]   = options[0]["v"]

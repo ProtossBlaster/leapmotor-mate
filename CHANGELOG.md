@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.17] — 2026-07-17
+
+### Fixed
+- **The setup wizard no longer offers a range-extender battery.** Mate supports **battery-electric cars only**, but its first-run wizard was still listing a range-extender pack among the battery variants for the B10 and the C10 — visible to anyone setting up either model, not only to range-extender owners, since the cloud reports just the model name. Choosing it configured the car as something Mate has no support for, and the energy figures that followed could not add up. The wizard now offers the battery-electric packs only, and the page no longer carries the variant at all. **Existing installs are untouched**: this is the first-run screen, and no configured car is changed. Range-extender owners are served by the separate BetaTester build, which is where that support is being developed. Thanks to @pdifeo for the question that surfaced it (#141).
+
+### Changed
+- **The wizard's battery list now comes from one place.** The list existed twice — once in the server and once hardcoded in the setup page — and the two copies had already drifted apart (gross vs usable figures for the same B10 packs). The page is now rendered from the server's list, so the two can no longer disagree.
+
 ## [2.5.16] — 2026-07-16
 
 ### Fixed

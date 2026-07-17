@@ -201,20 +201,13 @@
 </div>
 
 <script>
-// ── Battery options — EU-only fallback (server is authoritative) ─────────────
-const BATTERY_OPTIONS = {
-  T03: [{ v: "37.3", label: "37.3 kWh" }],
-  C10: [
-    { v: "69.9", label: "69.9 kWh — RWD" },
-    { v: "81.9", label: "81.9 kWh — AWD" },
-    { v: "28.4", label: "28.4 kWh — REEV (range-extender)", reev: true },
-  ],
-  B10: [
-    { v: "56.2", label: "56.2 kWh — Pro · 361 km WLTP" },
-    { v: "67.1", label: "67.1 kWh — Pro Max · 434 km WLTP" },
-    { v: "18.8", label: "18.8 kWh — REEV (range-extender)", reev: true },
-  ],
-};
+// ── Battery options ─────────────────────────────────────────────────────────
+// Rendered from the server's map (battery_options_for_build), already filtered for this build —
+// deliberately not a hand-kept copy, so this list can never drift from what detect-vehicle answers.
+// See that function for what the filtering is about; the reasoning stays server-side, out of the
+// page source.
+const BATTERY_OPTIONS = {{ battery_options|tojson }};
+const RESEARCH = {{ research|tojson }};
 
 // ── i18n strings ─────────────────────────────────────────────────────────────
 const strings = {
@@ -602,6 +595,10 @@ function selectBattery(v, reev) {
 }
 
 function buildBatterySelector(options) {
+  // Belt and braces: the server already filters the research-only packs out of this build, but this
+  // renderer draws whatever it is handed. Filtering here too means a future edit to the map can't
+  // quietly put one back in front of a user it isn't meant for.
+  if (!RESEARCH) options = options.filter(function (o) { return !o.reev; });
   const s = strings[currentLang];
   let html = `<div style="font-size:13px;font-weight:500;color:#cbd5e1;margin-bottom:8px">${s.batteryLabel}</div>`;
   html += `<div style="display:flex;flex-direction:column;gap:8px">`;

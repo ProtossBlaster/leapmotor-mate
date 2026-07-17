@@ -514,12 +514,19 @@ def main():
             recorder.process(data)
             _write_comfort_state(db, data)
 
-            # A REEV reports a fuel tank (signal 3235) → flag it once, so the dedicated REEV
-            # page/nav appears even for a car that was onboarded before the variant existed
-            # (no re-setup needed). Write-once guard → no per-poll DB churn.
+            # A range-extender reports a fuel tank (signal 3235) → flag it once. On the BetaTester
+            # build this is what makes the dedicated page/nav appear, even for a car onboarded before
+            # the variant existed (no re-setup needed). The flag is written on BOTH builds because
+            # the official one needs it too — not to show anything, but to withhold the figures a
+            # generator makes meaningless. Write-once guard → no per-poll DB churn.
             if data.is_reev and db.get_setting("is_reev", "0") != "1":
                 db.set_setting("is_reev", "1")
-                log.info("REEV detected (fuel signal 3235 present) — enabling REEV view")
+                # Wording follows the build: the official Mate offers no REEV support, so its log must
+                # not name the feature — let alone announce a "REEV view" that will never appear (#141).
+                log.info("REEV detected (fuel signal 3235 present) — enabling REEV view"
+                         if _research_enabled() else
+                         "Fuel signal present — battery-derived figures will be withheld where a "
+                         "range-extender makes them meaningless")
 
             # Research / BetaTester full-signal capture (MateBetaTesterOnly build only). Logs every
             # raw signal that CHANGED value since the last poll → a complete, timestamped history we
