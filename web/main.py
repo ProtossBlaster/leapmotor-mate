@@ -25,7 +25,7 @@ import mqtt_check
 import auth
 import update_check
 
-MATE_VERSION = "2.5.17"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.5.18"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -237,9 +237,14 @@ def _ctx(**kwargs):
     if _veh is None:
         _veh, _ = db_reader.get_vehicle()
     _car_type = (_veh or {}).get("car_type", "")
+    # Ability-gated command buttons: hide those the car doesn't declare it can do (e.g. the T03
+    # never declares code 53 = unlock charge cable — #142). None abilities → shown (never on a guess).
+    _abilities = capability_profile.parse_abilities((_veh or {}).get("abilities"))
     return {**kwargs, "lang": lang, "t": t, "version": MATE_VERSION, "demo": _IS_DEMO,
             "update": update_check.get_update_status(MATE_VERSION),
             "prepare_car_shown": not capability_profile.model_hidden(_car_type, "prepare_car"),
+            "unlock_charger_shown": capability_profile.command_shown(
+                (_veh or {}).get("vin", ""), "unlock_charger", abilities=_abilities),
             "wallbox_enabled": wallbox_enabled,
             "is_reev": db_reader.get_setting("is_reev", "0") == "1",
             "research": research.research_enabled(),
@@ -3587,6 +3592,22 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
         return _cmd_response(request, status=400,
                              html='<span style="color:#ef4444">Unknown command</span>',
                              payload={"ok": False, "error": "unknown_command"})
+
+    # Ability gate (defence in depth, mirrors the hidden button): refuse a command the car doesn't
+    # declare it can do — e.g. unlock-charge-cable on a T03, which never declares code 53 (#142) —
+    # instead of bouncing a no-op off the car. Only the ability-gated commands (COMMAND_ABILITY keys)
+    # look up the vehicle, so every other command's path is untouched. None abilities → allowed.
+    if name in capability_profile.COMMAND_ABILITY:
+        _veh, _ = db_reader.get_vehicle()
+        if not capability_profile.command_shown(
+                (_veh or {}).get("vin", ""), name,
+                abilities=capability_profile.parse_abilities((_veh or {}).get("abilities"))):
+            _msg = {"it": "Non supportato su questo modello", "fr": "Non pris en charge sur ce modèle",
+                    "de": "Von diesem Modell nicht unterstützt"}.get(
+                        db_reader.get_language(), "Not supported on this model")
+            return _cmd_response(request, status=400,
+                                 payload={"ok": False, "error": _msg, "unsupported": True},
+                                 html=f'<span data-warn="1" style="color:#fbbf24">⚠️ {_msg}</span>')
 
     # The car locks some controls (sunshade, trunk, windows, lock) while moving —
     # intercept the press and show the same notice the official app does, instead of

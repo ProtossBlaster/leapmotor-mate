@@ -832,6 +832,20 @@ class Database:
                 return float(row["capacity_kwh"])
         return float(self.get_setting("battery_capacity_kwh", str(BATTERY_CAPACITY_FALLBACK)))
 
+    def get_abilities(self, vehicle_id: Optional[int] = None) -> Optional[list]:
+        """The car's DECLARED ability codes (VehicleAbility ints), or None if not reported yet.
+        The MQTT bridge gates ability-dependent command buttons on these (e.g. hide 'Unlock Charge
+        Cable' on a T03, which never declares code 53 — #142). None → never hide on a guess."""
+        row = (self._conn.execute("SELECT abilities FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
+               if vehicle_id is not None else
+               self._conn.execute("SELECT abilities FROM vehicles ORDER BY id LIMIT 1").fetchone())
+        if not row or not row["abilities"]:
+            return None
+        try:
+            return [int(a) for a in json.loads(row["abilities"])]
+        except (ValueError, TypeError):
+            return None
+
     def set_battery_capacity(self, kwh: float) -> None:
         self.set_setting("battery_capacity_kwh", str(kwh))
         # Keep the single car's own row in sync so the per-vehicle write paths track the global.

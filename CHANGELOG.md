@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.18] — 2026-07-17
+
+### Fixed
+- **The "Unlock Charge Cable" button is hidden on cars that can't do it.** The T03 can't release the charge cable remotely — the official app has no such option either — but Mate showed the button anyway, where it simply did nothing. Mate now gates command buttons on the abilities the car itself declares: any model that doesn't report the unlock-cable capability no longer shows the button, in the web UI and in Home Assistant (MQTT), and the command is refused server-side with a clear "not supported on this model" instead of being bounced off the car. This is model-blind — it reads what each car declares about itself, so it also covers other models present and future, with no per-model list to maintain. Climate is deliberately left out of this (the T03 under-declares its climate abilities yet the A/C works — #67), so nothing there changes. Thanks to @chengler for the report and the diagnostics (#142).
+
 ## [2.5.17] — 2026-07-17
 
 ### Fixed

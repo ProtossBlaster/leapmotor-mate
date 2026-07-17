@@ -319,6 +319,9 @@ def _mqtt_tick(db, client, data, service):
             tls_insecure=db.get_setting("mqtt_tls_insecure") == "1",
             discovery_enabled=db.get_setting("mqtt_discovery", "1") == "1",
             get_setting=db.get_setting,
+            # The car's declared abilities gate ability-dependent command buttons in discovery
+            # (e.g. no 'Unlock Charge Cable' on a T03, which never declares code 53 — #142).
+            abilities=db.get_abilities(),
         )
         service.on_command = lambda vin, cmd, val: _handle_mqtt_command(client, service, db, vin, cmd, val)
     try:

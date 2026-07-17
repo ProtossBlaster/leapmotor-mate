@@ -196,9 +196,51 @@ def window_open_states(signals: dict, use_pct: bool) -> list:
     return states
 
 
-def command_shown(vin: str, command_key: str, get_setting: Optional[Callable] = None) -> bool:
-    """Should a UI/MQTT command button named `command_key` be exposed? Maps the command key to
-    its gating feature (COMMAND_FEATURE); commands with no mapped feature are always shown."""
+# Commands gated on a DECLARED vehicle ABILITY — the code the car itself lists in its abilities
+# payload (VehicleAbility; the "what the car declares it can do" set shown in the diagnostics
+# bundle). Unlike MODEL_ABSENT this needs NO per-model table: any car that doesn't declare the code
+# hides the button, present and future models alike — the car is the source of truth about itself.
+# WHITELIST ONLY, and only where the declaration is proven RELIABLE. `unlock_charger` qualifies on
+# three concordant signals: the T03 omits code 53, the official app hides the option, and the button
+# no-ops there (#142). ⚠️ Climate is deliberately NOT gated this way — the T03 omits AC_ON (6) yet
+# cools, so its declarations lie there (#67); gating A/C on the ability would wrongly hide it.
+COMMAND_ABILITY = {
+    "unlock_charger": 53,   # VehicleAbility.UNLOCK_CHARGE_GUN
+}
+
+
+def parse_abilities(raw) -> Optional[list]:
+    """Normalise a stored abilities value (JSON string from vehicles.abilities, or a list) to a list
+    of int codes, or None when absent/unparseable → callers treat None as 'not declared → show'."""
+    if not raw:
+        return None
+    try:
+        seq = json.loads(raw) if isinstance(raw, str) else raw
+        return [int(a) for a in seq]
+    except (ValueError, TypeError):
+        return None
+
+
+def ability_supported(command_key: str, abilities) -> bool:
+    """False ONLY when the car has declared its abilities and the code this command needs is absent.
+    `abilities` = the parsed list/set of declared VehicleAbility codes, or None if the car hasn't
+    reported them yet (→ True; never hide on a guess). Commands not in COMMAND_ABILITY → True."""
+    code = COMMAND_ABILITY.get(command_key)
+    if code is None or abilities is None:
+        return True
+    try:
+        return code in {int(a) for a in abilities}
+    except (TypeError, ValueError):
+        return True
+
+
+def command_shown(vin: str, command_key: str, get_setting: Optional[Callable] = None,
+                  *, abilities=None) -> bool:
+    """Should a UI/MQTT command button named `command_key` be exposed? Hidden when the car declared
+    its abilities and doesn't list the one this command needs (COMMAND_ABILITY); otherwise mapped to
+    its gating feature (COMMAND_FEATURE), and commands with neither are always shown."""
+    if not ability_supported(command_key, abilities):
+        return False
     feat = COMMAND_FEATURE.get(command_key)
     return True if feat is None else is_shown(vin, feat, get_setting)
 

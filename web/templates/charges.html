@@ -76,7 +76,9 @@
       </button>
       <span id="cl-result" class="text-xs self-center min-w-[60px]"></span>
     </form>
-    {# Charge-port cable release — a charging action, so it lives here rather than on the Commands page #}
+    {# Charge-port cable release — a charging action, so it lives here rather than on the Commands
+       page. Hidden on cars that don't declare the ability (e.g. the T03 lacks code 53 — #142). #}
+    {% if unlock_charger_shown %}
     <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center gap-3 flex-wrap">
       <span class="text-slate-300 shrink-0">{{ ico.mdi('ev-plug-type2', 'w-6 h-6') }}</span>
       <div class="flex-1 min-w-0">
@@ -94,6 +96,7 @@
       <span id="uc-spin" class="htmx-indicator text-brand text-xs">⏳</span>
       <span id="uc-result" class="text-xs min-w-[40px]"></span>
     </div>
+    {% endif %}
   </div>
 
 </div>
