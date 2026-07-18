@@ -156,7 +156,7 @@ def test_bands_express_different_time_windows_per_type(monkeypatch):
                         lambda: {"mode": "flat", "modes": modes, "method": "start",
                                  "bands": [b_home, b_ac]})
     monkeypatch.setattr(db_reader, "get_charge_prices", lambda: dict(PRICES))
-    monkeypatch.setattr(db_reader, "_LOCAL_TZ", timezone.utc)
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: timezone.utc)
     # charge starts 12:00 → inside BOTH windows; each type reads ITS band, not the first one
     assert db_reader.compute_cost(_charge("HOME")) == 1.00   # its 10-14 band, 0.10
     assert db_reader.compute_cost(_charge("AC")) == 3.30     # its 11-15 band, 0.33 — cascade past b_home

@@ -12,18 +12,62 @@ import crypto  # hard import at module top: a missing crypto dep must fail web b
               # never silently degrade a per-request secret read
 import capability_profile
 
-# Timestamps are stored in UTC (poller uses datetime.now(timezone.utc)); the UI
-# must show local time. Standalone Docker sets TZ in compose → use it. As an HA
-# add-on TZ is usually NOT in the env (the Supervisor only sets the container's
-# local time via /etc/localtime), so fall back to None → astimezone(None) honours
-# the system local time = your HA timezone. No hardcoded Europe/Rome (that made
-# every non-Italian user see the wrong time).
+# Timestamps are stored in UTC (poller uses datetime.now(timezone.utc)); the UI must show
+# LOCAL time. The zone is resolved with this precedence (see _local_tz):
+#   1. the user's explicit choice in Settings → settings['timezone'] (an IANA name)
+#   2. else the container's TZ env (standalone Docker compose sets it)
+#   3. else None → astimezone(None) honours the system local time (HA add-on /etc/localtime)
+# #145: layer 1 exists because a bare Docker container is UTC — and an HA whose zone Mate can't
+# see reads UTC too — so the user MUST be able to override it. No hardcoded Europe/Rome (that once
+# made every non-Italian user see the wrong time). Display-only: the DB always stays UTC.
 try:
-    from zoneinfo import ZoneInfo
-    _tz = os.environ.get("TZ")
-    _LOCAL_TZ = ZoneInfo(_tz) if _tz else None
-except Exception:
-    _LOCAL_TZ = None
+    from zoneinfo import ZoneInfo, available_timezones
+    _ZONEINFO_OK = True
+except Exception:                        # no zoneinfo/tzdata → Auto (system-local) only
+    _ZONEINFO_OK = False
+    def available_timezones():           # type: ignore
+        return set()
+
+
+def _env_tz():
+    """The container timezone: explicit TZ env → its ZoneInfo, else None (= system local time)."""
+    env = os.environ.get("TZ")
+    if env and _ZONEINFO_OK:
+        try:
+            return ZoneInfo(env)
+        except Exception:
+            pass
+    return None
+
+
+# _local_dt runs in tight loops (100+ trips per page) and ZoneInfo() parses a tzdata file, so the
+# resolved zone is memoised and rebuilt only when the stored 'timezone' setting changes. Keyed by
+# the raw setting string ('' = Auto); the fresh get_setting read makes a change self-detect (no
+# explicit invalidation needed — set_timezone in another request just changes the stored value).
+_TZ_CACHE = {"key": "\x00", "tz": None}   # '\x00' sentinel = not yet computed
+
+
+def _resolve_tz(name: str):
+    """User's explicit IANA choice wins; '' (Auto) or a stale/unknown name → container/system tz."""
+    if name and _ZONEINFO_OK:
+        try:
+            return ZoneInfo(name)
+        except Exception:
+            pass           # a zone that vanished from tzdata must never wedge every date render
+    return _env_tz()
+
+
+def _local_tz():
+    """The zone every timestamp is displayed in — precedence UI setting > env TZ > system local.
+    Cheap: one indexed settings read + a memoised ZoneInfo. Never raises (broken DB → container tz)."""
+    try:
+        name = get_setting("timezone", "")
+    except Exception:
+        return _env_tz()
+    if _TZ_CACHE["key"] != name:
+        _TZ_CACHE["tz"] = _resolve_tz(name)
+        _TZ_CACHE["key"] = name
+    return _TZ_CACHE["tz"]
 
 
 def _local_dt(s) -> Optional[datetime]:
@@ -37,7 +81,45 @@ def _local_dt(s) -> Optional[datetime]:
         return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(_LOCAL_TZ)
+    return dt.astimezone(_local_tz())
+
+
+def get_timezone() -> str:
+    """The user's chosen IANA zone name, or '' for Auto (container/system tz). Display-only."""
+    return get_setting("timezone", "")
+
+
+def set_timezone(name: str) -> None:
+    """Persist the display zone. '' = Auto. Validated against the tz database so a typo can't wedge
+    every date render; the next _local_tz() re-resolves (its key check self-detects the change)."""
+    name = (name or "").strip()
+    if name and name not in available_timezones():
+        name = ""                        # unknown zone → Auto, never store garbage
+    set_setting("timezone", name)
+
+
+# The 10 canonical IANA continent prefixes. Everything else available_timezones() returns is a
+# legacy alias we DELIBERATELY drop from the picker: country-name aliases (US/*, Brazil/*, Canada/*
+# — redundant with America/*), SystemV, bare GB/Eire, and Etc/GMT±N whose sign is INVERTED
+# (Etc/GMT+1 is UTC−1 — a trap). A plain 'UTC' is offered separately for the unambiguous case.
+_TZ_REGIONS = ("Africa", "America", "Antarctica", "Arctic", "Asia",
+               "Atlantic", "Australia", "Europe", "Indian", "Pacific")
+
+
+def timezone_options() -> dict:
+    """Canonical IANA zones grouped by continent for the Settings <select>, as
+    {region: [(value, label), …]} sorted by label, plus a standalone 'UTC' group. Legacy aliases
+    and the sign-inverted Etc/GMT±N zones are excluded (see _TZ_REGIONS) so the picker can't mislead."""
+    groups: dict = {}
+    for z in available_timezones():
+        region, _, rest = z.partition("/")
+        if region not in _TZ_REGIONS:
+            continue
+        label = rest.replace("_", " ").replace("/", " / ")
+        groups.setdefault(region, []).append((z, label))
+    out = {k: sorted(groups[k], key=lambda t: t[1]) for k in sorted(groups)}
+    out["UTC"] = [("UTC", "UTC")]     # universal, unambiguous fallback for anyone who wants it
+    return out
 
 
 def _local_iso(s):

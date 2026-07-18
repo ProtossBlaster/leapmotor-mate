@@ -107,7 +107,7 @@ def test_window_without_charges_table_is_unclamped():
 
 # ── 2. split cost skips a multi-hour gap (no phantom interval) ─────────────────
 def test_split_cost_skips_long_gap(monkeypatch):
-    monkeypatch.setattr(db_reader, "_LOCAL_TZ", timezone.utc)   # local == UTC → deterministic bands
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: timezone.utc)   # local == UTC → deterministic bands
     monkeypatch.setattr(db_reader, "get_cost_config",
                         lambda: {"mode": "tou", "method": "split",
                                  "bands": [{"start": "23:30", "end": "07:30", "days": list(range(7)),

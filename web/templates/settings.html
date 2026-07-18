@@ -84,6 +84,24 @@
           </form>
           <div class="text-[11px] text-slate-500 mt-1">{{ t('units_hint') }}</div>
         </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5">{{ t('timezone_label') }}</label>
+          <form hx-post="api/settings/timezone" hx-trigger="change">
+            <select name="timezone"
+                    class="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-white
+                           text-sm focus:outline-none focus:border-brand cursor-pointer">
+              <option value="" {% if not timezone_code %}selected{% endif %}>{{ t('timezone_auto') }}</option>
+              {% for region, zones in timezones.items() %}
+              <optgroup label="{{ region }}">
+                {% for value, label in zones %}
+                <option value="{{ value }}" {% if value == timezone_code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+          </form>
+          <div class="text-[11px] text-slate-500 mt-1">{{ t('timezone_hint') }}</div>
+        </div>
       </div>
     {% endcall %}
 

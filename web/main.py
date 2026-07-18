@@ -25,7 +25,7 @@ import mqtt_check
 import auth
 import update_check
 
-MATE_VERSION = "2.5.18"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.6.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -561,7 +561,7 @@ async def report(request: Request, month: str | None = None):
     vehicle, _ = db_reader.get_vehicle()
     data = db_reader.get_monthly_report(month)
     track = db_reader.get_month_track(data["month"]) if data.get("has_data") else []
-    now_month = datetime.now(timezone.utc).astimezone(db_reader._LOCAL_TZ).strftime("%Y-%m")
+    now_month = datetime.now(timezone.utc).astimezone(db_reader._local_tz()).strftime("%Y-%m")
     return templates.TemplateResponse(request, "report.html", _ctx(
         page="report", vehicle=vehicle, r=data, track=track,
         is_current_month=(data.get("month") == now_month),
@@ -777,7 +777,8 @@ def _fuel_local_to_utc(ts_str: str) -> str:
     except (ValueError, TypeError):
         return datetime.now(timezone.utc).isoformat()
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=db_reader._LOCAL_TZ) if db_reader._LOCAL_TZ else dt.astimezone()
+        _tz = db_reader._local_tz()
+        dt = dt.replace(tzinfo=_tz) if _tz else dt.astimezone()
     return dt.astimezone(timezone.utc).isoformat()
 
 
@@ -797,7 +798,7 @@ def _fuel_ctx(request: Request):
     tank = {"fuel_pct": fuel_pct, "liters": liters,
             "eur_per_l": round(blend, 3) if blend else None,
             "value": round(liters * blend, 2) if (liters and blend) else None}
-    now_local = datetime.now(timezone.utc).astimezone(db_reader._LOCAL_TZ).strftime("%Y-%m-%dT%H:%M")
+    now_local = datetime.now(timezone.utc).astimezone(db_reader._local_tz()).strftime("%Y-%m-%dT%H:%M")
     return _ctx(page="fuel", vehicle=vehicle, purchases=purchases, tank=tank, now_local=now_local)
 
 
@@ -1309,6 +1310,8 @@ async def settings_page(request: Request):
         wb_keywords=db_reader.get_setting("wb_keywords", ""),
         currencies=db_reader.CURRENCIES,
         currency_code=db_reader.get_currency_code(),
+        timezones=db_reader.timezone_options(),
+        timezone_code=db_reader.get_timezone(),
         diag=diagnostics.build_system_info(MATE_VERSION),
         measured_capacity=db_reader.get_battery_health().get("latest_capacity_kwh"),
     ))
@@ -2434,6 +2437,16 @@ async def set_units(request: Request):
     return Response(status_code=204, headers={"HX-Refresh": "true"})
 
 
+@app.post("/api/settings/timezone")
+async def set_timezone(request: Request):
+    """Change the timezone every date/time is displayed in (trips, charges, reports) and that ToU
+    charges are priced by from here on. '' = Auto (container/system tz). Display-only — the DB stays
+    UTC — so a page reload (HX-Refresh) re-renders every timestamp in the chosen zone (#145)."""
+    form = await request.form()
+    db_reader.set_timezone(form.get("timezone", ""))
+    return Response(status_code=204, headers={"HX-Refresh": "true"})
+
+
 # ── HTMX partial ─────────────────────────────────────────────────────────────
 
 @app.get("/api/charging-live", response_class=HTMLResponse)
@@ -2948,7 +2961,7 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int) -
     first_ts = db_reader.get_first_trip_ts()
     if first_ts is not None and begin_ts < first_ts - 86400:
         from datetime import datetime
-        d = datetime.fromtimestamp(first_ts, tz=db_reader._LOCAL_TZ)
+        d = datetime.fromtimestamp(first_ts, tz=db_reader._local_tz())
         return {**eb, "trips_since": d.strftime("%d/%m/%Y")}
     tot = db_reader.get_trip_totals_between(begin_ts, end_ts)
     dist_km = tot.get("distance_km") or 0
@@ -2983,7 +2996,7 @@ async def energy_period(request: Request, period: str = "", start: str = "", end
     import time, asyncio
     from datetime import datetime, timedelta, timezone
     t = i18n.get_t(db_reader.get_language())
-    tz = db_reader._LOCAL_TZ
+    tz = db_reader._local_tz()
     now = datetime.now(timezone.utc).astimezone(tz)
     try:
         if period == "month" and month:
@@ -3054,7 +3067,7 @@ async def energy_since_charge(request: Request, refresh: int = 0):
     if last_charge_end is None:
         return templates.TemplateResponse(request, "partials/energy_breakdown.html",
                                           _ctx(eb=None, eb_label=t("ec_since_charge_title")))
-    now = datetime.now(timezone.utc).astimezone(db_reader._LOCAL_TZ)
+    now = datetime.now(timezone.utc).astimezone(db_reader._local_tz())
     begin_ts, end_ts = int(last_charge_end.timestamp()), int(now.timestamp())
     label = f"{t('ec_since_charge_title')} · {last_charge_end.strftime('%d/%m %H:%M')}"
     key = f"p:sincecharge:{begin_ts}"
@@ -3097,7 +3110,7 @@ async def report_driving(request: Request, month: str, refresh: int = 0):
     30 min per month, same as the other period cards."""
     import time, asyncio
     from datetime import datetime, timezone
-    tz = db_reader._LOCAL_TZ
+    tz = db_reader._local_tz()
     try:
         now = datetime.now(timezone.utc).astimezone(tz)
         begin_ts, end_ts = _report_month_bounds(month, now)

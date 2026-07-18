@@ -36,7 +36,7 @@ def test_window_before_coverage_drops_distance_and_average(monkeypatch):
     assert "distance_km" not in out
     assert "duration_min" not in out
     assert "avg_kwh100" not in out
-    expected = datetime.fromtimestamp(FIRST, tz=db_reader._LOCAL_TZ).strftime("%d/%m/%Y")
+    expected = datetime.fromtimestamp(FIRST, tz=db_reader._local_tz()).strftime("%d/%m/%Y")
     assert out["trips_since"] == expected
     assert out["total_kwh"] == EB["total_kwh"]  # the official cloud split itself is untouched
 

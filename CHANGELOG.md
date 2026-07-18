@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.6.0] — 2026-07-18
+
+### Added
+- **Pick your time zone.** Trips, charges and reports are shown in local time — but that time used to come only from wherever Mate happened to be running, so a bare Docker container (or a Home Assistant whose zone Mate couldn't read) showed everything in UTC, hours off. Settings → *Language & Currency* now has a **Time zone** selector: leave it on **Automatic** to keep using the container/HA zone exactly as before, or pick your own from the full list of world zones. It's display-only — your stored data always stays UTC — and it applies everywhere at once, so every past trip and charge re-aligns the moment you set it. Daylight-saving is handled automatically. Time-of-use charges are priced in the selected zone from here on (existing charges keep the cost they were recorded with, as always). Thanks to @dsbloomer for the request (#145).
+
 ## [2.5.18] — 2026-07-17
 
 ### Fixed

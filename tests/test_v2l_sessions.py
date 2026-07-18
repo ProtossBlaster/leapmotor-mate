@@ -10,7 +10,7 @@ BIG = 100000  # lookback_days huge so the recency cutoff never filters the test 
 
 
 def _setup(monkeypatch, rows):
-    monkeypatch.setattr(db_reader, "_LOCAL_TZ", timezone.utc)
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: timezone.utc)
     con = sqlite3.connect(":memory:")
     con.row_factory = sqlite3.Row
     con.execute("CREATE TABLE positions (recorded_at TEXT, soc REAL, charge_current_a REAL, "
