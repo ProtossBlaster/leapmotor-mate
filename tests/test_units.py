@@ -32,6 +32,13 @@ def test_pressure(monkeypatch):
     _sys(monkeypatch, "imperial_us"); assert U.pressure(2.0) == "29 psi"
 
 
+def test_elevation(monkeypatch):
+    _sys(monkeypatch, "metric");      assert U.elev(100) == "100 m"
+    _sys(monkeypatch, "imperial_uk"); assert U.elev(100) == "328 ft"
+    _sys(monkeypatch, "imperial_us"); assert U.elev(100) == "328 ft"
+    assert U.elev(None) == "—"
+
+
 def test_efficiency(monkeypatch):
     _sys(monkeypatch, "metric");      assert U.efficiency(15) == "15 kWh/100km"
     _sys(monkeypatch, "imperial_uk"); assert U.efficiency(15) == "4.1 mi/kWh"
@@ -40,12 +47,15 @@ def test_efficiency(monkeypatch):
 
 def test_unit_labels_and_values(monkeypatch):
     _sys(monkeypatch, "imperial_us")
-    assert (U.dist_unit(), U.speed_unit(), U.temp_unit(), U.pressure_unit(), U.eff_unit()) == \
-           ("mi", "mph", "°F", "psi", "mi/kWh")
+    assert (U.dist_unit(), U.speed_unit(), U.temp_unit(), U.pressure_unit(), U.eff_unit(), U.elev_unit()) == \
+           ("mi", "mph", "°F", "psi", "mi/kWh", "ft")
     assert U.dist_val(100) == 62.1
     assert U.temp_val(0) == 32
+    assert U.elev_val(100) == 328
     _sys(monkeypatch, "imperial_uk")
-    assert U.temp_unit() == "°C" and U.dist_unit() == "mi"
+    assert U.temp_unit() == "°C" and U.dist_unit() == "mi" and U.elev_unit() == "ft"
+    _sys(monkeypatch, "metric")
+    assert U.elev_unit() == "m" and U.elev_val(100) == 100 and U.elev_val(None) is None
 
 
 def test_unknown_system_falls_back_to_metric(monkeypatch):

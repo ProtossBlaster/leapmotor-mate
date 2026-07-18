@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.7.0] — 2026-07-18
+
+### Added
+- **Elevation gain/loss per trip.** The Leapmotor cloud has no altitude signal, so trip detail could only ever show flat lat/lon. Mate now looks up each trip's GPS track against [Open-Elevation](https://www.open-elevation.com/) (free, no key, worldwide coverage) shortly after the trip ends, and shows the total **dislivello** — elevation gain and loss — on the trip detail page, next to avg/max speed, in metres or feet per your Settings → *Language & Currency* measurement system. Runs quietly in the background (same render-triggered sweep pattern as the other post-trip enrichments); a trip whose lookup fails just shows "—" and retries on the next sweep, up to a small ceiling. Trips recorded before this feature existed (or that the background sweep gave up on) get a manual **Calculate elevation** button right there on the page. The trip's SOC & Velocità chart now also plots the altitude profile as a third line — the underlying lookup only samples ~60 points per trip, so the chart interpolates between them for a smooth line; only trips that have been enriched show it.
+
+### Fixed
+- **A live cloud hiccup no longer freezes the trip chart.** When the car's connection to the cloud degrades, the cloud can keep re-serving a cached vehicle snapshot while still stamping each poll with a fresh timestamp — the existing stale-frame guard (#128) only catches an identical raw timestamp, so this slips through as several real minutes of flat speed/SoC on the trip's SOC & Velocità chart, followed by an abrupt snap back once the cloud catches up. Mate now also checks the SUBSTANCE of consecutive samples — speed, SoC and GPS position all frozen while the reported speed claims real driving — and, when that holds for at least a minute, drops the repeated middle so the chart (and avg/max speed) show a genuine gap instead of an invented plateau, exactly like an actual signal-loss gap. The elevation lookup (above) shares the same cleanup, so a long freeze no longer burns several of its 60 GPS samples on the same repeated point at the expense of the rest of the trip's profile.
+
 ## [2.6.0] — 2026-07-18
 
 ### Added

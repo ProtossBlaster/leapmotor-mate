@@ -173,6 +173,31 @@
         <span class="text-white font-medium">{% if trip.max_speed_kmh is not none %}{{ trip.max_speed_kmh | speed(0) }}{% else %}—{% endif %}</span>
       </div>
       <div class="flex justify-between">
+        <span class="text-slate-400">{{ t('elevation_gain') }}</span>
+        <span class="text-white font-medium">{% if trip.elevation_gain_m is not none %}+{{ trip.elevation_gain_m | elev(0) }}{% else %}—{% endif %}</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-400">{{ t('elevation_loss') }}</span>
+        <span class="text-white font-medium">{% if trip.elevation_loss_m is not none %}−{{ trip.elevation_loss_m | elev(0) }}{% else %}—{% endif %}</span>
+      </div>
+      {% if not trip.elevation_profile_available and trip.distance_km %}
+      <!-- Manual on-demand elevation lookup — for trips recorded before this feature existed, ones
+           whose background sweep hasn't succeeded yet, OR (elevation_gain_m already set) trips
+           enriched before per-point storage existed, so the chart still has no Quota line to draw
+           (see elevation_enrich.recalc_trip / db_reader.get_trip_detail's elevation_profile_available). -->
+      <div class="flex justify-end items-center gap-2">
+        <span id="elev-calc-msg"></span>
+        <span id="elev-calc-spin" class="htmx-indicator text-xs text-slate-400">…</span>
+        <button type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/40 text-sky-300 px-2.5 py-1 text-xs font-medium hover:border-sky-400 hover:text-sky-200"
+                hx-post="api/trips/{{ trip.id }}/calc-elevation"
+                hx-target="#elev-calc-msg" hx-swap="innerHTML"
+                hx-indicator="#elev-calc-spin">
+          🏔️ {{ t('elevation_calc_btn') }}
+        </button>
+      </div>
+      {% endif %}
+      <div class="flex justify-between">
         <span class="text-slate-400">{{ t('gps_points') }}</span>
         <span class="text-white font-medium">{{ trip.positions|length }}</span>
       </div>
@@ -306,6 +331,7 @@
         <span class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
           <span class="whitespace-nowrap"><span style="color:#22c55e">■</span> {{ t('soc') }}</span>
           <span class="whitespace-nowrap"><span style="color:#38bdf8">■</span> {{ t('speed') }}</span>
+          <span id="trip-profile-elev-legend" class="whitespace-nowrap" style="display:none"><span style="color:#c9975f">■</span> {{ t('altitude') }}</span>
         </span>
       </div>
       <div id="trip-profile" style="height:200px"></div>
@@ -323,7 +349,7 @@
       // the blank filling below, without which a gap would silently close up.
       var t0 = pts[0].recorded_at ? new Date(pts[0].recorded_at).getTime() : NaN;
       var useTime = !isNaN(t0);
-      var labels = [], socArr = [], spdArr = [];
+      var labels = [], socArr = [], spdArr = [], elevArr = [];
       var plot = [];        // mirrors the series (blanks included) so hover indices stay aligned
 
       // Typical spacing between samples — the yardstick for telling a gap from a sample. Median,
@@ -357,18 +383,20 @@
             var blanks = Math.min(Math.round((t - prev) / step) - 1, 300);   // sanity cap
             for (var k = 1; k <= blanks; k++) {
               pushLabel(prev + step * k);
-              socArr.push(null); spdArr.push(null); plot.push(null);
+              socArr.push(null); spdArr.push(null); elevArr.push(null); plot.push(null);
             }
           }
         }
         pushLabel(t);
         socArr.push(p.soc != null ? p.soc : null);
         spdArr.push(p.speed_kmh != null ? p.speed_kmh : 0);
+        elevArr.push(p.elevation_m != null ? p.elevation_m : null);
         plot.push(p);
       });
 
       var nmSoc = {{ t('soc')|tojson }};
       var nmSpd = {{ t('speed')|tojson }};
+      var nmElev = {{ t('altitude')|tojson }};
       // Display-time speed unit conversion (data stays metric km/h).
       var spdFactor = {{ speed_val(1, 6) }};   // 1 (metric) or 0.621371 (imperial)
       var spdUnit = {{ speed_unit()|tojson }}; // "km/h" or "mph"
@@ -376,6 +404,17 @@
       var spdMax = 1;
       spdArr.forEach(function (v) { if (v != null && v > spdMax) spdMax = v; });
       spdMax = Math.ceil(spdMax / 10) * 10;
+
+      // Elevation is a lookup on a downsampled + interpolated track (see _interpolate_elevation) —
+      // only enriched trips have it, so the series is added only when at least one real value made
+      // it through. Older / not-yet-enriched trips keep the plain SoC+speed chart unchanged.
+      var hasElev = elevArr.some(function (v) { return v != null; });
+      var elevFactor = {{ elev_val(1, 6) }};    // 1 (metric) or 3.28084 (imperial)
+      var elevUnit = {{ elev_unit()|tojson }};  // "m" or "ft"
+      if (hasElev) {
+        elevArr = elevArr.map(function (v) { return v != null ? v * elevFactor : v; });
+        document.getElementById('trip-profile-elev-legend').style.display = '';
+      }
 
       // Zoom the SoC axis to the trip's own range (it usually only drops a few %),
       // otherwise a 96→90% drive looks flat pinned to the top of a 0–100 axis.
@@ -407,7 +446,41 @@
       }
 
       // Mirrors the proven charge-power chart config: plain-array data + categories +
-      // seriesName-bound y-axes (multi-axis needs the binding or nothing draws).
+      // seriesName-bound y-axes (multi-axis needs the binding or nothing draws). Elevation, when
+      // present, is unshifted to the FRONT of every array — ApexCharts stacks series bottom-to-top
+      // in array order, so it draws as the backdrop terrain relief that SoC/speed are drawn over,
+      // matching a topographic cross-section under the trip's actual telemetry.
+      var series = [{ name: nmSoc, type: 'area', data: socArr },
+                    { name: nmSpd, type: 'line', data: spdArr }];
+      var colors = ['#22c55e', '#38bdf8'];
+      var strokeWidth = [2, 2];
+      var fillType = ['gradient', 'solid'];
+      var opacityFrom = [0.35, 0.35];
+      var opacityTo = [0.05, 0.05];
+      var yaxis = [
+        { seriesName: nmSoc, min: socLo, max: socHi, forceNiceScale: true,
+          labels: { style: { colors: '#22c55e', fontSize: '10px' }, formatter: function (v) { return v != null ? v.toFixed(0) : ''; } },
+          title: { text: 'SoC %', style: { color: '#22c55e', fontSize: '10px' } } },
+        { opposite: true, seriesName: nmSpd, min: 0, max: spdMax,
+          labels: { style: { colors: '#38bdf8', fontSize: '10px' }, formatter: function (v) { return v != null ? v.toFixed(0) : ''; } },
+          title: { text: spdUnit, style: { color: '#38bdf8', fontSize: '10px' } } },
+      ];
+      if (hasElev) {
+        // Light warm tan (not a dark brown) — on this dark navy surface a dark tone would nearly
+        // vanish; a light one stays readable at low fill-opacity and sits far in hue from both
+        // SoC green and speed blue, so it's never confused with either even under a CVD sim.
+        series.unshift({ name: nmElev, type: 'area', data: elevArr });
+        colors.unshift('#c9975f');
+        strokeWidth.unshift(1.5);
+        fillType.unshift('gradient');
+        opacityFrom.unshift(0.5);
+        opacityTo.unshift(0.08);
+        // Hidden axis, no forced min — the relief should read as the trip's OWN climb/descent
+        // shape (auto-scaled to its own min/max), not as a slab measured from sea level. A third
+        // labelled axis is also too cramped at 200px; the shared tooltip gives exact values.
+        yaxis.unshift({ seriesName: nmElev, show: false });
+      }
+
       el._c = new ApexCharts(el, {
         chart: { type: 'line', height: 200, toolbar: { show: false }, zoom: { enabled: false },
                  fontFamily: 'inherit', background: 'transparent', parentHeightOffset: 0,
@@ -416,32 +489,26 @@
                    mouseMove: function (event, ctx, config) { showCursor(config.dataPointIndex); },
                    mouseLeave: function () { hideCursor(); }
                  } },
-        series: [{ name: nmSoc, type: 'area', data: socArr },
-                 { name: nmSpd, type: 'line', data: spdArr }],
-        colors: ['#22c55e', '#38bdf8'],
-        stroke: { curve: 'smooth', width: [2, 2] },
-        fill: { type: ['gradient', 'solid'],
-                gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.05, stops: [0, 100] } },
+        series: series,
+        colors: colors,
+        stroke: { curve: 'smooth', width: strokeWidth },
+        fill: { type: fillType,
+                gradient: { shadeIntensity: 1, opacityFrom: opacityFrom, opacityTo: opacityTo, stops: [0, 100] } },
         dataLabels: { enabled: false },
         markers: { size: 0 },
         xaxis: { categories: labels, tickAmount: 6, tooltip: { enabled: false },
                  labels: { style: { colors: '#64748b', fontSize: '10px' }, rotate: 0, hideOverlappingLabels: true },
                  axisBorder: { show: false }, axisTicks: { show: false } },
-        yaxis: [
-          { seriesName: nmSoc, min: socLo, max: socHi, forceNiceScale: true,
-            labels: { style: { colors: '#22c55e', fontSize: '10px' }, formatter: function (v) { return v != null ? v.toFixed(0) : ''; } },
-            title: { text: 'SoC %', style: { color: '#22c55e', fontSize: '10px' } } },
-          { opposite: true, seriesName: nmSpd, min: 0, max: spdMax,
-            labels: { style: { colors: '#38bdf8', fontSize: '10px' }, formatter: function (v) { return v != null ? v.toFixed(0) : ''; } },
-            title: { text: spdUnit, style: { color: '#38bdf8', fontSize: '10px' } } },
-        ],
+        yaxis: yaxis,
         grid: { borderColor: '#1e293b', strokeDashArray: 4, padding: { left: 8, right: 8 } },
         legend: { show: false },
         tooltip: { theme: 'dark', shared: true, intersect: false,
                    y: { formatter: function (v, o) {
                           if (v == null) return '';
                           var nm = o.w.config.series[o.seriesIndex].name;
-                          return nm === nmSpd ? v.toFixed(0) + ' ' + spdUnit : v.toFixed(1) + ' %';
+                          if (nm === nmSpd) return v.toFixed(0) + ' ' + spdUnit;
+                          if (nm === nmElev) return v.toFixed(0) + ' ' + elevUnit;
+                          return v.toFixed(1) + ' %';
                         } } },
       });
       el._c.render();

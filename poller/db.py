@@ -446,6 +446,21 @@ class Database:
         for _c, _t in (("fuel_start_pct", "REAL"), ("fuel_end_pct", "REAL")):
             if _c not in tcols:
                 self._conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
+        # migration: elevation gain/loss (metres) from the GPS track, looked up post-trip against
+        # Open-Elevation (the cloud has no altitude signal). Per-segment, like regen_kwh — a merged
+        # group's total is just the sum of its segments (web/db_reader.py _trip_group_stats), so
+        # merging/unmerging never needs re-enrichment. elev_tried/elev_done mirror ec_tried/ec_stable
+        # but need no convergence logic: terrain is static, one successful lookup is final.
+        for _c, _t in (("elevation_gain_m", "REAL"), ("elevation_loss_m", "REAL"),
+                       ("elev_tried", "INTEGER DEFAULT 0"), ("elev_done", "INTEGER DEFAULT 0")):
+            if _c not in tcols:
+                self._conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
+        # migration: per-POINT altitude (metres), for the trip-profile chart. Only the downsampled
+        # subset the enrichment sweep actually queried Open-Elevation for gets a value here — the
+        # rest stay NULL and web/db_reader.py interpolates them at read time for a smooth chart line.
+        tpcols = {r[1] for r in self._conn.execute("PRAGMA table_info(trip_positions)").fetchall()}
+        if "elevation_m" not in tpcols:
+            self._conn.execute("ALTER TABLE trip_positions ADD COLUMN elevation_m REAL")
         self._conn.commit()
         self._backfill_vehicle_capacity()
         self._backfill_null_vehicle_id()

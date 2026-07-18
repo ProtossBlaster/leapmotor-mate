@@ -16,6 +16,7 @@ import db_reader
 
 _KM_TO_MI = 0.621371
 _BAR_TO_PSI = 14.5037738
+_M_TO_FT = 3.28084
 
 UNIT_SYSTEMS = ("metric", "imperial_uk", "imperial_us")
 
@@ -51,6 +52,9 @@ def pressure_unit(system=None) -> str:
 def eff_unit(system=None) -> str:
     return "mi/kWh" if _imperial(system or get_unit_system()) else "kWh/100km"
 
+def elev_unit(system=None) -> str:
+    return "ft" if _imperial(system or get_unit_system()) else "m"
+
 
 # ── converted numbers only (for JS chart data / attributes) ──────────────────
 def dist_val(km, dec=1, system=None):
@@ -76,6 +80,11 @@ def temp_val(c, dec=0, system=None):
     if c is None:
         return None
     return round(c * 9 / 5 + 32, dec) if (system or get_unit_system()) == "imperial_us" else round(c, dec)
+
+def elev_val(m, dec=0, system=None):
+    if m is None:
+        return None
+    return round(m * _M_TO_FT, dec) if _imperial(system or get_unit_system()) else round(m, dec)
 
 def eff_val(kwh_100km, dec=1, system=None):
     """Converted efficiency number only (for chart data). NB: imperial mi/kWh is the RECIPROCAL of
@@ -111,6 +120,12 @@ def pressure(bar):
         return "—"
     s = get_unit_system()
     return f"{_num(bar * _BAR_TO_PSI, 0)} psi" if _imperial(s) else f"{_num(bar, 2)} bar"
+
+def elev(m, dec=0):
+    if m is None:
+        return "—"
+    s = get_unit_system()
+    return f"{_num(m * _M_TO_FT, dec)} ft" if _imperial(s) else f"{_num(m, dec)} m"
 
 def efficiency(kwh_100km, dec=1):
     """kWh/100km (metric) ↔ mi/kWh (imperial). 0/None → em dash."""
