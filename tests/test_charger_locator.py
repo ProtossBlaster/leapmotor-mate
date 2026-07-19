@@ -56,7 +56,7 @@ def test_nearest_named_wins_over_anonymous_first(monkeypatch):
     els = [_node(1, 45.00004, 9.0),                              # ~5 m, anonymous
            _node(2, 45.00036, 9.0, operator="Ionity Binasco")]   # ~40 m, named
     monkeypatch.setattr(CL, "_query", lambda *a: els)
-    assert CL.find_station_name(45.0, 9.0) == ("Ionity Binasco", True)
+    assert CL.find_station_name(45.0, 9.0) == ("Ionity Binasco", None, True)
 
 
 def test_way_mapped_station_found(monkeypatch):
@@ -65,7 +65,7 @@ def test_way_mapped_station_found(monkeypatch):
     els = [{"type": "way", "id": 7, "center": {"lat": 45.0001, "lon": 9.0},
             "tags": {"name": "Supercharger Milano"}}]
     monkeypatch.setattr(CL, "_query", lambda *a: els)
-    assert CL.find_station_name(45.0, 9.0) == ("Supercharger Milano", True)
+    assert CL.find_station_name(45.0, 9.0) == ("Supercharger Milano", None, True)
 
 
 def test_label_tag_priority(monkeypatch):
@@ -76,11 +76,11 @@ def test_label_tag_priority(monkeypatch):
 
 def test_nothing_found_vs_network_error(monkeypatch):
     monkeypatch.setattr(CL, "_query", lambda *a: [])
-    assert CL.find_station_name(45.0, 9.0) == (None, True)    # OSM answered empty → sentinel
+    assert CL.find_station_name(45.0, 9.0) == (None, None, True)  # OSM answered empty → sentinel
     # Transient only when EVERY applicable source errors (OSM + the Italian PUN here).
     monkeypatch.setattr(CL, "_query", lambda *a: None)
     monkeypatch.setattr(CL, "_pun_stations", lambda *a, **k: None)
-    assert CL.find_station_name(45.0, 9.0) == (None, False)   # all dead → retry later
+    assert CL.find_station_name(45.0, 9.0) == (None, None, False)   # all dead → retry later
 
 
 # ── sweep: labels, sentinels, skips, reuse, abort ─────────────────────────────
@@ -94,13 +94,75 @@ def test_sweep_labels_and_sentinels(tmp_path, monkeypatch):
     calls = []
     def fake(lat, lon):
         calls.append((lat, lon))
-        return ("E-Moving", True) if lat == 45.0 else (None, True)
+        return ("E-Moving", None, True) if lat == 45.0 else (None, None, True)
     monkeypatch.setattr(CL, "find_station_name", fake)
     assert CL.sweep_now() == 1                       # one NAME found
     assert _row(pdb, 1)["location_name"] == "E-Moving"
     assert _row(pdb, 2)["location_name"] == ""       # looked up, nothing there
     assert len(calls) == 2
     assert CL.sweep_now() == 0 and len(calls) == 2   # fully resolved: no further calls
+
+
+def test_sweep_auto_confirms_unambiguous_type(tmp_path, monkeypatch):
+    """The station's own current+kW data, when unambiguous, fills in the AC/FAST/HPC
+    type too — skipping the manual 'confirm this charge' step, exactly the feature the
+    user asked for after the Fistra (MC) charge got stuck unlabelled AND unconfirmed."""
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, lat=45.0, lon=9.0)     # location_type NULL — still unconfirmed
+    monkeypatch.setattr(CL, "find_station_name", lambda *a: ("Enel X Way", "HPC", True))
+    assert CL.sweep_now() == 1
+    row = _row(pdb, 1)
+    assert row["location_name"] == "Enel X Way"
+    assert row["location_type"] == "HPC"
+
+
+def test_sweep_does_not_override_an_already_confirmed_type(tmp_path, monkeypatch):
+    """Naming and confirming are independent: a charge the user already typed MANUAL
+    can still get its 📍 name, but auto-confirm must never overwrite that choice."""
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, lat=45.0, lon=9.0, ctype="MANUAL")
+    monkeypatch.setattr(CL, "find_station_name", lambda *a: ("Enel X Way", "HPC", True))
+    assert CL.sweep_now() == 1
+    row = _row(pdb, 1)
+    assert row["location_name"] == "Enel X Way"   # still got named
+    assert row["location_type"] == "MANUAL"       # but the manual pick stands
+
+
+def test_sweep_leaves_ambiguous_type_unconfirmed(tmp_path, monkeypatch):
+    """A mixed AC/DC site (or a source with no current-type data) can't say which cable
+    THIS session used — the charge stays named but unconfirmed, same as before."""
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, lat=45.0, lon=9.0)
+    monkeypatch.setattr(CL, "find_station_name", lambda *a: ("Ionity Hub", None, True))
+    assert CL.sweep_now() == 1
+    row = _row(pdb, 1)
+    assert row["location_name"] == "Ionity Hub"
+    assert row["location_type"] is None
+
+
+def test_sweep_reuse_path_does_not_guess_type(tmp_path, monkeypatch):
+    """The GPS-reuse shortcut (skips the network call) copies only the NAME, never a
+    type: the reused spot's own charge may have been typed by the user for unrelated
+    reasons (MANUAL/FREE/a correction), so propagating it would be a guess, not a fact."""
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, lat=45.0, lon=9.0, name="Ionity Binasco", ctype="MANUAL")
+    _charge(pdb, 2, lat=45.00027, lon=9.0)                       # ~30 m away, unconfirmed
+    monkeypatch.setattr(CL, "find_station_name",
+                        lambda *a: (_ for _ in ()).throw(AssertionError("network hit")))
+    assert CL.sweep_now() == 1
+    row = _row(pdb, 2)
+    assert row["location_name"] == "Ionity Binasco"
+    assert row["location_type"] is None
+
+
+def test_classify_current():
+    assert CL._classify_current("AC", 22.0) == "AC"
+    assert CL._classify_current("AC", 0.0) == "AC"
+    assert CL._classify_current("DC", 50.0) == "FAST"
+    assert CL._classify_current("DC", 150.0) == "HPC"
+    assert CL._classify_current("DC", 0.0) == "FAST"     # unknown kW → the common default
+    assert CL._classify_current("AC/DC", 150.0) is None  # mixed site → ambiguous
+    assert CL._classify_current("", 0.0) is None         # source didn't say
 
 
 def test_sweep_skips_home_wallbox_open_and_nogps(tmp_path, monkeypatch):
@@ -136,7 +198,7 @@ def test_sweep_aborts_on_transient_error(tmp_path, monkeypatch):
     """Overpass down → stop the round, leave NULL so the next sweep retries."""
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1)
-    monkeypatch.setattr(CL, "find_station_name", lambda *a: (None, False))
+    monkeypatch.setattr(CL, "find_station_name", lambda *a: (None, None, False))
     assert CL.sweep_now() == 0
     assert _row(pdb, 1)["location_name"] is None
     assert db_reader.has_location_lookup_candidates()
@@ -234,6 +296,8 @@ def test_ocm_stations_parse(monkeypatch):
     assert [s["name"] for s in res] == ["BeCharge Lorenteggio", "Ionity Hub"]
     assert res[1]["info"] == "DC · 300 kW"                              # CurrentTypeID 30
     assert res[0]["info"] == "AC · 22 kW"                               # CurrentTypeID 20
+    assert res[1]["current"] == "DC" and res[1]["kw"] == 300.0
+    assert res[0]["current"] == "AC" and res[0]["kw"] == 22.0
 
 
 def test_ocm_keyless_is_silent_and_error_is_none(monkeypatch):
@@ -298,7 +362,7 @@ def test_label_sweep_never_uses_tomtom(monkeypatch):
     monkeypatch.setattr(CL, "_tomtom_stations",
                         lambda *a, **k: (_ for _ in ()).throw(AssertionError("TomTom in label path")))
     monkeypatch.setattr(CL, "_query", lambda *a: [_node(1, 45.0, 9.0, operator="A2A")])
-    assert CL.find_station_name(45.0, 9.0) == ("A2A", True)    # OSM name, no TomTom touched
+    assert CL.find_station_name(45.0, 9.0) == ("A2A", None, True)    # OSM name, no TomTom touched
 
 
 def test_find_nearby_merges_osm_and_ocm(monkeypatch):
@@ -344,12 +408,12 @@ def test_station_name_uses_ocm_and_osm_dead_rules(monkeypatch):
     monkeypatch.setattr(CL, "_ocm_stations",
                         lambda *a, **k: [{"name": "BeCharge", "lat": 45.0, "lon": 9.0,
                                           "dist_m": 60, "info": ""}])
-    assert CL.find_station_name(45.0, 9.0) == ("BeCharge", True)        # OCM name wins
+    assert CL.find_station_name(45.0, 9.0) == ("BeCharge", None, True)  # OCM name wins
     # every applicable source errors → retry (OSM None, OCM keyed+None, PUN None)
     monkeypatch.setattr(CL, "_ocm_key", lambda: "k")
     monkeypatch.setattr(CL, "_ocm_stations", lambda *a, **k: None)
     monkeypatch.setattr(CL, "_pun_stations", lambda *a, **k: None)
-    assert CL.find_station_name(45.0, 9.0) == (None, False)
+    assert CL.find_station_name(45.0, 9.0) == (None, None, False)
 
 
 # ── PUN — Piattaforma Unica Nazionale (Italy, keyless, referer-gated) ─────────
@@ -383,6 +447,8 @@ def test_pun_groups_connectors_and_reads_status(monkeypatch):
     assert by["Atlante"]["avail"] == "1/2"          # one AVAILABLE of two connectors
     assert by["A2A"]["info"] == "AC · 22 kW"
     assert by["A2A"]["avail"] == "1/1"
+    assert by["Atlante"]["current"] == "DC" and by["Atlante"]["kw"] == 60.0
+    assert by["A2A"]["current"] == "AC" and by["A2A"]["kw"] == 22.0
 
 
 def test_pun_skipped_outside_italy(monkeypatch):
