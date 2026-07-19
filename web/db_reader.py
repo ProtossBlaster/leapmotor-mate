@@ -3128,13 +3128,23 @@ def _billed_kwh(c) -> float:
     return c.get("energy_added_kwh") or 0
 
 
-def get_charges_grouped() -> list[dict]:
-    """Return charges nested as year → month → day."""
+def get_charges_grouped(station: str | None = None) -> list[dict]:
+    """Return charges nested as year → month → day. `station`, when given, is a
+    "lat,lon" key from get_charging_stations() (same rounding) — narrows the tree to
+    just the sessions charged at that one station, for the /charges?station= filtered view."""
     # #67 (rossiadobe): the grouped Charges page must show the FULL history — a default
     # limit would silently hide older charges (his CSV-imported ones before the newest 50
     # vanished, the list "stopped at October 2025"). The page is a collapsed accordion, so
     # loading everything is fine — same unbounded read the CSV export and monthly report use.
     charges = get_charges(limit=1_000_000)
+    if station:
+        try:
+            lat_r, lon_r = (round(float(v), 3) for v in station.split(","))
+        except (ValueError, AttributeError):
+            charges = []
+        else:
+            charges = [c for c in charges if c.get("latitude") is not None and c.get("longitude") is not None
+                       and round(c["latitude"], 3) == lat_r and round(c["longitude"], 3) == lon_r]
     from collections import OrderedDict
     db = _get()
 
@@ -4112,3 +4122,57 @@ def get_frequent_places(min_visits: int = 2, top_n: int = 15) -> list[dict]:
     ]
     places.sort(key=lambda p: p["visits"], reverse=True)
     return places[:top_n]
+
+
+def get_charging_stations(min_sessions: int = 1, recent_n: int = 6) -> list[dict]:
+    """Cluster completed charges into physical charging stations for the map's concentration
+    bubbles — same ~110 m grid (3-decimal rounding) as get_frequent_places, so a station
+    resolves to one bubble even though each session's own GPS fix jitters slightly. Each
+    cluster carries its most-common resolved name (set by charger_locator's OSM/OCM sweep)
+    and its most recent sessions (for the map popup). `key` is "lat,lon" rounded to the SAME
+    3 decimals used to bucket, so /charges?station=<key> re-selects the identical cluster.
+    HOME charges are excluded — a home wallbox isn't a "colonnina" and, being by far the most
+    visited spot for most drivers, would otherwise dominate the concentration map as one giant
+    unnamed bubble (HOME charges never resolve a location_name — see _LOCATION_CANDIDATES_WHERE).
+    Home charging already has its own bubble via get_frequent_places."""
+    charges = get_charges(limit=1_000_000)
+    buckets: dict[tuple, dict] = {}
+    for c in charges:
+        lat, lon = c.get("latitude"), c.get("longitude")
+        if not lat or not lon or c.get("location_type") == "HOME":
+            continue
+        key = (round(lat, 3), round(lon, 3))
+        b = buckets.setdefault(key, {"lat": 0.0, "lon": 0.0, "n": 0, "kwh": 0.0,
+                                      "cost": 0.0, "has_cost": False, "names": {}, "charges": []})
+        b["lat"] += lat
+        b["lon"] += lon
+        b["n"] += 1
+        b["kwh"] += _billed_kwh(c)
+        if c.get("cost") is not None:
+            b["cost"] += c["cost"]
+            b["has_cost"] = True
+        if c.get("location_name"):
+            b["names"][c["location_name"]] = b["names"].get(c["location_name"], 0) + 1
+        b["charges"].append(c)
+
+    stations = []
+    for (lat_r, lon_r), b in buckets.items():
+        if b["n"] < min_sessions:
+            continue
+        b["charges"].sort(key=lambda c: c.get("started_at") or "", reverse=True)
+        stations.append({
+            "key": f"{lat_r:.3f},{lon_r:.3f}",
+            "latitude": round(b["lat"] / b["n"], 6),
+            "longitude": round(b["lon"] / b["n"], 6),
+            "name": max(b["names"], key=b["names"].get) if b["names"] else None,
+            "sessions": b["n"],
+            "kwh": round(b["kwh"], 2),
+            "cost": round(b["cost"], 2) if b["has_cost"] else None,
+            "recent": [
+                {"id": c["id"], "started_at": c["started_at"], "kwh": round(_billed_kwh(c), 2),
+                 "cost": c.get("cost"), "charge_type": c.get("charge_type")}
+                for c in b["charges"][:recent_n]
+            ],
+        })
+    stations.sort(key=lambda s: s["sessions"], reverse=True)
+    return stations

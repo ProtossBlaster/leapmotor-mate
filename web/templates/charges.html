@@ -32,6 +32,25 @@
 </div>
 {% endif %}
 
+{% if station %}
+<div class="mb-6 flex items-center justify-between gap-3 flex-wrap rounded-xl px-4 py-3 text-sm"
+     style="background:#f59e0b14;border:1px solid #f59e0b44">
+  <div class="flex items-center gap-2 text-amber-300">
+    <span>📍</span>
+    <span>{{ t('charges_station_filter') }}
+      <b>{{ station_info.name if station_info and station_info.name else t('map_unnamed_station') }}</b>
+      {% if station_info %}
+      — {{ station_info.sessions }} {{ t('sessions_recorded') }} · {{ station_info.kwh }} kWh
+      {% if station_info.cost is not none %}· {{ station_info.cost | money }}{% endif %}
+      {% endif %}
+    </span>
+  </div>
+  <a href="charges" class="text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2">
+    ✕ {{ t('charges_station_clear') }}
+  </a>
+</div>
+{% endif %}
+
 <!-- Charging status + battery + limit panel -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
 
@@ -181,8 +200,8 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
   </div>
 </div>
 
-<!-- AC vs DC distribution (donut) -->
-{% if ac_dc and ac_dc.total > 0 %}
+<!-- AC vs DC distribution (donut) — global totals, hidden while a station filter narrows the tree below -->
+{% if not station and ac_dc and ac_dc.total > 0 %}
 <div class="card mb-6">
   <h2 class="font-semibold text-white mb-3">{{ t('ac_dc_distribution') }}</h2>
   <div class="flex flex-col sm:flex-row items-center gap-6">
@@ -239,8 +258,8 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 </div>
 {% endif %}
 
-<!-- Summary cards — 5 columns, compact -->
-{% if stats and stats.session_count %}
+<!-- Summary cards — 5 columns, compact — global totals, hidden while a station filter narrows the tree below -->
+{% if not station and stats and stats.session_count %}
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
 
   {% macro scard(label, value, unit, color='text-white') %}

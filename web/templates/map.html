@@ -16,6 +16,7 @@
   <script>
     const segments = {{ track | tojson }};
     const places   = {{ places | tojson }};
+    const stations = {{ stations | tojson }};
 
     // All points (across every segment) just to frame the map.
     const allPts = [];
@@ -47,6 +48,41 @@
       }).addTo(map).bindPopup('{{ t('map_visits') }}: <b>' + p.visits + '</b>');
     });
 
+    // Charging stations: a small fixed-size marker per station (NOT scaled by session count —
+    // a few outliers would otherwise dwarf everything else on the map) with the session count
+    // shown inside. Popup lists the most recent sessions (deep-linked to their card on the
+    // Charges page) and, past `recent_n`, a link to the same page pre-filtered to just this
+    // station (?station=<key> — see get_charging_stations).
+    const r = 10;
+    stations.forEach(function (s) {
+      const icon = L.divIcon({
+        className: '', iconSize: [r * 2, r * 2], iconAnchor: [r, r],
+        html: '<div style="width:' + (r * 2) + 'px;height:' + (r * 2) + 'px;border-radius:50%;'
+            + 'background:#f59e0b73;border:2px solid #f59e0b;color:#fff;font-weight:700;'
+            + 'display:flex;align-items:center;justify-content:center;font-size:10px;'
+            + 'box-shadow:0 0 0 2px #00000022">' + s.sessions + '</div>'
+      });
+
+      let popup = '<div style="min-width:180px">'
+                + '<b>' + (s.name ? s.name.replace(/</g, '&lt;') : '{{ t('map_unnamed_station') }}') + '</b><br>'
+                + '{{ t('map_station_sessions') }}: <b>' + s.sessions + '</b> · ' + s.kwh + ' kWh'
+                + (s.cost != null ? ' · ' + s.cost.toFixed(2) : '') + '<hr style="margin:6px 0;border-color:#334155">'
+                + '<div style="max-height:150px;overflow-y:auto">';
+      s.recent.forEach(function (c) {
+        popup += '<div style="margin-bottom:3px"><a href="charges?highlight=' + c.id
+              + '" style="color:#60a5fa;text-decoration:none">' + (c.started_at || '').replace('T', ' ').slice(0, 16)
+              + '</a> — ' + c.kwh + ' kWh' + (c.cost != null ? ' · ' + c.cost.toFixed(2) : '') + '</div>';
+      });
+      popup += '</div>';
+      if (s.sessions > s.recent.length) {
+        popup += '<a href="charges?station=' + encodeURIComponent(s.key) + '" style="color:#f59e0b;font-weight:600;text-decoration:none">'
+              + '{{ t('map_station_view_all') }} (' + s.sessions + ') →</a>';
+      }
+      popup += '</div>';
+
+      L.marker([s.latitude, s.longitude], { icon: icon }).addTo(map).bindPopup(popup);
+    });
+
     var pc = document.getElementById('map-pts');
     if (pc) pc.textContent = allPts.length;
   </script>
@@ -55,6 +91,7 @@
 <div class="mt-4 flex items-center gap-x-5 gap-y-1 flex-wrap text-xs text-slate-500">
   <span><span style="color:#2563eb">—</span> {{ t('map_routes') }} ({{ track|length }})</span>
   {% if places %}<span><span style="color:#14b8a6">●</span> {{ t('map_frequent_places') }} ({{ places|length }})</span>{% endif %}
+  {% if stations %}<span><span style="color:#f59e0b">●</span> {{ t('map_charging_stations') }} ({{ stations|length }})</span>{% endif %}
   <span><span id="map-pts">—</span> {{ t('map_points') }}</span>
 </div>
 
