@@ -154,12 +154,33 @@ def verdict(vin: str, feature: str, default: str = "untested",
     return load(vin, get_setting).get(feature, default)
 
 
-def is_shown(vin: str, feature: str, get_setting: Optional[Callable] = None) -> bool:
-    """Show everything EXCEPT what is confirmed 'broken'. CORE features are NEVER hidden
-    (they power Mate's own reports/charts). Unknown/'untested' features are shown — we
-    never hide on a guess."""
+# Optional features KNOWN ABSENT on a given model — mirrors web/capability_profile.py so the MQTT
+# bridge hides them too. The web copy already had this; the poller copy was MISSING it, so per-model
+# hiding never reached MQTT discovery (a T03 kept its ventilated-seat entities in HA — #144). Keep the
+# two copies in SYNC: T03 has no ventilated/heated seats, no heated steering wheel, no PREPARE.
+# ⚠️ Climate is deliberately excluded (the T03's climate abilities lie yet it cools — #67).
+MODEL_ABSENT: dict[str, tuple[str, ...]] = {
+    "T03": ("seat_vent", "seat_vent_cmd", "prepare_car",
+            "seat_heat", "seat_heat_cmd", "steering_heat", "steering_heat_cmd"),
+}
+
+
+def model_hidden(car_type: str, feature: str) -> bool:
+    """True if `feature` is known-absent on this model → hide it. Unknown model/feature → False.
+    Case-insensitive on car_type. Pure/stateless (safe for the poller: no db)."""
+    return feature in MODEL_ABSENT.get((car_type or "").upper(), ())
+
+
+def is_shown(vin: str, feature: str, get_setting: Optional[Callable] = None,
+             *, car_type: str = "") -> bool:
+    """Show everything EXCEPT what is confirmed 'broken' or known-absent on this model. CORE features
+    are NEVER hidden (they power Mate's own reports/charts). Unknown/'untested' features are shown — we
+    never hide on a guess. `car_type` (optional) enables per-model hiding via MODEL_ABSENT; omit it and
+    behaviour is byte-for-byte unchanged (existing callers, and every non-listed model, unaffected)."""
     if is_core(feature):
         return True
+    if car_type and model_hidden(car_type, feature):
+        return False
     return load(vin, get_setting).get(feature, "untested") != "broken"
 
 
@@ -235,14 +256,41 @@ def ability_supported(command_key: str, abilities) -> bool:
 
 
 def command_shown(vin: str, command_key: str, get_setting: Optional[Callable] = None,
-                  *, abilities=None) -> bool:
+                  *, abilities=None, car_type: str = "") -> bool:
     """Should a UI/MQTT command button named `command_key` be exposed? Hidden when the car declared
-    its abilities and doesn't list the one this command needs (COMMAND_ABILITY); otherwise mapped to
-    its gating feature (COMMAND_FEATURE), and commands with neither are always shown."""
+    its abilities and doesn't list the one this command needs (COMMAND_ABILITY), or when its gating
+    feature is known-absent on this model (`car_type` → MODEL_ABSENT, e.g. heated-seat commands on a
+    T03 — #144); otherwise mapped to its gating feature (COMMAND_FEATURE), and commands with neither
+    are always shown."""
     if not ability_supported(command_key, abilities):
         return False
     feat = COMMAND_FEATURE.get(command_key)
-    return True if feat is None else is_shown(vin, feat, get_setting)
+    return True if feat is None else is_shown(vin, feat, get_setting, car_type=car_type)
+
+
+# Feature-level ability gate (not a command button): the WEEKLY/CYCLIC charge schedule. A car that
+# declares none of these codes only offers a simple start-time + target-SoC plan, so the Scheduling
+# view drops the end-time window and the day-of-week chips for it (the T03 declares CHARGE_LIMIT but
+# none of these — #146). Model-blind like COMMAND_ABILITY: the car's own declaration is the source
+# of truth, so any simple-scheduler model (present or future) is covered with no per-model table.
+CHARGE_SCHEDULE_WEEKLY_ABILITY = {
+    25,   # CYCLIC_CHARGE
+    26,   # CHARGE_REPEAT_WEEKLY
+    47,   # CYCLIC_CHARGE_TRIGGER
+    51,   # WEEKLY_CHARGE_REPEAT
+}
+
+
+def charge_schedule_advanced(abilities) -> bool:
+    """True if the car supports the full weekly charge schedule (end-time window + day-of-week chips).
+    False ONLY when it declared its abilities and lists none of the weekly/cyclic codes (e.g. T03).
+    Abilities unknown (None) → True: never hide a control on a guess (mirrors ability_supported)."""
+    if abilities is None:
+        return True
+    try:
+        return bool(CHARGE_SCHEDULE_WEEKLY_ABILITY & {int(a) for a in abilities})
+    except (TypeError, ValueError):
+        return True
 
 
 def seed_from_signals(vin: str, signals: dict, *, overwrite: bool = False,

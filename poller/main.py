@@ -322,6 +322,9 @@ def _mqtt_tick(db, client, data, service):
             # The car's declared abilities gate ability-dependent command buttons in discovery
             # (e.g. no 'Unlock Charge Cable' on a T03, which never declares code 53 — #142).
             abilities=db.get_abilities(),
+            # The car MODEL gates model-absent entities in discovery (e.g. no heated-seat / heated-
+            # steering entities on a T03, which lacks them despite the firmware declaring them — #144).
+            car_type=db.get_car_type(),
         )
         service.on_command = lambda vin, cmd, val: _handle_mqtt_command(client, service, db, vin, cmd, val)
     try:

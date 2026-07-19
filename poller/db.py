@@ -846,6 +846,14 @@ class Database:
         except (ValueError, TypeError):
             return None
 
+    def get_car_type(self, vehicle_id: Optional[int] = None) -> str:
+        """The car's model (car_type, e.g. 'T03'/'B10'), or '' if unknown. The MQTT bridge gates
+        per-model-absent entities on this (e.g. hide heated-seat entities on a T03 — #144)."""
+        row = (self._conn.execute("SELECT car_type FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
+               if vehicle_id is not None else
+               self._conn.execute("SELECT car_type FROM vehicles ORDER BY id LIMIT 1").fetchone())
+        return (row["car_type"] if row and row["car_type"] else "")
+
     def set_battery_capacity(self, kwh: float) -> None:
         self.set_setting("battery_capacity_kwh", str(kwh))
         # Keep the single car's own row in sync so the per-vehicle write paths track the global.

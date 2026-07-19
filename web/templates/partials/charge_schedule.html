@@ -20,11 +20,18 @@
       <input id="cs-start" type="time" name="start_time" value="22:00"
              class="px-2 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
     </div>
+    {% if charge_schedule_advanced %}
     <div class="flex flex-col gap-1">
       <span class="text-xs text-slate-400">{{ t('sched_end') }}</span>
       <input id="cs-end" type="time" name="end_time" value="08:00"
              class="px-2 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
     </div>
+    {% else %}
+    {# Simple scheduler (e.g. T03): the car has no charge WINDOW, only a start time. But cmd 190 still
+       expects an end_time, so keep it as a hidden field — the JS below fills it from the car's own
+       stored value, so the payload the car receives is unchanged; we just hide a control it ignores. #}
+    <input id="cs-end" type="hidden" name="end_time" value="08:00">
+    {% endif %}
     <div class="flex flex-col gap-1">
       <span class="text-xs text-slate-400">{{ t('sched_target') }}</span>
       <div class="flex items-center gap-1">
@@ -39,9 +46,11 @@
     </button>
     <span id="cs-result" class="text-sm font-medium self-center min-w-[60px]"></span>
 
+    {% if charge_schedule_advanced %}
     <!-- Days of week. Chips are shown in the Leapmotor app's order (Dom→Sab) but each chip's
          VALUE is its position in the `cycles` mask. Confirmed on-car 2026-06-07: cycles is
-         MONDAY-first → Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6. -->
+         MONDAY-first → Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6. Hidden on cars that
+         don't declare weekly/cyclic charge abilities (e.g. T03) — they have no day picker (#146). -->
     <div class="w-full" id="cs-days-wrap">
       <span class="text-xs text-slate-400 block mb-1">{{ t('sched_days') }}</span>
       <div class="flex flex-wrap gap-1.5">
@@ -57,6 +66,7 @@
         {% endfor %}
       </div>
     </div>
+    {% endif %}
   </form>
   <div class="flex items-start gap-2 mt-3 text-xs text-amber-200/90 bg-amber-400/10 border border-amber-400/25 rounded-lg px-3 py-2">
     {{ ico.mdi('information-outline', 'w-4 h-4 shrink-0 mt-0.5 text-amber-300') }}

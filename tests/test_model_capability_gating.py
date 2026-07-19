@@ -34,11 +34,16 @@ def test_model_hidden_is_case_insensitive():
 
 
 # ── is_shown honours the model gate only when car_type is supplied ─────────────
-def test_is_shown_gates_seatvent_on_t03_only():
+def test_is_shown_gates_absent_comfort_on_t03():
     assert cp.is_shown("VIN", "seat_vent", car_type="T03") is False
     assert cp.is_shown("VIN", "seat_vent", car_type="B10") is True
-    # Seat HEAT is not gated (the T03 has heated seats) — proves we hide vent, not the whole family.
-    assert cp.is_shown("VIN", "seat_heat", car_type="T03") is True
+    # The EU T03 has NO heated seats and NO heated steering wheel either — verified against the official
+    # Stellantis spec (single European trim, only heated mirrors) — so they're gated too, despite the
+    # firmware DECLARING the abilities (a shared-platform lie, like climate #67). #144.
+    assert cp.is_shown("VIN", "seat_heat", car_type="T03") is False
+    assert cp.is_shown("VIN", "steering_heat", car_type="T03") is False
+    # …but a B10, which really has them, keeps them.
+    assert cp.is_shown("VIN", "seat_heat", car_type="B10") is True
 
 
 def test_is_shown_without_cartype_is_unchanged():
@@ -59,12 +64,12 @@ def _no_settings(monkeypatch):
     monkeypatch.setattr(main.db_reader, "get_setting", lambda k, d="": "")
 
 
-def test_comfort_rows_drop_seatvent_on_t03(monkeypatch):
+def test_comfort_rows_drop_absent_comfort_on_t03(monkeypatch):
     _no_settings(monkeypatch)
     skeys = {r["skey"] for r in main._comfort_rows("VIN123", "T03")}
-    assert "seat_vent_driver" not in skeys and "seat_vent_passenger" not in skeys
-    # but the seats it DOES have, and steering, stay:
-    assert {"seat_heat_driver", "seat_heat_passenger", "steering_heat"} <= skeys
+    # The EU T03 lacks ventilated AND heated seats AND a heated steering wheel (#144) → all gated out.
+    assert not ({"seat_vent_driver", "seat_vent_passenger",
+                 "seat_heat_driver", "seat_heat_passenger", "steering_heat"} & skeys)
 
 
 def test_comfort_rows_keep_seatvent_on_b10(monkeypatch):

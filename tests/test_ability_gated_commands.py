@@ -101,7 +101,7 @@ def test_poller_get_abilities_none_when_absent(tmp_path):
 
 # ── MQTT discovery (both builds share one image; this is the poller side) ─────
 
-def _discover(abilities):
+def _discover(abilities, car_type=""):
     pytest.importorskip("paho.mqtt.client", reason="poller MQTT bridge needs paho")
     import types
     import mqtt as M
@@ -113,7 +113,7 @@ def _discover(abilities):
         def publish(self, topic, payload, retain=False):
             self.published[topic] = payload
 
-    svc = M.MqttService("broker", 1883, get_setting=lambda k, d="": d, abilities=abilities)
+    svc = M.MqttService("broker", 1883, get_setting=lambda k, d="": d, abilities=abilities, car_type=car_type)
     svc.client = _FakeClient()
     svc.publish_discovery(types.SimpleNamespace(vin="VINTEST"))
     return svc.client.published
@@ -214,3 +214,128 @@ def test_run_command_gate_ignores_non_ability_commands(monkeypatch):
                                         BackgroundTasks()))
     # Reached execution (ok) without get_vehicle blowing up.
     assert json.loads(resp.body).get("ok") is True
+
+
+# ── charge-schedule weekly/cyclic gate (#146: T03 has no end-time window / no day chips) ──────
+# The T03 declares CHARGE_LIMIT (35) but none of the weekly/cyclic charge abilities, so the
+# Scheduling view drops the end-time and day chips for it, leaving start-time + target SoC.
+
+def test_charge_schedule_simple_on_t03():
+    assert cp.charge_schedule_advanced(T03_ABILITIES) is False
+
+
+def test_charge_schedule_advanced_on_b10():
+    # B10 declares 47 (CYCLIC_CHARGE_TRIGGER) and 51 (WEEKLY_CHARGE_REPEAT).
+    assert cp.charge_schedule_advanced(B10_ABILITIES) is True
+
+
+def test_charge_schedule_advanced_when_abilities_unknown():
+    """A car that hasn't reported abilities → full form (never hide controls on a guess)."""
+    assert cp.charge_schedule_advanced(None) is True
+
+
+def test_charge_schedule_advanced_on_any_single_weekly_code():
+    """Declaring ANY one of the four weekly/cyclic codes is enough to show the full scheduler."""
+    for code in (25, 26, 47, 51):
+        assert cp.charge_schedule_advanced([1, 35, code]) is True, f"code {code} should enable it"
+
+
+def test_charge_schedule_advanced_unparseable_fails_open():
+    assert cp.charge_schedule_advanced("{bad") is True
+
+
+def _web_charge_schedule_advanced(tmp_path, monkeypatch, car_type, abilities):
+    """The exact chain _ctx feeds the Scheduling template: get_vehicle() → parse_abilities(column)
+    → charge_schedule_advanced. Catches a DB-store vs web-read mismatch (the integration risk)."""
+    import db as D
+    import db_reader
+    dbf = str(tmp_path / "t.db")
+    db = D.Database(dbf)
+    db.ensure_vehicle("VINSCHED", car_type, abilities=abilities)
+    monkeypatch.setattr(db_reader, "DB_PATH", dbf)
+    veh, _ = db_reader.get_vehicle()
+    return cp.charge_schedule_advanced(cp.parse_abilities((veh or {}).get("abilities")))
+
+
+def test_web_charge_schedule_simple_on_t03(tmp_path, monkeypatch):
+    assert _web_charge_schedule_advanced(tmp_path, monkeypatch, "T03", T03_ABILITIES) is False
+
+
+def test_web_charge_schedule_advanced_on_b10(tmp_path, monkeypatch):
+    assert _web_charge_schedule_advanced(tmp_path, monkeypatch, "B10", B10_ABILITIES) is True
+
+
+def _render_charge_schedule(advanced):
+    """Render the charge-schedule partial in isolation to prove the template really drops the
+    controls — the payload-safety hinge is that the end_time input STAYS (as hidden) so cmd 190
+    still receives it, while the day chips are removed (server coerces empty days to all-days)."""
+    pytest.importorskip("jinja2")
+    import pathlib
+    from jinja2 import Environment, FileSystemLoader
+    tdir = pathlib.Path(__file__).resolve().parent.parent / "web" / "templates"
+    env = Environment(loader=FileSystemLoader(str(tdir)))
+    return env.get_template("partials/charge_schedule.html").render(
+        t=lambda k: k, charge_schedule_advanced=advanced)
+
+
+def test_render_t03_drops_days_and_end_window():
+    html = _render_charge_schedule(False)
+    assert 'name="days"' not in html                     # no day-of-week chips
+    assert 'type="hidden" name="end_time"' in html       # end kept hidden → payload to the car unchanged
+    assert 'type="time" name="end_time"' not in html     # but no visible end-time control
+    assert 'name="start_time"' in html and 'name="soc_limit"' in html   # start + SoC remain
+
+
+def test_render_b10_keeps_full_scheduler():
+    html = _render_charge_schedule(True)
+    assert 'name="days"' in html
+    assert 'type="time" name="end_time"' in html
+    assert 'type="hidden" name="end_time"' not in html
+
+
+# ── heated seats / steering hidden on the T03 (#144: verified absent on the EU T03) ───────────
+# The T03 DECLARES SEAT_HEATING/STEERING abilities (shared-platform lie, like climate #67) but the
+# European car has neither, so they're gated PER-MODEL (MODEL_ABSENT), not on the abilities. This is
+# gated on BOTH web and MQTT — Luk's report (#144) is about HA entities, i.e. the MQTT side.
+
+def test_heated_seats_and_steering_hidden_on_t03():
+    for feat in ("seat_heat", "seat_heat_cmd", "steering_heat", "steering_heat_cmd"):
+        assert cp.model_hidden("T03", feat) is True,  f"{feat} must be hidden on T03"
+        assert cp.model_hidden("B10", feat) is False, f"{feat} must be shown on B10"
+
+
+def test_core_temperatures_never_hidden_on_t03():
+    """Cabin + battery temperature are CORE sensors — they STAY on the T03 (a car that doesn't report
+    them shows blank, not a wrong control; #144 deliberately leaves these in)."""
+    for feat in ("inside_temp", "battery_temp"):
+        assert cp.is_shown("V", feat, lambda k, d="": "", car_type="T03") is True
+
+
+def test_is_shown_model_gate_is_opt_in():
+    """Omitting car_type leaves behaviour unchanged (existing callers unaffected)."""
+    assert cp.is_shown("V", "seat_heat", lambda k, d="": "") is True            # no model → shown
+    assert cp.is_shown("V", "seat_heat", lambda k, d="": "", car_type="T03") is False
+
+
+def _heated_configs_active(pub):
+    """Discovery configs for heated-seat / heated-steering entities with a NON-EMPTY payload
+    (an empty payload = the entity is cleared/removed from HA)."""
+    return {k: v for k, v in pub.items()
+            if k.endswith("/config") and v and any(s in k for s in ("seat_heat", "steering_heat"))}
+
+
+def test_mqtt_heated_entities_absent_on_t03():
+    """#144 core case: a T03 exposes NO heated-seat / heated-steering entities in Home Assistant."""
+    active = _heated_configs_active(_discover(T03_ABILITIES, car_type="T03"))
+    assert not active, f"T03 must expose no heated entities, got {sorted(active)}"
+
+
+def test_mqtt_heated_entities_present_on_b10():
+    active = _heated_configs_active(_discover(B10_ABILITIES, car_type="B10"))
+    assert active, "B10 must keep its heated-seat / steering entities"
+
+
+def test_mqtt_heated_entities_present_when_model_unknown():
+    """No model info yet → shown (never hide on a guess), same rule as the abilities gate."""
+    active = _heated_configs_active(_discover(B10_ABILITIES))   # car_type="" default
+    assert active, "unknown model must not hide model-gated entities"
