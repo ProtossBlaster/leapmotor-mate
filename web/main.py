@@ -250,6 +250,9 @@ def _ctx(**kwargs):
             "prepare_car_shown": not capability_profile.model_hidden(_car_type, "prepare_car"),
             "unlock_charger_shown": capability_profile.command_shown(
                 (_veh or {}).get("vin", ""), "unlock_charger", abilities=_abilities),
+            # Charge-schedule view: cars without weekly/cyclic charge abilities (e.g. T03) get the
+            # simple start-time + SoC form — no end-time window, no day chips (#146).
+            "charge_schedule_advanced": capability_profile.charge_schedule_advanced(_abilities),
             "wallbox_enabled": wallbox_enabled,
             "is_reev": db_reader.get_setting("is_reev", "0") == "1",
             "research": research.research_enabled(),
@@ -3167,26 +3170,43 @@ _car_image_memo: dict = {}
 # on every 30s hero refresh).
 _CAR_IMG_CACHE = {"Cache-Control": "max-age=300"}
 
+# Re-download the car-picture package once after each (re)start — so a colour changed on the car since
+# it was first cached gets picked up (#143: the cloud has the new colour, but Mate had cached the old
+# render forever, refreshing only on a manual ?refresh=1). Cheap: at most one cloud fetch per boot, and
+# it keeps showing the cached image if the cloud is unreachable at that moment. Mate updates often, so
+# "once per (re)start" refreshes the image regularly without any timer or continuous polling.
+_car_pic_boot_refresh = True
+
 
 @app.get("/api/car-picture")
 async def car_picture(refresh: int = 0):
     """Serve the owner's vehicle image — composed LIVE from the per-vehicle layer package to reflect
     the current state (charge cable, charging animation, trunk), like the official app. The package
-    ZIP is cached to disk (it changes only if the car/colour changes; ?refresh=1 re-downloads it).
-    Falls back to the package's static render, then the legacy cached PNG, on any problem — so the
-    Overview never breaks."""
+    ZIP is cached to disk; a manual ?refresh=1 OR the first request after each restart re-downloads it,
+    so a colour changed on the car gets picked up (#143). Falls back to the cached package, then its
+    static render, then the legacy PNG, on any problem — so the Overview never breaks."""
+    global _car_pic_boot_refresh
     import asyncio
     pkg_path = _car_picture_pkg_path()
+    # Re-download from the cloud on a manual ?refresh=1, OR once after each (re)start (#143 — the car's
+    # colour may have changed since the package was first cached). Every other request serves the disk
+    # cache, so this is NOT a continuous refresh: at most one cloud fetch per boot.
+    want_fresh = bool(refresh) or _car_pic_boot_refresh
     pkg = None
-    if not refresh and os.path.exists(pkg_path):
+    if not want_fresh and os.path.exists(pkg_path):
         try:
             with open(pkg_path, "rb") as f:
                 pkg = f.read()
         except OSError:
             pkg = None
     if pkg is None:
-        pkg = await asyncio.get_event_loop().run_in_executor(None, command_client.get_car_picture_package)
-        if pkg:
+        fresh_pkg = await asyncio.get_event_loop().run_in_executor(None, command_client.get_car_picture_package)
+        if want_fresh:
+            # Attempted the once-per-boot refresh (success or not) → don't re-poll a down cloud on
+            # every request; the next real chance is the next restart (or a manual ?refresh=1).
+            _car_pic_boot_refresh = False
+        if fresh_pkg:
+            pkg = fresh_pkg
             try:
                 with open(pkg_path, "wb") as f:
                     f.write(pkg)
@@ -3194,6 +3214,13 @@ async def car_picture(refresh: int = 0):
                 pass
             _car_image_memo.clear()
             car_image.clear_cache()
+        elif want_fresh and os.path.exists(pkg_path):
+            # Forced/boot refresh but the cloud is unreachable → keep the cached image, don't go blank.
+            try:
+                with open(pkg_path, "rb") as f:
+                    pkg = f.read()
+            except OSError:
+                pkg = None
     if not pkg:
         legacy = _car_picture_cache_path()
         if os.path.exists(legacy):

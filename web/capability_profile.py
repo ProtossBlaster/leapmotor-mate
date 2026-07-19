@@ -104,7 +104,14 @@ COMMAND_FEATURE = {
 # climate is never gated from this table — only on direct empirical proof, elsewhere.
 MODEL_ABSENT: dict[str, tuple[str, ...]] = {
     # T03: no ventilated seats (ability 42/43 absent), no PREPARE right (38) → prepare-car is inert.
-    "T03": ("seat_vent", "seat_vent_cmd", "prepare_car"),
+    # Also NO heated seats and NO heated steering wheel: confirmed absent on the European T03 (single
+    # trim, Tychy-built; the official Stellantis spec lists only heated mirrors) even though the firmware
+    # DECLARES SEAT_HEATING / STEERING abilities — a shared-platform over-declaration, the same lie as
+    # climate (#67). So they are gated here PER-MODEL, never on the (lying) abilities. #144. The cabin /
+    # battery TEMPERATURES stay — they're core sensors; a T03 that doesn't report them shows blank, not
+    # a wrong control, and hiding a core sensor on a marketing spec would be the wrong call.
+    "T03": ("seat_vent", "seat_vent_cmd", "prepare_car",
+            "seat_heat", "seat_heat_cmd", "steering_heat", "steering_heat_cmd"),
 }
 
 
@@ -261,14 +268,41 @@ def ability_supported(command_key: str, abilities) -> bool:
 
 
 def command_shown(vin: str, command_key: str, get_setting: Optional[Callable] = None,
-                  *, abilities=None) -> bool:
+                  *, abilities=None, car_type: str = "") -> bool:
     """Should a UI/MQTT command button named `command_key` be exposed? Hidden when the car declared
-    its abilities and doesn't list the one this command needs (COMMAND_ABILITY); otherwise mapped to
-    its gating feature (COMMAND_FEATURE), and commands with neither are always shown."""
+    its abilities and doesn't list the one this command needs (COMMAND_ABILITY), or when its gating
+    feature is known-absent on this model (`car_type` → MODEL_ABSENT, e.g. heated-seat commands on a
+    T03 — #144); otherwise mapped to its gating feature (COMMAND_FEATURE), and commands with neither
+    are always shown."""
     if not ability_supported(command_key, abilities):
         return False
     feat = COMMAND_FEATURE.get(command_key)
-    return True if feat is None else is_shown(vin, feat, get_setting)
+    return True if feat is None else is_shown(vin, feat, get_setting, car_type=car_type)
+
+
+# Feature-level ability gate (not a command button): the WEEKLY/CYCLIC charge schedule. A car that
+# declares none of these codes only offers a simple start-time + target-SoC plan, so the Scheduling
+# view drops the end-time window and the day-of-week chips for it (the T03 declares CHARGE_LIMIT but
+# none of these — #146). Model-blind like COMMAND_ABILITY: the car's own declaration is the source
+# of truth, so any simple-scheduler model (present or future) is covered with no per-model table.
+CHARGE_SCHEDULE_WEEKLY_ABILITY = {
+    25,   # CYCLIC_CHARGE
+    26,   # CHARGE_REPEAT_WEEKLY
+    47,   # CYCLIC_CHARGE_TRIGGER
+    51,   # WEEKLY_CHARGE_REPEAT
+}
+
+
+def charge_schedule_advanced(abilities) -> bool:
+    """True if the car supports the full weekly charge schedule (end-time window + day-of-week chips).
+    False ONLY when it declared its abilities and lists none of the weekly/cyclic codes (e.g. T03).
+    Abilities unknown (None) → True: never hide a control on a guess (mirrors ability_supported)."""
+    if abilities is None:
+        return True
+    try:
+        return bool(CHARGE_SCHEDULE_WEEKLY_ABILITY & {int(a) for a in abilities})
+    except (TypeError, ValueError):
+        return True
 
 
 def seed_from_signals(vin: str, signals: dict, *, overwrite: bool = False,
