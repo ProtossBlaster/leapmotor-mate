@@ -548,19 +548,23 @@ async def set_charge_note(request: Request, charge_id: int):
 
 
 @app.get("/charges", response_class=HTMLResponse)
-async def charges_page(request: Request, highlight: int = 0):
+async def charges_page(request: Request, highlight: int = 0, station: str = ""):
     vehicle, _ = db_reader.get_vehicle()
-    grouped = db_reader.get_charges_grouped()
+    grouped = db_reader.get_charges_grouped(station=station or None)
     stats   = db_reader.get_charge_stats()
     prices  = db_reader.get_charge_prices()
     status  = db_reader.get_latest_status()
     total   = sum(y["count"] for y in grouped)
+    station_info = None
+    if station:
+        station_info = next((s for s in db_reader.get_charging_stations() if s["key"] == station), None)
     return templates.TemplateResponse(request, "charges.html", _ctx(
         page="charges", vehicle=vehicle, grouped=grouped,
         stats=stats, total=total, highlight=highlight,
         charge_types=db_reader.CHARGE_TYPES, prices=prices,
         status=status, ac_dc=db_reader.get_ac_dc_stats(),
         unconfirmed=db_reader.unconfirmed_charges_count(),
+        station=station, station_info=station_info,
     ))
 
 
@@ -930,10 +934,11 @@ async def maintenance_baseline(request: Request):
 @app.get("/map", response_class=HTMLResponse)
 async def map_page(request: Request):
     vehicle, _ = db_reader.get_vehicle()
-    track  = db_reader.get_all_track()
-    places = db_reader.get_frequent_places()
+    track    = db_reader.get_all_track()
+    places   = db_reader.get_frequent_places()
+    stations = db_reader.get_charging_stations()
     return templates.TemplateResponse(request, "map.html", _ctx(
-        page="map", vehicle=vehicle, track=track, places=places,
+        page="map", vehicle=vehicle, track=track, places=places, stations=stations,
     ))
 
 
