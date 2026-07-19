@@ -1090,10 +1090,21 @@ def update_charge_type(charge_id: int, location_type: str,
         billed = meter if (location_type == "HOME" and meter and meter > 0) else None
         cost = compute_cost(charge, ac_kwh=billed)   # returns 0.0 when the charge is marked free
 
-    db.execute(
-        "UPDATE charges SET location_type=?, cost=?, is_free=? WHERE id=?",
-        (location_type, cost, free, charge_id)
-    )
+    if location_type != "HOME":
+        # A charge re-typed away from HOME didn't happen on the wallbox the poller seeded these
+        # from (a stale/misattributed reading — see the 📍 charging-station lookup bug: those two
+        # columns being non-NULL is what marks a charge as "wallbox session", permanently excluding
+        # it from _LOCATION_CANDIDATES_WHERE). Drop them so the charge becomes eligible again.
+        db.execute(
+            "UPDATE charges SET location_type=?, cost=?, is_free=?, "
+            "wallbox_energy_start_kwh=NULL, ac_energy_kwh=NULL WHERE id=?",
+            (location_type, cost, free, charge_id)
+        )
+    else:
+        db.execute(
+            "UPDATE charges SET location_type=?, cost=?, is_free=? WHERE id=?",
+            (location_type, cost, free, charge_id)
+        )
     db.commit()
     return dict(db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
 
@@ -1175,10 +1186,14 @@ def has_location_lookup_candidates() -> bool:
 
 
 def get_location_lookup_candidates(limit: int = 40) -> list[dict]:
+    """`location_type` is included so the sweep can tell an unconfirmed charge (safe to
+    auto-type from the station's own data) from one the user already picked a type for
+    (never override it — naming and confirming are independent, so a MANUAL/FREE/AC/FAST/
+    HPC charge can still be a candidate here for its 📍 name alone)."""
     try:
         rows = _get().execute(
-            f"SELECT id, latitude, longitude FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
-            f"AND {_LOCATION_CANDIDATES_WHERE} "
+            f"SELECT id, latitude, longitude, location_type FROM charges "
+            f"WHERE vehicle_id = COALESCE(?, vehicle_id) AND {_LOCATION_CANDIDATES_WHERE} "
             "ORDER BY started_at DESC LIMIT ?", (_current_vehicle_id(), limit)).fetchall()
     except sqlite3.Error:
         return []

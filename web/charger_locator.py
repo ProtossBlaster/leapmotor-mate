@@ -5,6 +5,11 @@ Two consumers:
     closed charge (shown on the Charges list and the Overview "last charge" card).
     Opt-in via the `charger_locator` setting — home charges are never looked up, and
     history backfills too (charges already store their GPS position since v1.0).
+    When the winning station's own data unambiguously says AC or DC (+ kW), the sweep
+    also auto-fills the charge's AC/FAST/HPC type — skipping the manual "confirm this
+    charge" step — but only on a charge still unconfirmed (`location_type IS NULL`),
+    and never on a mixed AC/DC site (knowing the site exists doesn't say which cable
+    this session used).
   - Navigation page: "Find charging stations" around the car, user-picked radius.
 
 Keyless and free (no API key), same etiquette as geocode.py: proper User-Agent,
@@ -83,15 +88,11 @@ def _fmt_kw(kw: float) -> str:
     return f"{round(kw)}" if kw >= 20 else f"{round(kw, 1):g}"
 
 
-def _socket_info(tags: dict) -> str:
-    """Best-effort 'DC · CCS · 300 kW' summary from the community socket:* /
-    maxoutput tags (sparsely mapped — empty string when nothing usable).
-    AC/DC is inferred: CCS/CHAdeMO sockets → DC, Type 2 → AC, and a max output
-    ≥ 50 kW implies DC even when the socket tags are missing."""
-    kinds = []
-    for key, label in _SOCKETS:
-        if _has(tags, key) and label not in kinds:
-            kinds.append(label)
+def _socket_current_kw(tags: dict):
+    """(current, kw) from the community socket:*/maxoutput tags (sparsely mapped —
+    '' / 0.0 when nothing usable). AC/DC is inferred: CCS/CHAdeMO sockets → DC,
+    Type 2 → AC, and a max output ≥ 50 kW implies DC even when the socket tags
+    are missing."""
     kw = 0.0
     for k, v in tags.items():
         if k == "maxoutput" or (k.startswith("socket:") and k.endswith(":output")):
@@ -101,10 +102,34 @@ def _socket_info(tags: dict) -> str:
     dc = any(_has(tags, k) for k in _DC_SOCKETS) or kw >= 50
     ac = any(_has(tags, k) for k in _AC_SOCKETS)
     current = "AC/DC" if (ac and dc) else "DC" if dc else "AC" if ac else ""
+    return current, kw
+
+
+def _socket_info(tags: dict) -> str:
+    """Best-effort 'DC · CCS · 300 kW' summary from the community socket:* /
+    maxoutput tags (sparsely mapped — empty string when nothing usable)."""
+    kinds = []
+    for key, label in _SOCKETS:
+        if _has(tags, key) and label not in kinds:
+            kinds.append(label)
+    current, kw = _socket_current_kw(tags)
     parts = ([current] if current else []) + kinds
     if kw:
         parts.append(f"{_fmt_kw(kw)} kW")
     return " · ".join(parts)
+
+
+def _classify_current(current: str, kw: float):
+    """Best-effort AC/FAST/HPC guess from a station's current type + kW, for the 📍
+    sweep's auto-confirm — None when ambiguous (a mixed AC/DC site, or the source
+    didn't say): the app's 4-way HOME/AC/FAST/HPC split needs to know which cable a
+    session actually used, and a mixed site alone can't tell you that. The 80 kW
+    DC/HPC cutoff mirrors `db_reader.auto_location_type`, for consistency."""
+    if current == "AC":
+        return "AC"
+    if current == "DC":
+        return "HPC" if kw and kw > 80 else "FAST"
+    return None
 
 
 def _query(lat: float, lon: float, radius_m: int, limit: int, tries: int = 2):
@@ -141,13 +166,16 @@ def _query(lat: float, lon: float, radius_m: int, limit: int, tries: int = 2):
 
 
 def find_station_name(lat: float, lon: float):
-    """(name | None, ok). ok=False → transient error, worth retrying later;
-    ok=True with None → genuinely nothing usable within _LABEL_RADIUS_M.
-    Union of OSM and (when a key is set) Open Charge Map, picking the NEAREST entry
-    that HAS a name: Overpass returns by id (not distance) and unnamed stall nodes
-    commonly sit next to the named site POI."""
+    """(name | None, location_type | None, ok). ok=False → transient error, worth
+    retrying later; ok=True with name=None → genuinely nothing usable within
+    _LABEL_RADIUS_M. Union of OSM and (when a key is set) Open Charge Map, picking
+    the NEAREST entry that HAS a name: Overpass returns by id (not distance) and
+    unnamed stall nodes commonly sit next to the named site POI.
+    location_type is `_classify_current`'s AC/FAST/HPC guess from that SAME winning
+    candidate's own current/kW data — None when it didn't say, or said something
+    ambiguous."""
     if not lat or not lon:
-        return None, True
+        return None, None, True
     els = _query(lat, lon, _LABEL_RADIUS_M, 10)
     ocm = _ocm_stations(lat, lon, _LABEL_RADIUS_M, 5)
     pun = _pun_stations(lat, lon, _LABEL_RADIUS_M, 20)
@@ -156,18 +184,22 @@ def find_station_name(lat: float, lon: float):
         la, lo = _coord(e)
         if la is None:
             continue
-        cands.append((_dist_m(lat, lon, la, lo), _label(e.get("tags", {}))))
-    cands.extend((s["dist_m"], s["name"]) for s in (ocm or []))
-    cands.extend((s["dist_m"], s["name"]) for s in (pun or []))
+        tags = e.get("tags", {})
+        current, kw = _socket_current_kw(tags)
+        cands.append((_dist_m(lat, lon, la, lo), _label(tags), current, kw))
+    cands.extend((s["dist_m"], s["name"], s.get("current", ""), s.get("kw", 0.0))
+                 for s in (ocm or []))
+    cands.extend((s["dist_m"], s["name"], s.get("current", ""), s.get("kw", 0.0))
+                 for s in (pun or []))
     cands.sort(key=lambda c: c[0])
-    for _d, label in cands:
+    for _d, label, current, kw in cands:
         if label:
-            return label, True
+            return label, _classify_current(current, kw), True
     # No name found: that verdict is final only if at least one source actually
     # answered — if every source we tried errored, stay NULL and retry next sweep.
     tried = [els, ocm if _ocm_key() else None, pun if _in_italy(lat, lon) else None]
     answered = any(r is not None for r in tried)
-    return None, answered
+    return None, None, answered
 
 
 def find_nearby(lat: float, lon: float, radius_m: int, limit: int = 25, name_filter: str = ""):
@@ -273,11 +305,12 @@ def _ocm_stations(lat: float, lon: float, radius_m: int, limit: int = 100):
         kw = max((c.get("PowerKW") or 0) for c in conns) if conns else 0
         cur = sorted({_OCM_CUR[c["CurrentTypeID"]] for c in conns
                       if _OCM_CUR.get(c.get("CurrentTypeID"))})
+        current = "AC/DC" if len(cur) > 1 else (cur[0] if cur else "")
         parts = (["/".join(cur)] if cur else []) + ([f"{_fmt_kw(kw)} kW"] if kw else [])
         name = ((a.get("Title") or "").strip()
                 or ((p.get("OperatorInfo") or {}).get("Title") or "").strip() or None)
         out.append({"name": name, "lat": la, "lon": lo, "dist_m": int(d),
-                    "info": " · ".join(parts)})
+                    "info": " · ".join(parts), "current": current, "kw": kw})
     return out
 
 
@@ -498,7 +531,8 @@ def _pun_parse(lat: float, lon: float, feats: list) -> list:
         la0, lo0 = a0["Latitudine_EVSE"], a0["Longitudine_EVSE"]
         out.append({"name": name, "lat": la0, "lon": lo0,
                     "dist_m": int(_dist_m(lat, lon, la0, lo0)),
-                    "info": info, "avail": f"{avail}/{len(conns)}"})
+                    "info": info, "avail": f"{avail}/{len(conns)}",
+                    "current": cur, "kw": kw})
     return out
 
 
@@ -561,7 +595,7 @@ def _sweep_body(limit: int) -> int:
             continue
         if called:
             time.sleep(1.0)  # Overpass etiquette between consecutive calls
-        name, ok = find_station_name(lat, lon)
+        name, ctype, ok = find_station_name(lat, lon)
         called = True
         if not ok:  # Overpass down/rate-limited: stop here, leftovers retry next sweep
             log.info("charger locator: Overpass unreachable — will retry next sweep")
@@ -572,4 +606,11 @@ def _sweep_body(limit: int) -> int:
         if name:
             named += 1
             log.info("charger locator: charge #%s → %s", c["id"], name)
+            # Auto-confirm AC/FAST/HPC from the station's own data, but only when the
+            # charge is still unconfirmed — never override a manual pick (MANUAL/FREE/
+            # a type the user already corrected), even though such charges can still be
+            # 📍-lookup candidates (naming and confirming are independent).
+            if ctype and c.get("location_type") is None:
+                db_reader.update_charge_type(c["id"], ctype)
+                log.info("charger locator: charge #%s auto-confirmed → %s", c["id"], ctype)
     return named

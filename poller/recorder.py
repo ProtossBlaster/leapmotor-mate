@@ -214,8 +214,17 @@ class Recorder:
 
     def _read_wallbox_energy(self) -> Optional[float]:
         """Current wallbox kWh-counter reading from Home Assistant (best-effort, never raises).
-        Returns None when no wallbox is configured/reachable → the charge falls back to DC billing.
-        Reuses web/ha_client.get_live() (the same reader the web layer uses)."""
+        Returns None when no wallbox is configured/reachable, or when a mapped power sensor
+        proves the wallbox is idle right now (see below) → the charge falls back to DC billing.
+        Reuses web/ha_client.get_live() (the same reader the web layer uses).
+
+        A reachable wallbox always answers SOME energy-counter reading, even while the car is
+        charging elsewhere entirely (a public station, hundreds of km from home) — it's just
+        sitting there unused. Recording that reading used to seed the charge's wallbox baseline
+        regardless, permanently mislabelling a public charge as wallbox-billed. When a `power`
+        sensor is mapped, `charging` (power > 0.05 kW) tells the two apart: require it before
+        trusting the energy reading. Users who only mapped an energy sensor (no power role) have
+        nothing to verify against, so they keep the old best-effort behaviour."""
         try:
             import sys
             import pathlib
@@ -223,7 +232,10 @@ class Recorder:
             if web not in sys.path:
                 sys.path.insert(0, web)
             import ha_client
-            return ha_client.get_live().get("energy_kwh")
+            live = ha_client.get_live()
+            if ha_client.get_mapping().get("power") and not live.get("charging"):
+                return None
+            return live.get("energy_kwh")
         except Exception as e:  # noqa: BLE001
             log.debug("wallbox energy read failed: %s", e)
             return None
