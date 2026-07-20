@@ -117,6 +117,29 @@ def _mqtt_windows_native(client, pct: int) -> str:
     return str(round(pct / 100 * full))
 
 
+def _set_charge_limit_preserving(api, vin: str, pct: int):
+    """Change ONLY the charge-limit SoC, preserving the car's existing charge plan — the MQTT twin of
+    web/command_client.set_charge_limit.
+
+    NOT the lib's api.set_charge_limit: that one guards on `cycles`, so for an ENABLED
+    start-time-only plan (the cloud omits cycles for those) it falls into an all-defaults branch that
+    DISABLES the schedule and resets starttime to 00:00 (leapmotor-api #18). That was fixed web-side
+    in v2.5.8, but THIS path still called the lib directly — so changing the limit from the Home
+    Assistant number could silently wipe a start-time-only plan. Round-trip the current plan through
+    set_charge_schedule, preserving enable/window/cycles/circulation/recharge; only the SoC moves."""
+    cur = api.get_charge_schedule(vin) or {}
+    return api.set_charge_schedule(
+        vin,
+        enabled=bool(int(cur.get("chargeEnable", 0) or 0)),
+        soc_limit=int(pct),
+        start_time=cur.get("starttime") or "00:00",
+        end_time=cur.get("endtime") or "08:00",
+        cycles=cur.get("cycles") or "1,1,1,1,1,1,1",
+        circulation=int(cur.get("circulation", 1) or 0),
+        recharge=int(cur.get("recharge", 0) or 0),
+    )
+
+
 def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
     """Execute a remote MQTT command, then keep HA in sync the same way the web UI
     does: publish the expected state immediately (optimistic) and trigger a fast
@@ -147,7 +170,7 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                 if not (50 <= pct <= 100):
                     log.warning("MQTT: charge_limit %d%% out of range 50-100 — ignored", pct)
                     return
-                api.set_charge_limit(vin, pct)
+                _set_charge_limit_preserving(api, vin, pct)
             elif cmd == "door_lock":      # single HA lock entity (#37): value = LOCK / UNLOCK
                 if str(value).upper() == "LOCK":
                     api.lock_vehicle(vin);   optimistic = ("locked", True)
