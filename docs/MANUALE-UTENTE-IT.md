@@ -503,7 +503,9 @@ Home Assistant**, con **auto-discovery**. Tra queste, tre nuove entità V2L **di
 clima letti dall'auto: il **Livello ventola** (`number` scrivibile, 1–7), il **Ricircolo**
 (interruttore scrivibile) e la **Modalità clima** (sensore: AUTO / Raffreddamento / Riscaldamento /
 Ventilazione). Puoi anche **comandare** l'auto dalle entità di HA — incluso un **limite di carica**
-(`number` scrivibile) per impostare il SoC target.
+(`number` scrivibile) per impostare il SoC target e una **Programmazione ricarica** (`text`
+scrivibile) che accetta un piano in JSON pensato per le automazioni (`{"start":"23:00","soc":90}` —
+ogni campo è opzionale, e quello che ometti resta com'è).
 
 1. Prepara un **broker MQTT** (di solito l'add-on *Mosquitto* in Home Assistant).
 2. In *Impostazioni → MQTT*, attiva **Abilita MQTT** e compila:

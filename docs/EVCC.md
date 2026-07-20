@@ -82,7 +82,9 @@ out) — `1h` is comfortable given Mate's offline backoff.
 - **Read** — SoC, plug/charging status, range, odometer, climate flag: ✅ live.
 - **Charge control** — Mate does **not** expose start/stop charging to EVCC. EVCC steers
   charging at the **wallbox**, not the car, so it doesn't need the car to start/stop. (Mate's
-  own `set_charge_limit` / charge schedule are separate, app-side features.)
+  own **charge limit** and **charge schedule** ARE published as writable MQTT entities — see the
+  README — but those drive the *car's* built-in charge plan, which is a different thing from EVCC
+  steering the wallbox.)
 - **Status** is derived as A (unplugged) / B (plugged, idle) / C (charging) from the two
   booleans, matching EVCC's standard `combined` pattern (same approach as EVCC's `mg2mqtt`
   template).

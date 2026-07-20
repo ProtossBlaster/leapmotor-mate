@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.8.0] — 2026-07-20
+
+### Added
+- **Set the car's charging plan from Home Assistant.** Until now the charge schedule — start time, end time, target level, which days — could only be set inside Mate's own interface, which left it invisible to automations. Mate now publishes a **Charge Schedule** entity over MQTT that accepts a small JSON plan, e.g. `{"start":"23:00","stop":"07:00","soc":90,"active":true}`, so you can drive it from an automation: charge when electricity is cheapest, when your solar is producing, or on any condition Home Assistant can express. **Every field is optional, and anything you leave out keeps its current value** — an automation can send just `{"start":"23:00"}` and the rest of your plan stays exactly as it was. Bad input (malformed JSON, an impossible time, a target outside 50–100 %) is refused outright rather than half-applied, and the entity reports back the plan that was actually written so Home Assistant doesn't show an empty box. Thanks to **@chengler**, who worked out the payloads on his own T03 and shared them in #151 — the tests replay his exact sequence.
+
 ## [2.7.1] — 2026-07-20
 
 ### Fixed

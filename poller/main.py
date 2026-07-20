@@ -140,6 +140,69 @@ def _set_charge_limit_preserving(api, vin: str, pct: int):
     )
 
 
+def _apply_charge_schedule(api, db, vin: str, payload: dict):
+    """Apply a PARTIAL charge-schedule update coming from MQTT (#151, @chengler): read the car's
+    current plan, override only the keys present in `payload`, write the whole thing back.
+
+    Keys, all optional: `start` "HH:MM" · `stop` "HH:MM" · `soc` 50-100 · `active` true/false ·
+    `days` "1,1,1,1,1,1,1" (Monday-first mask). A key you DON'T send keeps its current value, so an
+    automation can send just {"start": "23:00"} without disturbing the rest — and this never goes
+    through the lib's all-defaults branch that wipes the plan (see _set_charge_limit_preserving).
+
+    The target SoC is the one exception. The cloud's schedule payload doesn't reliably name the SoC
+    field, so rather than guess it (and risk silently moving someone's target) we fall back to the
+    limit the poller last read FROM THE CAR — `charge_limit_percent`, stored by the poll loop — and
+    refuse the command outright if even that is unknown (it's absent on some models, e.g. T03).
+
+    Returns the applied plan as a dict, or None when the payload was rejected."""
+    cur = api.get_charge_schedule(vin) or {}
+
+    soc = payload.get("soc")
+    if soc is None:
+        soc = db.get_setting("charge_limit_percent", "")
+    try:
+        soc = int(float(soc))
+    except (TypeError, ValueError):
+        log.warning("MQTT: charge_schedule has no target soc and the car's is unknown — ignored")
+        return None
+    if not (50 <= soc <= 100):
+        log.warning("MQTT: charge_schedule soc %s out of range 50-100 — ignored", soc)
+        return None
+
+    def _hhmm(key, current):
+        v = payload.get(key)
+        if v is None:
+            return current
+        parts = str(v).strip().split(":")
+        if len(parts) != 2 or not all(p.isdigit() for p in parts):
+            raise ValueError(f"{key}={v!r} is not HH:MM")
+        h, m = int(parts[0]), int(parts[1])
+        if not (0 <= h <= 23 and 0 <= m <= 59):
+            raise ValueError(f"{key}={v!r} is not a valid time")
+        return f"{h:02d}:{m:02d}"
+
+    try:
+        start_time = _hhmm("start", cur.get("starttime") or "00:00")
+        end_time = _hhmm("stop", cur.get("endtime") or "08:00")
+    except ValueError as e:
+        log.warning("MQTT: charge_schedule %s — ignored", e)
+        return None
+
+    active = payload.get("active")
+    enabled = bool(int(cur.get("chargeEnable", 0) or 0)) if active is None else bool(active)
+    days = payload.get("days")
+    cycles = str(days) if days is not None else (cur.get("cycles") or "1,1,1,1,1,1,1")
+
+    api.set_charge_schedule(
+        vin, enabled=enabled, soc_limit=soc, start_time=start_time, end_time=end_time,
+        cycles=cycles, circulation=int(cur.get("circulation", 1) or 0),
+        recharge=int(cur.get("recharge", 0) or 0))
+    applied = {"start": start_time, "stop": end_time, "soc": soc,
+               "active": enabled, "days": cycles}
+    log.info("MQTT: charge schedule → %s", applied)
+    return applied
+
+
 def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
     """Execute a remote MQTT command, then keep HA in sync the same way the web UI
     does: publish the expected state immediately (optimistic) and trigger a fast
@@ -171,6 +234,22 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                     log.warning("MQTT: charge_limit %d%% out of range 50-100 — ignored", pct)
                     return
                 _set_charge_limit_preserving(api, vin, pct)
+            elif cmd == "charge_schedule":  # writable HA text (#151): JSON {start,stop,soc,active,days}
+                try:
+                    sched = json.loads(value)
+                except (TypeError, ValueError):
+                    log.warning("MQTT: charge_schedule value %r is not valid JSON — ignored", value)
+                    return
+                if not isinstance(sched, dict):
+                    log.warning("MQTT: charge_schedule value %r is not a JSON object — ignored", value)
+                    return
+                applied = _apply_charge_schedule(api, db, vin, sched)
+                if applied is None:
+                    return
+                # Echo the plan back as the entity's state, so Home Assistant shows what's actually
+                # set instead of a blank box (no extra cloud call — this is what we just wrote).
+                service.publish_state(vin, "charge_schedule",
+                                      json.dumps(applied, separators=(",", ":")))
             elif cmd == "door_lock":      # single HA lock entity (#37): value = LOCK / UNLOCK
                 if str(value).upper() == "LOCK":
                     api.lock_vehicle(vin);   optimistic = ("locked", True)

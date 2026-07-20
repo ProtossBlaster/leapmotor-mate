@@ -385,6 +385,19 @@ class MqttService:
             "mode": "slider",
         })
 
+        # Charge schedule as a JSON text entity (#151, @chengler): meant for AUTOMATIONS —
+        # {"start":"23:00","stop":"07:00","soc":90,"active":true,"days":"1,1,1,1,1,1,1"}. Every key
+        # is optional and anything you omit keeps its current value, so an automation can send just
+        # {"start":"23:00"}. The state echoes the plan Mate last wrote, so the box isn't blank.
+        cfg("text", "charge_schedule", {
+            "name": "Charge Schedule (JSON)",
+            "state_topic": f"{prefix}/{vin}/charge_schedule",
+            "command_topic": f"{prefix}/{vin}/charge_schedule/set",
+            "icon": "mdi:calendar-clock",
+            "mode": "text",
+            "max": 255,
+        })
+
         for key, name, icon in [
             # NB: no Lock/Unlock buttons here — superseded by the Door Lock lock entity
             # + Door Lock Toggle switch above (their retained configs are cleared below);
