@@ -147,6 +147,7 @@ def build_system_info(version: str) -> dict:
         "poll_driving": settings.get("poll_driving", "10"),
         "retention_days": settings.get("positions_retention_days", "0"),
         "vampire_min_drop_pct": settings.get("vampire_min_drop_pct", "0.2"),
+        "vampire_min_hours": settings.get("vampire_min_hours", "1"),
         "positions_span": span,
         "features": {
             "mqtt": settings.get("mqtt_enabled") == "1",
@@ -225,12 +226,16 @@ def _signals_section(signals: dict | None, vin: str | None) -> str:
 
 def _vampire_section() -> str:
     """What get_vampire_drain() actually computes — so an 'empty/missing battery-drain chart'
-    report (e.g. #63) shows the real count/windows, not just the user's screenshot. Uses the SAME
-    `min_drop_pct` the battery page does, so the bundle reproduces what the user sees: a high
-    threshold that charts nothing shows count=0 here too, with measurable>0 revealing the cause."""
+    report (e.g. #63) shows the real count/windows, not just the user's screenshot. Uses BOTH the
+    tunables the battery page passes — `min_drop_pct` AND `min_hours` — so the bundle reproduces
+    what the user sees: a high threshold that charts nothing shows count=0 here too, with
+    measurable>0 revealing the cause. Passing only one of the two made the bundle disagree with the
+    page (a raised min_hours charts far fewer, longer parks) and sent triage down a false trail
+    (#154)."""
     try:
         mdp = float(db_reader.get_setting("vampire_min_drop_pct", "0.2") or 0.2)
-        v = db_reader.get_vampire_drain(min_drop_pct=mdp)
+        mh = float(db_reader.get_setting("vampire_min_hours", "1") or 1)
+        v = db_reader.get_vampire_drain(min_drop_pct=mdp, min_hours=mh)
     except Exception as e:  # noqa: BLE001
         return f"(vampire calc failed: {e})"
     out = [f"count={v.get('count')}  measurable={v.get('measurable_count')}  "
@@ -397,7 +402,8 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
             f"charges={info['counts']['charges']} positions={info['counts']['positions']}",
             f"Poll (s)     : parked={info['poll_parked']} driving={info['poll_driving']}",
             f"Positions    : span {info['positions_span']} · retention {info['retention_days']}d (0=keep all)",
-            f"Vampire thr  : min_drop {info['vampire_min_drop_pct']} %/day (chart display threshold)",
+            f"Vampire thr  : min_drop {info['vampire_min_drop_pct']} %/day · "
+            f"min_hours {info['vampire_min_hours']} h (chart display thresholds)",
             f"Features     : mqtt={f['mqtt']} wallbox={f['wallbox']} abrp={f['abrp']} addon={f['addon']}",
             f"Last poll    : {info['last_poll_iso']} (age {info['last_poll_age_min']} min) "
             f"soc={info['last_soc']} gear={info['last_gear']} charging={info['last_charging']}",
