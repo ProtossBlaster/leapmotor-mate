@@ -146,6 +146,8 @@ def test_recorder_does_not_duplicate_charge_on_resume():
         def create_charge(self, *a):
             self.creates += 1
             return 99
+        def wallbox_energy_applies(self, *a):
+            return True
         def finalize_charge(self, *a, **k):
             pass
 
