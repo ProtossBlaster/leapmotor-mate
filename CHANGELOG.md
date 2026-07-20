@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.7.1] — 2026-07-20
+
+### Fixed
+- **Changing the charge limit from Home Assistant no longer wipes a "start time only" charging plan.** If your car has an enabled charge plan with just a start time and no weekday selection, moving the *Charge Limit* number in Home Assistant silently **disabled that plan and reset its start to 00:00** — so the car simply stopped charging overnight, with nothing visibly going wrong to explain it. This is the same upstream quirk that was fixed for the web UI back in v2.5.8 (the library's charge-limit helper falls back to an all-defaults, schedule-disabled payload whenever the cloud omits the weekday mask — which is exactly what it does for start-time-only plans), but the MQTT path was still calling that helper directly. It now performs the same read-modify-write the web UI does: **only the target SoC changes**, while the plan's enabled state, start/end window, days, circulation and recharge all round-trip untouched. Owners whose plan has weekdays selected were never affected. Thanks to @chengler, whose charge-scheduler experiments (#151) led to this being spotted.
+
 ## [2.7.0] — 2026-07-20
 
 ### Added
