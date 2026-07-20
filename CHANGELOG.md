@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.7.0] — 2026-07-20
+
+### Added
+- **Elevation profile and outside temperature for every trip.** The Leapmotor cloud reports neither altitude nor an outside-temperature signal — only latitude/longitude and the cabin temperature. Mate now looks each finished trip's GPS track up against [Open-Meteo](https://open-meteo.com) (free, keyless, no account) shortly after the trip ends, and the trip detail gains three things: an **altitude line** on the *SoC & speed* chart — a topographic cross-section drawn under your telemetry — the trip's total **elevation gain and loss** (↑ climbed / ↓ descended), and the **outside temperature at the departure point and at the arrival point**. The temperature is deliberately *not* an average: it's read at each point's own place and hour, so a valley-to-pass climb shows the real drop instead of hiding it. Together these explain a good part of a trip's consumption — a climb costs energy, cold costs range. It runs quietly in the background (the same render-triggered sweep as the other post-trip enrichments), one lookup per trip; a trip whose lookup fails simply shows "—" and retries on the next sweep, up to a small ceiling, and trips recorded before this feature existed get a **Calculate elevation** button right on the page. Only the trip's GPS points ever leave the device, and the whole thing can be switched off in *Settings*. Elevation follows your measurement system (m / ft), and the chart's altitude line only appears on trips that have been enriched.
+
+### Credits
+- The elevation groundwork comes from **[@hubcasale](https://github.com/hubcasale)**'s work in PR #147: the post-trip enrichment sweep, the per-point altitude storage with read-time interpolation, the chart's third series and the recalculate button are his design. This release switches the lookup to **Open-Meteo** — ~300× the free quota of Open-Elevation, finer 90 m terrain data, and it can return the temperature in the same trip — and adds the outside temperature on top. Thank you 🙏
+
 ## [2.6.1] — 2026-07-18
 
 ### Fixed

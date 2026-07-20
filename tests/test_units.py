@@ -32,6 +32,22 @@ def test_pressure(monkeypatch):
     _sys(monkeypatch, "imperial_us"); assert U.pressure(2.0) == "29 psi"
 
 
+def test_elevation(monkeypatch):
+    _sys(monkeypatch, "metric");      assert U.elev(100) == "100 m"
+    _sys(monkeypatch, "imperial_uk"); assert U.elev(100) == "328 ft"
+    _sys(monkeypatch, "imperial_us"); assert U.elev(100) == "328 ft"
+    assert U.elev(None) == "—"
+
+
+def test_elev_unit_and_val(monkeypatch):
+    _sys(monkeypatch, "metric")
+    assert U.elev_unit() == "m" and U.elev_val(100) == 100 and U.elev_val(None) is None
+    _sys(monkeypatch, "imperial_us")
+    assert U.elev_unit() == "ft" and U.elev_val(100) == 328
+    _sys(monkeypatch, "imperial_uk")
+    assert U.elev_unit() == "ft"
+
+
 def test_efficiency(monkeypatch):
     _sys(monkeypatch, "metric");      assert U.efficiency(15) == "15 kWh/100km"
     _sys(monkeypatch, "imperial_uk"); assert U.efficiency(15) == "4.1 mi/kWh"

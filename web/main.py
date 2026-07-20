@@ -25,13 +25,14 @@ import mqtt_check
 import auth
 import update_check
 
-MATE_VERSION = "2.6.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.7.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
 import maintenance
 import research
 import ec_enrich
+import elevation_enrich
 
 _IS_DEMO = demo.is_demo()
 demo.install(command_client, ha_client)   # no-op unless MATE_DEMO is set
@@ -69,6 +70,9 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 # Per-trip EC enrichment runs on a background timer (not only on page renders), so a fresh trip's
 # cloud EC is picked up + re-fetched-until-stable even when nobody has the app open.
 ec_enrich.start_background()
+# Same background timer for per-trip elevation gain/loss + outside temperature (Open-Meteo lookup on
+# the GPS track); no-op unless the feature is enabled.
+elevation_enrich.start_background()
 
 
 def _nice(x) -> str:
@@ -125,14 +129,14 @@ templates.env.filters["localdate"] = _localdate
 # Display-time unit conversion (DB stays metric — see units.py). Filters format "<value> <unit>";
 # the *_unit() / *_val() globals give a bare unit label or converted number (chart axes / JS data).
 import units
-for _name in ("dist", "speed", "temp", "pressure"):
+for _name in ("dist", "speed", "temp", "pressure", "elev"):
     templates.env.filters[_name] = getattr(units, _name)
 templates.env.filters["eff"] = units.efficiency
 templates.env.globals.update(
     dist_unit=units.dist_unit, speed_unit=units.speed_unit, temp_unit=units.temp_unit,
-    pressure_unit=units.pressure_unit, eff_unit=units.eff_unit,
+    pressure_unit=units.pressure_unit, eff_unit=units.eff_unit, elev_unit=units.elev_unit,
     dist_val=units.dist_val, speed_val=units.speed_val, temp_val=units.temp_val,
-    eff_val=units.eff_val, unit_system=units.get_unit_system,
+    eff_val=units.eff_val, elev_val=units.elev_val, unit_system=units.get_unit_system,
 )
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
@@ -208,6 +212,8 @@ def _ctx(**kwargs):
     # Same piggyback for per-trip EC (driving) energy enrichment (Phase 2) — no-op unless the
     # feature is enabled; the cloud calls run in a background thread on a TTL.
     ec_enrich.maybe_sweep()
+    # Same piggyback for per-trip elevation + outside temperature (Open-Meteo) — no-op unless due.
+    elevation_enrich.maybe_sweep()
     lang = db_reader.get_language()
     t = i18n.get_t(lang)
     def state_label(pos: dict) -> str:
@@ -495,6 +501,19 @@ async def trip_revert_ec(request: Request, trip_id: int):
     button comes back. Recovery path for a conversion that landed on incomplete cloud data."""
     db_reader.revert_trip_ec(trip_id)
     return Response(status_code=200, headers={"HX-Refresh": "true"})
+
+
+@app.post("/api/trips/{trip_id}/calc-elevation", response_class=HTMLResponse)
+async def trip_calc_elevation(request: Request, trip_id: int):
+    """'Calculate elevation' button: on-demand Open-Meteo lookup for this trip (and its merged
+    segments) — for trips predating the feature, or ones the background sweep hasn't reached/solved
+    yet. Fetches both the elevation profile and the outside temperature. On success reload the page so
+    the figures appear; on a genuine miss show an inline message and change nothing."""
+    res = elevation_enrich.recalc_trip(trip_id)
+    if res.get("ok"):
+        return Response(status_code=200, headers={"HX-Refresh": "true"})
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span class="text-slate-400 text-xs">ℹ️ {t("elevation_calc_failed")}</span>')
 
 
 @app.post("/api/trips/{trip_id}/note", response_class=HTMLResponse)

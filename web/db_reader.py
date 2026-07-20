@@ -1,5 +1,6 @@
 """Read-only DB queries for the web layer."""
 import json
+import math
 import sqlite3
 import time
 from datetime import datetime, timezone, timedelta
@@ -1972,6 +1973,97 @@ def _gap_minutes(end_iso, start_iso):
         return None
 
 
+def _haversine_km(lat1, lon1, lat2, lon2) -> float:
+    lat1, lon1, lat2, lon2 = map(math.radians, (lat1, lon1, lat2, lon2))
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    return 2 * 6371.0 * math.asin(math.sqrt(a))
+
+
+_FROZEN_MIN_SPEED_KMH = 8.0   # below this a real stop (red light / traffic) legitimately repeats
+                              # identical soc/position — never flag it, only above-floor "cruising"
+_FROZEN_POS_EPS_KM = 0.03     # ~30m — GPS-precision-level "hasn't moved", well under what even a
+                              # slow-cruising car covers over one real polling interval
+_FROZEN_SOC_EPS = 0.1         # % — SoC ticks are quantized; under this counts as "unchanged"
+_FROZEN_SPEED_EPS_KMH = 0.5
+_FROZEN_MIN_RUN_S = 60        # shorter runs are more likely 1-2 coincidental polls than a genuine
+                              # stuck cloud cache — restore them rather than risk dropping real data
+
+
+def _telemetry_frozen(prev: dict, cur: dict) -> bool:
+    """True when `cur` repeats `prev`'s speed, SoC AND position while claiming a real driving speed —
+    physically impossible for a moving car, and the substance-level twin of the write-time stale-frame
+    guard (poller/recorder.py #128): that guard catches an identical RAW cloud timestamp, but if the
+    cloud re-serves a cached snapshot wrapped in a FRESH timestamp each poll, the payload underneath —
+    speed, SoC, GPS — stays frozen while the timestamp moves, and #128's identity check misses it."""
+    if cur.get("speed_kmh") is None or prev.get("speed_kmh") is None:
+        return False
+    if (cur["speed_kmh"] or 0) < _FROZEN_MIN_SPEED_KMH:
+        return False
+    if abs(cur["speed_kmh"] - prev["speed_kmh"]) >= _FROZEN_SPEED_EPS_KMH:
+        return False
+    if cur.get("soc") is None or prev.get("soc") is None or abs(cur["soc"] - prev["soc"]) >= _FROZEN_SOC_EPS:
+        return False
+    if cur.get("latitude") is None or prev.get("latitude") is None:
+        return False
+    return _haversine_km(prev["latitude"], prev["longitude"], cur["latitude"], cur["longitude"]) < _FROZEN_POS_EPS_KM
+
+
+def _filter_frozen_telemetry(positions: list[dict]) -> list[dict]:
+    """Drop a run of trip_positions samples where the cloud kept re-serving a CACHED vehicle snapshot —
+    speed/SoC/GPS frozen — while its own wrapper timestamp still advanced each poll (see
+    _telemetry_frozen). Every sample here is DRIVING by construction (trip_positions only records
+    driving polls), so a run this way above walking pace is never legitimate. Runs AFTER the fact, so
+    it also cleans up trips already recorded with a live cloud hiccup. Keeps the point right before
+    the freeze as the last-known-good anchor and the resume point after it; the resulting recorded_at
+    gap is exactly what the trip-profile chart already renders as a break. A run shorter than
+    _FROZEN_MIN_RUN_S is left alone: too brief to trust over the risk of discarding real data."""
+    n = len(positions)
+    if n < 3:
+        return positions
+    dup = [False] * n
+    for i in range(1, n):
+        dup[i] = _telemetry_frozen(positions[i - 1], positions[i])
+    drop = [False] * n
+    i = 1
+    while i < n:
+        if not dup[i]:
+            i += 1
+            continue
+        j = i
+        while j < n and dup[j]:
+            j += 1
+        span = _gap_minutes(positions[i - 1].get("recorded_at"), positions[j - 1].get("recorded_at"))
+        if span is None or span * 60 >= _FROZEN_MIN_RUN_S:
+            for k in range(i, j):
+                drop[k] = True
+        i = j
+    return [p for p, d in zip(positions, drop) if not d]
+
+
+def _interpolate_elevation(positions: list[dict]) -> list[dict]:
+    """Fill elevation_m gaps BETWEEN two known samples by linear interpolation over elapsed time.
+    Legitimate because altitude changes physically continuously (unlike SoC/speed, which can have
+    genuine jumps) — the same technique route-elevation profiles use to draw a smooth line from sparse
+    samples. A leading/trailing gap (no known value on ONE side) is left None — never extrapolated
+    beyond what was actually measured. Mutates and returns `positions`."""
+    known = [i for i, p in enumerate(positions) if p.get("elevation_m") is not None]
+    if len(known) < 2:
+        return positions
+    epochs = [_trip_epoch(p.get("recorded_at")) for p in positions]
+    for a, b in zip(known, known[1:]):
+        ea, eb = epochs[a], epochs[b]
+        if ea is None or eb is None or eb <= ea:
+            continue
+        va, vb = positions[a]["elevation_m"], positions[b]["elevation_m"]
+        for i in range(a + 1, b):
+            if epochs[i] is None:
+                continue
+            frac = (epochs[i] - ea) / (eb - ea)
+            positions[i]["elevation_m"] = va + (vb - va) * frac
+    return positions
+
+
 def _children_by_parent(db) -> dict:
     """All merged child trips grouped by parent id (one query)."""
     out: dict = {}
@@ -2017,6 +2109,20 @@ def _trip_group_stats(parent: dict, children: list) -> dict:
         d["distance_km"] = round(sum((s.get("distance_km") or 0) for s in segs), 2)
     d["duration_min"] = round(sum((s.get("duration_min") or 0) for s in segs), 1)   # DRIVING only
     d["regen_kwh"] = round(sum((s.get("regen_kwh") or 0) for s in segs), 3)
+    # Elevation is per-segment like regen_kwh, but None here means "not enriched yet" (not "zero") —
+    # summing None-as-0 would show a misleading "+0 m" while some segments still await the Open-Meteo
+    # sweep. Only aggregate once EVERY segment has a value; the outside temperature is the mean of the
+    # segments that do have one (a merged group can span more than one weather hour).
+    if all(s.get("elevation_gain_m") is not None for s in segs):
+        d["elevation_gain_m"] = round(sum(s["elevation_gain_m"] for s in segs))
+        d["elevation_loss_m"] = round(sum(s["elevation_loss_m"] for s in segs))
+    else:
+        d["elevation_gain_m"] = None
+        d["elevation_loss_m"] = None
+    # Temperature is start-point/end-point (not aggregated): the group's start temp is the FIRST
+    # segment's start, its end temp the LAST segment's end (segs is sorted by started_at).
+    d["outside_temp_start_c"] = first.get("outside_temp_start_c")
+    d["outside_temp_end_c"] = last.get("outside_temp_end_c")
     ssoc, esoc, dist = d["start_soc"], d["end_soc"], d.get("distance_km") or 0
     # REEV: if the range-extender ran anywhere in the group (fuel dropped from first-start to last-end),
     # net SoC ≠ traction energy, so a combined electric kWh/100km is meaningless — leave it blank (beta
@@ -2477,11 +2583,24 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     seg_ids = _segment_ids(db, parent_id)
     ph = ",".join("?" * len(seg_ids))
     positions = db.execute(
-        "SELECT recorded_at, latitude, longitude, speed_kmh, soc FROM trip_positions "
+        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m FROM trip_positions "
         f"WHERE trip_id IN ({ph}) ORDER BY recorded_at, id",
         seg_ids,
     ).fetchall()
+    # Drop cloud-cached/frozen stretches (see _filter_frozen_telemetry) BEFORE anything else reads
+    # `positions` — so the chart, the map track and the speed stats below all agree on what actually
+    # happened, instead of the chart alone showing a gap while the stats stay skewed.
+    positions = _filter_frozen_telemetry([dict(p) for p in positions])
+    # Whether the chart has a real point to draw a Quota line from — checked BEFORE interpolation
+    # (which needs one to fill from). A trip enriched before per-point storage existed has
+    # elevation_gain_m/loss_m set but every trip_positions.elevation_m still NULL: the aggregate being
+    # present must not hide the recalculate button in that case (see template).
+    elevation_profile_available = any(p.get("elevation_m") is not None for p in positions)
+    # elevation_m is only fetched for the DOWNSAMPLED subset the sweep queried Open-Meteo for — fill
+    # the rest by interpolation so the chart draws a smooth line, not one broken at every un-sampled point.
+    positions = _interpolate_elevation(positions)
     trip_d = _trip_group_stats(dict(trip), children)
+    trip_d["elevation_profile_available"] = elevation_profile_available
     if trip_d.get("is_merged"):
         elapsed = _gap_minutes(trip_d.get("started_at"), trip_d.get("ended_at"))
         trip_d["stop_min"] = (round(max(elapsed - (trip_d.get("duration_min") or 0), 0))
@@ -2564,8 +2683,18 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
 
     return {
         **trip_d,
-        "positions": [dict(p) for p in positions],
+        "positions": positions,
     }
+
+
+def _downsample(pts: list[dict], max_points: int) -> list[dict]:
+    """Evenly reduce ``pts`` to at most ``max_points``, always keeping the last point."""
+    if len(pts) <= max_points:
+        return pts
+    step = len(pts) / max_points
+    sampled = [pts[int(i * step)] for i in range(max_points)]
+    sampled[-1] = pts[-1]  # always keep the real end point
+    return sampled
 
 
 def get_trip_route(trip_id: int, max_points: int = 80) -> list[dict]:
@@ -2580,13 +2709,75 @@ def get_trip_route(trip_id: int, max_points: int = 80) -> list[dict]:
         "ORDER BY recorded_at, id",
         ids,
     ).fetchall()
-    pts = [dict(r) for r in rows]
-    if len(pts) <= max_points:
-        return pts
-    step = len(pts) / max_points
-    sampled = [pts[int(i * step)] for i in range(max_points)]
-    sampled[-1] = pts[-1]  # always keep the real end point
-    return sampled
+    return _downsample([dict(r) for r in rows], max_points)
+
+
+def get_trips_needing_elevation(limit: int = 4) -> list[dict]:
+    """Finalized trips (any segment — elevation is per-segment like regen_kwh, see _trip_group_stats)
+    not yet enriched, under the retry ceiling, with a real GPS track and non-trivial distance (skip
+    parking-lot-only hops). A trip that only got a temperature (elevation missed) keeps elev_done=0,
+    so it stays selected until the elevation lands or the ceiling is hit."""
+    db = _get()
+    rows = db.execute(
+        """SELECT id FROM trips
+           WHERE ended_at IS NOT NULL AND COALESCE(elev_done, 0) = 0
+             AND COALESCE(elev_tried, 0) < 3 AND COALESCE(distance_km, 0) > 0.3
+             AND EXISTS (SELECT 1 FROM trip_positions WHERE trip_id = trips.id)
+           ORDER BY started_at DESC LIMIT ?""",
+        (int(limit),),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_trip_points_for_elevation(trip_id: int, max_points: int = 60) -> list[dict]:
+    """Lat/lon (+time) track of THIS trip segment only (enrichment runs per segment), downsampled to
+    at most ``max_points`` to keep the Open-Meteo batch small. Frozen-telemetry duplicates are dropped
+    BEFORE downsampling — left in, a long freeze wastes several slots on the same repeated coordinate
+    (index-based downsampling has no notion of "already sampled here"), coarsening the profile over the
+    rest of the trip for no benefit. recorded_at is included so the temperature lookup can use the
+    segment's own time window (first→last point)."""
+    db = _get()
+    rows = db.execute(
+        "SELECT id, recorded_at, latitude, longitude, speed_kmh, soc FROM trip_positions "
+        "WHERE trip_id = ? AND latitude IS NOT NULL AND longitude IS NOT NULL "
+        "ORDER BY recorded_at, id",
+        (trip_id,),
+    ).fetchall()
+    points = _filter_frozen_telemetry([dict(r) for r in rows])
+    return _downsample(points, max_points)
+
+
+def store_point_elevations(elevations_by_id: dict) -> None:
+    """Persist per-point altitude (metres) keyed by trip_positions.id — the sparse subset the chart's
+    _interpolate_elevation fills the gaps between. `{}`/None is a no-op."""
+    if not elevations_by_id:
+        return
+    db = _conn_rw()
+    db.executemany("UPDATE trip_positions SET elevation_m=? WHERE id=?",
+                   [(v, k) for k, v in elevations_by_id.items()])
+    db.commit()
+
+
+def store_trip_elevation(trip_id: int, gain, loss,
+                         outside_temp_start_c=None, outside_temp_end_c=None) -> None:
+    """Record an enrichment attempt. Always bumps elev_tried; with a gain/loss result also stores it
+    and marks elev_done=1 so the sweep stops re-fetching. The start/end outside temperatures, when
+    present, are written in the same statement (best-effort, independent of the elevation result)."""
+    db = _conn_rw()
+    sets = ["elev_tried = COALESCE(elev_tried, 0) + 1"]
+    params: list = []
+    if gain is not None and loss is not None:
+        sets += ["elevation_gain_m=?", "elevation_loss_m=?", "elev_done=1"]
+        params += [gain, loss]
+    if outside_temp_start_c is not None:
+        sets.append("outside_temp_start_c=?")
+        params.append(outside_temp_start_c)
+    if outside_temp_end_c is not None:
+        sets.append("outside_temp_end_c=?")
+        params.append(outside_temp_end_c)
+    params.append(trip_id)
+    db.execute(f"UPDATE trips SET {', '.join(sets)} WHERE id=?", params)
+    db.commit()
 
 
 def get_charges(limit: int = 50) -> list[dict]:
