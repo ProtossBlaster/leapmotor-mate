@@ -558,7 +558,10 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
     total   = sum(y["count"] for y in grouped)
     station_info = None
     if station:
-        station_info = next((s for s in db_reader.get_charging_stations() if s["key"] == station), None)
+        # Uncapped: a station reached via ?station=<key> must resolve regardless of the map's
+        # min_sessions/top_n cap (#153 review point 3), same as get_charges_grouped(station=...) below.
+        stations = db_reader.get_charging_stations(min_sessions=1, top_n=None)
+        station_info = next((s for s in stations if s["key"] == station), None)
     return templates.TemplateResponse(request, "charges.html", _ctx(
         page="charges", vehicle=vehicle, grouped=grouped,
         stats=stats, total=total, highlight=highlight,
@@ -938,6 +941,13 @@ async def map_page(request: Request):
     track    = db_reader.get_all_track()
     places   = db_reader.get_frequent_places()
     stations = db_reader.get_charging_stations()
+    # Popup markup is built client-side from this JSON (see map.html), so the currency symbol/
+    # placement/decimal-separator formatting `| money` gives every other cost on the site has to be
+    # baked in server-side here too — a bare .toFixed(2) in JS would show "13.00" with no symbol.
+    for s in stations:
+        s["cost_fmt"] = _money(s["cost"]) if s["cost"] is not None else None
+        for c in s["recent"]:
+            c["cost_fmt"] = _money(c["cost"]) if c["cost"] is not None else None
     return templates.TemplateResponse(request, "map.html", _ctx(
         page="map", vehicle=vehicle, track=track, places=places, stations=stations,
     ))

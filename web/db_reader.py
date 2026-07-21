@@ -4124,22 +4124,71 @@ def get_frequent_places(min_visits: int = 2, top_n: int = 15) -> list[dict]:
     return places[:top_n]
 
 
-def get_charging_stations(min_sessions: int = 1, recent_n: int = 6) -> list[dict]:
+# Mirrors poller/db.py's _WB_HOME_* constants/_learned_wallbox_location: location_type == "HOME"
+# is only ever set by the user or by the (off-by-default) wallbox_auto_home setting, so on a
+# typical install it's NULL on every home charge and can't be relied on to exclude them here.
+# The wallbox's own learned position — median of the charges where it measured real energy,
+# same signal v2.8.1 uses to gate wallbox-counter attribution — is true on a default install.
+_WB_HOME_RADIUS_KM = 1.0
+_WB_HOME_MIN_KWH = 2.0
+_WB_HOME_MIN_SAMPLES = 2
+
+
+def _learned_wallbox_location(vehicle_id):
+    """Median lat/lon of charges where the wallbox measured > _WB_HOME_MIN_KWH (rules out standby
+    creep). None until _WB_HOME_MIN_SAMPLES such charges exist — a fresh install has no signal yet."""
+    db = _get()
+    rows = db.execute(
+        "SELECT latitude, longitude FROM charges "
+        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND latitude IS NOT NULL AND longitude IS NOT NULL "
+        "AND COALESCE(ac_energy_kwh, 0) > ?",
+        (vehicle_id, _WB_HOME_MIN_KWH)).fetchall()
+    if len(rows) < _WB_HOME_MIN_SAMPLES:
+        return None
+    lats = sorted(r["latitude"] for r in rows)
+    lons = sorted(r["longitude"] for r in rows)
+    return lats[len(lats) // 2], lons[len(lons) // 2]
+
+
+def _is_home_charge(c: dict, home) -> bool:
+    """True for a charge that belongs to the home-wallbox bubble, not the station map: an explicit
+    HOME tag (works whenever it's set), or — the default-install case — a charge within
+    _WB_HOME_RADIUS_KM of the learned wallbox location."""
+    if c.get("location_type") == "HOME":
+        return True
+    if home is None:
+        return False
+    lat, lon = c.get("latitude"), c.get("longitude")
+    if lat is None or lon is None:
+        return False
+    return _haversine_km(lat, lon, home[0], home[1]) <= _WB_HOME_RADIUS_KM
+
+
+def get_charging_stations(min_sessions: int = 2, top_n: Optional[int] = 15, recent_n: int = 6) -> list[dict]:
     """Cluster completed charges into physical charging stations for the map's concentration
     bubbles — same ~110 m grid (3-decimal rounding) as get_frequent_places, so a station
     resolves to one bubble even though each session's own GPS fix jitters slightly. Each
     cluster carries its most-common resolved name (set by charger_locator's OSM/OCM sweep)
     and its most recent sessions (for the map popup). `key` is "lat,lon" rounded to the SAME
     3 decimals used to bucket, so /charges?station=<key> re-selects the identical cluster.
+    Same defaults as get_frequent_places (min_visits=2, top_n=15) so a driver with many
+    one-off charge spots doesn't get a marker/JSON blob per stop.
+
+    Note: the 3-decimal grid, inherited from get_frequent_places, can round two GPS fixes
+    ~2 m apart into different buckets and split one physical station into two markers with
+    split totals — a real (not just cosmetic) split here, since totals are billed amounts.
+    Deferred: a true proximity merge is more work than this fix warrants.
+
     HOME charges are excluded — a home wallbox isn't a "colonnina" and, being by far the most
     visited spot for most drivers, would otherwise dominate the concentration map as one giant
     unnamed bubble (HOME charges never resolve a location_name — see _LOCATION_CANDIDATES_WHERE).
     Home charging already has its own bubble via get_frequent_places."""
     charges = get_charges(limit=1_000_000)
+    home = _learned_wallbox_location(_current_vehicle_id())
     buckets: dict[tuple, dict] = {}
     for c in charges:
         lat, lon = c.get("latitude"), c.get("longitude")
-        if not lat or not lon or c.get("location_type") == "HOME":
+        if not lat or not lon or _is_home_charge(c, home):
             continue
         key = (round(lat, 3), round(lon, 3))
         b = buckets.setdefault(key, {"lat": 0.0, "lon": 0.0, "n": 0, "kwh": 0.0,
@@ -4175,4 +4224,4 @@ def get_charging_stations(min_sessions: int = 1, recent_n: int = 6) -> list[dict
             ],
         })
     stations.sort(key=lambda s: s["sessions"], reverse=True)
-    return stations
+    return stations if top_n is None else stations[:top_n]

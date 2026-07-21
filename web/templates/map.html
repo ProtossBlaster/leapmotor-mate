@@ -66,12 +66,12 @@
       let popup = '<div style="min-width:180px">'
                 + '<b>' + (s.name ? s.name.replace(/</g, '&lt;') : '{{ t('map_unnamed_station') }}') + '</b><br>'
                 + '{{ t('map_station_sessions') }}: <b>' + s.sessions + '</b> · ' + s.kwh + ' kWh'
-                + (s.cost != null ? ' · ' + s.cost.toFixed(2) : '') + '<hr style="margin:6px 0;border-color:#334155">'
+                + (s.cost_fmt != null ? ' · ' + s.cost_fmt : '') + '<hr style="margin:6px 0;border-color:#334155">'
                 + '<div style="max-height:150px;overflow-y:auto">';
       s.recent.forEach(function (c) {
         popup += '<div style="margin-bottom:3px"><a href="charges?highlight=' + c.id
               + '" style="color:#60a5fa;text-decoration:none">' + (c.started_at || '').replace('T', ' ').slice(0, 16)
-              + '</a> — ' + c.kwh + ' kWh' + (c.cost != null ? ' · ' + c.cost.toFixed(2) : '') + '</div>';
+              + '</a> — ' + c.kwh + ' kWh' + (c.cost_fmt != null ? ' · ' + c.cost_fmt : '') + '</div>';
       });
       popup += '</div>';
       if (s.sessions > s.recent.length) {
