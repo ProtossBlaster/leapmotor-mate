@@ -94,4 +94,16 @@ def vehicle_status(db_reader) -> dict:
         "windows": {"fl": ob(s.get("windows_open")), "fr": False, "rl": False, "rr": False,
                     "sunshade": False},
         "temps": {"battery": s.get("battery_min_temp"), "cabin": s.get("inside_temp")},
+        # Same shape as _parse_vehicle_status' climate block. Added late: the climate card
+        # arrived on the vehicle page after this stub was written, and the template's
+        # `vs.climate` then raised on every demo visit — a 500 on the one page a first-time
+        # visitor is most likely to poke at. The demo DB has no climate signals, so the values
+        # come from the position row where one exists and read as "unknown" otherwise.
+        "climate": {
+            "on": ob(s.get("climate_on")),
+            "mode": None,
+            "fan": None,
+            "recirc": None,
+            "target": None,
+        },
     }

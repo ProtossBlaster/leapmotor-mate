@@ -569,6 +569,8 @@
     "dc_charge": "DC",
     "sessions_recorded": "sessões registadas",
     "sessions": "Sessões",
+    "session_inline_one": "sessão",
+    "session_inline_many": "sessões",
     "total_energy": "Energia total",
     "avg_duration": "Duração média",
     "peak_power": "Potência de pico",

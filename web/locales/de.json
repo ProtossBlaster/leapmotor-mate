@@ -513,6 +513,8 @@
     "dc_charge": "DC",
     "sessions_recorded": "erfasste Sitzungen",
     "sessions": "Sitzungen",
+    "session_inline_one": "Sitzung",
+    "session_inline_many": "Sitzungen",
     "total_energy": "Gesamtenergie",
     "avg_duration": "Ø-Dauer",
     "peak_power": "Spitzenleistung",

@@ -296,7 +296,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
         <span class="text-white font-bold text-lg">{{ year.label }}</span>
       </div>
       <div class="flex items-center flex-wrap justify-end gap-x-4 gap-y-1 text-sm">
-        <span class="text-slate-500 whitespace-nowrap">{{ year.count }} sessions</span>
+        <span class="text-slate-500 whitespace-nowrap">{{ year.count }} {{ t('session_inline_one') if year.count == 1 else t('session_inline_many') }}</span>
         <span class="text-yellow-400 font-semibold whitespace-nowrap">{{ year.kwh }} kWh</span>
         {% if year.has_cost %}
         <span class="text-green-400 font-semibold whitespace-nowrap">{{ year.cost | money }}</span>
@@ -317,7 +317,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
             <span class="text-slate-200 font-semibold">{{ month.label }}</span>
           </div>
           <div class="flex items-center flex-wrap justify-end gap-x-4 gap-y-1 text-xs">
-            <span class="text-slate-500 whitespace-nowrap">{{ month.count }} sessions</span>
+            <span class="text-slate-500 whitespace-nowrap">{{ month.count }} {{ t('session_inline_one') if month.count == 1 else t('session_inline_many') }}</span>
             <span class="text-yellow-400 font-medium whitespace-nowrap">{{ month.kwh }} kWh</span>
             {% if month.has_cost %}
             <span class="text-green-400 font-medium whitespace-nowrap">{{ month.cost | money }}</span>
@@ -336,7 +336,12 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
               <div class="flex items-center gap-2">
                 <span class="group-open/day:rotate-90 text-slate-600 text-xs" style="transition:transform .2s;display:inline-block">▶</span>
                 <span class="text-slate-300 text-sm font-medium">{{ day.label }}</span>
-                <span class="text-slate-600 text-xs hidden sm:inline">— {{ day.count }} session{% if day.count > 1 %}s{% endif %}</span>
+                {# The count was spelled with an English rule ("session"/"sessions") on every language.
+                   Two keys instead, already cased per language — German capitalises the noun,
+                   the others don't. Slavic languages want a third form above four; the plural
+                   covers them, which is wrong for 5+ in Polish but no longer wrong in five
+                   languages at once. #}
+                <span class="text-slate-600 text-xs hidden sm:inline">— {{ day.count }} {{ t('session_inline_one') if day.count == 1 else t('session_inline_many') }}</span>
               </div>
               <div class="flex items-center flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
                 <span class="text-yellow-400 font-medium whitespace-nowrap">{{ day.kwh }} kWh</span>
