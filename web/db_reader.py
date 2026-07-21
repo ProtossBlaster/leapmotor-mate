@@ -1377,7 +1377,12 @@ def upsert_vehicle(vin: str, car_type: str) -> None:
 
 def get_vehicle():
     db = _get()
-    v = db.execute("SELECT * FROM vehicles LIMIT 1").fetchone()
+    # `ORDER BY id` is load-bearing, not decoration: `vin` is UNIQUE, so SQLite has a covering
+    # index over (vin, rowid) and an unordered `LIMIT 1` is free to scan THAT instead of the
+    # table — handing back whichever car sorts first by VIN. With one car it can't show; with
+    # two it picks by VIN spelling. Scope to the selected car and pin the order.
+    v = db.execute("SELECT * FROM vehicles WHERE id = COALESCE(?, id) ORDER BY id LIMIT 1",
+                   (_current_vehicle_id(),)).fetchone()
     s = {r["key"]: r["value"] for r in db.execute("SELECT * FROM settings").fetchall()}
     return dict(v) if v else None, s
 
@@ -1427,10 +1432,12 @@ def write_optimistic_status(overrides: dict) -> None:
 def save_fresh_signals(signals: dict) -> None:
     """Write a fresh position row from raw API signals (called after a command)."""
     db = _conn_rw()
-    v = db.execute("SELECT id FROM vehicles LIMIT 1").fetchone()
-    if not v:
+    # See get_vehicle(): an unordered LIMIT 1 rides the UNIQUE(vin) covering index and can name
+    # the wrong car. This one WRITES a position row, so the wrong id would file live telemetry
+    # under the other vehicle.
+    vehicle_id = _current_vehicle_id()
+    if vehicle_id is None:
         return
-    vehicle_id = v["id"]
 
     def sig(key, default=0):  return int(signals.get(key) or default)
     def sigf(key, default=0.0): return float(signals.get(key) or default)
@@ -3444,10 +3451,12 @@ def scan_missed_charges(threshold: float = 2.0, apply: bool = False) -> list[dic
     odometer UNCHANGED across the whole run (so regen while driving offline can't look
     like a charge), and no overlap with any existing charge window."""
     db = _conn_rw() if apply else _get()
-    v = db.execute("SELECT id FROM vehicles LIMIT 1").fetchone()
-    if not v:
+    # See get_vehicle(): an unordered LIMIT 1 rides the UNIQUE(vin) covering index and can name
+    # the wrong car — and with apply=True this INSERTS charges, so it would file reconstructed
+    # sessions against the other vehicle.
+    vehicle_id = _current_vehicle_id()
+    if vehicle_id is None:
         return []
-    vehicle_id = v["id"]
     rows = db.execute(
         "SELECT recorded_at, soc, charging, speed_kmh, odometer_km, latitude, longitude "
         "FROM positions WHERE vehicle_id=? AND soc IS NOT NULL ORDER BY recorded_at, id",

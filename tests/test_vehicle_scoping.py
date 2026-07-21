@@ -144,3 +144,53 @@ def test_null_vehicle_id_backfill_keeps_orphan_rows_visible(tmp_path, monkeypatc
     db._backfill_null_vehicle_id()
     trips = db_reader.get_trips()
     assert len(trips) == 1 and trips[0]["vehicle_id"] == 1   # ...adopted → visible again
+
+
+# ── The VIN-order trap ───────────────────────────────────────────────────────────────────────
+# The scoped reads above all pass `_current_vehicle_id()`, which pins `ORDER BY id`. Three
+# call-sites resolved the car themselves with a bare `LIMIT 1` instead. `vehicles.vin` is
+# UNIQUE, so SQLite keeps a covering index over (vin, rowid): an unordered `SELECT id FROM
+# vehicles LIMIT 1` is free to scan THAT index rather than the table, and hand back whichever
+# car sorts first BY VIN. `SELECT *` can't use the index (it needs every column) so it still
+# scans by rowid — which is why this stayed invisible: the bug depends on the query plan, and
+# the fixtures above happen to name car 1 'VIN_A', which sorts first anyway.
+#
+# Found by seeding a demo database with a second car and diffing every rendered page against
+# the same instance without it (2026-07-21).
+
+def _two_car_db_car2_sorts_first(tmp_path, monkeypatch):
+    """Same two cars, but car 2's VIN sorts BEFORE car 1's — so an unordered LIMIT 1 names car 2."""
+    path = str(tmp_path / "vinorder.db")
+    db = D.Database(path)
+    db._conn.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (1,'ZZZ_CAR_ONE','B10')")
+    db._conn.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (2,'AAA_CAR_TWO','T03')")
+    db._conn.commit()
+    monkeypatch.setattr(db_reader, "DB_PATH", path)
+    return db
+
+
+def test_get_vehicle_follows_the_current_car_not_the_first_vin(tmp_path, monkeypatch):
+    _two_car_db_car2_sorts_first(tmp_path, monkeypatch)
+    v, _ = db_reader.get_vehicle()
+    assert v["id"] == 1 and v["car_type"] == "B10"        # not the alphabetically-first T03
+
+
+def test_save_fresh_signals_files_the_row_under_the_current_car(tmp_path, monkeypatch):
+    """It WRITES: the wrong id would file live telemetry against the other vehicle."""
+    db = _two_car_db_car2_sorts_first(tmp_path, monkeypatch)
+    db_reader.save_fresh_signals({"1003": 55})            # SoC — enough for a position row
+    rows = db._conn.execute("SELECT vehicle_id FROM positions").fetchall()
+    assert rows and all(r["vehicle_id"] == 1 for r in rows)
+
+
+def test_scan_missed_charges_scans_the_current_car(tmp_path, monkeypatch):
+    """It reads positions to reconstruct charges, and with apply=True INSERTS them — against the
+    wrong car it would both miss the real gaps and invent sessions for a vehicle you aren't
+    looking at. Car 2 carries a parked SoC jump that looks exactly like a missed charge; car 1
+    has none, so a scan that returns anything is scanning the wrong vehicle."""
+    db = _two_car_db_car2_sorts_first(tmp_path, monkeypatch)
+    for at, soc in (("2026-06-02T01:00:00+00:00", 20.0), ("2026-06-02T05:00:00+00:00", 80.0)):
+        db._conn.execute("INSERT INTO positions (vehicle_id, recorded_at, soc, charging, speed_kmh,"
+                         " odometer_km) VALUES (2,?,?,0,0,50000)", (at, soc))
+    db._conn.commit()
+    assert db_reader.scan_missed_charges(apply=False) == []
