@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.8.3] — 2026-07-21
+
+### Fixed
+- **The terrain no longer vanishes where the car lost signal.** On a trip with a telemetry drop-out, the profile chart opened a hole: battery and speed went blank — correctly, since nobody knows what they were — but the altitude line went blank with them, and the ground under the car hadn't stopped existing. The relief now continues across the gap as a **dashed line**, drawn straight between the last and the next known altitude, so a climb reads as one continuous silhouette instead of two disconnected halves. The dash is the point: that stretch is reconstructed, not measured. Battery and speed still stop at the edge of the gap, exactly as before. The altitude band is also filled in a flat tone now rather than a fade, which makes the shape of the ground easier to read at a glance. Thanks to **[@hubcasale](https://github.com/hubcasale)**, whose PR #155 this is.
+
 ## [2.8.2] — 2026-07-21
 
 ### Security
