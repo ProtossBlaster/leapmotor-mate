@@ -31,6 +31,18 @@ _WB_MAX_KW = 22.0
 _WB_MARGIN = 1.5
 _WB_FLOOR_KWH = 1.0
 
+# A reachable home wallbox answers a counter reading even while the car charges elsewhere — and if
+# an energy meter also sees the wallbox's few watts of standby, that counter slowly RISES with the
+# car far away, so its per-poll creep can accumulate past the 0.05 kWh floor and mislabel a public
+# charge as a home/wallbox session. Fix at the root: only attribute the wallbox counter to a charge
+# that actually happened AT the wallbox. Its location is learned from the charges where the wallbox
+# measured real energy (standby can't reach _WB_HOME_MIN_KWH), median-averaged so a stray GPS fix
+# can't move it. Conservative by construction: unknown location or a charge without GPS → attribute
+# as before, so a legitimate home charge is never dropped; only a charge KNOWN to be far is skipped.
+_WB_HOME_RADIUS_KM = 1.0      # within this of the learned wallbox → treat the charge as "at home"
+_WB_HOME_MIN_KWH = 2.0        # wallbox energy that rules out standby → a certain home charge
+_WB_HOME_MIN_SAMPLES = 2      # min real home charges before trusting the learned location
+
 # A reconstructed charge whose ΔSoC over its real duration implies a charge power above this is
 # physically impossible (a spurious SoC=0 poll makes a full pack look "charged" in seconds) → it's
 # a glitch, not a charge. Set well above any real charger (incl. DC fast-charge) so a real charge
@@ -1270,6 +1282,32 @@ class Database:
                  charge_id, start_soc, data.soc, energy_added)
         return charge_id
 
+    def _learned_wallbox_location(self, vehicle_id: int):
+        """Where the home wallbox is, inferred from the charges where it MEASURED real energy
+        (> _WB_HOME_MIN_KWH rules out standby creep, so the sample can't be self-poisoned by the
+        very artefact this guards against). Median lat/lon → one stray GPS fix can't move it.
+        None until _WB_HOME_MIN_SAMPLES such charges exist, so a fresh install behaves as before."""
+        rows = self._conn.execute(
+            "SELECT latitude, longitude FROM charges "
+            "WHERE vehicle_id = ? AND latitude IS NOT NULL AND longitude IS NOT NULL "
+            "AND COALESCE(ac_energy_kwh, 0) > ?",
+            (vehicle_id, _WB_HOME_MIN_KWH)).fetchall()
+        if len(rows) < _WB_HOME_MIN_SAMPLES:
+            return None
+        lats = sorted(r["latitude"] for r in rows)
+        lons = sorted(r["longitude"] for r in rows)
+        return lats[len(lats) // 2], lons[len(lons) // 2]
+
+    def wallbox_energy_applies(self, vehicle_id: int, lat, lon) -> bool:
+        """Should this charge's location trust the home wallbox counter? False ONLY when we KNOW the
+        charge happened far from the learned wallbox — there its counter (idle, or creeping on
+        standby) is not this charge's energy. True whenever the wallbox isn't located yet or the
+        charge has no GPS: never drop a legitimate home charge, only skip one known to be elsewhere."""
+        home = self._learned_wallbox_location(vehicle_id)
+        if home is None or lat is None or lon is None:
+            return True
+        return haversine_km(lat, lon, home[0], home[1]) <= _WB_HOME_RADIUS_KM
+
     def set_charge_wallbox_start(self, charge_id: int, kwh: float) -> None:
         """Seed the wallbox energy tracking at charge START: store the first counter reading and reset
         the running total to 0. From here accumulate_wallbox_energy() sums the counter's positive rises."""
@@ -1541,7 +1579,7 @@ class Database:
     def get_open_charge(self, vehicle_id: int):
         """Latest charge session left open (ended_at NULL), or None."""
         return self._conn.execute(
-            "SELECT id, start_soc, max_power_kw, started_at FROM charges "
+            "SELECT id, start_soc, max_power_kw, started_at, latitude, longitude FROM charges "
             "WHERE vehicle_id = ? AND ended_at IS NULL ORDER BY id DESC LIMIT 1",
             (vehicle_id,),
         ).fetchone()

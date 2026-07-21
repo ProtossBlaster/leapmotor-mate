@@ -3,6 +3,12 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.8.1] — 2026-07-21
+
+### Fixed
+- **A public charge is no longer mistaken for a home/wallbox session.** A home wallbox stays reachable while you charge somewhere else entirely, so its energy counter still answered — and Mate attributed that reading to the away-from-home charge. Two things went wrong: the public charge was excluded from the 📍 charging-station name lookup (it looked like it happened on your wallbox), and if you measure the wallbox through an energy meter that also sees its standby draw, the counter slowly *creeps* while the car is away — enough, at slower poll rates, to be counted as real home energy and shift that charge's cost. Mate now learns where your wallbox is (from the charges where it actually delivered energy) and simply doesn't attribute its counter to a charge it knows happened far away. It stays deliberately cautious: a charge with no GPS fix (a garage or underground box), or any install that hasn't seen enough home charges yet, is attributed exactly as before — so a genuine home charge is never dropped. Thanks to **@hubcasale** for surfacing the mis-attribution in #152.
+- **The diagnostics bundle now reproduces your battery page.** The standby-drain section of the downloadable diagnostics recomputed with the *default* minimum-parking-duration instead of the one you set under *Settings → Advanced*, so anyone who had raised that threshold got a bundle that listed more (and shorter) parked windows than their own chart shows — a discrepancy that could send troubleshooting down the wrong path. It now honours your setting and prints it in the header. Thanks to **@riri19** (#154), whose bundle made the mismatch visible.
+
 ## [2.8.0] — 2026-07-20
 
 ### Added

@@ -112,3 +112,45 @@ def test_redact_gps_coords_truncated():
     assert "45.4717" not in out and "1.5433" not in out
     assert "(45.4…, 1.5…)" in out
     assert "27.4%" in out                     # a non-coord number is NOT touched
+
+
+# ── the bundle must reproduce the battery page, not a default recomputation ──────
+def test_vampire_section_honours_the_users_min_hours_setting(monkeypatch):
+    """#154: the section passed only `min_drop_pct`, so it silently recomputed with the DEFAULT
+    1 h while the battery page uses the user's `vampire_min_hours`. A user who had raised that
+    threshold got a bundle listing short parks their own chart had filtered out — 34 windows in
+    the file vs 21 on screen — which sent triage down a false trail. Both tunables must be
+    forwarded, or the bundle contradicts the very screen it exists to explain."""
+    import sqlite3
+    from datetime import datetime, timedelta, timezone as _tz
+    import db_reader
+
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: _tz.utc)
+    base = datetime.now(_tz.utc).replace(microsecond=0) - timedelta(days=3)
+
+    def P(offset_h, soc, speed=0, odo=1000.0, ready=0):
+        return ((base + timedelta(hours=offset_h)).isoformat(), soc, 0, speed, odo, 0, ready)
+
+    con = sqlite3.connect(":memory:")
+    con.row_factory = sqlite3.Row
+    con.execute("CREATE TABLE positions (recorded_at TEXT, soc REAL, charging INT, "
+                "speed_kmh REAL, odometer_km REAL, ac_port_mode INT, ready INT)")
+    con.executemany("INSERT INTO positions VALUES (?,?,?,?,?,?,?)", [
+        P(0, 80.0), P(2, 79.5),                     # short park: 2 h, −0.5 %
+        P(2.5, 79.2, speed=40, odo=1010, ready=1),  # a drive splits the two parks
+        P(4, 79.0, odo=1010), P(24, 78.0, odo=1010),  # long park: 20 h, −1.0 %
+    ])
+    con.execute("ALTER TABLE positions ADD COLUMN vehicle_id INTEGER DEFAULT 1")
+    con.commit()
+    monkeypatch.setattr(db_reader, "_get", lambda: con)
+
+    settings = {"vampire_min_drop_pct": "0.2", "vampire_min_hours": "10"}
+    monkeypatch.setattr(db_reader, "get_setting", lambda k, d=None: settings.get(k, d))
+
+    # With the user's 10 h threshold only the long park is charted — exactly what their page shows.
+    assert "count=1" in D._vampire_section()
+
+    # Sanity: the same data at the default 1 h charts both, so the assertion above is really
+    # testing that the setting was forwarded (not that the fixture only ever yields one window).
+    settings["vampire_min_hours"] = "1"
+    assert "count=2" in D._vampire_section()

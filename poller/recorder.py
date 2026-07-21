@@ -20,6 +20,9 @@ class Recorder:
         self._active_charge_id: Optional[int] = None
         self._regen_kwh: float = 0.0
         self._max_charge_kw: float = 0.0
+        # Whether the active charge may trust the home wallbox counter (decided from its GPS at open
+        # / resume). Default True = attribute, so anything unlocated behaves exactly as before.
+        self._charge_at_wallbox: bool = True
         self._started: bool = False
         # SoC-jump charge reconstruction (GitHub #29): baseline SoC + when we last saw it.
         self._last_soc: Optional[float] = None
@@ -65,6 +68,8 @@ class Recorder:
             if is_charging:
                 self._active_charge_id = open_charge["id"]
                 self._max_charge_kw = open_charge["max_power_kw"] or 0.0
+                self._charge_at_wallbox = self._db.wallbox_energy_applies(
+                    self._vehicle_id, open_charge["latitude"], open_charge["longitude"])
                 self._sm.state = State.CHARGING
                 log.info("Resumed open charge #%d (car still charging)", open_charge["id"])
             else:
@@ -134,10 +139,11 @@ class Recorder:
             if data.charge_power_kw > self._max_charge_kw:
                 self._max_charge_kw = data.charge_power_kw
                 self._db.update_charge_max_power(self._active_charge_id, self._max_charge_kw)
-            wb = self._read_wallbox_energy()
-            if wb is not None:
-                self._db.accumulate_wallbox_energy(self._active_charge_id, wb)
-                log.debug("Charge #%d: wallbox counter %.3f kWh", self._active_charge_id, wb)
+            if self._charge_at_wallbox:
+                wb = self._read_wallbox_energy()
+                if wb is not None:
+                    self._db.accumulate_wallbox_energy(self._active_charge_id, wb)
+                    log.debug("Charge #%d: wallbox counter %.3f kWh", self._active_charge_id, wb)
 
         # Order matters: trip reconstruction reads the SoC baseline (for the energy delta) BEFORE the
         # charge reconstruction advances it. Trip advances its OWN odometer baseline.
@@ -256,19 +262,29 @@ class Recorder:
                 self._max_charge_kw = 0.0
                 if data:
                     self._active_charge_id = self._db.create_charge(self._vehicle_id, data)
-                    start_wb = self._read_wallbox_energy()      # seed the wallbox-counter baseline
-                    if start_wb is not None:
-                        self._db.set_charge_wallbox_start(self._active_charge_id, start_wb)
-                        log.info("Charge #%d: wallbox counter at start = %.3f kWh",
-                                 self._active_charge_id, start_wb)
+                    # Only seed the wallbox baseline if this charge is AT the wallbox. A charge known
+                    # to be far (public station) leaves the wallbox columns NULL → its idle/standby
+                    # counter is never attributed, and it stays eligible for the 📍 station lookup.
+                    self._charge_at_wallbox = self._db.wallbox_energy_applies(
+                        self._vehicle_id, data.latitude, data.longitude)
+                    if self._charge_at_wallbox:
+                        start_wb = self._read_wallbox_energy()  # seed the wallbox-counter baseline
+                        if start_wb is not None:
+                            self._db.set_charge_wallbox_start(self._active_charge_id, start_wb)
+                            log.info("Charge #%d: wallbox counter at start = %.3f kWh",
+                                     self._active_charge_id, start_wb)
+                    else:
+                        log.info("Charge #%d: away from the home wallbox → its counter is not "
+                                 "attributed to this charge", self._active_charge_id)
 
         elif frm == State.CHARGING and to in _PARKED_STATES:
             if self._active_charge_id and data:
-                end_wb = self._read_wallbox_energy()              # final reading → capture the last rise
-                if end_wb is not None:
-                    self._db.accumulate_wallbox_energy(self._active_charge_id, end_wb)
-                    log.info("Charge #%d: wallbox counter at stop = %.3f kWh",
-                             self._active_charge_id, end_wb)
+                if self._charge_at_wallbox:
+                    end_wb = self._read_wallbox_energy()          # final reading → capture the last rise
+                    if end_wb is not None:
+                        self._db.accumulate_wallbox_energy(self._active_charge_id, end_wb)
+                        log.info("Charge #%d: wallbox counter at stop = %.3f kWh",
+                                 self._active_charge_id, end_wb)
                 self._db.finalize_charge(
                     self._active_charge_id, data, max_power_kw=self._max_charge_kw,
                 )
