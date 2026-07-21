@@ -12,6 +12,7 @@ credential encryption, /data/secret.key) carried in an HttpOnly, SameSite=Strict
 """
 import hmac
 import os
+import time
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -44,6 +45,35 @@ def enabled() -> bool:
 
 def check_password(pw: str) -> bool:
     return bool(pw) and hmac.compare_digest(pw, password())
+
+
+# ── Login throttle ───────────────────────────────────────────────────────────
+# The password is a single shared secret with no account to lock, so without a brake anything
+# on the LAN can try a wordlist at network speed. Per-client-IP, in memory: this is one process
+# with no shared state, and a restart clearing the counters is not a weakness worth a table —
+# the attacker cannot cause the restart.
+FAIL_LIMIT = 5            # consecutive misses before the door closes
+LOCKOUT = 300             # seconds it stays closed, then one more try is allowed
+_fails: dict = {}         # ip → [consecutive failures, timestamp of the last one]
+
+
+def attempt_allowed(ip: str) -> bool:
+    n, last = _fails.get(ip, (0, 0.0))
+    if n < FAIL_LIMIT:
+        return True
+    if time.time() - last >= LOCKOUT:     # window elapsed → let exactly one more through
+        _fails[ip] = (FAIL_LIMIT - 1, last)
+        return True
+    return False
+
+
+def note_failure(ip: str) -> None:
+    n, _ = _fails.get(ip, (0, 0.0))
+    _fails[ip] = (n + 1, time.time())
+
+
+def note_success(ip: str) -> None:
+    _fails.pop(ip, None)
 
 
 def make_token() -> str:

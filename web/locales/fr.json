@@ -320,6 +320,7 @@
     "login_password": "Mot de passe",
     "login_button": "Connexion",
     "login_error": "Mot de passe incorrect",
+    "login_throttled": "Trop de tentatives échouées. Attends quelques minutes et réessaie.",
     "logout": "Déconnexion",
     "export_db_hint": "Téléchargez vos données. La sauvegarde de la base contient aussi vos identifiants chiffrés — conservez secret.key avec elle pour restaurer sur une autre installation.",
     "export_gpx": "GPX",

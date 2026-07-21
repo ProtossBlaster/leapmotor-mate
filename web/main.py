@@ -23,6 +23,7 @@ import geocode
 import charger_locator
 import mqtt_check
 import auth
+import security
 import update_check
 
 MATE_VERSION = "2.8.1"  # bump together with the git tag + add-on config.yaml at release
@@ -146,6 +147,11 @@ app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")
 @app.middleware("http")
 async def setup_check(request: Request, call_next):
     path = request.url.path
+    # Cross-site write guard. Ahead of every other gate — including the always-public paths and
+    # the auth check — because it protects the install that has NO password, which is the default
+    # one. See web/security.py for why an absent origin is allowed and why add-on mode is exempt.
+    if not security.origin_allowed(request.method, path, request.headers, str(request.base_url)):
+        return Response("cross-site request refused", status_code=403)
     # Always-public: static assets, the liveness probe, and the login page/handler.
     if path.startswith("/static/") or path == "/healthz" or path.startswith("/login"):
         return await call_next(request)
@@ -168,6 +174,21 @@ async def setup_check(request: Request, call_next):
             and not path.startswith("/research/consent"):
         return RedirectResponse(request.headers.get("x-ingress-path", "") + "/research/consent")
     return await call_next(request)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Declared AFTER setup_check on purpose: Starlette runs the most recently added middleware
+    outermost, so this one wraps the guard above and every response carries the headers —
+    including the guard's own 403 and the login page, which are exactly the responses an
+    attacker gets to see. The load-bearing header is the anti-framing pair: it closes the
+    clickjacking half of the attack, which no origin check can see because that click really
+    does happen inside Mate. Skipped as an add-on — HA frames the panel deliberately."""
+    resp = await call_next(request)
+    if not security.is_addon():
+        for k, v in security.SECURITY_HEADERS.items():
+            resp.headers.setdefault(k, v)
+    return resp
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -303,11 +324,19 @@ async def login_submit(request: Request):
     ingress = request.headers.get("x-ingress-path", "")
     if not auth.enabled():
         return RedirectResponse(ingress + "/", status_code=303)
+    # One shared password and no lockout means a box on the LAN can grind through a wordlist as
+    # fast as the network allows. Throttle first, so the guess never reaches the comparison.
+    if not auth.attempt_allowed(request.client.host if request.client else ""):
+        return templates.TemplateResponse(request, "login.html",
+                                          _ctx(page="login", error=True, throttled=True),
+                                          status_code=429)
     if auth.check_password(form.get("password") or ""):
+        auth.note_success(request.client.host if request.client else "")
         resp = RedirectResponse(ingress + "/", status_code=303)
         resp.set_cookie(auth.COOKIE, auth.make_token(), max_age=auth.TTL,
                         httponly=True, samesite="strict", path="/")
         return resp
+    auth.note_failure(request.client.host if request.client else "")
     return templates.TemplateResponse(request, "login.html",
                                       _ctx(page="login", error=True), status_code=401)
 

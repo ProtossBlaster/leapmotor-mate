@@ -266,6 +266,7 @@
     "login_password": "Passwort",
     "login_button": "Anmelden",
     "login_error": "Falsches Passwort",
+    "login_throttled": "Zu viele Fehlversuche. Warte ein paar Minuten und versuche es erneut.",
     "logout": "Abmelden",
     "export_db_hint": "Lade deine Daten herunter. Das Datenbank-Backup enthält auch deine verschlüsselten Zugangsdaten — bewahre secret.key dazu auf, um es auf einer anderen Installation wiederherzustellen.",
     "export_gpx": "GPX",

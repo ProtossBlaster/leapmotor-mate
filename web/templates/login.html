@@ -17,7 +17,9 @@
     </div>
     {% if error %}
     <div class="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
-      {{ t('login_error') }}
+      {# Say WHY the attempt was refused: a wrong password and a closed door look identical
+         otherwise, and the honest owner is the one most likely to hit the throttle. #}
+      {{ t('login_throttled') if throttled else t('login_error') }}
     </div>
     {% endif %}
     <div>

@@ -255,6 +255,7 @@
     "login_password": "Hasło",
     "login_button": "Zaloguj się",
     "login_error": "Błędne hasło",
+    "login_throttled": "Zbyt wiele nieudanych prób. Odczekaj kilka minut i spróbuj ponownie.",
     "logout": "Wyloguj",
     "export_db_hint": "Pobierz swoje dane. Kopia bazy zawiera zaszyfrowane dane uwierzytelniające — zachowaj secret.key razem z nią, żeby przywrócić na innej instalacji.",
     "export_gpx": "GPX",

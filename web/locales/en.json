@@ -320,6 +320,7 @@
     "login_password": "Password",
     "login_button": "Sign in",
     "login_error": "Wrong password",
+    "login_throttled": "Too many failed attempts. Wait a few minutes and try again.",
     "logout": "Log out",
     "export_db_hint": "Download your data. The database backup also contains your encrypted credentials — keep secret.key with it to restore on another install.",
     "export_gpx": "GPX",

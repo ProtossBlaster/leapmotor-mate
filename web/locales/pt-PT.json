@@ -320,6 +320,7 @@
     "login_password": "Palavra-passe",
     "login_button": "Entrar",
     "login_error": "Palavra-passe incorreta",
+    "login_throttled": "Demasiadas tentativas falhadas. Aguarda alguns minutos e tenta de novo.",
     "logout": "Terminar sessão",
     "export_db_hint": "Transfere os teus dados. A cópia da base de dados também contém as tuas credenciais encriptadas — guarda o secret.key com ela para restaurar noutra instalação.",
     "export_gpx": "GPX",
@@ -944,7 +945,7 @@
     "fuel_delete_confirm": "Eliminar este abastecimento?",
     "fuel_delete": "Eliminar"
   },
-    "months": {
+  "months": {
     "full": [
       "janeiro",
       "fevereiro",
