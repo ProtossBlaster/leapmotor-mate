@@ -426,6 +426,33 @@
         document.getElementById('trip-profile-elev-legend').style.display = '';
       }
 
+      // Bridge gaps in the terrain line with a dashed segment. SoC/speed truly are unknowable during
+      // a signal drop-out and stay blank (see above), but the ground under the car didn't disappear —
+      // linearly interpolating between the last and next known elevation gives a readable relief
+      // silhouette, with the dash marking it as reconstructed rather than measured.
+      var elevDashArr = elevArr.map(function () { return null; });
+      var hasElevDash = false;
+      if (hasElev) {
+        var gapStart = -1;
+        for (var g = 0; g < elevArr.length; g++) {
+          if (elevArr[g] == null) {
+            if (gapStart < 0) gapStart = g;
+          } else if (gapStart >= 0) {
+            var before = gapStart - 1;
+            if (before >= 0 && elevArr[before] != null) {
+              var v0 = elevArr[before], v1 = elevArr[g], span = g - before;
+              elevDashArr[before] = v0;
+              for (var k = gapStart; k < g; k++) {
+                elevDashArr[k] = v0 + (v1 - v0) * ((k - before) / span);
+              }
+              elevDashArr[g] = v1;
+              hasElevDash = true;
+            }
+            gapStart = -1;
+          }
+        }
+      }
+
       // Zoom the SoC axis to the trip's own range (it usually only drops a few %),
       // otherwise a 96→90% drive looks flat pinned to the top of a 0–100 axis.
       var socVals = socArr.filter(function (v) { return v != null; });
@@ -464,7 +491,9 @@
                     { name: nmSpd, type: 'line', data: spdArr }];
       var colors = ['#22c55e', '#38bdf8'];
       var strokeWidth = [2, 2];
+      var strokeDash = [0, 0];
       var fillType = ['gradient', 'solid'];
+      var fillOpacity = [1, 1];
       var opacityFrom = [0.35, 0.35];
       var opacityTo = [0.05, 0.05];
       var yaxis = [
@@ -477,19 +506,47 @@
       ];
       if (hasElev) {
         // Light warm tan (not a dark brown) — on this dark navy surface a dark tone would nearly
-        // vanish; a light one stays readable at low fill-opacity and sits far in hue from both SoC
-        // green and speed blue, so it's never confused with either even under a CVD sim.
+        // vanish; a light one stays readable at a flat low-opacity fill and sits far in hue from both
+        // SoC green and speed blue, so it's never confused with either even under a CVD sim.
+        var elevColor = '#c9975f';
         series.unshift({ name: nmElev, type: 'area', data: elevArr });
-        colors.unshift('#c9975f');
+        colors.unshift(elevColor);
         strokeWidth.unshift(1.5);
-        fillType.unshift('gradient');
-        opacityFrom.unshift(0.5);
-        opacityTo.unshift(0.08);
+        strokeDash.unshift(0);
+        fillType.unshift('solid');   // flat fill, no gradient shading
+        fillOpacity.unshift(0.4);
+        opacityFrom.unshift(0);      // unused (gradient-only), kept for array-length parity
+        opacityTo.unshift(0);
         // Hidden axis, no forced min — the relief should read as the trip's OWN climb/descent shape
         // (auto-scaled to its own min/max), not a slab measured from sea level. A third labelled axis
         // is also too cramped at 200px; the shared tooltip gives exact values.
-        yaxis.unshift({ seriesName: nmElev, show: false });
+        var elevVals = elevArr.filter(function (v) { return v != null; });
+        var elevLo = Math.floor(Math.min.apply(null, elevVals));
+        var elevHi = Math.ceil(Math.max.apply(null, elevVals));
+        if (elevHi === elevLo) { elevHi = elevLo + 1; }
+        yaxis.unshift({ seriesName: nmElev, show: false, min: elevLo, max: elevHi });
+
+        if (hasElevDash) {
+          // A distinct name, bound to its own y-axis pinned to the SAME min/max as the elevation
+          // axis above — ApexCharts' internal per-series bookkeeping breaks if two series share a
+          // name, and independently auto-scaled axes could otherwise offset the dash from where the
+          // solid line actually ends. Excluded from the tooltip below to avoid a duplicate row.
+          var nmElevDash = nmElev + '__dash';
+          series.push({ name: nmElevDash, type: 'line', data: elevDashArr });
+          colors.push(elevColor);
+          strokeWidth.push(1.5);
+          strokeDash.push(4);
+          fillType.push('solid');
+          fillOpacity.push(1);   // NOT 0 — for a 'line' series Apex derives the stroke's alpha from
+                                  // this value too, so 0 here made the dash invisible despite drawing
+          opacityFrom.push(0);
+          opacityTo.push(0);
+          yaxis.push({ seriesName: nmElevDash, show: false, min: elevLo, max: elevHi });
+        }
       }
+
+      var tooltipSeries = series.map(function (_, i) { return i; });
+      if (hasElevDash) tooltipSeries.pop();   // drop the bridge series — same values, duplicate row
 
       el._c = new ApexCharts(el, {
         chart: { type: 'line', height: 200, toolbar: { show: false }, zoom: { enabled: false },
@@ -501,8 +558,8 @@
                  } },
         series: series,
         colors: colors,
-        stroke: { curve: 'smooth', width: strokeWidth },
-        fill: { type: fillType,
+        stroke: { curve: 'smooth', width: strokeWidth, dashArray: strokeDash },
+        fill: { type: fillType, opacity: fillOpacity,
                 gradient: { shadeIntensity: 1, opacityFrom: opacityFrom, opacityTo: opacityTo, stops: [0, 100] } },
         dataLabels: { enabled: false },
         markers: { size: 0 },
@@ -512,7 +569,7 @@
         yaxis: yaxis,
         grid: { borderColor: '#1e293b', strokeDashArray: 4, padding: { left: 8, right: 8 } },
         legend: { show: false },
-        tooltip: { theme: 'dark', shared: true, intersect: false,
+        tooltip: { theme: 'dark', shared: true, intersect: false, enabledOnSeries: tooltipSeries,
                    y: { formatter: function (v, o) {
                           if (v == null) return '';
                           var nm = o.w.config.series[o.seriesIndex].name;
