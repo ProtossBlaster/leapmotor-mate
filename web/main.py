@@ -559,8 +559,8 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
     station_info = None
     if station:
         # Uncapped: a station reached via ?station=<key> must resolve regardless of the map's
-        # min_sessions/top_n cap (#153 review point 3), same as get_charges_grouped(station=...) below.
-        stations = db_reader.get_charging_stations(min_sessions=1, top_n=None)
+        # top_n cap, same as get_charges_grouped(station=...) below.
+        stations = db_reader.get_charging_stations(top_n=None)
         station_info = next((s for s in stations if s["key"] == station), None)
     return templates.TemplateResponse(request, "charges.html", _ctx(
         page="charges", vehicle=vehicle, grouped=grouped,

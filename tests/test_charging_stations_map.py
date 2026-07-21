@@ -24,10 +24,7 @@ def test_charging_stations_cluster_by_gps(tmp_path, monkeypatch):
     _seed_charge(pdb, "2026-03-01T10:00:00+01:00", 45.0699, 7.6859, kwh=15, cost=None, name=None)
     _seed_charge(pdb, "2026-04-01T10:00:00+01:00", 46.0000, 8.0000, kwh=5)
 
-    # min_sessions=1: this test is about GPS clustering, not the marker cap (see
-    # test_charging_stations_min_sessions_and_top_n_cap below) — the singleton station must
-    # still show up here.
-    stations = db_reader.get_charging_stations(min_sessions=1)
+    stations = db_reader.get_charging_stations()
     assert len(stations) == 2
 
     station = next(s for s in stations if s["sessions"] == 3)
@@ -43,8 +40,10 @@ def test_charging_stations_cluster_by_gps(tmp_path, monkeypatch):
 
 
 def test_charging_stations_min_sessions_and_top_n_cap(tmp_path, monkeypatch):
-    """Default caps mirror get_frequent_places (min_visits=2, top_n=15) so a driver with many
-    one-off charge spots doesn't get a marker/JSON blob per stop (#153 review point 3)."""
+    """top_n bounds the marker count and the inline JSON blob (15, as get_frequent_places), but
+    a station used ONCE still gets a marker — unlike a "frequent place", the charger you stopped
+    at on one trip is exactly what this layer is for, and filtering singletons would leave a
+    driver who charged at six different chargers on one holiday with an empty map."""
     pdb = D.Database(str(tmp_path / "t.db"))
     monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
     # 20 distinct one-off (single-session) stations, plus one with 2 sessions.
@@ -53,12 +52,16 @@ def test_charging_stations_min_sessions_and_top_n_cap(tmp_path, monkeypatch):
     _seed_charge(pdb, "2026-02-01T10:00:00+01:00", 45.0700, 7.6860, kwh=10)
     _seed_charge(pdb, "2026-02-02T10:00:00+01:00", 45.0701, 7.6861, kwh=20)
 
-    stations = db_reader.get_charging_stations()          # default min_sessions=2, top_n=15
-    assert len(stations) == 1                              # the 20 singletons are all filtered out
-    assert stations[0]["sessions"] == 2
+    stations = db_reader.get_charging_stations()           # defaults: min_sessions=1, top_n=15
+    assert len(stations) == 15                             # capped, not emptied
+    assert stations[0]["sessions"] == 2                    # busiest station first…
+    assert all(s["sessions"] == 1 for s in stations[1:])   # …then one-offs fill the cap
 
-    all_stations = db_reader.get_charging_stations(min_sessions=1, top_n=None)
-    assert len(all_stations) == 21                          # nothing dropped when uncapped
+    uncapped = db_reader.get_charging_stations(top_n=None)
+    assert len(uncapped) == 21                             # nothing dropped when uncapped
+
+    # The filter still exists for a caller that wants only repeat stations.
+    assert len(db_reader.get_charging_stations(min_sessions=2)) == 1
 
 
 def test_charging_stations_excludes_home_by_learned_location(tmp_path, monkeypatch):

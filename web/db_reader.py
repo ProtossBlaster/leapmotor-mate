@@ -4164,15 +4164,19 @@ def _is_home_charge(c: dict, home) -> bool:
     return _haversine_km(lat, lon, home[0], home[1]) <= _WB_HOME_RADIUS_KM
 
 
-def get_charging_stations(min_sessions: int = 2, top_n: Optional[int] = 15, recent_n: int = 6) -> list[dict]:
+def get_charging_stations(min_sessions: int = 1, top_n: Optional[int] = 15, recent_n: int = 6) -> list[dict]:
     """Cluster completed charges into physical charging stations for the map's concentration
     bubbles — same ~110 m grid (3-decimal rounding) as get_frequent_places, so a station
     resolves to one bubble even though each session's own GPS fix jitters slightly. Each
     cluster carries its most-common resolved name (set by charger_locator's OSM/OCM sweep)
     and its most recent sessions (for the map popup). `key` is "lat,lon" rounded to the SAME
     3 decimals used to bucket, so /charges?station=<key> re-selects the identical cluster.
-    Same defaults as get_frequent_places (min_visits=2, top_n=15) so a driver with many
-    one-off charge spots doesn't get a marker/JSON blob per stop.
+    top_n mirrors get_frequent_places (15) so a driver with many charge spots doesn't get a
+    marker — and a JSON blob — per stop. min_sessions does NOT: a place visited once isn't a
+    "frequent place", but a station used once IS the interesting datum here (the charger you
+    stopped at on a trip), and dropping singletons would leave a driver who charged at six
+    different chargers on one holiday looking at an empty map. top_n alone bounds the payload;
+    ties on `sessions` keep get_charges' recency order, so the cap takes the newest one-offs.
 
     Note: the 3-decimal grid, inherited from get_frequent_places, can round two GPS fixes
     ~2 m apart into different buckets and split one physical station into two markers with
