@@ -312,6 +312,22 @@
 
   <!-- Main -->
   <main class="flex-1 overflow-y-auto">
+    {# No password on a standalone install. Not shown as an add-on (ingress authenticates), not
+       shown once dismissed. Worth a banner rather than a line in the docs because the stake is
+       physical: anything on the network can reach the command endpoints and open the car. #}
+    {% if auth_unprotected and not auth_dismissed and not demo %}
+    <div id="auth-bar" style="position:sticky;top:0;z-index:1004;background:#7f1d1d;color:#fee2e2;
+         display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;
+         padding:8px 14px;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.3)">
+      <span>🔓 {{ t('auth_warning_banner') }}</span>
+      <a href="settings#security"
+         style="background:#fee2e2;color:#7f1d1d;border-radius:8px;padding:6px 12px;
+                font-size:12px;font-weight:700;text-decoration:none">{{ t('auth_warning_cta') }}</a>
+      <button type="button" hx-post="api/settings/dismiss-auth-warning" hx-swap="none"
+              style="background:transparent;color:#fecaca;border:1px solid #b91c1c;border-radius:8px;
+                     padding:6px 10px;font-size:12px;cursor:pointer">{{ t('auth_warning_hide') }}</button>
+    </div>
+    {% endif %}
     {% if demo %}
     <!-- Demo banner — sticky at the TOP of the content so it never covers the sidebar nav
          (the old fixed bottom bar hid Settings/Logout). Stays visible while scrolling. -->

@@ -143,3 +143,93 @@ def test_one_client_cannot_lock_out_another(monkeypatch):
         auth.note_failure("10.0.0.1")
     assert auth.attempt_allowed("10.0.0.1") is False
     assert auth.attempt_allowed("10.0.0.2") is True
+
+
+# ── the password you can actually reach ──────────────────────────────────────
+# The login already existed, as MATE_AUTH_PASSWORD. Protecting the car therefore meant editing
+# a compose file and restarting, so essentially nobody did — which is why it can now be set
+# from the Settings page and stored as a salted hash.
+
+def _clean(monkeypatch, tmp_path):
+    import db as D
+    import db_reader
+    path = str(tmp_path / "auth.db")
+    D.Database(path)
+    monkeypatch.setattr(db_reader, "DB_PATH", path)
+    monkeypatch.delenv("MATE_AUTH_PASSWORD", raising=False)
+    monkeypatch.delenv("SUPERVISOR_TOKEN", raising=False)
+    monkeypatch.delenv("HASSIO_TOKEN", raising=False)
+
+
+def test_a_fresh_standalone_install_is_flagged_as_open(monkeypatch, tmp_path):
+    _clean(monkeypatch, tmp_path)
+    assert auth.unprotected() is True
+    assert auth.enabled() is False
+
+
+def test_setting_a_password_from_the_page_turns_the_login_on(monkeypatch, tmp_path):
+    _clean(monkeypatch, tmp_path)
+    assert auth.set_password("correct horse") is True
+    assert auth.enabled() is True and auth.unprotected() is False
+    assert auth.check_password("correct horse") is True
+    assert auth.check_password("wrong horse") is False
+
+
+def test_the_password_is_never_stored_in_clear(monkeypatch, tmp_path):
+    """A DB copy — backup, diagnostics bundle, a support request — must not carry it."""
+    import db_reader
+    _clean(monkeypatch, tmp_path)
+    auth.set_password("hunter2hunter2")
+    stored = db_reader.get_setting(auth.PASSWORD_SETTING, "")
+    assert "hunter2hunter2" not in stored and stored.startswith("pbkdf2$")
+
+
+def test_the_same_password_stores_differently_each_time(monkeypatch, tmp_path):
+    """Per-password salt: two installs with the same password don't share a hash."""
+    import db_reader
+    _clean(monkeypatch, tmp_path)
+    auth.set_password("same password")
+    first = db_reader.get_setting(auth.PASSWORD_SETTING, "")
+    auth.set_password("same password")
+    assert db_reader.get_setting(auth.PASSWORD_SETTING, "") != first
+    assert auth.check_password("same password") is True
+
+
+def test_a_too_short_password_is_refused(monkeypatch, tmp_path):
+    """Refused rather than accepted, so nobody walks away believing they're protected."""
+    _clean(monkeypatch, tmp_path)
+    assert auth.set_password("short") is False
+    assert auth.set_password("") is False
+    assert auth.enabled() is False
+
+
+def test_the_environment_still_wins(monkeypatch, tmp_path):
+    """Whoever put it in their compose file expects that file to be the source of truth."""
+    _clean(monkeypatch, tmp_path)
+    auth.set_password("from the page")
+    monkeypatch.setenv("MATE_AUTH_PASSWORD", "from the compose file")
+    assert auth.env_password_wins() is True
+    assert auth.check_password("from the compose file") is True
+    assert auth.check_password("from the page") is False
+
+
+def test_turning_it_off_reopens(monkeypatch, tmp_path):
+    _clean(monkeypatch, tmp_path)
+    auth.set_password("temporary one")
+    auth.clear_password()
+    assert auth.enabled() is False and auth.unprotected() is True
+
+
+def test_the_add_on_is_never_nagged(monkeypatch, tmp_path):
+    """Behind ingress there is nothing to warn about — HA authenticates every request."""
+    _clean(monkeypatch, tmp_path)
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "x")
+    assert auth.unprotected() is False and auth.enabled() is False
+
+
+def test_a_corrupted_stored_password_fails_closed(monkeypatch, tmp_path):
+    import db_reader
+    _clean(monkeypatch, tmp_path)
+    for junk in ("garbage", "pbkdf2$notanumber$aa$bb", "scrypt$1$aa$bb", "pbkdf2$1$zz$bb"):
+        db_reader.set_setting(auth.PASSWORD_SETTING, junk)
+        assert auth.check_password("anything") is False

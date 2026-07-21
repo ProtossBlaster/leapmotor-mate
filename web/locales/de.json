@@ -865,7 +865,21 @@
     "lang_fr": "Français",
     "lang_de": "Deutsch",
     "lang_pl": "Polski",
-    "lang_pt-PT": "Portugiesisch (Portugal)"
+    "lang_pt-PT": "Portugiesisch (Portugal)",
+    "auth_section": "Zugang",
+    "auth_on": "Zum Öffnen von Mate ist ein Passwort nötig.",
+    "auth_off_warning": "Kein Passwort: alles in deinem Netzwerk kann Mate öffnen — und Mate kann dein Auto entriegeln.",
+    "auth_set": "Passwort wählen",
+    "auth_change": "Neues Passwort",
+    "auth_enable": "Mate schützen",
+    "auth_hint": "Mindestens 8 Zeichen. Als gesalzener Hash gespeichert, nie im Klartext.",
+    "auth_off": "Passwort deaktivieren",
+    "auth_off_confirm": "Passwort deaktivieren? Mate ist dann für alles in deinem Netzwerk offen.",
+    "auth_env_managed": "Das Passwort steht in den Umgebungsvariablen und wird dort verwaltet — nicht hier.",
+    "auth_warning_banner": "Mate hat kein Passwort: alles in deinem Netzwerk kann dein Auto öffnen.",
+    "auth_warning_cta": "Jetzt setzen",
+    "auth_warning_hide": "Ausblenden",
+    "save": "Speichern"
   },
   "months": {
     "full": [

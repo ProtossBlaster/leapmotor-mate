@@ -105,6 +105,45 @@
       </div>
     {% endcall %}
 
+    {# Access — standalone only. Under the add-on the whole card is pointless: ingress already
+       authenticates every request and a second login would break it. Opens by default while
+       unprotected, because that is the state worth acting on. #}
+    {% if not is_addon %}
+    <div id="security"></div>
+    {% call scard('security', '🔐 ' + t('auth_section'), card_open.get('security', auth_unprotected)) %}
+      {% if auth_env %}
+      <div class="text-sm text-slate-300">{{ t('auth_env_managed') }}</div>
+      <div class="text-xs text-slate-500 mt-2">MATE_AUTH_PASSWORD</div>
+      {% elif auth_enabled %}
+      <div class="flex items-center gap-2 text-sm text-emerald-400 mb-3">
+        <span>🔒</span><span>{{ t('auth_on') }}</span>
+      </div>
+      <form hx-post="api/settings/password" hx-swap="none" class="flex flex-wrap items-end gap-2">
+        <label class="text-xs text-slate-400">{{ t('auth_change') }}
+          <input type="password" name="password" minlength="8" required autocomplete="new-password"
+                 class="block mt-1 w-48 px-2 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+        </label>
+        <button type="submit" class="px-3 py-2 rounded-lg text-sm font-medium text-white border border-slate-600 hover:bg-slate-600">{{ t('save') }}</button>
+      </form>
+      <button hx-post="api/settings/password/clear" hx-swap="none"
+              hx-confirm="{{ t('auth_off_confirm') }}"
+              class="mt-3 text-xs text-rose-400 hover:text-rose-300 underline underline-offset-2">{{ t('auth_off') }}</button>
+      {% else %}
+      <div class="flex items-start gap-2 text-sm text-rose-300 mb-3">
+        <span>🔓</span><span>{{ t('auth_off_warning') }}</span>
+      </div>
+      <form hx-post="api/settings/password" hx-swap="none" class="flex flex-wrap items-end gap-2">
+        <label class="text-xs text-slate-400">{{ t('auth_set') }}
+          <input type="password" name="password" minlength="8" required autocomplete="new-password"
+                 class="block mt-1 w-48 px-2 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+        </label>
+        <button type="submit" class="px-3 py-2 rounded-lg text-sm font-medium text-white bg-brand/80 hover:bg-brand">{{ t('auth_enable') }}</button>
+      </form>
+      <p class="text-[11px] text-slate-500 mt-2">{{ t('auth_hint') }}</p>
+      {% endif %}
+    {% endcall %}
+    {% endif %}
+
     <!-- Vehicle info -->
     {% if vehicle %}
     {% call scard('vehicle', t('vehicle_section'), card_open.get('vehicle')) %}

@@ -945,7 +945,21 @@
     "fuel_history_title": "Historique des pleins",
     "fuel_empty": "Aucun plein enregistré. Ajoutez le premier ci-dessus pour commencer à chiffrer les trajets moteur allumé.",
     "fuel_delete_confirm": "Supprimer ce plein ?",
-    "fuel_delete": "Supprimer"
+    "fuel_delete": "Supprimer",
+    "auth_section": "Accès",
+    "auth_on": "Un mot de passe est requis pour ouvrir Mate.",
+    "auth_off_warning": "Aucun mot de passe : tout ce qui est sur ton réseau peut ouvrir Mate — et Mate peut déverrouiller ta voiture.",
+    "auth_set": "Choisis un mot de passe",
+    "auth_change": "Nouveau mot de passe",
+    "auth_enable": "Protéger Mate",
+    "auth_hint": "Au moins 8 caractères. Stocké sous forme d'empreinte salée, jamais en clair.",
+    "auth_off": "Désactiver le mot de passe",
+    "auth_off_confirm": "Désactiver le mot de passe ? Mate sera ouvert à tout ce qui est sur ton réseau.",
+    "auth_env_managed": "Le mot de passe est défini dans l'environnement, il se gère donc là-bas — pas ici.",
+    "auth_warning_banner": "Mate n'a pas de mot de passe : tout ce qui est sur ton réseau peut ouvrir ta voiture.",
+    "auth_warning_cta": "En définir un",
+    "auth_warning_hide": "Masquer",
+    "save": "Enregistrer"
   },
   "months": {
     "full": [

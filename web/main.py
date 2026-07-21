@@ -282,6 +282,11 @@ def _ctx(**kwargs):
             "wb_active_profile_name": wb_active_profile_name,
             "wb_active_profile_id":   wb_active_profile_id,
             "currency": db_reader.get_currency(), "auth_enabled": auth.enabled(),
+            # Security card + banner: unprotected() is false as an add-on (ingress authenticates),
+            # so nobody behind HA is nagged about a lock they already have.
+            "auth_unprotected": auth.unprotected(), "auth_env": auth.env_password_wins(),
+            "auth_dismissed": db_reader.get_setting("auth_warning_dismissed", "0") == "1",
+            "is_addon": auth.is_addon(),
             "soc_color": _soc_color, "state_label": state_label, "state_color": _state_color,
             "is_driving": _driving, "fmt_dur": _fmt_dur}
 
@@ -2510,6 +2515,44 @@ async def set_timezone(request: Request):
     UTC — so a page reload (HX-Refresh) re-renders every timestamp in the chosen zone (#145)."""
     form = await request.form()
     db_reader.set_timezone(form.get("timezone", ""))
+    return Response(status_code=204, headers={"HX-Refresh": "true"})
+
+
+@app.post("/api/settings/password")
+async def set_ui_password(request: Request):
+    """Turn the login on (or change the password) from the page instead of a compose file.
+
+    Reachable without a session ONLY while none is set — that is the first-run window, and the
+    middleware already enforces it: once a password exists this route sits behind the same auth
+    gate as everything else. On success the caller is handed a session immediately, so switching
+    protection on doesn't bounce the person who just did it to a login screen."""
+    form = await request.form()
+    if auth.env_password_wins():
+        return Response("set in the environment", status_code=409)   # don't pretend otherwise
+    if not auth.set_password(form.get("password") or ""):
+        return Response("too short", status_code=422)
+    resp = Response(status_code=204, headers={"HX-Refresh": "true"})
+    resp.set_cookie(auth.COOKIE, auth.make_token(), max_age=auth.TTL,
+                    httponly=True, samesite="strict", path="/")
+    return resp
+
+
+@app.post("/api/settings/dismiss-auth-warning")
+async def dismiss_auth_warning(request: Request):
+    """Hide the "no password" banner for good. Someone who binds Mate to loopback, or fronts it
+    with their own auth, is not wrong — nagging them forever would just teach everyone to ignore
+    banners. The Settings card still shows the state."""
+    db_reader.set_setting("auth_warning_dismissed", "1")
+    return Response(status_code=204, headers={"HX-Refresh": "true"})
+
+
+@app.post("/api/settings/password/clear")
+async def clear_ui_password(request: Request):
+    """Turn the login back off. Only reachable from inside an authenticated session (the gate in
+    setup_check), so it can't be used to strip protection from outside."""
+    if auth.env_password_wins():
+        return Response("set in the environment", status_code=409)
+    auth.clear_password()
     return Response(status_code=204, headers={"HX-Refresh": "true"})
 
 

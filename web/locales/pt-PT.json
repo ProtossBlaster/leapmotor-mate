@@ -945,7 +945,21 @@
     "fuel_history_title": "Histórico de abastecimentos",
     "fuel_empty": "Ainda não há abastecimentos registados. Adiciona o primeiro acima para começar a calcular viagens com motor ligado.",
     "fuel_delete_confirm": "Eliminar este abastecimento?",
-    "fuel_delete": "Eliminar"
+    "fuel_delete": "Eliminar",
+    "auth_section": "Acesso",
+    "auth_on": "É necessária uma palavra-passe para abrir o Mate.",
+    "auth_off_warning": "Sem palavra-passe: qualquer coisa na tua rede pode abrir o Mate — e o Mate pode destrancar o teu carro.",
+    "auth_set": "Escolhe uma palavra-passe",
+    "auth_change": "Nova palavra-passe",
+    "auth_enable": "Proteger o Mate",
+    "auth_hint": "Pelo menos 8 caracteres. Guardada como hash com sal, nunca em texto simples.",
+    "auth_off": "Desativar a palavra-passe",
+    "auth_off_confirm": "Desativar a palavra-passe? O Mate ficará aberto a tudo na tua rede.",
+    "auth_env_managed": "A palavra-passe está definida no ambiente, por isso gere-se aí — não aqui.",
+    "auth_warning_banner": "O Mate não tem palavra-passe: qualquer coisa na tua rede pode abrir o teu carro.",
+    "auth_warning_cta": "Definir uma",
+    "auth_warning_hide": "Ocultar",
+    "save": "Guardar"
   },
   "months": {
     "full": [

@@ -945,7 +945,21 @@
     "fuel_history_title": "Refuel history",
     "fuel_empty": "No refuels logged yet. Add your first one above to start pricing engine-on trips.",
     "fuel_delete_confirm": "Delete this refuel?",
-    "fuel_delete": "Delete"
+    "fuel_delete": "Delete",
+    "auth_section": "Access",
+    "auth_on": "Password required to open Mate.",
+    "auth_off_warning": "No password: anything on your network can open Mate — and Mate can unlock your car.",
+    "auth_set": "Choose a password",
+    "auth_change": "New password",
+    "auth_enable": "Protect Mate",
+    "auth_hint": "At least 8 characters. Stored as a salted hash, never in clear text.",
+    "auth_off": "Turn the password off",
+    "auth_off_confirm": "Turn the password off? Mate will be open to anything on your network.",
+    "auth_env_managed": "The password is set in the environment, so it's managed there — not here.",
+    "auth_warning_banner": "Mate has no password: anything on your network can open your car.",
+    "auth_warning_cta": "Set one",
+    "auth_warning_hide": "Hide",
+    "save": "Save"
   },
   "months": {
     "full": [

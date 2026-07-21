@@ -854,7 +854,21 @@
     "lang_fr": "Français",
     "lang_de": "Deutsch",
     "lang_pl": "Polski",
-    "lang_pt-PT": "Portugalski (Portugalia)"
+    "lang_pt-PT": "Portugalski (Portugalia)",
+    "auth_section": "Dostęp",
+    "auth_on": "Otwarcie Mate wymaga hasła.",
+    "auth_off_warning": "Brak hasła: wszystko w Twojej sieci może otworzyć Mate — a Mate może otworzyć samochód.",
+    "auth_set": "Wybierz hasło",
+    "auth_change": "Nowe hasło",
+    "auth_enable": "Chroń Mate",
+    "auth_hint": "Co najmniej 8 znaków. Zapisane jako solony skrót, nigdy jawnie.",
+    "auth_off": "Wyłącz hasło",
+    "auth_off_confirm": "Wyłączyć hasło? Mate będzie otwarty dla wszystkiego w Twojej sieci.",
+    "auth_env_managed": "Hasło jest ustawione w zmiennych środowiskowych i tam się nim zarządza — nie tutaj.",
+    "auth_warning_banner": "Mate nie ma hasła: wszystko w Twojej sieci może otworzyć Twój samochód.",
+    "auth_warning_cta": "Ustaw je",
+    "auth_warning_hide": "Ukryj",
+    "save": "Zapisz"
   },
   "months": {
     "full": [

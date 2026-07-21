@@ -945,7 +945,21 @@
     "fuel_history_title": "Storico rifornimenti",
     "fuel_empty": "Nessun rifornimento registrato. Aggiungi il primo qui sopra per iniziare a dare un costo ai viaggi a motore acceso.",
     "fuel_delete_confirm": "Eliminare questo rifornimento?",
-    "fuel_delete": "Elimina"
+    "fuel_delete": "Elimina",
+    "auth_section": "Accesso",
+    "auth_on": "Per aprire Mate serve la password.",
+    "auth_off_warning": "Nessuna password: chiunque sia sulla tua rete può aprire Mate — e Mate può aprire la tua auto.",
+    "auth_set": "Scegli una password",
+    "auth_change": "Nuova password",
+    "auth_enable": "Proteggi Mate",
+    "auth_hint": "Almeno 8 caratteri. Salvata come impronta cifrata, mai in chiaro.",
+    "auth_off": "Disattiva la password",
+    "auth_off_confirm": "Disattivare la password? Mate resterà aperto a chiunque sia sulla tua rete.",
+    "auth_env_managed": "La password è impostata nelle variabili d'ambiente, quindi si gestisce lì — non qui.",
+    "auth_warning_banner": "Mate non ha password: chiunque sia sulla tua rete può aprire la tua auto.",
+    "auth_warning_cta": "Impostala",
+    "auth_warning_hide": "Nascondi",
+    "save": "Salva"
   },
   "months": {
     "full": [
