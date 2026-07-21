@@ -255,17 +255,46 @@ def _get():
     return _conn(DB_PATH)
 
 
+ACTIVE_VEHICLE_SETTING = "active_vehicle_vin"
+
+
 def _current_vehicle_id():
-    """The vehicle every read is scoped to (multi-car prep). Single-car = the only/first vehicle;
-    the multi-car step swaps this for the user-selected VIN. Returns None only before the first
-    vehicle is registered — the `vehicle_id = COALESCE(?, vehicle_id)` scope then no-ops (matches
-    every row), so a fresh/vehicle-less DB behaves exactly as before. On a single car, filtering by
-    its one id is a no-op too, so this whole pass is invisible until a second car exists."""
+    """The vehicle every read is scoped to: the one picked in the sidebar switcher, else the first.
+
+    The ORDER BY does both jobs in one statement, which matters because this runs ~60 times per
+    render: `vin <> <selected>` scores 0 for the chosen car and 1 for every other, so the choice
+    sorts first, and ties (i.e. no choice made, or a choice naming a car that no longer exists)
+    fall through to `id` — exactly the old first-vehicle behaviour. So the switcher can never
+    strand the UI on a car that isn't there, and a single-car install is untouched.
+
+    Returns None only before the first vehicle is registered — the `vehicle_id = COALESCE(?,
+    vehicle_id)` scope then no-ops (matches every row), so a fresh DB behaves as before."""
     try:
-        row = _get().execute("SELECT id FROM vehicles ORDER BY id LIMIT 1").fetchone()
+        row = _get().execute(
+            "SELECT id FROM vehicles ORDER BY vin <> COALESCE("
+            "  (SELECT value FROM settings WHERE key = ?), ''), id LIMIT 1",
+            (ACTIVE_VEHICLE_SETTING,)).fetchone()
     except sqlite3.OperationalError:      # a partial/minimal DB with no vehicles table → don't scope
         return None
     return row["id"] if row else None
+
+
+def get_vehicles() -> list[dict]:
+    """Every registered car, oldest first — the switcher's list. Empty before setup."""
+    try:
+        return [dict(r) for r in _get().execute(
+            "SELECT * FROM vehicles ORDER BY id").fetchall()]
+    except sqlite3.OperationalError:
+        return []
+
+
+def set_active_vehicle(vin: str) -> bool:
+    """Point every scoped read at `vin`. Refuses a VIN we don't have, so a stale bookmark or a
+    hand-edited request can't blank the UI. Returns whether the switch happened."""
+    if not _get().execute("SELECT 1 FROM vehicles WHERE vin = ?", (vin,)).fetchone():
+        return False
+    set_setting(ACTIVE_VEHICLE_SETTING, vin)
+    return True
 
 
 def _conn_rw() -> sqlite3.Connection:

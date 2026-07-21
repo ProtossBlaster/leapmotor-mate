@@ -645,6 +645,7 @@
     "merge_btn": "Merge",
     "merge_join": "Join these",
     "refresh_now": "Refresh",
+    "switch_vehicle": "Active car",
     "refresh_help": "Pull the car's current state now instead of waiting for the next ~30s update. Mate reads passively — it won't wake a sleeping car.",
     "merge_none": "No mergeable trips at this gap.",
     "merge_existing": "Merged trips",

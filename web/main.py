@@ -246,7 +246,11 @@ def _ctx(**kwargs):
     # Ability-gated command buttons: hide those the car doesn't declare it can do (e.g. the T03
     # never declares code 53 = unlock charge cable — #142). None abilities → shown (never on a guess).
     _abilities = capability_profile.parse_abilities((_veh or {}).get("abilities"))
+    # Sidebar car switcher. One car (everyone, today) → the list has a single entry and base.html
+    # renders exactly the badge it always did; the switcher only appears from the second car on.
+    _vehicles = db_reader.get_vehicles()
     return {**kwargs, "lang": lang, "t": t, "version": MATE_VERSION, "demo": _IS_DEMO,
+            "vehicles": _vehicles,
             "update": update_check.get_update_status(MATE_VERSION),
             "prepare_car_shown": not capability_profile.model_hidden(_car_type, "prepare_car"),
             "unlock_charger_shown": capability_profile.command_shown(
@@ -2481,6 +2485,18 @@ async def set_timezone(request: Request):
     UTC — so a page reload (HX-Refresh) re-renders every timestamp in the chosen zone (#145)."""
     form = await request.form()
     db_reader.set_timezone(form.get("timezone", ""))
+    return Response(status_code=204, headers={"HX-Refresh": "true"})
+
+
+@app.post("/api/select-vehicle")
+async def select_vehicle(request: Request):
+    """Switch which car the whole UI is showing. Every scoped read resolves through
+    `_current_vehicle_id()`, so one setting moves trips, charges, map, stats, the model badge and
+    the ability-gated buttons together — hence the full-page refresh rather than a partial swap.
+    An unknown VIN is refused (204 without the refresh) instead of blanking the UI."""
+    form = await request.form()
+    if not db_reader.set_active_vehicle(form.get("vin", "")):
+        return Response(status_code=204)
     return Response(status_code=204, headers={"HX-Refresh": "true"})
 
 

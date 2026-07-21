@@ -645,6 +645,7 @@
     "merge_btn": "Fusionner",
     "merge_join": "Fusionner",
     "refresh_now": "Actualiser",
+    "switch_vehicle": "Voiture active",
     "refresh_help": "Récupère l'état actuel de la voiture maintenant au lieu d'attendre la prochaine mise à jour (~30s). Mate lit passivement : il ne réveille pas une voiture endormie.",
     "merge_none": "Aucun trajet fusionnable à cet écart.",
     "merge_existing": "Trajets fusionnés",

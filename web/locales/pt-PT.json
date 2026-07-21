@@ -645,6 +645,7 @@
     "merge_btn": "Unir",
     "merge_join": "Unir estes",
     "refresh_now": "Atualizar",
+    "switch_vehicle": "Carro ativo",
     "refresh_help": "Ler agora o estado atual do carro em vez de esperar pela próxima atualização (~30s). O Mate lê de forma passiva — não acorda um carro adormecido.",
     "merge_none": "Não há viagens uníveis com este intervalo.",
     "merge_existing": "Viagens unidas",
@@ -944,7 +945,7 @@
     "fuel_delete_confirm": "Eliminar este abastecimento?",
     "fuel_delete": "Eliminar"
   },
-    "months": {
+  "months": {
     "full": [
       "janeiro",
       "fevereiro",
