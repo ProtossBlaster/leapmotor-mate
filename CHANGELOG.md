@@ -3,6 +3,24 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.8.2] — 2026-07-21
+
+### Security
+- **A page on another website can no longer make Mate do things.** Mate's API can unlock the doors, and standalone Docker ships with no password — the `MATE_AUTH_PASSWORD` variable is opt-in and, realistically, almost nobody sets it. That combination meant the attacker who mattered was never someone on your network: it was any web page open in *your* browser, which is already inside it. A page could quietly submit a request to Mate on your home address, and the browser would deliver it — the reply is unreadable to the attacker, but the car has already unlocked. **Mate now refuses any request that changes something and declares it came from somewhere else.** A request with no origin at all still works, because that's `curl`, a script or a Home Assistant automation, and browsers always declare an origin on the attack this blocks. Mate also **refuses to be embedded in another page**, which closes the other half of the same trick — a hidden frame with a button lined up over *Unlock*, where the click genuinely happens inside Mate and no origin check could ever see it. Running as a Home Assistant add-on is unaffected throughout: ingress already authenticates every request, and it deliberately embeds the panel. If you reach Mate through a reverse proxy that rewrites the host, `MATE_TRUSTED_ORIGINS` lets you list the address it should accept.
+- **The password can now be switched on from the page.** The login has existed for months, but turning it on meant editing a compose file and restarting a container — so the protection existed and nobody had it. *Settings → Access* now takes a password directly, and a banner says plainly when there isn't one, because the stake is physical rather than abstract: anything on your network can open Mate, and Mate can open your car. The password is stored as a salted hash and never in clear text, so a backup or a diagnostics bundle carries nothing usable. `MATE_AUTH_PASSWORD` keeps working exactly as before and takes precedence — if it's set, the page says so instead of quietly ignoring what you type. The banner can be dismissed for good; someone running Mate on localhost only, or behind their own authentication, isn't wrong.
+- **The login now has a brake.** One shared password and no account to lock meant anything on the network could try a wordlist as fast as it could send requests. Five wrong attempts from the same address now close the door for five minutes, and the page tells you *that's* what happened rather than showing the same "wrong password" — because the person who hits it is usually the owner.
+
+### Added
+- **Charging stations on the map, and a per-station view of your charges.** Every completed charge is now grouped by where it physically happened, and the map draws each spot as its own marker: the station's name where Mate has resolved one, how many times you've charged there, the energy and the cost, the most recent sessions, and a link straight through to the Charges page filtered to just that station. Home charging stays off this layer — a wallbox isn't a public charger, and being nearly everyone's most-visited spot it would otherwise sit on the map as one enormous unnamed bubble. A station you used only once still gets a marker: that's the charger you stopped at on a trip, which is exactly the one you're least likely to remember unaided.
+
+### Fixed
+- **Mate no longer picks the wrong vehicle in three places.** An internal lookup asked the database for "a vehicle" without saying which one, and SQLite is free to answer in whichever order it finds convenient — in practice, by chassis number. Two of those three places *write*: the sleep-time charge reconstruction (which can add charges to your history) and the telemetry saved right after a command. Nobody could have hit this yet, because it needs a second car, but it was found by building exactly that case and it's closed now.
+- **The charge list's session counts are translated.** The year, month and day rows of the Charges tree spelled "sessions" in English regardless of your language, and with an English plural rule. All three now follow the interface language, singular and plural.
+- **The demo no longer errors on the vehicle page.** The bundled sample data predated the climate card, so the vehicle status panel returned an error for anyone trying Mate without a car.
+
+### Credits
+- The charging-station map layer is **[@hubcasale](https://github.com/hubcasale)**'s work in PR #153 — the clustering, the map layer, the popup and the per-station filter on the Charges page are his. He also turned a review round on it in a morning, including keying the home-charging exclusion to the wallbox position Mate learns by itself so it works on a fresh install with nothing tagged. Thank you 🙏
+
 ## [2.8.1] — 2026-07-21
 
 ### Fixed

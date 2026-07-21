@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.8.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.8.2"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
