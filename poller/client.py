@@ -439,7 +439,14 @@ def _is_plugged_in(sig: dict) -> bool:
         return False
     conn = _si(sig, "1149")
     if conn is not None:
-        return conn in (1, 2)
+        # 1=connected, 2=charging, 3=a third connected state the REEVs cycle THROUGH mid-charge
+        # (seen on the C10/B10 range-extenders alongside 1=2, always parked, current ~0). Treating
+        # 3 as unplugged made the cable read as pulled every time it flickered 2→3→2, which closed
+        # and reopened the session and shredded one slow AC charge into many empty fragments — each
+        # then dropped as a phantom (beta #12/#13). Keep the session whole across the flicker; the
+        # motion gate above still bars anything that could read 3 while driving. (5 = the drive-time
+        # cable code, deliberately NOT here.)
+        return conn in (1, 2, 3)
     return _si(sig, "47") == 1                   # legacy fallback when 1149 is missing
 
 
@@ -462,6 +469,16 @@ def _is_charging(sig: dict) -> bool:
 
     if current is not None:
         if abs(current) < _CHARGE_CURRENT_MIN_A:   # resting/plugged-idle → not charging
+            # ...EXCEPT a REEV charging in AC: on the B10/C10 range-extender the pack current
+            # (1178) reads ~0 during slow AC charging — the on-board charger feeds the pack by a
+            # path this sensor doesn't see — so the BEV rule "current ≥ 2 A" never fires and the
+            # session is missed (beta #12 michapr, #13 ebagnoli; same signature back to the
+            # earliest 1.36.1 bundle). Trust the cable's OWN state when it explicitly says
+            # "charging" (1149==2, not the "connected/waiting" 1149==1 of a scheduled charge) AND
+            # a charge is in progress (remaining minutes > 0). Driving is already gated out above,
+            # and a bare 0→2→0 cable blip has no remaining-time so it still can't open a phantom.
+            if _si(sig, "1149") == 2 and (_si(sig, "1200") or 0) > 0:
+                return True
             return False
         return remaining is not None or power >= 1.0
     if power >= 1.0:

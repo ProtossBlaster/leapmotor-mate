@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.8.4] — 2026-07-22
+
+### Fixed
+- **A range-extender charging slowly at home is logged again.** On the B10 and C10 REEV, a slow AC charge at home could go completely unrecorded — no session on the Charges page, even though the car was plugged in and filling. Two things about how these cars report a charge defeated the detector, both confirmed from real diagnostic bundles going back weeks: the pack current reads about **zero** the whole time (the on-board charger feeds the battery by a path that sensor doesn't measure, so the usual "is current flowing?" test never triggered), and the cable-state signal **flickers** between three values mid-charge — one of which Mate read as "unplugged", so it kept closing and reopening the session and shredding one charge into a string of tiny fragments, each then discarded as empty. On a genuinely slow charge every fragment was empty and the whole thing vanished. Mate now trusts the cable's own "charging" state together with the ticking-down remaining time when the current is zero, and treats that third cable state as still-connected so the flicker no longer splits the session. Driving and a scheduled charge waiting for its slot are unaffected — both are still correctly *not* a charge. Thanks to **@michapr** and **@ebagnoli**, whose bundles made the signature clear. Full-electric cars are untouched: the new path only opens for the exact zero-current signature a REEV produces.
+
 ## [2.8.3] — 2026-07-21
 
 ### Fixed
