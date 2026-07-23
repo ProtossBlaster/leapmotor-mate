@@ -379,13 +379,20 @@ def _write_comfort_state(db, data):
 
 _OTA_CHECK_INTERVAL = 600   # 10 min — an OTA notice isn't time-critical
 _last_ota_check = 0.0
+_last_ota_log = None        # last logged (ok, scanned, ota) — log only on change, no 10-min spam
 
 
 def _maybe_check_ota(db, client):
     """Throttled, best-effort OTA check (scans the account inbox for an update notice). Stored in
     settings for the web (ota_available / ota_title / ota_time). Never raises — a failed check must
-    not disturb the poll; it just leaves the previous value."""
-    global _last_ota_check
+    not disturb the poll; it just leaves the previous value.
+
+    The outcome is logged (at INFO, or WARNING when the inbox can't be read) so a diagnostics
+    bundle answers *why* the Overview shows "None" — Leapmotor has no OTA-status signal, Mate can
+    only read the account inbox, and a bare "None" otherwise hides three different cases: empty
+    inbox, messages-but-no-update, and inbox-unreadable (issue #156). Logged only on change so a
+    stable state doesn't repeat every 10 minutes."""
+    global _last_ota_check, _last_ota_log
     now = time.time()
     if now - _last_ota_check < _OTA_CHECK_INTERVAL:
         return
@@ -396,9 +403,18 @@ def _maybe_check_ota(db, client):
     except Exception as e:  # noqa: BLE001
         log.debug("OTA check failed: %s", e)
         return
-    if not res:                          # fetch error → keep the last known value
+    if not res.get("ok"):                # inbox unreadable → keep the last value (check_ota warned)
         return
-    db.set_setting("ota_available", "1" if res.get("ota") else "0")
+    scanned, found = res.get("scanned", 0), bool(res.get("ota"))
+    sig = (True, scanned, found)
+    if sig != _last_ota_log:             # log the outcome once per change, not every cycle
+        if found:
+            log.info("OTA inbox scan: update message found among %d message(s): %r",
+                     scanned, res.get("title"))
+        else:
+            log.info("OTA inbox scan: %d message(s) in inbox, none is an update notice", scanned)
+        _last_ota_log = sig
+    db.set_setting("ota_available", "1" if found else "0")
     db.set_setting("ota_title", res.get("title") or "")
     db.set_setting("ota_time", str(res.get("time") or ""))
 

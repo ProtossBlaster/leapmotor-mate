@@ -231,7 +231,13 @@ class LeapmotorMateClient:
         automatic "update available" signal Leapmotor exposes — there is NO dedicated OTA-status
         endpoint (even the official-app flow / LeapConnect needs the FOTA task_id typed in by hand);
         the cloud delivers "update available" as an inbox MESSAGE. Best-effort, never raises.
-        Returns {ota: bool, title: str|None, time: int|None (epoch ms)}.
+        Returns {ok: bool (endpoint answered), scanned: int, ota: bool, title, time}.
+
+        `ok` distinguishes the three states that all otherwise surface as a bare "None" on the
+        Overview and used to be indistinguishable (issue #156, a Malaysia C10): the inbox is
+        genuinely empty (ok=True, scanned=0), it has messages but none is an update (ok=True,
+        scanned>0, ota=False), or we couldn't read the inbox at all for this account/region
+        (ok=False). The caller logs each outcome so a diagnostics bundle can tell which it is.
 
         We match on the message title/body because the numeric `msg_type` is undocumented and was
         None on every message we've captured so far — so this keyword match is a deliberate STOPGAP:
@@ -241,15 +247,16 @@ class LeapmotorMateClient:
             ml = self._api.get_message_list(page_no=1, page_size=20)
             msgs = getattr(ml, "messages", None) or []
         except Exception as e:  # noqa: BLE001 — strict lib parser can raise on odd payloads
-            log.debug("OTA message scan failed: %s", e)
-            return {}
+            log.warning("OTA inbox scan: message endpoint failed (%s) — cannot check for updates", e)
+            return {"ok": False}
         for m in msgs:
             hay = f"{getattr(m, 'title', '') or ''} {getattr(m, 'message', '') or ''}".lower()
             if any(k in hay for k in _OTA_KEYWORDS):
                 st = getattr(m, "send_time", None)
-                return {"ota": True, "title": getattr(m, "title", None),
+                return {"ok": True, "scanned": len(msgs), "ota": True,
+                        "title": getattr(m, "title", None),
                         "time": int(st) if st else None}
-        return {"ota": False}
+        return {"ok": True, "scanned": len(msgs), "ota": False}
 
     def get_energy_counters(self) -> dict | None:
         """The car's official lifetime counters from `mileage/energy/detail`: total consumed

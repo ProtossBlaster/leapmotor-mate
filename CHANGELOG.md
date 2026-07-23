@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.8.5] — 2026-07-23
+
+### Changed
+- **The OTA check now records what it saw**, so a diagnostics bundle can explain *why* the Overview shows "None" for updates. Leapmotor has no OTA-status signal — nothing the car reports says an update is pending — so Mate can only scan your account's message inbox for an "update available" notice. That meant a bare "None" hid three very different situations that looked identical: the inbox is empty (the car downloaded the update without ever posting a message), there are messages but none is an update, or the inbox couldn't be read at all for your account/region. The poller now logs which of the three it is (and warns, rather than staying silent, when the message endpoint doesn't answer). No behaviour change to detection itself — this only makes the existing check observable. Prompted by **@ghuaywen-ai** (#156).
+
 ## [2.8.4] — 2026-07-22
 
 ### Fixed
