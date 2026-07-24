@@ -509,12 +509,16 @@
         // vanish; a light one stays readable at a flat low-opacity fill and sits far in hue from both
         // SoC green and speed blue, so it's never confused with either even under a CVD sim.
         var elevColor = '#c9975f';
-        series.unshift({ name: nmElev, type: 'area', data: elevArr });
+        // A plain line, drawn exactly like SoC and speed — no area fill. Filled, the terrain became
+        // the loudest thing on the chart and buried the two series it exists to give context to
+        // (#159): a soft gradient in v2.7.0, then a flat slab. The relief reads fine as an outline.
+        series.unshift({ name: nmElev, type: 'line', data: elevArr });
         colors.unshift(elevColor);
-        strokeWidth.unshift(1.5);
+        strokeWidth.unshift(2);
         strokeDash.unshift(0);
-        fillType.unshift('solid');   // flat fill, no gradient shading
-        fillOpacity.unshift(0.4);
+        fillType.unshift('solid');
+        fillOpacity.unshift(1);      // NOT 0 — on a 'line' series Apex derives the stroke's alpha
+                                     // from this too, so a low value would fade the line itself
         opacityFrom.unshift(0);      // unused (gradient-only), kept for array-length parity
         opacityTo.unshift(0);
         // Hidden axis, no forced min — the relief should read as the trip's OWN climb/descent shape
@@ -534,7 +538,7 @@
           var nmElevDash = nmElev + '__dash';
           series.push({ name: nmElevDash, type: 'line', data: elevDashArr });
           colors.push(elevColor);
-          strokeWidth.push(1.5);
+          strokeWidth.push(2);       // same weight as the solid elevation line it continues
           strokeDash.push(4);
           fillType.push('solid');
           fillOpacity.push(1);   // NOT 0 — for a 'line' series Apex derives the stroke's alpha from
