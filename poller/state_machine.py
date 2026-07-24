@@ -33,6 +33,27 @@ log = logging.getLogger(__name__)
 
 SLEEP_AFTER_S   = 1800   # 30 min without changes → PARKED_SLEEP
 ALERT_EXPIRES_S = 300    # 5 min in PARKED_ALERT without driving → back to ACTIVE
+
+# ── REEV-only charge detection ────────────────────────────────────────────────
+# A range-extender charging in AC at home reports NEITHER of the two things the normal detector
+# looks for: the cable state sits at 1 ("connected") instead of 2 ("charging"), and the pack
+# current reads ~0.1 A instead of a real charge current. Verified against michapr's B10 (beta
+# #12): across 15 days the poller never once entered CHARGING, while the SoC visibly climbed —
+# 36.4 → 36.8 % in three minutes with the state stuck on "parked".
+#
+# So for REEVs only, take the rise itself as the evidence: cable connected, car stationary, and
+# the battery genuinely climbing between polls. The SoC-rise requirement is what separates a real
+# charge from a SCHEDULED one waiting for its slot (cable connected, remaining-time present, but
+# the battery flat) — the case the old comment warns must never open a session.
+#
+# BEVs are deliberately untouched: they report cable/current correctly and are working today.
+#
+# Measured against the LOWEST SoC seen since the cable went in, not against the previous poll:
+# his battery climbs one 0.1 % step at a time, which is also the SoC's own read resolution, so a
+# poll-to-poll test either misses a real charge (threshold above the step) or fires on noise
+# (threshold at the step). Accumulating from the low-water mark separates them cleanly — a charge
+# keeps adding up, a wobble doesn't.
+_REEV_SOC_RISE_PCT = 0.3   # total climb from the low-water mark that means "this is charging"
 # End a trip only after the car has been in gear P for ~1 min — matches the HA
 # leapmotor_trip automation (gear → P, for: minutes: 1). At the 10s driving poll
 # that's 6 readings. Gear-based (not speed) so red lights / brief stops, where the
@@ -77,6 +98,7 @@ class StateMachine:
     _parked_count: int         = field(default=0,     repr=False)
     _error_count: int          = field(default=0,     repr=False)
     _v2l_active: bool          = field(default=False, repr=False)
+    _reev_last_soc: Optional[float] = field(default=None, repr=False)   # REEV charge detection
 
     def update(self, data: VehicleData) -> list[StateEvent]:
         self._error_count = 0
@@ -93,6 +115,19 @@ class StateMachine:
         # the programmed time, and that must NOT start counting a charge (see _is_charging vs
         # _is_plugged_in). This is the documented ANY_PARKED→CHARGING condition (charging_status>0).
         charge_active = data.charging_status > 0
+        # ...except on a REEV, where neither of those two ever appears during an AC home charge
+        # (see _REEV_SOC_RISE_PCT above). There, the battery climbing while plugged in and parked
+        # IS the charge. Strictly gated on is_reev — a BEV never reaches this branch.
+        if getattr(data, "is_reev", False) and data.plug_connected and not is_driving:
+            if self._reev_last_soc is None or data.soc < self._reev_last_soc:
+                self._reev_last_soc = data.soc          # (re)set the low-water mark
+            elif data.soc - self._reev_last_soc >= _REEV_SOC_RISE_PCT:
+                if not charge_active:
+                    log.info("REEV charge detected from SoC rise: %.1f → %.1f %% while plugged in",
+                             self._reev_last_soc, data.soc)
+                charge_active = True
+        else:
+            self._reev_last_soc = None      # cable out / driving → forget the reference
         # The session STAYS open across brief current dips and only CLOSES when the cable is pulled
         # (1149→0, which the car also reports at completion) — keeping the cable as the close/keep
         # signal stops one physical charge fragmenting into many when the current modulates. The cable

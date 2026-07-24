@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.8.6] — 2026-07-24
+
+### Fixed
+- **A range-extender charging at home is finally recorded.** On a REEV, a home AC charge could go completely unlogged — no session at all, so the energy and cost simply never appeared. The reason is that these cars report neither of the two things Mate looks for: the cable state stays at "connected" instead of switching to "charging", and the pack current reads about a tenth of an amp instead of a real charge current. A tester's diagnostics settled it beyond doubt — across fifteen days the poller never once entered the charging state, while the battery visibly climbed the whole time. Mate now takes the climb itself as the evidence: **on a REEV, parked with the cable in and the battery genuinely rising, that's a charge**, whatever the cable and current claim. The rise is measured cumulatively from the moment you plug in rather than between two readings, because on these cars the battery moves one 0.1 % step at a time — which is also the sensor's own resolution, so comparing consecutive readings would either miss the charge or fire on noise. A charge that's merely *scheduled* and waiting for its slot, with the battery flat, still correctly does **not** open a session, and neither does driving on the generator. **Fully-electric cars are untouched** — the new path is gated strictly on the car reporting a fuel tank, so a BEV can never reach it. Thanks to **@michapr**, whose diagnostics and patient re-testing pinned this down.
+
 ## [2.8.5] — 2026-07-23
 
 ### Changed
