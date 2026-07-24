@@ -160,6 +160,15 @@ PRICE_KEYS = {
 _REEV_TANK_L = 50.0
 _REEV_FUEL_MIN_DROP = 0.2
 
+# REEV only: how far below the charge limit the car's own "charge complete" flag stops being
+# believable. A B10 REEV raises that flag at 23 % SoC with the limit at 90 %, toggling it on and
+# off mid-charge (beta #12) — which put "Fully charged" on screen while the car was filling. Same
+# shape as the T03 declaring seat heaters it doesn't have: the car misreports, so the claim is
+# checked against the battery before being repeated. Deliberately generous — a charge that stops
+# a few percent short is still complete — and only ever applied when the limit is actually known,
+# so a car charging to a limit Mate hasn't read can't have a legitimate flag suppressed.
+_CHARGE_COMPLETE_TOLERANCE_PCT = 15.0
+
 
 def _reev_engine_on(db, vehicle_id, started_at, ended_at) -> Optional[dict]:
     """REEV Phase C — the range-extender's DRIVING footprint over a trip, walked from the positions
@@ -1596,6 +1605,19 @@ def get_latest_status() -> Optional[dict]:
     # (modes persist when off). The old derive-by-absence wrongly lit up for plain A/C-on / AUTO
     # (mode 0 = A/C on but not yet cooling) — confirmed on-car 2026-06-21.
     d["climate_venting"] = bool(d.get("climate_on")) and d.get("climate_mode") == 4
+    # REEV only: sanity-check the car's own "charge complete" flag before repeating it (see
+    # _CHARGE_COMPLETE_TOLERANCE_PCT). Requires a KNOWN charge limit — without one there's no
+    # reference and the flag is left alone. Pure EVs are untouched: they report this correctly
+    # and are working today.
+    if d.get("charge_completed") and get_setting("is_reev", "0") == "1":
+        try:
+            _limit = float(get_setting("charge_limit_percent", "") or 0)
+        except (TypeError, ValueError):
+            _limit = 0.0
+        _soc = d.get("soc")
+        if _limit > 0 and _soc is not None and _soc < _limit - _CHARGE_COMPLETE_TOLERANCE_PCT:
+            d["charge_completed"] = 0
+            d["charge_completed_implausible"] = True   # for diagnostics, never shown to users
     # How long ago
     try:
         ts = datetime.fromisoformat(d["recorded_at"])

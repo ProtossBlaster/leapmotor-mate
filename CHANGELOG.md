@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.8.7] — 2026-07-24
+
+### Fixed
+- **"Fully charged" no longer appears while a range-extender is still charging.** A REEV can raise its own *charge complete* flag with the battery at 23 % and the limit set to 90 %, switching it on and off part-way through a charge — and Mate was repeating that faithfully, so the Overview and the Charges page announced a finished charge while the car was visibly filling. Mate now checks that claim against the battery before showing it: if the charge is nowhere near the point the car was told to stop at, the flag is ignored. It stays deliberately forgiving — a charge that stops a few percent short of the limit is still "complete" — and it only ever applies when Mate actually knows the limit, so a legitimate flag can't be suppressed for want of a reference. **Only range-extenders are affected**; fully-electric cars report this correctly and are left exactly as they are. Spotted by **@michapr** alongside the charge-detection issue in the same report.
+
 ## [2.8.6] — 2026-07-24
 
 ### Fixed
