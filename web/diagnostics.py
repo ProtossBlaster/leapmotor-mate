@@ -214,6 +214,22 @@ def read_full_log(which: str) -> str:
 _BUNDLE_PARTS = ("info", "poller", "web", "signals")   # user-selectable sections
 
 
+def _gps_shape_line(signals: dict) -> str:
+    """Which coordinate signals the car sends, and the hemisphere sign — no coordinates.
+
+    Stripping all six GPS ids protects the user's address, but it also blinded triage on the one
+    bug class that lives in those ids: #158 was a west-of-Greenwich car plotted in the sea, and the
+    bundle could not say whether its signed pair (2/3) even arrives. Presence flags plus the
+    remembered sign answer that without leaking a position — the sign narrows it to a quadrant of
+    the planet, which the bundle's own language field already gives away."""
+    present = sorted(i for i in _GPS_SIGNAL_IDS if signals.get(i) not in (None, ""))
+    return (f"signals present : {', '.join(present) or 'none'} "
+            f"(2/3 = signed · 3724/3725 + 2190/2191 = unsigned magnitudes)\n"
+            f"remembered sign : lat={db_reader.get_setting('gps_lat_sign') or 'unknown'} "
+            f"lon={db_reader.get_setting('gps_lon_sign') or 'unknown'} "
+            f"(learned from a signed poll; unknown = never seen one)")
+
+
 def _signals_section(signals: dict | None, vin: str | None) -> str:
     """The car's raw signal dict as pretty JSON, with the GPS coordinate ids stripped and the
     usual secret/VIN redaction applied — so it's safe to drop straight into a shared bundle."""
@@ -418,6 +434,8 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
         out += ["", "----- web log (full retained window) -----", read_full_log("web")]
     if "signals" in want:
         vehicle, _ = db_reader.get_vehicle()
+        if signals:
+            out += ["", "----- GPS shape (no coordinates) -----", _gps_shape_line(signals)]
         out += ["", "----- raw signals (GPS removed) -----",
                 _signals_section(signals, (vehicle or {}).get("vin"))]
     out += ["", "===== end ====="]

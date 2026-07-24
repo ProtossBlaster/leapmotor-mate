@@ -1438,6 +1438,47 @@ def write_optimistic_status(overrides: dict) -> None:
     _opt_expiry = time.time() + _OPT_TTL
 
 
+# ── GPS sign on the web write path (GitHub #158 — same root cause as #30/#43) ───────────
+# The cloud sends the coordinates twice: signals 2/3 are SIGNED, 3724/3725 (and 2190/2191) are
+# unsigned magnitudes. The poller resolves this properly (client._resolve_coord), but this
+# module keeps its own copy of the parse for the after-a-command / Refresh-button write — and
+# that copy read ONLY the unsigned pair. So a west-of-Greenwich car had its history stored
+# correctly by the poller and then, on the very next Refresh, the NEWEST row filed at the
+# mirrored longitude: Andreexylus' Lisbon B10 (-9.14) jumped to +9.14, i.e. the sea off
+# Sardinia, which is what the Overview map shows. Everything east of Greenwich was unaffected,
+# which is why it survived this long.
+#
+# The signed pair arrives in the very same dict get_fresh_signals() already returns, so it costs
+# nothing to prefer it. When a poll omits it, re-apply the sign the poller persisted (#43) —
+# the web is a separate process and can't see the poller's in-memory sign, but it can read the
+# setting the poller writes. Unknown sign → magnitude as-is, i.e. exactly today's behaviour.
+_COORD_SIGNALS = {"lat": ("3", ("3725", "2190")), "lon": ("2", ("3724", "2191"))}
+
+
+def _coord_from_signals(signals: dict, axis: str) -> float:
+    """One GPS axis from a raw signal dict: signed signal first, else magnitude × remembered sign."""
+    def _f(raw) -> float:
+        if raw in (None, ""):
+            return 0.0
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return 0.0
+
+    signed_id, unsigned_ids = _COORD_SIGNALS[axis]
+    s = _f(signals.get(signed_id))
+    if s != 0.0:
+        return s                                   # authoritative — carries its own sign
+    u = next((v for v in (_f(signals.get(i)) for i in unsigned_ids) if v != 0.0), 0.0)
+    if u == 0.0:
+        return 0.0
+    try:
+        sign = float(get_setting(f"gps_{axis}_sign", "0") or 0)
+    except (TypeError, ValueError):
+        sign = 0.0
+    return abs(u) * (-1.0 if sign < 0 else 1.0)
+
+
 def save_fresh_signals(signals: dict) -> None:
     """Write a fresh position row from raw API signals (called after a command)."""
     db = _conn_rw()
@@ -1531,8 +1572,8 @@ def save_fresh_signals(signals: dict) -> None:
         (
             vehicle_id,
             datetime.now(timezone.utc).isoformat(),
-            sigf("3725") or sigf("2190"),
-            sigf("3724") or sigf("2191"),
+            _coord_from_signals(signals, "lat"),   # signed pair first (#158) — never the bare
+            _coord_from_signals(signals, "lon"),   # unsigned magnitude, or west cars land at sea
             sigf("1319"), sigf("1318"),
             sigf("100003") or sigf("1204"),
             sigf("3260"),

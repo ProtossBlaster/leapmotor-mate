@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.8.7"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.8.8"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -2637,11 +2637,17 @@ async def debug_signals():
         return JSONResponse(
             {"error": "no live signals (car asleep or unreachable) — retry right after using the car"},
             status_code=503)
-    gps_ids = ("3724", "3725", "2190", "2191")   # 3724=longitude, 3725=latitude (2190/2191 fallbacks)
+    # 2/3 are the SIGNED pair, 3724/3725 the unsigned magnitudes (2190/2191 fallbacks). The signed
+    # ids were missing from this list — the one endpoint written to debug a sign bug didn't show
+    # the sign (#158). `parsed` now goes through the same resolver that writes the position row,
+    # so what you read here is what Mate would store.
+    gps_ids = ("2", "3", "3724", "3725", "2190", "2191")
     return JSONResponse({
         "gps_signals": {k: sig.get(k) for k in gps_ids if k in sig},
-        "parsed": {"latitude":  float(sig.get("3725") or sig.get("2190") or 0),
-                   "longitude": float(sig.get("3724") or sig.get("2191") or 0)},
+        "parsed": {"latitude":  db_reader._coord_from_signals(sig, "lat"),
+                   "longitude": db_reader._coord_from_signals(sig, "lon")},
+        "remembered_sign": {"lat": db_reader.get_setting("gps_lat_sign", "unknown"),
+                            "lon": db_reader.get_setting("gps_lon_sign", "unknown")},
         "all_signals": sig,
     })
 
