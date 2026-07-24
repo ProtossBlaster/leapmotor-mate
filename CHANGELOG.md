@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ## [2.8.9] — 2026-07-24
 
 ### Changed
-- **The altitude on the trip chart is a plain line again, like SoC and speed.** It was drawn as a filled area — a soft gradient when the profile arrived in 2.8.0, then a flat opaque slab in 2.8.3 — and the fill had become the loudest thing on the chart, a brown mass covering the two lines the chart exists to show. The terrain reads perfectly well as an outline, and it now has the same weight as the other two series, so the plot is about the drive again with the ground as context rather than the subject. Nothing else changes: the dashed segments across signal drop-outs stay, and so do the gain/loss figures. Raised by **@pdifeo** (#159).
+- **The altitude on the trip chart is a plain line again, like SoC and speed.** It was drawn as a filled area — a soft gradient when the profile arrived in 2.7.0, then a flat opaque slab in 2.8.3 — and the fill had become the loudest thing on the chart, a brown mass covering the two lines the chart exists to show. The terrain reads perfectly well as an outline, and it now has the same weight as the other two series, so the plot is about the drive again with the ground as context rather than the subject. Nothing else changes: the dashed segments across signal drop-outs stay, and so do the gain/loss figures. Raised by **@pdifeo** (#159).
 
 ## [2.8.8] — 2026-07-24
 
