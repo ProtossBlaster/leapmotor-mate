@@ -134,6 +134,8 @@
     "charger_locator_relocate_hint": "Ladestation dieser Ladung neu berechnen",
     "charger_locator_relocate_confirm": "Ladestation dieser Ladung neu berechnen?",
     "charger_locator_relocate_error": "Suche fehlgeschlagen — später erneut versuchen",
+    "charger_locator_relocate_none": "Hier keine Ladestation gefunden",
+    "charger_locator_relocate_kept": "Keine Ladestation gefunden — Name unverändert",
     "charger_locator_pick": "Diese Station hat mehrere Lademöglichkeiten, wähle deine:",
     "charger_locator_cancel": "Abbrechen",
     "nav_find_chargers": "Ladestationen finden",

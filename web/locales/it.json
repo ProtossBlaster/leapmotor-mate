@@ -188,6 +188,8 @@
     "charger_locator_relocate_hint": "Ricalcola la colonnina di questa ricarica",
     "charger_locator_relocate_confirm": "Ricalcolare la colonnina di questa ricarica?",
     "charger_locator_relocate_error": "Ricerca non riuscita — riprova più tardi",
+    "charger_locator_relocate_none": "Nessuna colonnina trovata qui",
+    "charger_locator_relocate_kept": "Nessuna colonnina trovata — nome invariato",
     "charger_locator_pick": "Questa colonnina ha più opzioni di ricarica, scegli la tua:",
     "charger_locator_cancel": "Annulla",
     "nav_find_chargers": "Trova colonnine",

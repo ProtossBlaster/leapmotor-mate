@@ -433,10 +433,10 @@
               hx-target="#map-threshold-feedback" hx-swap="innerHTML">
           <div class="flex items-center justify-between mb-1">
             <span class="text-sm text-white">{{ t('map_station_threshold_label') }}</span>
-            <span class="font-bold text-brand"><span id="map-threshold-val">{{ settings.get('map_station_min_sessions', '2') }}</span></span>
+            <span class="font-bold text-brand"><span id="map-threshold-val">{{ settings.get('map_station_min_sessions', '1') }}</span></span>
           </div>
           <input type="range" name="map_station_min_sessions" min="1" max="10" step="1"
-                 value="{{ settings.get('map_station_min_sessions', '2') }}"
+                 value="{{ settings.get('map_station_min_sessions', '1') }}"
                  oninput="document.getElementById('map-threshold-val').textContent=this.value"
                  class="w-full accent-brand cursor-pointer">
           <div class="flex justify-between text-[10px] text-slate-600 mt-1"><span>1</span><span>10</span></div>

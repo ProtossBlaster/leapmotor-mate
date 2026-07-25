@@ -788,7 +788,12 @@ def _sweep_body(limit: int) -> int:
 # link attached, so a charge the user picked by hand from an ambiguity popup — or
 # whose surroundings changed since — is never silently relabelled.
 
-_BACKFILL_LIMIT = 200
+# One Overpass call per charge, a second apart. 200 in a row is 200 requests from one IP in
+# three minutes, against the 40-per-half-hour the ongoing sweep holds itself to — enough to earn
+# a temporary block on a free, shared, donation-run service, and the user would experience that
+# as Mate having stopped resolving names. 50 per click instead: the button is repeatable and
+# says how many are left, so a long backlog is a few clicks rather than one rude burst.
+_BACKFILL_LIMIT = 50
 _backfilling = False
 
 

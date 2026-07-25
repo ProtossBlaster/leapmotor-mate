@@ -980,10 +980,13 @@ async def map_page(request: Request):
     vehicle, _ = db_reader.get_vehicle()
     track    = db_reader.get_all_track()
     places   = db_reader.get_frequent_places()
+    # Default 1, deliberately: a station used ONCE is exactly what this layer is for (see
+    # get_charging_stations). The slider exists for the opposite taste — someone who charges
+    # in many one-off places and wants the map down to the spots they actually return to.
     try:
-        min_sessions = max(1, int(db_reader.get_setting("map_station_min_sessions", "2")))
+        min_sessions = max(1, int(db_reader.get_setting("map_station_min_sessions", "1")))
     except (TypeError, ValueError):
-        min_sessions = 2
+        min_sessions = 1
     stations = db_reader.get_charging_stations(min_sessions=min_sessions)
     # Popup markup is built client-side from this JSON (see map.html), so the currency symbol/
     # placement/decimal-separator formatting `| money` gives every other cost on the site has to be
@@ -1362,7 +1365,7 @@ async def settings_page(request: Request):
                 "charger_locator_ocm_key_set": bool(db_reader.get_setting("ocm_key", "")),
                 "charger_locator_tomtom_key_set": bool(db_reader.get_setting("tomtom_key", "")),
                 "positions_retention_days": db_reader.get_setting("positions_retention_days", "0"),
-                "map_station_min_sessions": db_reader.get_setting("map_station_min_sessions", "2"),
+                "map_station_min_sessions": db_reader.get_setting("map_station_min_sessions", "1"),
                 "charge_reconstruct_min_pct": db_reader.get_setting("charge_reconstruct_min_pct", "2.0"),
                 "vampire_min_drop_pct": db_reader.get_setting("vampire_min_drop_pct", "0.2"),
                 "vampire_min_hours": db_reader.get_setting("vampire_min_hours", "1"),
@@ -1981,9 +1984,18 @@ async def relocate_charge(request: Request, charge_id: int):
     if not ok:
         return templates.TemplateResponse(request, "partials/charge_location.html",
                                           {"charge": charge, "t": t, "error": True})
-    if len(options) <= 1:
-        best = options[0] if options else {}
-        name, url = best.get("name") or "", best.get("url")
+    if not options:
+        # Nothing found — but this charge may already carry a name, from a source that has
+        # since dropped the station, or from a keyed source (Open Charge Map) whose key the
+        # user has since removed. Writing the empty answer here would not just blank the label:
+        # '' is the sweep's "resolved as nothing here" sentinel, so the name would never be
+        # looked up again. A button that quietly destroys what it was asked to refresh is worse
+        # than one that says it found nothing. On a charge with no name either, writing nothing
+        # simply leaves it to the ongoing sweep, exactly as if the button had never been pressed.
+        return templates.TemplateResponse(request, "partials/charge_location.html",
+                                          {"charge": charge, "t": t, "not_found": True})
+    if len(options) == 1:
+        name, url = options[0].get("name") or "", options[0].get("url")
         db_reader.set_charge_location_name(charge_id, name, url)
         charge["location_name"], charge["location_url"] = name, url
         return templates.TemplateResponse(request, "partials/charge_location.html",
@@ -2305,26 +2317,36 @@ async def backfill_charger_links(request: Request):
     existed (or resolved from a link-less source alone, e.g. PUN) — never touches the
     already-saved name. Runs in the background (can take a while, one Overpass call
     per charge); charger_locator.backfill_urls_now is single-flight, so clicking again
-    while one is running is a safe no-op."""
+    while one is running is a safe no-op.
+
+    A run handles at most _BACKFILL_LIMIT charges — Overpass is free and shared, and
+    emptying a long backlog in one burst is how an IP earns a temporary block. So the
+    count is shown: "50/137" tells the user this took a bite, not the whole thing, and
+    that pressing again is the way to continue."""
     import asyncio
     t = i18n.get_t(db_reader.get_language())
-    if not db_reader.get_labelled_charges_missing_url(1):
+    pending = len(db_reader.get_labelled_charges_missing_url(10000))
+    if not pending:
         return HTMLResponse(f'<span style="color:#94a3b8;font-size:13px">{t("charger_locator_backfill_none")}</span>')
     asyncio.get_event_loop().run_in_executor(None, charger_locator.backfill_urls_now)
-    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("charger_locator_backfill_started")}</span>')
+    batch = min(pending, charger_locator._BACKFILL_LIMIT)
+    tail = f" — {batch}/{pending}" if pending > batch else ""
+    return HTMLResponse(
+        f'<span style="color:#22c55e;font-size:13px">{t("charger_locator_backfill_started")}{tail}</span>')
 
 
 @app.post("/api/settings/charger-locator/map-threshold", response_class=HTMLResponse)
 async def save_map_station_threshold(request: Request):
     """Minimum charges at the same GPS spot before it earns a marker among the Map's
-    Charging stations (get_charging_stations' min_sessions, default 2) — user-adjustable
-    so someone whose stops are mostly one-off can still see them on the map, at the cost
-    of more/noisier markers."""
+    Charging stations (get_charging_stations' min_sessions). Default 1 — every station,
+    including the one-off charger on a trip, which is the very thing this layer is for.
+    Raising it is for the opposite taste: thinning a crowded map down to the spots the
+    driver actually returns to."""
     form = await request.form()
     try:
-        n = max(1, min(10, int(form.get("map_station_min_sessions") or 2)))
+        n = max(1, min(10, int(form.get("map_station_min_sessions") or 1)))
     except (TypeError, ValueError):
-        n = 2
+        n = 1
     db_reader.set_setting("map_station_min_sessions", str(n))
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("map_station_threshold_saved")}</span>')

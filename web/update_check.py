@@ -97,4 +97,11 @@ def get_update_status(current: str) -> dict:
             out["url"] = None          # nothing to go and fetch — the app already has it
         if out["blocked"]:
             out["available"] = True    # a refused update is worth showing even mid-version
+            # Where a NEW SHELL is downloaded from is the shell's business, not Mate's: the app
+            # is released from its own repository, on its own schedule, and Mate has no way to
+            # know which one. It passes the address in; Mate only shows it. Without this, moving
+            # the app to its own repo would need a Mate release just to correct a link — and
+            # until then the badge would send people to Mate's releases, where there is no app
+            # to download. The fallback keeps a shell that predates this variable working.
+            out["url"] = os.environ.get("MATE_DESKTOP_DOWNLOAD_URL") or _RELEASES_PAGE
     return out

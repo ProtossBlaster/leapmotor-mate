@@ -56,10 +56,31 @@ def test_a_refused_update_keeps_the_link_and_names_the_version(store, monkeypatc
     """The one case the user must act on: the app is too old to run that release."""
     monkeypatch.setenv("MATE_DESKTOP", "1")
     monkeypatch.setenv("MATE_UPDATE_BLOCKED", "2.9.0")
+    monkeypatch.delenv("MATE_DESKTOP_DOWNLOAD_URL", raising=False)
     s = update_check.get_update_status("2.8.9")
     assert s["blocked"] == "2.9.0"
     assert s["url"] == update_check._RELEASES_PAGE       # here the download IS the next step
     assert s["available"] is True
+
+
+def test_the_shell_decides_where_its_own_download_lives(store, monkeypatch):
+    """The app is released from its own repository, on its own schedule — an address Mate has no
+    way to know. The shell passes it in, so moving the app never needs a Mate release to correct
+    a link, and the badge never sends anyone to a page with no app on it."""
+    monkeypatch.setenv("MATE_DESKTOP", "1")
+    monkeypatch.setenv("MATE_UPDATE_BLOCKED", "2.9.0")
+    monkeypatch.setenv("MATE_DESKTOP_DOWNLOAD_URL", "https://github.com/ProtossBlaster/mate-desktop/releases/latest")
+    s = update_check.get_update_status("2.8.9")
+    assert s["url"] == "https://github.com/ProtossBlaster/mate-desktop/releases/latest"
+
+
+def test_the_download_address_is_ignored_outside_the_app(store, monkeypatch):
+    """A stray variable in a Docker environment must not repoint Home Assistant's or Docker's
+    badge at somewhere those users can do nothing with."""
+    monkeypatch.delenv("MATE_DESKTOP", raising=False)
+    monkeypatch.setenv("MATE_DESKTOP_DOWNLOAD_URL", "https://example.invalid/nope")
+    s = update_check.get_update_status("2.8.9")
+    assert s["url"] == update_check._RELEASES_PAGE
 
 
 def test_a_refused_update_shows_even_when_versions_look_equal(store, monkeypatch):

@@ -6,8 +6,15 @@
      title="{{ t('nav_charger_view_source') }}" class="text-slate-500 hover:text-brand"
      style="font-size:11px;line-height:1;text-decoration:none">🔗</a>
   {% endif %}
-  {% elif error %}
+  {% endif %}
+  {# The lookup answered, with nothing. Two different things to say: a charge that already had a
+     name keeps it (and needs to be told so, or the unchanged line reads as a button that did
+     nothing), one that never had a name simply still doesn't. #}
+  {% if error %}
   <span class="text-[11px] text-red-400">⚠️ {{ t('charger_locator_relocate_error') }}</span>
+  {% elif not_found %}
+  <span class="text-[11px] text-amber-400">⚠️ {{ t('charger_locator_relocate_kept') if charge.location_name
+                                                else t('charger_locator_relocate_none') }}</span>
   {% endif %}
   {% if charge.location_type != 'HOME' and charge.latitude and charge.longitude %}
   <button type="button" title="{{ t('charger_locator_relocate_hint') }}"

@@ -122,10 +122,12 @@ class _Req:
 
 
 def test_map_threshold_endpoint_saves_and_clamps(tmp_path, monkeypatch):
-    """The Settings slider (1-10) persists as map_station_min_sessions — a driver whose
-    stops are mostly one-off can lower it to 1 to see them on the map; out-of-range or
-    garbage input is clamped/defaulted rather than stored verbatim (get_charging_stations
-    would otherwise accept e.g. a negative min_sessions and filter out every station)."""
+    """The Settings slider (1-10) persists as map_station_min_sessions. It defaults to 1 —
+    showing every station, including the one-off charger on a holiday, which is what this map
+    layer exists for; the slider is for the opposite taste, thinning a crowded map down to the
+    spots the driver returns to. Out-of-range or garbage input is clamped/defaulted rather than
+    stored verbatim (get_charging_stations would otherwise accept e.g. a negative min_sessions
+    and filter out every station)."""
     pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
     import main
     D.Database(str(tmp_path / "t.db"))
@@ -134,16 +136,18 @@ def test_map_threshold_endpoint_saves_and_clamps(tmp_path, monkeypatch):
     monkeypatch.setattr(main.db_reader, "get_language", lambda: "en")
 
     asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "1"})))
-    assert db_reader.get_setting("map_station_min_sessions", "2") == "1"
+    assert db_reader.get_setting("map_station_min_sessions", "1") == "1"
 
     asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "5"})))
-    assert db_reader.get_setting("map_station_min_sessions", "2") == "5"
+    assert db_reader.get_setting("map_station_min_sessions", "1") == "5"
+
+    # Garbage falls back to the default — checked from 5, not from 1, so "fell back" can't be
+    # confused with "was already there".
+    asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "garbage"})))
+    assert db_reader.get_setting("map_station_min_sessions", "9") == "1"
 
     asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "999"})))
-    assert db_reader.get_setting("map_station_min_sessions", "2") == "10"   # clamped to max
+    assert db_reader.get_setting("map_station_min_sessions", "1") == "10"   # clamped to max
 
     asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "0"})))
-    assert db_reader.get_setting("map_station_min_sessions", "2") == "1"    # clamped to min
-
-    asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "garbage"})))
-    assert db_reader.get_setting("map_station_min_sessions", "2") == "2"    # falls back to default
+    assert db_reader.get_setting("map_station_min_sessions", "9") == "1"    # clamped to min

@@ -134,6 +134,8 @@
     "charger_locator_relocate_hint": "Przelicz stację dla tego ładowania",
     "charger_locator_relocate_confirm": "Przeliczyć stację dla tego ładowania?",
     "charger_locator_relocate_error": "Wyszukiwanie nie powiodło się — spróbuj później",
+    "charger_locator_relocate_none": "Nie znaleziono tu stacji",
+    "charger_locator_relocate_kept": "Nie znaleziono stacji — nazwa bez zmian",
     "charger_locator_pick": "Ta stacja ma kilka opcji ładowania, wybierz swoją:",
     "charger_locator_cancel": "Anuluj",
     "nav_find_chargers": "Znajdź stacje ładowania",

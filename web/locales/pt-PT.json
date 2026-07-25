@@ -188,6 +188,8 @@
     "charger_locator_relocate_hint": "Recalcular a estação desta carga",
     "charger_locator_relocate_confirm": "Recalcular a estação desta carga?",
     "charger_locator_relocate_error": "Pesquisa falhou — tente novamente mais tarde",
+    "charger_locator_relocate_none": "Nenhum posto encontrado aqui",
+    "charger_locator_relocate_kept": "Nenhum posto encontrado — nome inalterado",
     "charger_locator_pick": "Esta estação tem mais do que uma opção de carregamento, escolha a sua:",
     "charger_locator_cancel": "Cancelar",
     "nav_find_chargers": "Encontrar estações de carregamento",

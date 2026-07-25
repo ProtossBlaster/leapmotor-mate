@@ -188,6 +188,8 @@
     "charger_locator_relocate_hint": "Recalculate this charge's station",
     "charger_locator_relocate_confirm": "Recalculate this charge's station?",
     "charger_locator_relocate_error": "Lookup failed — try again later",
+    "charger_locator_relocate_none": "No station found here",
+    "charger_locator_relocate_kept": "No station found — name left as it was",
     "charger_locator_pick": "This station has more than one charging option, pick yours:",
     "charger_locator_cancel": "Cancel",
     "nav_find_chargers": "Find charging stations",
