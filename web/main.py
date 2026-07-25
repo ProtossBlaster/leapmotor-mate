@@ -268,6 +268,11 @@ def _ctx(**kwargs):
     # never declares code 53 = unlock charge cable — #142). None abilities → shown (never on a guess).
     _abilities = capability_profile.parse_abilities((_veh or {}).get("abilities"))
     return {**kwargs, "lang": lang, "t": t, "version": MATE_VERSION, "demo": _IS_DEMO,
+            # Inside the Mac/Windows app there are TWO versions that matter: Mate itself, which
+            # updates on its own, and the app shell around it, which almost never does. When a
+            # user reports "it stopped updating", only the second number distinguishes a shell too
+            # old to run the newest Mate from an actual fault. Empty everywhere else.
+            "shell_version": os.environ.get("MATE_DESKTOP_VERSION", ""),
             "update": update_check.get_update_status(MATE_VERSION),
             "prepare_car_shown": not capability_profile.model_hidden(_car_type, "prepare_car"),
             "unlock_charger_shown": capability_profile.command_shown(
@@ -286,6 +291,7 @@ def _ctx(**kwargs):
             # so nobody behind HA is nagged about a lock they already have.
             "auth_unprotected": auth.unprotected(), "auth_env": auth.env_password_wins(),
             "auth_dismissed": db_reader.get_setting("auth_warning_dismissed", "0") == "1",
+            "desktop_notice_dismissed": db_reader.get_setting("desktop_notice_dismissed", "0") == "1",
             "is_addon": auth.is_addon(),
             "soc_color": _soc_color, "state_label": state_label, "state_color": _state_color,
             "is_driving": _driving, "fmt_dur": _fmt_dur}
@@ -2665,6 +2671,17 @@ async def dismiss_auth_warning(request: Request):
     banners. The Settings card still shows the state."""
     db_reader.set_setting("auth_warning_dismissed", "1")
     return Response(status_code=204, headers={"HX-Refresh": "true"})
+
+
+@app.post("/api/settings/dismiss-desktop-notice")
+async def dismiss_desktop_notice(request: Request):
+    """Hide the "records only while open" notice once the user has taken it in.
+
+    No page refresh, unlike the password banner: that one changes what the app IS (protected or
+    not), while this only states how it already behaves. Reloading the whole page to remove a
+    strip the browser has already dropped would be a visible stutter for nothing."""
+    db_reader.set_setting("desktop_notice_dismissed", "1")
+    return Response(status_code=204)
 
 
 @app.post("/api/settings/password/clear")

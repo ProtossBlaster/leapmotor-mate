@@ -978,7 +978,11 @@
     "auth_warning_banner": "O Mate não tem palavra-passe: qualquer coisa na tua rede pode abrir o teu carro.",
     "auth_warning_cta": "Definir uma",
     "auth_warning_hide": "Ocultar",
-    "save": "Guardar"
+    "save": "Guardar",
+    "app_update_restart": "Atualiza no próximo arranque do Mate",
+    "app_update_needs_app": "É necessária uma versão mais recente da app — transfira-a",
+    "desktop_open_notice": "O Mate regista apenas enquanto esta app estiver aberta — o que acontecer depois de a fechar não é guardado nem poderá ser recuperado.",
+    "desktop_open_notice_ok": "Percebi"
   },
   "months": {
     "full": [

@@ -5,6 +5,7 @@ TTL and caches its result in `settings`; a page render only READS the cached val
 works offline / when GitHub is unreachable, it simply shows nothing). No data is sent — it's a
 plain public GET of the latest release tag."""
 import json
+import os
 import threading
 import time
 import urllib.request
@@ -63,9 +64,37 @@ def _maybe_refresh() -> None:
 
 
 def get_update_status(current: str) -> dict:
-    """{available:bool, latest:str|None, url:str}. Reads the cached latest version (instant) and
-    kicks off a background refresh when the cache is stale. Never blocks the render or raises."""
+    """{available:bool, latest:str|None, url:str|None, desktop:bool, blocked:str|None}.
+
+    Reads the cached latest version (instant) and kicks off a background refresh when the cache
+    is stale. Never blocks the render or raises.
+
+    The badge means different things depending on how Mate is installed, and pointing everyone
+    at the releases page is only right for two of the three:
+
+      * Home Assistant — the Supervisor offers its own Update button; this is just a heads-up.
+      * Docker — the user pulls the new image themselves, so the releases page IS the next step.
+      * The desktop app — it fetches the new version by itself on the next launch. Sending that
+        user to GitHub would offer them a job already done, and in a native window it would
+        throw them into a browser full of English release notes for nothing.
+
+    So in the app the badge drops its link and says "restart to apply" instead. The exception is
+    an update the app has REFUSED because it is too old to run it (a release that needs newer
+    libraries than the bundled ones): that one never arrives on its own, and is the single case
+    where the user must actually go and download something.
+    """
     _maybe_refresh()
     latest = db_reader.get_setting("update_latest", "") or None
     available = bool(latest and _ver_tuple(latest) > _ver_tuple(current))
-    return {"available": available, "latest": latest, "url": _RELEASES_PAGE}
+    out = {"available": available, "latest": latest, "url": _RELEASES_PAGE,
+           "desktop": False, "blocked": None}
+    # Set by the desktop launcher on the processes it starts; absent everywhere else, so HA and
+    # Docker keep exactly the behaviour they have today.
+    if os.environ.get("MATE_DESKTOP") == "1":
+        out["desktop"] = True
+        out["blocked"] = os.environ.get("MATE_UPDATE_BLOCKED") or None
+        if not out["blocked"]:
+            out["url"] = None          # nothing to go and fetch — the app already has it
+        if out["blocked"]:
+            out["available"] = True    # a refused update is worth showing even mid-version
+    return out

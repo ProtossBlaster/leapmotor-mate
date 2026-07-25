@@ -978,7 +978,11 @@
     "auth_warning_banner": "Mate n'a pas de mot de passe : tout ce qui est sur ton réseau peut ouvrir ta voiture.",
     "auth_warning_cta": "En définir un",
     "auth_warning_hide": "Masquer",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "app_update_restart": "Se met à jour au prochain démarrage de Mate",
+    "app_update_needs_app": "Une version plus récente de l'app est nécessaire — téléchargez-la",
+    "desktop_open_notice": "Mate n'enregistre que lorsque cette app est ouverte — ce qui suit sa fermeture n'est pas enregistré et ne pourra pas être récupéré.",
+    "desktop_open_notice_ok": "J'ai compris"
   },
   "months": {
     "full": [
