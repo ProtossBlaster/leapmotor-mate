@@ -401,6 +401,7 @@
     "state_charge_complete": "Charge terminée",
     "battery": "Batterie",
     "range": "Autonomie",
+    "range_est_100": "Estimation à 100 %",
     "state": "État",
     "speed": "Vitesse",
     "gear": "Rapport",

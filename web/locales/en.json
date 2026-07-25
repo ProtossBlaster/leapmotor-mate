@@ -401,6 +401,7 @@
     "state_charge_complete": "Charge complete",
     "battery": "Battery",
     "range": "Range",
+    "range_est_100": "Estimated at 100%",
     "state": "State",
     "speed": "Speed",
     "gear": "Gear",
