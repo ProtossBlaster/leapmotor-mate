@@ -879,7 +879,11 @@
     "auth_warning_banner": "Mate hat kein Passwort: alles in deinem Netzwerk kann dein Auto öffnen.",
     "auth_warning_cta": "Jetzt setzen",
     "auth_warning_hide": "Ausblenden",
-    "save": "Speichern"
+    "save": "Speichern",
+    "app_update_restart": "Wird beim nächsten Start von Mate aktualisiert",
+    "app_update_needs_app": "Eine neuere Version der App ist erforderlich — herunterladen",
+    "desktop_open_notice": "Mate zeichnet nur auf, solange diese App geöffnet ist — was danach passiert, wird nicht gespeichert und lässt sich später nicht wiederherstellen.",
+    "desktop_open_notice_ok": "Verstanden"
   },
   "months": {
     "full": [

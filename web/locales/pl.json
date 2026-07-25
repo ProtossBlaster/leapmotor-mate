@@ -868,7 +868,11 @@
     "auth_warning_banner": "Mate nie ma hasła: wszystko w Twojej sieci może otworzyć Twój samochód.",
     "auth_warning_cta": "Ustaw je",
     "auth_warning_hide": "Ukryj",
-    "save": "Zapisz"
+    "save": "Zapisz",
+    "app_update_restart": "Zaktualizuje się przy następnym uruchomieniu Mate",
+    "app_update_needs_app": "Wymagana jest nowsza wersja aplikacji — pobierz ją",
+    "desktop_open_notice": "Mate zapisuje dane tylko przy otwartej aplikacji — tego, co nastąpi po jej zamknięciu, nie zapisze i nie da się już odzyskać.",
+    "desktop_open_notice_ok": "Rozumiem"
   },
   "months": {
     "full": [

@@ -421,6 +421,11 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
             f"Vampire thr  : min_drop {info['vampire_min_drop_pct']} %/day · "
             f"min_hours {info['vampire_min_hours']} h (chart display thresholds)",
             f"Features     : mqtt={f['mqtt']} wallbox={f['wallbox']} abrp={f['abrp']} addon={f['addon']}",
+            # Only present in the Mac/Windows app. Worth its own line because "Mate won't update"
+            # has two unrelated causes, and this number is what separates a shell too old to run
+            # the newest release from a genuine fault — the first question triage should ask.
+            *([f"MateDesktop : {os.environ['MATE_DESKTOP_VERSION']} (app shell)"]
+              if os.environ.get("MATE_DESKTOP_VERSION") else []),
             f"Last poll    : {info['last_poll_iso']} (age {info['last_poll_age_min']} min) "
             f"soc={info['last_soc']} gear={info['last_gear']} charging={info['last_charging']}",
         ]

@@ -959,7 +959,11 @@
     "auth_warning_banner": "Mate has no password: anything on your network can open your car.",
     "auth_warning_cta": "Set one",
     "auth_warning_hide": "Hide",
-    "save": "Save"
+    "save": "Save",
+    "app_update_restart": "Updates when you restart Mate",
+    "app_update_needs_app": "A newer version of the app is required — download it",
+    "desktop_open_notice": "Mate records only while this app is open — anything after you close it is not saved, and cannot be recovered later.",
+    "desktop_open_notice_ok": "Got it"
   },
   "months": {
     "full": [

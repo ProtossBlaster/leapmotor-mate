@@ -1,3 +1,22 @@
+{#- The version badge, defined ONCE and used by both sidebars (desktop + mobile). It used to be
+    written out twice, and the two copies would have had to be kept in step by hand — the kind of
+    duplication that quietly goes stale.
+
+    What it says depends on how Mate is installed. On Home Assistant and Docker it is a link to
+    the releases page, because there the user (or the Supervisor) is the one who applies the
+    update. Inside the desktop app it is NOT a link: that build fetches the new version by itself
+    on the next launch, so the honest message is "restart", and opening a browser full of English
+    release notes would be a step backwards. The one exception is an update the app has refused
+    because it is too old to run it — that never arrives on its own, so it keeps the link. -#}
+{%- macro version_badge(update, t) -%}
+{%- if update and update.available -%}
+{%- if update.desktop and not update.blocked -%}
+<span title="{{ t('app_update_restart') }} · v{{ update.latest }}" class="ml-1 text-[10px] font-semibold text-amber-300 bg-amber-500/15 rounded-full px-1.5 py-0.5 self-end mb-0.5">↑ v{{ update.latest }}</span>
+{%- else -%}
+<a href="{{ update.url }}" target="_blank" rel="noopener" title="{{ (t('app_update_needs_app') if update.blocked else t('app_update')) }} · v{{ update.latest }}" class="ml-1 text-[10px] font-semibold {{ 'text-red-300 bg-red-500/15 hover:bg-red-500/25' if update.blocked else 'text-amber-300 bg-amber-500/15 hover:bg-amber-500/25' }} rounded-full px-1.5 py-0.5 self-end mb-0.5">↑ v{{ update.latest }}</a>
+{%- endif -%}
+{%- endif -%}
+{%- endmacro -%}
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
@@ -174,9 +193,9 @@
     <div class="flex items-center gap-2">
       <img src="static/mate-icon.svg" alt="LeapMotor Mate" class="h-6 w-6">
       <span class="text-sm font-medium text-slate-100">LeapMotor <span class="text-brand">Mate</span></span>
-      {% if version %}<span class="text-[10px] text-slate-500 font-normal self-end mb-0.5">v{{ version }}</span>{% endif %}
+      {% if version %}<span title="{{ ("MateDesktop " ~ shell_version) if shell_version else "" }}" class="text-[10px] text-slate-500 font-normal self-end mb-0.5 whitespace-nowrap">v{{ version }}{% if shell_version %}<span class="opacity-50"> · D{{ shell_version }}</span>{% endif %}</span>{% endif %}
       {% if demo %}<span title="Sample data — no real car" class="text-[10px] font-bold text-slate-900 bg-amber-400 rounded px-1.5 py-0.5 self-center ml-1 tracking-wide">DEMO</span>{% endif %}
-      {% if update and update.available %}<a href="{{ update.url }}" target="_blank" rel="noopener" title="{{ t('app_update') }} · v{{ update.latest }}" class="ml-1 text-[10px] font-semibold text-amber-300 bg-amber-500/15 rounded-full px-1.5 py-0.5 self-end mb-0.5 hover:bg-amber-500/25">↑ v{{ update.latest }}</a>{% endif %}
+      {{ version_badge(update, t) }}
     </div>
     <div class="flex items-center gap-1">
       {% if vehicle %}
@@ -204,9 +223,9 @@
       <div class="flex items-center gap-2">
         <img src="static/mate-icon.svg" alt="LeapMotor Mate" class="h-6 w-6">
         <span class="text-sm font-medium text-slate-100">LeapMotor <span class="text-brand">Mate</span></span>
-        {% if version %}<span class="text-[10px] text-slate-500 font-normal self-end mb-0.5">v{{ version }}</span>{% endif %}
+        {% if version %}<span title="{{ ("MateDesktop " ~ shell_version) if shell_version else "" }}" class="text-[10px] text-slate-500 font-normal self-end mb-0.5 whitespace-nowrap">v{{ version }}{% if shell_version %}<span class="opacity-50"> · D{{ shell_version }}</span>{% endif %}</span>{% endif %}
       {% if demo %}<span title="Sample data — no real car" class="text-[10px] font-bold text-slate-900 bg-amber-400 rounded px-1.5 py-0.5 self-center ml-1 tracking-wide">DEMO</span>{% endif %}
-      {% if update and update.available %}<a href="{{ update.url }}" target="_blank" rel="noopener" title="{{ t('app_update') }} · v{{ update.latest }}" class="ml-1 text-[10px] font-semibold text-amber-300 bg-amber-500/15 rounded-full px-1.5 py-0.5 self-end mb-0.5 hover:bg-amber-500/25">↑ v{{ update.latest }}</a>{% endif %}
+      {{ version_badge(update, t) }}
       </div>
       {% if vehicle %}
       <div class="mt-3 flex items-center justify-between gap-2">
@@ -326,6 +345,26 @@
       <button type="button" hx-post="api/settings/dismiss-auth-warning" hx-swap="none"
               style="background:transparent;color:#fecaca;border:1px solid #b91c1c;border-radius:8px;
                      padding:6px 10px;font-size:12px;cursor:pointer">{{ t('auth_warning_hide') }}</button>
+    </div>
+    {% endif %}
+    {# Desktop app only: Mate records while the app is open, and not a minute longer. Said plainly
+       and up front, because the gap between what people assume and what actually happens is where
+       the false bug reports come from — home charges happen overnight, and an app closed at
+       bedtime records none of them. Blue, not red: this is how the app works, not a danger.
+       Dismissible, and it stays dismissed. #}
+    {% if shell_version and not desktop_notice_dismissed and not demo %}
+    <div id="desktop-bar" style="position:sticky;top:0;z-index:1003;background:#1e3a5f;color:#dbeafe;
+         display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;
+         padding:8px 14px;font-size:13px;font-weight:500;box-shadow:0 2px 10px rgba(0,0,0,.3)">
+      <span>💤 {{ t('desktop_open_notice') }}</span>
+      {# The strip is removed by htmx AFTER the server confirms, not by an onclick. An onclick
+         detached it from the DOM in the same event, and htmx — whose request had not gone out
+         yet — dropped the call on the floor: the bar vanished and came straight back on the next
+         load. Letting the swap do it keeps the two in step. #}
+      <button type="button" hx-post="api/settings/dismiss-desktop-notice"
+              hx-target="#desktop-bar" hx-swap="delete"
+              style="background:transparent;color:#bfdbfe;border:1px solid #3b6ea5;border-radius:8px;
+                     padding:6px 10px;font-size:12px;cursor:pointer">{{ t('desktop_open_notice_ok') }}</button>
     </div>
     {% endif %}
     {% if demo %}
