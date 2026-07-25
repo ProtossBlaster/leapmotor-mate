@@ -904,7 +904,13 @@
     "app_update_restart": "Wird beim nächsten Start von Mate aktualisiert",
     "app_update_needs_app": "Eine neuere Version der App ist erforderlich — herunterladen",
     "desktop_open_notice": "Mate zeichnet nur auf, solange diese App geöffnet ist — was danach passiert, wird nicht gespeichert und lässt sich später nicht wiederherstellen.",
-    "desktop_open_notice_ok": "Verstanden"
+    "desktop_open_notice_ok": "Verstanden",
+    "desktop_section": "App",
+    "desktop_autostart": "Beim Anmelden starten",
+    "desktop_autostart_desc": "Öffnet Mate von selbst, wenn Sie den Mac einschalten — so werden auch die Fahrten und Ladevorgänge erfasst, an die Sie nicht denken.",
+    "desktop_autostart_on": "Ein — Mate öffnet sich bei der nächsten Anmeldung",
+    "desktop_autostart_off": "Aus",
+    "desktop_version": "App-Version"
   },
   "months": {
     "full": [

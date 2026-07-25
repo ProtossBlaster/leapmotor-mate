@@ -105,6 +105,33 @@
       </div>
     {% endcall %}
 
+    {# Desktop app only — keyed on the shell version, which only the app's launcher provides.
+       On Home Assistant and Docker Mate runs whether anyone is looking or not, so there is
+       nothing here to decide. Mate stores the answer and NOTHING ELSE: the shell reads it back
+       and does whatever its platform requires (a LaunchAgent on macOS, the registry on Windows),
+       so the same switch works on both without Mate knowing the difference. Hidden in the demo,
+       where the setting would be written to the sample database and lost. #}
+    {% if shell_version and not demo %}
+    {% call scard('desktop', '🖥️ ' + t('desktop_section'), card_open.get('desktop')) %}
+      <form hx-post="api/settings/desktop-autostart" hx-trigger="change"
+            hx-target="#desktop-autostart-feedback" hx-swap="innerHTML">
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <div>
+            <div class="text-sm text-white">{{ t('desktop_autostart') }}</div>
+            <div class="text-xs text-slate-400">{{ t('desktop_autostart_desc') }}</div>
+          </div>
+          <input type="checkbox" name="desktop_autostart" value="1"
+                 {% if settings.get('desktop_autostart') == '1' %}checked{% endif %}
+                 class="w-5 h-5 accent-brand cursor-pointer flex-shrink-0">
+        </label>
+        <div id="desktop-autostart-feedback" class="text-xs mt-2" style="min-height:16px"></div>
+      </form>
+      <div class="text-[11px] text-slate-500 mt-1 pt-3 border-t border-slate-700">
+        {{ t('desktop_version') }}: <span class="font-mono">{{ shell_version }}</span>
+      </div>
+    {% endcall %}
+    {% endif %}
+
     {# Access — standalone only. Under the add-on the whole card is pointless: ingress already
        authenticates every request and a second login would break it. Opens by default while
        unprotected, because that is the state worth acting on. #}

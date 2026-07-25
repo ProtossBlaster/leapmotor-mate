@@ -984,7 +984,13 @@
     "app_update_restart": "Atualiza no próximo arranque do Mate",
     "app_update_needs_app": "É necessária uma versão mais recente da app — transfira-a",
     "desktop_open_notice": "O Mate regista apenas enquanto esta app estiver aberta — o que acontecer depois de a fechar não é guardado nem poderá ser recuperado.",
-    "desktop_open_notice_ok": "Percebi"
+    "desktop_open_notice_ok": "Percebi",
+    "desktop_section": "App",
+    "desktop_autostart": "Iniciar ao iniciar sessão",
+    "desktop_autostart_desc": "Abre o Mate sozinho quando liga o Mac, para registar também as viagens e os carregamentos em que não pensa.",
+    "desktop_autostart_on": "Ativado — o Mate abrirá no próximo início de sessão",
+    "desktop_autostart_off": "Desativado",
+    "desktop_version": "Versão da app"
   },
   "months": {
     "full": [
