@@ -1,0 +1,23 @@
+<div id="loc-{{ charge.id }}" class="charge-location" style="display:flex;align-items:center;gap:5px;min-height:15px">
+  {% if charge.location_name %}
+  <span class="text-[11px] text-slate-400">📍 {{ charge.location_name }}</span>
+  {% if charge.location_url %}
+  <a href="{{ charge.location_url }}" target="_blank" rel="noopener noreferrer"
+     title="{{ t('nav_charger_view_source') }}" class="text-slate-500 hover:text-brand"
+     style="font-size:11px;line-height:1;text-decoration:none">🔗</a>
+  {% endif %}
+  {% elif error %}
+  <span class="text-[11px] text-red-400">⚠️ {{ t('charger_locator_relocate_error') }}</span>
+  {% endif %}
+  {% if charge.location_type != 'HOME' and charge.latitude and charge.longitude %}
+  <button type="button" title="{{ t('charger_locator_relocate_hint') }}"
+          hx-post="api/charges/{{ charge.id }}/locate"
+          hx-confirm="{{ t('charger_locator_relocate_confirm') }}"
+          hx-target="#loc-{{ charge.id }}" hx-swap="outerHTML"
+          hx-disabled-elt="this"
+          class="text-slate-500 hover:text-brand disabled:opacity-40"
+          style="background:none;border:none;cursor:pointer;padding:0;font-size:11px;line-height:1">
+    <span class="htmx-indicator">⏳</span><span>🔄</span>
+  </button>
+  {% endif %}
+</div>

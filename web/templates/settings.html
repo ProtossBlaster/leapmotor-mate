@@ -365,8 +365,30 @@
                         text-sm font-mono focus:outline-none focus:border-brand">
           <div class="text-[11px] text-slate-500 mt-1">{{ t('charger_locator_tomtom_hint') }}</div>
         </div>
-        <div id="charger-locator-feedback" class="text-xs mt-2" style="min-height:16px"></div>
+        <div class="flex items-center justify-between gap-3 mt-2">
+          <div id="charger-locator-feedback" class="text-xs" style="min-height:16px"></div>
+          <button type="button"
+                  hx-post="api/settings/charger-locator/test" hx-include="closest form"
+                  hx-target="#charger-locator-feedback" hx-swap="innerHTML"
+                  hx-indicator="#charger-locator-feedback"
+                  class="border border-slate-600 text-slate-200 text-xs font-medium rounded-lg px-3 py-1.5 hover:border-brand flex-shrink-0">
+            {{ t('charger_locator_test') }}
+          </button>
+        </div>
       </form>
+      <div class="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-700">
+        <div>
+          <div id="charger-locator-backfill-feedback" class="text-xs" style="min-height:16px"></div>
+          <div class="text-[11px] text-slate-500">{{ t('charger_locator_backfill_hint') }}</div>
+        </div>
+        <button type="button"
+                hx-post="api/settings/charger-locator/backfill"
+                hx-target="#charger-locator-backfill-feedback" hx-swap="innerHTML"
+                hx-indicator="#charger-locator-backfill-feedback"
+                class="border border-slate-600 text-slate-200 text-xs font-medium rounded-lg px-3 py-1.5 hover:border-brand flex-shrink-0">
+          {{ t('charger_locator_backfill') }}
+        </button>
+      </div>
     {% endcall %}
 
     <!-- Wallbox -->

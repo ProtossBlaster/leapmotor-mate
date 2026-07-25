@@ -1,0 +1,28 @@
+<div id="loc-{{ charge.id }}" class="charge-location" style="position:relative">
+  <div class="text-[11px] text-amber-400 mb-1">⚠️ {{ t('charger_locator_pick') }}</div>
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:4px;max-width:280px">
+    {% for opt in options %}
+    <form hx-post="api/charges/{{ charge.id }}/locate/confirm"
+          hx-target="#loc-{{ charge.id }}" hx-swap="outerHTML" style="margin:0">
+      <input type="hidden" name="name" value="{{ opt.name }}">
+      <input type="hidden" name="url" value="{{ opt.url or '' }}">
+      <button type="submit"
+              style="width:100%;text-align:left;padding:6px 10px;border-radius:7px;
+                     cursor:pointer;background:transparent;border:none;color:#e2e8f0">
+        <div style="font-size:12px">{{ opt.name }}</div>
+        <div style="font-size:10px;color:#64748b">
+          {{ opt.dist_m }} m{% if opt.info %} · {{ opt.info }}{% endif %}{% if opt.address %} · {{ opt.address }}{% endif %}
+        </div>
+      </button>
+    </form>
+    {% endfor %}
+    <button type="button"
+            hx-get="api/charges/{{ charge.id }}/locate/cancel"
+            hx-target="#loc-{{ charge.id }}" hx-swap="outerHTML"
+            style="width:100%;text-align:left;padding:6px 10px;border-radius:7px;margin-top:3px;
+                   border-top:1px solid #334155;cursor:pointer;background:transparent;
+                   border-left:none;border-right:none;border-bottom:none;color:#94a3b8;font-size:12px">
+      ✕ {{ t('charger_locator_cancel') }}
+    </button>
+  </div>
+</div>

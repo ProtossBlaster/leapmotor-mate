@@ -421,6 +421,12 @@ class Database:
         # feeds charge detection, costs or the HOME/AC/FAST/HPC location_type.
         if "location_name" not in ccols:
             self._conn.execute("ALTER TABLE charges ADD COLUMN location_name TEXT DEFAULT NULL")
+        # migration: link back to the label's source page (openstreetmap.org / openchargemap.org),
+        # when the winning candidate had one (web/charger_locator.py _osm_url / OCM's poi/details
+        # URL). Display-only, like location_name — NULL on charges labelled before this column
+        # existed, until they're re-swept or manually recalculated (📍 button).
+        if "location_url" not in ccols:
+            self._conn.execute("ALTER TABLE charges ADD COLUMN location_url TEXT DEFAULT NULL")
         # migration: #107 — optional free-text user note on a charge (station location, shade,
         # reliability, parking, weather, personal remarks). Display/context only, never computed on.
         if "note" not in ccols:
