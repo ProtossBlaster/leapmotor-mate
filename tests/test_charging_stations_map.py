@@ -1,6 +1,10 @@
 """Map "concentration" feature: charges cluster into physical charging stations (by GPS,
 ~110 m grid) for the map bubbles, and the Charges page can be pre-filtered to just one
 station via ?station=<key>. Runs on a tmp_path DB (poller schema), CI-safe."""
+import asyncio
+
+import pytest
+
 import db as D
 import db_reader
 
@@ -101,3 +105,42 @@ def test_charges_grouped_filters_by_station_key(tmp_path, monkeypatch):
 
     assert db_reader.get_charges_grouped() != grouped  # unfiltered still returns all 3
     assert db_reader.get_charges_grouped(station="not,a-key") == []  # malformed key -> empty, not a crash
+
+
+# ── Settings: user-adjustable marker threshold (min_sessions) ────────────────
+
+class _Req:
+    """Minimal stand-in for a Starlette Request — the endpoint only awaits .form()."""
+    def __init__(self, data):
+        self._data = data
+
+    async def form(self):
+        return self._data
+
+
+def test_map_threshold_endpoint_saves_and_clamps(tmp_path, monkeypatch):
+    """The Settings slider (1-10) persists as map_station_min_sessions — a driver whose
+    stops are mostly one-off can lower it to 1 to see them on the map; out-of-range or
+    garbage input is clamped/defaulted rather than stored verbatim (get_charging_stations
+    would otherwise accept e.g. a negative min_sessions and filter out every station)."""
+    pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
+    import main
+    D.Database(str(tmp_path / "t.db"))
+    monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
+    monkeypatch.setattr(main.db_reader, "DB_PATH", str(tmp_path / "t.db"))
+    monkeypatch.setattr(main.db_reader, "get_language", lambda: "en")
+
+    asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "1"})))
+    assert db_reader.get_setting("map_station_min_sessions", "2") == "1"
+
+    asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "5"})))
+    assert db_reader.get_setting("map_station_min_sessions", "2") == "5"
+
+    asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "999"})))
+    assert db_reader.get_setting("map_station_min_sessions", "2") == "10"   # clamped to max
+
+    asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "0"})))
+    assert db_reader.get_setting("map_station_min_sessions", "2") == "1"    # clamped to min
+
+    asyncio.run(main.save_map_station_threshold(_Req({"map_station_min_sessions": "garbage"})))
+    assert db_reader.get_setting("map_station_min_sessions", "2") == "2"    # falls back to default

@@ -940,7 +940,11 @@ async def map_page(request: Request):
     vehicle, _ = db_reader.get_vehicle()
     track    = db_reader.get_all_track()
     places   = db_reader.get_frequent_places()
-    stations = db_reader.get_charging_stations()
+    try:
+        min_sessions = max(1, int(db_reader.get_setting("map_station_min_sessions", "2")))
+    except (TypeError, ValueError):
+        min_sessions = 2
+    stations = db_reader.get_charging_stations(min_sessions=min_sessions)
     # Popup markup is built client-side from this JSON (see map.html), so the currency symbol/
     # placement/decimal-separator formatting `| money` gives every other cost on the site has to be
     # baked in server-side here too — a bare .toFixed(2) in JS would show "13.00" with no symbol.
@@ -1318,6 +1322,7 @@ async def settings_page(request: Request):
                 "charger_locator_ocm_key_set": bool(db_reader.get_setting("ocm_key", "")),
                 "charger_locator_tomtom_key_set": bool(db_reader.get_setting("tomtom_key", "")),
                 "positions_retention_days": db_reader.get_setting("positions_retention_days", "0"),
+                "map_station_min_sessions": db_reader.get_setting("map_station_min_sessions", "2"),
                 "charge_reconstruct_min_pct": db_reader.get_setting("charge_reconstruct_min_pct", "2.0"),
                 "vampire_min_drop_pct": db_reader.get_setting("vampire_min_drop_pct", "0.2"),
                 "vampire_min_hours": db_reader.get_setting("vampire_min_hours", "1"),
@@ -2267,6 +2272,22 @@ async def backfill_charger_links(request: Request):
         return HTMLResponse(f'<span style="color:#94a3b8;font-size:13px">{t("charger_locator_backfill_none")}</span>')
     asyncio.get_event_loop().run_in_executor(None, charger_locator.backfill_urls_now)
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("charger_locator_backfill_started")}</span>')
+
+
+@app.post("/api/settings/charger-locator/map-threshold", response_class=HTMLResponse)
+async def save_map_station_threshold(request: Request):
+    """Minimum charges at the same GPS spot before it earns a marker among the Map's
+    Charging stations (get_charging_stations' min_sessions, default 2) — user-adjustable
+    so someone whose stops are mostly one-off can still see them on the map, at the cost
+    of more/noisier markers."""
+    form = await request.form()
+    try:
+        n = max(1, min(10, int(form.get("map_station_min_sessions") or 2)))
+    except (TypeError, ValueError):
+        n = 2
+    db_reader.set_setting("map_station_min_sessions", str(n))
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("map_station_threshold_saved")}</span>')
 
 
 @app.post("/api/settings/retention", response_class=HTMLResponse)
