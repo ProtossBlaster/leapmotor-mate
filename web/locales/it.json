@@ -383,6 +383,7 @@
     "state_charge_complete": "Carica completa",
     "battery": "Batteria",
     "range": "Autonomia",
+    "range_est_100": "Stima al 100%",
     "state": "Stato",
     "speed": "Velocità",
     "gear": "Marcia",

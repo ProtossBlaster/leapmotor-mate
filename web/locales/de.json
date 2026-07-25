@@ -329,6 +329,7 @@
     "state_charge_complete": "Laden abgeschlossen",
     "battery": "Batterie",
     "range": "Reichweite",
+    "range_est_100": "Schätzung bei 100%",
     "state": "Status",
     "speed": "Tempo",
     "gear": "Gang",

@@ -318,6 +318,7 @@
     "state_charge_complete": "Ładowanie zakończone",
     "battery": "Bateria",
     "range": "Zasięg",
+    "range_est_100": "Szacunek przy 100%",
     "state": "Stan",
     "speed": "Prędkość",
     "gear": "Bieg",
