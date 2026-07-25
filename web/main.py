@@ -974,7 +974,11 @@ async def map_page(request: Request):
     vehicle, _ = db_reader.get_vehicle()
     track    = db_reader.get_all_track()
     places   = db_reader.get_frequent_places()
-    stations = db_reader.get_charging_stations()
+    try:
+        min_sessions = max(1, int(db_reader.get_setting("map_station_min_sessions", "2")))
+    except (TypeError, ValueError):
+        min_sessions = 2
+    stations = db_reader.get_charging_stations(min_sessions=min_sessions)
     # Popup markup is built client-side from this JSON (see map.html), so the currency symbol/
     # placement/decimal-separator formatting `| money` gives every other cost on the site has to be
     # baked in server-side here too — a bare .toFixed(2) in JS would show "13.00" with no symbol.
@@ -1352,6 +1356,7 @@ async def settings_page(request: Request):
                 "charger_locator_ocm_key_set": bool(db_reader.get_setting("ocm_key", "")),
                 "charger_locator_tomtom_key_set": bool(db_reader.get_setting("tomtom_key", "")),
                 "positions_retention_days": db_reader.get_setting("positions_retention_days", "0"),
+                "map_station_min_sessions": db_reader.get_setting("map_station_min_sessions", "2"),
                 "charge_reconstruct_min_pct": db_reader.get_setting("charge_reconstruct_min_pct", "2.0"),
                 "vampire_min_drop_pct": db_reader.get_setting("vampire_min_drop_pct", "0.2"),
                 "vampire_min_hours": db_reader.get_setting("vampire_min_hours", "1"),
@@ -1953,6 +1958,60 @@ async def set_charge_free(request: Request, charge_id: int):
     })
 
 
+@app.post("/api/charges/{charge_id}/locate", response_class=HTMLResponse)
+async def relocate_charge(request: Request, charge_id: int):
+    """Manual 📍 recalculation, on demand — unlike the automatic background sweep
+    (charger_locator.sweep_now, which silently picks the nearest name), this lets the
+    user re-run the lookup for one charge and, when there's more than one plausible
+    match, choose instead of Mate guessing (see find_station_candidates)."""
+    import asyncio
+    charge = db_reader.get_charge_location(charge_id)
+    t = i18n.get_t(db_reader.get_language())
+    if not charge or not charge.get("latitude") or not charge.get("longitude"):
+        return templates.TemplateResponse(request, "partials/charge_location.html",
+                                          {"charge": charge or {"id": charge_id}, "t": t, "error": True})
+    options, ok = await asyncio.get_event_loop().run_in_executor(
+        None, charger_locator.find_station_candidates, charge["latitude"], charge["longitude"])
+    if not ok:
+        return templates.TemplateResponse(request, "partials/charge_location.html",
+                                          {"charge": charge, "t": t, "error": True})
+    if len(options) <= 1:
+        best = options[0] if options else {}
+        name, url = best.get("name") or "", best.get("url")
+        db_reader.set_charge_location_name(charge_id, name, url)
+        charge["location_name"], charge["location_url"] = name, url
+        return templates.TemplateResponse(request, "partials/charge_location.html",
+                                          {"charge": charge, "t": t})
+    return templates.TemplateResponse(request, "partials/charge_location_choices.html",
+                                      {"charge": charge, "options": options, "t": t})
+
+
+@app.post("/api/charges/{charge_id}/locate/confirm", response_class=HTMLResponse)
+async def confirm_charge_location(request: Request, charge_id: int):
+    """User's pick from the ambiguity popup (find_station_candidates found more than
+    one plausible station) — persists it exactly like the automatic sweep would."""
+    form = await request.form()
+    name = (form.get("name") or "").strip()
+    url = (form.get("url") or "").strip() or None
+    charge = db_reader.get_charge_location(charge_id)
+    if not charge:
+        return HTMLResponse("", status_code=404)
+    db_reader.set_charge_location_name(charge_id, name, url)
+    charge["location_name"], charge["location_url"] = name, url
+    t = i18n.get_t(db_reader.get_language())
+    return templates.TemplateResponse(request, "partials/charge_location.html",
+                                      {"charge": charge, "t": t})
+
+
+@app.get("/api/charges/{charge_id}/locate/cancel", response_class=HTMLResponse)
+async def cancel_charge_location(request: Request, charge_id: int):
+    """Dismiss the ambiguity popup without changing anything already saved."""
+    charge = db_reader.get_charge_location(charge_id)
+    t = i18n.get_t(db_reader.get_language())
+    return templates.TemplateResponse(request, "partials/charge_location.html",
+                                      {"charge": charge or {"id": charge_id}, "t": t})
+
+
 def _wallbox_overlay(curve: dict, charge_id: int) -> list | None:
     """Wallbox power (from HA history) resampled onto the car curve's timestamps,
     so it overlays the car's DC power on the same axis. None when unavailable.
@@ -2201,6 +2260,68 @@ async def save_charger_locator(request: Request):
         asyncio.get_event_loop().run_in_executor(None, charger_locator.sweep_now)
         return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("charger_locator_started")}</span>')
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("charger_locator_saved")}</span>')
+
+
+def _key_test_html(label: str, ok: bool, reason: "str | None", t) -> str:
+    if ok:
+        return f'<span style="color:#22c55e;font-size:13px">🟢 {label}: {t("charger_locator_key_ok")}</span>'
+    msg = t("charger_locator_key_invalid") if reason == "invalid_key" else t("charger_locator_key_error")
+    return f'<span style="color:#ef4444;font-size:13px">🔴 {label}: {msg}</span>'
+
+
+@app.post("/api/settings/charger-locator/test", response_class=HTMLResponse)
+async def test_charger_locator_keys(request: Request):
+    """Verify the OCM/TomTom keys currently in the form actually work, BEFORE saving —
+    same empty-submit-means-saved-value convention as the MQTT password test (#91):
+    the fields are masked (type=password), so an empty submit falls back to the
+    already-saved secret rather than testing an empty string."""
+    import asyncio
+    form = await request.form()
+    okey = (form.get("charger_locator_ocm_key") or "").strip() or db_reader.get_secret("ocm_key", "")
+    tkey = (form.get("charger_locator_tomtom_key") or "").strip() or db_reader.get_secret("tomtom_key", "")
+    t = i18n.get_t(db_reader.get_language())
+    if not okey and not tkey:
+        return HTMLResponse(f'<span style="color:#94a3b8;font-size:13px">{t("charger_locator_test_none")}</span>')
+    loop = asyncio.get_event_loop()
+    parts = []
+    if okey:
+        ok, reason = await loop.run_in_executor(None, charger_locator.test_ocm_key, okey)
+        parts.append(_key_test_html("Open Charge Map", ok, reason, t))
+    if tkey:
+        ok, reason = await loop.run_in_executor(None, charger_locator.test_tomtom_key, tkey)
+        parts.append(_key_test_html("TomTom", ok, reason, t))
+    return HTMLResponse("<br>".join(parts))
+
+
+@app.post("/api/settings/charger-locator/backfill", response_class=HTMLResponse)
+async def backfill_charger_links(request: Request):
+    """One-time recovery of the 🔗 link on charges labelled BEFORE location_url
+    existed (or resolved from a link-less source alone, e.g. PUN) — never touches the
+    already-saved name. Runs in the background (can take a while, one Overpass call
+    per charge); charger_locator.backfill_urls_now is single-flight, so clicking again
+    while one is running is a safe no-op."""
+    import asyncio
+    t = i18n.get_t(db_reader.get_language())
+    if not db_reader.get_labelled_charges_missing_url(1):
+        return HTMLResponse(f'<span style="color:#94a3b8;font-size:13px">{t("charger_locator_backfill_none")}</span>')
+    asyncio.get_event_loop().run_in_executor(None, charger_locator.backfill_urls_now)
+    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("charger_locator_backfill_started")}</span>')
+
+
+@app.post("/api/settings/charger-locator/map-threshold", response_class=HTMLResponse)
+async def save_map_station_threshold(request: Request):
+    """Minimum charges at the same GPS spot before it earns a marker among the Map's
+    Charging stations (get_charging_stations' min_sessions, default 2) — user-adjustable
+    so someone whose stops are mostly one-off can still see them on the map, at the cost
+    of more/noisier markers."""
+    form = await request.form()
+    try:
+        n = max(1, min(10, int(form.get("map_station_min_sessions") or 2)))
+    except (TypeError, ValueError):
+        n = 2
+    db_reader.set_setting("map_station_min_sessions", str(n))
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("map_station_threshold_saved")}</span>')
 
 
 @app.post("/api/settings/retention", response_class=HTMLResponse)

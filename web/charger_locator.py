@@ -33,6 +33,14 @@ _OVERPASS = "https://overpass-api.de/api/interpreter"
 _NAME_TAGS = ("name", "operator", "brand", "network")
 _LABEL_RADIUS_M = 150     # stall vs mapped point + GPS error — validated on real stations
 _REUSE_RADIUS_M = 80      # same spot as an already-resolved charge → reuse, no network
+_SITE_SAME_NAME_RADIUS_M = 80    # find_station_candidates clustering: same name, same site
+_SITE_DIFF_NAME_RADIUS_M = 100   # different name, same site — widened from 25 m: a real service
+                                  # area is routinely reported under two different names 70+ m
+                                  # apart (PUN's generic site point vs OCM/OSM's own node — see
+                                  # "Area di Servizio - Flaminia Ovest" / "Free To X ADS Flaminia
+                                  # Ovest", 72 m apart, both genuinely the same station). Trade-off,
+                                  # accepted: two truly distinct but nearby stations can now also
+                                  # surface as a manual-recalc choice.
 _SWEEP_TTL_S = 30 * 60    # at most one render-triggered sweep per half hour
 _SWEEP_LIMIT = 40         # charges resolved per sweep run (any backlog continues later)
 _sweeping = False
@@ -81,6 +89,17 @@ def _fmt_kw(kw: float) -> str:
     150) — and registry values are noisy (22.144 → 22); AC levels below 20 keep one
     decimal so 3.7 / 7.4 / 11 stay meaningful."""
     return f"{round(kw)}" if kw >= 20 else f"{round(kw, 1):g}"
+
+
+def _osm_address(tags: dict) -> "str | None":
+    """Best-effort street address from OSM addr:* tags (sparsely mapped, like everything
+    else community-sourced — empty when the mapper only set amenity/operator)."""
+    street = tags.get("addr:street") or ""
+    house = tags.get("addr:housenumber") or ""
+    city = tags.get("addr:city") or ""
+    line = (f"{street} {house}".strip())
+    parts = [p for p in (line, city) if p]
+    return ", ".join(parts) or None
 
 
 def _socket_info(tags: dict) -> str:
@@ -140,14 +159,32 @@ def _query(lat: float, lon: float, radius_m: int, limit: int, tries: int = 2):
     return None
 
 
-def find_station_name(lat: float, lon: float):
-    """(name | None, ok). ok=False → transient error, worth retrying later;
-    ok=True with None → genuinely nothing usable within _LABEL_RADIUS_M.
-    Union of OSM and (when a key is set) Open Charge Map, picking the NEAREST entry
-    that HAS a name: Overpass returns by id (not distance) and unnamed stall nodes
-    commonly sit next to the named site POI."""
+def find_station_candidates(lat: float, lon: float):
+    """(options, ok) for BOTH the background sweep (📍 auto-labels a charge — takes
+    options[0], the nearest, deterministically, since unattended automation can't ask
+    a user to pick) and the manual recalc button (shows a picker when len(options) > 1).
+    ok=False → transient error, worth retrying later; ok=True with [] → genuinely
+    nothing usable within _LABEL_RADIUS_M.
+    Distance decides first: the nearest PHYSICAL SITE wins outright — a different,
+    farther site never creates a choice, no matter how many others also sit within
+    label range. "Same site" is proximity-based (_SITE_SAME_NAME_RADIUS_M /
+    _SITE_DIFF_NAME_RADIUS_M), NOT bare name equality: a real service area is
+    routinely reported under two different names by two sources (OSM tags the
+    specific network, e.g. 'Free To X'; PUN gives the generic site name, e.g. 'Area
+    di Servizio - X Nord') tens of metres apart.
+    Within that one site, sources are grouped by NAME: sources that agree on a name
+    merge into one richer pin (_merge_richer — a bare pin never shadows one that also
+    has address/live-status detail); sources under a DIFFERENT name, or agreeing
+    sources whose own details genuinely conflict (e.g. one says 22 kW, another
+    150 kW), each surface as their own option — the manual recalc button pops a
+    picker, the unattended sweep just takes options[0] (nearest) deterministically.
+    Every option gets a best-effort link even when its own source has none —
+    borrowed from whichever OTHER candidate in the same site already has one
+    (Open Charge Map preferred over OpenStreetMap, see _url_rank) — so choosing the
+    PUN-only name still gets you a map link.
+    TomTom stays excluded — its data can't be stored (see _tomtom_stations)."""
     if not lat or not lon:
-        return None, True
+        return [], True
     els = _query(lat, lon, _LABEL_RADIUS_M, 10)
     ocm = _ocm_stations(lat, lon, _LABEL_RADIUS_M, 5)
     pun = _pun_stations(lat, lon, _LABEL_RADIUS_M, 20)
@@ -156,18 +193,63 @@ def find_station_name(lat: float, lon: float):
         la, lo = _coord(e)
         if la is None:
             continue
-        cands.append((_dist_m(lat, lon, la, lo), _label(e.get("tags", {}))))
-    cands.extend((s["dist_m"], s["name"]) for s in (ocm or []))
-    cands.extend((s["dist_m"], s["name"]) for s in (pun or []))
-    cands.sort(key=lambda c: c[0])
-    for _d, label in cands:
-        if label:
-            return label, True
-    # No name found: that verdict is final only if at least one source actually
-    # answered — if every source we tried errored, stay NULL and retry next sweep.
+        tags = e.get("tags", {})
+        name = _label(tags)
+        if name:
+            url = (f"https://www.openstreetmap.org/{e['type']}/{e['id']}"
+                   if e.get("type") and e.get("id") else None)
+            cands.append({"name": name, "info": _socket_info(tags), "lat": la, "lon": lo,
+                          "address": _osm_address(tags), "url": url,
+                          "dist_m": int(_dist_m(lat, lon, la, lo))})
+    for s in (ocm or []):
+        if s.get("name"):
+            cands.append({"name": s["name"], "info": s.get("info") or "",
+                          "lat": s["lat"], "lon": s["lon"],
+                          "address": s.get("address"), "url": s.get("url"),
+                          "dist_m": s["dist_m"]})
+    for s in (pun or []):
+        if s.get("name"):
+            cands.append({"name": s["name"], "info": s.get("info") or "",
+                          "lat": s["lat"], "lon": s["lon"],
+                          "address": None, "url": s.get("url"), "dist_m": s["dist_m"]})
     tried = [els, ocm if _ocm_key() else None, pun if _in_italy(lat, lon) else None]
-    answered = any(r is not None for r in tried)
-    return None, answered
+    ok = any(r is not None for r in tried)
+    if not cands:
+        return [], ok
+    cands.sort(key=lambda c: c["dist_m"])
+    sites: list = []
+    for c in cands:
+        site = next((s for s in sites if any(
+            _dist_m(c["lat"], c["lon"], o["lat"], o["lon"]) <=
+            (_SITE_SAME_NAME_RADIUS_M if c["name"] == o["name"] else _SITE_DIFF_NAME_RADIUS_M)
+            for o in s)), None)
+        if site is None:
+            sites.append([c])
+        else:
+            site.append(c)
+    nearest = min(sites, key=lambda s: min(c["dist_m"] for c in s))
+    nearest.sort(key=lambda c: c["dist_m"])
+    by_name: dict = {}
+    for c in nearest:
+        by_name.setdefault(c["name"], []).append(c)
+    options = []
+    for group in by_name.values():
+        infos = {c["info"] for c in group if c["info"]}
+        if len(infos) <= 1:             # this name's sources agree (or only one has details)
+            merged = group[0]
+            for c in group[1:]:
+                merged = _merge_richer(merged, c)
+            options.append(merged)
+        else:                           # this name's own sources genuinely conflict
+            options.extend(next(c for c in group if c["info"] == info) for info in infos)
+    # Best-effort link for whichever option(s) still lack one — borrowed from ANY other
+    # candidate in the same site, regardless of name (e.g. PUN itself never has a url).
+    best_url = max((c.get("url") for c in nearest if c.get("url")), key=_url_rank, default=None)
+    for opt in options:
+        if not opt.get("url") and best_url:
+            opt["url"] = best_url
+    options.sort(key=lambda c: c["dist_m"])
+    return options, ok
 
 
 def find_nearby(lat: float, lon: float, radius_m: int, limit: int = 25, name_filter: str = ""):
@@ -178,7 +260,10 @@ def find_nearby(lat: float, lon: float, radius_m: int, limit: int = 25, name_fil
     (PUN does its own shrink-to-fit; OCM already returns nearest-first).
     A site's individual charge-point columns dedupe into one pin (same label within
     80 m, anonymous right next to a kept pin, or the same station from the other
-    source under a slightly different name) — keeping the nearest, richest info."""
+    source under a slightly different name) — the source with MORE data becomes the
+    pin, backfilled with whatever extra field the other source still has (see
+    _merge_richer). TomTom pins additionally borrow a source link from OCM (checked
+    first) or OSM when either covers the same spot — see _borrow_url."""
     els = _query(lat, lon, radius_m, 1000)
     ocm = _ocm_stations(lat, lon, radius_m)
     tom = _tomtom_stations(lat, lon, radius_m)
@@ -197,10 +282,15 @@ def find_nearby(lat: float, lon: float, radius_m: int, limit: int = 25, name_fil
         if la is None:
             continue
         tags = e.get("tags", {})
+        url = (f"https://www.openstreetmap.org/{e['type']}/{e['id']}"
+               if e.get("type") and e.get("id") else None)
         out.append({"name": _label(tags), "lat": la, "lon": lo,
                     "dist_m": int(_dist_m(lat, lon, la, lo)),
-                    "info": _socket_info(tags)})
+                    "info": _socket_info(tags),
+                    "address": _osm_address(tags), "url": url})
     out.extend(ocm or [])
+    for t in (tom or []):
+        t["url"] = _borrow_url(t["lat"], t["lon"], ocm, els)
     out.extend(tom or [])
     out.extend(pun or [])
     if name_filter:   # operator filter: keep only matching names (PUN was already narrowed)
@@ -209,21 +299,72 @@ def find_nearby(lat: float, lon: float, radius_m: int, limit: int = 25, name_fil
     out.sort(key=lambda s: s["dist_m"])
     kept = []
     for s in out:
-        dup = next((k for k in kept
+        idx = next((i for i, k in enumerate(kept)
                     if _dist_m(s["lat"], s["lon"], k["lat"], k["lon"]) <=
                     (80 if s["name"] == k["name"] else 40 if not s["name"] else 25)), None)
-        if dup is None:
+        if idx is None:
             kept.append(s)
         else:
-            if s["info"] and not dup["info"]:
-                dup["info"] = s["info"]   # stall/OCM/PUN often carry data the site lacks
-            if s["name"] and not dup["name"]:
-                dup["name"] = s["name"]
-            if s.get("avail") and not dup.get("avail"):
-                dup["avail"] = s["avail"]   # keep PUN live status even if it was the dup
+            kept[idx] = _merge_richer(kept[idx], s)
         if len(kept) >= limit:
             break
     return kept
+
+
+_TOMTOM_LINK_RADIUS_M = 60   # "same physical station" for borrowing a link — tighter than the
+                             # generic dedupe radii (25-80 m) so a neighbouring site never gets
+                             # mislinked; TomTom's own coordinates are precise enough for this.
+
+
+def _borrow_url(lat: float, lon: float, ocm: list, els: list) -> "str | None":
+    """TomTom has no public per-POI page (see _tomtom_stations) — so its pin borrows
+    one from whichever OTHER source already answered for the same spot: Open Charge
+    Map is checked FIRST (it already carries its own detail-page link — see
+    _url_rank), OpenStreetMap only if OCM doesn't cover this station. None when
+    neither source is within link range."""
+    for s in (ocm or []):
+        if s.get("url") and _dist_m(lat, lon, s["lat"], s["lon"]) <= _TOMTOM_LINK_RADIUS_M:
+            return s["url"]
+    for e in (els or []):
+        la, lo = _coord(e)
+        if la is None or not (e.get("type") and e.get("id")):
+            continue
+        if _dist_m(lat, lon, la, lo) <= _TOMTOM_LINK_RADIUS_M:
+            return f"https://www.openstreetmap.org/{e['type']}/{e['id']}"
+    return None
+
+
+_MERGE_FIELDS = ("name", "info", "avail", "address", "url")
+
+
+def _url_rank(url: "str | None") -> int:
+    """When two sources both have a link for the same station, Open Charge Map's own
+    EV-detail page is the more useful, internationally-working landing spot — so it
+    wins the link even on a charge where OSM was picked as the overall richer source
+    (e.g. it alone has the address). NB: the page is `openchargemap.org/poi/details/*`
+    — NOT `/site/poi/details/*` (an old path that 404s and gets redirected into a
+    forced sign-in, which is what looked like a login-gate — verified live)."""
+    if not url:
+        return 0
+    return 2 if "openchargemap.org" in url else 1
+
+
+def _merge_richer(a: dict, b: dict) -> dict:
+    """Two sources agree on one physical station: rather than always trusting whichever
+    was nearest (an artifact of query order, not data quality), the one carrying MORE
+    information becomes the base — then any field it's still missing gets backfilled
+    from the other. So a source with a bare pin never shadows a source that also has
+    the socket/address/live-status detail, regardless of which is a hair closer.
+    The link is the one exception to "base wins ties": it's picked independently by
+    _url_rank, not by overall richness (see there)."""
+    score = lambda s: sum(bool(s.get(f)) for f in _MERGE_FIELDS)  # noqa: E731
+    base, other = (a, b) if score(a) >= score(b) else (b, a)
+    for f in _MERGE_FIELDS:
+        if f != "url" and not base.get(f) and other.get(f):
+            base[f] = other[f]
+    if _url_rank(other.get("url")) > _url_rank(base.get("url")):
+        base["url"] = other["url"]
+    return base
 
 
 # ── Open Charge Map (optional, free per-user API key) ────────────────────────
@@ -276,9 +417,45 @@ def _ocm_stations(lat: float, lon: float, radius_m: int, limit: int = 100):
         parts = (["/".join(cur)] if cur else []) + ([f"{_fmt_kw(kw)} kW"] if kw else [])
         name = ((a.get("Title") or "").strip()
                 or ((p.get("OperatorInfo") or {}).get("Title") or "").strip() or None)
+        addr_parts = [(a.get("AddressLine1") or "").strip(), (a.get("Town") or "").strip()]
+        address = ", ".join(p2 for p2 in addr_parts if p2) or None
+        poi_id = p.get("ID")
+        # NB: /poi/details/{id} — NOT /site/poi/details/{id}. The old /site/ prefix
+        # 404s and gets redirected into a forced sign-in (looked exactly like a
+        # login-gate on this route specifically); the plain path shows the station
+        # publicly, no account needed — verified live against a real ID.
+        url = f"https://openchargemap.org/poi/details/{poi_id}" if poi_id else None
         out.append({"name": name, "lat": la, "lon": lo, "dist_m": int(d),
-                    "info": " · ".join(parts)})
+                    "info": " · ".join(parts), "address": address, "url": url})
     return out
+
+
+_KEY_TEST_POINT = (45.4642, 9.19)   # Milan — dense enough that a working key gets a real 200
+
+
+def test_ocm_key(key: str):
+    """Settings 'verify key' button: a tiny live probe with the key TYPED in the form
+    (not necessarily saved yet), so the user finds out it's wrong before saving it.
+    (ok, reason): reason is None on success, else 'invalid_key' (401/403) or 'error'
+    (anything else — network, rate limit, OCM outage)."""
+    key = (key or "").strip()
+    if not key:
+        return False, "missing_key"
+    lat, lon = _KEY_TEST_POINT
+    params = urllib.parse.urlencode({
+        "output": "json", "latitude": f"{lat:.6f}", "longitude": f"{lon:.6f}",
+        "distance": 1, "distanceunit": "km", "maxresults": 1,
+        "compact": "true", "verbose": "false", "key": key})
+    req = urllib.request.Request(f"{_OCM_URL}?{params}", headers={"User-Agent": _UA})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            json.load(resp)
+        return True, None
+    except Exception as exc:  # noqa: BLE001 — HTTPError (401/403 = bad key) is an OSError subclass
+        if getattr(exc, "code", None) in (401, 403):
+            return False, "invalid_key"
+        log.warning("charger locator: OCM key test error: %s", exc)
+        return False, "error"
 
 
 # ── TomTom (optional, free per-user API key) ────────────────────────────────
@@ -342,8 +519,32 @@ def _tomtom_stations(lat: float, lon: float, radius_m: int, limit: int = 100):
         info = " · ".join(([cur] if cur else []) + ([f"{_fmt_kw(kw)} kW"] if kw else []))
         dist = r.get("dist")
         dist_m = int(dist) if isinstance(dist, (int, float)) else int(_dist_m(lat, lon, la, lo))
-        out.append({"name": name, "lat": la, "lon": lo, "dist_m": dist_m, "info": info})
+        address = ((r.get("address") or {}).get("freeformAddress") or "").strip() or None
+        out.append({"name": name, "lat": la, "lon": lo, "dist_m": dist_m, "info": info,
+                    "address": address})
     return out
+
+
+def test_tomtom_key(key: str):
+    """Settings 'verify key' button — see test_ocm_key. TomTom's own error payload
+    uses 403 for a bad/missing key."""
+    key = (key or "").strip()
+    if not key:
+        return False, "missing_key"
+    lat, lon = _KEY_TEST_POINT
+    params = urllib.parse.urlencode({
+        "key": key, "lat": f"{lat:.6f}", "lon": f"{lon:.6f}", "radius": 1000,
+        "categorySet": _TOMTOM_EV_CATEGORY, "limit": 1})
+    req = urllib.request.Request(f"{_TOMTOM_URL}?{params}", headers={"User-Agent": _UA})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            json.load(resp)
+        return True, None
+    except Exception as exc:  # noqa: BLE001
+        if getattr(exc, "code", None) in (401, 403):
+            return False, "invalid_key"
+        log.warning("charger locator: TomTom key test error: %s", exc)
+        return False, "error"
 
 
 # ── PUN — Piattaforma Unica Nazionale (Italy, official, keyless) ─────────────
@@ -553,23 +754,76 @@ def _sweep_body(limit: int) -> int:
     called = False
     for c in cands:
         lat, lon = c["latitude"], c["longitude"]
-        reuse = next((n for la, lo, n in known
+        reuse = next(((n, u) for la, lo, n, u in known
                       if _dist_m(lat, lon, la, lo) <= _REUSE_RADIUS_M), None)
         if reuse is not None:
-            db_reader.set_charge_location_name(c["id"], reuse)
-            named += bool(reuse)
+            db_reader.set_charge_location_name(c["id"], reuse[0], reuse[1])
+            named += bool(reuse[0])
             continue
         if called:
             time.sleep(1.0)  # Overpass etiquette between consecutive calls
-        name, ok = find_station_name(lat, lon)
+        options, ok = find_station_candidates(lat, lon)
         called = True
         if not ok:  # Overpass down/rate-limited: stop here, leftovers retry next sweep
             log.info("charger locator: Overpass unreachable — will retry next sweep")
             break
-        value = name or ""  # '' = resolved as "no station here", never re-asked
-        db_reader.set_charge_location_name(c["id"], value)
-        known.append((lat, lon, value))
+        # Unattended automation can't pop up a picker — take the nearest option
+        # deterministically (see find_station_candidates: options are always sorted
+        # nearest-first, and every option already carries a best-effort link).
+        best = options[0] if options else {}
+        name, url = best.get("name") or "", best.get("url")
+        db_reader.set_charge_location_name(c["id"], name, url)
+        known.append((lat, lon, name, url))
         if name:
             named += 1
             log.info("charger locator: charge #%s → %s", c["id"], name)
     return named
+
+
+# ── Backfill: recover a missing link on ALREADY-labelled charges ─────────────
+# location_url didn't exist when older charges were labelled (and a name resolved
+# from PUN alone never had one, PUN has no per-station page) — this is a one-time,
+# user-triggered pass (Settings button), not part of the ongoing sweep/TTL. It NEVER
+# touches location_name: only a name that still matches what's already saved gets a
+# link attached, so a charge the user picked by hand from an ambiguity popup — or
+# whose surroundings changed since — is never silently relabelled.
+
+_BACKFILL_LIMIT = 200
+_backfilling = False
+
+
+def backfill_urls_now(limit: int = _BACKFILL_LIMIT) -> int:
+    """Single-flight entry point for the Settings 'recover missing links' button."""
+    global _backfilling
+    with _lock:
+        if _backfilling:
+            return 0
+        _backfilling = True
+    try:
+        return _backfill_body(limit)
+    except Exception as exc:  # noqa: BLE001 — must never crash the background thread
+        log.warning("charger locator: link backfill failed: %s", exc)
+        return 0
+    finally:
+        with _lock:
+            _backfilling = False
+
+
+def _backfill_body(limit: int) -> int:
+    cands = db_reader.get_labelled_charges_missing_url(limit)
+    filled = 0
+    called = False
+    for c in cands:
+        if called:
+            time.sleep(1.0)  # Overpass etiquette between consecutive calls
+        options, ok = find_station_candidates(c["latitude"], c["longitude"])
+        called = True
+        if not ok:  # Overpass down/rate-limited: stop here, leftovers retry next click
+            log.info("charger locator: link backfill — Overpass unreachable, stopping")
+            break
+        match = next((o for o in options if o.get("name") == c["location_name"] and o.get("url")), None)
+        if match:
+            db_reader.set_charge_location_url(c["id"], match["url"])
+            filled += 1
+            log.info("charger locator: charge #%s → link recovered", c["id"])
+    return filled

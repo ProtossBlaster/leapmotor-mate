@@ -1195,23 +1195,62 @@ def get_location_lookup_candidates(limit: int = 40) -> list[dict]:
 
 
 def get_labelled_locations() -> list[tuple]:
-    """(lat, lon, label) of every already-resolved charge — '' sentinels included — so
-    a charge at an already-known spot reuses the answer instead of re-asking Overpass."""
+    """(lat, lon, label, url) of every already-resolved charge — '' sentinels included —
+    so a charge at an already-known spot reuses the answer (label AND link) instead of
+    re-asking Overpass."""
     try:
         rows = _get().execute(
-            "SELECT latitude, longitude, location_name FROM charges "
+            "SELECT latitude, longitude, location_name, location_url FROM charges "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) "
             "AND location_name IS NOT NULL AND latitude IS NOT NULL AND longitude IS NOT NULL",
             (_current_vehicle_id(),)
         ).fetchall()
     except sqlite3.Error:
         return []
-    return [(r["latitude"], r["longitude"], r["location_name"]) for r in rows]
+    return [(r["latitude"], r["longitude"], r["location_name"], r["location_url"]) for r in rows]
 
 
-def set_charge_location_name(charge_id: int, name: str) -> None:
+def set_charge_location_name(charge_id: int, name: str, url: "str | None" = None) -> None:
     db = _conn_rw()
-    db.execute("UPDATE charges SET location_name=? WHERE id=?", (name, charge_id))
+    db.execute("UPDATE charges SET location_name=?, location_url=? WHERE id=?", (name, url, charge_id))
+    db.commit()
+
+
+def get_charge_location(charge_id: int) -> Optional[dict]:
+    """Single-charge lookup for the 📍 manual recalc button — unlike
+    get_location_lookup_candidates (only lists NOT-yet-labelled charges for the
+    background sweep), this fetches any one charge regardless of its current label."""
+    row = _get().execute(
+        "SELECT id, latitude, longitude, location_type, location_name, location_url "
+        "FROM charges WHERE id=?",
+        (charge_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def get_labelled_charges_missing_url(limit: int = 200) -> list[dict]:
+    """Already-labelled charges with no link yet — the Settings 'recover missing
+    links' backfill's queue. These predate the location_url column, or were resolved
+    from a source that has none on its own (PUN alone). The mirror-image of
+    get_location_lookup_candidates (which lists UN-labelled charges for the ongoing
+    sweep)."""
+    try:
+        rows = _get().execute(
+            "SELECT id, latitude, longitude, location_name FROM charges "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND location_name IS NOT NULL AND location_name != '' AND location_url IS NULL "
+            "AND latitude IS NOT NULL AND longitude IS NOT NULL "
+            "ORDER BY started_at DESC LIMIT ?",
+            (_current_vehicle_id(), limit)).fetchall()
+    except sqlite3.Error:
+        return []
+    return [dict(r) for r in rows]
+
+
+def set_charge_location_url(charge_id: int, url: str) -> None:
+    """Backfill-only: fills in JUST the link, leaving the already-saved name (which
+    may have been hand-picked from an ambiguity popup) untouched."""
+    db = _conn_rw()
+    db.execute("UPDATE charges SET location_url=? WHERE id=?", (url, charge_id))
     db.commit()
 
 

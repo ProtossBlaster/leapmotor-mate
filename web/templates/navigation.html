@@ -186,6 +186,12 @@
     meta.textContent = (c.dist_m >= 1000 ? (c.dist_m / 1000).toFixed(1) + ' km' : c.dist_m + ' m')
                      + (c.info ? ' · ' + c.info : '');
     div.appendChild(meta);
+    if (c.address) {
+      const addr = document.createElement('div');
+      addr.style.cssText = 'font-size:12px;margin:-3px 0 7px;color:#64748b';
+      addr.textContent = '📍 ' + c.address;
+      div.appendChild(addr);
+    }
     if (c.avail) {  // PUN live status "free/total" — green when any free
       const av = document.createElement('div');
       const free = parseInt(c.avail, 10) > 0;
@@ -193,6 +199,15 @@
                        + (free ? '#16a34a' : '#dc2626');
       av.textContent = (free ? '🟢 ' : '🔴 ') + c.avail + ' ' + {{ t("nav_charger_available")|tojson }};
       div.appendChild(av);
+    }
+    if (c.url) {  // source's own listing page — only OSM/OCM expose one
+      const link = document.createElement('a');
+      link.href = c.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = '🔗 ' + {{ t("nav_charger_view_source")|tojson }};
+      link.style.cssText = 'font-size:12px;display:block;margin:-3px 0 7px;color:#0ea5e9';
+      div.appendChild(link);
     }
     const btn = document.createElement('button');
     btn.textContent = '🧭 ' + {{ t("nav_use_dest")|tojson }};
