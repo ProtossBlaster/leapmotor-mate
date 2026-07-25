@@ -3,6 +3,24 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.9.0] — 2026-07-25
+
+### Added
+- **Charging stations you've used now carry a link to their own listing page.** A 🔗 next to the station name on the Charges page opens it on OpenStreetMap or Open Charge Map, where you can see the sockets, the photos and whatever else the community has recorded about it — useful when you're deciding whether to go back. Charges labelled before this version have no link saved; **Settings → Charging stations → Recover missing links** fills them in without touching the names you already have. The same link, and the street address, now also appear on the results of **Find chargers** — including the TomTom ones, which have no page of their own and borrow one from whichever other source covers the same spot. From **@hubcasale** (#162).
+- **A 📍 recalculate button on each charge**, for when the name Mate picked isn't the one you'd use. The automatic pass has to choose in silence and takes the nearest match; pressing the button runs the search again and, when the sources genuinely disagree — a service area is routinely listed under the network's name by one source and the site's name by another, tens of metres apart — it shows you both and lets you say which is right. If the search comes back empty, the name you already had is left exactly as it was. From **@hubcasale** (#162).
+- **Verify keys**, in Settings → Charging stations: a live check of your Open Charge Map and TomTom keys against the real service, before saving them — so a mistyped key is caught there and then instead of quietly returning nothing for weeks.
+- **The estimated range at 100 %**, under the current range on the Overview: what this battery would give you on a full charge at your current consumption. From **@domevite** (#161).
+- **A map marker threshold**, in Settings → Charging stations. By default every station you've used gets a marker, including a charger you stopped at once on a trip — which is precisely the stop you're least likely to remember unaided. If your map is crowded with one-offs, raise it to show only the places you return to. From **@hubcasale** (#162).
+
+### Changed
+- **When two sources describe the same charging station, the one with more to say now wins.** Before, whichever happened to be nearest became the label — an artifact of the order the sources answered in, not a measure of what they knew — so a bare pin could hide a source that had the sockets, the power and the address. The richer entry is now the one kept, and the other fills in whatever fields it's still missing. From **@hubcasale** (#162).
+
+### For the desktop app
+Groundwork for the standalone Mac app, which packages Mate for people who run neither Home Assistant nor Docker. **None of this appears on Home Assistant or Docker** — it's keyed on a variable only the app's launcher sets.
+- The update badge no longer sends you to GitHub: the app fetches the new version by itself on the next launch, so it says *"updates on the next restart"* instead. It turns red, with a real download link, only for an update the app has **refused** because it is too old to run it — the one case that never arrives on its own.
+- The app's own version is shown next to Mate's (`v2.9.0 · D1.0.0`), in the sidebar and in the diagnostics bundle, so a report from the app can say which build produced it.
+- A dismissible notice that **the app records only while it is open**: anything the car does after you close it is not saved, and cannot be filled in afterwards — the cloud keeps no history to replay.
+
 ## [2.8.9] — 2026-07-24
 
 ### Changed
