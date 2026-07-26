@@ -177,14 +177,33 @@ PRICE_KEYS = {
 _REEV_TANK_L = 50.0
 _REEV_FUEL_MIN_DROP = 0.2
 
-# REEV only: how far below the charge limit the car's own "charge complete" flag stops being
-# believable. A B10 REEV raises that flag at 23 % SoC with the limit at 90 %, toggling it on and
-# off mid-charge (beta #12) — which put "Fully charged" on screen while the car was filling. Same
-# shape as the T03 declaring seat heaters it doesn't have: the car misreports, so the claim is
-# checked against the battery before being repeated. Deliberately generous — a charge that stops
-# a few percent short is still complete — and only ever applied when the limit is actually known,
-# so a car charging to a limit Mate hasn't read can't have a legitimate flag suppressed.
-_CHARGE_COMPLETE_TOLERANCE_PCT = 15.0
+# REEV only: signal 3736 does not mean what its name says, so on a range-extender it is not read
+# at all.
+#
+# It was mapped as "chargeCompleted" with the note "validate on a real charge". Nobody had. Nine
+# complete charges over sixteen days from a B10 REEV (beta #12, michapr) say it is the opposite:
+#
+#   flag → 1   cable just connected, current −2.0…−3.8 A, 85 to 915 minutes remaining, SoC 15-76 %
+#   flag → 0   current back to 0.1 A, minutes at 5, and three times SoC exactly 90 % — his limit
+#
+# Nine out of nine, no exception. On this car 3736 is "a charge is running", and Mate was printing
+# "Fully charged" for precisely the hours the car was filling.
+#
+# What stood here before was a tolerance: ignore the flag when the SoC is more than 15 points below
+# the charge limit. That was fitted to the first report — the flag seen at 23 % with the limit at
+# 90 % — and it did hide the lie at the start of every charge, which is why this looked like a rare
+# leftover rather than an inversion. It could not hide it past 75 %, so the claim came back exactly
+# when a charge was nearly done and a user was most likely to look. A tolerance is the wrong shape
+# of fix for a signal read backwards.
+#
+# So on a REEV the flag is dropped. Mate says "plugged in", which is true in every frame of the
+# bundle, instead of a completion it cannot establish. Deriving a real "finished" is the next step
+# and needs one thing this data does not settle: a car plugged in and WAITING for a scheduled
+# charge also sits at flag 0, so the inverse reading alone would announce a completion for a charge
+# that never happened.
+#
+# BEVs are untouched. There is no BEV bundle carrying 3736, the flag may well be honest there, and
+# it is working today — this is not the moment to change it blind.
 
 
 def _reev_engine_on(db, vehicle_id, started_at, ended_at) -> Optional[dict]:
@@ -1702,19 +1721,13 @@ def get_latest_status() -> Optional[dict]:
     # (modes persist when off). The old derive-by-absence wrongly lit up for plain A/C-on / AUTO
     # (mode 0 = A/C on but not yet cooling) — confirmed on-car 2026-06-21.
     d["climate_venting"] = bool(d.get("climate_on")) and d.get("climate_mode") == 4
-    # REEV only: sanity-check the car's own "charge complete" flag before repeating it (see
-    # _CHARGE_COMPLETE_TOLERANCE_PCT). Requires a KNOWN charge limit — without one there's no
-    # reference and the flag is left alone. Pure EVs are untouched: they report this correctly
-    # and are working today.
-    if d.get("charge_completed") and get_setting("is_reev", "0") == "1":
-        try:
-            _limit = float(get_setting("charge_limit_percent", "") or 0)
-        except (TypeError, ValueError):
-            _limit = 0.0
-        _soc = d.get("soc")
-        if _limit > 0 and _soc is not None and _soc < _limit - _CHARGE_COMPLETE_TOLERANCE_PCT:
-            d["charge_completed"] = 0
-            d["charge_completed_implausible"] = True   # for diagnostics, never shown to users
+    # REEV only: drop the car's "charge complete" flag entirely — on a range-extender it marks a
+    # charge in PROGRESS, not a finished one (see the note beside this file's constants). The raw
+    # value is kept under another name so a diagnostics bundle still shows what the car said.
+    # Pure EVs are untouched.
+    if get_setting("is_reev", "0") == "1":
+        d["charge_completed_raw"] = 1 if d.get("charge_completed") else 0
+        d["charge_completed"] = 0
     # How long ago
     try:
         ts = datetime.fromisoformat(d["recorded_at"])
