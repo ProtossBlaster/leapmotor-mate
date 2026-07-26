@@ -1365,6 +1365,7 @@ async def settings_page(request: Request):
                 "charger_locator_ocm_key_set": bool(db_reader.get_setting("ocm_key", "")),
                 "charger_locator_tomtom_key_set": bool(db_reader.get_setting("tomtom_key", "")),
                 "positions_retention_days": db_reader.get_setting("positions_retention_days", "0"),
+                "desktop_autostart": db_reader.get_setting("desktop_autostart", "0"),
                 "map_station_min_sessions": db_reader.get_setting("map_station_min_sessions", "1"),
                 "charge_reconstruct_min_pct": db_reader.get_setting("charge_reconstruct_min_pct", "2.0"),
                 "vampire_min_drop_pct": db_reader.get_setting("vampire_min_drop_pct", "0.2"),
@@ -2704,6 +2705,28 @@ async def dismiss_desktop_notice(request: Request):
     strip the browser has already dropped would be a visible stutter for nothing."""
     db_reader.set_setting("desktop_notice_dismissed", "1")
     return Response(status_code=204)
+
+
+@app.post("/api/settings/desktop-autostart", response_class=HTMLResponse)
+async def save_desktop_autostart(request: Request):
+    """Record whether the desktop app should start when the user logs in.
+
+    Mate records the answer and does nothing with it. Registering a program to run at login is
+    the shell's business and nobody else's: it is a LaunchAgent on macOS and a registry entry on
+    Windows, and neither belongs in code that also runs inside Home Assistant. The shell reads
+    this setting back — on every launch, and while the app is open — so the same switch drives
+    both platforms and changing how registration works never means releasing Mate.
+
+    Why it is worth having at all: the app records only while it is open, and a car does its
+    charging overnight. Someone who has to remember to launch Mate will miss exactly the data
+    they installed it for."""
+    form = await request.form()
+    on = str(form.get("desktop_autostart", "")).strip() in ("1", "on", "true")
+    db_reader.set_setting("desktop_autostart", "1" if on else "0")
+    t = i18n.get_t(db_reader.get_language())
+    msg = t("desktop_autostart_on") if on else t("desktop_autostart_off")
+    colour = "#22c55e" if on else "#94a3b8"
+    return HTMLResponse(f'<span style="color:{colour};font-size:13px">{msg}</span>')
 
 
 @app.post("/api/settings/password/clear")

@@ -985,7 +985,13 @@
     "app_update_restart": "Si aggiorna al prossimo riavvio di Mate",
     "app_update_needs_app": "Serve una versione più recente dell'app — scaricala",
     "desktop_open_notice": "Mate registra solo mentre questa app è aperta — i dati successivi alla chiusura non verranno salvati e non si potranno recuperare.",
-    "desktop_open_notice_ok": "Ho capito"
+    "desktop_open_notice_ok": "Ho capito",
+    "desktop_section": "App",
+    "desktop_autostart": "Avvia al login",
+    "desktop_autostart_desc": "Apre Mate da solo quando accendi il computer, così registra anche i viaggi e le ricariche a cui non pensi.",
+    "desktop_autostart_on": "Attivo — Mate si aprirà al prossimo accesso",
+    "desktop_autostart_off": "Disattivato",
+    "desktop_version": "Versione app"
   },
   "months": {
     "full": [
