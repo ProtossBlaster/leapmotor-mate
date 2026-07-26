@@ -1,0 +1,18 @@
+# Keeps the pinned actions from freezing forever.
+#
+# Every `uses:` in .github/workflows is pinned to a commit SHA rather than a moving tag, because a
+# tag is a pointer somebody else controls: whoever can move `@v4` can run their own code inside a
+# job that holds DOCKERHUB_TOKEN. A SHA cannot be re-pointed.
+#
+# The cost of that is the mirror image — pinned actions never pick up a fix on their own. Dependabot
+# closes it: it reads the `# v4` comment beside each SHA, and opens a PR that moves the SHA and the
+# comment together, with the action's release notes attached. Monthly on purpose: security fixes in
+# these actions are rare, and a weekly PR nobody reads is how a repo learns to ignore them.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci"

@@ -45,13 +45,13 @@ jobs:
           echo "Syncing beta add-on to $REF (config version ${REF#v})"
 
       - name: Checkout code repo (for CHANGELOG) at the release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           ref: ${{ steps.ver.outputs.tag }}
           path: code
 
       - name: Checkout beta add-on repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           repository: ProtossBlaster/MateBetaTesterOnly
           token: ${{ secrets.ADDON_REPO_TOKEN }}
