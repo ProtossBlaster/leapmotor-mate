@@ -473,6 +473,8 @@
     "note_save": "Zapisz",
     "note_saved": "Zapisano",
     "auto_note_generate_btn": "Wygeneruj podsumowanie (adres, godzina, temperatura)",
+    "auto_note_enable": "Zapisuj notatkę automatycznie",
+    "auto_note_enable_desc": "Uzupełnia adres, godzinę i temperaturę przy każdej nowej podróży i każdym nowym ładowaniu. Adres jest wyszukiwany w sieci. Po wyłączeniu przycisk 🧭 nadal zrobi to na żądanie.",
     "auto_note_overwrite_confirm": "Wygenerowanie automatycznego podsumowania zastąpi obecny tekst notatki. Kontynuować?",
     "drive_mode": "Tryb jazdy",
     "one_pedal": "One-Pedal",

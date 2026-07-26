@@ -473,6 +473,8 @@
     "note_save": "Speichern",
     "note_saved": "Gespeichert",
     "auto_note_generate_btn": "Zusammenfassung erstellen (Adresse, Uhrzeit, Temperatur)",
+    "auto_note_enable": "Notiz von selbst schreiben",
+    "auto_note_enable_desc": "Füllt Adresse, Uhrzeit und Temperatur bei jeder neuen Fahrt und Ladung aus. Die Adresse wird online nachgeschlagen. Ausgeschaltet erledigt das die 🧭-Schaltfläche weiterhin auf Anforderung.",
     "auto_note_overwrite_confirm": "Beim Erstellen der automatischen Zusammenfassung wird der aktuelle Notiztext ersetzt. Fortfahren?",
     "drive_mode": "Fahrmodus",
     "one_pedal": "One-Pedal",

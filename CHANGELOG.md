@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.10.2] — 2026-07-26
+
+### Added
+- **Trips and charges can write their own note — address, time and temperature.** A 🧭 button on any trip or charge builds a one-line summary and puts it straight into the note field: for a trip, the reverse-geocoded start and end address with the outside temperature already collected for it; for a charge, the station's address (the same lookup the 📍 label runs, skipped for home charges) with the times and the car's own outside and battery temperatures at each end. New trips and charges get it **by themselves** the moment they close — but only into an empty note, so anything you have typed is never touched. The button always overwrites, and asks first when there is something to lose. From **@hubcasale** (#171).
+- **A switch to stop that happening by itself** — Settings ▸ Geocoder. Writing the note means looking an address up online, and a trip's two ends are, for most people, home and work; that should be a choice rather than a footnote. It ships **on**, and turning it off leaves the 🧭 button exactly where it is: the note stays one tap away, it just stops happening unasked.
+
+### Fixed
+- **The setup wizard showed the word "undefined" in French and German**, where the warning to use a Leapmotor account dedicated to Mate belongs — the single most important line of the whole setup, and the cause of the most common problem people report. The wizard keeps its own set of strings, separate from the rest of the app, and that one had never been translated; JavaScript renders a missing string as the literal text "undefined". Anyone setting Mate up in those two languages simply never saw the warning.
+- **German and Polish were missing 80 and 91 strings**, so parts of the app appeared in English. All six languages now carry all 1027. Nothing was checking any of this, which is why both faults survived: **it is now checked** — every language must match English in both directions, every wizard language must match too, and the accepted-language list in the code must agree with the files on disk.
+- **Range-extenders no longer announce "Fully charged" while the car is filling.** Signal 3736 was mapped as "charge completed"; nine complete charges from a B10 REEV show it turns **on** when a charge starts — cable in, current flowing, hours remaining — and off when it ends. On a REEV it means "a charge is running", so Mate now says "plugged in" rather than repeating a completion it cannot establish. What replaced it was a tolerance fitted to the first report, which hid the fault early in a charge and let it through near the end — where it was most likely to be seen. Fully-electric cars are untouched. Found from **@michapr**'s diagnostic bundles (beta #12).
+
 ## [2.10.1] — 2026-07-26
 
 ### Added

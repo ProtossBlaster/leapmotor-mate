@@ -473,6 +473,8 @@
     "note_save": "Salva",
     "note_saved": "Salvato",
     "auto_note_generate_btn": "Genera riepilogo (indirizzo, ora, temperatura)",
+    "auto_note_enable": "Scrivi la nota da sola",
+    "auto_note_enable_desc": "Compila indirizzo, orario e temperatura su ogni viaggio e ricarica nuovi. L'indirizzo viene cercato in rete. Da spento, il pulsante 🧭 lo fa comunque su richiesta.",
     "auto_note_overwrite_confirm": "Generando il riepilogo automatico il testo attuale della nota verrà sostituito. Continuare?",
     "drive_mode": "Modalità di guida",
     "one_pedal": "One-Pedal",

@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.10.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.10.2"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -2583,6 +2583,12 @@ async def save_geocoder(request: Request):
     form = await request.form()
     if "geocoder_provider" in form:
         db_reader.set_setting("geocoder_provider", (form.get("geocoder_provider") or "").strip())
+    # The automatic 🧭 note, which is the only thing here that reaches out on its own initiative
+    # — the rest of this card is consulted when the user asks for an address. Guarded by the
+    # marker rather than by the checkbox alone, because an unticked box submits nothing at all
+    # and would otherwise read as "turn it off" on any form that never showed it.
+    if "auto_note_present" in form:
+        db_reader.set_setting("auto_note", "1" if form.get("auto_note") else "0")
     gkey = (form.get("geocoder_key") or "").strip()
     if gkey:  # masked field: only overwrite on a non-empty submit
         db_reader.set_secret("geocoder_key", gkey)

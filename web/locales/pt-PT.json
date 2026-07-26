@@ -473,6 +473,8 @@
     "note_save": "Guardar",
     "note_saved": "Guardado",
     "auto_note_generate_btn": "Gerar resumo (endereço, hora, temperatura)",
+    "auto_note_enable": "Escrever a nota automaticamente",
+    "auto_note_enable_desc": "Preenche a morada, a hora e a temperatura em cada nova viagem e carregamento. A morada é procurada online. Desligado, o botão 🧭 continua a fazê-lo a pedido.",
     "auto_note_overwrite_confirm": "Ao gerar o resumo automático, o texto atual da nota será substituído. Continuar?",
     "drive_mode": "Modo de condução",
     "one_pedal": "One-Pedal",

@@ -408,6 +408,19 @@
                         text-sm font-mono focus:outline-none focus:border-brand">
           <div class="text-[11px] text-slate-500 mt-1">{{ t('geocoder_key_hint') }}</div>
         </div>
+        <!-- The one thing in this card that reaches out on its own, rather than when asked. Turning
+             it off leaves the 🧭 button on every trip and charge — the note is still one tap away,
+             it just stops happening by itself. Marker field: an unticked checkbox submits nothing. -->
+        <input type="hidden" name="auto_note_present" value="1">
+        <label class="flex items-center justify-between gap-3 cursor-pointer pt-1">
+          <div>
+            <div class="text-sm text-white">{{ t('auto_note_enable') }}</div>
+            <div class="text-xs text-slate-400">{{ t('auto_note_enable_desc') }}</div>
+          </div>
+          <input type="checkbox" name="auto_note" value="1"
+                 {% if settings.get('auto_note', '1') != '0' %}checked{% endif %}
+                 class="w-5 h-5 accent-brand cursor-pointer flex-shrink-0">
+        </label>
         <div class="flex items-center justify-between gap-3">
           <div id="geocoder-feedback" class="text-xs"></div>
           <button type="submit"

@@ -256,6 +256,18 @@ class Recorder:
         import db_reader
         return db_reader
 
+    def _auto_note_on(self) -> bool:
+        """Whether the AUTOMATIC note may run. On by default — the feature is the point —
+        but a trip's endpoints are, for most people, home and work, and this sends both to
+        a reverse-geocoding service without being asked each time. Settings ▸ Geocoder can
+        turn it off; the 🧭 button stays, so nobody loses the feature, they just decide
+        when it happens. Read from the poller's own connection so an off switch costs no
+        thread and no import."""
+        try:
+            return self._db.get_setting("auto_note", "1") != "0"
+        except Exception:  # noqa: BLE001 — a settings read must never break recording
+            return True
+
     def _auto_note_trip(self, trip_id: int) -> None:
         """Kick the address/time/temperature auto-note for a brand-new trip, off-thread —
         reverse-geocoding can take a few seconds and must never delay the next poll cycle.
@@ -263,6 +275,8 @@ class Recorder:
         somehow already typed in the few seconds between the trip closing and this
         thread running (the 🧭 button is the only thing allowed to overwrite a note, and
         only after the user confirms — see web/main.py trip_generate_auto_note)."""
+        if not self._auto_note_on():
+            return
         threading.Thread(target=self._auto_note_trip_body, args=(trip_id,), daemon=True).start()
 
     def _auto_note_trip_body(self, trip_id: int) -> None:
@@ -277,6 +291,8 @@ class Recorder:
     def _auto_note_charge(self, charge_id: int) -> None:
         """Same as _auto_note_trip, for a brand-new charge (station address + telemetry
         temperatures instead of reverse-geocoded endpoints + Open-Meteo)."""
+        if not self._auto_note_on():
+            return
         threading.Thread(target=self._auto_note_charge_body, args=(charge_id,), daemon=True).start()
 
     def _auto_note_charge_body(self, charge_id: int) -> None:

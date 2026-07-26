@@ -473,6 +473,8 @@
     "note_save": "Enregistrer",
     "note_saved": "Enregistré",
     "auto_note_generate_btn": "Générer un résumé (adresse, heure, température)",
+    "auto_note_enable": "Rédiger la note automatiquement",
+    "auto_note_enable_desc": "Remplit l'adresse, l'heure et la température sur chaque nouveau trajet et chaque nouvelle charge. L'adresse est recherchée en ligne. Désactivé, le bouton 🧭 le fait toujours à la demande.",
     "auto_note_overwrite_confirm": "La génération du résumé automatique remplacera le texte actuel de la note. Continuer ?",
     "drive_mode": "Mode de conduite",
     "one_pedal": "One-Pedal",

@@ -473,6 +473,8 @@
     "note_save": "Save",
     "note_saved": "Saved",
     "auto_note_generate_btn": "Generate summary (address, time, temperature)",
+    "auto_note_enable": "Write the note by itself",
+    "auto_note_enable_desc": "Fill in address, time and temperature on every new trip and charge. The address is looked up online. Switched off, the 🧭 button still does it on request.",
     "auto_note_overwrite_confirm": "Generating the automatic summary will replace the current note text. Continue?",
     "drive_mode": "Drive mode",
     "one_pedal": "One-Pedal",
