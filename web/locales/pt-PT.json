@@ -1010,6 +1010,7 @@
     "save": "Guardar",
     "app_update_restart": "Atualiza no próximo arranque do Mate",
     "app_update_needs_app": "É necessária uma versão mais recente da app — transfira-a",
+    "app_newer_available": "Está disponível uma versão mais recente da app — clique para transferir",
     "desktop_open_notice": "O Mate regista apenas enquanto esta app estiver aberta — o que acontecer depois de a fechar não é guardado nem poderá ser recuperado.",
     "desktop_open_notice_ok": "Percebi",
     "desktop_section": "App",

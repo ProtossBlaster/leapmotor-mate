@@ -919,6 +919,7 @@
     "save": "Zapisz",
     "app_update_restart": "Zaktualizuje się przy następnym uruchomieniu Mate",
     "app_update_needs_app": "Wymagana jest nowsza wersja aplikacji — pobierz ją",
+    "app_newer_available": "Dostępna jest nowsza wersja aplikacji — kliknij, aby pobrać",
     "desktop_open_notice": "Mate zapisuje dane tylko przy otwartej aplikacji — tego, co nastąpi po jej zamknięciu, nie zapisze i nie da się już odzyskać.",
     "desktop_open_notice_ok": "Rozumiem",
     "desktop_section": "Aplikacja",

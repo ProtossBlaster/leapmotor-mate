@@ -87,7 +87,7 @@ def get_update_status(current: str) -> dict:
     latest = db_reader.get_setting("update_latest", "") or None
     available = bool(latest and _ver_tuple(latest) > _ver_tuple(current))
     out = {"available": available, "latest": latest, "url": _RELEASES_PAGE,
-           "desktop": False, "blocked": None}
+           "desktop": False, "blocked": None, "newer_app": None}
     # Set by the desktop launcher on the processes it starts; absent everywhere else, so HA and
     # Docker keep exactly the behaviour they have today.
     if os.environ.get("MATE_DESKTOP") == "1":
@@ -103,5 +103,16 @@ def get_update_status(current: str) -> dict:
             # the app to its own repo would need a Mate release just to correct a link — and
             # until then the badge would send people to Mate's releases, where there is no app
             # to download. The fallback keeps a shell that predates this variable working.
+            out["url"] = os.environ.get("MATE_DESKTOP_DOWNLOAD_URL") or _RELEASES_PAGE
+        # A newer APP, separately from anything about Mate. The shell does not replace itself —
+        # doing that from inside a running application is a different problem, and unsigned it
+        # could not verify what it installed — so the most it can do is notice and say so.
+        #
+        # Deliberately its own field rather than folded into `blocked`. They mean opposite things
+        # to the reader: blocked is "Mate cannot move until you act", this is "there is a better
+        # version whenever you feel like it". Sharing one badge would either nag about a nicety
+        # or bury the one that matters.
+        out["newer_app"] = os.environ.get("MATE_DESKTOP_NEWER") or None
+        if out["newer_app"]:
             out["url"] = os.environ.get("MATE_DESKTOP_DOWNLOAD_URL") or _RELEASES_PAGE
     return out

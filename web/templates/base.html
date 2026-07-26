@@ -17,6 +17,19 @@
 {%- endif -%}
 {%- endif -%}
 {%- endmacro -%}
+{#- The APP's own badge, next to the app version rather than Mate's, because it is about a
+    different thing. Mate updates itself; the app does not — the most it can do is notice that a
+    newer one has been published and say so, which until now it never did: a fix in the app
+    reached only the people who happened to go looking.
+
+    A dot, not a number, and never red. Red is reserved for the one case the user MUST act on —
+    a Mate release refused because this app is too old to run it. This is optional, and reading
+    the two as equally urgent would make the urgent one ordinary. -#}
+{%- macro app_badge(update, t) -%}
+{%- if update and update.newer_app -%}
+<a href="{{ update.url }}" target="_blank" rel="noopener" title="{{ t('app_newer_available') }} · v{{ update.newer_app }}" class="ml-1 text-[10px] font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 rounded-full px-1.5 py-0.5">↑</a>
+{%- endif -%}
+{%- endmacro -%}
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
@@ -193,7 +206,7 @@
     <div class="flex items-center gap-2">
       <img src="static/mate-icon.svg" alt="LeapMotor Mate" class="h-6 w-6">
       <span class="text-sm font-medium text-slate-100">LeapMotor <span class="text-brand">Mate</span></span>
-      {% if version %}<span title="{{ ("MateDesktop " ~ shell_version) if shell_version else "" }}" class="text-[10px] text-slate-500 font-normal self-end mb-0.5 whitespace-nowrap">v{{ version }}{% if shell_version %}<span class="opacity-50"> · D{{ shell_version }}</span>{% endif %}</span>{% endif %}
+      {% if version %}<span title="{{ ("MateDesktop " ~ shell_version) if shell_version else "" }}" class="text-[10px] text-slate-500 font-normal self-end mb-0.5 whitespace-nowrap">v{{ version }}{% if shell_version %}<span class="opacity-50"> · D{{ shell_version }}</span>{{ app_badge(update, t) }}{% endif %}</span>{% endif %}
       {% if demo %}<span title="Sample data — no real car" class="text-[10px] font-bold text-slate-900 bg-amber-400 rounded px-1.5 py-0.5 self-center ml-1 tracking-wide">DEMO</span>{% endif %}
       {{ version_badge(update, t) }}
     </div>
@@ -223,7 +236,7 @@
       <div class="flex items-center gap-2">
         <img src="static/mate-icon.svg" alt="LeapMotor Mate" class="h-6 w-6">
         <span class="text-sm font-medium text-slate-100">LeapMotor <span class="text-brand">Mate</span></span>
-        {% if version %}<span title="{{ ("MateDesktop " ~ shell_version) if shell_version else "" }}" class="text-[10px] text-slate-500 font-normal self-end mb-0.5 whitespace-nowrap">v{{ version }}{% if shell_version %}<span class="opacity-50"> · D{{ shell_version }}</span>{% endif %}</span>{% endif %}
+        {% if version %}<span title="{{ ("MateDesktop " ~ shell_version) if shell_version else "" }}" class="text-[10px] text-slate-500 font-normal self-end mb-0.5 whitespace-nowrap">v{{ version }}{% if shell_version %}<span class="opacity-50"> · D{{ shell_version }}</span>{{ app_badge(update, t) }}{% endif %}</span>{% endif %}
       {% if demo %}<span title="Sample data — no real car" class="text-[10px] font-bold text-slate-900 bg-amber-400 rounded px-1.5 py-0.5 self-center ml-1 tracking-wide">DEMO</span>{% endif %}
       {{ version_badge(update, t) }}
       </div>

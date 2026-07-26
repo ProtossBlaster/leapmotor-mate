@@ -95,3 +95,50 @@ def test_the_confirmation_says_it_cannot_be_undone(locale):
     # name is the one token they all share.
     assert "ackup" in msg or "opia" in msg or "auvegarde" in msg or "xport" in msg, \
         f"{locale}: does not point at the backup before destroying anything"
+
+
+# ── A newer APP, which is a different message from a newer Mate ─────────────────────────
+
+UPDATE_CHECK = (WEB / "update_check.py").read_text(encoding="utf-8")
+BASE = (WEB / "templates" / "base.html").read_text(encoding="utf-8")
+
+
+def test_a_newer_app_is_its_own_signal():
+    """Not folded into `blocked`. The two say opposite things to the reader — blocked is 'Mate
+    cannot move until you act', this is 'there is a better version when you feel like it' — and
+    one badge for both would either nag about a nicety or bury the one that matters."""
+    assert '"newer_app"' in UPDATE_CHECK
+    assert "MATE_DESKTOP_NEWER" in UPDATE_CHECK
+
+
+def test_it_only_reaches_the_desktop_app():
+    """Home Assistant and Docker never see it: the variable is set by the shell, and the whole
+    block is inside the MATE_DESKTOP guard."""
+    block = UPDATE_CHECK[UPDATE_CHECK.index('os.environ.get("MATE_DESKTOP") == "1"'):]
+    block = block[:block.index("return out")]
+    assert "MATE_DESKTOP_NEWER" in block, "the newer-app signal escapes the desktop guard"
+
+
+def test_the_badge_is_never_red():
+    """Red belongs to the refused update — the one thing the user MUST act on. Making an optional
+    download look the same would make the urgent one ordinary."""
+    macro = BASE[BASE.index("{%- macro app_badge"):]
+    macro = macro[:macro.index("{%- endmacro -%}")]
+    assert "red" not in macro, "the optional badge borrows the urgent colour"
+    assert "amber" in macro
+
+
+def test_the_badge_links_somewhere_and_is_shown_in_both_sidebars():
+    """The shell hands over the address; Mate only shows it. And the version line exists twice —
+    desktop sidebar and mobile — so a badge added to one of them is invisible on the other."""
+    macro = BASE[BASE.index("{%- macro app_badge"):]
+    macro = macro[:macro.index("{%- endmacro -%}")]
+    assert "update.url" in macro, "the badge is not clickable"
+    assert BASE.count("{{ app_badge(update, t) }}") == 2, "the badge is not in both sidebars"
+
+
+@pytest.mark.parametrize("locale", sorted(p.name for p in (WEB / "locales").glob("*.json")))
+def test_the_badge_tooltip_is_translated(locale):
+    data = json.loads((WEB / "locales" / locale).read_text(encoding="utf-8"))
+    keys = {k for sect in data.values() if isinstance(sect, dict) for k in sect}
+    assert "app_newer_available" in keys
