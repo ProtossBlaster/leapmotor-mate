@@ -21,3 +21,55 @@ jobs:
         run: pip install pytest cryptography jinja2==3.1.4 leapmotor-api==0.3.1 "paho-mqtt>=2.0.0"
       - name: Run tests
         run: pytest -q
+
+  # ── Does the desktop app still fit this code? ────────────────────────────────────────────
+  # MateDesktop ships a SHELL (Python + the compiled libraries) and fetches the payload — web/ +
+  # poller/ — from this repository on every launch. That is what lets Mate release almost daily
+  # while the shell is rebuilt about twice a year.
+  #
+  # It has exactly one failure mode. The shell carries the libraries these two requirements files
+  # asked for on the day it was built; if a release later asks for something new, the app REFUSES
+  # the payload rather than dying on import, and every desktop user quietly stops moving forward
+  # until a new shell is published. Nothing in Mate's own tests can see that coming — it is not a
+  # bug in this repository, it is a mismatch with a package built somewhere else.
+  #
+  # Six times in 176 releases, so it is exactly the kind of thing a person forgets. Every published
+  # shell records the Mate tag it was seeded from; this reads it back and compares.
+  #
+  # It fails only on a tag — the moment a release is actually being cut. On ordinary pushes it
+  # warns, so that day-to-day work is never blocked by a shell that simply has not been rebuilt
+  # yet. And it stays quiet on anything it cannot determine: the only thing that turns it red is
+  # the real condition.
+  shell-compat:
+    name: Desktop shell still fits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          fetch-depth: 0        # the seed is a tag, and a shallow clone cannot see one
+      - name: Compare requirements against the published shell
+        run: |
+          API=https://api.github.com/repos/ProtossBlaster/MateDesktop/releases/latest
+          URL=$(curl -sfL -H "Accept: application/vnd.github+json" "$API" \
+                | jq -r '.assets[]? | select(.name=="payload-seed.txt") | .browser_download_url' || true)
+          if [ -z "${URL:-}" ] || [ "$URL" = "null" ]; then
+            echo "No published shell carrying a seed marker — there is nothing out there to strand."
+            exit 0
+          fi
+          SEED=$(curl -sfL "$URL" | tr -d '[:space:]' || true)
+          if [ -z "${SEED:-}" ] || ! git rev-parse -q --verify "$SEED^{commit}" >/dev/null; then
+            echo "::notice::the shell reports seed '${SEED:-?}', which this repo cannot resolve — skipping"
+            exit 0
+          fi
+          if git diff --quiet "$SEED"..HEAD -- web/requirements.txt poller/requirements.txt; then
+            echo "OK — the shell built from $SEED carries everything this code asks for."
+            exit 0
+          fi
+          echo "What changed since the shell was built ($SEED):"
+          git diff "$SEED"..HEAD -- web/requirements.txt poller/requirements.txt
+          MSG="the dependency list has moved since the desktop shell was built ($SEED). The app will refuse this payload and hold every desktop user on an older Mate until a new shell is published. Build and release MateDesktop together with this one."
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            echo "::error::$MSG"
+            exit 1
+          fi
+          echo "::warning::$MSG"
