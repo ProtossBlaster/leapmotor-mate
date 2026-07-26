@@ -1,0 +1,76 @@
+{# GET /api/trips/calendar response — the Viaggi "calendar" Month view. Self-replacing: the
+   prev/next/today nav buttons target THIS SAME #trips-calendar-month container with
+   hx-swap="outerHTML", so navigating months also resets the day-drawer below. Day cells with
+   trips instead target only #trips-day-drawer — clicking a day never re-fetches the grid. #}
+<div id="trips-calendar-month">
+  <div class="flex items-center justify-between mb-4">
+    <button type="button" title="{{ t('charges_calendar_prev') }}"
+            hx-get="api/trips/calendar?year={{ prev_year }}&month={{ prev_month }}"
+            hx-target="#trips-calendar-month" hx-swap="outerHTML"
+            class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-600 text-slate-300 hover:border-brand hover:text-white transition-colors">◀</button>
+    <div class="text-center">
+      <div class="text-white font-bold text-lg leading-tight">{{ month_label }}</div>
+      {% if not (year == today.year and month == today.month) %}
+      <button type="button"
+              hx-get="api/trips/calendar"
+              hx-target="#trips-calendar-month" hx-swap="outerHTML"
+              class="text-xs text-brand hover:underline">{{ t('charges_calendar_today') }}</button>
+      {% endif %}
+    </div>
+    <button type="button" title="{{ t('charges_calendar_next') }}"
+            hx-get="api/trips/calendar?year={{ next_year }}&month={{ next_month }}"
+            hx-target="#trips-calendar-month" hx-swap="outerHTML"
+            class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-600 text-slate-300 hover:border-brand hover:text-white transition-colors">▶</button>
+  </div>
+
+  {% if total.count %}
+  <div class="flex items-center justify-center gap-4 text-sm mb-4 flex-wrap">
+    <span class="text-slate-400">{{ total.count }} {{ t('trip_singular') if total.count == 1 else t('trips_plural') }}</span>
+    <span class="text-white font-semibold">{{ total.km | dist(1) }}</span>
+    {% if total.avg_eff %}<span class="eff-pill {{ eff_cls(total.avg_eff) }}">{{ total.avg_eff | eff }}</span>{% endif %}
+    {% if total.cost %}<span class="text-slate-300 font-semibold">{{ total.cost | money }}</span>{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-7 gap-1 sm:gap-1.5 lg:gap-2 text-center text-[10px] sm:text-xs lg:text-sm text-slate-500 mb-1">
+    {% for wd in weekday_abbrs %}<div>{{ wd }}</div>{% endfor %}
+  </div>
+
+  <div class="grid grid-cols-7 gap-1 sm:gap-1.5 lg:gap-2">
+    {% for week in weeks %}
+      {% for cell in week %}
+        {% if cell is none %}
+        <div></div>
+        {% else %}
+        {% set is_today = (year == today.year and month == today.month and cell.day == today.day) %}
+        {% if cell.count %}
+        <button type="button"
+                hx-get="api/trips/calendar/day?year={{ year }}&month={{ month }}&day={{ cell.day }}"
+                hx-target="#trips-day-drawer" hx-swap="innerHTML"
+                class="aspect-square rounded-lg border flex flex-col items-center justify-center gap-0.5 lg:gap-1 cursor-pointer hover:border-brand transition-colors"
+                style="background:#0f172a;border-color:{% if is_today %}#fbbf24{% else %}#1e293b{% endif %}">
+          <span class="text-[11px] sm:text-sm lg:text-lg {% if is_today %}text-yellow-400 font-bold{% else %}text-slate-300{% endif %}">{{ cell.day }}</span>
+          <span class="text-[9px] sm:text-[11px] lg:text-sm text-white font-semibold leading-none">{{ cell.km | dist(0) }}</span>
+          <span class="text-[8px] sm:text-[10px] lg:text-xs text-slate-500 leading-none">{{ cell.count }}🚗</span>
+        </button>
+        {% else %}
+        <div class="aspect-square rounded-lg flex items-center justify-center"
+             style="background:#0a1220;border:1px solid {% if is_today %}#fbbf2455{% else %}#111c2e{% endif %}">
+          <span class="text-[11px] sm:text-sm lg:text-lg {% if is_today %}text-yellow-400 font-bold{% else %}text-slate-600{% endif %}">{{ cell.day }}</span>
+        </div>
+        {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <div id="trips-day-drawer" class="mt-4">
+    {% if open_day_trips is defined %}
+      {% with trips = open_day_trips, day_label = open_day_label %}
+        {% include "partials/trips_calendar_day_content.html" %}
+      {% endwith %}
+    {% else %}
+    <div class="text-center text-slate-500 text-sm py-6">{{ t('trips_calendar_pick_day') }}</div>
+    {% endif %}
+  </div>
+</div>

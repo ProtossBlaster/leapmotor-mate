@@ -133,11 +133,20 @@ import units
 for _name in ("dist", "speed", "temp", "pressure", "elev"):
     templates.env.filters[_name] = getattr(units, _name)
 templates.env.filters["eff"] = units.efficiency
+def _eff_cls(e) -> str:
+    """Efficiency → pill colour class — shared by trip_row.html wherever a trip is rendered
+    (day-drawer, search results, merge candidates), not just the old trips.html-local macro."""
+    if e is None:
+        return ""
+    return "eff-good" if e < 18 else "eff-mid" if e < 22 else "eff-bad"
+
+
 templates.env.globals.update(
     dist_unit=units.dist_unit, speed_unit=units.speed_unit, temp_unit=units.temp_unit,
     pressure_unit=units.pressure_unit, eff_unit=units.eff_unit, elev_unit=units.elev_unit,
     dist_val=units.dist_val, speed_val=units.speed_val, temp_val=units.temp_val,
     eff_val=units.eff_val, elev_val=units.elev_val, unit_system=units.get_unit_system,
+    eff_cls=_eff_cls,
 )
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
@@ -208,6 +217,23 @@ def _state_color(pos: dict) -> str:
     if _driving(pos): return "text-blue-400"
     if pos.get("plug_connected"): return "text-teal-300"   # cable in, not actively charging
     return "text-green-400"
+
+def _opt_float(s: str) -> "float | None":
+    """An optional numeric search-filter field, as FastAPI/Pydantic won't: a query param
+    typed `float | None = None` only defaults to None when the param is ABSENT, not when
+    it's present-but-empty — and an empty number/date input still submits its name with
+    an empty VALUE (e.g. `cost_min=`), which FastAPI then 422s trying to parse "" as a
+    float. Every optional numeric search filter takes `str` and goes through this instead
+    (#175 — an empty advanced-filter field made the whole search request fail silently,
+    since htmx doesn't swap in a non-2xx response)."""
+    s = (s or "").strip()
+    if not s:
+        return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
 
 def _fmt_dur(minutes) -> str:
     """Readable duration: '10h 19m' from an hour up, '45 min' below, '—' when missing —
@@ -383,20 +409,128 @@ async def overview(request: Request):
 @app.get("/trips", response_class=HTMLResponse)
 async def trips_page(request: Request, highlight: int = 0):
     vehicle, _ = db_reader.get_vehicle()
-    grouped = db_reader.get_trips_grouped()
-    total   = sum(y["count"] for y in grouped)
     summary = db_reader.get_trips_summary()
-    # All eligible adjacent pairs at the WIDEST gap → drawn as connectors in the tree and filtered
-    # live (client-side) by the gap slider. Keyed by the later trip's id (b_id = the row above a in
-    # the newest-first list); value carries the earlier trip a_id + the actual stop gap in minutes.
-    merge_pairs = {p["b_id"]: {"a_id": p["a_id"], "gap": p["gap_min"]}
-                   for p in db_reader.get_mergeable_pairs(db_reader.TRIP_MERGE_GAP_MAX)}
+    total   = summary.get("count") or 0
+    # The calendar's Month view opens on today — or, following a ?highlight=<id> link, on
+    # whichever month that ONE trip actually falls on (same convention as Ricariche).
+    today = db_reader.today_local()
+    cal_year, cal_month, cal_open_day = today.year, today.month, 0
+    if highlight:
+        hl_date = db_reader.get_trip_local_date(highlight)
+        if hl_date:
+            cal_year, cal_month, cal_open_day = hl_date.year, hl_date.month, hl_date.day
     return templates.TemplateResponse(request, "trips.html", _ctx(
-        page="trips", vehicle=vehicle, grouped=grouped,
+        page="trips", vehicle=vehicle,
         total=total, highlight=highlight, summary=summary,
-        merge_pairs=merge_pairs, merge_gap_default=db_reader.TRIP_MERGE_GAP_DEFAULT,
+        merge_gap_default=db_reader.TRIP_MERGE_GAP_DEFAULT,
         merge_gap_min=db_reader.TRIP_MERGE_GAP_MIN, merge_gap_max=db_reader.TRIP_MERGE_GAP_MAX,
+        cal_year=cal_year, cal_month=cal_month, cal_open_day=cal_open_day,
+        cal_years=db_reader.get_trip_years(),
     ))
+
+
+def _render_trips_calendar(request: Request, year: int, month: int, open_day: int = 0):
+    """Shared by /api/trips/calendar and the search endpoint's empty-filters fallback."""
+    import calendar as calmod
+    from datetime import date
+    today = db_reader.today_local()
+    year, month = year or today.year, month or today.month
+    month = max(1, min(12, month))
+    cal = db_reader.get_trips_calendar_month(year, month)
+    weeks = []
+    for week in calmod.Calendar(firstweekday=0).monthdayscalendar(year, month):
+        row = []
+        for day in week:
+            row.append(None if day == 0 else {
+                "day": day, **cal["days"].get(day, {"count": 0, "km": 0.0, "regen": 0.0,
+                                                      "cost": 0.0, "avg_eff": None})})
+        weeks.append(row)
+    prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
+    next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
+    lang = db_reader.get_language()
+    ctx = {
+        "t": i18n.get_t(lang), "year": year, "month": month, "weeks": weeks, "total": cal["total"],
+        "month_label": i18n.fmt_month_year(lang, date(year, month, 1)),
+        "weekday_abbrs": i18n.weekday_abbrs(lang),
+        "prev_year": prev_year, "prev_month": prev_month,
+        "next_year": next_year, "next_month": next_month,
+        "today": today, "fmt_dur": _fmt_dur,
+        "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
+    }
+    if open_day and open_day in cal["days"]:
+        ctx["open_day_trips"] = db_reader.get_trips_calendar_day(year, month, open_day)
+        ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
+    return templates.TemplateResponse(request, "partials/trips_calendar_month.html", ctx)
+
+
+@app.get("/api/trips/calendar", response_class=HTMLResponse)
+async def trips_calendar(request: Request, year: int = 0, month: int = 0, open_day: int = 0):
+    """Viaggi 'calendar' Month view (HTMX partial, day totals only) — the day drawer loads
+    a day's actual trips lazily on click (see trips_calendar_day below)."""
+    return _render_trips_calendar(request, year, month, open_day)
+
+
+@app.get("/api/trips/calendar/day", response_class=HTMLResponse)
+async def trips_calendar_day(request: Request, year: int, month: int, day: int):
+    """One day's trips for the Month view's day drawer."""
+    lang = db_reader.get_language()
+    from datetime import date
+    return templates.TemplateResponse(request, "partials/trips_calendar_day.html", {
+        "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
+        "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
+        "trips": db_reader.get_trips_calendar_day(year, month, day),
+        "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
+    })
+
+
+@app.get("/api/trips/search", response_class=HTMLResponse)
+async def trips_search(request: Request, q: str = "", drive_mode: str = "",
+                        km_min: str = "", km_max: str = "",
+                        eff_min: str = "", eff_max: str = "",
+                        duration_min: str = "", duration_max: str = "",
+                        date_from: str = "", date_to: str = "",
+                        year: int = 0, month: int = 0):
+    """Viaggi free-text + advanced-filter search (HTMX partial) — replaces the calendar with
+    a flat, most-recent-first list of matches. No filter at all (search cleared) falls back
+    to the calendar Month view instead of an empty list. km_min/km_max are typed in the
+    user's own distance unit (the form label follows dist_unit()) and converted to km here,
+    same as a manually-entered odometer reading — search_trips itself is always metric.
+    The numeric fields arrive as strings (see _opt_float) — an empty advanced-filter field
+    must never 422 the whole request."""
+    n_km_min, n_km_max = _opt_float(km_min), _opt_float(km_max)
+    n_eff_min, n_eff_max = _opt_float(eff_min), _opt_float(eff_max)
+    n_duration_min, n_duration_max = _opt_float(duration_min), _opt_float(duration_max)
+    if not any((q.strip(), drive_mode.strip(), n_km_min is not None, n_km_max is not None,
+                n_eff_min is not None, n_eff_max is not None, n_duration_min is not None,
+                n_duration_max is not None, date_from.strip(), date_to.strip())):
+        return _render_trips_calendar(request, year, month)
+    lang = db_reader.get_language()
+    trips = db_reader.search_trips(
+        text=q, drive_mode=drive_mode,
+        km_min=units.dist_to_km(n_km_min), km_max=units.dist_to_km(n_km_max),
+        eff_min=n_eff_min, eff_max=n_eff_max, duration_min=n_duration_min, duration_max=n_duration_max,
+        date_from=date_from, date_to=date_to)
+    today = db_reader.today_local()
+    return templates.TemplateResponse(request, "partials/trips_search_results.html", {
+        "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
+        "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
+        "trips": trips, "year": year or today.year, "month": month or today.month,
+    })
+
+
+@app.get("/api/trips/merge-candidates", response_class=HTMLResponse)
+async def trips_merge_candidates(request: Request, gap: int = db_reader.TRIP_MERGE_GAP_DEFAULT):
+    """Viaggi 🔗 button (HTMX partial) — replaces the calendar with the (typically few) actual
+    mergeable pairs across all history, independent of whichever month is currently browsed."""
+    gap = max(db_reader.TRIP_MERGE_GAP_MIN, min(db_reader.TRIP_MERGE_GAP_MAX, gap))
+    lang = db_reader.get_language()
+    return templates.TemplateResponse(request, "partials/trip_merge_candidates.html", {
+        "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
+        "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
+        "candidates": db_reader.get_merge_candidates(gap), "gap": gap,
+        "merge_gap_default": db_reader.TRIP_MERGE_GAP_DEFAULT,
+        "merge_gap_min": db_reader.TRIP_MERGE_GAP_MIN, "merge_gap_max": db_reader.TRIP_MERGE_GAP_MAX,
+    })
 
 
 def _route_svg(points: list[dict], w: int = 84, h: int = 48, pad: int = 6) -> str:
@@ -591,25 +725,117 @@ async def set_charge_note(request: Request, charge_id: int):
 @app.get("/charges", response_class=HTMLResponse)
 async def charges_page(request: Request, highlight: int = 0, station: str = ""):
     vehicle, _ = db_reader.get_vehicle()
-    grouped = db_reader.get_charges_grouped(station=station or None)
     stats   = db_reader.get_charge_stats()
     prices  = db_reader.get_charge_prices()
     status  = db_reader.get_latest_status()
-    total   = sum(y["count"] for y in grouped)
+    total   = stats.get("session_count") or 0
     station_info = None
     if station:
         # Uncapped: a station reached via ?station=<key> must resolve regardless of the map's
-        # top_n cap, same as get_charges_grouped(station=...) below.
+        # top_n cap, same as search_charges(station=...) below.
         stations = db_reader.get_charging_stations(top_n=None)
         station_info = next((s for s in stations if s["key"] == station), None)
+    # The calendar's Month view opens on today — or, following a ?highlight=<id> link (e.g. a
+    # map popup), on whichever month that ONE charge actually falls on, so it isn't invisible.
+    today = db_reader.today_local()
+    cal_year, cal_month, cal_open_day = today.year, today.month, 0
+    if highlight:
+        hl_date = db_reader.get_charge_local_date(highlight)
+        if hl_date:
+            cal_year, cal_month, cal_open_day = hl_date.year, hl_date.month, hl_date.day
     return templates.TemplateResponse(request, "charges.html", _ctx(
-        page="charges", vehicle=vehicle, grouped=grouped,
+        page="charges", vehicle=vehicle,
         stats=stats, total=total, highlight=highlight,
         charge_types=db_reader.CHARGE_TYPES, prices=prices,
         status=status, ac_dc=db_reader.get_ac_dc_stats(),
         unconfirmed=db_reader.unconfirmed_charges_count(),
         station=station, station_info=station_info,
+        cal_year=cal_year, cal_month=cal_month, cal_open_day=cal_open_day,
+        cal_years=db_reader.get_charge_years(station or None),
     ))
+
+
+def _render_charges_calendar(request: Request, year: int, month: int, station: str, open_day: int = 0):
+    """Shared by /api/charges/calendar and the search endpoint's empty-filters fallback."""
+    import calendar as calmod
+    from datetime import date
+    today = db_reader.today_local()
+    year, month = year or today.year, month or today.month
+    month = max(1, min(12, month))
+    cal = db_reader.get_charges_calendar_month(year, month, station=station or None)
+    weeks = []
+    for week in calmod.Calendar(firstweekday=0).monthdayscalendar(year, month):
+        row = []
+        for day in week:
+            row.append(None if day == 0 else {
+                "day": day, **cal["days"].get(day, {"count": 0, "kwh": 0.0, "cost": 0.0, "has_cost": False})})
+        weeks.append(row)
+    prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
+    next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
+    lang = db_reader.get_language()
+    ctx = {
+        "t": i18n.get_t(lang), "year": year, "month": month, "weeks": weeks, "total": cal["total"],
+        "month_label": i18n.fmt_month_year(lang, date(year, month, 1)),
+        "weekday_abbrs": i18n.weekday_abbrs(lang),
+        "prev_year": prev_year, "prev_month": prev_month,
+        "next_year": next_year, "next_month": next_month,
+        "today": today, "station": station,
+        "charge_types": db_reader.CHARGE_TYPES, "fmt_dur": _fmt_dur,
+    }
+    if open_day and open_day in cal["days"]:
+        ctx["open_day_charges"] = db_reader.get_charges_calendar_day(year, month, open_day, station=station or None)
+        ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
+    return templates.TemplateResponse(request, "partials/charges_calendar_month.html", ctx)
+
+
+@app.get("/api/charges/calendar", response_class=HTMLResponse)
+async def charges_calendar(request: Request, year: int = 0, month: int = 0, station: str = "", open_day: int = 0):
+    """Ricariche 'calendar' Month view (HTMX partial, day totals only) — the day drawer
+    loads a day's actual charge cards lazily on click (see charges_calendar_day below),
+    so a month never ships more markup than the handful of days the user opens."""
+    return _render_charges_calendar(request, year, month, station, open_day)
+
+
+@app.get("/api/charges/calendar/day", response_class=HTMLResponse)
+async def charges_calendar_day(request: Request, year: int, month: int, day: int, station: str = ""):
+    """One day's charge cards for the Month view's day drawer."""
+    lang = db_reader.get_language()
+    charges = db_reader.get_charges_calendar_day(year, month, day, station=station or None)
+    from datetime import date
+    return templates.TemplateResponse(request, "partials/charges_calendar_day.html", {
+        "t": i18n.get_t(lang), "charge_types": db_reader.CHARGE_TYPES, "fmt_dur": _fmt_dur,
+        "charges": charges, "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
+    })
+
+
+@app.get("/api/charges/search", response_class=HTMLResponse)
+async def charges_search(request: Request, q: str = "", type: str = "",
+                          cost_min: str = "", cost_max: str = "",
+                          kwh_min: str = "", kwh_max: str = "",
+                          date_from: str = "", date_to: str = "", station: str = "",
+                          year: int = 0, month: int = 0):
+    """Ricariche free-text + advanced-filter search (HTMX partial) — replaces the calendar
+    with a flat, most-recent-first list of matches (see charge_card.html). No filter at all
+    (search cleared) falls back to the calendar Month view instead of an empty list. The
+    numeric fields arrive as strings (see _opt_float) — an empty advanced-filter field must
+    never 422 the whole request (#175: htmx doesn't swap in a non-2xx response, so the
+    search silently did nothing whenever ANY unfilled number field was submitted)."""
+    n_cost_min, n_cost_max = _opt_float(cost_min), _opt_float(cost_max)
+    n_kwh_min, n_kwh_max = _opt_float(kwh_min), _opt_float(kwh_max)
+    if not any((q.strip(), type.strip(), n_cost_min is not None, n_cost_max is not None,
+                n_kwh_min is not None, n_kwh_max is not None, date_from.strip(), date_to.strip())):
+        return _render_charges_calendar(request, year, month, station)
+    lang = db_reader.get_language()
+    charges = db_reader.search_charges(
+        text=q, charge_type=type, cost_min=n_cost_min, cost_max=n_cost_max,
+        kwh_min=n_kwh_min, kwh_max=n_kwh_max, date_from=date_from, date_to=date_to,
+        station=station or None)
+    today = db_reader.today_local()
+    return templates.TemplateResponse(request, "partials/charges_search_results.html", {
+        "t": i18n.get_t(lang), "charge_types": db_reader.CHARGE_TYPES, "fmt_dur": _fmt_dur,
+        "charges": charges, "station": station,
+        "year": year or today.year, "month": month or today.month,
+    })
 
 
 @app.get("/statistics", response_class=HTMLResponse)
@@ -1425,9 +1651,12 @@ async def wallbox_page(request: Request):
     if db_reader.get_setting("wallbox_enabled", "0") != "1":
         return RedirectResponse(request.headers.get("x-ingress-path", "") + "/settings")
     vehicle, _ = db_reader.get_vehicle()
+    today = db_reader.today_local()
     return templates.TemplateResponse(request, "wallbox.html", _ctx(
         page="wallbox", vehicle=vehicle,
         configured=ha_client.is_configured() and bool(ha_client.get_mapping()),
+        cal_year=today.year, cal_month=today.month,
+        cal_years=db_reader.get_wallbox_years(),
     ))
 
 
@@ -1851,6 +2080,64 @@ async def wallbox_sessions(request: Request):
     return templates.TemplateResponse(request, "partials/wallbox_sessions.html", _ctx(
         tree=_wallbox_sessions_grouped(),
     ))
+
+
+def _wallbox_day_sessions(year: int, month: int, day: int) -> list:
+    """A day's sessions with their precise AC/DC comparison (_session_energy — a live Home
+    Assistant history fetch per session) computed HERE, lazily, only for the one day being
+    opened — never for a whole month/history up front."""
+    sessions = db_reader.get_wallbox_calendar_day(year, month, day)
+    for s in sessions:
+        s.update(_session_energy(db_reader.get_charge_power_curve(s["id"])))
+    return sessions
+
+
+@app.get("/api/wallbox/calendar", response_class=HTMLResponse)
+async def wallbox_calendar(request: Request, year: int = 0, month: int = 0, open_day: int = 0):
+    """Wallbox 'calendar' Month view (HTMX partial, day totals from the ALREADY-STORED
+    charge columns) — the day drawer computes each session's precise AC/DC comparison
+    lazily on click (see wallbox_calendar_day below), so opening the page never fires a
+    Home Assistant history request per session like the old full accordion did."""
+    import calendar as calmod
+    from datetime import date
+    today = db_reader.today_local()
+    year, month = year or today.year, month or today.month
+    month = max(1, min(12, month))
+    cal = db_reader.get_wallbox_calendar_month(year, month)
+    weeks = []
+    for week in calmod.Calendar(firstweekday=0).monthdayscalendar(year, month):
+        row = []
+        for day in week:
+            row.append(None if day == 0 else {
+                "day": day, **cal["days"].get(day, {"count": 0, "ac": 0.0, "dc": 0.0, "eff": None})})
+        weeks.append(row)
+    prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
+    next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
+    lang = db_reader.get_language()
+    ctx = {
+        "t": i18n.get_t(lang), "year": year, "month": month, "weeks": weeks, "total": cal["total"],
+        "month_label": i18n.fmt_month_year(lang, date(year, month, 1)),
+        "weekday_abbrs": i18n.weekday_abbrs(lang),
+        "prev_year": prev_year, "prev_month": prev_month,
+        "next_year": next_year, "next_month": next_month,
+        "today": today,
+    }
+    if open_day and open_day in cal["days"]:
+        ctx["open_day_sessions"] = _wallbox_day_sessions(year, month, open_day)
+        ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
+    return templates.TemplateResponse(request, "partials/wallbox_calendar_month.html", ctx)
+
+
+@app.get("/api/wallbox/calendar/day", response_class=HTMLResponse)
+async def wallbox_calendar_day(request: Request, year: int, month: int, day: int):
+    """One day's sessions for the Month view's day drawer."""
+    lang = db_reader.get_language()
+    from datetime import date
+    return templates.TemplateResponse(request, "partials/wallbox_calendar_day.html", {
+        "t": i18n.get_t(lang),
+        "sessions": _wallbox_day_sessions(year, month, day),
+        "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
+    })
 
 
 @app.get("/api/wallbox/compare-chart", response_class=HTMLResponse)

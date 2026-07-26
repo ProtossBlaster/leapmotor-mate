@@ -11,10 +11,6 @@
   </div>
   {% if total %}
   <div class="shrink-0 flex items-center gap-2 flex-wrap justify-end">
-    <button type="button" id="collapse-all-charges"
-            class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-slate-400/50 transition-all">
-      ⊟ {{ t('collapse_all') }}
-    </button>
     <a href="api/export/charges.csv" download
        class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-brand/50 transition-all">
       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
@@ -282,301 +278,67 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 </div>
 {% endif %}
 
-<!-- Grouped accordion -->
-{% if grouped %}
-<div class="space-y-3" id="charges-tree" data-ls-key="lm_charges_open">
-{% for year in grouped %}
-
-  <!-- YEAR -->
-  <details id="cy-{{ year.label }}" class="group">
-    <summary style="background:#1e293b;border:1px solid #334155;list-style:none"
-             class="flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer select-none">
-      <div class="flex items-center gap-3">
-        <span class="group-open:rotate-90 text-slate-400" style="transition:transform .2s;display:inline-block">▶</span>
-        <span class="text-white font-bold text-lg">{{ year.label }}</span>
-      </div>
-      <div class="flex items-center flex-wrap justify-end gap-x-4 gap-y-1 text-sm">
-        <span class="text-slate-500 whitespace-nowrap">{{ year.count }} {{ t('session_inline_one') if year.count == 1 else t('session_inline_many') }}</span>
-        <span class="text-yellow-400 font-semibold whitespace-nowrap">{{ year.kwh }} kWh</span>
-        {% if year.has_cost %}
-        <span class="text-green-400 font-semibold whitespace-nowrap">{{ year.cost | money }}</span>
-        {% endif %}
-        <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
-      </div>
-    </summary>
-
-    <div class="ml-4 mt-2 space-y-2">
-    {% for month in year.months.values() %}
-
-      <!-- MONTH -->
-      <details id="cm-{{ month.label|replace(' ','_') }}" class="group/month">
-        <summary style="background:#0f172a;border:1px solid #1e293b;list-style:none"
-                 class="flex items-center justify-between px-4 py-2.5 rounded-lg cursor-pointer select-none">
-          <div class="flex items-center gap-3">
-            <span class="group-open/month:rotate-90 text-slate-500 text-sm" style="transition:transform .2s;display:inline-block">▶</span>
-            <span class="text-slate-200 font-semibold">{{ month.label }}</span>
-          </div>
-          <div class="flex items-center flex-wrap justify-end gap-x-4 gap-y-1 text-xs">
-            <span class="text-slate-500 whitespace-nowrap">{{ month.count }} {{ t('session_inline_one') if month.count == 1 else t('session_inline_many') }}</span>
-            <span class="text-yellow-400 font-medium whitespace-nowrap">{{ month.kwh }} kWh</span>
-            {% if month.has_cost %}
-            <span class="text-green-400 font-medium whitespace-nowrap">{{ month.cost | money }}</span>
-            {% endif %}
-            <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
-          </div>
-        </summary>
-
-        <div class="ml-4 mt-1.5 space-y-1.5">
-        {% for day in month.days.values() %}
-
-          <!-- DAY -->
-          <details id="cd-{{ day.label|replace(' ','_') }}" class="group/day">
-            <summary style="background:#0a1628;border:1px solid #1a2438;list-style:none"
-                     class="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer select-none">
-              <div class="flex items-center gap-2">
-                <span class="group-open/day:rotate-90 text-slate-600 text-xs" style="transition:transform .2s;display:inline-block">▶</span>
-                <span class="text-slate-300 text-sm font-medium">{{ day.label }}</span>
-                {# The count was spelled with an English rule ("session"/"sessions") on every language.
-                   Two keys instead, already cased per language — German capitalises the noun,
-                   the others don't. Slavic languages want a third form above four; the plural
-                   covers them, which is wrong for 5+ in Polish but no longer wrong in five
-                   languages at once. #}
-                <span class="text-slate-600 text-xs hidden sm:inline">— {{ day.count }} {{ t('session_inline_one') if day.count == 1 else t('session_inline_many') }}</span>
-              </div>
-              <div class="flex items-center flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
-                <span class="text-yellow-400 font-medium whitespace-nowrap">{{ day.kwh }} kWh</span>
-                {% if day.has_cost %}
-                <span class="text-green-400 font-medium whitespace-nowrap">{{ day.cost | money }}</span>
-                {% endif %}
-              </div>
-            </summary>
-
-            <!-- Charge cards inside day -->
-            <div class="ml-4 mt-2 space-y-3">
-            {% for c in day.charges %}
-            {% set soc_start = c.start_soc or 0 %}
-            {% set soc_end   = c.end_soc   or 0 %}
-            {% set soc_delta = soc_end - soc_start %}
-
-            <div data-charge-id="{{ c.id }}" class="charge-card"
-                 style="background:#060e1a;border:1px solid #111c2e;border-radius:12px;padding:16px">
-
-              <!-- Header -->
-              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-3">
-                  <div style="width:4px;height:40px;background:#fbbf24;border-radius:2px;flex-shrink:0"></div>
-                  <div>
-                    <div class="text-white font-semibold text-sm">
-                      {{ c.started_at[11:16] if c.started_at else '—' }}
-                      <span class="text-slate-500 font-normal">→ {{ c.ended_at[11:16] if c.ended_at else '' }}</span>
-                    </div>
-                    <div class="text-slate-500 text-xs mt-0.5">
-                      ⏱ {{ fmt_dur(c.duration_min) }}
-                      {% if c.max_power_kw %}· {{ "%.1f"|format(c.max_power_kw) }} kW peak{% endif %}
-                      {% set is_dc = c.charge_type == 'DC' or (c.charge_type is none and (c.max_power_kw or 0) > 11) %}
-                      · <span style="color:{% if is_dc %}#fb923c{% else %}#38bdf8{% endif %};font-weight:700">{% if is_dc %}DC{% else %}AC{% endif %}</span>
-                    </div>
-                    <div class="mt-0.5">{% with charge=c %}{% include "partials/charge_location.html" %}{% endwith %}</div>
-                    {% if c.reconstructed %}
-                    <div class="text-[11px] text-amber-400/90 mt-0.5" title="{{ t('charge_reconstructed_hint') }}">
-                      ✨ {{ t('charge_reconstructed') }}
-                    </div>
-                    {% endif %}
-                  </div>
-                </div>
-                <!-- Charge type selector (HTMX) -->
-                {% set ct = charge_types.get(c.location_type) %}
-                <div id="charge-type-{{ c.id }}" class="charge-type-selector">
-                  <div style="position:relative;display:inline-block">
-                    {% if ct %}
-                    <button onclick="document.getElementById('ct-menu-{{ c.id }}').classList.toggle('hidden')"
-                            style="background:{{ ct.color }}22;color:{{ ct.color }};border:1px solid {{ ct.color }}55;
-                                   padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
-                                   display:flex;align-items:center;gap:5px">
-                      {{ ct.icon }} {{ ct.label }} <span style="font-size:9px;opacity:.7">▼</span>
-                    </button>
-                    {% else %}
-                    <button onclick="document.getElementById('ct-menu-{{ c.id }}').classList.toggle('hidden')"
-                            style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b88;
-                                   padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
-                                   display:flex;align-items:center;gap:5px">
-                      ❓ {{ t('charge_unconfirmed') }} <span style="font-size:9px;opacity:.7">▼</span>
-                    </button>
-                    {% endif %}
-                    <div id="ct-menu-{{ c.id }}" class="hidden"
-                         style="position:absolute;right:0;top:calc(100% + 4px);z-index:50;
-                                background:#1e293b;border:1px solid #334155;border-radius:10px;
-                                padding:4px;min-width:155px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
-                      {% if not ct %}
-                      <div style="padding:5px 10px 7px;margin-bottom:3px;font-size:11px;font-weight:700;
-                                  color:#fbbf24;border-bottom:1px solid #334155">{{ t('charge_confirm_q') }}</div>
-                      {% endif %}
-                      {% for key, info in charge_types.items() %}
-                      {% if key == 'MANUAL' %}
-                      <form hx-post="api/charges/{{ c.id }}/type"
-                            hx-target="#charge-type-{{ c.id }}"
-                            hx-swap="outerHTML"
-                            hx-on::after-request="document.getElementById('ct-menu-{{ c.id }}') && document.getElementById('ct-menu-{{ c.id }}').classList.add('hidden')"
-                            style="margin:0;border-top:1px solid #334155;margin-top:3px;padding-top:4px">
-                        <input type="hidden" name="location_type" value="MANUAL">
-                        <div style="display:flex;align-items:center;gap:6px;padding:5px 10px">
-                          <span style="color:{{ info.color }};font-size:13px">{{ info.icon }}</span>
-                          <input type="number" name="cost" step="0.01" min="0" placeholder="€"
-                                 value="{% if c.location_type == 'MANUAL' and c.cost %}{{ '%.2f'|format(c.cost) }}{% endif %}"
-                                 onclick="event.stopPropagation()"
-                                 style="width:72px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#fff;padding:4px 6px;font-size:13px">
-                          <button type="submit"
-                                  style="margin-left:auto;background:{{ info.color }}22;color:{{ info.color }};border:1px solid {{ info.color }}55;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer">
-                            {% if c.location_type == 'MANUAL' %}✓{% else %}OK{% endif %}
-                          </button>
-                        </div>
-                      </form>
-                      {% else %}
-                      <form hx-post="api/charges/{{ c.id }}/type"
-                            hx-target="#charge-type-{{ c.id }}"
-                            hx-swap="outerHTML"
-                            hx-on::after-request="document.getElementById('ct-menu-{{ c.id }}') && document.getElementById('ct-menu-{{ c.id }}').classList.add('hidden')"
-                            style="margin:0">
-                        <input type="hidden" name="location_type" value="{{ key }}">
-                        <button type="submit"
-                                style="width:100%;text-align:left;padding:7px 12px;border-radius:7px;font-size:13px;
-                                       cursor:pointer;background:{% if c.location_type == key %}{{ info.color }}22{% else %}transparent{% endif %};
-                                       color:{{ info.color }};border:none;display:flex;align-items:center;gap:8px">
-                          {{ info.icon }} {{ info.label }}
-                          {% if c.location_type == key %}<span style="margin-left:auto;font-size:10px">✓</span>{% endif %}
-                        </button>
-                      </form>
-                      {% endif %}
-                      {% endfor %}
-                    </div>
-                  </div>
-                  {% if c.location_type == 'HOME' %}
-                  {# #120: mark a home charge as free (e.g. self-produced solar). Stays HOME, cost 0. #}
-                  <form hx-post="api/charges/{{ c.id }}/free" hx-target="#charge-type-{{ c.id }}" hx-swap="outerHTML"
-                        style="margin:0;display:inline-block;vertical-align:top;margin-left:6px">
-                    <input type="hidden" name="is_free" value="{% if c.is_free %}0{% else %}1{% endif %}">
-                    <button type="submit" title="{{ t('charge_free_hint') }}"
-                            style="background:{% if c.is_free %}#a3e63522{% else %}transparent{% endif %};
-                                   color:{% if c.is_free %}#a3e635{% else %}#64748b{% endif %};
-                                   border:1px solid {% if c.is_free %}#a3e63566{% else %}#334155{% endif %};
-                                   padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
-                                   display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
-                      🆓 {{ t('charge_free') }}{% if c.is_free %} ✓{% endif %}
-                    </button>
-                  </form>
-                  {% endif %}
-                </div>
-              </div>
-
-              <!-- SOC bar -->
-              <div class="mb-3">
-                <div class="flex justify-between text-xs mb-1.5">
-                  <span class="text-slate-500">SOC</span>
-                  <span class="text-white font-medium">
-                    {{ "%.1f"|format(soc_start) }}%
-                    <span class="text-slate-600 mx-1">→</span>
-                    {{ "%.1f"|format(soc_end) }}%
-                    <span class="text-yellow-400 ml-1 font-bold">+{{ "%.1f"|format(soc_delta) }}%</span>
-                  </span>
-                </div>
-                <div style="position:relative;height:12px;background:#1e293b;border-radius:6px;overflow:hidden">
-                  <div style="position:absolute;left:0;top:0;height:100%;width:{{ soc_start }}%;background:#334155"></div>
-                  <div class="soc-bar" style="position:absolute;left:{{ soc_start }}%;top:0;height:100%;width:{{ soc_delta }}%;background:linear-gradient(90deg,#fbbf24,#f59e0b)"></div>
-                </div>
-                <div class="flex justify-between text-xs text-slate-700 mt-1">
-                  <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
-                </div>
-              </div>
-
-              <!-- Stats -->
-              <div class="grid grid-cols-3 gap-2 mt-3">
-                {% set show_wb = c.ac_energy_kwh and c.location_type == 'HOME' %}
-                <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
-                  <div class="stat-label" style="font-size:10px">{{ t('energy') }}</div>
-                  <div style="font-size:16px;font-weight:700;color:#fbbf24">
-                    +{{ "%.1f"|format((c.ac_energy_kwh if show_wb else c.energy_added_kwh) or 0) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span>
-                    {% if show_wb %}<span style="font-size:10px;color:#60a5fa;font-weight:400" title="{{ t('wallbox_billed_help') }}"> 🔌 {{ t('wallbox_billed') }}</span>{% else %}<span style="font-size:10px;color:#94a3b8;font-weight:400" title="{{ t('energy_in_battery_help') }}"> 🔋 {{ t('energy_in_battery') }} (DC)</span>{% endif %}
-                  </div>
-                  {% if show_wb %}
-                  <div style="font-size:10px;color:#94a3b8;margin-top:3px" title="{{ t('wallbox_billed_help') }}">
-                    {# Efficiency >100% is physically impossible — it means the ΔSoC-based DC figure is
-                       inflated (BMS snap-to-full on 100%-ending charges recorded before the fix), so
-                       hide the % rather than show nonsense. #}
-                    {% set _eff = (100 * c.energy_added_kwh / c.ac_energy_kwh) if c.energy_added_kwh else 0 %}
-                    🔋 {{ "%.1f"|format(c.energy_added_kwh or 0) }} kWh {{ t('energy_in_battery') }} (DC){% if c.energy_added_kwh and _eff <= 100 %} · {{ t('efficiency') }} {{ "%.0f"|format(_eff) }}%{% endif %}
-                  </div>
-                  {% endif %}
-                </div>
-                <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
-                  <div class="stat-label" style="font-size:10px">{{ t('soc_gain') }}</div>
-                  <div style="font-size:16px;font-weight:700;color:white">
-                    +{{ "%.1f"|format(soc_delta) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> %</span>
-                  </div>
-                </div>
-                <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
-                  <div class="stat-label" style="font-size:10px">{{ t('cost') }}</div>
-                  <div id="cost-{{ c.id }}" style="font-size:16px;font-weight:700" class="{% if c.cost %}text-green-400{% else %}text-slate-600{% endif %}">
-                    {% if c.cost %}{{ c.cost | money }}{% else %}—{% endif %}
-                    {% set _billed = (c.ac_energy_kwh if (c.location_type == 'HOME' and c.ac_energy_kwh) else c.energy_added_kwh) or 0 %}
-                    {% if c.cost and _billed > 0 %}<div style="font-size:11px;color:#94a3b8;font-weight:400">{{ (c.cost / _billed) | money }}/kWh</div>{% endif %}
-                  </div>
-                </div>
-              </div>
-
-              <!-- User note (#107) — free-text context the raw data can't capture -->
-              <div class="mt-3">
-                <label class="stat-label" style="font-size:10px">📝 {{ t('user_note') }}</label>
-                <form class="mt-1" hx-post="api/charges/{{ c.id }}/note"
-                      hx-target="#cnote-msg-{{ c.id }}" hx-swap="innerHTML"
-                      hx-on::after-request="if(event.detail.successful){var m=document.getElementById('cnote-msg-{{ c.id }}');setTimeout(function(){if(m)m.textContent='';},2500);}">
-                  <textarea name="note" rows="2" maxlength="1000"
-                            placeholder="{{ t('note_ph_charge') }}"
-                            style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px 10px;font-size:12px;color:#e2e8f0;resize:vertical">{{ c.note or '' }}</textarea>
-                  <div class="flex items-center gap-2 mt-1">
-                    <button type="submit"
-                            style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:3px 12px;font-size:11px;color:#94a3b8;cursor:pointer"
-                            onmouseover="this.style.borderColor='#38bdf8';this.style.color='#e2e8f0'"
-                            onmouseout="this.style.borderColor='#334155';this.style.color='#94a3b8'">{{ t('note_save') }}</button>
-                    <span id="cnote-msg-{{ c.id }}" class="text-xs text-green-400"></span>
-                  </div>
-                </form>
-              </div>
-
-              <div class="flex justify-end mt-2">
-                <button hx-delete="api/charges/{{ c.id }}" hx-confirm="{{ t('charge_delete_confirm') }}"
-                        style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
-                        onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'">
-                  🗑 {{ t('charge_delete') }}</button>
-              </div>
-
-              <!-- Power curve (expandable, lazy-loaded on first open) -->
-              <details class="mt-3">
-                <summary hx-get="api/charge/{{ c.id }}/power-chart"
-                         hx-trigger="click once"
-                         hx-target="#pchart-{{ c.id }}"
-                         hx-swap="innerHTML"
-                         style="cursor:pointer;color:#38bdf8;font-size:12px;list-style:none;user-select:none">
-                  📈 {{ t('power_curve') }}
-                </summary>
-                <div id="pchart-{{ c.id }}" class="mt-2">
-                  <div class="text-xs text-slate-500 py-2">…</div>
-                </div>
-              </details>
-
-            </div>
-            {% endfor %}
-            </div>
-
-          </details>
-        {% endfor %}
-        </div>
-
-      </details>
-    {% endfor %}
+{% if total %}
+<!-- Search + advanced filters -->
+<div class="card mb-6">
+  <form id="charges-search-form"
+        hx-get="api/charges/search"
+        hx-target="#charges-calendar-month-wrap" hx-swap="innerHTML"
+        hx-trigger="keyup changed delay:400ms from:#charges-search-q, change"
+        class="space-y-3">
+    <input type="hidden" name="year" value="{{ cal_year }}">
+    <input type="hidden" name="month" value="{{ cal_month }}">
+    {% if station %}<input type="hidden" name="station" value="{{ station }}">{% endif %}
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <input id="charges-search-q" type="text" name="q" autocomplete="off"
+             placeholder="🔍 {{ t('charges_search_placeholder') }}"
+             class="flex-1 min-w-0 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-brand">
+      <button type="button" onclick="document.getElementById('charges-adv-filters').classList.toggle('hidden')"
+              class="text-xs text-slate-400 hover:text-white border border-slate-600 rounded-lg px-3 py-2 whitespace-nowrap w-full sm:w-auto">
+        ⚙ {{ t('charges_search_advanced') }}
+      </button>
     </div>
+    <div id="charges-adv-filters" class="hidden grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 pt-2 border-t border-slate-700/60">
+      <select name="type" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+        <option value="">{{ t('charges_search_all_types') }}</option>
+        {% for key, info in charge_types.items() %}
+        <option value="{{ key }}">{{ info.icon }} {{ info.label }}</option>
+        {% endfor %}
+      </select>
+      <input type="date" name="date_from" title="{{ t('charges_search_date_from') }}"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+      <input type="date" name="date_to" title="{{ t('charges_search_date_to') }}"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+      <input type="number" step="0.01" min="0" name="kwh_min" placeholder="{{ t('charges_search_kwh_min') }}"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+      <input type="number" step="0.01" min="0" name="kwh_max" placeholder="{{ t('charges_search_kwh_max') }}"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+      <input type="number" step="0.01" min="0" name="cost_min" placeholder="{{ t('charges_search_cost_min') }}"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+      <input type="number" step="0.01" min="0" name="cost_max" placeholder="{{ t('charges_search_cost_max') }}"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+    </div>
+  </form>
+</div>
 
-  </details>
-{% endfor %}
+{% if cal_years and cal_years|length > 1 %}
+<!-- Year jump — only years with actual charges, so it never lists empty years -->
+<div class="flex items-center gap-2 flex-wrap mb-4">
+  {% for y in cal_years %}
+  <button type="button"
+          hx-get="api/charges/calendar?year={{ y }}&month={{ cal_month }}{% if station %}&station={{ station }}{% endif %}"
+          hx-target="#charges-calendar-month-wrap" hx-swap="innerHTML"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-600 text-slate-300 hover:border-brand hover:text-white transition-colors">
+    {{ y }}
+  </button>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card mb-6" id="charges-calendar-month-wrap"
+     hx-get="api/charges/calendar?year={{ cal_year }}&month={{ cal_month }}{% if station %}&station={{ station }}{% endif %}{% if cal_open_day %}&open_day={{ cal_open_day }}{% endif %}"
+     hx-trigger="load" hx-swap="innerHTML">
+  <div class="text-center text-slate-500 py-10">…</div>
 </div>
 
 {% else %}
@@ -588,51 +350,27 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 {% endif %}
 
 <script>
-const LS_KEY = 'lm_charges_open';
 const HIGHLIGHT = {{ highlight }};
 
-const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-document.querySelectorAll('#charges-tree details').forEach(el => {
-  if (el.id in saved) {
-    el.open = saved[el.id];
-  } else {
-    el.open = el.id.startsWith('cy-') || el.id.startsWith('cm-');
-  }
-  el.addEventListener('toggle', () => {
-    const st = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-    st[el.id] = el.open;
-    localStorage.setItem(LS_KEY, JSON.stringify(st));
-  });
-});
-
-// Collapse all
-document.getElementById('collapse-all-charges')?.addEventListener('click', () => {
-  const st = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-  document.querySelectorAll('#charges-tree details').forEach(el => {
-    el.open = false;
-    st[el.id] = false;
-  });
-  localStorage.setItem(LS_KEY, JSON.stringify(st));
-});
-
+// A charge reached via ?highlight=<id> (e.g. a map popup) lands on the right month/day
+// server-side (charges_page resolves it and passes cal_open_day) — once that first HTMX
+// load renders the day's cards, find it, style it and scroll it into view.
 if (HIGHLIGHT) {
-  const card = document.querySelector(`[data-charge-id="${HIGHLIGHT}"]`);
-  if (card) {
-    let el = card.parentElement;
-    while (el) {
-      if (el.tagName === 'DETAILS') el.open = true;
-      el = el.parentElement;
+  document.body.addEventListener('htmx:afterSwap', function onSwap(e) {
+    if (!e.target || e.target.id !== 'charges-calendar-month-wrap') return;
+    const card = document.querySelector(`[data-charge-id="${HIGHLIGHT}"]`);
+    if (card) {
+      card.style.border    = '1px solid #fbbf2455';
+      card.style.boxShadow = 'inset 3px 0 0 #fbbf24';
+      requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      document.body.removeEventListener('htmx:afterSwap', onSwap);
     }
-    card.style.border     = '1px solid #fbbf2455';
-    card.style.boxShadow  = 'inset 3px 0 0 #fbbf24';
-    requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-  }
+  });
 }
 
 // Auto-refresh the history when a charge completes. The live panel (#charging-live-panel) polls
 // every 30s; when its state flips charging→not-charging a charge has just ended, so reload once to
-// surface the new completed-charge card + updated totals (the history list itself is static). The
-// tree's open/collapsed state survives the reload via localStorage above, so it is non-disruptive.
+// surface the new completed-charge card + updated totals.
 (function () {
   const isCharging = () => {
     const m = document.getElementById('charging-state');

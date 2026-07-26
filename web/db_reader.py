@@ -3,7 +3,7 @@ import json
 import math
 import sqlite3
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 import os
@@ -128,6 +128,23 @@ def _local_iso(s):
     template slices like started_at[11:16] display local time. Falls back to input."""
     dt = _local_dt(s)
     return dt.isoformat() if dt else s
+
+
+def today_local() -> date:
+    """Today's calendar date in the user's configured timezone — the Charges calendar's
+    default Month view opens here."""
+    return datetime.now(_local_tz()).date()
+
+
+def get_charge_local_date(charge_id: int) -> "date | None":
+    """The local calendar date a charge falls on, or None if it doesn't exist — used to
+    open the Charges calendar on the right month when following a ?highlight=<id> link
+    (e.g. from a map popup) that may point at a charge outside the current month."""
+    row = _get().execute("SELECT started_at FROM charges WHERE id=?", (charge_id,)).fetchone()
+    if not row or not row["started_at"]:
+        return None
+    dt = _local_dt(row["started_at"])
+    return dt.date() if dt else None
 
 # In-memory optimistic overlay: after a command, keep the expected state for
 # _OPT_TTL seconds so the poller can't overwrite it before the UI refreshes.
@@ -2277,6 +2294,26 @@ def get_mergeable_pairs(gap_min: int = TRIP_MERGE_GAP_DEFAULT) -> list:
     return pairs
 
 
+def get_merge_candidates(gap_min: int = TRIP_MERGE_GAP_DEFAULT) -> list[dict]:
+    """Mergeable pairs (get_mergeable_pairs) hydrated with full trip_row.html-ready data —
+    the Viaggi 🔗 button's dedicated candidates view. Previously these surfaced as inline
+    connectors between adjacent rows in the full year/month/day accordion; the calendar
+    only ever renders one day at a time, so there's no "whole page" left to scan for
+    them — this view lists just the (typically few) actual candidates instead, unrelated
+    to whichever month is currently browsed. Most-recent-first."""
+    pairs = get_mergeable_pairs(gap_min)
+    if not pairs:
+        return []
+    trips_by_id = {t["id"]: t for t in _localized_trips(get_trips(limit=1_000_000))}
+    out = []
+    for p in pairs:
+        a, b = trips_by_id.get(p["a_id"]), trips_by_id.get(p["b_id"])
+        if a and b:
+            out.append({"a": a, "b": b, "gap_min": p["gap_min"]})
+    out.sort(key=lambda p: p["b"]["started_at"], reverse=True)
+    return out
+
+
 def merge_trips(parent_id: int, child_id: int, gap_min: int = TRIP_MERGE_GAP_DEFAULT) -> dict:
     """Merge child into parent (the earlier of the two becomes the parent). Re-validates the
     eligibility server-side. Reversible: only sets merged_into_id, nothing is overwritten."""
@@ -2433,6 +2470,180 @@ def reev_fuel_summary() -> Optional[dict]:
         "engine_km": round(engine_km, 1),
         "avg_l_100km": round(engine_l / engine_km * 100, 1) if engine_km > 0.5 else None,
     }
+
+
+def _trip_blended_rate_fn():
+    """Blended €/kWh-over-time lookup, built once from ALL priced charges (same basis as
+    get_trip_detail's own per-trip rate) — shared by the Trips calendar and search so every
+    view prices a trip identically."""
+    cost_bp: dict = {}
+    seen_ch: dict = {}
+    for c in _get().execute(
+            "SELECT vehicle_id, ended_at, start_soc, end_soc, cost, ac_energy_kwh, location_type, "
+            "energy_added_kwh FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND ended_at IS NOT NULL AND cost IS NOT NULL "
+            "AND energy_added_kwh > 0 ORDER BY vehicle_id, ended_at", (_current_vehicle_id(),)).fetchall():
+        seen_ch.setdefault(c["vehicle_id"], []).append(dict(c))
+        cost_bp.setdefault(c["vehicle_id"], []).append(
+            (c["ended_at"], _wac_blend(seen_ch[c["vehicle_id"]])))
+
+    def _rate_at(vehicle_id, ts_utc):
+        rate = None
+        for ended_at, wac in cost_bp.get(vehicle_id, ()):   # ascending → last ≤ ts wins
+            if ended_at <= ts_utc:
+                rate = wac
+            else:
+                break
+        return rate
+    return _rate_at
+
+
+def _localized_trips(trips: list[dict]) -> list[dict]:
+    """Per-trip localization + derived cost shared by the Trips calendar and search: the
+    ec_pending flag, local start/end times, and cost (efficiency × distance × the blended
+    €/kWh in effect AT the trip's time — same basis as get_trip_detail). Adds a private
+    `_dt` (aware, local-tz datetime) for the caller's OWN day/date bucketing or filtering."""
+    rate_at = _trip_blended_rate_fn()
+    ec_on = get_setting("ec_trip_energy_enabled", "1") == "1"
+    ec_cutoff = get_setting("ec_trip_since", "")
+    now_ts = datetime.now(timezone.utc).timestamp()
+    out = []
+    for t in trips:
+        if not t.get("started_at"):
+            continue
+        dt = _local_dt(t["started_at"])
+        if dt is None:
+            continue
+        raw_start = t["started_at"]
+        ee = _trip_epoch(t.get("ended_at")) if t.get("ended_at") else None
+        t["ec_pending"] = bool(
+            ec_on and not t.get("ec_stable") and ec_cutoff
+            and t["started_at"] >= ec_cutoff
+            and ee and (now_ts - ee) < 6 * 3600)
+        t["started_at"] = dt.isoformat()
+        t["ended_at"] = _local_iso(t.get("ended_at"))
+        km = t.get("distance_km") or 0
+        eff = t.get("efficiency_kwh_100km")
+        energy = (eff * km / 100) if (eff and km) else 0
+        rate = rate_at(t.get("vehicle_id"), raw_start) if energy else None
+        t["cost"] = (energy * rate) if (energy and rate) else 0
+        t["_dt"] = dt
+        out.append(t)
+    return out
+
+
+def get_trips_calendar_month(year: int, month: int) -> dict:
+    """Per-day totals for the Viaggi calendar's Month view: session count, distance, regen
+    and derived cost for each day of `year`/`month` (local time), plus the month's own
+    total. Mirrors get_charges_calendar_month; the day's actual trips are fetched lazily
+    (see get_trips_calendar_day) only when a cell is clicked."""
+    trips = _localized_trips(get_trips(limit=1_000_000))
+    days: dict[int, dict] = {}
+    total = {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "_eff_wsum": 0.0, "_eff_wdist": 0.0}
+    for t in trips:
+        dt = t["_dt"]
+        if dt.year != year or dt.month != month:
+            continue
+        d = days.setdefault(dt.day, {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0,
+                                      "_eff_wsum": 0.0, "_eff_wdist": 0.0})
+        km = t.get("distance_km") or 0
+        eff = t.get("efficiency_kwh_100km")
+        regen = t.get("regen_kwh") or 0
+        cost = t.get("cost") or 0
+        for node in (d, total):
+            node["count"] += 1
+            node["km"] = round(node["km"] + km, 2)
+            node["regen"] = round(node["regen"] + regen, 3)
+            node["cost"] = round(node["cost"] + cost, 2)
+            if eff and km > 0:
+                node["_eff_wsum"] += km * eff
+                node["_eff_wdist"] += km
+    for node in list(days.values()) + [total]:
+        node["avg_eff"] = round(node["_eff_wsum"] / node["_eff_wdist"], 1) if node["_eff_wdist"] > 0 else None
+        del node["_eff_wsum"]
+        del node["_eff_wdist"]
+    return {"year": year, "month": month, "days": days, "total": total}
+
+
+def get_trips_calendar_day(year: int, month: int, day: int) -> list[dict]:
+    """The trip_row.html-ready trips for ONE calendar day — backs the Month view's day
+    drawer, most-recent-first."""
+    trips = _localized_trips(get_trips(limit=1_000_000))
+    trips = [t for t in trips if t["_dt"].year == year and t["_dt"].month == month and t["_dt"].day == day]
+    trips.sort(key=lambda t: t["started_at"], reverse=True)
+    return trips
+
+
+def search_trips(text: str = "", date_from: str = "", date_to: str = "",
+                  km_min: "float | None" = None, km_max: "float | None" = None,
+                  eff_min: "float | None" = None, eff_max: "float | None" = None,
+                  duration_min: "float | None" = None, duration_max: "float | None" = None,
+                  drive_mode: str = "") -> list[dict]:
+    """Flat, most-recent-first list of trips matching ALL given filters — the Viaggi search
+    bar. `text` matches the user note (substring, case-insensitive); `drive_mode` is
+    comfort/normal/sport (#107); the km/efficiency/duration filters are inclusive ranges;
+    `date_from`/`date_to` are inclusive "YYYY-MM-DD" LOCAL calendar dates."""
+    trips = _localized_trips(get_trips(limit=1_000_000))
+    q = (text or "").strip().lower()
+    dm = (drive_mode or "").strip().lower()
+    try:
+        d_from = date.fromisoformat(date_from) if date_from else None
+    except ValueError:
+        d_from = None
+    try:
+        d_to = date.fromisoformat(date_to) if date_to else None
+    except ValueError:
+        d_to = None
+    out = []
+    for t in trips:
+        if q and q not in (t.get("note") or "").lower():
+            continue
+        if dm and (t.get("drive_mode") or "").lower() != dm:
+            continue
+        km = t.get("distance_km") or 0
+        if km_min is not None and km < km_min:
+            continue
+        if km_max is not None and km > km_max:
+            continue
+        eff = t.get("efficiency_kwh_100km")
+        if eff_min is not None and (eff is None or eff < eff_min):
+            continue
+        if eff_max is not None and (eff is None or eff > eff_max):
+            continue
+        dur = t.get("duration_min") or 0
+        if duration_min is not None and dur < duration_min:
+            continue
+        if duration_max is not None and dur > duration_max:
+            continue
+        day_ = t["_dt"].date()
+        if d_from and day_ < d_from:
+            continue
+        if d_to and day_ > d_to:
+            continue
+        out.append(t)
+    out.sort(key=lambda t: t["started_at"], reverse=True)
+    return out
+
+
+def get_trip_years() -> list[int]:
+    """Distinct years (local time, most recent first) with at least one trip — populates
+    the Viaggi calendar's year-jump pills with only years the user actually has data for."""
+    years = set()
+    for t in get_trips(limit=1_000_000):
+        dt = _local_dt(t.get("started_at"))
+        if dt:
+            years.add(dt.year)
+    return sorted(years, reverse=True)
+
+
+def get_trip_local_date(trip_id: int) -> "date | None":
+    """The local calendar date a trip falls on, or None if it doesn't exist — used to open
+    the Viaggi calendar on the right month when following a ?highlight=<id> link."""
+    row = _get().execute("SELECT started_at FROM trips WHERE id=?", (trip_id,)).fetchone()
+    if not row or not row["started_at"]:
+        return None
+    dt = _local_dt(row["started_at"])
+    return dt.date() if dt else None
 
 
 def get_trips_grouped() -> list[dict]:
@@ -3011,6 +3222,69 @@ def charges_with_power(limit: int = 30) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def _wallbox_home_charges_raw() -> list[dict]:
+    """All-time HOME charges that still have a power curve (same EXISTS gate as
+    charges_with_power, but selecting BOTH energy columns and unbounded — the Wallbox
+    calendar's month totals and year-jump need the full history, not just the newest 30)."""
+    db = _get()
+    rows = db.execute(
+        "SELECT c.id, c.started_at, c.energy_added_kwh, c.ac_energy_kwh FROM charges c "
+        "WHERE c.vehicle_id = COALESCE(?, c.vehicle_id) AND c.location_type = 'HOME' AND EXISTS ("
+        "  SELECT 1 FROM positions p WHERE p.vehicle_id = c.vehicle_id AND p.charging = 1"
+        "  AND p.recorded_at >= c.started_at"
+        "  AND (c.ended_at IS NULL OR p.recorded_at <= c.ended_at)"
+        ") ORDER BY c.started_at DESC",
+        (_current_vehicle_id(),)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_wallbox_calendar_month(year: int, month: int) -> dict:
+    """Per-day AC(wallbox)/DC(battery) totals for the Wallbox calendar's Month view — uses
+    the ALREADY-STORED charge columns (ac_energy_kwh/energy_added_kwh), not the per-session
+    HA-history integration main.py's _session_energy does. That stays lazy, computed only
+    for the one day the user opens (see get_wallbox_calendar_day) instead of for every
+    session up front — each call is a live Home Assistant history fetch."""
+    charges = _wallbox_home_charges_raw()
+    days: dict[int, dict] = {}
+    total = {"count": 0, "ac": 0.0, "dc": 0.0}
+    for c in charges:
+        dt = _local_dt(c["started_at"])
+        if dt is None or dt.year != year or dt.month != month:
+            continue
+        d = days.setdefault(dt.day, {"count": 0, "ac": 0.0, "dc": 0.0})
+        ac = c.get("ac_energy_kwh") or 0
+        dc = c.get("energy_added_kwh") or 0
+        for node in (d, total):
+            node["count"] += 1
+            node["ac"] = round(node["ac"] + ac, 2)
+            node["dc"] = round(node["dc"] + dc, 2)
+    for node in list(days.values()) + [total]:
+        node["eff"] = round(100 * node["dc"] / node["ac"], 1) if node["ac"] else None
+    return {"year": year, "month": month, "days": days, "total": total}
+
+
+def get_wallbox_calendar_day(year: int, month: int, day: int) -> list[dict]:
+    """{id, time} for each HOME-with-power charge on ONE calendar day, most-recent-first —
+    the day-drawer computes each session's precise AC/DC comparison (_session_energy,
+    main.py) lazily per row, not all up front like the old accordion did."""
+    out = []
+    for c in _wallbox_home_charges_raw():
+        dt = _local_dt(c["started_at"])
+        if dt and dt.year == year and dt.month == month and dt.day == day:
+            out.append({"id": c["id"], "time": dt.strftime("%H:%M"), "_sort": c["started_at"]})
+    out.sort(key=lambda s: s["_sort"], reverse=True)
+    for s in out:
+        del s["_sort"]
+    return out
+
+
+def get_wallbox_years() -> list[int]:
+    """Distinct years (local time, most recent first) with at least one HOME charge that
+    has a power curve — populates the Wallbox calendar's year-jump pills."""
+    years = {dt.year for dt in (_local_dt(c["started_at"]) for c in _wallbox_home_charges_raw()) if dt}
+    return sorted(years, reverse=True)
+
+
 def is_home_charge(charge_id: int) -> bool:
     """True only when the charge is tagged HOME (= the wallbox)."""
     db = _get()
@@ -3237,6 +3511,28 @@ def _billed_kwh(c) -> float:
     return c.get("energy_added_kwh") or 0
 
 
+def _filter_by_station(charges: list[dict], station: str) -> list[dict]:
+    """Narrow a charge list to the one physical station a "lat,lon" key (3-decimal rounded,
+    from get_charging_stations()) identifies. Shared by the accordion, the calendar and
+    search — a malformed key yields [], never a crash or the unfiltered set."""
+    try:
+        lat_r, lon_r = (round(float(v), 3) for v in station.split(","))
+    except (ValueError, AttributeError):
+        return []
+    return [c for c in charges if c.get("latitude") is not None and c.get("longitude") is not None
+            and round(c["latitude"], 3) == lat_r and round(c["longitude"], 3) == lon_r]
+
+
+def get_charge_years(station: str | None = None) -> list[int]:
+    """Distinct years (local time, most recent first) with at least one charge — populates
+    the Ricariche calendar's year-jump pills with only years the user actually has data for."""
+    charges = get_charges(limit=1_000_000)
+    if station:
+        charges = _filter_by_station(charges, station)
+    years = {dt.year for dt in (_local_dt(c.get("started_at")) for c in charges) if dt}
+    return sorted(years, reverse=True)
+
+
 def get_charges_grouped(station: str | None = None) -> list[dict]:
     """Return charges nested as year → month → day. `station`, when given, is a
     "lat,lon" key from get_charging_stations() (same rounding) — narrows the tree to
@@ -3247,13 +3543,7 @@ def get_charges_grouped(station: str | None = None) -> list[dict]:
     # loading everything is fine — same unbounded read the CSV export and monthly report use.
     charges = get_charges(limit=1_000_000)
     if station:
-        try:
-            lat_r, lon_r = (round(float(v), 3) for v in station.split(","))
-        except (ValueError, AttributeError):
-            charges = []
-        else:
-            charges = [c for c in charges if c.get("latitude") is not None and c.get("longitude") is not None
-                       and round(c["latitude"], 3) == lat_r and round(c["longitude"], 3) == lon_r]
+        charges = _filter_by_station(charges, station)
     from collections import OrderedDict
     db = _get()
 
@@ -3297,6 +3587,119 @@ def get_charges_grouped(station: str | None = None) -> list[dict]:
                 node["has_cost"] = True
 
     return list(years.values())
+
+
+def _localized_charges(charges: list[dict]) -> list[dict]:
+    """Per-charge localization shared by the Charges calendar and search: local start/end
+    times + the real-charging-window display, same convention get_charges_grouped applies
+    inline — so charge_card.html renders identically wherever it's included. Adds a private
+    `_dt` (aware, local-tz datetime) for the caller's OWN day/date bucketing or filtering;
+    never rendered, so its presence in the dict is harmless to charge_card.html."""
+    db = _get()
+    out = []
+    for c in charges:
+        if not c.get("started_at"):
+            continue
+        dt = _local_dt(c["started_at"])
+        if dt is None:
+            continue
+        c["active_window"] = _charge_window_display(db, c.get("started_at"), c.get("ended_at"))
+        c["started_at"] = dt.isoformat()
+        c["ended_at"] = _local_iso(c.get("ended_at"))
+        c["_dt"] = dt
+        out.append(c)
+    return out
+
+
+def get_charges_calendar_month(year: int, month: int, station: str | None = None) -> dict:
+    """Per-day totals for the Ricariche calendar's Month view: how many sessions, kWh and
+    cost landed on each day of `year`/`month` (local time, same billed-kWh convention as
+    get_charges_grouped) plus the month's own total — the grid only needs counts, the
+    day's actual charges are fetched lazily (see get_charges_calendar_day) when a cell is
+    clicked, so a month never ships more than ~31 small numbers to the template."""
+    charges = _localized_charges(get_charges(limit=1_000_000))
+    if station:
+        charges = _filter_by_station(charges, station)
+    days: dict[int, dict] = {}
+    total = {"count": 0, "kwh": 0.0, "cost": 0.0, "has_cost": False}
+    for c in charges:
+        dt = c["_dt"]
+        if dt.year != year or dt.month != month:
+            continue
+        d = days.setdefault(dt.day, {"count": 0, "kwh": 0.0, "cost": 0.0, "has_cost": False})
+        kwh = _billed_kwh(c)
+        for node in (d, total):
+            node["kwh"] = round(node["kwh"] + kwh, 2)
+            node["count"] += 1
+            if c.get("cost") is not None:
+                node["cost"] = round(node["cost"] + (c["cost"] or 0), 2)
+                node["has_cost"] = True
+    return {"year": year, "month": month, "days": days, "total": total}
+
+
+def get_charges_calendar_day(year: int, month: int, day: int, station: str | None = None) -> list[dict]:
+    """The charge_card.html-ready charges for ONE calendar day — backs the Month view's
+    day drawer, most-recent-first."""
+    charges = _localized_charges(get_charges(limit=1_000_000))
+    if station:
+        charges = _filter_by_station(charges, station)
+    charges = [c for c in charges
+               if c["_dt"].year == year and c["_dt"].month == month and c["_dt"].day == day]
+    charges.sort(key=lambda c: c["started_at"], reverse=True)
+    return charges
+
+
+def search_charges(text: str = "", charge_type: str = "",
+                    cost_min: float | None = None, cost_max: float | None = None,
+                    kwh_min: float | None = None, kwh_max: float | None = None,
+                    date_from: str = "", date_to: str = "",
+                    station: str | None = None) -> list[dict]:
+    """Flat, most-recent-first list of charges matching ALL given filters — the Ricariche
+    search bar. `text` matches the station name OR the user note (substring, case-
+    insensitive); `charge_type` is a location_type key (AC/FAST/HPC/HOME/FREE/MANUAL);
+    the kWh/cost filters compare against the SAME billed figure the card shows
+    (_billed_kwh); `date_from`/`date_to` are inclusive "YYYY-MM-DD" LOCAL calendar dates.
+    Loads the full history like get_charges_grouped (#67 — no default limit may hide
+    older charges) and filters in Python — same convention as the calendar/accordion,
+    no SQL date-math needed since _local_dt already localizes the timezone."""
+    charges = _localized_charges(get_charges(limit=1_000_000))
+    if station:
+        charges = _filter_by_station(charges, station)
+    q = (text or "").strip().lower()
+    ctype = (charge_type or "").strip().upper()
+    try:
+        d_from = date.fromisoformat(date_from) if date_from else None
+    except ValueError:
+        d_from = None
+    try:
+        d_to = date.fromisoformat(date_to) if date_to else None
+    except ValueError:
+        d_to = None
+    out = []
+    for c in charges:
+        if q and q not in (c.get("location_name") or "").lower() \
+             and q not in (c.get("note") or "").lower():
+            continue
+        if ctype and (c.get("location_type") or "") != ctype:
+            continue
+        kwh = _billed_kwh(c)
+        if kwh_min is not None and kwh < kwh_min:
+            continue
+        if kwh_max is not None and kwh > kwh_max:
+            continue
+        cost = c.get("cost")
+        if cost_min is not None and (cost is None or cost < cost_min):
+            continue
+        if cost_max is not None and (cost is None or cost > cost_max):
+            continue
+        day = c["_dt"].date()
+        if d_from and day < d_from:
+            continue
+        if d_to and day > d_to:
+            continue
+        out.append(c)
+    out.sort(key=lambda c: c["started_at"], reverse=True)
+    return out
 
 
 def get_stats_summary() -> dict:

@@ -1,0 +1,40 @@
+{# GET /api/trips/merge-candidates response — dedicated list of trip pairs eligible for
+   merging, replacing #trips-calendar-month-wrap. Independent of whichever month/day is
+   currently browsed in the calendar (see main.py's docstring for why). Reuses the SAME
+   #merge-modal / #merge-modal-body (defined once in trips.html, outside this swapped area)
+   for the confirm-and-preview step, exactly like the old accordion's inline connectors did. #}
+<div class="flex items-center justify-between gap-3 flex-wrap mb-4">
+  <span class="text-white font-semibold">{{ t('merge_eligible') }}</span>
+  <label class="text-xs text-slate-300 inline-flex items-center gap-2 whitespace-nowrap">
+    {{ t('merge_max_gap') }}: <output class="text-yellow-400 font-semibold">{{ gap }}</output> min
+    <input type="range" name="gap" min="{{ merge_gap_min }}" max="{{ merge_gap_max }}" step="5" value="{{ gap }}"
+           hx-get="api/trips/merge-candidates" hx-trigger="change"
+           hx-target="#trips-calendar-month-wrap" hx-swap="innerHTML"
+           class="accent-yellow-400 w-36 align-middle">
+  </label>
+</div>
+
+{% if candidates %}
+<div class="space-y-4">
+  {% for pair in candidates %}
+  <div class="rounded-xl border border-yellow-500/20 bg-yellow-400/5 p-2">
+    {% with trip = pair.a %}{% include "partials/trip_row.html" %}{% endwith %}
+    <div class="flex justify-center my-1">
+      <button type="button"
+              hx-get="api/trips/merge-preview?a={{ pair.a.id }}&b={{ pair.b.id }}&gap={{ merge_gap_max }}"
+              hx-target="#merge-modal-body" hx-swap="innerHTML"
+              onclick="document.getElementById('merge-modal').style.display='flex'"
+              class="inline-flex items-center gap-1.5 rounded-md border border-yellow-500/50 bg-yellow-400/10 text-yellow-400 px-2.5 py-1 text-[11px] font-semibold hover:bg-yellow-400/15">
+        🔗 {{ t('merge_join') }} <span class="font-normal opacity-70">· {{ t('merge_stop') }} {{ pair.gap_min }}′</span>
+      </button>
+    </div>
+    {% with trip = pair.b %}{% include "partials/trip_row.html" %}{% endwith %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-slate-500 py-10">
+  <div class="text-3xl mb-2">🔗</div>
+  <div>{{ t('merge_none') }}</div>
+</div>
+{% endif %}

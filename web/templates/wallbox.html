@@ -35,15 +35,30 @@
   <div class="text-sm text-slate-500">…</div>
 </div>
 
-<!-- Car-vs-wallbox: year/month/day session history; expand a session for its chart -->
-<div class="card">
-  <div class="flex items-center gap-2 mb-3">
-    <span class="text-lg">🔀</span>
-    <h2 class="font-semibold text-white">{{ t('wallbox_compare') }}</h2>
-  </div>
-  <div hx-get="api/wallbox/sessions" hx-trigger="load" hx-swap="innerHTML">
-    <div class="text-sm text-slate-500 py-2">…</div>
-  </div>
+<!-- Car-vs-wallbox: calendar Month view; expand a session for its chart -->
+<div class="mb-3 flex items-center gap-2">
+  <span class="text-lg">🔀</span>
+  <h2 class="font-semibold text-white">{{ t('wallbox_compare') }}</h2>
+</div>
+
+{% if cal_years and cal_years|length > 1 %}
+<!-- Year jump — only years with actual wallbox sessions -->
+<div class="flex items-center gap-2 flex-wrap mb-4">
+  {% for y in cal_years %}
+  <button type="button"
+          hx-get="api/wallbox/calendar?year={{ y }}&month={{ cal_month }}"
+          hx-target="#wallbox-calendar-month-wrap" hx-swap="innerHTML"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-600 text-slate-300 hover:border-brand hover:text-white transition-colors">
+    {{ y }}
+  </button>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card" id="wallbox-calendar-month-wrap"
+     hx-get="api/wallbox/calendar?year={{ cal_year }}&month={{ cal_month }}"
+     hx-trigger="load" hx-swap="innerHTML">
+  <div class="text-center text-slate-500 py-10">…</div>
 </div>
 {% endif %}
 {% endblock %}

@@ -1,0 +1,17 @@
+{# Day header + charge cards — shared by the day-drawer's own endpoint (charges_calendar_day.html)
+   and the Month view's initial "open on this day" render (charges_calendar_month.html, via
+   ?open_day=). Expects `charges` (list) and `day_label` (str) in scope, plus the page-level
+   `t`/`charge_types`/`fmt_dur`. #}
+{% if charges %}
+<div class="mb-3 flex items-center justify-between flex-wrap gap-2">
+  <span class="text-white font-semibold">{{ day_label }}</span>
+  <span class="text-slate-500 text-xs">{{ charges|length }} {{ t('session_inline_one') if charges|length == 1 else t('session_inline_many') }}</span>
+</div>
+<div class="space-y-3">
+  {% for c in charges %}
+  {% include "partials/charge_card.html" %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-slate-500 text-sm py-6">{{ t('charges_calendar_pick_day') }}</div>
+{% endif %}

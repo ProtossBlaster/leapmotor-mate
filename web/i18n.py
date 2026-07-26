@@ -21,6 +21,7 @@ _LOCALES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "locales
 # ── Load every locale once at import time ────────────────────────────────────
 _T: dict[str, dict[str, str]] = {}
 _MONTHS: dict[str, dict[str, list]] = {}
+_WEEKDAYS: dict[str, list] = {}
 
 for _fname in sorted(os.listdir(_LOCALES_DIR)):
     if not _fname.endswith(".json"):
@@ -31,6 +32,8 @@ for _fname in sorted(os.listdir(_LOCALES_DIR)):
     _T[_lang] = _data.get("translations", {})
     if "months" in _data:
         _MONTHS[_lang] = _data["months"]
+    if "weekdays" in _data:
+        _WEEKDAYS[_lang] = _data["weekdays"]["abbr"]
 
 
 # ── Public API (identical behaviour to the old monolithic version) ───────────
@@ -44,6 +47,13 @@ def fmt_day_month_year(lang: str, dt) -> str:
     """Localized "%d %b %Y" → e.g. "02 giu 2026". Used for day labels in history trees."""
     months = _MONTHS.get(lang, _MONTHS["en"])
     return f"{dt.day:02d} {months['abbr'][dt.month - 1]} {dt.year}"
+
+
+def weekday_abbrs(lang: str) -> list:
+    """Monday-first 3-ish-letter weekday abbreviations for the Charges calendar's column
+    header (e.g. ["Lun", "Mar", ...]) — a fixed 7-item list, unrelated to locale.strftime
+    week-start conventions."""
+    return _WEEKDAYS.get(lang, _WEEKDAYS["en"])
 
 
 def get_t(lang: str):
