@@ -1,0 +1,7 @@
+{# The charge note textarea — its own partial so the 🧭 auto-note button (main.py's
+   charge_generate_auto_note) can swap just this element after writing a fresh summary
+   into c.note, without re-rendering the surrounding form/buttons. Expects `c` and `t`. #}
+<textarea name="note" rows="2" maxlength="1000"
+          id="charge-note-text-{{ c.id }}"
+          placeholder="{{ t('note_ph_charge') }}"
+          style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px 10px;font-size:12px;color:#e2e8f0;resize:vertical">{{ c.note or '' }}</textarea>
