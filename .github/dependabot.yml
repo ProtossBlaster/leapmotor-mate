@@ -8,6 +8,12 @@
 # closes it: it reads the `# v4` comment beside each SHA, and opens a PR that moves the SHA and the
 # comment together, with the action's release notes attached. Monthly on purpose: security fixes in
 # these actions are rare, and a weekly PR nobody reads is how a repo learns to ignore them.
+#
+# Minor and patch only. Left unfiltered, the first run proposed four MAJOR jumps at once — the
+# workflows had been sitting on `@v5`/`@v3` tags for a long time while their authors moved on. A
+# major bump can change behaviour, and this is the chain that publishes the image people pull, so
+# it is not something to accept from a bot on a Tuesday. Majors stay a decision somebody makes on
+# purpose, having read the release notes; what is automated here is only the safe half.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
@@ -16,3 +22,6 @@ updates:
       interval: "monthly"
     commit-message:
       prefix: "ci"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
