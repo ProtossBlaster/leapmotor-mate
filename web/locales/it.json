@@ -108,6 +108,7 @@
     "battery_vampire_per_park": "per sosta",
     "battery_vampire_per_day": "per giorno",
     "battery_vampire_low_conf": "stima incerta (sosta breve)",
+    "battery_vampire_low_conf_drop": "stima incerta (calo troppo piccolo)",
     "battery_vampire_active_use": "clima ad auto spenta (conteggiato)",
     "battery_vampire_active_use_note": "{n} finestra/e includono molto riscaldamento/raffrescamento ad auto spenta (in arancio, conteggiate nel consumo).",
     "battery_vampire_help": "Ogni barra è un periodo in cui l'auto è rimasta ferma e scollegata per almeno un'ora; il valore è il SoC perso, normalizzato in %/giorno. I periodi con guida (velocità o variazione dell'odometro) o ricarica sono esclusi, e i cali minimi sono trattati come rumore del sensore. Le barre chiare sono soste brevi o ancora in corso, dove un singolo passo di 0.1% del sensore può gonfiare il tasso giornaliero — il ± nel tooltip indica di quanto. Il valore in alto è il SoC totale perso ÷ il tempo totale di sosta, incluse le soste senza perdite. Calcolato automaticamente dalla telemetria registrata — nessun input richiesto.",
@@ -360,6 +361,7 @@
     "wb_th_dc": "Batteria DC",
     "wb_th_eff": "Rendimento",
     "wallbox_compare_legend": "kWh erogati vs entrati in batteria (per sessione, aggregati per giorno/mese/anno)",
+    "wallbox_calendar_pick_day": "Seleziona un giorno con ricariche per vederne il dettaglio",
     "wb_tot_ac": "kWh Wallbox",
     "wb_tot_dc": "kWh Batteria",
     "wb_tot_eff": "Efficienza",
@@ -585,6 +587,22 @@
     "charges_title": "Ricariche",
     "charges_station_filter": "Ricariche presso",
     "charges_station_clear": "Rimuovi filtro",
+    "charges_calendar_prev": "Mese precedente",
+    "charges_calendar_next": "Mese successivo",
+    "charges_calendar_today": "Torna a oggi",
+    "charges_calendar_pick_day": "Seleziona un giorno con ricariche per vederne il dettaglio",
+    "charges_search_placeholder": "Cerca colonnina o nota...",
+    "charges_search_advanced": "Filtri avanzati",
+    "charges_search_all_types": "Tutti i tipi",
+    "charges_search_date_from": "Dal",
+    "charges_search_date_to": "Al",
+    "charges_search_kwh_min": "kWh min",
+    "charges_search_kwh_max": "kWh max",
+    "charges_search_cost_min": "Costo min",
+    "charges_search_cost_max": "Costo max",
+    "charges_search_results": "risultati",
+    "charges_search_clear": "Torna al calendario",
+    "charges_search_no_results": "Nessuna ricarica corrisponde alla ricerca",
     "ac_dc_distribution": "Distribuzione AC vs DC",
     "ac_charge": "AC",
     "dc_charge": "DC",
@@ -662,6 +680,7 @@
     "energy_in_battery_help": "L'energia realmente entrata in batteria (DC). Quella prelevata dalla rete è ~10–15% più alta (perdite di conversione AC→DC); senza la lettura della wallbox, Mate può mostrare solo questo dato.",
     "car_data_dc": "dati auto (DC)",
     "cancel": "Annulla",
+    "confirm_proceed": "Procedi",
     "merge_mode": "Unisci",
     "merge_help": "Unisci due viaggi separati da una sosta breve senza ricarica. Regola la sosta massima; le coppie con una ricarica nel mezzo non vengono mai mostrate.",
     "merge_max_gap": "Sosta max",
@@ -674,6 +693,14 @@
     "merge_existing": "Viaggi uniti",
     "merge_segments": "segmenti",
     "unmerge_btn": "Separa",
+    "unmerge_confirm": "Separare questo viaggio unito nei segmenti originali?",
+    "trips_calendar_pick_day": "Seleziona un giorno con viaggi per vederne il dettaglio",
+    "trips_search_placeholder": "Cerca nelle note dei viaggi...",
+    "trips_search_all_modes": "Tutte le modalità",
+    "trips_search_km_min": "Distanza min",
+    "trips_search_km_max": "Distanza max",
+    "trips_search_duration_min": "Durata min (min)",
+    "trips_search_no_results": "Nessun viaggio corrisponde alla ricerca",
     "merge_preview_title": "Anteprima viaggio unito",
     "driving_only": "solo guida",
     "merge_stop": "sosta",
@@ -984,7 +1011,13 @@
     "app_update_restart": "Si aggiorna al prossimo riavvio di Mate",
     "app_update_needs_app": "Serve una versione più recente dell'app — scaricala",
     "desktop_open_notice": "Mate registra solo mentre questa app è aperta — i dati successivi alla chiusura non verranno salvati e non si potranno recuperare.",
-    "desktop_open_notice_ok": "Ho capito"
+    "desktop_open_notice_ok": "Ho capito",
+    "desktop_section": "App",
+    "desktop_autostart": "Avvia al login",
+    "desktop_autostart_desc": "Apre Mate da solo quando accendi il computer, così registra anche i viaggi e le ricariche a cui non pensi.",
+    "desktop_autostart_on": "Attivo — Mate si aprirà al prossimo accesso",
+    "desktop_autostart_off": "Disattivato",
+    "desktop_version": "Versione app"
   },
   "months": {
     "full": [
@@ -1015,5 +1048,8 @@
       "nov",
       "dic"
     ]
+  },
+  "weekdays": {
+    "abbr": ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]
   }
 }

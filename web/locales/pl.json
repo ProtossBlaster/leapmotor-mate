@@ -54,6 +54,7 @@
     "battery_vampire_per_park": "na postój",
     "battery_vampire_per_day": "na dzień",
     "battery_vampire_low_conf": "mała pewność (krótki postój)",
+    "battery_vampire_low_conf_drop": "niepewne oszacowanie (spadek zbyt mały)",
     "battery_vampire_active_use": "ogrzewanie/chłodzenie przy aucie wył. (liczone)",
     "battery_vampire_active_use_note": "{n} okno/okien zawiera intensywne ogrzewanie/chłodzenie przy wyłączonym aucie (bursztyn, liczone w poborze).",
     "battery_vampire_help": "Każdy słupek to okres, w którym samochód stał zaparkowany i odłączony przez co najmniej godzinę; wartość to utracony SoC znormalizowany do %/dzień. Okresy z jazdą (prędkość lub zmiana licznika) lub ładowaniem są wykluczone, a małe spadki traktowane jako szum czujnika. Jasne słupki to krótkie lub nadal trwające postoje, gdzie jeden krok 0,1% czujnika może zawyżyć dzienny wskaźnik — ± w podpowiedzi pokazuje o ile. Nagłówek to całkowity utracony SoC ÷ całkowity czas postoju ze wszystkich postojów, w tym tych bez strat. Obliczane automatycznie z zapisanej telemetrii — nie wymaga żadnych danych wejściowych.",
@@ -295,6 +296,7 @@
     "wb_th_dc": "Bateria DC",
     "wb_th_eff": "Sprawność",
     "wallbox_compare_legend": "kWh dostarczone vs do baterii (na sesję, zbiorczo wg dnia/miesiąca/roku)",
+    "wallbox_calendar_pick_day": "Wybierz dzień z ładowaniami, aby zobaczyć szczegóły",
     "wb_tot_ac": "kWh Wallbox",
     "wb_tot_dc": "kWh Bateria",
     "wb_tot_eff": "Sprawność",
@@ -518,6 +520,22 @@
     "speed_profile": "Profil prędkości",
     "not_enough_gps": "Za mało punktów GPS",
     "charges_title": "Ładowania",
+    "charges_calendar_prev": "Poprzedni miesiąc",
+    "charges_calendar_next": "Następny miesiąc",
+    "charges_calendar_today": "Wróć do dziś",
+    "charges_calendar_pick_day": "Wybierz dzień z ładowaniami, aby zobaczyć szczegóły",
+    "charges_search_placeholder": "Szukaj stacji lub notatki...",
+    "charges_search_advanced": "Filtry zaawansowane",
+    "charges_search_all_types": "Wszystkie typy",
+    "charges_search_date_from": "Od",
+    "charges_search_date_to": "Do",
+    "charges_search_kwh_min": "kWh min",
+    "charges_search_kwh_max": "kWh maks",
+    "charges_search_cost_min": "Koszt min",
+    "charges_search_cost_max": "Koszt maks",
+    "charges_search_results": "wyników",
+    "charges_search_clear": "Wróć do kalendarza",
+    "charges_search_no_results": "Żadne ładowanie nie pasuje do wyszukiwania",
     "ac_dc_distribution": "Rozkład AC vs DC",
     "ac_charge": "AC",
     "dc_charge": "DC",
@@ -595,6 +613,7 @@
     "energy_in_battery_help": "Energia, która faktycznie weszła do baterii (DC). To co pobierasz z sieci jest ~10–15% wyższe (straty konwersji AC→DC); bez odczytu wallboxa Mate może pokazać tylko tę wartość.",
     "car_data_dc": "dane samochodu (DC)",
     "cancel": "Anuluj",
+    "confirm_proceed": "Kontynuuj",
     "merge_mode": "Łącz",
     "merge_help": "Połącz dwie trasy rozdzielone krótkim postojem niebędącym ładowaniem. Dostosuj maks. przerwy; pary z ładowaniem pomiędzy nigdy nie są pokazywane.",
     "merge_max_gap": "Maks. przerwa",
@@ -607,6 +626,14 @@
     "merge_existing": "Połączone trasy",
     "merge_segments": "segmenty",
     "unmerge_btn": "Rozłącz",
+    "unmerge_confirm": "Rozdzielić tę połączoną trasę z powrotem na oryginalne odcinki?",
+    "trips_calendar_pick_day": "Wybierz dzień z trasami, aby zobaczyć szczegóły",
+    "trips_search_placeholder": "Szukaj w notatkach tras...",
+    "trips_search_all_modes": "Wszystkie tryby",
+    "trips_search_km_min": "Dystans min",
+    "trips_search_km_max": "Dystans maks",
+    "trips_search_duration_min": "Czas min (min)",
+    "trips_search_no_results": "Żadna trasa nie pasuje do wyszukiwania",
     "merge_preview_title": "Podgląd połączonej trasy",
     "driving_only": "tylko jazda",
     "merge_stop": "postój",
@@ -893,7 +920,13 @@
     "app_update_restart": "Zaktualizuje się przy następnym uruchomieniu Mate",
     "app_update_needs_app": "Wymagana jest nowsza wersja aplikacji — pobierz ją",
     "desktop_open_notice": "Mate zapisuje dane tylko przy otwartej aplikacji — tego, co nastąpi po jej zamknięciu, nie zapisze i nie da się już odzyskać.",
-    "desktop_open_notice_ok": "Rozumiem"
+    "desktop_open_notice_ok": "Rozumiem",
+    "desktop_section": "Aplikacja",
+    "desktop_autostart": "Uruchamiaj przy logowaniu",
+    "desktop_autostart_desc": "Mate otworzy się sam po włączeniu komputera, więc zapisze też przejazdy i ładowania, o których nie pamiętasz.",
+    "desktop_autostart_on": "Włączone — Mate otworzy się przy następnym logowaniu",
+    "desktop_autostart_off": "Wyłączone",
+    "desktop_version": "Wersja aplikacji"
   },
   "months": {
     "full": [
@@ -924,5 +957,8 @@
       "lis",
       "gru"
     ]
+  },
+  "weekdays": {
+    "abbr": ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Nie"]
   }
 }

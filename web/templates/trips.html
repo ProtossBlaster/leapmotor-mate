@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Trips — LeapMotor Mate{% endblock %}
 
-{# Efficiency → pill colour class #}
-{% macro eff_cls(e) %}{% if e < 18 %}eff-good{% elif e < 22 %}eff-mid{% else %}eff-bad{% endif %}{% endmacro %}
+{# eff_cls is now a global Jinja function (main.py's _eff_cls) — shared with trip_row.html.
+   eff_hex (below) stays template-local: only the hero tile above needs a raw colour value. #}
 {# Efficiency → hex colour (for non-pill values) #}
 {% macro eff_hex(e) %}{% if e < 18 %}#4ade80{% elif e < 22 %}#facc15{% else %}#f87171{% endif %}{% endmacro %}
 
@@ -14,14 +14,6 @@
   </div>
   {% if total %}
   <div class="shrink-0 flex items-center gap-2 flex-wrap justify-end">
-    <button type="button" id="merge-toggle"
-            class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-yellow-500/50 transition-all">
-      🔗 {{ t('merge_mode') }}
-    </button>
-    <button type="button" id="collapse-all-trips"
-            class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-slate-400/50 transition-all">
-      ⊟ {{ t('collapse_all') }}
-    </button>
     <a href="api/export/trips.csv" download
        class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-brand/50 transition-all">
       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
@@ -29,18 +21,6 @@
     </a>
   </div>
   {% endif %}
-</div>
-
-<!-- Merge-mode bar (revealed by the 🔗 toggle). The connectors below are filtered live by this slider. -->
-<div id="merge-bar" style="display:none"
-     class="items-center gap-x-4 gap-y-2 flex-wrap mb-5 rounded-lg border border-yellow-500/30 bg-yellow-400/5 px-4 py-3">
-  <span class="text-sm font-medium text-yellow-400 inline-flex items-center gap-1">🔗 {{ t('merge_mode') }}</span>
-  <span class="text-xs text-slate-400 flex-1 min-w-[160px]">{{ t('merge_help') }}</span>
-  <label class="text-xs text-slate-300 inline-flex items-center gap-2 whitespace-nowrap">
-    {{ t('merge_max_gap') }}: <output id="merge-gap-out" class="text-yellow-400 font-semibold">{{ merge_gap_default }}</output> min
-    <input id="merge-gap" type="range" min="{{ merge_gap_min }}" max="{{ merge_gap_max }}" step="5"
-           value="{{ merge_gap_default }}" class="accent-yellow-400 w-36 align-middle">
-  </label>
 </div>
 
 {% if summary and summary.count %}
@@ -92,186 +72,76 @@
 </div>
 {% endif %}
 
-<!-- ── Trips (year / month / day tree) ──────────────────────────── -->
-{% if grouped %}
-<section>
-  <div class="space-y-3" id="trips-tree" data-ls-key="lm_trips_open">
-  {% for year in grouped %}
+{% if total %}
+<!-- Search + advanced filters -->
+<div class="card mb-6">
+  <form id="trips-search-form"
+        hx-get="api/trips/search"
+        hx-target="#trips-calendar-month-wrap" hx-swap="innerHTML"
+        hx-trigger="keyup changed delay:400ms from:#trips-search-q, change"
+        class="space-y-3">
+    <input type="hidden" name="year" value="{{ cal_year }}">
+    <input type="hidden" name="month" value="{{ cal_month }}">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <input id="trips-search-q" type="text" name="q" autocomplete="off"
+             placeholder="🔍 {{ t('trips_search_placeholder') }}"
+             class="flex-1 min-w-0 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-brand">
+      <button type="button" onclick="document.getElementById('trips-adv-filters').classList.toggle('hidden')"
+              class="text-xs text-slate-400 hover:text-white border border-slate-600 rounded-lg px-3 py-2 whitespace-nowrap w-full sm:w-auto">
+        ⚙ {{ t('charges_search_advanced') }}
+      </button>
+    </div>
+    <div id="trips-adv-filters" class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-2 border-t border-slate-700/60">
+      <select name="drive_mode" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+        <option value="">{{ t('trips_search_all_modes') }}</option>
+        <option value="comfort">{{ t('mode_comfort') }}</option>
+        <option value="normal">{{ t('mode_normal') }}</option>
+        <option value="sport">{{ t('mode_sport') }}</option>
+      </select>
+      <input type="date" name="date_from" title="{{ t('charges_search_date_from') }}"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+      <input type="date" name="date_to" title="{{ t('charges_search_date_to') }}"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+      <input type="number" step="0.1" min="0" name="km_min" placeholder="{{ t('trips_search_km_min') }} ({{ dist_unit() }})"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+      <input type="number" step="0.1" min="0" name="km_max" placeholder="{{ t('trips_search_km_max') }} ({{ dist_unit() }})"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+      <input type="number" step="1" min="0" name="duration_min" placeholder="{{ t('trips_search_duration_min') }}"
+             class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+    </div>
+  </form>
+</div>
 
-    <!-- YEAR -->
-    <details id="y-{{ year.label }}" class="group">
-      <summary class="tree-summary tree-year">
-        <div class="flex items-center gap-3">
-          <span class="chevron text-slate-400">▶</span>
-          <span class="text-white font-bold text-lg">{{ year.label }}</span>
-        </div>
-        <div class="flex items-center flex-wrap justify-end gap-x-4 gap-y-1 text-sm">
-          <span class="text-slate-500 whitespace-nowrap">{{ year.count }} {{ t('trips_plural') }}</span>
-          <span class="text-white font-semibold whitespace-nowrap">{{ year.km | dist(1) }}</span>
-          {% if year.regen and not is_reev %}
-          <span class="text-green-400/90 font-medium whitespace-nowrap" title="{{ t('total_regen') }}">♻️ {{ year.regen | nice }} kWh</span>
-          {% endif %}
-          {% if year.cost %}
-          <span class="text-slate-300 whitespace-nowrap" title="{{ t('cost') }}">{{ year.cost | money }}</span>
-          {% endif %}
-          {% if year.avg_eff %}
-          <span class="eff-pill {{ eff_cls(year.avg_eff) }}">
-            {{ year.avg_eff | eff }}
-          </span>
-          {% endif %}
-          <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
-        </div>
-      </summary>
-
-      <div class="ml-4 mt-2 space-y-2">
-      {% for month in year.months.values() %}
-
-        <!-- MONTH -->
-        <details id="m-{{ month.label|replace(' ','_') }}" class="group/month">
-          <summary class="tree-summary tree-month">
-            <div class="flex items-center gap-3">
-              <span class="chevron text-slate-500 text-sm">▶</span>
-              <span class="text-slate-200 font-semibold">{{ month.label }}</span>
-            </div>
-            <div class="flex items-center flex-wrap justify-end gap-x-4 gap-y-1 text-xs">
-              <span class="text-slate-500 whitespace-nowrap">{{ month.count }} {{ t('trips_plural') }}</span>
-              <span class="text-slate-200 font-semibold whitespace-nowrap">{{ month.km | dist(1) }}</span>
-              {% if month.regen and not is_reev %}
-              <span class="text-green-400/90 font-medium whitespace-nowrap" title="{{ t('total_regen') }}">♻️ {{ month.regen | nice }} kWh</span>
-              {% endif %}
-              {% if month.cost %}
-              <span class="text-slate-300 whitespace-nowrap" title="{{ t('cost') }}">{{ month.cost | money }}</span>
-              {% endif %}
-              {% if month.avg_eff %}
-              <span class="eff-pill {{ eff_cls(month.avg_eff) }}">
-                {{ month.avg_eff | eff }}
-              </span>
-              {% endif %}
-              <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
-            </div>
-          </summary>
-
-          <div class="ml-4 mt-1.5 space-y-1.5">
-          {% for day in month.days.values() %}
-
-            <!-- DAY -->
-            <details id="d-{{ day.label|replace(' ','_') }}" class="group/day">
-              <summary class="tree-summary tree-day">
-                <div class="flex items-center gap-2">
-                  <span class="chevron text-slate-600 text-xs">▶</span>
-                  <span class="text-slate-300 text-sm font-medium">{{ day.label }}</span>
-                  <span class="text-slate-600 text-xs hidden sm:inline">— {{ day.count }} {{ t('trips_plural') if day.count > 1 else t('trip_singular') }}</span>
-                </div>
-                <div class="flex items-center flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
-                  <span class="text-slate-400 font-medium whitespace-nowrap">{{ day.km | dist(1) }}</span>
-                  {% if day.regen and not is_reev %}
-                  <span class="text-green-400/90 font-medium whitespace-nowrap" title="{{ t('total_regen') }}">♻️ {{ day.regen | nice }} kWh</span>
-                  {% endif %}
-                  {% if day.cost %}
-                  <span class="text-slate-300 whitespace-nowrap" title="{{ t('cost') }}">{{ day.cost | money }}</span>
-                  {% endif %}
-                  {% if day.avg_eff %}
-                  <span class="eff-pill {{ eff_cls(day.avg_eff) }}">
-                    {{ day.avg_eff | eff }}
-                  </span>
-                  {% endif %}
-                </div>
-              </summary>
-
-              <!-- TRIPS inside the day -->
-              <div class="ml-4 mt-1 space-y-1">
-              {% for trip in day.trips %}
-              {% set used = (trip.start_soc or 0) - (trip.end_soc or 0) %}
-              <a href="trips/{{ trip.id }}"
-                 data-trip-id="{{ trip.id }}"
-                 class="trip-row">
-
-                <!-- Route thumbnail (browser-lazy, served as SVG); reconstructed trips have no GPS -->
-                {% if trip.reconstructed %}
-                <div class="trip-thumb flex items-center justify-center text-amber-400/70 text-lg"
-                     title="{{ t('trip_reconstructed_hint') }}">✨</div>
-                {% else %}
-                <img class="trip-thumb" loading="lazy" alt=""
-                     src="trips/{{ trip.id }}/route.svg">
-                {% endif %}
-
-                <!-- Time + duration -->
-                <div class="min-w-0 flex-1">
-                  <div class="text-white text-sm font-medium">
-                    {{ trip.started_at[11:16] if trip.started_at else '—' }}
-                    <span class="text-slate-500 font-normal text-xs ml-1">
-                      → {{ trip.ended_at[11:16] if trip.ended_at else '' }}
-                    </span>
-                    {% if trip.is_merged %}<span style="font-size:10px" class="text-yellow-400" title="{{ trip.merged_count }} {{ t('merge_segments') }}">🔗</span>{% endif %}
-                    {% if trip.reconstructed %}<span style="font-size:10px" class="text-amber-400/90 ml-1" title="{{ t('trip_reconstructed_hint') }}">✨ {{ t('trip_reconstructed') }}</span>{% endif %}
-                  </div>
-                  <div class="text-slate-500 text-xs">{{ fmt_dur(trip.duration_min) }}{% if trip.is_merged %} · {{ t('driving_only') }}{% endif %}</div>
-                </div>
-
-                <!-- SOC mini gauge -->
-                <div class="hidden sm:flex flex-col items-end gap-1 flex-shrink-0">
-                  <div class="soc-mini" title="{{ '%.0f'|format(trip.start_soc or 0) }}% → {{ '%.0f'|format(trip.end_soc or 0) }}%">
-                    <i class="soc-rem"  style="width:{{ trip.end_soc or 0 }}%"></i>
-                    <i class="soc-used" style="left:{{ trip.end_soc or 0 }}%;width:{{ used if used > 0 else 0 }}%"></i>
-                  </div>
-                  <div class="text-slate-500 text-[11px]">
-                    {{ "%.0f"|format(trip.start_soc or 0) }}→{{ "%.0f"|format(trip.end_soc or 0) }}%
-                  </div>
-                </div>
-
-                <!-- Stats -->
-                <div class="text-right flex-shrink-0" style="min-width:84px">
-                  <div class="text-white text-sm font-bold">{{ (trip.distance_km or 0) | dist(1) }}</div>
-                  {% if trip.efficiency_kwh_100km %}
-                  <span class="eff-pill {{ eff_cls(trip.efficiency_kwh_100km) }} mt-0.5">
-                    {{ trip.efficiency_kwh_100km | eff }}
-                  </span>
-                  {% endif %}
-                  {% if is_reev and research and trip.engine_ran %}
-                  {# REEV Phase C — flag an engine-on trip with its fuel consumption #}
-                  <span class="block mt-0.5 text-amber-400 text-[11px] font-semibold" title="{{ t('reev_engine_ran') }}">⛽ {% if trip.fuel_l_100km is not none %}{{ trip.fuel_l_100km | nice }} L/100km{% else %}{{ trip.fuel_used_l | nice }} L{% endif %}</span>
-                  {% endif %}
-                  {% if trip.ec_pending %}
-                  <span class="block mt-0.5 text-amber-400 text-[11px] font-medium" title="{{ t('ec_provisional') }}">⏳ {{ t('ec_provisional_short') }}</span>
-                  {% endif %}
-                </div>
-
-              </a>
-              {% if trip.is_merged %}
-              <div class="merge-sep" style="display:none;padding:0 0 4px 56px">
-                <button type="button"
-                        class="inline-flex items-center gap-1 rounded-md border border-slate-600 text-slate-300 px-2 py-0.5 text-[11px] font-medium hover:border-red-500 hover:text-red-400"
-                        hx-post="api/trips/unmerge?parent={{ trip.id }}" hx-swap="none">↩️ {{ t('unmerge_btn') }}</button>
-              </div>
-              {% endif %}
-              {% set nxt = day.trips[loop.index0 + 1] if not loop.last else none %}
-              {% if nxt and merge_pairs.get(trip.id) and merge_pairs[trip.id].a_id == nxt.id %}
-              {% set mp = merge_pairs[trip.id] %}
-              <div class="merge-connector" data-gap="{{ mp.gap }}" style="display:none;padding:0 0 2px 56px">
-                <button type="button"
-                        class="inline-flex items-center gap-1.5 rounded-md border border-yellow-500/50 bg-yellow-400/5 text-yellow-400 px-2.5 py-1 text-[11px] font-semibold hover:bg-yellow-400/15"
-                        hx-get="api/trips/merge-preview?a={{ mp.a_id }}&b={{ trip.id }}&gap={{ merge_gap_max }}"
-                        hx-target="#merge-modal-body" hx-swap="innerHTML"
-                        onclick="document.getElementById('merge-modal').style.display='flex'">
-                  🔗 {{ t('merge_join') }} <span class="font-normal opacity-70">· {{ t('merge_stop') }} {{ mp.gap }}′</span>
-                </button>
-              </div>
-              {% endif %}
-              {% endfor %}
-              </div>
-
-            </details>
-          {% endfor %}
-          </div>
-
-        </details>
-      {% endfor %}
-      </div>
-
-    </details>
+{% if cal_years and cal_years|length > 1 %}
+<!-- Year jump — only years with actual trips, so it never lists empty years -->
+<div class="flex items-center gap-2 flex-wrap mb-4">
+  {% for y in cal_years %}
+  <button type="button"
+          hx-get="api/trips/calendar?year={{ y }}&month={{ cal_month }}"
+          hx-target="#trips-calendar-month-wrap" hx-swap="innerHTML"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-600 text-slate-300 hover:border-brand hover:text-white transition-colors">
+    {{ y }}
+  </button>
   {% endfor %}
-  </div>
-</section>
+</div>
+{% endif %}
+
+<!-- Merge candidates — dedicated view (see main.py trips_merge_candidates for why it's
+     no longer inline connectors between accordion rows) -->
+<div class="mb-4">
+  <button type="button"
+          hx-get="api/trips/merge-candidates" hx-trigger="click"
+          hx-target="#trips-calendar-month-wrap" hx-swap="innerHTML"
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-yellow-500/50 transition-all">
+    🔗 {{ t('merge_eligible') }}
+  </button>
+</div>
+
+<div class="card mb-6" id="trips-calendar-month-wrap"
+     hx-get="api/trips/calendar?year={{ cal_year }}&month={{ cal_month }}{% if cal_open_day %}&open_day={{ cal_open_day }}{% endif %}"
+     hx-trigger="load" hx-swap="innerHTML">
+  <div class="text-center text-slate-500 py-10">…</div>
+</div>
 
 {% else %}
 <div class="card text-center py-12 text-slate-500">
@@ -281,63 +151,23 @@
 {% endif %}
 
 <script>
-const LS_KEY = 'lm_trips_open';
 const HIGHLIGHT = {{ highlight }};
 
-// ── Restore open/closed state from localStorage ──────────────────────────────
-// Archive defaults to fully collapsed; the user's manual toggles persist.
-const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-
-document.querySelectorAll('#trips-tree details').forEach(el => {
-  if (el.id in saved) {
-    el.open = saved[el.id];
-  } else {
-    // Default: year + month open, day closed
-    el.open = el.id.startsWith('y-') || el.id.startsWith('m-');
-  }
-});
-
-// Save state on every toggle. When a MONTH or YEAR is collapsed, also close the days inside it, so
-// re-opening it later shows them tidy (closed) instead of however they were last left open.
-document.querySelectorAll('#trips-tree details').forEach(el => {
-  el.addEventListener('toggle', () => {
-    const st = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-    st[el.id] = el.open;
-    if (!el.open && (el.id.startsWith('y-') || el.id.startsWith('m-'))) {
-      el.querySelectorAll('details[id^="d-"]').forEach(d => { d.open = false; st[d.id] = false; });
-    }
-    localStorage.setItem(LS_KEY, JSON.stringify(st));
-  });
-});
-
-// "Collapse all" closes only the DAY groups (months/years stay open) → one tap to tidy the list back
-// to a clean day-by-day overview, without losing the month structure or re-opening every trip.
-document.getElementById('collapse-all-trips')?.addEventListener('click', () => {
-  const st = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-  document.querySelectorAll('#trips-tree details[id^="d-"]').forEach(d => {
-    d.open = false;
-    st[d.id] = false;
-  });
-  localStorage.setItem(LS_KEY, JSON.stringify(st));
-});
-
-// ── Highlight and scroll to the selected trip ────────────────────────────────
+// A trip reached via ?highlight=<id> lands on the right month/day server-side (trips_page
+// resolves it and passes cal_open_day) — once that first HTMX load renders the day's rows,
+// find it, style it and scroll it into view. Same pattern as the Ricariche calendar.
 if (HIGHLIGHT) {
-  const row = document.querySelector(`#trips-tree [data-trip-id="${HIGHLIGHT}"]`);
-  if (row) {
-    // Open all ancestor <details> elements
-    let el = row.parentElement;
-    while (el) {
-      if (el.tagName === 'DETAILS') el.open = true;
-      el = el.parentElement;
+  document.body.addEventListener('htmx:afterSwap', function onSwap(e) {
+    if (!e.target || e.target.id !== 'trips-calendar-month-wrap') return;
+    const row = document.querySelector(`[data-trip-id="${HIGHLIGHT}"]`);
+    if (row) {
+      row.style.background = '#1a2e1a';
+      row.style.border     = '1px solid #22c55e55';
+      row.style.boxShadow  = 'inset 3px 0 0 #22c55e';
+      requestAnimationFrame(() => row.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      document.body.removeEventListener('htmx:afterSwap', onSwap);
     }
-    // Apply highlight style
-    row.style.background    = '#1a2e1a';
-    row.style.border        = '1px solid #22c55e55';
-    row.style.boxShadow     = 'inset 3px 0 0 #22c55e';
-    // Scroll into view after paint
-    requestAnimationFrame(() => row.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-  }
+  });
 }
 </script>
 
@@ -347,53 +177,4 @@ if (HIGHLIGHT) {
   <div id="merge-modal-body" style="max-width:440px;width:100%"></div>
 </div>
 
-<script>
-// Merge mode: the 🔗 toggle reveals the in-tree connectors between joinable adjacent trips and opens
-// ONLY the days that actually contain something actionable (a connector visible at the current gap, or
-// an already-merged trip to split) — NOT the whole archive. The gap slider filters live; leaving merge
-// mode restores the exact view you had before.
-(function () {
-  const btn = document.getElementById('merge-toggle');
-  const bar = document.getElementById('merge-bar');
-  const slider = document.getElementById('merge-gap');
-  const out = document.getElementById('merge-gap-out');
-  let on = false, savedOpen = null;
-  function openAncestors(node) {            // open the day (+ its month/year) holding this element
-    let el = node.parentElement;
-    while (el && el.id !== 'trips-tree') {
-      if (el.tagName === 'DETAILS') el.open = true;
-      el = el.parentElement;
-    }
-  }
-  function apply() {
-    const g = slider ? +slider.value : {{ merge_gap_default }};
-    if (out) out.textContent = g;
-    document.querySelectorAll('.merge-connector').forEach(c => {
-      const show = on && (+c.dataset.gap) <= g;
-      c.style.display = show ? 'flex' : 'none';
-      if (show) openAncestors(c);
-    });
-    document.querySelectorAll('.merge-sep').forEach(s => {
-      s.style.display = on ? 'block' : 'none';
-      if (on) openAncestors(s);
-    });
-  }
-  btn && btn.addEventListener('click', () => {
-    on = !on;
-    btn.classList.toggle('border-yellow-500', on);
-    btn.classList.toggle('text-yellow-400', on);
-    btn.classList.toggle('bg-yellow-400/10', on);
-    if (bar) bar.style.display = on ? 'flex' : 'none';
-    if (on) {                               // remember the current view to restore on exit
-      savedOpen = {};
-      document.querySelectorAll('#trips-tree details').forEach(d => { savedOpen[d.id] = d.open; });
-    } else if (savedOpen) {                  // exit → put every group back exactly as it was
-      document.querySelectorAll('#trips-tree details').forEach(d => { d.open = !!savedOpen[d.id]; });
-      savedOpen = null;
-    }
-    apply();
-  });
-  slider && slider.addEventListener('input', apply);
-})();
-</script>
 {% endblock %}

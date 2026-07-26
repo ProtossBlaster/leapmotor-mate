@@ -54,6 +54,7 @@
     "battery_vampire_per_park": "pro Stopp",
     "battery_vampire_per_day": "pro Tag",
     "battery_vampire_low_conf": "unsichere Schätzung (kurze Parkdauer)",
+    "battery_vampire_low_conf_drop": "unsichere Schätzung (Abfall zu klein)",
     "battery_vampire_active_use": "Heizen/Kühlen bei Auto aus (gezählt)",
     "battery_vampire_active_use_note": "{n} Zeitfenster enthalten viel Heizen/Kühlen bei ausgeschaltetem Auto (orange, im Verbrauch gezählt).",
     "battery_vampire_help": "Jeder Balken ist ein Zeitraum, in dem das Auto mindestens eine Stunde geparkt und nicht angeschlossen war; der Wert ist der verlorene SoC, normiert auf %/Tag. Zeiträume mit Fahrt (Geschwindigkeit oder Odometer-Änderung) oder Laden werden ausgeschlossen, winzige Rückgänge gelten als Sensorrauschen. Blasse Balken sind kurze oder noch laufende Parkphasen, in denen ein einzelner 0,1%-Sensorschritt die Tagesrate aufblähen kann — das ± im Tooltip zeigt, um wie viel. Die Kopfzahl ist der insgesamt verlorene SoC ÷ die gesamte Parkzeit, einschließlich verlustfreier Parkphasen. Automatisch aus aufgezeichneter Telemetrie berechnet — keine Eingabe nötig.",
@@ -306,6 +307,7 @@
     "wb_th_dc": "Batterie DC",
     "wb_th_eff": "Wirkungsgrad",
     "wallbox_compare_legend": "Gelieferte kWh vs. in die Batterie (pro Sitzung, zusammengefasst nach Tag/Monat/Jahr)",
+    "wallbox_calendar_pick_day": "Wähle einen Tag mit Ladevorgängen für die Details",
     "wb_tot_ac": "kWh Wallbox",
     "wb_tot_dc": "kWh Batterie",
     "wb_tot_eff": "Wirkungsgrad",
@@ -529,6 +531,22 @@
     "speed_profile": "Geschwindigkeitsprofil",
     "not_enough_gps": "Nicht genug GPS-Punkte",
     "charges_title": "Ladungen",
+    "charges_calendar_prev": "Vorheriger Monat",
+    "charges_calendar_next": "Nächster Monat",
+    "charges_calendar_today": "Zu heute springen",
+    "charges_calendar_pick_day": "Wähle einen Tag mit Ladevorgängen für die Details",
+    "charges_search_placeholder": "Ladestation oder Notiz suchen...",
+    "charges_search_advanced": "Erweiterte Filter",
+    "charges_search_all_types": "Alle Typen",
+    "charges_search_date_from": "Von",
+    "charges_search_date_to": "Bis",
+    "charges_search_kwh_min": "kWh min",
+    "charges_search_kwh_max": "kWh max",
+    "charges_search_cost_min": "Kosten min",
+    "charges_search_cost_max": "Kosten max",
+    "charges_search_results": "Ergebnisse",
+    "charges_search_clear": "Zurück zum Kalender",
+    "charges_search_no_results": "Keine Ladung entspricht der Suche",
     "ac_dc_distribution": "AC-/DC-Verteilung",
     "ac_charge": "AC",
     "dc_charge": "DC",
@@ -606,6 +624,7 @@
     "energy_in_battery_help": "Die tatsächlich in die Batterie geflossene Energie (DC). Die aus dem Netz bezogene ist ~10–15 % höher (AC→DC-Umwandlungsverluste); ohne Wallbox-Messung kann Mate nur diesen Wert anzeigen.",
     "car_data_dc": "Fahrzeugdaten (DC)",
     "cancel": "Abbrechen",
+    "confirm_proceed": "Fortfahren",
     "merge_mode": "Zusammenführen",
     "merge_help": "Zwei Fahrten zusammenführen, die ein kurzer Halt ohne Laden getrennt hat. Max. Pause einstellen; Paare mit Ladevorgang dazwischen werden nie angezeigt.",
     "merge_max_gap": "Max. Pause",
@@ -618,6 +637,14 @@
     "merge_existing": "Zusammengeführte Fahrten",
     "merge_segments": "Segmente",
     "unmerge_btn": "Trennen",
+    "unmerge_confirm": "Diese zusammengeführte Fahrt wieder in ihre ursprünglichen Abschnitte trennen?",
+    "trips_calendar_pick_day": "Wähle einen Tag mit Fahrten für die Details",
+    "trips_search_placeholder": "Fahrtnotizen durchsuchen...",
+    "trips_search_all_modes": "Alle Modi",
+    "trips_search_km_min": "Distanz min",
+    "trips_search_km_max": "Distanz max",
+    "trips_search_duration_min": "Dauer min (Min.)",
+    "trips_search_no_results": "Keine Fahrt entspricht der Suche",
     "merge_preview_title": "Vorschau zusammengeführte Fahrt",
     "driving_only": "nur Fahrt",
     "merge_stop": "Halt",
@@ -904,7 +931,13 @@
     "app_update_restart": "Wird beim nächsten Start von Mate aktualisiert",
     "app_update_needs_app": "Eine neuere Version der App ist erforderlich — herunterladen",
     "desktop_open_notice": "Mate zeichnet nur auf, solange diese App geöffnet ist — was danach passiert, wird nicht gespeichert und lässt sich später nicht wiederherstellen.",
-    "desktop_open_notice_ok": "Verstanden"
+    "desktop_open_notice_ok": "Verstanden",
+    "desktop_section": "App",
+    "desktop_autostart": "Beim Anmelden starten",
+    "desktop_autostart_desc": "Öffnet Mate von selbst, wenn Sie den Computer einschalten — so werden auch die Fahrten und Ladevorgänge erfasst, an die Sie nicht denken.",
+    "desktop_autostart_on": "Ein — Mate öffnet sich bei der nächsten Anmeldung",
+    "desktop_autostart_off": "Aus",
+    "desktop_version": "App-Version"
   },
   "months": {
     "full": [
@@ -935,5 +968,8 @@
       "Nov",
       "Dez"
     ]
+  },
+  "weekdays": {
+    "abbr": ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
   }
 }

@@ -108,6 +108,7 @@
     "battery_vampire_per_park": "per stop",
     "battery_vampire_per_day": "per day",
     "battery_vampire_low_conf": "low confidence (short park)",
+    "battery_vampire_low_conf_drop": "uncertain estimate (drop too small)",
     "battery_vampire_active_use": "off-state heating/cooling (counted)",
     "battery_vampire_active_use_note": "{n} window(s) include heavy off-state heating/cooling (shown in amber, counted in the drain).",
     "battery_vampire_help": "Each bar is a stretch the car sat parked and unplugged for at least an hour; the value is the SoC it lost, normalised to %/day. Stretches with any driving (speed or an odometer change) or charging are excluded, and tiny drops are treated as sensor noise. Pale bars are short or still-running parks, where a single 0.1% sensor step can inflate the daily rate — the ± in the tooltip shows by how much. The headline is total SoC lost ÷ total parked time across all parks, including those that lost nothing. Computed automatically from logged telemetry — no input needed.",
@@ -360,6 +361,7 @@
     "wb_th_dc": "Battery DC",
     "wb_th_eff": "Efficiency",
     "wallbox_compare_legend": "kWh delivered vs into the battery (per session, rolled up by day/month/year)",
+    "wallbox_calendar_pick_day": "Pick a day with charges to see its detail",
     "wb_tot_ac": "Wallbox kWh",
     "wb_tot_dc": "Battery kWh",
     "wb_tot_eff": "Efficiency",
@@ -585,6 +587,22 @@
     "charges_title": "Charges",
     "charges_station_filter": "Showing charges at",
     "charges_station_clear": "Clear filter",
+    "charges_calendar_prev": "Previous month",
+    "charges_calendar_next": "Next month",
+    "charges_calendar_today": "Jump to today",
+    "charges_calendar_pick_day": "Pick a day with charges to see its detail",
+    "charges_search_placeholder": "Search station or note...",
+    "charges_search_advanced": "Advanced filters",
+    "charges_search_all_types": "All types",
+    "charges_search_date_from": "From",
+    "charges_search_date_to": "To",
+    "charges_search_kwh_min": "kWh min",
+    "charges_search_kwh_max": "kWh max",
+    "charges_search_cost_min": "Cost min",
+    "charges_search_cost_max": "Cost max",
+    "charges_search_results": "results",
+    "charges_search_clear": "Back to calendar",
+    "charges_search_no_results": "No charge matches your search",
     "ac_dc_distribution": "AC vs DC Distribution",
     "ac_charge": "AC",
     "dc_charge": "DC",
@@ -662,6 +680,7 @@
     "energy_in_battery_help": "The energy that actually entered the battery (DC). What you draw from the grid is ~10–15% higher (AC→DC conversion losses); without a wallbox reading, Mate can only show this figure.",
     "car_data_dc": "car data (DC)",
     "cancel": "Cancel",
+    "confirm_proceed": "Proceed",
     "merge_mode": "Merge",
     "merge_help": "Join two trips that a short, non-charging stop split apart. Adjust the max stop; pairs that charged in between are never shown.",
     "merge_max_gap": "Max stop",
@@ -674,6 +693,14 @@
     "merge_existing": "Merged trips",
     "merge_segments": "segments",
     "unmerge_btn": "Unmerge",
+    "unmerge_confirm": "Split this merged trip back into its original segments?",
+    "trips_calendar_pick_day": "Pick a day with trips to see its detail",
+    "trips_search_placeholder": "Search trip notes...",
+    "trips_search_all_modes": "All modes",
+    "trips_search_km_min": "Min distance",
+    "trips_search_km_max": "Max distance",
+    "trips_search_duration_min": "Min duration (min)",
+    "trips_search_no_results": "No trip matches your search",
     "merge_preview_title": "Merged trip preview",
     "driving_only": "driving only",
     "merge_stop": "stop",
@@ -984,7 +1011,13 @@
     "app_update_restart": "Updates when you restart Mate",
     "app_update_needs_app": "A newer version of the app is required — download it",
     "desktop_open_notice": "Mate records only while this app is open — anything after you close it is not saved, and cannot be recovered later.",
-    "desktop_open_notice_ok": "Got it"
+    "desktop_open_notice_ok": "Got it",
+    "desktop_section": "App",
+    "desktop_autostart": "Start at login",
+    "desktop_autostart_desc": "Opens Mate on its own when you turn the computer on, so it also records the trips and charges you don't think about.",
+    "desktop_autostart_on": "On — Mate will open at your next login",
+    "desktop_autostart_off": "Off",
+    "desktop_version": "App version"
   },
   "months": {
     "full": [
@@ -1015,5 +1048,8 @@
       "Nov",
       "Dec"
     ]
+  },
+  "weekdays": {
+    "abbr": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
   }
 }

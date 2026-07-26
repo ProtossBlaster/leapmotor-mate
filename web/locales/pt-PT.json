@@ -108,6 +108,7 @@
     "battery_vampire_per_park": "por paragem",
     "battery_vampire_per_day": "por dia",
     "battery_vampire_low_conf": "baixa confiança (paragem curta)",
+    "battery_vampire_low_conf_drop": "estimativa incerta (queda demasiado pequena)",
     "battery_vampire_active_use": "aquecimento/arrefecimento desligado (contabilizado)",
     "battery_vampire_active_use_note": "{n} intervalo(s) incluem aquecimento/arrefecimento intenso com o carro desligado (mostrado a âmbar, contabilizado no consumo).",
     "battery_vampire_help": "Cada barra representa um período em que o carro ficou estacionado e desligado da tomada durante pelo menos uma hora; o valor é o SoC perdido, normalizado para %/dia. Períodos com condução (velocidade ou variação no odómetro) ou carregamento são excluídos, e quedas muito pequenas são tratadas como ruído do sensor. Barras claras são paragens curtas ou ainda em curso, onde um único passo de 0,1% pode inflacionar a taxa diária — o ± no tooltip mostra quanto. O valor principal é SoC total perdido ÷ tempo total estacionado em todos os períodos, incluindo os que não perderam carga. Calculado automaticamente a partir da telemetria — sem necessidade de introdução manual.",
@@ -360,6 +361,7 @@
     "wb_th_dc": "Bateria DC",
     "wb_th_eff": "Eficiência",
     "wallbox_compare_legend": "kWh entregues vs kWh na bateria (por sessão, agregado por dia/mês/ano)",
+    "wallbox_calendar_pick_day": "Escolhe um dia com carregamentos para ver o detalhe",
     "wb_tot_ac": "kWh wallbox",
     "wb_tot_dc": "kWh bateria",
     "wb_tot_eff": "Eficiência",
@@ -585,6 +587,22 @@
     "charges_title": "Carregamentos",
     "charges_station_filter": "A mostrar carregamentos em",
     "charges_station_clear": "Limpar filtro",
+    "charges_calendar_prev": "Mês anterior",
+    "charges_calendar_next": "Mês seguinte",
+    "charges_calendar_today": "Ir para hoje",
+    "charges_calendar_pick_day": "Escolhe um dia com carregamentos para ver o detalhe",
+    "charges_search_placeholder": "Pesquisar estação ou nota...",
+    "charges_search_advanced": "Filtros avançados",
+    "charges_search_all_types": "Todos os tipos",
+    "charges_search_date_from": "De",
+    "charges_search_date_to": "Até",
+    "charges_search_kwh_min": "kWh mín",
+    "charges_search_kwh_max": "kWh máx",
+    "charges_search_cost_min": "Custo mín",
+    "charges_search_cost_max": "Custo máx",
+    "charges_search_results": "resultados",
+    "charges_search_clear": "Voltar ao calendário",
+    "charges_search_no_results": "Nenhum carregamento corresponde à pesquisa",
     "ac_dc_distribution": "Distribuição AC vs DC",
     "ac_charge": "AC",
     "dc_charge": "DC",
@@ -662,6 +680,7 @@
     "energy_in_battery_help": "A energia que entrou efetivamente na bateria (DC). O que é retirado da rede é ~10–15% superior (perdas de conversão AC→DC); sem leitura da wallbox, o Mate só pode mostrar este valor.",
     "car_data_dc": "dados do carro (DC)",
     "cancel": "Cancelar",
+    "confirm_proceed": "Continuar",
     "merge_mode": "Unir",
     "merge_help": "Junta duas viagens separadas por uma paragem curta sem carregamento. Ajusta a paragem máxima; pares que carregaram entre viagens nunca são mostrados.",
     "merge_max_gap": "Paragem máx.",
@@ -674,6 +693,14 @@
     "merge_existing": "Viagens unidas",
     "merge_segments": "segmentos",
     "unmerge_btn": "Separar",
+    "unmerge_confirm": "Separar esta viagem unida nos segmentos originais?",
+    "trips_calendar_pick_day": "Escolhe um dia com viagens para ver o detalhe",
+    "trips_search_placeholder": "Pesquisar nas notas das viagens...",
+    "trips_search_all_modes": "Todos os modos",
+    "trips_search_km_min": "Distância mín",
+    "trips_search_km_max": "Distância máx",
+    "trips_search_duration_min": "Duração mín (min)",
+    "trips_search_no_results": "Nenhuma viagem corresponde à pesquisa",
     "merge_preview_title": "Pré-visualização da viagem unida",
     "driving_only": "apenas condução",
     "merge_stop": "paragem",
@@ -984,7 +1011,13 @@
     "app_update_restart": "Atualiza no próximo arranque do Mate",
     "app_update_needs_app": "É necessária uma versão mais recente da app — transfira-a",
     "desktop_open_notice": "O Mate regista apenas enquanto esta app estiver aberta — o que acontecer depois de a fechar não é guardado nem poderá ser recuperado.",
-    "desktop_open_notice_ok": "Percebi"
+    "desktop_open_notice_ok": "Percebi",
+    "desktop_section": "App",
+    "desktop_autostart": "Iniciar ao iniciar sessão",
+    "desktop_autostart_desc": "Abre o Mate sozinho quando liga o computador, para registar também as viagens e os carregamentos em que não pensa.",
+    "desktop_autostart_on": "Ativado — o Mate abrirá no próximo início de sessão",
+    "desktop_autostart_off": "Desativado",
+    "desktop_version": "Versão da app"
   },
   "months": {
     "full": [
@@ -1015,5 +1048,8 @@
       "nov",
       "dez"
     ]
+  },
+  "weekdays": {
+    "abbr": ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
   }
 }

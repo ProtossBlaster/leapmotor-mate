@@ -1,0 +1,76 @@
+{# GET /api/charges/calendar response — the Ricariche "calendar" Month view. Self-replacing:
+   the prev/next/today nav buttons target THIS SAME #charges-calendar-month container with
+   hx-swap="outerHTML", so navigating months also resets the day-drawer below (a day open in
+   the old month rarely makes sense in the new one). Day cells with charges instead target only
+   #charges-day-drawer — clicking a day never re-fetches or re-renders the grid. #}
+<div id="charges-calendar-month">
+  <div class="flex items-center justify-between mb-4">
+    <button type="button" title="{{ t('charges_calendar_prev') }}"
+            hx-get="api/charges/calendar?year={{ prev_year }}&month={{ prev_month }}{% if station %}&station={{ station }}{% endif %}"
+            hx-target="#charges-calendar-month" hx-swap="outerHTML"
+            class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-600 text-slate-300 hover:border-brand hover:text-white transition-colors">◀</button>
+    <div class="text-center">
+      <div class="text-white font-bold text-lg leading-tight">{{ month_label }}</div>
+      {% if not (year == today.year and month == today.month) %}
+      <button type="button"
+              hx-get="api/charges/calendar{% if station %}?station={{ station }}{% endif %}"
+              hx-target="#charges-calendar-month" hx-swap="outerHTML"
+              class="text-xs text-brand hover:underline">{{ t('charges_calendar_today') }}</button>
+      {% endif %}
+    </div>
+    <button type="button" title="{{ t('charges_calendar_next') }}"
+            hx-get="api/charges/calendar?year={{ next_year }}&month={{ next_month }}{% if station %}&station={{ station }}{% endif %}"
+            hx-target="#charges-calendar-month" hx-swap="outerHTML"
+            class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-600 text-slate-300 hover:border-brand hover:text-white transition-colors">▶</button>
+  </div>
+
+  {% if total.count %}
+  <div class="flex items-center justify-center gap-4 text-sm mb-4 flex-wrap">
+    <span class="text-slate-400">{{ total.count }} {{ t('session_inline_one') if total.count == 1 else t('session_inline_many') }}</span>
+    <span class="text-yellow-400 font-semibold">{{ total.kwh }} kWh</span>
+    {% if total.has_cost %}<span class="text-green-400 font-semibold">{{ total.cost | money }}</span>{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-7 gap-1 sm:gap-1.5 lg:gap-2 text-center text-[10px] sm:text-xs lg:text-sm text-slate-500 mb-1">
+    {% for wd in weekday_abbrs %}<div>{{ wd }}</div>{% endfor %}
+  </div>
+
+  <div class="grid grid-cols-7 gap-1 sm:gap-1.5 lg:gap-2">
+    {% for week in weeks %}
+      {% for cell in week %}
+        {% if cell is none %}
+        <div></div>
+        {% else %}
+        {% set is_today = (year == today.year and month == today.month and cell.day == today.day) %}
+        {% if cell.count %}
+        <button type="button"
+                hx-get="api/charges/calendar/day?year={{ year }}&month={{ month }}&day={{ cell.day }}{% if station %}&station={{ station }}{% endif %}"
+                hx-target="#charges-day-drawer" hx-swap="innerHTML"
+                class="aspect-square rounded-lg border flex flex-col items-center justify-center gap-0.5 lg:gap-1 cursor-pointer hover:border-brand transition-colors"
+                style="background:#0f172a;border-color:{% if is_today %}#fbbf24{% else %}#1e293b{% endif %}">
+          <span class="text-[11px] sm:text-sm lg:text-lg {% if is_today %}text-yellow-400 font-bold{% else %}text-slate-300{% endif %}">{{ cell.day }}</span>
+          <span class="text-[9px] sm:text-[11px] lg:text-sm text-yellow-400 font-semibold leading-none">{{ cell.kwh }}</span>
+          <span class="text-[8px] sm:text-[10px] lg:text-xs text-slate-500 leading-none">{{ cell.count }}⚡</span>
+        </button>
+        {% else %}
+        <div class="aspect-square rounded-lg flex items-center justify-center"
+             style="background:#0a1220;border:1px solid {% if is_today %}#fbbf2455{% else %}#111c2e{% endif %}">
+          <span class="text-[11px] sm:text-sm lg:text-lg {% if is_today %}text-yellow-400 font-bold{% else %}text-slate-600{% endif %}">{{ cell.day }}</span>
+        </div>
+        {% endif %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <div id="charges-day-drawer" class="mt-4">
+    {% if open_day_charges is defined %}
+      {% with charges = open_day_charges, day_label = open_day_label %}
+        {% include "partials/charges_calendar_day_content.html" %}
+      {% endwith %}
+    {% else %}
+    <div class="text-center text-slate-500 text-sm py-6">{{ t('charges_calendar_pick_day') }}</div>
+    {% endif %}
+  </div>
+</div>
