@@ -201,3 +201,25 @@ def test_trips_search_with_text_returns_flat_results(tmp_path, monkeypatch):
     body = resp.body.decode()
     assert 'data-trip-id="1"' in body
     assert 'id="trips-calendar-month"' not in body
+
+
+def test_trips_search_empty_numeric_fields_dont_422(tmp_path, monkeypatch):
+    """#175: an unfilled advanced-filter number input still submits its name with an EMPTY
+    value (km_min=""), which a bare `float | None` FastAPI param 422s trying to parse —
+    htmx then silently does nothing. Only `drive_mode` set, every numeric field an empty
+    string exactly as the real browser form submits them."""
+    pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
+    import main
+    pdb = _setup(tmp_path, monkeypatch)
+    monkeypatch.setattr(main.db_reader, "DB_PATH", str(tmp_path / "t.db"))
+    monkeypatch.setattr(main.db_reader, "get_language", lambda: "en")
+    _seed(pdb, 1, "2026-07-04T10:00:00+00:00", drive_mode="sport")
+    _seed(pdb, 2, "2026-07-05T10:00:00+00:00", drive_mode="comfort")
+
+    resp = asyncio.run(main.trips_search(
+        _Req(), drive_mode="sport", km_min="", km_max="", eff_min="", eff_max="",
+        duration_min="", duration_max="", date_from="", date_to=""))
+    assert resp.status_code == 200
+    body = resp.body.decode()
+    assert 'data-trip-id="1"' in body
+    assert 'data-trip-id="2"' not in body

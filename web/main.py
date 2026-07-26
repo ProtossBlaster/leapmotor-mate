@@ -218,6 +218,23 @@ def _state_color(pos: dict) -> str:
     if pos.get("plug_connected"): return "text-teal-300"   # cable in, not actively charging
     return "text-green-400"
 
+def _opt_float(s: str) -> "float | None":
+    """An optional numeric search-filter field, as FastAPI/Pydantic won't: a query param
+    typed `float | None = None` only defaults to None when the param is ABSENT, not when
+    it's present-but-empty — and an empty number/date input still submits its name with
+    an empty VALUE (e.g. `cost_min=`), which FastAPI then 422s trying to parse "" as a
+    float. Every optional numeric search filter takes `str` and goes through this instead
+    (#175 — an empty advanced-filter field made the whole search request fail silently,
+    since htmx doesn't swap in a non-2xx response)."""
+    s = (s or "").strip()
+    if not s:
+        return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
 def _fmt_dur(minutes) -> str:
     """Readable duration: '10h 19m' from an hour up, '45 min' below, '—' when missing —
     so a long charge reads as hours, not a bare '619 min'."""
@@ -468,25 +485,30 @@ async def trips_calendar_day(request: Request, year: int, month: int, day: int):
 
 @app.get("/api/trips/search", response_class=HTMLResponse)
 async def trips_search(request: Request, q: str = "", drive_mode: str = "",
-                        km_min: "float | None" = None, km_max: "float | None" = None,
-                        eff_min: "float | None" = None, eff_max: "float | None" = None,
-                        duration_min: "float | None" = None, duration_max: "float | None" = None,
+                        km_min: str = "", km_max: str = "",
+                        eff_min: str = "", eff_max: str = "",
+                        duration_min: str = "", duration_max: str = "",
                         date_from: str = "", date_to: str = "",
                         year: int = 0, month: int = 0):
     """Viaggi free-text + advanced-filter search (HTMX partial) — replaces the calendar with
     a flat, most-recent-first list of matches. No filter at all (search cleared) falls back
     to the calendar Month view instead of an empty list. km_min/km_max are typed in the
     user's own distance unit (the form label follows dist_unit()) and converted to km here,
-    same as a manually-entered odometer reading — search_trips itself is always metric."""
-    if not any((q.strip(), drive_mode.strip(), km_min is not None, km_max is not None,
-                eff_min is not None, eff_max is not None, duration_min is not None,
-                duration_max is not None, date_from.strip(), date_to.strip())):
+    same as a manually-entered odometer reading — search_trips itself is always metric.
+    The numeric fields arrive as strings (see _opt_float) — an empty advanced-filter field
+    must never 422 the whole request."""
+    n_km_min, n_km_max = _opt_float(km_min), _opt_float(km_max)
+    n_eff_min, n_eff_max = _opt_float(eff_min), _opt_float(eff_max)
+    n_duration_min, n_duration_max = _opt_float(duration_min), _opt_float(duration_max)
+    if not any((q.strip(), drive_mode.strip(), n_km_min is not None, n_km_max is not None,
+                n_eff_min is not None, n_eff_max is not None, n_duration_min is not None,
+                n_duration_max is not None, date_from.strip(), date_to.strip())):
         return _render_trips_calendar(request, year, month)
     lang = db_reader.get_language()
     trips = db_reader.search_trips(
         text=q, drive_mode=drive_mode,
-        km_min=units.dist_to_km(km_min), km_max=units.dist_to_km(km_max),
-        eff_min=eff_min, eff_max=eff_max, duration_min=duration_min, duration_max=duration_max,
+        km_min=units.dist_to_km(n_km_min), km_max=units.dist_to_km(n_km_max),
+        eff_min=n_eff_min, eff_max=n_eff_max, duration_min=n_duration_min, duration_max=n_duration_max,
         date_from=date_from, date_to=date_to)
     today = db_reader.today_local()
     return templates.TemplateResponse(request, "partials/trips_search_results.html", {
@@ -788,20 +810,25 @@ async def charges_calendar_day(request: Request, year: int, month: int, day: int
 
 @app.get("/api/charges/search", response_class=HTMLResponse)
 async def charges_search(request: Request, q: str = "", type: str = "",
-                          cost_min: "float | None" = None, cost_max: "float | None" = None,
-                          kwh_min: "float | None" = None, kwh_max: "float | None" = None,
+                          cost_min: str = "", cost_max: str = "",
+                          kwh_min: str = "", kwh_max: str = "",
                           date_from: str = "", date_to: str = "", station: str = "",
                           year: int = 0, month: int = 0):
     """Ricariche free-text + advanced-filter search (HTMX partial) — replaces the calendar
     with a flat, most-recent-first list of matches (see charge_card.html). No filter at all
-    (search cleared) falls back to the calendar Month view instead of an empty list."""
-    if not any((q.strip(), type.strip(), cost_min is not None, cost_max is not None,
-                kwh_min is not None, kwh_max is not None, date_from.strip(), date_to.strip())):
+    (search cleared) falls back to the calendar Month view instead of an empty list. The
+    numeric fields arrive as strings (see _opt_float) — an empty advanced-filter field must
+    never 422 the whole request (#175: htmx doesn't swap in a non-2xx response, so the
+    search silently did nothing whenever ANY unfilled number field was submitted)."""
+    n_cost_min, n_cost_max = _opt_float(cost_min), _opt_float(cost_max)
+    n_kwh_min, n_kwh_max = _opt_float(kwh_min), _opt_float(kwh_max)
+    if not any((q.strip(), type.strip(), n_cost_min is not None, n_cost_max is not None,
+                n_kwh_min is not None, n_kwh_max is not None, date_from.strip(), date_to.strip())):
         return _render_charges_calendar(request, year, month, station)
     lang = db_reader.get_language()
     charges = db_reader.search_charges(
-        text=q, charge_type=type, cost_min=cost_min, cost_max=cost_max,
-        kwh_min=kwh_min, kwh_max=kwh_max, date_from=date_from, date_to=date_to,
+        text=q, charge_type=type, cost_min=n_cost_min, cost_max=n_cost_max,
+        kwh_min=n_kwh_min, kwh_max=n_kwh_max, date_from=date_from, date_to=date_to,
         station=station or None)
     today = db_reader.today_local()
     return templates.TemplateResponse(request, "partials/charges_search_results.html", {

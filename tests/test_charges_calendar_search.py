@@ -203,3 +203,25 @@ def test_charges_search_with_text_returns_flat_results(tmp_path, monkeypatch):
     body = resp.body.decode()
     assert 'data-charge-id="1"' in body
     assert 'id="charges-calendar-month"' not in body        # a flat list, not the calendar shell
+
+
+def test_charges_search_empty_numeric_fields_dont_422(tmp_path, monkeypatch):
+    """#175: an unfilled advanced-filter number input still submits its name with an EMPTY
+    value (cost_min=""), which a bare `float | None` FastAPI param 422s trying to parse —
+    htmx then silently does nothing (no 2xx response to swap in). Only `type` set, every
+    numeric field an empty string exactly as the real browser form submits them."""
+    pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
+    import main
+    pdb = _setup(tmp_path, monkeypatch)
+    monkeypatch.setattr(main.db_reader, "DB_PATH", str(tmp_path / "t.db"))
+    monkeypatch.setattr(main.db_reader, "get_language", lambda: "en")
+    _seed(pdb, 1, "2026-07-04T10:00:00+00:00", location_type="HPC")
+    _seed(pdb, 2, "2026-07-05T10:00:00+00:00", location_type="AC")
+
+    resp = asyncio.run(main.charges_search(
+        _Req(), type="HPC", cost_min="", cost_max="", kwh_min="", kwh_max="",
+        date_from="", date_to=""))
+    assert resp.status_code == 200
+    body = resp.body.decode()
+    assert 'data-charge-id="1"' in body
+    assert 'data-charge-id="2"' not in body
