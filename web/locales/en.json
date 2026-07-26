@@ -987,7 +987,7 @@
     "desktop_open_notice_ok": "Got it",
     "desktop_section": "App",
     "desktop_autostart": "Start at login",
-    "desktop_autostart_desc": "Opens Mate on its own when you turn the Mac on, so it also records the trips and charges you don't think about.",
+    "desktop_autostart_desc": "Opens Mate on its own when you turn the computer on, so it also records the trips and charges you don't think about.",
     "desktop_autostart_on": "On — Mate will open at your next login",
     "desktop_autostart_off": "Off",
     "desktop_version": "App version"

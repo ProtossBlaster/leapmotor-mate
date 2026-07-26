@@ -907,7 +907,7 @@
     "desktop_open_notice_ok": "Verstanden",
     "desktop_section": "App",
     "desktop_autostart": "Beim Anmelden starten",
-    "desktop_autostart_desc": "Öffnet Mate von selbst, wenn Sie den Mac einschalten — so werden auch die Fahrten und Ladevorgänge erfasst, an die Sie nicht denken.",
+    "desktop_autostart_desc": "Öffnet Mate von selbst, wenn Sie den Computer einschalten — so werden auch die Fahrten und Ladevorgänge erfasst, an die Sie nicht denken.",
     "desktop_autostart_on": "Ein — Mate öffnet sich bei der nächsten Anmeldung",
     "desktop_autostart_off": "Aus",
     "desktop_version": "App-Version"

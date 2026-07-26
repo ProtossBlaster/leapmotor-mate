@@ -896,7 +896,7 @@
     "desktop_open_notice_ok": "Rozumiem",
     "desktop_section": "Aplikacja",
     "desktop_autostart": "Uruchamiaj przy logowaniu",
-    "desktop_autostart_desc": "Mate otworzy się sam po włączeniu Maca, więc zapisze też przejazdy i ładowania, o których nie pamiętasz.",
+    "desktop_autostart_desc": "Mate otworzy się sam po włączeniu komputera, więc zapisze też przejazdy i ładowania, o których nie pamiętasz.",
     "desktop_autostart_on": "Włączone — Mate otworzy się przy następnym logowaniu",
     "desktop_autostart_off": "Wyłączone",
     "desktop_version": "Wersja aplikacji"

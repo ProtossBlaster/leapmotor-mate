@@ -987,7 +987,7 @@
     "desktop_open_notice_ok": "J'ai compris",
     "desktop_section": "App",
     "desktop_autostart": "Lancer à l'ouverture de session",
-    "desktop_autostart_desc": "Ouvre Mate tout seul au démarrage du Mac, pour enregistrer aussi les trajets et les recharges auxquels vous ne pensez pas.",
+    "desktop_autostart_desc": "Ouvre Mate tout seul au démarrage de l'ordinateur, pour enregistrer aussi les trajets et les recharges auxquels vous ne pensez pas.",
     "desktop_autostart_on": "Activé — Mate s'ouvrira à la prochaine session",
     "desktop_autostart_off": "Désactivé",
     "desktop_version": "Version de l'app"
