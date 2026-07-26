@@ -3,6 +3,23 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.10.0] — 2026-07-26
+
+### Added
+- **Charges, Trips and Wallbox are now a calendar with a search bar**, instead of one long year/month/day accordion. Opening any of those pages used to render your entire history server-side, every time — slower the longer you have used Mate, and with no way to find anything except by scrolling. Now the page arrives as a month of day totals, and clicking a day loads that day. Charges and Trips also gain free-text search (station name or note; trip note) with filters: charge type, cost, kWh and date for charges; drive mode, distance, duration and date for trips. Distance is typed in your own units. From **@hubcasale** (#163).
+- **Merging trips has its own view.** The old 🔗 mode revealed connectors inside the rendered tree, which no longer exists now that one day is in the page at a time. The button now opens a list of the pairs that can actually be joined across your whole history, with the same gap slider and the same preview before you commit. From **@hubcasale** (#163).
+- **The Wallbox page no longer asks Home Assistant about every session up front.** It compared AC against DC for the whole history to show thirty rows; now it asks only for the day you open. From **@hubcasale** (#163).
+
+### Fixed
+- **A rest-drain estimate now says WHY it is uncertain.** A park of nearly two days, properly closed, was labelled *"uncertain estimate (short stop)"* — it was not short. Two independent things make an estimate untrustworthy: too little time to extrapolate a rate from, or too small a drop to tell from sensor rounding. The label only knew how to say the first, which sent you looking for a fault in the wrong place. Reported by **@riri19** (#160).
+
+### Changed
+- **Mate asks for confirmation in its own dialog.** Deleting a charge or unlocking the car used to raise the browser's own box, which announces the address Mate is served from — *"192.168.1.50 says"* on Home Assistant, *"127.0.0.1:4000 says"* in the desktop app. The question is now asked in a panel that looks like the rest of Mate. Escape and clicking away cancel; nothing is sent until you say so.
+
+### For the desktop app
+Only visible inside the standalone app — Home Assistant and Docker never see any of it.
+- **A "Start at login" switch**, in Settings → App. Mate records only while it is open, and this is the part of that you can do something about. The switch stores nothing but a yes/no: everything that knows what a login item or a registry entry is lives in the app itself, so the same switch drives both macOS and Windows.
+
 ## [2.9.0] — 2026-07-25
 
 ### Added
