@@ -595,6 +595,7 @@
     "energy_in_battery_help": "Energia, która faktycznie weszła do baterii (DC). To co pobierasz z sieci jest ~10–15% wyższe (straty konwersji AC→DC); bez odczytu wallboxa Mate może pokazać tylko tę wartość.",
     "car_data_dc": "dane samochodu (DC)",
     "cancel": "Anuluj",
+    "confirm_proceed": "Kontynuuj",
     "merge_mode": "Łącz",
     "merge_help": "Połącz dwie trasy rozdzielone krótkim postojem niebędącym ładowaniem. Dostosuj maks. przerwy; pary z ładowaniem pomiędzy nigdy nie są pokazywane.",
     "merge_max_gap": "Maks. przerwa",

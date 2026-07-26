@@ -662,6 +662,7 @@
     "energy_in_battery_help": "The energy that actually entered the battery (DC). What you draw from the grid is ~10–15% higher (AC→DC conversion losses); without a wallbox reading, Mate can only show this figure.",
     "car_data_dc": "car data (DC)",
     "cancel": "Cancel",
+    "confirm_proceed": "Proceed",
     "merge_mode": "Merge",
     "merge_help": "Join two trips that a short, non-charging stop split apart. Adjust the max stop; pairs that charged in between are never shown.",
     "merge_max_gap": "Max stop",

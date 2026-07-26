@@ -662,6 +662,7 @@
     "energy_in_battery_help": "L'energia realmente entrata in batteria (DC). Quella prelevata dalla rete è ~10–15% più alta (perdite di conversione AC→DC); senza la lettura della wallbox, Mate può mostrare solo questo dato.",
     "car_data_dc": "dati auto (DC)",
     "cancel": "Annulla",
+    "confirm_proceed": "Procedi",
     "merge_mode": "Unisci",
     "merge_help": "Unisci due viaggi separati da una sosta breve senza ricarica. Regola la sosta massima; le coppie con una ricarica nel mezzo non vengono mai mostrate.",
     "merge_max_gap": "Sosta max",

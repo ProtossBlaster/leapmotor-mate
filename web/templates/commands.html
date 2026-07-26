@@ -152,10 +152,16 @@ var WINS_CONFIRM = {{ t('open_wins_confirm') | tojson }};
 function winsLbl(i) { var el = document.getElementById('wins-pct'); if (el) el.textContent = WINS_STOPS[i] + '%'; }
 function winsSet(i, el) {
   if (sending || isBusy()) { el.value = el.defaultValue; winsLbl(el.value); return; }   // a command is completing
-  // Opening confirms like the button does; cancelling reverts the slider to its last committed position.
-  if (WINS_STOPS[i] > 0 && !confirm(WINS_CONFIRM)) { el.value = el.defaultValue; winsLbl(el.value); return; }
-  var r = document.getElementById('wins-res'); if (r) r.textContent = '⏳';
-  htmx.ajax('POST', 'api/windows', {source: el, values: {pct: WINS_STOPS[i]}, target: '#wins-res', swap: 'innerHTML'});
+  var send = function () {
+    var r = document.getElementById('wins-res'); if (r) r.textContent = '⏳';
+    htmx.ajax('POST', 'api/windows', {source: el, values: {pct: WINS_STOPS[i]}, target: '#wins-res', swap: 'innerHTML'});
+  };
+  var revert = function () { el.value = el.defaultValue; winsLbl(el.value); };
+  // Opening confirms like the button does; cancelling reverts the slider to its last committed
+  // position. This was a plain confirm(), which stopped the world until it was answered — the
+  // in-app dialog does not, so the revert has to be handed over as the cancel branch instead of
+  // being the line after the `if`.
+  if (WINS_STOPS[i] > 0) { mateConfirm(WINS_CONFIRM, send, revert); } else { send(); }
 }
 </script>
 {% endblock %}

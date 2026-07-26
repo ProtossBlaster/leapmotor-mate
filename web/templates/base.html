@@ -551,5 +551,79 @@
   </script>
   {% endif %}
 
+  <!-- ── Ask before doing something. ──────────────────────────────────────────────────────
+       Replaces the browser's own confirm(), which puts the address it is served from in the
+       title: "127.0.0.1:4000 says" in the desktop app, "192.168.1.50 says" on Home Assistant.
+       Neither is something anyone should have to read in order to answer "unlock the car?" —
+       and in a desktop app it gives away that there is a web page inside, which is exactly
+       the thing the app exists to hide.
+
+       Styled after the merge-preview modal in trips.html rather than to its own taste, so the
+       app has one kind of dialog and not two. -->
+  <div id="mate-confirm" role="dialog" aria-modal="true" aria-labelledby="mate-confirm-text"
+       style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(2,6,23,.72);
+              align-items:center;justify-content:center;padding:16px">
+    <div style="background:#0b1220;border:1px solid #334155;border-radius:12px;padding:18px;
+                max-width:380px;width:100%">
+      <div id="mate-confirm-text" class="text-sm text-slate-200" style="line-height:1.5"></div>
+      <div class="flex gap-2 mt-4 justify-end">
+        <button type="button" id="mate-confirm-no"
+                class="rounded-lg border border-slate-600 text-slate-300 px-3 py-1.5 text-xs font-medium hover:border-slate-400">{{ t('cancel') }}</button>
+        <button type="button" id="mate-confirm-yes"
+                class="rounded-lg bg-brand text-white px-3 py-1.5 text-xs font-bold hover:bg-teal-500">{{ t('confirm_proceed') }}</button>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function () {
+    var box  = document.getElementById('mate-confirm');
+    var text = document.getElementById('mate-confirm-text');
+    var yes  = document.getElementById('mate-confirm-yes');
+    var no   = document.getElementById('mate-confirm-no');
+    var onYes = null, onNo = null, lastFocus = null;
+
+    function close(run) {
+      var fn = run === 'yes' ? onYes : run === 'no' ? onNo : null;
+      box.style.display = 'none';
+      onYes = onNo = null;
+      document.removeEventListener('keydown', key);
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+      lastFocus = null;
+      if (fn) fn();                      // called AFTER tearing down, so a handler may ask again
+    }
+    function key(e) {
+      if (e.key === 'Escape') { e.preventDefault(); close('no'); }
+      else if (e.key === 'Enter') { e.preventDefault(); close('yes'); }
+    }
+    // mateConfirm(question, whenConfirmed [, whenCancelled])
+    // The third argument matters where a control has already moved before we ask — the window
+    // slider is dragged first and confirmed second, so cancelling has to put it back.
+    window.mateConfirm = function (question, proceed, cancel) {
+      text.textContent = question;
+      onYes = proceed || null;
+      onNo = cancel || null;
+      lastFocus = document.activeElement;
+      box.style.display = 'flex';
+      document.addEventListener('keydown', key);
+      yes.focus();
+    };
+
+    yes.addEventListener('click', function () { close('yes'); });
+    no.addEventListener('click', function () { close('no'); });
+    box.addEventListener('click', function (e) { if (e.target === box) close('no'); });
+
+    // htmx raises this immediately before it would call confirm(). Taking it over in ONE place
+    // covers every hx-confirm in the app — the eighteen there are today and any added later,
+    // with no attribute to remember and nothing to keep in step.
+    document.body.addEventListener('htmx:confirm', function (evt) {
+      if (!evt.detail.question) return;          // no hx-confirm here: nothing to ask
+      evt.preventDefault();                      // hold the request…
+      window.mateConfirm(evt.detail.question, function () {
+        evt.detail.issueRequest(true);           // …and let it go, skipping the question
+      });
+    });
+  })();
+  </script>
+
 </body>
 </html>

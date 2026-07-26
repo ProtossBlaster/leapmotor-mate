@@ -606,6 +606,7 @@
     "energy_in_battery_help": "Die tatsächlich in die Batterie geflossene Energie (DC). Die aus dem Netz bezogene ist ~10–15 % höher (AC→DC-Umwandlungsverluste); ohne Wallbox-Messung kann Mate nur diesen Wert anzeigen.",
     "car_data_dc": "Fahrzeugdaten (DC)",
     "cancel": "Abbrechen",
+    "confirm_proceed": "Fortfahren",
     "merge_mode": "Zusammenführen",
     "merge_help": "Zwei Fahrten zusammenführen, die ein kurzer Halt ohne Laden getrennt hat. Max. Pause einstellen; Paare mit Ladevorgang dazwischen werden nie angezeigt.",
     "merge_max_gap": "Max. Pause",
