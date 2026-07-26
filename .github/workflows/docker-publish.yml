@@ -51,7 +51,7 @@ jobs:
 
       - name: Image metadata (tags + labels)
         id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
         with:
           # Same tags for both registries; the Docker Hub image is enabled only when the
           # secrets exist, so forks (and this repo, pre-setup) still publish to GHCR alone.
@@ -81,7 +81,7 @@ jobs:
       # above are built flag-off, so normal users are never on the research build.
       - name: Beta image metadata (tags + labels)
         id: meta-beta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
         with:
           images: |
             name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
