@@ -295,6 +295,7 @@
     "wb_th_dc": "Bateria DC",
     "wb_th_eff": "Sprawność",
     "wallbox_compare_legend": "kWh dostarczone vs do baterii (na sesję, zbiorczo wg dnia/miesiąca/roku)",
+    "wallbox_calendar_pick_day": "Wybierz dzień z ładowaniami, aby zobaczyć szczegóły",
     "wb_tot_ac": "kWh Wallbox",
     "wb_tot_dc": "kWh Bateria",
     "wb_tot_eff": "Sprawność",
@@ -518,6 +519,21 @@
     "speed_profile": "Profil prędkości",
     "not_enough_gps": "Za mało punktów GPS",
     "charges_title": "Ładowania",
+    "charges_calendar_prev": "Poprzedni miesiąc",
+    "charges_calendar_next": "Następny miesiąc",
+    "charges_calendar_today": "Wróć do dziś",
+    "charges_calendar_pick_day": "Wybierz dzień z ładowaniami, aby zobaczyć szczegóły",
+    "charges_search_placeholder": "Szukaj stacji lub notatki...",
+    "charges_search_advanced": "Filtry zaawansowane",
+    "charges_search_all_types": "Wszystkie typy",
+    "charges_search_date_from": "Od",
+    "charges_search_date_to": "Do",
+    "charges_search_kwh_min": "kWh min",
+    "charges_search_kwh_max": "kWh maks",
+    "charges_search_cost_min": "Koszt min",
+    "charges_search_cost_max": "Koszt maks",
+    "charges_search_results": "wyników",
+    "charges_search_no_results": "Żadne ładowanie nie pasuje do wyszukiwania",
     "ac_dc_distribution": "Rozkład AC vs DC",
     "ac_charge": "AC",
     "dc_charge": "DC",
@@ -607,6 +623,14 @@
     "merge_existing": "Połączone trasy",
     "merge_segments": "segmenty",
     "unmerge_btn": "Rozłącz",
+    "unmerge_confirm": "Rozdzielić tę połączoną trasę z powrotem na oryginalne odcinki?",
+    "trips_calendar_pick_day": "Wybierz dzień z trasami, aby zobaczyć szczegóły",
+    "trips_search_placeholder": "Szukaj w notatkach tras...",
+    "trips_search_all_modes": "Wszystkie tryby",
+    "trips_search_km_min": "Dystans min",
+    "trips_search_km_max": "Dystans maks",
+    "trips_search_duration_min": "Czas min (min)",
+    "trips_search_no_results": "Żadna trasa nie pasuje do wyszukiwania",
     "merge_preview_title": "Podgląd połączonej trasy",
     "driving_only": "tylko jazda",
     "merge_stop": "postój",
@@ -924,5 +948,8 @@
       "lis",
       "gru"
     ]
+  },
+  "weekdays": {
+    "abbr": ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Nie"]
   }
 }

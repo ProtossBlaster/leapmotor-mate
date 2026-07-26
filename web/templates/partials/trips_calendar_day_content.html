@@ -1,0 +1,17 @@
+{# Day header + trip rows — shared by the day-drawer's own endpoint (trips_calendar_day.html)
+   and the Month view's initial "open on this day" render (trips_calendar_month.html, via
+   ?open_day=). Expects `trips` (list) and `day_label` (str) in scope, plus the page-level
+   `t`/`fmt_dur`/`is_reev`/`research`. #}
+{% if trips %}
+<div class="mb-3 flex items-center justify-between flex-wrap gap-2">
+  <span class="text-white font-semibold">{{ day_label }}</span>
+  <span class="text-slate-500 text-xs">{{ trips|length }} {{ t('trip_singular') if trips|length == 1 else t('trips_plural') }}</span>
+</div>
+<div class="space-y-1">
+  {% for trip in trips %}
+  {% include "partials/trip_row.html" %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-slate-500 text-sm py-6">{{ t('trips_calendar_pick_day') }}</div>
+{% endif %}

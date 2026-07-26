@@ -360,6 +360,7 @@
     "wb_th_dc": "Bateria DC",
     "wb_th_eff": "Eficiência",
     "wallbox_compare_legend": "kWh entregues vs kWh na bateria (por sessão, agregado por dia/mês/ano)",
+    "wallbox_calendar_pick_day": "Escolhe um dia com carregamentos para ver o detalhe",
     "wb_tot_ac": "kWh wallbox",
     "wb_tot_dc": "kWh bateria",
     "wb_tot_eff": "Eficiência",
@@ -585,6 +586,21 @@
     "charges_title": "Carregamentos",
     "charges_station_filter": "A mostrar carregamentos em",
     "charges_station_clear": "Limpar filtro",
+    "charges_calendar_prev": "Mês anterior",
+    "charges_calendar_next": "Mês seguinte",
+    "charges_calendar_today": "Ir para hoje",
+    "charges_calendar_pick_day": "Escolhe um dia com carregamentos para ver o detalhe",
+    "charges_search_placeholder": "Pesquisar estação ou nota...",
+    "charges_search_advanced": "Filtros avançados",
+    "charges_search_all_types": "Todos os tipos",
+    "charges_search_date_from": "De",
+    "charges_search_date_to": "Até",
+    "charges_search_kwh_min": "kWh mín",
+    "charges_search_kwh_max": "kWh máx",
+    "charges_search_cost_min": "Custo mín",
+    "charges_search_cost_max": "Custo máx",
+    "charges_search_results": "resultados",
+    "charges_search_no_results": "Nenhum carregamento corresponde à pesquisa",
     "ac_dc_distribution": "Distribuição AC vs DC",
     "ac_charge": "AC",
     "dc_charge": "DC",
@@ -674,6 +690,14 @@
     "merge_existing": "Viagens unidas",
     "merge_segments": "segmentos",
     "unmerge_btn": "Separar",
+    "unmerge_confirm": "Separar esta viagem unida nos segmentos originais?",
+    "trips_calendar_pick_day": "Escolhe um dia com viagens para ver o detalhe",
+    "trips_search_placeholder": "Pesquisar nas notas das viagens...",
+    "trips_search_all_modes": "Todos os modos",
+    "trips_search_km_min": "Distância mín",
+    "trips_search_km_max": "Distância máx",
+    "trips_search_duration_min": "Duração mín (min)",
+    "trips_search_no_results": "Nenhuma viagem corresponde à pesquisa",
     "merge_preview_title": "Pré-visualização da viagem unida",
     "driving_only": "apenas condução",
     "merge_stop": "paragem",
@@ -1015,5 +1039,8 @@
       "nov",
       "dez"
     ]
+  },
+  "weekdays": {
+    "abbr": ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
   }
 }

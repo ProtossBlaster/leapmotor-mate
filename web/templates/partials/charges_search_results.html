@@ -1,0 +1,16 @@
+{# GET /api/charges/search response — replaces #charges-calendar-month-wrap with a flat,
+   most-recent-first list of matches. Cleared filters fall back to the calendar server-side
+   (see charges_search in main.py), so this template only ever renders actual search state. #}
+{% if charges %}
+<div class="mb-3 text-slate-400 text-sm">{{ charges|length }} {{ t('charges_search_results') }}</div>
+<div class="space-y-3">
+  {% for c in charges %}
+  {% include "partials/charge_card.html" %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-slate-500 py-10">
+  <div class="text-3xl mb-2">🔍</div>
+  <div>{{ t('charges_search_no_results') }}</div>
+</div>
+{% endif %}
