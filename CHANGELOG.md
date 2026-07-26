@@ -3,6 +3,12 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.10.1] — 2026-07-26
+
+### Added
+- **Removing Mate, from inside Mate — desktop app on macOS.** macOS has no uninstaller: dragging an app to the Bin takes the app and leaves everything it ever wrote behind, in a Library folder most people never open. Settings → App now has a button that does the whole thing — it stops Mate, deletes the database, the settings, the certificate and the caches, and puts the app itself in the Bin. It asks first, in plain words, and says that the data goes for good and to take a backup from Export / Backup if you want to keep it. It removes **only** Mate's own files, by exact path: the official Leapmotor app stores its data right next to Mate's, and nothing here goes looking for anything by name. The button appears only in the desktop app on macOS — Home Assistant and Docker have their own way of being removed, and on Windows the system's own uninstaller does this properly already.
+- **Mate says when a newer version of the desktop app exists.** The app keeps Mate itself up to date on its own, but the shell around it — the Python runtime and the libraries — is released separately and changes rarely. When a newer one is published, an amber ↑ now appears beside the app version with a link to the download. It is a note, not an alarm: nothing is broken, and everything keeps working until you get round to it.
+
 ## [2.10.0] — 2026-07-26
 
 ### Added
