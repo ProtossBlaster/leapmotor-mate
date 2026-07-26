@@ -4348,7 +4348,18 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
                 "drop_pct": drop_r,
                 "pct_per_day": round(pct_per_day, 1),
                 "rate_err": round(err, 1),
+                # Two INDEPENDENT reasons an estimate can be untrustworthy, and the chart used to
+                # blame the wrong one. #160: a 45.9-hour park with a 0.2% drop was labelled "short
+                # stop" — the duration test had passed with ten times the margin (err 0.10 against
+                # a limit of 1.0); what failed was the drop, two sensor steps where four are
+                # needed. Saying "short" about a two-day park is simply false, and it sends the
+                # user looking for a problem in the wrong place.
                 "reliable": drop_r >= 2 * _DROP_ERR - 1e-9 and err <= 1.0,
+                # Which test failed, so the label can say so. 'rate' = the window is too short and
+                # a single sensor step extrapolates into several %/day; 'drop' = the window is long
+                # enough but the battery barely moved, so drain cannot be told from rounding.
+                "low_conf": (None if (drop_r >= 2 * _DROP_ERR - 1e-9 and err <= 1.0)
+                             else "rate" if err > 1.0 else "drop"),
                 "ongoing": ongoing,
                 "active_use": active_use,
                 # Clears the user's display threshold → charted as a bar; otherwise it's a real

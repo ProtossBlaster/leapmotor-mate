@@ -200,17 +200,23 @@
     ws.forEach(function (w) {
       var k = w.start.slice(0, 10);
       if (!by[k]) by[k] = { start: k + 'T00:00', drop: 0, hours: 0, s0: w.soc_start, s1: w.soc_end,
-                            reliable: true, active_use: false, n: 0 };
+                            reliable: true, active_use: false, n: 0, low_conf: null };
       var g = by[k];
       g.drop += w.drop_pct; g.hours += w.hours; g.s1 = w.soc_end;
       g.reliable = g.reliable && w.reliable; g.active_use = g.active_use || w.active_use; g.n++;
+      // Why the day is uncertain, not just that it is. 'rate' wins when a day mixes both: a stop
+      // too short to measure is the stronger objection, and it is the one the user can act on by
+      // ignoring that bar.
+      if (w.low_conf === 'rate') g.low_conf = 'rate';
+      else if (w.low_conf === 'drop' && g.low_conf !== 'rate') g.low_conf = 'drop';
     });
     return Object.keys(by).sort().map(function (k) {
       var g = by[k];
       return { start: g.start, drop_pct: Math.round(g.drop * 10) / 10,
                pct_per_day: g.hours ? Math.round(g.drop / g.hours * 24 * 10) / 10 : 0,
                hours: Math.round(g.hours * 10) / 10, soc_start: g.s0, soc_end: g.s1,
-               reliable: g.reliable, ongoing: false, active_use: g.active_use, n: g.n };
+               reliable: g.reliable, ongoing: false, active_use: g.active_use, n: g.n,
+               low_conf: g.low_conf };
     });
   }
   function lbl(w) { return w.start.slice(8, 10) + '/' + w.start.slice(5, 7) + (w.ongoing ? '…' : ''); }
@@ -252,7 +258,9 @@
                  if (d.n && d.n > 1) s += '  ·  ' + d.n + '×';
                  if (d.active_use) s += '  ·  {{ t('battery_vampire_active_use') }}';
                  else if (d.ongoing) s += '  ·  {{ t('battery_vampire_ongoing') }}';
-                 else if (!d.reliable) s += '  ·  {{ t('battery_vampire_low_conf') }}';
+                 else if (!d.reliable) s += '  ·  ' + (d.low_conf === 'drop'
+                     ? '{{ t('battery_vampire_low_conf_drop') }}'
+                     : '{{ t('battery_vampire_low_conf') }}');
                  return s;
                }, title: { formatter: function () { return ''; } } } }
   });

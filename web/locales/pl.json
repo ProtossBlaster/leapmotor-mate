@@ -54,6 +54,7 @@
     "battery_vampire_per_park": "na postój",
     "battery_vampire_per_day": "na dzień",
     "battery_vampire_low_conf": "mała pewność (krótki postój)",
+    "battery_vampire_low_conf_drop": "niepewne oszacowanie (spadek zbyt mały)",
     "battery_vampire_active_use": "ogrzewanie/chłodzenie przy aucie wył. (liczone)",
     "battery_vampire_active_use_note": "{n} okno/okien zawiera intensywne ogrzewanie/chłodzenie przy wyłączonym aucie (bursztyn, liczone w poborze).",
     "battery_vampire_help": "Każdy słupek to okres, w którym samochód stał zaparkowany i odłączony przez co najmniej godzinę; wartość to utracony SoC znormalizowany do %/dzień. Okresy z jazdą (prędkość lub zmiana licznika) lub ładowaniem są wykluczone, a małe spadki traktowane jako szum czujnika. Jasne słupki to krótkie lub nadal trwające postoje, gdzie jeden krok 0,1% czujnika może zawyżyć dzienny wskaźnik — ± w podpowiedzi pokazuje o ile. Nagłówek to całkowity utracony SoC ÷ całkowity czas postoju ze wszystkich postojów, w tym tych bez strat. Obliczane automatycznie z zapisanej telemetrii — nie wymaga żadnych danych wejściowych.",

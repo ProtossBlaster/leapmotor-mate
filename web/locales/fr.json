@@ -108,6 +108,7 @@
     "battery_vampire_per_park": "par arrêt",
     "battery_vampire_per_day": "par jour",
     "battery_vampire_low_conf": "estimation incertaine (arrêt court)",
+    "battery_vampire_low_conf_drop": "estimation incertaine (baisse trop faible)",
     "battery_vampire_active_use": "chauffage/clim. voiture éteinte (compté)",
     "battery_vampire_active_use_note": "{n} période(s) incluent un fort chauffage/refroidissement voiture éteinte (en orange, comptées dans la décharge).",
     "battery_vampire_help": "Chaque barre est une période où la voiture est restée garée et débranchée au moins une heure ; la valeur est le SoC perdu, normalisé en %/jour. Les périodes avec conduite (vitesse ou variation d'odomètre) ou charge sont exclues, et les baisses minimes sont considérées comme du bruit de capteur. Les barres pâles sont des arrêts courts ou encore en cours, où un seul pas de 0,1 % du capteur peut gonfler le taux journalier — le ± de l'infobulle indique de combien. La valeur en tête est le SoC total perdu ÷ le temps total à l'arrêt, y compris les arrêts sans perte. Calculé automatiquement à partir de la télémétrie enregistrée — aucune saisie requise.",

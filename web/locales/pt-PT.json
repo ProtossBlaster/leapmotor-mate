@@ -108,6 +108,7 @@
     "battery_vampire_per_park": "por paragem",
     "battery_vampire_per_day": "por dia",
     "battery_vampire_low_conf": "baixa confiança (paragem curta)",
+    "battery_vampire_low_conf_drop": "estimativa incerta (queda demasiado pequena)",
     "battery_vampire_active_use": "aquecimento/arrefecimento desligado (contabilizado)",
     "battery_vampire_active_use_note": "{n} intervalo(s) incluem aquecimento/arrefecimento intenso com o carro desligado (mostrado a âmbar, contabilizado no consumo).",
     "battery_vampire_help": "Cada barra representa um período em que o carro ficou estacionado e desligado da tomada durante pelo menos uma hora; o valor é o SoC perdido, normalizado para %/dia. Períodos com condução (velocidade ou variação no odómetro) ou carregamento são excluídos, e quedas muito pequenas são tratadas como ruído do sensor. Barras claras são paragens curtas ou ainda em curso, onde um único passo de 0,1% pode inflacionar a taxa diária — o ± no tooltip mostra quanto. O valor principal é SoC total perdido ÷ tempo total estacionado em todos os períodos, incluindo os que não perderam carga. Calculado automaticamente a partir da telemetria — sem necessidade de introdução manual.",

@@ -108,6 +108,7 @@
     "battery_vampire_per_park": "per sosta",
     "battery_vampire_per_day": "per giorno",
     "battery_vampire_low_conf": "stima incerta (sosta breve)",
+    "battery_vampire_low_conf_drop": "stima incerta (calo troppo piccolo)",
     "battery_vampire_active_use": "clima ad auto spenta (conteggiato)",
     "battery_vampire_active_use_note": "{n} finestra/e includono molto riscaldamento/raffrescamento ad auto spenta (in arancio, conteggiate nel consumo).",
     "battery_vampire_help": "Ogni barra è un periodo in cui l'auto è rimasta ferma e scollegata per almeno un'ora; il valore è il SoC perso, normalizzato in %/giorno. I periodi con guida (velocità o variazione dell'odometro) o ricarica sono esclusi, e i cali minimi sono trattati come rumore del sensore. Le barre chiare sono soste brevi o ancora in corso, dove un singolo passo di 0.1% del sensore può gonfiare il tasso giornaliero — il ± nel tooltip indica di quanto. Il valore in alto è il SoC totale perso ÷ il tempo totale di sosta, incluse le soste senza perdite. Calcolato automaticamente dalla telemetria registrata — nessun input richiesto.",

@@ -54,6 +54,7 @@
     "battery_vampire_per_park": "pro Stopp",
     "battery_vampire_per_day": "pro Tag",
     "battery_vampire_low_conf": "unsichere Schätzung (kurze Parkdauer)",
+    "battery_vampire_low_conf_drop": "unsichere Schätzung (Abfall zu klein)",
     "battery_vampire_active_use": "Heizen/Kühlen bei Auto aus (gezählt)",
     "battery_vampire_active_use_note": "{n} Zeitfenster enthalten viel Heizen/Kühlen bei ausgeschaltetem Auto (orange, im Verbrauch gezählt).",
     "battery_vampire_help": "Jeder Balken ist ein Zeitraum, in dem das Auto mindestens eine Stunde geparkt und nicht angeschlossen war; der Wert ist der verlorene SoC, normiert auf %/Tag. Zeiträume mit Fahrt (Geschwindigkeit oder Odometer-Änderung) oder Laden werden ausgeschlossen, winzige Rückgänge gelten als Sensorrauschen. Blasse Balken sind kurze oder noch laufende Parkphasen, in denen ein einzelner 0,1%-Sensorschritt die Tagesrate aufblähen kann — das ± im Tooltip zeigt, um wie viel. Die Kopfzahl ist der insgesamt verlorene SoC ÷ die gesamte Parkzeit, einschließlich verlustfreier Parkphasen. Automatisch aus aufgezeichneter Telemetrie berechnet — keine Eingabe nötig.",

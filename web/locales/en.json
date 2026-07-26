@@ -108,6 +108,7 @@
     "battery_vampire_per_park": "per stop",
     "battery_vampire_per_day": "per day",
     "battery_vampire_low_conf": "low confidence (short park)",
+    "battery_vampire_low_conf_drop": "uncertain estimate (drop too small)",
     "battery_vampire_active_use": "off-state heating/cooling (counted)",
     "battery_vampire_active_use_note": "{n} window(s) include heavy off-state heating/cooling (shown in amber, counted in the drain).",
     "battery_vampire_help": "Each bar is a stretch the car sat parked and unplugged for at least an hour; the value is the SoC it lost, normalised to %/day. Stretches with any driving (speed or an odometer change) or charging are excluded, and tiny drops are treated as sensor noise. Pale bars are short or still-running parks, where a single 0.1% sensor step can inflate the daily rate — the ± in the tooltip shows by how much. The headline is total SoC lost ÷ total parked time across all parks, including those that lost nothing. Computed automatically from logged telemetry — no input needed.",
