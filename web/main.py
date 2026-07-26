@@ -488,10 +488,11 @@ async def trips_search(request: Request, q: str = "", drive_mode: str = "",
         km_min=units.dist_to_km(km_min), km_max=units.dist_to_km(km_max),
         eff_min=eff_min, eff_max=eff_max, duration_min=duration_min, duration_max=duration_max,
         date_from=date_from, date_to=date_to)
+    today = db_reader.today_local()
     return templates.TemplateResponse(request, "partials/trips_search_results.html", {
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
         "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
-        "trips": trips,
+        "trips": trips, "year": year or today.year, "month": month or today.month,
     })
 
 
@@ -802,9 +803,11 @@ async def charges_search(request: Request, q: str = "", type: str = "",
         text=q, charge_type=type, cost_min=cost_min, cost_max=cost_max,
         kwh_min=kwh_min, kwh_max=kwh_max, date_from=date_from, date_to=date_to,
         station=station or None)
+    today = db_reader.today_local()
     return templates.TemplateResponse(request, "partials/charges_search_results.html", {
         "t": i18n.get_t(lang), "charge_types": db_reader.CHARGE_TYPES, "fmt_dur": _fmt_dur,
-        "charges": charges,
+        "charges": charges, "station": station,
+        "year": year or today.year, "month": month or today.month,
     })
 
 

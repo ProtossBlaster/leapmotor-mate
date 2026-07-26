@@ -600,6 +600,7 @@
     "charges_search_cost_min": "Cost min",
     "charges_search_cost_max": "Cost max",
     "charges_search_results": "results",
+    "charges_search_clear": "Back to calendar",
     "charges_search_no_results": "No charge matches your search",
     "ac_dc_distribution": "AC vs DC Distribution",
     "ac_charge": "AC",

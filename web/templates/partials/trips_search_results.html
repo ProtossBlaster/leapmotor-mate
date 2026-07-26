@@ -1,8 +1,19 @@
 {# GET /api/trips/search response — replaces #trips-calendar-month-wrap with a flat,
    most-recent-first list of matches. Cleared filters fall back to the calendar server-side
-   (see trips_search in main.py), so this template only ever renders actual search state. #}
+   (see trips_search in main.py), so this template only ever renders actual search state.
+   A visible header + "clear" button, same as Ricariche's search results (#175) — swapping
+   the list in silently made it easy to miss that a filter had applied at all. #}
+<div class="mb-3 flex items-center justify-between flex-wrap gap-2">
+  <span class="text-white font-semibold">🔍 {{ trips|length }} {{ t('charges_search_results') }}</span>
+  <button type="button"
+          onclick="document.getElementById('trips-search-form').reset(); document.getElementById('trips-adv-filters').classList.add('hidden');"
+          hx-get="api/trips/calendar?year={{ year }}&month={{ month }}"
+          hx-target="#trips-calendar-month-wrap" hx-swap="innerHTML"
+          class="text-xs text-brand hover:underline whitespace-nowrap">
+    ✕ {{ t('charges_search_clear') }}
+  </button>
+</div>
 {% if trips %}
-<div class="mb-3 text-slate-400 text-sm">{{ trips|length }} {{ t('charges_search_results') }}</div>
 <div class="space-y-1">
   {% for trip in trips %}
   {% include "partials/trip_row.html" %}

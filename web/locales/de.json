@@ -544,6 +544,7 @@
     "charges_search_cost_min": "Kosten min",
     "charges_search_cost_max": "Kosten max",
     "charges_search_results": "Ergebnisse",
+    "charges_search_clear": "Zurück zum Kalender",
     "charges_search_no_results": "Keine Ladung entspricht der Suche",
     "ac_dc_distribution": "AC-/DC-Verteilung",
     "ac_charge": "AC",

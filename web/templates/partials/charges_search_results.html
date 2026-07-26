@@ -1,8 +1,20 @@
 {# GET /api/charges/search response — replaces #charges-calendar-month-wrap with a flat,
    most-recent-first list of matches. Cleared filters fall back to the calendar server-side
-   (see charges_search in main.py), so this template only ever renders actual search state. #}
+   (see charges_search in main.py), so this template only ever renders actual search state.
+   A visible header + "clear" button make it unmistakable that this IS a different mode
+   from the calendar — swapping the list in silently (same card, no reset control) made it
+   easy to miss that a filter had actually applied at all (#175). #}
+<div class="mb-3 flex items-center justify-between flex-wrap gap-2">
+  <span class="text-white font-semibold">🔍 {{ charges|length }} {{ t('charges_search_results') }}</span>
+  <button type="button"
+          onclick="document.getElementById('charges-search-form').reset(); document.getElementById('charges-adv-filters').classList.add('hidden');"
+          hx-get="api/charges/calendar?year={{ year }}&month={{ month }}{% if station %}&station={{ station }}{% endif %}"
+          hx-target="#charges-calendar-month-wrap" hx-swap="innerHTML"
+          class="text-xs text-brand hover:underline whitespace-nowrap">
+    ✕ {{ t('charges_search_clear') }}
+  </button>
+</div>
 {% if charges %}
-<div class="mb-3 text-slate-400 text-sm">{{ charges|length }} {{ t('charges_search_results') }}</div>
 <div class="space-y-3">
   {% for c in charges %}
   {% include "partials/charge_card.html" %}
