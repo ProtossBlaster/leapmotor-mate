@@ -159,7 +159,7 @@ The database is stored in `./data/` (mounted at `/data` in the container).
 The first launch opens on a choice — **Set up my car** or **Try the demo**. Choosing *Set up my car* walks you through two steps:
 
 1. **Certificate** — upload `app.crt` and `app.key` (or paste their PEM text). Get them from [markoceri/leapmotor-certs](https://github.com/markoceri/leapmotor-certs). Stored persistently in `/data/certs`.
-2. **Login** — your Leapmotor account email, password and operation **PIN**. The wizard auto‑detects your model and battery (EU spec).
+2. **Login** — your Leapmotor account email, password and operation **PIN**. The wizard reads your **model** and VIN from the cloud. The **battery** it can only fill in by itself where the European version has a single variant (T03) — where there are several (B10 Pro / Pro Max, C10 RWD / AWD) you pick yours. Correctable at any time in Settings → Battery.
 
 That's it — the poller starts and data begins to appear.
 
@@ -392,7 +392,7 @@ Il database è salvato in `./data/` (montato su `/data` nel container).
 Al primo avvio compare una scelta — **Configura la mia auto** o **Prova la demo**. Scegliendo *Configura la mia auto*, due passi:
 
 1. **Certificato** — carica `app.crt` e `app.key` (oppure incolla il testo PEM). Li trovi su [markoceri/leapmotor-certs](https://github.com/markoceri/leapmotor-certs). Salvati in modo persistente in `/data/certs`.
-2. **Login** — email account Leapmotor, password e **PIN** operativo. Il wizard rileva automaticamente modello e batteria (spec. EU).
+2. **Login** — email account Leapmotor, password e **PIN** operativo. Il wizard legge dal cloud **modello** e VIN. La **batteria** riesce a metterla da solo soltanto dove la versione europea ha una variante unica (T03) — dove ce ne sono più d'una (B10 Pro / Pro Max, C10 RWD / AWD) la scegli tu. Si corregge quando vuoi da Impostazioni → Batteria.
 
 Fatto — il poller parte e i dati iniziano a comparire.
 
