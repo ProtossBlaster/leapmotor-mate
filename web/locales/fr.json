@@ -1017,7 +1017,12 @@
     "desktop_autostart_desc": "Ouvre Mate tout seul au démarrage de l'ordinateur, pour enregistrer aussi les trajets et les recharges auxquels vous ne pensez pas.",
     "desktop_autostart_on": "Activé — Mate s'ouvrira à la prochaine session",
     "desktop_autostart_off": "Désactivé",
-    "desktop_version": "Version de l'app"
+    "desktop_version": "Version de l'app",
+    "desktop_remove": "Supprimer Mate de ce Mac",
+    "desktop_remove_desc": "macOS n'a pas de désinstalleur : glisser l'app à la corbeille laisse vos données dans la Bibliothèque. Ici, tout part.",
+    "desktop_remove_btn": "Supprimer Mate et ses données",
+    "desktop_remove_confirm": "Supprimer Mate et TOUTES ses données ? Trajets, recharges, réglages et certificat seront effacés définitivement. L'app va à la corbeille. Irréversible — si vous tenez aux données, sauvegardez-les d'abord depuis Export / Sauvegarde.",
+    "desktop_remove_doing": "Suppression en cours — l'app va se fermer."
   },
   "months": {
     "full": [

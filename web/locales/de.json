@@ -937,7 +937,12 @@
     "desktop_autostart_desc": "Öffnet Mate von selbst, wenn Sie den Computer einschalten — so werden auch die Fahrten und Ladevorgänge erfasst, an die Sie nicht denken.",
     "desktop_autostart_on": "Ein — Mate öffnet sich bei der nächsten Anmeldung",
     "desktop_autostart_off": "Aus",
-    "desktop_version": "App-Version"
+    "desktop_version": "App-Version",
+    "desktop_remove": "Mate von diesem Mac entfernen",
+    "desktop_remove_desc": "macOS hat kein Deinstallationsprogramm: Die App in den Papierkorb zu ziehen lässt Ihre Daten in der Library zurück. Hier wird alles entfernt.",
+    "desktop_remove_btn": "Mate und alle Daten entfernen",
+    "desktop_remove_confirm": "Mate und ALLE Daten entfernen? Fahrten, Ladevorgänge, Einstellungen und das Zertifikat werden endgültig gelöscht. Die App wandert in den Papierkorb. Das lässt sich nicht rückgängig machen — sichern Sie die Daten vorher über Export / Backup.",
+    "desktop_remove_doing": "Wird entfernt — die App schließt sich gleich."
   },
   "months": {
     "full": [

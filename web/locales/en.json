@@ -1017,7 +1017,12 @@
     "desktop_autostart_desc": "Opens Mate on its own when you turn the computer on, so it also records the trips and charges you don't think about.",
     "desktop_autostart_on": "On — Mate will open at your next login",
     "desktop_autostart_off": "Off",
-    "desktop_version": "App version"
+    "desktop_version": "App version",
+    "desktop_remove": "Remove Mate from this Mac",
+    "desktop_remove_desc": "macOS has no uninstaller: dragging the app to the Bin leaves your data in the Library. This takes everything.",
+    "desktop_remove_btn": "Remove Mate and its data",
+    "desktop_remove_confirm": "Remove Mate and ALL of its data? Trips, charges, settings and the certificate will be deleted for good. The app goes to the Bin. This cannot be undone — if you want the data, back it up first from Export / Backup.",
+    "desktop_remove_doing": "Removing — the app will close in a moment."
   },
   "months": {
     "full": [

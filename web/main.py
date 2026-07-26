@@ -299,6 +299,12 @@ def _ctx(**kwargs):
             # user reports "it stopped updating", only the second number distinguishes a shell too
             # old to run the newest Mate from an actual fault. Empty everywhere else.
             "shell_version": os.environ.get("MATE_DESKTOP_VERSION", ""),
+            # …and WHICH desktop, because removing the app differs between them. Windows has a
+            # real uninstaller in Settings ▸ Apps that already takes the data with it; macOS has
+            # none — an app is dragged to the Bin, and the Bin has never heard of Application
+            # Support, which is why a Mac fills up with folders belonging to programs it no longer
+            # has. So the "remove everything" button is offered on the Mac only.
+            "shell_platform": os.environ.get("MATE_DESKTOP_PLATFORM", ""),
             "update": update_check.get_update_status(MATE_VERSION),
             "prepare_car_shown": not capability_profile.model_hidden(_car_type, "prepare_car"),
             "unlock_charger_shown": capability_profile.command_shown(
@@ -3014,6 +3020,34 @@ async def save_desktop_autostart(request: Request):
     msg = t("desktop_autostart_on") if on else t("desktop_autostart_off")
     colour = "#22c55e" if on else "#94a3b8"
     return HTMLResponse(f'<span style="color:{colour};font-size:13px">{msg}</span>')
+
+
+@app.post("/api/settings/desktop-remove", response_class=HTMLResponse)
+async def desktop_remove_everything(request: Request):
+    """Ask the desktop app to remove itself and everything it keeps — macOS only.
+
+    Mate does not delete anything here. It exits with code 43, and the shell around it does the
+    work: that code is the sibling of the 42 Mate already uses to ask for a restart, and the same
+    reasoning applies — where the data lives and how an app is removed is the shell's business,
+    not the business of code that also runs inside Home Assistant and Docker.
+
+    Why it exists at all: macOS has no uninstaller. An app is dragged to the Bin, and the Bin has
+    never heard of Application Support — which is why a Mac accumulates folders belonging to
+    programs it no longer has. The only place left to offer "take it all away" is inside the app,
+    as its last act. Windows needs none of this: its uninstaller is in Settings ▸ Apps and already
+    removes the data, so offering a second route from inside the app would just be confusing.
+
+    Refused anywhere else — no shell means nothing to ask, and Home Assistant and Docker manage
+    their own storage."""
+    if not os.environ.get("MATE_DESKTOP_VERSION"):
+        return HTMLResponse('<span class="text-slate-400 text-xs">—</span>', status_code=400)
+    if os.environ.get("MATE_DESKTOP_PLATFORM", "") != "macOS":
+        return HTMLResponse('<span class="text-slate-400 text-xs">—</span>', status_code=400)
+    t = i18n.get_t(db_reader.get_language())
+    # Delayed like the relaunch is, so this response reaches the page before the process goes.
+    threading.Timer(1.2, lambda: os._exit(43)).start()
+    return HTMLResponse(
+        f'<span style="color:#f87171;font-size:13px">{t("desktop_remove_doing")}</span>')
 
 
 @app.post("/api/settings/password/clear")

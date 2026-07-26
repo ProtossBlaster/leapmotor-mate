@@ -1017,7 +1017,12 @@
     "desktop_autostart_desc": "Apre Mate da solo quando accendi il computer, così registra anche i viaggi e le ricariche a cui non pensi.",
     "desktop_autostart_on": "Attivo — Mate si aprirà al prossimo accesso",
     "desktop_autostart_off": "Disattivato",
-    "desktop_version": "Versione app"
+    "desktop_version": "Versione app",
+    "desktop_remove": "Rimuovi Mate da questo Mac",
+    "desktop_remove_desc": "macOS non ha un disinstallatore: trascinare l'app nel Cestino lascia i dati in Libreria. Da qui si toglie tutto.",
+    "desktop_remove_btn": "Rimuovi Mate e i suoi dati",
+    "desktop_remove_confirm": "Rimuovere Mate e TUTTI i suoi dati? Viaggi, ricariche, impostazioni e certificato verranno cancellati definitivamente. L'app finisce nel Cestino. Non si può annullare — se ti servono i dati, prima fai un backup da Esporta / Backup.",
+    "desktop_remove_doing": "Rimozione in corso — l'app si chiuderà fra un istante."
   },
   "months": {
     "full": [

@@ -926,7 +926,12 @@
     "desktop_autostart_desc": "Mate otworzy się sam po włączeniu komputera, więc zapisze też przejazdy i ładowania, o których nie pamiętasz.",
     "desktop_autostart_on": "Włączone — Mate otworzy się przy następnym logowaniu",
     "desktop_autostart_off": "Wyłączone",
-    "desktop_version": "Wersja aplikacji"
+    "desktop_version": "Wersja aplikacji",
+    "desktop_remove": "Usuń Mate z tego Maca",
+    "desktop_remove_desc": "macOS nie ma deinstalatora: przeciągnięcie aplikacji do Kosza zostawia dane w Bibliotece. Stąd usuwa się wszystko.",
+    "desktop_remove_btn": "Usuń Mate i wszystkie dane",
+    "desktop_remove_confirm": "Usunąć Mate i WSZYSTKIE dane? Przejazdy, ładowania, ustawienia i certyfikat zostaną trwale skasowane. Aplikacja trafi do Kosza. Tego nie da się cofnąć — jeśli dane są potrzebne, najpierw zrób kopię w Eksport / Kopia zapasowa.",
+    "desktop_remove_doing": "Usuwanie — aplikacja zaraz się zamknie."
   },
   "months": {
     "full": [

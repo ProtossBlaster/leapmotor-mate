@@ -126,6 +126,25 @@
         </label>
         <div id="desktop-autostart-feedback" class="text-xs mt-2" style="min-height:16px"></div>
       </form>
+      {# macOS only, and not for want of consistency. Windows removes Mate the ordinary way —
+         Settings ▸ Apps — and its uninstaller already takes the data with it, so a second route
+         hidden inside the app would be one way too many. The Mac has no uninstaller at all: an
+         app is dragged to the Bin, and the Bin has never heard of Application Support. Here is
+         the only place the offer can be made. #}
+      {% if shell_platform == 'macOS' %}
+      <div class="mt-4 pt-3 border-t border-slate-700">
+        <div class="text-sm text-white">{{ t('desktop_remove') }}</div>
+        <div class="text-xs text-slate-400 mt-0.5">{{ t('desktop_remove_desc') }}</div>
+        <button hx-post="api/settings/desktop-remove"
+                hx-confirm="{{ t('desktop_remove_confirm') }}"
+                hx-target="#desktop-remove-feedback" hx-swap="innerHTML"
+                class="mt-2 rounded-lg border border-red-500/50 text-red-300 px-3 py-1.5 text-xs font-medium hover:bg-red-500/10 hover:border-red-400 cursor-pointer">
+          {{ t('desktop_remove_btn') }}
+        </button>
+        <div id="desktop-remove-feedback" class="text-xs mt-2" style="min-height:16px"></div>
+      </div>
+      {% endif %}
+
       <div class="text-[11px] text-slate-500 mt-1 pt-3 border-t border-slate-700">
         {{ t('desktop_version') }}: <span class="font-mono">{{ shell_version }}</span>
       </div>
