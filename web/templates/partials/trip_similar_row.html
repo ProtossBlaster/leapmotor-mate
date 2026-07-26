@@ -1,0 +1,30 @@
+{# Single row in the similar-trips comparator (main.py trip_similar / db_reader.get_similar_trips).
+   Expects `s` (a trip dict with the extra overlap_pct/avg_speed_kmh fields get_similar_trips adds)
+   plus the page-level `t`/`fmt_dur`/`eff_cls` already in context (Jinja includes share the parent
+   scope). Deliberately its own partial rather than reusing trip_row.html: this view spans weeks,
+   so the FULL date matters (trip_row only ever shows one calendar day at a time), and it needs
+   fields (avg speed, overlap %) no other trip list shows. #}
+<a href="trips/{{ s.id }}" class="trip-row">
+  <div class="min-w-0 flex-1">
+    <div class="text-white text-sm font-medium">
+      {{ s.started_at | localdate }}
+      <span class="text-slate-500 font-normal text-xs ml-1">
+        {{ s.started_at[11:16] if s.started_at else '' }} → {{ s.ended_at[11:16] if s.ended_at else '' }}
+      </span>
+    </div>
+    <div class="text-slate-500 text-xs">
+      {{ fmt_dur(s.duration_min) }}
+      {% if s.outside_temp_start_c is not none %}· 🌡️ {{ s.outside_temp_start_c | temp(1) }}{% endif %}
+      {% if s.avg_speed_kmh %}· 🚗 {{ s.avg_speed_kmh | speed }}{% endif %}
+      · {{ t('similar_overlap') }} {{ s.overlap_pct }}%
+    </div>
+  </div>
+  <div class="text-right flex-shrink-0" style="min-width:84px">
+    <div class="text-white text-sm font-bold">{{ (s.distance_km or 0) | dist(1) }}</div>
+    {% if s.efficiency_kwh_100km %}
+    <span class="eff-pill {{ eff_cls(s.efficiency_kwh_100km) }} mt-0.5">
+      {{ s.efficiency_kwh_100km | eff }}
+    </span>
+    {% endif %}
+  </div>
+</a>

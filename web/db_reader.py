@@ -3045,6 +3045,128 @@ def get_trip_route(trip_id: int, max_points: int = 80) -> list[dict]:
     return _downsample([dict(r) for r in rows], max_points)
 
 
+_SIMILAR_TRIP_GEOHASH_PRECISION = 7      # ~150m cell — matches trips.start_geohash/end_geohash
+_SIMILAR_TRIP_STEP_KM = 0.1              # resample the route every 100m
+_SIMILAR_TRIP_OVERLAP_THRESHOLD = 0.7    # ≥70% cell overlap → same road, not just same endpoints
+
+
+def _route_geohash_cells(db, trip_id: int, step_km: float = _SIMILAR_TRIP_STEP_KM,
+                          precision: int = _SIMILAR_TRIP_GEOHASH_PRECISION) -> set:
+    """Geohash cells covering a trip's route, sampled every step_km ALONG THE PATH — not
+    just at however-often the poller happened to record a point (polling cadence varies
+    with speed/signal, so raw points alone would over-sample a slow crawl through town and
+    under-sample a fast highway stretch, skewing the overlap check below). Empty for a trip
+    with no GPS trace (e.g. reconstructed from an offline SoC/odometer jump, see
+    poller/db.py create_reconstructed_trip) — which is exactly right: with nothing to
+    compare, it can never clear the overlap threshold in get_similar_trips, so it's
+    silently excluded from "confirmed same route" results without its own special case."""
+    import geohash
+    ids = _segment_ids(db, trip_id)
+    ph = ",".join("?" * len(ids))
+    rows = db.execute(
+        "SELECT latitude, longitude FROM trip_positions "
+        f"WHERE trip_id IN ({ph}) AND latitude IS NOT NULL AND longitude IS NOT NULL "
+        "ORDER BY recorded_at, id", ids).fetchall()
+    pts = [(r["latitude"], r["longitude"]) for r in rows]
+    if not pts:
+        return set()
+    cells = {geohash.encode(pts[0][0], pts[0][1], precision)}
+    cum = 0.0
+    next_sample = step_km
+    for (lat1, lon1), (lat2, lon2) in zip(pts, pts[1:]):
+        seg = _haversine_km(lat1, lon1, lat2, lon2)
+        if seg <= 0:
+            continue
+        seg_end = cum + seg
+        while next_sample <= seg_end:
+            frac = (next_sample - cum) / seg
+            ilat = lat1 + (lat2 - lat1) * frac
+            ilon = lon1 + (lon2 - lon1) * frac
+            cells.add(geohash.encode(ilat, ilon, precision))
+            next_sample += step_km
+        cum = seg_end
+    cells.add(geohash.encode(pts[-1][0], pts[-1][1], precision))
+    return cells
+
+
+def _jaccard(a: set, b: set) -> float:
+    """Intersection-over-union of two cell sets — 0.0 when either is empty (rather than a
+    ZeroDivisionError on an empty union), so a trip with no GPS trace at all simply never
+    matches instead of needing its own guard at every call site."""
+    if not a or not b:
+        return 0.0
+    inter = len(a & b)
+    union = len(a | b)
+    return inter / union if union else 0.0
+
+
+def get_similar_trips(trip_id: int, overlap_threshold: float = _SIMILAR_TRIP_OVERLAP_THRESHOLD) -> list[dict]:
+    """Other trips on the SAME route as `trip_id` — same direction only (start≈start,
+    end≈end); a return trip is deliberately a SEPARATE group by default, since consumption
+    and traffic often differ by direction (e.g. one leg uphill, the other downhill). Two
+    stages: a geohash bucket on start/end (trips.start_geohash/end_geohash, ± the 8
+    neighbor cells so a route right at a cell boundary isn't missed) narrows candidates to
+    roughly the right corner of the map — cheap and indexable; then the ACTUAL path is
+    compared via resampled-geohash overlap (_route_geohash_cells/_jaccard), because
+    matching endpoints alone would also match a same-start/end trip that took a different
+    road (a real risk with only a start/end + total-distance-tolerance check). Reconstructed
+    trips (no GPS trace) can never clear the overlap threshold, so they're excluded from
+    results without a special case. Live, on-demand computation (button-triggered) — pure
+    local math on already-stored data, no network call, so unlike geocoding this is safe to
+    run on every click without any usage-policy concern. Sorted oldest-first, for reading
+    the efficiency trend over time."""
+    import geohash
+    db = _get()
+    row = db.execute("SELECT * FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                     (trip_id, _current_vehicle_id())).fetchone()
+    if not row:
+        return []
+    row = dict(row)
+    parent_id = row["merged_into_id"] or row["id"]
+    if parent_id != row["id"]:
+        row = dict(db.execute("SELECT * FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                              (parent_id, _current_vehicle_id())).fetchone())
+    if row.get("start_lat") is None or row.get("end_lat") is None:
+        return []
+
+    my_cells = _route_geohash_cells(db, parent_id)
+    if not my_cells:
+        return []   # no GPS trace on THIS trip → nothing to validate a match against
+
+    start_gh = row.get("start_geohash") or geohash.encode(row["start_lat"], row["start_lon"])
+    end_gh = row.get("end_geohash") or geohash.encode(row["end_lat"], row["end_lon"])
+    start_cells = {start_gh} | geohash.neighbors(start_gh)
+    end_cells = {end_gh} | geohash.neighbors(end_gh)
+    ph_s = ",".join("?" * len(start_cells))
+    ph_e = ",".join("?" * len(end_cells))
+    candidates = db.execute(
+        f"SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND merged_into_id IS NULL "
+        f"AND id != ? AND ended_at IS NOT NULL "
+        f"AND start_geohash IN ({ph_s}) AND end_geohash IN ({ph_e})",
+        [_current_vehicle_id(), parent_id] + list(start_cells) + list(end_cells)
+    ).fetchall()
+
+    out = []
+    for c in candidates:
+        c = dict(c)
+        overlap = _jaccard(my_cells, _route_geohash_cells(db, c["id"]))
+        if overlap < overlap_threshold:
+            continue
+        c["overlap_pct"] = round(overlap * 100)
+        c["started_at"] = _local_iso(c.get("started_at"))
+        c["ended_at"] = _local_iso(c.get("ended_at"))
+        seg_ids = _segment_ids(db, c["id"])
+        ph_seg = ",".join("?" * len(seg_ids))
+        speeds = [r["speed_kmh"] for r in db.execute(
+            f"SELECT speed_kmh FROM trip_positions WHERE trip_id IN ({ph_seg}) "
+            "AND speed_kmh IS NOT NULL", seg_ids).fetchall()]
+        moving = [s for s in speeds if s > 1]   # idle stretches shouldn't skew the average
+        c["avg_speed_kmh"] = round(sum(moving) / len(moving)) if moving else None
+        out.append(c)
+    out.sort(key=lambda t: t.get("started_at") or "")
+    return out
+
+
 def get_trips_needing_elevation(limit: int = 4) -> list[dict]:
     """Finalized trips (any segment — elevation is per-segment like regen_kwh, see _trip_group_stats)
     not yet enriched, under the retry ceiling, with a real GPS track and non-trivial distance (skip

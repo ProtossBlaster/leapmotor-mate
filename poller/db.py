@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 import crypto
+import geohash
 
 log = logging.getLogger(__name__)
 
@@ -481,9 +482,19 @@ class Database:
         tpcols = {r[1] for r in self._conn.execute("PRAGMA table_info(trip_positions)").fetchall()}
         if "elevation_m" not in tpcols:
             self._conn.execute("ALTER TABLE trip_positions ADD COLUMN elevation_m REAL")
+        # migration: geohash (7 chars ≈ 150m cell) of start/end lat-lon — the "similar trips"
+        # comparator's fast pre-filter (web/db_reader.py get_similar_trips groups candidates by
+        # this before validating the actual route). Set at trip creation/finalize (below) going
+        # forward; _backfill_trip_geohashes fills every existing trip once, offline (pure math on
+        # lat/lon already stored — unlike the auto-note's reverse-geocoding, no network call, so
+        # there's no reason to defer this to a web-side sweep).
+        for _c in ("start_geohash", "end_geohash"):
+            if _c not in tcols:
+                self._conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} TEXT DEFAULT NULL")
         self._conn.commit()
         self._backfill_vehicle_capacity()
         self._backfill_null_vehicle_id()
+        self._backfill_trip_geohashes()
         self._repair_odometer_trips()
         self._repair_quantized_trip_distance()
         self._repair_snap_to_full_charges()
@@ -954,6 +965,25 @@ class Database:
                         "(per-vehicle scoping safety net)", n, vid)
         self.set_setting("null_vehicle_id_backfill_v1", "1")
 
+    def _backfill_trip_geohashes(self) -> None:
+        """Fill start_geohash/end_geohash on every trip that predates the column (idempotent —
+        only touches NULLs, so a fresh install or a re-run after the columns already exist is a
+        fast no-op). Pure math on lat/lon already stored, no network call, so unlike the
+        auto-note enrichment there's no reason to defer this to a web-side background sweep."""
+        rows = self._conn.execute(
+            "SELECT id, start_lat, start_lon, end_lat, end_lon FROM trips "
+            "WHERE (start_geohash IS NULL AND start_lat IS NOT NULL AND start_lon IS NOT NULL) "
+            "OR (end_geohash IS NULL AND end_lat IS NOT NULL AND end_lon IS NOT NULL)").fetchall()
+        for r in rows:
+            start_gh = geohash.encode(r["start_lat"], r["start_lon"]) if r["start_lat"] is not None else None
+            end_gh = geohash.encode(r["end_lat"], r["end_lon"]) if r["end_lat"] is not None else None
+            self._conn.execute(
+                "UPDATE trips SET start_geohash = COALESCE(start_geohash, ?), "
+                "end_geohash = COALESCE(end_geohash, ?) WHERE id = ?",
+                (start_gh, end_gh, r["id"]))
+        if rows:
+            self._conn.commit()
+
     def is_setup_complete(self) -> bool:
         return self.get_setting("setup_complete") == "1"
 
@@ -1102,11 +1132,16 @@ class Database:
 
     def create_trip(self, vehicle_id: int, data) -> int:
         drive_mode, one_pedal = self._default_trip_tags()
+        # start_geohash feeds the similar-trips comparator's candidate pre-filter
+        # (web/db_reader.py get_similar_trips) — NULL on a missing/zero fix, same guard
+        # add_trip_position uses, so a (0,0) glitch never becomes a bogus "near the
+        # Gulf of Guinea" bucket.
+        start_gh = geohash.encode(data.latitude, data.longitude) if data.latitude and data.longitude else None
         cur = self._conn.execute(
-            """INSERT INTO trips (vehicle_id, started_at, start_lat, start_lon,
+            """INSERT INTO trips (vehicle_id, started_at, start_lat, start_lon, start_geohash,
                start_soc, start_odometer_km, drive_mode, one_pedal, fuel_start_pct)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (vehicle_id, _now_iso(), data.latitude, data.longitude,
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (vehicle_id, _now_iso(), data.latitude, data.longitude, start_gh,
              data.soc, data.odometer_km, drive_mode, one_pedal,
              getattr(data, "fuel_level_pct", None)),   # REEV Phase C — fuel % at trip start (NULL on BEV)
         )
@@ -1200,12 +1235,13 @@ class Database:
         started_at = datetime.fromisoformat(trip["started_at"])
         duration_min = (datetime.now(timezone.utc) - started_at).total_seconds() / 60
 
+        end_gh = geohash.encode(data.latitude, data.longitude) if data.latitude and data.longitude else None
         self._conn.execute(
-            """UPDATE trips SET ended_at=?, end_lat=?, end_lon=?, end_soc=?,
+            """UPDATE trips SET ended_at=?, end_lat=?, end_lon=?, end_geohash=?, end_soc=?,
                end_odometer_km=?, distance_km=?, duration_min=?,
                efficiency_kwh_100km=?, regen_kwh=?, fuel_end_pct=?
                WHERE id=?""",
-            (_now_iso(), data.latitude, data.longitude, data.soc,
+            (_now_iso(), data.latitude, data.longitude, end_gh, data.soc,
              data.odometer_km, round(distance_km, 2) if distance_km is not None else None,
              round(duration_min, 1),
              round(efficiency, 2) if efficiency else None, round(regen_kwh, 3),
@@ -1501,13 +1537,14 @@ class Database:
                 ended_at_dt  = datetime.fromisoformat(ended_at_iso)
                 duration_min = (ended_at_dt - started_at).total_seconds() / 60
 
+                end_gh = geohash.encode(last_pos["latitude"], last_pos["longitude"])
                 self._conn.execute(
-                    """UPDATE trips SET ended_at=?, end_lat=?, end_lon=?, end_soc=?,
+                    """UPDATE trips SET ended_at=?, end_lat=?, end_lon=?, end_geohash=?, end_soc=?,
                        distance_km=?, duration_min=?, efficiency_kwh_100km=?
                        WHERE id=?""",
                     (
                         ended_at_iso,
-                        last_pos["latitude"], last_pos["longitude"], end_soc,
+                        last_pos["latitude"], last_pos["longitude"], end_gh, end_soc,
                         round(distance_km, 3), round(duration_min, 1),
                         round(efficiency, 2) if efficiency else None,
                         trip_id,

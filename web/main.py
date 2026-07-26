@@ -599,6 +599,22 @@ async def trip_detail(request: Request, trip_id: int):
     ))
 
 
+@app.get("/trips/{trip_id}/similar", response_class=HTMLResponse)
+async def trip_similar(request: Request, trip_id: int):
+    """🔎 'Compare similar trips' — every OTHER trip on the same route (same start/end
+    corner of the map AND a validated GPS-overlap of the actual path, not just nearby
+    endpoints — see db_reader.get_similar_trips), so temperature/traffic/efficiency can be
+    compared apples-to-apples across the same commute over time."""
+    vehicle, _ = db_reader.get_vehicle()
+    trip = db_reader.get_trip_detail(trip_id)
+    if not trip:
+        return RedirectResponse(request.headers.get("x-ingress-path", "") + "/trips")
+    similar = db_reader.get_similar_trips(trip_id)
+    return templates.TemplateResponse(request, "trip_similar.html", _ctx(
+        page="trips", vehicle=vehicle, trip=trip, similar=similar, fmt_dur=_fmt_dur,
+    ))
+
+
 @app.delete("/trips/{trip_id}")
 async def delete_trip(request: Request, trip_id: int):
     """Permanently delete one trip + its GPS track (HTMX, confirmed in the UI).

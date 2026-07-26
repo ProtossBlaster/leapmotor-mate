@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ t('similar_trips_title') }} — LeapMotor Mate{% endblock %}
+
+{% block content %}
+<div class="mb-5 flex flex-wrap items-center gap-3">
+  <a href="trips/{{ trip.id }}" class="text-slate-400 hover:text-white text-sm">{{ t('back_to_trip') }}</a>
+  <span class="text-slate-600">/</span>
+  <h1 class="text-xl font-bold text-white whitespace-nowrap">🔎 {{ t('similar_trips_title') }}</h1>
+</div>
+
+{# The reference trip itself, for context — same visual weight as the list below it, just
+   first and un-clickable-twice (it already links from the button that brought us here). #}
+<div class="card mb-4">
+  <div class="text-white text-sm font-medium">
+    {{ trip.started_at | localdate if trip.started_at else '' }}
+    <span class="text-slate-500 font-normal">
+      {{ trip.started_at[11:16] if trip.started_at else '' }} → {{ trip.ended_at[11:16] if trip.ended_at else '' }}
+    </span>
+  </div>
+  <div class="text-slate-500 text-xs mt-0.5">
+    {{ (trip.distance_km or 0) | dist(1) }}
+    {% if trip.efficiency_kwh_100km %}· {{ trip.efficiency_kwh_100km | eff }}{% endif %}
+  </div>
+</div>
+
+{% if similar %}
+<div class="text-slate-400 text-sm mb-3">{{ similar|length }} {{ t('similar_count_suffix') }}</div>
+<div class="space-y-2">
+  {% for s in similar %}
+  {% include "partials/trip_similar_row.html" %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-slate-500 py-16">
+  <div class="text-3xl mb-2">🔎</div>
+  <div>{{ t('similar_none') }}</div>
+</div>
+{% endif %}
+{% endblock %}

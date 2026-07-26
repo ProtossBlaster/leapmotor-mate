@@ -17,8 +17,10 @@
   {% endif %}
   {% set has_route = trip.positions and trip.positions|length > 1 %}
   {% if has_route %}
+  <a href="trips/{{ trip.id }}/similar"
+     class="ml-auto border border-slate-600 text-slate-300 text-xs font-medium rounded-lg px-3 py-1.5 hover:border-brand flex-shrink-0">🔎 {{ t('similar_trips_btn') }}</a>
   <a href="trips/{{ trip.id }}/route.gpx" download
-     class="ml-auto border border-slate-600 text-slate-300 text-xs font-medium rounded-lg px-3 py-1.5 hover:border-brand flex-shrink-0">↓ {{ t('export_gpx') }}</a>
+     class="border border-slate-600 text-slate-300 text-xs font-medium rounded-lg px-3 py-1.5 hover:border-brand flex-shrink-0">↓ {{ t('export_gpx') }}</a>
   {% endif %}
   {# full path: relative URLs resolve against <base href> (the app root), so a bare
      "{{ trip.id }}" became DELETE /<id> → 404 and the button silently did nothing #}
