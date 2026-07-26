@@ -406,6 +406,8 @@
     "note_ph_trip": "Ruch, pogoda, typ drogi, uwagi osobiste…",
     "note_save": "Zapisz",
     "note_saved": "Zapisano",
+    "auto_note_generate_btn": "Wygeneruj podsumowanie (adres, godzina, temperatura)",
+    "auto_note_overwrite_confirm": "Wygenerowanie automatycznego podsumowania zastąpi obecny tekst notatki. Kontynuować?",
     "drive_mode": "Tryb jazdy",
     "one_pedal": "One-Pedal",
     "mode_comfort": "Comfort",

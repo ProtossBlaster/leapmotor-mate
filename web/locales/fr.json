@@ -471,6 +471,8 @@
     "note_ph_trip": "Trafic, météo, type de route, remarques personnelles…",
     "note_save": "Enregistrer",
     "note_saved": "Enregistré",
+    "auto_note_generate_btn": "Générer un résumé (adresse, heure, température)",
+    "auto_note_overwrite_confirm": "La génération du résumé automatique remplacera le texte actuel de la note. Continuer ?",
     "drive_mode": "Mode de conduite",
     "one_pedal": "One-Pedal",
     "mode_comfort": "Confort",

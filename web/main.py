@@ -704,6 +704,25 @@ async def set_trip_note(request: Request, trip_id: int):
     return HTMLResponse("✓ " + i18n.get_t(db_reader.get_language())("note_saved"))
 
 
+@app.post("/api/trips/{trip_id}/auto-note", response_class=HTMLResponse)
+async def trip_generate_auto_note(request: Request, trip_id: int):
+    """🧭 manual 'Generate' button: builds the start/end address+time+temperature summary
+    and writes it straight into the trip's note field, replacing whatever was there (the UI
+    confirms with the user first when there was something to lose — trip_detail.html's
+    conditional hx-confirm). Reverse-geocoding is a live network call (Nominatim's usage
+    policy forbids bulk/automated lookups), so this only ever runs on a click for THIS one
+    trip — never a background sweep. Swaps in just the textarea, so the Salva button below
+    still submits the fresh text normally."""
+    import asyncio
+    provider = db_reader.get_setting("geocoder_provider", "")
+    key = db_reader.get_secret("geocoder_key", "") or None
+    note = await asyncio.get_event_loop().run_in_executor(
+        None, db_reader.generate_trip_auto_note, trip_id, provider, key)
+    t = i18n.get_t(db_reader.get_language())
+    return templates.TemplateResponse(request, "partials/trip_note_textarea.html",
+                                      {"trip": {"id": trip_id, "note": note}, "t": t})
+
+
 @app.delete("/api/charges/{charge_id}")
 async def delete_charge(request: Request, charge_id: int):
     """Permanently delete one charge session (HTMX, confirmed in the UI). Reloads the charges list,
@@ -720,6 +739,25 @@ async def set_charge_note(request: Request, charge_id: int):
     form = await request.form()
     db_reader.save_charge_note(charge_id, form.get("note") or "")
     return HTMLResponse("✓ " + i18n.get_t(db_reader.get_language())("note_saved"))
+
+
+@app.post("/api/charges/{charge_id}/auto-note", response_class=HTMLResponse)
+async def charge_generate_auto_note(request: Request, charge_id: int):
+    """🧭 manual 'Generate' button: builds the station-address + start/end time+temperature
+    summary and writes it straight into the charge's note field, replacing whatever was
+    there (the UI confirms with the user first when there was something to lose —
+    charge_card.html's conditional hx-confirm). Both the station lookup and the
+    reverse-geocoding a HOME charge skips are live network calls, so this only ever runs
+    on a click for THIS one charge — never a background sweep. Swaps in just the
+    textarea, so the Salva button below still submits the fresh text normally."""
+    import asyncio
+    provider = db_reader.get_setting("geocoder_provider", "")
+    key = db_reader.get_secret("geocoder_key", "") or None
+    note = await asyncio.get_event_loop().run_in_executor(
+        None, db_reader.generate_charge_auto_note, charge_id, provider, key)
+    t = i18n.get_t(db_reader.get_language())
+    return templates.TemplateResponse(request, "partials/charge_note_textarea.html",
+                                      {"c": {"id": charge_id, "note": note}, "t": t})
 
 
 @app.get("/charges", response_class=HTMLResponse)

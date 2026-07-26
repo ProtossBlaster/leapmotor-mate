@@ -2,6 +2,7 @@
 Recorder: reacts to state machine events to persist trips, charges, and positions.
 """
 import logging
+import threading
 from typing import Optional
 
 from db import Database, _now_iso
@@ -173,7 +174,9 @@ class Recorder:
             return                                              # sub-1 km blip, not a trip
         if data.soc - prev_soc > 0.5:
             return                                              # SoC rose → a charge, not a pure drive
-        self._db.create_reconstructed_trip(self._vehicle_id, prev_soc, prev_odo, prev_ts, data)
+        trip_id = self._db.create_reconstructed_trip(self._vehicle_id, prev_soc, prev_odo, prev_ts, data)
+        if trip_id is not None:
+            self._auto_note_trip(trip_id)
 
     def _maybe_reconstruct_charge(self, data: VehicleData) -> None:
         """Catch a charge that was never seen live. While the car is asleep/offline to the cloud
@@ -195,7 +198,9 @@ class Recorder:
             return                                                 # live charge/trip owns this
         if data.soc - prev_soc < self._reconstruct_min_pct:
             return                                                 # drop or jitter, not a charge
-        self._db.create_reconstructed_charge(self._vehicle_id, prev_soc, prev_ts, data)
+        charge_id = self._db.create_reconstructed_charge(self._vehicle_id, prev_soc, prev_ts, data)
+        if charge_id is not None:
+            self._auto_note_charge(charge_id)
 
     # HA's leapmotor_trip ignores movements shorter than 0.5 km ("spostamento breve
     # ignorato"). Match it: finalize the trip, then drop it if it was a short hop.
@@ -207,6 +212,8 @@ class Recorder:
             self._db.delete_trip(self._active_trip_id)
             log.info("Trip #%d discarded — short hop %.2f km (< %.1f km)",
                      self._active_trip_id, distance_km, self._MIN_TRIP_KM)
+            return
+        self._auto_note_trip(self._active_trip_id)
 
     def mark_offline(self) -> None:
         events = self._sm.mark_offline()
@@ -233,6 +240,53 @@ class Recorder:
         except Exception as e:  # noqa: BLE001
             log.debug("wallbox energy read failed: %s", e)
             return None
+
+    @staticmethod
+    def _web_db_reader():
+        """web/db_reader.py — same sys.path trick as _read_wallbox_energy's ha_client
+        import. Reused here since the auto-note generation (reverse-geocoding + station
+        lookup) lives there, and pulls in only stdlib-http modules (web/geocode.py,
+        web/charger_locator.py) already covered by web's own requirements — no new pip
+        dependency for the poller."""
+        import sys
+        import pathlib
+        web = str(pathlib.Path(__file__).resolve().parent.parent / "web")
+        if web not in sys.path:
+            sys.path.insert(0, web)
+        import db_reader
+        return db_reader
+
+    def _auto_note_trip(self, trip_id: int) -> None:
+        """Kick the address/time/temperature auto-note for a brand-new trip, off-thread —
+        reverse-geocoding can take a few seconds and must never delay the next poll cycle.
+        only_if_note_empty=True is the safety net: never clobbers a note the user
+        somehow already typed in the few seconds between the trip closing and this
+        thread running (the 🧭 button is the only thing allowed to overwrite a note, and
+        only after the user confirms — see web/main.py trip_generate_auto_note)."""
+        threading.Thread(target=self._auto_note_trip_body, args=(trip_id,), daemon=True).start()
+
+    def _auto_note_trip_body(self, trip_id: int) -> None:
+        try:
+            db_reader = self._web_db_reader()
+            provider = db_reader.get_setting("geocoder_provider", "")
+            key = db_reader.get_secret("geocoder_key", "") or None
+            db_reader.generate_trip_auto_note(trip_id, provider, key, only_if_note_empty=True)
+        except Exception as e:  # noqa: BLE001 — best-effort, must never take the poller down
+            log.debug("trip #%d auto-note failed: %s", trip_id, e)
+
+    def _auto_note_charge(self, charge_id: int) -> None:
+        """Same as _auto_note_trip, for a brand-new charge (station address + telemetry
+        temperatures instead of reverse-geocoded endpoints + Open-Meteo)."""
+        threading.Thread(target=self._auto_note_charge_body, args=(charge_id,), daemon=True).start()
+
+    def _auto_note_charge_body(self, charge_id: int) -> None:
+        try:
+            db_reader = self._web_db_reader()
+            provider = db_reader.get_setting("geocoder_provider", "")
+            key = db_reader.get_secret("geocoder_key", "") or None
+            db_reader.generate_charge_auto_note(charge_id, provider, key, only_if_note_empty=True)
+        except Exception as e:  # noqa: BLE001 — best-effort, must never take the poller down
+            log.debug("charge #%d auto-note failed: %s", charge_id, e)
 
     def _handle_event(self, event: StateEvent, data: Optional[VehicleData]) -> None:
         frm, to = event.from_state, event.to_state
@@ -288,5 +342,6 @@ class Recorder:
                 self._db.finalize_charge(
                     self._active_charge_id, data, max_power_kw=self._max_charge_kw,
                 )
+                self._auto_note_charge(self._active_charge_id)
             self._active_charge_id = None
             self._max_charge_kw = 0.0

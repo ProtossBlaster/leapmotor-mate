@@ -252,12 +252,21 @@
     <!-- User note + manual driving tags (#107). Drive mode & One-Pedal are MANUAL: the Leapmotor
          cloud doesn't expose them (verified on-car), so the user tags them to explain consumption. -->
     <div class="card">
-      <h2 class="font-semibold text-white text-sm mb-3">📝 {{ t('user_note') }}</h2>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold text-white text-sm">📝 {{ t('user_note') }}</h2>
+        <button type="button" title="{{ t('auto_note_generate_btn') }}"
+                hx-post="api/trips/{{ trip.id }}/auto-note"
+                hx-target="#trip-note-text-{{ trip.id }}" hx-swap="outerHTML"
+                hx-disabled-elt="this" hx-indicator="#trip-auto-note-spin-{{ trip.id }}"
+                {% if trip.note %}hx-confirm="{{ t('auto_note_overwrite_confirm') }}"{% endif %}
+                class="text-slate-500 hover:text-brand disabled:opacity-40"
+                style="background:none;border:none;cursor:pointer;padding:0;font-size:14px;line-height:1">
+          <span id="trip-auto-note-spin-{{ trip.id }}" class="htmx-indicator">⏳</span><span>🧭</span>
+        </button>
+      </div>
       <form hx-post="api/trips/{{ trip.id }}/note" hx-target="#trip-note-msg" hx-swap="innerHTML"
             hx-on::after-request="if(event.detail.successful){var m=document.getElementById('trip-note-msg');setTimeout(function(){if(m)m.textContent='';},2500);}">
-        <textarea name="note" rows="3" maxlength="1000"
-                  placeholder="{{ t('note_ph_trip') }}"
-                  class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 resize-y focus:border-brand focus:outline-none">{{ trip.note or '' }}</textarea>
+        {% include "partials/trip_note_textarea.html" %}
 
         <div class="grid grid-cols-2 gap-3 mt-3">
           <div>

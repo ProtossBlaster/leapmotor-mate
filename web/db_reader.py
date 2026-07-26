@@ -3452,6 +3452,175 @@ def _iso_to_utc(x):
         return x
 
 
+def get_position_near(ts: "str | None", tolerance_min: int = 20) -> "dict | None":
+    """The single positions row closest to timestamp `ts` (within tolerance_min minutes
+    either side) — for reading outside_temp/battery_min_temp at an arbitrary INSTANT (a
+    trip's or charge's own start/end), which nothing needed before: every existing
+    telemetry query is either "latest" (status cards) or a min/max aggregate over a whole
+    charging window (_charge_temp_odo), never "nearest to one point in time." None when
+    `ts` is missing/unparseable, or nothing falls within the tolerance window (e.g. the
+    sample was already pruned by the positions_retention_days setting)."""
+    utc = _iso_to_utc(ts)
+    if not utc:
+        return None
+    target = _trip_epoch(utc)
+    if target is None:
+        return None
+    try:
+        center = datetime.fromisoformat(utc)
+    except Exception:
+        return None
+    lo = (center - timedelta(minutes=tolerance_min)).isoformat()
+    hi = (center + timedelta(minutes=tolerance_min)).isoformat()
+    rows = _get().execute(
+        "SELECT * FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "AND recorded_at >= ? AND recorded_at <= ? ORDER BY recorded_at",
+        (_current_vehicle_id(), lo, hi)).fetchall()
+    if not rows:
+        return None
+    best = min(rows, key=lambda r: abs((_trip_epoch(r["recorded_at"]) or 0) - target))
+    return dict(best)
+
+
+def generate_trip_auto_note(trip_id: int, provider: str = "", api_key: "str | None" = None,
+                             only_if_note_empty: bool = False) -> "str | None":
+    """Builds the start/end address+time+temperature summary and writes it straight into
+    the trip's `note` field (the ONE note field — no separate read-only line to keep in
+    sync). Reverse-geocoding is a live network call (web/geocode.py, no caching, and
+    Nominatim's usage policy forbids bulk lookups) — safe for the 🧭 button (one trip) and
+    for the automatic call at trip-close (poller/recorder.py, one NEW trip at a time), but
+    never a historical backfill sweep. `only_if_note_empty` is the automatic-at-close
+    guard: a manual note the user already typed is never clobbered by this running just
+    after; the manual button always overwrites (the UI confirms with the user first when
+    there's something to lose — see trip_detail.html's hx-confirm). Temperature reuses the
+    trip's own outside_temp_start_c/end_c (Open-Meteo, already collected by
+    elevation_enrich) — None when that enrichment hasn't run yet (may still be the case
+    right at trip-close; regenerating later via the button picks it up once it has)."""
+    import geocode
+    import units
+    row = _get().execute("SELECT * FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                         (trip_id, _current_vehicle_id())).fetchone()
+    if not row:
+        return None
+    row = dict(row)
+    if only_if_note_empty and (row.get("note") or "").strip():
+        return row.get("note")
+
+    def _addr(lat, lon):
+        # geocode.reverse_geocode's own keyed-provider path swallows failures and falls back to
+        # Nominatim, but that final call (urllib underneath) can still raise on a timeout/DNS
+        # blip — one endpoint's network hiccup must not blank the other endpoint's time+temp.
+        if lat is None or lon is None:
+            return None
+        try:
+            return geocode.reverse_geocode(lat, lon, provider, api_key)
+        except Exception:  # noqa: BLE001
+            return None
+
+    start_addr = _addr(row.get("start_lat"), row.get("start_lon"))
+    end_addr = _addr(row.get("end_lat"), row.get("end_lon"))
+    start_dt = _local_dt(row.get("started_at"))
+    end_dt = _local_dt(row.get("ended_at"))
+
+    def _line(marker: str, addr, dt, temp_c) -> "str | None":
+        if not dt:
+            return None
+        bits = ([addr] if addr else []) + [dt.strftime("%H:%M")]
+        if temp_c is not None:
+            bits.append(f"🌡️ {units.temp(temp_c)}")
+        text = " · ".join(bits)
+        return f"{marker} {text}" if marker else text
+
+    lines = [_line("", start_addr, start_dt, row.get("outside_temp_start_c")),
+             _line("→", end_addr, end_dt, row.get("outside_temp_end_c"))]
+    text = (" ".join(l for l in lines if l) or None)
+    if text:
+        text = text.strip()[:1000]
+    db = _conn_rw()
+    db.execute("UPDATE trips SET note=? WHERE id=?", (text, trip_id))
+    db.commit()
+    return text
+
+
+def generate_charge_auto_note(charge_id: int, provider: str = "", api_key: "str | None" = None,
+                               only_if_note_empty: bool = False) -> "str | None":
+    """Builds the station-address+start/end time+temperature summary and writes it
+    straight into the charge's `note` field (the ONE note field — no separate read-only
+    line to keep in sync). The address reuses find_station_candidates — the SAME OSM/OCM
+    lookup the 📍 label/🔗 link already run — matched to the charge's own resolved name
+    when possible; skipped for HOME charges (no station to address, and the user already
+    knows their own home). Both temperatures come from the car's own telemetry
+    (positions.outside_temp / battery_min_temp) nearest each endpoint's timestamp
+    (get_position_near) — charges have no Open-Meteo weather enrichment like trips do
+    (elevation_enrich), so 🌡️ here can be blank on cars that don't report an
+    ambient-temperature signal at all. Live network calls (geocoding, station lookup) —
+    safe for the 🧭 button (one charge) and for the automatic call at charge-close
+    (poller/recorder.py, one NEW charge at a time), never a historical backfill sweep.
+    `only_if_note_empty` is the automatic-at-close guard: a manual note the user already
+    typed is never clobbered by this running just after; the manual button always
+    overwrites (the UI confirms with the user first when there's something to lose — see
+    charge_card.html's hx-confirm)."""
+    import charger_locator
+    import units
+    row = _get().execute("SELECT * FROM charges WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                         (charge_id, _current_vehicle_id())).fetchone()
+    if not row:
+        return None
+    row = dict(row)
+    if only_if_note_empty and (row.get("note") or "").strip():
+        return row.get("note")
+    address = None
+    if (row.get("location_type") != "HOME"
+            and row.get("latitude") is not None and row.get("longitude") is not None):
+        options, _ok = charger_locator.find_station_candidates(row["latitude"], row["longitude"])
+        match = next((o for o in options if o.get("name") == row.get("location_name")), None)
+        address = (match or {}).get("address")
+        if not address:
+            # The name-matched option (or none, if the saved name came from a source no
+            # longer offered) can still lack a street address even though a DIFFERENT
+            # source at the very same physical site has one — charger_locator keeps
+            # differently-named sources as separate options on purpose (its own docstring:
+            # lets the manual relocate button offer a real choice), so an address one
+            # network reports isn't automatically inherited by another's option. Borrow the
+            # nearest option that has one — options are already distance-sorted, and it's
+            # the same charging site either way.
+            address = next((o["address"] for o in options if o.get("address")), None)
+    start_dt = _local_dt(row.get("started_at"))
+    end_dt = _local_dt(row.get("ended_at"))
+    p_start = get_position_near(row.get("started_at"))
+    p_end = get_position_near(row.get("ended_at"))
+
+    def _temps(pos) -> str:
+        if not pos:
+            return ""
+        bits = []
+        if pos.get("outside_temp") is not None:
+            bits.append(f"🌡️ {units.temp(pos['outside_temp'])}")
+        if pos.get("battery_min_temp") is not None:
+            bits.append(f"🔋 {units.temp(pos['battery_min_temp'])}")
+        return " · ".join(bits)
+
+    def _line(marker: str, addr, dt, pos) -> "str | None":
+        if not dt:
+            return None
+        bits = ([addr] if addr else []) + [dt.strftime("%H:%M")]
+        t = _temps(pos)
+        if t:
+            bits.append(t)
+        text = " · ".join(bits)
+        return f"{marker} {text}" if marker else text
+
+    lines = [_line("", address, start_dt, p_start),
+             _line("→", None, end_dt, p_end)]
+    text = (" ".join(l for l in lines if l) or None)
+    if text:
+        text = text.strip()[:1000]
+    db = _conn_rw()
+    db.execute("UPDATE charges SET note=? WHERE id=?", (text, charge_id))
+    db.commit()
+    return text
+
+
 def _charge_active_window(db, started_at, ended_at):
     """First & last sample with REAL charging power (positions.charging=1, which is set only when power
     flows — NOT on plug-in) inside the session window. Returns (start_utc_iso, end_utc_iso), or

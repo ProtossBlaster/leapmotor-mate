@@ -417,6 +417,8 @@
     "note_ph_trip": "Verkehr, Wetter, Streckentyp, persönliche Anmerkungen…",
     "note_save": "Speichern",
     "note_saved": "Gespeichert",
+    "auto_note_generate_btn": "Zusammenfassung erstellen (Adresse, Uhrzeit, Temperatur)",
+    "auto_note_overwrite_confirm": "Beim Erstellen der automatischen Zusammenfassung wird der aktuelle Notiztext ersetzt. Fortfahren?",
     "drive_mode": "Fahrmodus",
     "one_pedal": "One-Pedal",
     "mode_comfort": "Comfort",
