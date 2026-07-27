@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.12.0] — 2026-07-27
+
+### Added
+- **Range-extender cars: what the driving actually cost, on every trip.** Mate leaves the efficiency figure blank when the generator has been running — a battery that is being refilled underneath you stops measuring how efficiently it drove you — and that left the long trips, the expensive ones, with no number at all. Statistics now carries **From the car's own gauges**: what left the battery beside the litres burned, across every trip, generator ones included. Proposed by **@michapr**, who also ran into it from a different direction than **@gm27271** did in the same week. Range-extender cars only; nothing changes for anyone else.
+- **And beside it, what you actually bought.** The first card works both sides out from percentages. The second one doesn't have to: it adds up the charges Mate recorded and the refuels you entered, reads the electricity **at the meter** rather than at the battery, and shows the money. The two are not the same question and are not meant to agree — one is what came out over those kilometres, the other is what you paid for in that period.
+
+### Fixed
+- **The two buttons over the idle-drain chart no longer use the same word for different things.** One pair chooses how the value is expressed — a rate per 24 hours, or the battery actually lost. The other chooses how the bars are grouped — one per park, or one per calendar date. While both said "day" it looked like the second pair changed the calculation. It doesn't, and the rate everyone expects is already on by default. **@riri19** asked twice in one week and was right twice; the second button now says *per date*, in every language.
+- **Charge detection: the setting now says what it measures.** "Minimum charging current" reads like the socket's rating, when it means what the car is drawing at that moment — and a domestic 230 V socket only ever delivers around 3–4 A, so a threshold nudged above that quietly loses every slow charge. The default was already right at 2 A; only the sentence was misleading. Reported by **@michapr**.
+
 ## [2.11.1] — 2026-07-27
 
 ### Fixed
