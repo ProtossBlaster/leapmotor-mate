@@ -975,8 +975,16 @@ class Database:
             "WHERE (start_geohash IS NULL AND start_lat IS NOT NULL AND start_lon IS NOT NULL) "
             "OR (end_geohash IS NULL AND end_lat IS NOT NULL AND end_lon IS NOT NULL)").fetchall()
         for r in rows:
-            start_gh = geohash.encode(r["start_lat"], r["start_lon"]) if r["start_lat"] is not None else None
-            end_gh = geohash.encode(r["end_lat"], r["end_lon"]) if r["end_lat"] is not None else None
+            # Same falsy guard create_trip uses, and for the same reason: _resolve_coord
+            # returns 0.0 (never None) when a frame carries no usable fix, so trips with
+            # start_lat/start_lon = 0.0 are already sitting in every existing database.
+            # Testing `is not None` would geohash (0,0) into one bogus "Gulf of Guinea"
+            # bucket — and worse, a trip whose first fix was missing would then never match
+            # its own siblings on the same commute. It also means a row with one coordinate
+            # NULL and the other set can no longer raise TypeError out of __init__ and stop
+            # the poller from starting.
+            start_gh = geohash.encode(r["start_lat"], r["start_lon"]) if (r["start_lat"] and r["start_lon"]) else None
+            end_gh = geohash.encode(r["end_lat"], r["end_lon"]) if (r["end_lat"] and r["end_lon"]) else None
             self._conn.execute(
                 "UPDATE trips SET start_geohash = COALESCE(start_geohash, ?), "
                 "end_geohash = COALESCE(end_geohash, ?) WHERE id = ?",

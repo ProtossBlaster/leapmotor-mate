@@ -68,3 +68,43 @@ def test_backfill_skips_trips_without_coordinates(tmp_path):
     d._backfill_trip_geohashes()   # must not raise
     row = d._conn.execute("SELECT start_geohash, end_geohash FROM trips WHERE id=1").fetchone()
     assert row["start_geohash"] is None and row["end_geohash"] is None
+
+
+def test_backfill_leaves_a_null_island_trip_without_a_geohash(tmp_path):
+    """_resolve_coord returns 0.0 — never None — when a frame carries no usable GPS fix, so
+    trips holding start_lat/start_lon = 0.0 are already sitting in every existing database.
+    Geohashing those would drop all of them into one bogus bucket off West Africa, and a trip
+    whose FIRST fix happened to be missing would then never match its own siblings on the same
+    commute. create_trip already guards exactly this (see the test above); the backfill has to
+    guard it identically or the guard only holds for trips recorded from now on."""
+    path = str(tmp_path / "t.db")
+    d = D.Database(path)
+    d._conn.execute("INSERT INTO trips (id, vehicle_id, started_at, start_lat, start_lon, "
+                    "end_lat, end_lon) VALUES (1,1,'2026-01-01T10:00:00+00:00',0.0,0.0,45.1,9.1)")
+    d._conn.execute("UPDATE trips SET start_geohash=NULL, end_geohash=NULL")
+    d._conn.commit()
+    d._conn.close()
+
+    d2 = D.Database(path)          # re-open → migrations + backfill run again
+    row = d2._conn.execute("SELECT start_geohash, end_geohash FROM trips WHERE id=1").fetchone()
+    assert row["start_geohash"] is None
+    assert row["end_geohash"] == geohash.encode(45.1, 9.1)   # the real end is still filled
+
+
+def test_backfill_survives_a_row_with_only_one_coordinate(tmp_path):
+    """One coordinate set and the other NULL used to reach geohash.encode(lat, None), which
+    raises TypeError out of Database.__init__ — so the poller would not start at all. No code
+    path is known to write such a row, so this closes a latent trap rather than a live bug;
+    the price is one falsy check that was needed anyway for the (0,0) case above."""
+    path = str(tmp_path / "t.db")
+    d = D.Database(path)
+    d._conn.execute("INSERT INTO trips (id, vehicle_id, started_at, start_lat, start_lon, "
+                    "end_lat, end_lon) VALUES (1,1,'2026-01-01T10:00:00+00:00',45.0,NULL,45.1,9.1)")
+    d._conn.execute("UPDATE trips SET start_geohash=NULL, end_geohash=NULL")
+    d._conn.commit()
+    d._conn.close()
+
+    d2 = D.Database(path)          # must not raise
+    row = d2._conn.execute("SELECT start_geohash, end_geohash FROM trips WHERE id=1").fetchone()
+    assert row["start_geohash"] is None
+    assert row["end_geohash"] == geohash.encode(45.1, 9.1)

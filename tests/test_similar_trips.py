@@ -5,8 +5,6 @@ geohash bucket on start/end (fast, indexable) narrows candidates, then an ACTUAL
 overlap check (resampled-geohash Jaccard) confirms it's the same road — not just a trip
 that happens to start/end nearby but took a different way (see test_excludes_a_detour_*).
 """
-import asyncio
-
 import pytest
 
 import db as D
@@ -183,7 +181,7 @@ def test_endpoint_renders_matches(pdb, monkeypatch):
     _seed_trip(pdb, 2, _line_points(*A, *B), started="2026-07-08T10:00:00+00:00",
               ended="2026-07-08T10:30:00+00:00")
 
-    resp = asyncio.run(main.trip_similar(_Req(), 1))
+    resp = main.trip_similar(_Req(), 1)
 
     body = resp.body.decode()
     assert 'href="trips/2"' in body
@@ -197,7 +195,7 @@ def test_endpoint_empty_state_when_no_matches(pdb, monkeypatch):
     monkeypatch.setattr(main.db_reader, "get_language", lambda: "en")
     _seed_trip(pdb, 1, _line_points(*A, *B))
 
-    resp = asyncio.run(main.trip_similar(_Req(), 1))
+    resp = main.trip_similar(_Req(), 1)
 
     assert "No other trip found on this same route." in resp.body.decode()
 
@@ -207,7 +205,7 @@ def test_endpoint_redirects_for_a_missing_trip(pdb, monkeypatch):
     import main
     monkeypatch.setattr(main.db_reader, "DB_PATH", db_reader.DB_PATH)
 
-    resp = asyncio.run(main.trip_similar(_Req(), 999))
+    resp = main.trip_similar(_Req(), 999)
 
     assert resp.status_code in (302, 307)
 
@@ -221,3 +219,17 @@ def test_similar_trip_strings_present_in_every_locale():
         for key in ("similar_trips_btn", "similar_trips_title", "similar_count_suffix",
                     "similar_none", "similar_overlap", "back_to_trip"):
             assert t(key) != key, f"{lang} is missing {key}"
+
+
+def test_the_endpoint_is_not_a_coroutine_so_it_cannot_block_the_event_loop():
+    """Nearly every route in main.py is `async def`, and rightly so — they do a fixed amount of
+    work. This one re-walks the GPS trace of every candidate trip, so its cost grows with how
+    long the car has been owned (measured at ~1s for 1000 trips on the same commute, on a
+    machine faster than a Raspberry Pi). A synchronous body inside `async def` holds the event
+    loop for that entire time and freezes the WHOLE interface, not just this page. Declared as
+    a plain `def`, FastAPI runs it in a worker thread instead."""
+    pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
+    import inspect
+
+    import main
+    assert not inspect.iscoroutinefunction(main.trip_similar)

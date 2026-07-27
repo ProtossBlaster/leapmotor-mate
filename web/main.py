@@ -600,11 +600,19 @@ async def trip_detail(request: Request, trip_id: int):
 
 
 @app.get("/trips/{trip_id}/similar", response_class=HTMLResponse)
-async def trip_similar(request: Request, trip_id: int):
+def trip_similar(request: Request, trip_id: int):
     """🔎 'Compare similar trips' — every OTHER trip on the same route (same start/end
     corner of the map AND a validated GPS-overlap of the actual path, not just nearby
     endpoints — see db_reader.get_similar_trips), so temperature/traffic/efficiency can be
-    compared apples-to-apples across the same commute over time."""
+    compared apples-to-apples across the same commute over time.
+
+    Deliberately NOT `async def`, unlike almost every other route here. The others do a
+    fixed amount of work; this one re-walks the GPS trace of every candidate trip, so its
+    cost grows with how long you have owned the car — measured at ~1s for 1000 trips on the
+    same commute, and a Raspberry Pi is slower than the machine that was measured on. A
+    synchronous body inside `async def` would hold the event loop for that whole time and
+    freeze the WHOLE interface, not just this page; declared as a plain `def`, FastAPI runs
+    it in a worker thread and everything else stays responsive."""
     vehicle, _ = db_reader.get_vehicle()
     trip = db_reader.get_trip_detail(trip_id)
     if not trip:
