@@ -43,11 +43,14 @@
         <div></div>
         {% else %}
         {% set is_today = (year == today.year and month == today.month and cell.day == today.day) %}
+        {# the day the drawer below is showing, when the server already knows it: a ?highlight= link,
+           or a reload that carried the choice back (see the calendar script in base.html) #}
+        {% set is_open = (open_day is defined and open_day and cell.day == open_day) %}
         {% if cell.count %}
-        <button type="button"
+        <button type="button"{% if is_open %} data-selected{% endif %}
                 hx-get="api/charges/calendar/day?year={{ year }}&month={{ month }}&day={{ cell.day }}{% if station %}&station={{ station }}{% endif %}"
                 hx-target="#charges-day-drawer" hx-swap="innerHTML"
-                class="aspect-square rounded-lg border flex flex-col items-center justify-center gap-0.5 lg:gap-1 cursor-pointer hover:border-brand transition-colors"
+                class="cal-day aspect-square rounded-lg border flex flex-col items-center justify-center gap-0.5 lg:gap-1 cursor-pointer hover:border-brand transition-colors"
                 style="background:#0f172a;border-color:{% if is_today %}#fbbf24{% else %}#1e293b{% endif %}">
           <span class="text-[11px] sm:text-sm lg:text-lg {% if is_today %}text-yellow-400 font-bold{% else %}text-slate-300{% endif %}">{{ cell.day }}</span>
           <span class="text-[9px] sm:text-[11px] lg:text-sm text-yellow-400 font-semibold leading-none">{{ cell.kwh }}</span>

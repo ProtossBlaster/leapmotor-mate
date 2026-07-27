@@ -197,6 +197,18 @@
     @media (max-width: 767px) {
       #sidebar.drawer-open { transform: translateX(0); }
     }
+
+    /* Calendar grids (Trips, Charges, Wallbox): which day you are LOOKING AT.
+       Clicking a day deliberately fetches only the drawer below, never the grid — so the
+       server cannot mark the choice and the browser has to. Today keeps its amber number
+       and is a different fact from the day you picked: when they are the same day you see
+       both, an amber number inside a teal ring.
+       !important because the cell paints its border-color in an inline style attribute,
+       which an ordinary rule would lose to. */
+    .cal-day[data-selected] {
+      border-color: #14b8a6 !important;
+      box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.35);
+    }
   </style>
 </head>
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col md:flex-row" data-autorefresh="{% block autorefresh %}30{% endblock %}">
@@ -505,6 +517,64 @@
     }, { passive: true });
     btn.addEventListener('mouseenter', function () { btn.style.background = '#334155'; btn.style.color = '#e2e8f0'; });
     btn.addEventListener('mouseleave', function () { btn.style.background = '#1e293b'; btn.style.color = '#94a3b8'; });
+  })();
+  </script>
+  <script>
+  // Calendar grids (Trips, Charges, Wallbox): show WHICH DAY the list below belongs to.
+  //
+  // A day cell fetches only #<page>-day-drawer, on purpose — clicking around a month should
+  // not re-download the grid or lose your place. The consequence is that the server never
+  // gets to re-render the cells, so it cannot mark your choice, and without this the amber
+  // "today" ring sat there unmoved while the list below showed some other day entirely.
+  //
+  // Delegated from the document because every grid arrives (and is replaced) via htmx: the
+  // prev/next/today buttons swap the whole container, which also clears the selection — right,
+  // since that swap resets the drawer to "pick a day" as well.
+  //
+  // The choice also has to SURVIVE, because this page reloads itself every 30 seconds when
+  // idle (the auto-refresh above) — and a reload that came back with the ring gone and the
+  // list emptied was the same complaint over again, just on a timer. So the day is kept for
+  // the tab session, next to the scroll position the auto-refresh already restores, and put
+  // back on the calendar's own request rather than by clicking the cell a second time: the
+  // grid and its drawer then arrive together, with no flash of an empty list in between.
+  (function () {
+    var KEY = 'lm_calday_' + location.pathname;
+
+    document.addEventListener('click', function (e) {
+      var cell = e.target.closest ? e.target.closest('.cal-day') : null;
+      if (!cell) return;
+      var grid = cell.parentElement;
+      if (!grid) return;
+      grid.querySelectorAll('.cal-day[data-selected]').forEach(function (c) {
+        c.removeAttribute('data-selected');
+      });
+      cell.setAttribute('data-selected', '');
+      var u = cell.getAttribute('hx-get') || '';
+      var y = /[?&]year=(\d+)/.exec(u), m = /[?&]month=(\d+)/.exec(u), d = /[?&]day=(\d+)/.exec(u);
+      if (y && m && d) sessionStorage.setItem(KEY, y[1] + '-' + m[1] + '-' + d[1]);
+    });
+
+    // Only ever adds open_day to a request for the month the day belongs to, so paging to
+    // another month opens nothing — and a request that already carries open_day (a ?highlight=
+    // link) is left exactly as it is.
+    document.body.addEventListener('htmx:configRequest', function (e) {
+      var path = e.detail.path || '';
+      if (!/\/calendar(\?|$)/.test(path)) return;
+      if (/[?&]open_day=/.test(path) || e.detail.parameters.open_day) return;
+      var stored = sessionStorage.getItem(KEY);
+      if (!stored) return;
+      var parts = stored.split('-');
+      // Read the month off the PATH, not off e.detail.parameters: htmx leaves a query string
+      // written into hx-get in the path and never copies it into parameters, so trusting
+      // parameters would make every month look like the current one — and paging back a month
+      // would have opened whichever day happened to share that number.
+      var y = /[?&]year=(\d+)/.exec(path), m = /[?&]month=(\d+)/.exec(path);
+      var now = new Date();
+      var year = y ? y[1] : String(now.getFullYear());
+      var month = m ? m[1] : String(now.getMonth() + 1);
+      if (year !== parts[0] || month !== parts[1]) return;
+      e.detail.parameters.open_day = parts[2];
+    });
   })();
   </script>
   <script>

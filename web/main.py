@@ -464,6 +464,7 @@ def _render_trips_calendar(request: Request, year: int, month: int, open_day: in
         "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
     }
     if open_day and open_day in cal["days"]:
+        ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
         ctx["open_day_trips"] = db_reader.get_trips_calendar_day(year, month, open_day)
         ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
     return templates.TemplateResponse(request, "partials/trips_calendar_month.html", ctx)
@@ -851,6 +852,7 @@ def _render_charges_calendar(request: Request, year: int, month: int, station: s
         "charge_types": db_reader.CHARGE_TYPES, "fmt_dur": _fmt_dur,
     }
     if open_day and open_day in cal["days"]:
+        ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
         ctx["open_day_charges"] = db_reader.get_charges_calendar_day(year, month, open_day, station=station or None)
         ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
     return templates.TemplateResponse(request, "partials/charges_calendar_month.html", ctx)
@@ -2191,6 +2193,7 @@ async def wallbox_calendar(request: Request, year: int = 0, month: int = 0, open
         "today": today,
     }
     if open_day and open_day in cal["days"]:
+        ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
         ctx["open_day_sessions"] = _wallbox_day_sessions(year, month, open_day)
         ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
     return templates.TemplateResponse(request, "partials/wallbox_calendar_month.html", ctx)
