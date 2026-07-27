@@ -3,6 +3,12 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.11.1] — 2026-07-27
+
+### Fixed
+- **The calendar now shows which day you are looking at.** Picking a day filled the list below it, but the highlight stayed on today — so the page told you one thing and showed you another. The day you chose is now ringed, and today keeps its own amber number: when they are the same day you see both. Trips, Charges and Wallbox — all three calendars had it.
+- **And it survives a refresh.** These pages reload themselves every half minute when left alone, and that reload used to take the day with it: ring gone, list gone, back to nothing selected. Your choice now comes back with the page, list included, the same way your place on the page already did. Following a link to one particular trip or charge also lands with its day ringed, which it did not before.
+
 ## [2.11.0] — 2026-07-27
 
 ### Added
