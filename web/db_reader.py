@@ -2485,6 +2485,122 @@ def reev_fuel_summary() -> Optional[dict]:
     }
 
 
+def reev_total_consumption() -> Optional[dict]:
+    """REEV — what the driving actually COST, over every trip, in the two things you pay for.
+
+    Mate's efficiency figure deliberately goes blank on a trip where the range-extender ran: a
+    SoC drop stops measuring how efficiently the battery drove you once the generator has been
+    refilling the pack underneath. That is right for the question "how efficient was this", and
+    it leaves the other question — "what did this cost me" — unanswered on exactly the long
+    trips that cost the most. Two REEV owners arrived at that hole independently, from different
+    cars, in the same week (@michapr, who proposed this, and @gm27271).
+
+    Cost does not care where the electrons came from. Fuel burned is fuel you bought; the NET
+    drop in the battery is grid energy you bought. Whatever the generator moved from the tank
+    into the pack is already counted once, in the litres — so subtracting it from the battery
+    side is not losing it, it is refusing to bill it twice. No trip is excluded.
+
+    Verified against physics rather than argued: on one 541 km range-extender day in @gm27271's
+    signal bundle, this SoC-based figure came to 11.5 kWh while integrating the pack's own volts
+    × amps over the same day gave 11.7 — two independent methods, 2% apart. (The same bundle also
+    shows why the cloud's own kWh cannot answer this: the generator put 44 kWh back into that
+    pack over a week, and the cloud counts none of it.)
+
+    None until there is at least half a kilometre to divide by."""
+    db = _get()
+    try:
+        row = db.execute(
+            """SELECT SUM(distance_km) AS km,
+                      SUM((start_soc - end_soc) / 100.0 * ?) AS kwh,
+                      -- Only tank drops. A trip that ENDS fuller than it started is a refuel,
+                      -- and a refuel is a purchase, not negative consumption: counted signed, one
+                      -- fill-up erases weeks of real burning. Found by running this over a real
+                      -- range-extender history, where a single 6% → 76% stop turned 22 litres
+                      -- burned into MINUS 23. Same guard reev_fuel_summary already applies.
+                      SUM(CASE WHEN fuel_start_pct IS NOT NULL AND fuel_end_pct IS NOT NULL
+                                AND fuel_start_pct > fuel_end_pct
+                               THEN (fuel_start_pct - fuel_end_pct) / 100.0 * ? END) AS litres
+                 FROM trips
+                WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL""",
+            (get_battery_capacity_kwh(), _REEV_TANK_L, _current_vehicle_id())).fetchone()
+    except sqlite3.Error:
+        return None
+    km = (row["km"] if row else None) or 0
+    if km < 0.5:
+        return None
+    # The battery side can come out NEGATIVE over a period: a generator that hands the pack more
+    # than the driving took out leaves you with stored energy you paid for in petrol, already
+    # billed in the litres beside it. Reporting a negative kWh/100km would read as a defect, so
+    # the electric side floors at zero and the fuel figure carries that period on its own.
+    kwh = max((row["kwh"] or 0), 0.0)
+    litres = row["litres"] or 0
+    return {
+        "total_km": round(km, 1),
+        "total_kwh": round(kwh, 1),
+        "total_fuel_l": round(litres, 1),
+        "kwh_100km": round(kwh / km * 100, 1),
+        "fuel_l_100km": round(litres / km * 100, 1),
+    }
+
+
+def reev_actual_spend() -> Optional[dict]:
+    """REEV — what was actually BOUGHT, beside the figure derived from the car's own gauges.
+
+    reev_total_consumption above works out both sides from percentages: the pack's SoC drop
+    against a nominal capacity, the tank's level against a nominal 50 litres. That is the right
+    tool where nothing better exists — it needs no prices, no typing, and it works trip by trip.
+    But on a lifetime total nothing better is not the situation Mate is in: every charge it
+    recorded already carries its energy AND its cost, and every refuel the owner entered already
+    carries litres off a receipt. Measured beats derived, and it beats it in three separate ways.
+
+    It reads the AC side. _billed_kwh returns the wallbox's own kWh for a home charge, which is
+    what the meter charged you; the SoC-derived figure is the DC energy that reached the battery,
+    smaller by the 10-15% lost in conversion (see the answer to #134 — the gap is physics, not a
+    bug). A cost card built on the DC side understates the bill, always in the same direction.
+
+    It needs no assumption about the car. No nominal pack capacity, so battery ageing cannot
+    skew it; no linear fuel float, so a tank that reads optimistically near the bottom cannot.
+
+    It sees what never became a trip. Vampire drain, preconditioning, cabin heating on the
+    driveway: electricity bought and paid for that appears in no trip's SoC delta.
+
+    What it cannot do is the other's job. It measures PURCHASES over a period, not consumption
+    over those kilometres — charge the car tonight and drive it next week and the two land in
+    different places — and it only knows the refuels somebody bothered to enter. Hence both,
+    side by side, saying plainly which is which. None when nothing has been bought yet."""
+    db = _get()
+    try:
+        charges = [dict(r) for r in db.execute(
+            "SELECT energy_added_kwh, ac_energy_kwh, location_type, cost FROM charges "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
+            (_current_vehicle_id(),)).fetchall()]
+    except sqlite3.Error:
+        charges = []
+    kwh = sum(_billed_kwh(c) for c in charges)
+    elec_cost = sum(c["cost"] for c in charges if c.get("cost"))
+    litres = fuel_cost = 0.0
+    try:
+        _ensure_fuel_purchases(db)
+        r = db.execute(
+            "SELECT COALESCE(SUM(liters), 0) AS l, COALESCE(SUM(total_cost), 0) AS c "
+            "FROM fuel_purchases WHERE vehicle_id = COALESCE(?, vehicle_id)",
+            (_current_vehicle_id(),)).fetchone()
+        litres, fuel_cost = (r["l"] or 0), (r["c"] or 0)
+    except sqlite3.Error:
+        pass
+    if kwh <= 0 and litres <= 0:
+        return None
+    return {
+        "kwh": round(kwh, 1),
+        "litres": round(litres, 1),
+        "cost": round(elec_cost + fuel_cost, 2) if (elec_cost or fuel_cost) else None,
+        "charges": len(charges),
+        # Told plainly rather than hidden: a total that is missing every refuel the owner never
+        # typed in is not "what you spent", it is "what Mate was told about".
+        "has_fuel_entries": litres > 0,
+    }
+
+
 def _trip_blended_rate_fn():
     """Blended €/kWh-over-time lookup, built once from ALL priced charges (same basis as
     get_trip_detail's own per-trip rate) — shared by the Trips calendar and search so every

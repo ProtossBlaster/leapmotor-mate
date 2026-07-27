@@ -914,6 +914,12 @@ async def statistics(request: Request):
     grouped  = db_reader.get_stats_grouped()
     totals   = db_reader.get_stats_summary()
     totals["v2l_total_kwh"] = db_reader.get_v2l_total_kwh()
+    # REEV only — what the driving cost, counting every trip including the ones where the
+    # efficiency figure above deliberately goes blank because the generator was running.
+    _reev = db_reader.get_setting("is_reev", "0") == "1"
+    totals["reev_total"] = db_reader.reev_total_consumption() if _reev else None
+    # …and beside it what was actually bought, which Mate measures rather than derives.
+    totals["reev_spend"] = db_reader.reev_actual_spend() if _reev else None
     return templates.TemplateResponse(request, "statistics.html", _ctx(
         page="statistics", vehicle=vehicle,
         grouped=grouped, totals=totals,

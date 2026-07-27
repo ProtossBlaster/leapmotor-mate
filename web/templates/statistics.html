@@ -43,6 +43,59 @@
   </div>
 </div>
 
+{# REEV only — what the driving COST, over every trip. The efficiency figures above go blank on a
+   range-extender trip on purpose (a SoC drop stops measuring efficiency once the generator is
+   refilling the pack underneath), which leaves the cost question unanswered on exactly the long
+   trips that cost the most. From @michapr's proposal; see db_reader.reev_total_consumption. #}
+{% if totals.reev_total or totals.reev_spend %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+  {# Left: derived from the car's own gauges. Deliberately NOT called a consumption — the
+     efficiency cards above are consumptions, this is the socket's share of them plus the fuel,
+     and a smaller number sitting under the word "consumption" reads as a defect. #}
+  {% if totals.reev_total %}
+  <div class="card">
+    <div class="stat-label">{{ t('stats_reev_gauges_label') }}</div>
+    <div class="flex items-baseline gap-1 flex-wrap">
+      <span class="stat-value text-sky-400">{{ totals.reev_total.kwh_100km | nice }}</span>
+      <span class="text-slate-400 text-sm">kWh/100km</span>
+      <span class="text-slate-600 text-sm mx-0.5">+</span>
+      <span class="stat-value text-amber-400">{{ totals.reev_total.fuel_l_100km | nice }}</span>
+      <span class="text-slate-400 text-sm">L/100km</span>
+    </div>
+    <div class="text-slate-500 text-xs mt-1">
+      {{ t('stats_reev_gauges_note') }} · {{ totals.reev_total.total_km | dist(1) }}
+      · {{ totals.reev_total.total_kwh | nice }} kWh + {{ totals.reev_total.total_fuel_l | nice }} L
+    </div>
+  </div>
+  {% endif %}
+  {# Right: measured, not derived — the charges Mate recorded and the refuels the owner entered.
+     Reads the AC side (what the meter billed), needs no nominal pack or linear tank, and catches
+     what never became a trip. It cannot replace the left card: it counts PURCHASES in a period,
+     and it only knows the refuels somebody typed in — which is why that gap is said out loud. #}
+  {% if totals.reev_spend %}
+  <div class="card">
+    <div class="stat-label">{{ t('stats_reev_spend_label') }}</div>
+    <div class="flex items-baseline gap-1 flex-wrap">
+      <span class="stat-value text-sky-400">{{ totals.reev_spend.kwh | nice }}</span>
+      <span class="text-slate-400 text-sm">kWh</span>
+      <span class="text-slate-600 text-sm mx-0.5">+</span>
+      <span class="stat-value text-amber-400">{{ totals.reev_spend.litres | nice }}</span>
+      <span class="text-slate-400 text-sm">L</span>
+      {% if totals.reev_spend.cost %}
+      <span class="stat-value text-white ml-2">{{ totals.reev_spend.cost | money }}</span>
+      {% endif %}
+    </div>
+    <div class="text-slate-500 text-xs mt-1">
+      {{ t('stats_reev_spend_note') }}
+      {% if not totals.reev_spend.has_fuel_entries %}
+      · <span class="text-amber-500">{{ t('stats_reev_spend_nofuel') }}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="card">
     <div class="stat-label">{{ t('drive_time') }}</div>
