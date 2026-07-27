@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.11.0] — 2026-07-27
+
+### Added
+- **Compare the same journey across different days.** A 🔎 button on any trip with a GPS track lists every *other* trip that took the **same road** — not merely one that started and ended nearby — so the commute you drive twice a day finally becomes one series you can read: efficiency against outside temperature, against traffic, against the time of year. Each row carries its own overlap figure, so you can see how confident the match is. From **@hubcasale** (#174), answering a request from **@riri19**.
+- Matching happens in two stages, both pure local arithmetic on coordinates already stored — no network call, nothing sent anywhere. A ~150 m cell on the start and end narrows the field; then the actual recorded path of each candidate is resampled every 100 m and compared with the trip you are looking at, and only a ≥70 % overlap counts. That second stage is the one that matters: endpoints alone would happily match a day you took a completely different road. The return leg is deliberately a separate group, because uphill and downhill are not the same drive.
+
+### Fixed
+- **The comparator no longer holds up the rest of the interface while it runs.** Its cost grows with how long you have owned the car — it re-walks the GPS track of every candidate — and it ran on the thread that serves every other page, so on a long history the whole app would sit still for a second or more. It now runs off to one side.
+- **A trip whose first GPS fix never arrived is no longer filed under the wrong place on Earth.** When the car reports no usable position, Mate stores a zero rather than nothing, and the new route index treated that as a real location off the coast of Africa — which also meant such a trip could never match its own siblings on the commute it actually belonged to. It is now left unindexed, exactly as a freshly recorded trip already was.
+
 ## [2.10.2] — 2026-07-26
 
 ### Added
