@@ -1,0 +1,80 @@
+{# Refuels Mate spotted in the car's own fuel gauge, waiting for the user's word (beta #14
+   @gm27271). Rendered only when there is something to rule on — an empty "nothing detected" card
+   on a page that already has a tank card and a history would be pure furniture.
+
+   Amber throughout, deliberately: everything here is provisional. The litres are an estimate off a
+   float gauge and arrive editable (the pump gave him the real number); the price is the one thing
+   the cloud cannot know, so it is the only field he MUST fill, and the button stays out of reach
+   until he has. Confirming files the refuel at the DETECTION's instant, not at "now". #}
+{% if detected %}
+<div class="card border-amber-500/40">
+  <h2 class="font-semibold text-white mb-1">⛽ {{ t('fuel_detected_title') }}</h2>
+  <p class="text-xs text-slate-400 mb-4">{{ t('fuel_detected_hint') }}</p>
+
+  <div class="space-y-3">
+    {% for d in detected %}
+    <form hx-post="api/fuel/detected/confirm" hx-target="#fuel-content" hx-swap="innerHTML"
+          class="bg-slate-950 rounded-xl p-3 border border-amber-500/30" style="margin:0">
+      <input type="hidden" name="id" value="{{ d.id }}">
+
+      <div class="flex items-start justify-between gap-3 mb-3 flex-wrap">
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-amber-400">
+            ≈ {{ d.liters | nice }} L
+            <span class="text-[10px] font-normal uppercase tracking-wide text-amber-500/80 border border-amber-500/40 rounded px-1.5 py-0.5 ml-1">{{ t('fuel_detected_badge') }}</span>
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1">
+            🕒 {{ t('fuel_detected_window').format(a=d.ts_from_local, b=d.ts_local) }}
+          </div>
+          <div class="text-[11px] text-slate-500">
+            🛢️ {{ t('fuel_detected_tank').format(a=d.fuel_before_pct | nice, b=d.fuel_after_pct | nice) }}
+          </div>
+        </div>
+        <button type="button" title="{{ t('fuel_detected_dismiss') }}"
+                hx-post="api/fuel/detected/dismiss" hx-target="#fuel-content" hx-swap="innerHTML"
+                hx-vals='{"id": "{{ d.id }}"}'
+                hx-confirm="{{ t('fuel_detected_dismiss_confirm') }}"
+                class="text-slate-500 hover:text-red-400 text-xs whitespace-nowrap flex-shrink-0">
+          ✕ {{ t('fuel_detected_dismiss') }}
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <label class="block">
+          <span class="text-[11px] text-slate-400">⛽ {{ t('fuel_liters') }}</span>
+          <input type="number" name="liters" step="0.01" min="0" inputmode="decimal"
+                 value="{{ d.liters }}"
+                 class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-sm text-right focus:outline-none focus:border-brand">
+        </label>
+        {# The price is what makes a detection confirmable, so Confirm stays disabled until one of
+           the two money fields has something in it. Without this the button is simply dead: a
+           refuel with no price can't be logged, so the click did nothing and said nothing. The
+           handler is inline rather than delegated because this partial is swapped in by HTMX and
+           an inline attribute survives every swap without re-registering. #}
+        {% set money_guard = "this.form.querySelector('button[type=submit]').disabled = !(this.form.price_per_l.value || this.form.total_cost.value)" %}
+        <label class="block">
+          <span class="text-[11px] text-amber-400">💶 {{ t('fuel_price_per_l') }} <span class="text-slate-600">({{ currency.symbol }}/L)</span></span>
+          <input type="number" name="price_per_l" step="0.001" min="0" inputmode="decimal" placeholder="—"
+                 oninput="{{ money_guard }}"
+                 class="mt-1 w-full bg-slate-800 border border-amber-500/40 rounded-lg px-2 py-1.5 text-white text-sm text-right focus:outline-none focus:border-brand">
+        </label>
+        <label class="block">
+          <span class="text-[11px] text-slate-400">🧾 {{ t('fuel_total') }} <span class="text-slate-600">({{ currency.symbol }})</span></span>
+          <input type="number" name="total_cost" step="0.01" min="0" inputmode="decimal" placeholder="—"
+                 oninput="{{ money_guard }}"
+                 class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-sm text-right focus:outline-none focus:border-brand">
+        </label>
+      </div>
+
+      <div class="flex items-center justify-between gap-3 mt-3 flex-wrap">
+        <span class="text-[11px] text-slate-500">💡 {{ t('fuel_either_hint') }}</span>
+        <button type="submit" disabled
+                class="bg-brand text-white text-sm font-semibold rounded-lg px-4 py-1.5 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed">
+          ✓ {{ t('fuel_detected_confirm') }}
+        </button>
+      </div>
+    </form>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

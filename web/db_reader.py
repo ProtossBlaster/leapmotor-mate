@@ -1484,10 +1484,15 @@ def _fuel_before_pct(db: sqlite3.Connection, vehicle_id, ts: str):
 
 
 def add_fuel_purchase(ts: str, liters: float, price_per_l: Optional[float] = None,
-                      total_cost: Optional[float] = None, note: Optional[str] = None) -> int:
+                      total_cost: Optional[float] = None, note: Optional[str] = None,
+                      fuel_before_pct: Optional[float] = None) -> int:
     """Log one REEV refuel. Either `price_per_l` or `total_cost` is enough — the other is derived
     (€/L = total/litres, or total = €/L·litres). Snapshots the tank % just before `ts` so the WAC
-    weight is frozen against pruning. Feeds fuel_blended_price_at → the per-trip fuel cost."""
+    weight is frozen against pruning. Feeds fuel_blended_price_at → the per-trip fuel cost.
+
+    `fuel_before_pct` overrides that snapshot, and confirming a detected refuel is why it exists: the
+    detection's own instant is the first reading that already shows the FULL tank, so re-deriving the
+    residual from "the last reading at or before ts" would hand back the level after the fill."""
     liters = float(liters)
     if liters <= 0:
         raise ValueError("liters must be > 0")
@@ -1506,7 +1511,7 @@ def add_fuel_purchase(ts: str, liters: float, price_per_l: Optional[float] = Non
         _ensure_fuel_purchases(db)
         vrow = db.execute("SELECT id FROM vehicles ORDER BY id LIMIT 1").fetchone()
         vehicle_id = vrow["id"] if vrow else None
-        fb = _fuel_before_pct(db, vehicle_id, ts)
+        fb = fuel_before_pct if fuel_before_pct is not None else _fuel_before_pct(db, vehicle_id, ts)
         cur = db.execute(
             "INSERT INTO fuel_purchases (vehicle_id, ts, liters, price_per_l, total_cost, "
             "fuel_before_pct, note, created_at) VALUES (?,?,?,?,?,?,?,?)",
@@ -1577,6 +1582,169 @@ def delete_fuel_purchase(purchase_id: int) -> bool:
         cur = db.execute("DELETE FROM fuel_purchases WHERE id = ?", (int(purchase_id),))
         db.commit()
         return cur.rowcount > 0
+    finally:
+        db.close()
+
+
+# ── Refuel auto-detection (beta #14 @gm27271) ───────────────────────────────────────────────────
+# A tank can only rise one way: somebody put fuel in it. Nothing recuperates into it, nothing
+# refills it while driving — so a rise in the car's OWN gauge *is* a refuel, and the only thing left
+# to reject is the gauge's noise. That gives one rule and one guard:
+#   • the level rises by at least _FUEL_DETECT_MIN_RISE_PCT between two consecutive readings, and
+#   • it has not fallen back on the reading after that — a single high sample is a spike, not a fill.
+# Deliberately NOTHING about gear or speed. A car can fall asleep at the pump and only report the
+# new level when it wakes for the next drive, so demanding "parked in both frames" would lose
+# exactly the refuels most worth catching.
+#
+# What we can and cannot know is the whole reason a detection is not a refuel until the user says so:
+#   WHEN   an interval — after the last reading at the old level, by the first at the new one
+#   LITRES an estimate — Δ% of a 50 L tank; the gauge is a float, not a flow meter
+#   PRICE  never. The cloud has no idea what you paid, so that field is the user's and only his.
+_FUEL_DETECT_MIN_RISE_PCT = 2.0   # 2 % of 50 L ≈ 1 L. The gauge itself steps at 0.1 % ≈ 50 mL, so
+                                  # this is a noise floor, not a sensitivity limit — tune on real data.
+_FUEL_DETECT_DEDUP_H = 12         # a rise this close to a refuel already logged is that same refuel
+
+
+def _ensure_fuel_detected(db: sqlite3.Connection) -> None:
+    """Detections live in their OWN table, never among the real refuels: until the user confirms one
+    it must not move the tank value, the blended €/L or any month total. Confirming deletes the row
+    (it becomes a fuel_purchases row); dismissing keeps it as status='dismissed' so the next scan
+    cannot resurrect what he has already said no to."""
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS fuel_detected ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, vehicle_id INTEGER, ts TEXT NOT NULL, "
+        "ts_from TEXT NOT NULL, liters REAL NOT NULL, "
+        "fuel_before_pct REAL, fuel_after_pct REAL, "
+        "status TEXT NOT NULL DEFAULT 'pending', created_at TEXT)")
+
+
+def scan_fuel_refuels(vehicle_id: Optional[int] = None) -> int:
+    """Walk the tank readings the car has already logged and record every rise as a pending refuel.
+    Returns how many new ones it found.
+
+    Runs over history, not as a live sentinel, which is the point: the first run finds the refuels
+    from BEFORE the feature existed. It is incremental afterwards — a watermark holds the last
+    reading examined — and idempotent regardless, because a rise is skipped when it was already
+    dismissed or when a refuel is already logged near it."""
+    vid = vehicle_id if vehicle_id is not None else _current_vehicle_id()
+    if vid is None:
+        return 0
+    db = _conn_rw()
+    try:
+        _ensure_fuel_detected(db)
+        _ensure_fuel_purchases(db)
+        mark = get_setting("fuel_scan_watermark", "")
+        rows = db.execute(
+            "SELECT recorded_at, fuel_level_pct FROM positions "
+            "WHERE vehicle_id = ? AND fuel_level_pct IS NOT NULL AND recorded_at >= ? "
+            "ORDER BY recorded_at", (vid, mark or "")).fetchall()
+        if len(rows) < 2:
+            return 0
+        found = 0
+        for i in range(len(rows) - 1):
+            before, after = rows[i]["fuel_level_pct"], rows[i + 1]["fuel_level_pct"]
+            if after - before < _FUEL_DETECT_MIN_RISE_PCT:
+                continue
+            # Confirm the rise held: the next reading must not have dropped back to the old level.
+            # (The last pair in the log has nothing after it — leave it for the next scan, when it
+            # will have.)
+            nxt = rows[i + 2]["fuel_level_pct"] if i + 2 < len(rows) else None
+            if nxt is None or nxt < before + _FUEL_DETECT_MIN_RISE_PCT / 2:
+                continue
+            ts_from, ts = rows[i]["recorded_at"], rows[i + 1]["recorded_at"]
+            lo = (_iso_shift(ts_from, -_FUEL_DETECT_DEDUP_H), _iso_shift(ts, _FUEL_DETECT_DEDUP_H))
+            if db.execute("SELECT 1 FROM fuel_purchases WHERE (vehicle_id = ? OR vehicle_id IS NULL) "
+                          "AND ts BETWEEN ? AND ? LIMIT 1", (vid, lo[0], lo[1])).fetchone():
+                continue                                   # already logged by hand — same refuel
+            if db.execute("SELECT 1 FROM fuel_detected WHERE vehicle_id = ? AND ts = ? LIMIT 1",
+                          (vid, ts)).fetchone():
+                continue                                   # already known (pending or dismissed)
+            db.execute(
+                "INSERT INTO fuel_detected (vehicle_id, ts, ts_from, liters, fuel_before_pct, "
+                "fuel_after_pct, status, created_at) VALUES (?,?,?,?,?,?,'pending',?)",
+                (vid, ts, ts_from, round((after - before) / 100.0 * _REEV_TANK_L, 2),
+                 before, after, datetime.now(timezone.utc).isoformat()))
+            found += 1
+        # Stop one pair short: the final reading may yet be the "before" of a rise still arriving.
+        db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('fuel_scan_watermark', ?)",
+                   (rows[-2]["recorded_at"],))
+        db.commit()
+        return found
+    except sqlite3.Error:
+        return 0
+    finally:
+        db.close()
+
+
+def _iso_shift(ts: str, hours: float) -> str:
+    """`ts` moved by `hours`, as a stored-format ISO string — for the dedup window around a rise."""
+    try:
+        return (datetime.fromisoformat(str(ts)) + timedelta(hours=hours)).isoformat()
+    except (ValueError, TypeError):
+        return str(ts)
+
+
+def list_fuel_detected(vehicle_id: Optional[int] = None) -> list:
+    """Refuels Mate spotted and the user has not yet ruled on, newest first."""
+    vid = vehicle_id if vehicle_id is not None else _current_vehicle_id()
+    db = _conn_rw()
+    try:
+        _ensure_fuel_detected(db)
+        rows = db.execute(
+            "SELECT id, ts, ts_from, liters, fuel_before_pct, fuel_after_pct FROM fuel_detected "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND status = 'pending' "
+            "ORDER BY ts DESC, id DESC", (vid,)).fetchall()
+        return [dict(r) for r in rows]
+    except sqlite3.Error:
+        return []
+    finally:
+        db.close()
+
+
+def confirm_fuel_detected(det_id: int, liters: Optional[float] = None,
+                          price_per_l: Optional[float] = None,
+                          total_cost: Optional[float] = None,
+                          note: Optional[str] = None) -> Optional[int]:
+    """Turn a detection into a real refuel. The litres may be corrected (the estimate is a gauge
+    reading, the pump gave him a number); the price is his either way. Returns the new purchase id.
+
+    The refuel is filed at the detection's OWN instant, not "now" — which is also why its residual
+    is exact where a hand-typed one can only be as good as the time typed."""
+    db = _conn_rw()
+    try:
+        _ensure_fuel_detected(db)
+        row = db.execute("SELECT * FROM fuel_detected WHERE id = ? AND status = 'pending'",
+                         (int(det_id),)).fetchone()
+    except sqlite3.Error:
+        return None
+    finally:
+        db.close()
+    if row is None:
+        return None
+    n_liters = float(liters) if liters else float(row["liters"])
+    pid = add_fuel_purchase(row["ts"], n_liters, price_per_l=price_per_l,
+                            total_cost=total_cost, note=note,
+                            fuel_before_pct=row["fuel_before_pct"])
+    db = _conn_rw()
+    try:
+        db.execute("DELETE FROM fuel_detected WHERE id = ?", (int(det_id),))
+        db.commit()
+    finally:
+        db.close()
+    return pid
+
+
+def dismiss_fuel_detected(det_id: int) -> bool:
+    """"That was not a refuel." Kept as a tombstone rather than deleted — the scan reads the same
+    positions again and would otherwise offer it back every single time."""
+    db = _conn_rw()
+    try:
+        _ensure_fuel_detected(db)
+        cur = db.execute("UPDATE fuel_detected SET status = 'dismissed' WHERE id = ?", (int(det_id),))
+        db.commit()
+        return cur.rowcount > 0
+    except sqlite3.Error:
+        return False
     finally:
         db.close()
 

@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.13.3"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.14.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1259,6 +1259,15 @@ def _fuel_ctx(request: Request):
     from datetime import datetime, timezone
     vehicle, _ = db_reader.get_vehicle()
     vid = vehicle["id"] if vehicle else None
+    # Look for refuels the car's own gauge already recorded (beta #14 @gm27271). Incremental after
+    # the first pass, so this costs nothing on a page that is opened often; the first pass is the
+    # expensive one and it is also the valuable one — it finds the fills from before the feature.
+    db_reader.scan_fuel_refuels(vid)
+    detected = db_reader.list_fuel_detected(vid)
+    for d in detected:
+        for key, src in (("ts_local", "ts"), ("ts_from_local", "ts_from")):
+            _ld = db_reader._local_dt(d.get(src))
+            d[key] = _ld.strftime("%d/%m/%Y %H:%M") if _ld else (d.get(src) or "")
     purchases = db_reader.list_fuel_purchases()
     for p in purchases:                       # localise the timestamp for display (DB is UTC)
         _ld = db_reader._local_dt(p.get("ts"))
@@ -1270,7 +1279,8 @@ def _fuel_ctx(request: Request):
             "eur_per_l": round(blend, 3) if blend else None,
             "value": round(liters * blend, 2) if (liters and blend) else None}
     now_local = datetime.now(timezone.utc).astimezone(db_reader._local_tz()).strftime("%Y-%m-%dT%H:%M")
-    return _ctx(page="fuel", vehicle=vehicle, purchases=purchases, tank=tank, now_local=now_local)
+    return _ctx(page="fuel", vehicle=vehicle, purchases=purchases, tank=tank, now_local=now_local,
+                detected=detected)
 
 
 @app.get("/fuel", response_class=HTMLResponse)
@@ -1304,6 +1314,46 @@ async def fuel_add(request: Request):
             pass
     # …and tell the month calendar below to redraw, so the refuel you just typed shows up in its day
     # instead of waiting for a page reload (beta #14).
+    return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request),
+                                      headers={"HX-Trigger": "fuelChanged"})
+
+
+@app.post("/api/fuel/detected/confirm", response_class=HTMLResponse)
+async def fuel_detected_confirm(request: Request):
+    """"Yes, that was a refuel — here's what it cost." Mate supplies the instant and the litres; the
+    price is the one thing the cloud can never know, so it is the one field he has to fill."""
+    if _fuel_blocked():
+        return RedirectResponse(request.headers.get("x-ingress-path", "") + "/", status_code=303)
+    form = await request.form()
+    ppl = (form.get("price_per_l") or "").strip()
+    tot = (form.get("total_cost") or "").strip()
+    try:
+        liters = float(form.get("liters"))
+    except (TypeError, ValueError):
+        liters = 0.0
+    if ppl or tot:
+        try:
+            db_reader.confirm_fuel_detected(
+                int(form.get("id")), liters=liters or None,
+                price_per_l=float(ppl) if ppl else None,
+                total_cost=None if ppl else float(tot),
+                note=(form.get("note") or "").strip() or None)
+        except (TypeError, ValueError):
+            pass
+    return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request),
+                                      headers={"HX-Trigger": "fuelChanged"})
+
+
+@app.post("/api/fuel/detected/dismiss", response_class=HTMLResponse)
+async def fuel_detected_dismiss(request: Request):
+    """"That was not a refuel." Tombstoned rather than deleted — see dismiss_fuel_detected."""
+    if _fuel_blocked():
+        return RedirectResponse(request.headers.get("x-ingress-path", "") + "/", status_code=303)
+    form = await request.form()
+    try:
+        db_reader.dismiss_fuel_detected(int(form.get("id")))
+    except (TypeError, ValueError):
+        pass
     return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request),
                                       headers={"HX-Trigger": "fuelChanged"})
 

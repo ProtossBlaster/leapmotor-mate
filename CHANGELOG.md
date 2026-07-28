@@ -3,6 +3,13 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.14.0] — 2026-07-28
+
+### Added
+- **Mate now spots your refuels by itself.** A tank can only rise one way — nothing recuperates into it, nothing refills it while you drive — so when the car's own gauge goes up and stays up, somebody put fuel in. Each rise turns into a card on the Rifornimenti page carrying **when** and **how much**, and leaves you the one thing the cloud will never know: what you paid. Confirm it and it becomes an ordinary refuel; say it wasn't one and it never comes back. Asked for by **@gm27271**, in almost exactly this shape — *"there will be no data entered, this can be added later by the user"*. Range-extender cars only.
+- It reads the history rather than watching from now on, so **the refuels from before this update are already there** the first time you open the page. What it claims is bounded by what a fuel gauge can tell you, and the card says so rather than pretending: the instant is an **interval** — after the last reading at the old level, by the first at the new one, which on a car that fell asleep at the pump can be the whole night — and the litres are an **estimate** off a float sensor, ~1 L being the smallest rise it will act on. Both are yours to correct before confirming.
+- Confirming beats retyping for a reason beyond convenience: the refuel is filed **at the moment it happened**, with the exact tank level measured just before it. Typed by hand hours later, that residual is whatever the tank held when you got round to it — and it is what weights the blended price per litre.
+
 ## [2.13.3] — 2026-07-28
 
 ### Added

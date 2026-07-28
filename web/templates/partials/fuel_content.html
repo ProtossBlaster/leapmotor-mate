@@ -1,5 +1,10 @@
-{# Tank state + refuel history. Included by fuel.html and returned by /api/fuel/add|delete (HTMX). #}
+{# Tank state + refuel history. Included by fuel.html and returned by /api/fuel/add|delete and by
+   the two detected/* endpoints (HTMX). #}
 <div class="space-y-5">
+
+  <!-- Refuels Mate spotted and the user hasn't ruled on. First, because it is the only thing on
+       this page that is waiting for HIM; renders nothing when there are none. -->
+  {% include "partials/fuel_detected.html" %}
 
   <!-- ── Tank state ─────────────────────────────────────────────── -->
   <div class="card">
