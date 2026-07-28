@@ -100,6 +100,10 @@ class Recorder:
             # Seed the odometer baseline too, so a DRIVE during poller downtime is caught on the first
             # poll back (odometer-jump trip reconstruction, #118). None on a fresh DB → first poll just seeds it.
             self._last_odometer = self._db.get_last_odometer(self._vehicle_id)
+            # And the frame baseline, for the same reason the other two are seeded: it lives in memory,
+            # so without this the FIRST poll after any restart can never be a repeat — and a frame the
+            # cloud is only re-serving gets recorded as if it were fresh. See get_last_frame_ts.
+            self._last_frame_ts = self._db.get_last_frame_ts(self._vehicle_id)
 
         # When the car is unreachable (4G dead zone, or the eSIM re-registering on a foreign network
         # at a border) the cloud does not say so — it re-serves the LAST frame it received: identical

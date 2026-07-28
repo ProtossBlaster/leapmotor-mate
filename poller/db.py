@@ -1135,6 +1135,22 @@ class Database:
             "ORDER BY id DESC LIMIT 1", (vehicle_id,)).fetchone()
         return float(row["odometer_km"]) if row and row["odometer_km"] else None
 
+    def get_last_frame_ts(self, vehicle_id: int):
+        """The newest cloud-frame timestamp on record for this vehicle, or None. Seeds the recorder's
+        stale-frame baseline across a poller restart — the third of the three baselines, and the one
+        that was missing.
+
+        Without it the first poll after every restart can never be recognised as a repeat, so a frame
+        the cloud is merely re-serving gets written as though it were fresh. @riri19's log shows it
+        exactly: a restart at 18:51:03, and the newest row in his database timestamped 18:51:05 —
+        carrying 116 km/h and a frame that was already 94 minutes old, for a car that had been parked
+        for two hours. Rows that predate v2.13.3 have no frame_ts, hence the NOT NULL: what we want is
+        the newest frame we can still identify, not the newest row."""
+        row = self._conn.execute(
+            "SELECT frame_ts FROM positions WHERE vehicle_id = ? AND frame_ts IS NOT NULL "
+            "ORDER BY id DESC LIMIT 1", (vehicle_id,)).fetchone()
+        return int(row["frame_ts"]) if row and row["frame_ts"] else None
+
     # ── Trip ─────────────────────────────────────────────────────────────────
 
     def _default_trip_tags(self) -> tuple:

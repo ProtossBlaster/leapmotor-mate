@@ -145,3 +145,69 @@ def test_repeated_parked_frame_still_closes_the_trip():
         rec.process(_vd(2_000, gear="P", speed=0.0))
 
     assert rec._sm.state == State.PARKED_ACTIVE
+
+
+# ── Across a poller restart (#129, @riri19) ──────────────────────────────────────
+#
+# The guard's baseline lives in memory. Its two siblings — the SoC and odometer baselines — are read
+# back from disk on the first poll precisely so a restart doesn't lose them; this one was not, so the
+# first poll after every restart could never be a repeat. @riri19's B10 sat parked for two hours with
+# its TCU silent, the cloud re-serving one frame from 17:16; his poller restarted at 18:51:03, and the
+# newest row in his database is 18:51:05 — 116 km/h, odometer frozen, from a frame already 94 minutes
+# old. One row per restart, and it is the row the Overview reads.
+
+class _RestartedDB(_SpyDB):
+    """A database that already holds the frame the cloud is re-serving — i.e. any restart."""
+    def __init__(self, last_frame_ts):
+        super().__init__()
+        self._last_frame_ts = last_frame_ts
+        self.open_trip = None
+
+    def get_last_frame_ts(self, vid):
+        return self._last_frame_ts
+
+    def get_open_trip(self, vid):
+        return self.open_trip
+
+
+def _restarted_recorder(last_frame_ts, *, mid_trip=True):
+    """A recorder on its very first poll after a restart, resuming an open trip like the real one."""
+    db = _RestartedDB(last_frame_ts)
+    if mid_trip:
+        db.open_trip = {"id": 7}
+    return R.Recorder(db, vehicle_id=1)
+
+
+def test_the_first_poll_after_a_restart_can_be_a_repeat():
+    """The bug itself: the frame is the one already on disk, so it must not be written again."""
+    rec = _restarted_recorder(1_000)
+    rec.process(_vd(1_000))                       # the cloud re-serving what we already have
+
+    assert rec._db.positions == 0
+    assert rec._db.trip_points == 0
+
+
+def test_a_genuinely_new_frame_after_a_restart_is_still_recorded():
+    """The seeding must not cost a real sample: a different timestamp is a different frame."""
+    rec = _restarted_recorder(1_000)
+    rec.process(_vd(2_000, odo=1001.0))
+
+    assert rec._db.positions == 1
+
+
+def test_a_fresh_database_still_records_its_first_poll():
+    """Nothing on disk to seed from (new install, or rows older than v2.13.3 which carry no
+    frame_ts) → None, and the first frame is written exactly as it always was."""
+    rec = _restarted_recorder(None)
+    rec.process(_vd(1_000))
+
+    assert rec._db.positions == 1
+
+
+def test_a_restart_while_parked_still_records_the_repeat():
+    """The guard drops repeats only while DRIVING — a parked car legitimately freezes for hours and
+    its state must keep being written. Seeding the baseline must not quietly widen that."""
+    rec = _restarted_recorder(1_000, mid_trip=False)
+    rec.process(_vd(1_000, gear="P", speed=0.0))
+
+    assert rec._db.positions == 1
