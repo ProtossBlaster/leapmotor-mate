@@ -8,7 +8,17 @@ The window lives in the CAR, not in the poll frame, so reading it costs a cloud 
 Overview redraws every 30 s. The poller therefore caches it into settings and the web only ever reads
 those; everything below is about that cached value being turned into a string, or refused.
 """
-import main
+import pathlib
+
+import pytest
+
+# web.main pulls in fastapi, which the minimal CI test env doesn't install — same guard the other
+# main-based tests use. Without it the whole run dies at COLLECTION, not just this file.
+pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
+
+import main  # noqa: E402
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent   # not the cwd: pytest may be run from anywhere
 
 
 def _settings(monkeypatch, **kv):
@@ -58,8 +68,7 @@ def test_every_language_has_the_label():
     """Six locales, and the placeholder has to survive translation — a language that dropped
     {window} would render the chip with no time in it, which is the whole point of the chip."""
     import json
-    import pathlib
-    for p in sorted(pathlib.Path("web/locales").glob("*.json")):
+    for p in sorted((ROOT / "web" / "locales").glob("*.json")):
         d = json.loads(p.read_text())["translations"]
         assert "hero_charge_window" in d, p.name
         assert "{window}" in d["hero_charge_window"], p.name

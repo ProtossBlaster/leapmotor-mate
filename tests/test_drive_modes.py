@@ -19,6 +19,7 @@ import re
 
 import db_reader
 
+ROOT = pathlib.Path(__file__).resolve().parent.parent   # not the cwd: pytest may be run from anywhere
 TEMPLATES = {
     "web/templates/trip_detail.html": "trip.drive_mode",       # the per-trip picker
     "web/templates/trips.html": None,                          # the search filter
@@ -28,7 +29,7 @@ TEMPLATES = {
 
 def _options(path: str) -> list[str]:
     """The drive-mode <option> values in a template, in the order a person sees them."""
-    html = pathlib.Path(path).read_text()
+    html = (ROOT / path).read_text()
     block = re.search(r"mode_eco.*?mode_custom", html, re.S)
     assert block, f"{path}: no drive-mode option block"
     return re.findall(r'<option value="([a-z]+)"', html[max(0, block.start() - 400):block.end() + 200])
@@ -64,7 +65,7 @@ def test_every_template_offers_the_whole_list():
 
 
 def test_all_six_languages_name_the_new_modes():
-    for p in sorted(pathlib.Path("web/locales").glob("*.json")):
+    for p in sorted((ROOT / "web" / "locales").glob("*.json")):
         d = json.loads(p.read_text())["translations"]
         for mode in db_reader.DRIVE_MODES:
             key = f"mode_{mode}"
