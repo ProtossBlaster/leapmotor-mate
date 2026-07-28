@@ -94,9 +94,11 @@
     <div id="trips-adv-filters" class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-2 border-t border-slate-700/60">
       <select name="drive_mode" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
         <option value="">{{ t('trips_search_all_modes') }}</option>
+        <option value="eco">{{ t('mode_eco') }}</option>
         <option value="comfort">{{ t('mode_comfort') }}</option>
         <option value="normal">{{ t('mode_normal') }}</option>
         <option value="sport">{{ t('mode_sport') }}</option>
+        <option value="custom">{{ t('mode_custom') }}</option>
       </select>
       <input type="date" name="date_from" title="{{ t('charges_search_date_from') }}"
              class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">

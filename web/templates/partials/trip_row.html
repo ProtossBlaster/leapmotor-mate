@@ -7,6 +7,9 @@
    load-one-day-at-a-time calendar, so a merged trip's own row now always offers to split it
    back (reversible, low-risk enough not to need a confirmation step first). #}
 {% set used = (trip.start_soc or 0) - (trip.end_soc or 0) %}
+{# NB: the drive-mode <option> list lives in THREE templates (this file's neighbours trip_detail,
+   trips and settings) plus db_reader.DRIVE_MODES, which is also the validator — change one, change
+   all four, or a mode saves and then vanishes from the picker. #}
 <a href="trips/{{ trip.id }}" data-trip-id="{{ trip.id }}" class="trip-row">
 
   {% if trip.reconstructed %}

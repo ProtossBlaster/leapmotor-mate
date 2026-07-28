@@ -331,9 +331,11 @@
           <select name="default_drive_mode"
                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-200 focus:border-brand focus:outline-none">
             <option value=""        {% if not settings.get('default_drive_mode') %}selected{% endif %}>{{ t('opt_not_set') }}</option>
+            <option value="eco"     {% if settings.get('default_drive_mode') == 'eco'     %}selected{% endif %}>{{ t('mode_eco') }}</option>
             <option value="comfort" {% if settings.get('default_drive_mode') == 'comfort' %}selected{% endif %}>{{ t('mode_comfort') }}</option>
             <option value="normal"  {% if settings.get('default_drive_mode') == 'normal'  %}selected{% endif %}>{{ t('mode_normal') }}</option>
             <option value="sport"   {% if settings.get('default_drive_mode') == 'sport'   %}selected{% endif %}>{{ t('mode_sport') }}</option>
+            <option value="custom"  {% if settings.get('default_drive_mode') == 'custom'  %}selected{% endif %}>{{ t('mode_custom') }}</option>
           </select>
         </div>
         <div>

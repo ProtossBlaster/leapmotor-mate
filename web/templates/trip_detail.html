@@ -276,9 +276,11 @@
             <select name="drive_mode"
                     class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-200 focus:border-brand focus:outline-none">
               <option value=""        {% if not trip.drive_mode %}selected{% endif %}>{{ t('opt_not_set') }}</option>
+              <option value="eco"     {% if trip.drive_mode == 'eco'     %}selected{% endif %}>{{ t('mode_eco') }}</option>
               <option value="comfort" {% if trip.drive_mode == 'comfort' %}selected{% endif %}>{{ t('mode_comfort') }}</option>
               <option value="normal"  {% if trip.drive_mode == 'normal'  %}selected{% endif %}>{{ t('mode_normal') }}</option>
               <option value="sport"   {% if trip.drive_mode == 'sport'   %}selected{% endif %}>{{ t('mode_sport') }}</option>
+              <option value="custom"  {% if trip.drive_mode == 'custom'  %}selected{% endif %}>{{ t('mode_custom') }}</option>
             </select>
           </div>
           <div>

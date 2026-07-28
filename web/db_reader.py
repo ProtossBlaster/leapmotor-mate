@@ -1320,7 +1320,14 @@ def save_charge_note(charge_id: int, note: str) -> None:
 
 
 # #107: driving-mode tag values Mate accepts (manual — the cloud doesn't expose drive mode).
-DRIVE_MODES = ("comfort", "normal", "sport")
+DRIVE_MODES = ("eco", "comfort", "normal", "sport", "custom")
+# One list for every car, in the order the screen shows them. The C10's own display (photographed on
+# @adoewa's MY2026 full-electric, discussion #180) offers ECO · Comfort · Sport · Custom — no
+# "normal" at all — while @gm27271 reports Sport · Normal · Individual on his range-extender. Two
+# cars, two lists, and the three we shipped matched neither. A union rather than a per-model table
+# because this is a label the driver picks BY HAND: an entry their car doesn't have costs nothing,
+# a missing one is the bug that was reported, and dropping "normal" would orphan every trip already
+# tagged with it. "Custom" covers what some markets call Individual.
 
 
 def save_trip_note(trip_id: int, note: str,
