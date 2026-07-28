@@ -54,6 +54,15 @@ def test_driving_regen_is_never_charging():
     assert _is_charging(_sig(**{"1010": "3", "1319": "50", "1149": "5", "1178": "-30"})) is False
 
 
+def test_drive_time_cable_code_is_not_charging_even_when_stationary():
+    # ebagnoli's C10, 23/07 08:30 (beta #13): 1149 read 5 with a real pack current while the speed
+    # frame still held the previous evening's 0 km/h. The motion gate cannot catch that one —
+    # nothing was moving *in the data* — so 5 has to be excluded on its own, exactly as
+    # _is_plugged_in already does. It opened a 0-minute session that only the phantom guard swept up.
+    assert _is_charging(_sig(**{"1149": "5", "1178": "-27.6", "1200": "45"})) is False
+    assert _is_plugged_in(_sig(**{"1149": "5", "1178": "-27.6"})) is False
+
+
 def test_cable_state_three_counts_as_plugged_in():
     assert _is_plugged_in(_sig(**{"1149": "3", "1178": "0.5"})) is True
 

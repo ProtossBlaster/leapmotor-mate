@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.12.1] — 2026-07-28
+
+### Fixed
+- **Charges you enter by hand are no longer pushed forward by your time zone.** A time you type is a time on *your* clock, but it was being stored with no zone attached — and everything Mate stores is UTC, so the page read it back as though you had typed a UTC time and added your offset on top. **@ghuaywen-ai** imported 150+ charges and found every one of them seven hours late. This was never only about the CSV: the *Add a charge* form on the Charges page did the same thing, quietly, for everyone outside UTC since the feature shipped. **Charges already in your database are corrected on the first start after updating** — each one with the offset that was in force on *its own* date, so a January charge and a July one are not moved by the same amount. If you had been compensating by hand, those entries will now show the time you actually meant, which may be an hour or two from where you left them.
+- **The charges file Mate exports can now be imported back into Mate.** The export is a full dump of what the database holds, so its first column is an internal id — and the importer, which read columns by position, tried to read that word as a date and rejected the file on its first line, then on every row after it. **@adoewa** hit exactly that after exporting his charges to keep them safe across an update. The importer now reads the header and matches columns by **name**, so it accepts both the template we hand out and Mate's own export; columns it doesn't recognise are ignored. Nothing was taken out of the export — it still carries the location, power and duration for anyone who opens it in a spreadsheet.
+- **A range-extender's cable code no longer looks like charging.** The cable reports a value while the car is *driving* that is not a connection at all. One of the two readers of that signal already knew to ignore it; the other didn't, and could open an empty charge session at the moment a stale speed reading lined up with it. Nothing was ever recorded — the empty session was discarded — but the two now agree. Found while going through **@ebagnoli**'s captures. Range-extender cars only.
+- **And the same signal's "still connected" state now means the same thing on both sides of Mate.** The poller has counted it since v2.8.4, when reading it as *unplugged* was shredding slow AC charges into fragments; the web half never got that change.
+
 ## [2.12.0] — 2026-07-27
 
 ### Added

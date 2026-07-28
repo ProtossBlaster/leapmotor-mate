@@ -85,6 +85,27 @@ def _local_dt(s) -> Optional[datetime]:
     return dt.astimezone(_local_tz())
 
 
+def local_to_utc_iso(s, tz=None):
+    """A wall-clock time the user typed → the UTC ISO string the DB stores. The inverse of _local_dt
+    above, and the reason it exists: _local_dt reads a zone-less value AS UTC, so a hand-entered time
+    saved verbatim comes back on screen pushed forward by the whole offset — +7 h for the reporter of
+    #181, on all 150 of his imported charges, and quietly on every manually added charge before that.
+
+    Returns the value UNCHANGED when it already carries a zone, which makes this idempotent: running
+    the repair twice cannot shift anything twice. The offset used is the one in force ON THAT DATE
+    (ZoneInfo resolves it per instant), so a January charge gets +01:00 and a July one +02:00 —
+    a blanket "add today's offset" would fix one half of the year and break the other."""
+    if not s:
+        return s
+    try:
+        dt = datetime.fromisoformat(str(s).replace(" ", "T").replace("Z", "+00:00"))
+    except Exception:
+        return s
+    if dt.tzinfo is not None:
+        return s
+    return dt.replace(tzinfo=tz or _local_tz()).astimezone(timezone.utc).isoformat()
+
+
 def get_timezone() -> str:
     """The user's chosen IANA zone name, or '' for Auto (container/system tz). Display-only."""
     return get_setting("timezone", "")
@@ -1350,6 +1371,35 @@ def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] 
         db.close()
 
 
+def repair_manual_charge_timezones() -> int:
+    """Rewrite hand-entered charges that were stored as bare wall-clock text (#181). Returns how many
+    rows moved. ONLY touches location_type='MANUAL' — the poller's own rows have always been UTC — and
+    only those whose timestamp carries no zone, so a row already converted is skipped rather than
+    shifted again. That self-marking is deliberate: every other one-time repair in this project is
+    guarded by a settings flag, and a flag that gets lost (or a repair added later) runs the migration
+    on data it has already migrated. Here the data says whether it needs the work."""
+    db = _conn_rw()
+    try:
+        rows = db.execute(
+            "SELECT id, started_at, ended_at FROM charges WHERE location_type = 'MANUAL'").fetchall()
+        tz = _local_tz()
+        fixed = 0
+        for r in rows:
+            started = local_to_utc_iso(r["started_at"], tz)
+            ended = local_to_utc_iso(r["ended_at"], tz) if r["ended_at"] else r["ended_at"]
+            if started != r["started_at"] or ended != r["ended_at"]:
+                db.execute("UPDATE charges SET started_at = ?, ended_at = ? WHERE id = ?",
+                           (started, ended, r["id"]))
+                fixed += 1
+        if fixed:
+            db.commit()
+        return fixed
+    except Exception:      # noqa: BLE001 — a repair must never stop the app from starting
+        return 0
+    finally:
+        db.close()
+
+
 # ── REEV fuel purchases (user-logged refuels → the fuel WAC €/L blend) ────────────
 # A REEV's per-trip fuel COST needs a price for the litres it burned. There's no price in the cloud,
 # so the user logs each refuel here (litres + €/L, or total + litres). Web-owned table (create-if-
@@ -1580,7 +1630,9 @@ def save_fresh_signals(signals: dict) -> None:
                 return False
         except (TypeError, ValueError):
             pass
-        if int(signals.get("1149") or 0) == 0:
+        # 0 = unplugged, 5 = the drive-time cable code the REEVs emit while moving (never a
+        # connection). Kept identical to the poller's _is_charging so both readers of 1149 agree.
+        if int(signals.get("1149") or 0) in (0, 5):
             return False
         cur = signals.get("1178"); volt = signals.get("1177"); rem = signals.get("1200")
         try:    cur = float(cur) if cur is not None else None
@@ -1623,7 +1675,12 @@ def save_fresh_signals(signals: dict) -> None:
         if conn is None:
             return int(signals.get("47") or 0) == 1     # legacy fallback when 1149 absent
         try:
-            return int(conn) in (1, 2)
+            # 3 is the third connected state the REEVs cycle THROUGH mid-charge (1→2→3→2, parked,
+            # current ~0). The poller learned that in v2.8.4 — reading 3 as unplugged closed and
+            # reopened the session on every flicker and shredded one slow AC charge into empty
+            # fragments (beta #12/#13) — but this copy never got it and still disagreed with
+            # poller/client._is_plugged_in. 5 stays out: that one is the drive-time cable code.
+            return int(conn) in (1, 2, 3)
         except (TypeError, ValueError):
             return False
     plug_connected = _is_plugged()

@@ -111,6 +111,13 @@ def _latest_plug(path):
     return row["plug_connected"]
 
 
+def _latest_charging(path):
+    con = sqlite3.connect(path); con.row_factory = sqlite3.Row
+    row = con.execute("SELECT charging FROM positions ORDER BY id DESC LIMIT 1").fetchone()
+    con.close()
+    return row["charging"]
+
+
 def test_web_save_fresh_signals_stuck_47_unplugged(tmp_path, monkeypatch):
     path = _web_db(tmp_path, monkeypatch)
     db_reader.save_fresh_signals({"1010": 0, "1319": 0, "1178": 0.1, "1177": 424.7,
@@ -123,6 +130,27 @@ def test_web_save_fresh_signals_connected_plugged(tmp_path, monkeypatch):
     db_reader.save_fresh_signals({"1010": 0, "1319": 0, "1178": 16, "1177": 230,
                                   "1149": 2, "1200": 120, "100003": 55})
     assert _latest_plug(path) == 1
+
+
+def test_web_save_fresh_signals_cable_state_three_still_plugged(tmp_path, monkeypatch):
+    # The REEV mid-charge flicker 1→2→3→2: 3 is still connected. The poller has counted it since
+    # v2.8.4 (reading it as unplugged shredded slow AC charges — beta #12/#13); this writer is the
+    # second copy of that rule and must not disagree with it.
+    path = _web_db(tmp_path, monkeypatch)
+    db_reader.save_fresh_signals({"1010": 0, "1319": 0, "1178": 0.5, "1177": 400,
+                                  "1149": 3, "1200": 200, "100003": 42})
+    assert _latest_plug(path) == 1
+
+
+def test_web_save_fresh_signals_drive_time_cable_code_not_charging(tmp_path, monkeypatch):
+    # 1149==5 is the drive-time cable code the REEVs emit while moving, never a connection. The web
+    # writer has its own copy of _is_charging, so it has to exclude 5 too or the two disagree on the
+    # same signal — the frame is ebagnoli's, 23/07 08:30 (beta #13), speed still stale at 0.
+    path = _web_db(tmp_path, monkeypatch)
+    db_reader.save_fresh_signals({"1010": 0, "1319": 0, "1178": -27.6, "1177": 400,
+                                  "1149": 5, "1200": 45, "100003": 25})
+    assert _latest_charging(path) == 0
+    assert _latest_plug(path) == 0
 
 
 # ── 4) end-to-end: the charge session must CLOSE on unplug even with 47 latched ──

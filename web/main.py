@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.12.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.12.1"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -64,6 +64,23 @@ def _add_file_log() -> None:
 
 _add_file_log()
 log = logging.getLogger("mate.web")
+
+
+def _repair_manual_charge_timezones() -> None:
+    """#181: hand-entered charges were saved as bare wall-clock text while the renderer reads a
+    zone-less value as UTC, so every one of them showed pushed forward by the user's whole offset.
+    Convert the old rows once, here. Safe to run twice — the repair skips anything that already
+    carries a zone — which also covers this module being imported a second time by uvicorn (see
+    _add_file_log above)."""
+    try:
+        n = db_reader.repair_manual_charge_timezones()
+        if n:
+            log.info("Timezone repair: %d manually entered charge(s) moved to UTC (#181)", n)
+    except Exception:  # noqa: BLE001 — never block startup over a repair
+        pass
+
+
+_repair_manual_charge_timezones()
 
 app = FastAPI(title="LeapMotor Mate")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -2443,7 +2460,9 @@ async def add_manual_charge_api(request: Request):
     ctype = (form.get("charge_type") or "AC").strip().upper()
     if not date or energy <= 0:
         return HTMLResponse(f'<span style="color:#ef4444">✗ {t("manual_charge_required")}</span>', status_code=400)
-    db_reader.add_manual_charge(f"{date}T{time_}:00", energy, cost, ctype)
+    # The date and time above are what the user reads off their own clock, so they mean nothing until
+    # they're anchored to a zone. Store UTC like everything else the DB holds (#181).
+    db_reader.add_manual_charge(db_reader.local_to_utc_iso(f"{date}T{time_}:00"), energy, cost, ctype)
     return HTMLResponse(f'<span style="color:#22c55e">✓ {t("manual_charge_added")}</span>',
                         headers={"HX-Trigger": "chargeAdded"})
 
@@ -2474,7 +2493,7 @@ async def charges_import_api(request: Request):
     raw = await up.read()
     if isinstance(raw, bytes):
         raw = raw.decode("utf-8-sig", "replace")        # utf-8-sig drops the BOM Excel prepends
-    rows, errors = charge_import.parse_charge_csv(raw)
+    rows, errors = charge_import.parse_charge_csv(raw, tz=db_reader._local_tz())
     for r in rows:
         db_reader.add_manual_charge(r["started_at"], r["energy_kwh"], r["cost"], r["charge_type"],
                                     ended_at=r.get("ended_at"),

@@ -468,7 +468,12 @@ def _is_charging(sig: dict) -> bool:
         return False
     if (_sf(sig, "1319") or 0) > 2.0:       # speed > 2 km/h → moving (gear signal may lag)
         return False
-    if _si(sig, "1149") in (None, 0):   # cable not connected → cannot be charging
+    # 5 is the drive-time cable code, NOT a connection — _is_plugged_in leaves it out for the same
+    # reason, and the two readers of 1149 must agree. The motion gate above does not always catch
+    # it: on ebagnoli's C10 (beta #13) 1149 read 5 at 08:30 on 23/07 while the speed frame was
+    # still the previous evening's 0 km/h, which opened a 0-minute session — harmless only because
+    # it delivered nothing and the phantom guard dropped it.
+    if _si(sig, "1149") in (None, 0, 5):   # cable not connected → cannot be charging
         return False
     current   = _sf(sig, "1178")
     remaining = _si(sig, "1200")
