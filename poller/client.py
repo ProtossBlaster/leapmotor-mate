@@ -149,6 +149,8 @@ class LeapmotorMateClient:
         session_share.install(self._api)   # share ONE token with the web (avoid mutual eviction)
         self._vehicle = None
         self._named_mode_logged = False    # log the T03/EU named-field path once
+        self._status_car_type = None       # set once the fallback status path is proven (see _raw_status)
+        self._status_fallback_tried = False
 
     def login(self):
         self._api.login()
@@ -175,6 +177,49 @@ class LeapmotorMateClient:
             log.debug("Could not clear shared session before relogin: %s", e)
         self.login()
 
+    # The status endpoint is the ONE call in the whole flow with the model in its address:
+    # …/vehicle/v1/status/get/{car_type}. The library maps B10 and B11 onto c10 and lets every other
+    # model fall through to its own name — so a model nobody has added asks for an address the
+    # backend does not serve, and answers "No message available" from the very first poll while
+    # login, the vehicle list, the VIN, the abilities and the official app all work perfectly.
+    # @arnolds77's B05 (#177) is exactly that: Mate already treats the B05 as a B10 everywhere else
+    # — same pack, same window scale, same command path — and this is the one place it doesn't.
+    #
+    # So: if the model's own address fails, try the B-family one ONCE, and remember the answer.
+    # Remembering is the point — a retry on every poll would double the load on the very session
+    # v2.13.2 stopped us from exhausting. It costs one extra call, once, on an install that is
+    # already getting nothing.
+    _STATUS_PATH_FALLBACK = "c10"
+
+    def _raw_status(self):
+        if self._status_car_type is not None:
+            return self._api.get_vehicle_raw_status(self._vehicle_as(self._status_car_type))
+        try:
+            return self._api.get_vehicle_raw_status(self._vehicle)
+        except Exception as first:                                  # noqa: BLE001
+            own = (getattr(self._vehicle, "car_type", "") or "").lower()
+            if self._status_fallback_tried or own == self._STATUS_PATH_FALLBACK:
+                raise
+            self._status_fallback_tried = True
+            log.warning("Status call failed for model %s (%s) — retrying once on the %s path",
+                        own or "?", first, self._STATUS_PATH_FALLBACK)
+            try:
+                raw = self._api.get_vehicle_raw_status(self._vehicle_as(self._STATUS_PATH_FALLBACK))
+            except Exception:                                       # noqa: BLE001
+                raise first from None                               # report the REAL failure, not ours
+            self._status_car_type = self._STATUS_PATH_FALLBACK
+            log.warning("Model %s reads its status on the %s path — using it from now on. "
+                        "Please report this model so it can be mapped properly.",
+                        own or "?", self._STATUS_PATH_FALLBACK)
+            return raw
+
+    def _vehicle_as(self, car_type: str):
+        """A copy of the vehicle with a different car_type, so ONLY the status path changes. The real
+        vehicle is left alone: its car_type is read elsewhere for the pack size, the window scale and
+        the command paths, and those are already right."""
+        import dataclasses
+        return dataclasses.replace(self._vehicle, car_type=car_type)
+
     def get_status(self) -> VehicleData:
         # Make sure the per-login account TLS cert still exists before calling the cloud — if it was
         # cleaned up mid-session, re-create it from the saved bytes instead of failing with "Could
@@ -184,7 +229,7 @@ class LeapmotorMateClient:
             session_share.ensure_account_cert(self._api)
         except Exception:  # noqa: BLE001
             pass
-        raw = self._api.get_vehicle_raw_status(self._vehicle)
+        raw = self._raw_status()
         data = (raw or {}).get("data") or {}
         sig = data.get("signal")
         if not sig:
