@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.13.2] — 2026-07-28
+
+### Fixed
+- **The car's picture no longer hammers your Leapmotor account when it can't be downloaded.** Mate keeps the image package on disk and serves it from there — but that short-circuit can only save a request once the download has succeeded at least once. On an install where it never had, every single refresh of the Overview went back to the cloud: two attempts, each resetting the session, every 30 seconds, for as long as the page stayed open. From the cloud's side that is a login storm, and it answers a login storm by refusing — **@arnolds77**'s log carried 42 session resets and 35 refusals in 45 minutes while he was trying to work out why his car had no data. Mate now tries once and waits before trying again; pressing refresh on the image still goes straight to the cloud, because that's you asking. The once-per-restart re-download that picks up a repainted car is unchanged. The picture is decoration — it had no business spending the session everything else depends on.
+
 ## [2.13.1] — 2026-07-28
 
 ### Fixed

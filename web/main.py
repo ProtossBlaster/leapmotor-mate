@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.13.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.13.2"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -3960,6 +3960,17 @@ _CAR_IMG_CACHE = {"Cache-Control": "max-age=300"}
 # "once per (re)start" refreshes the image regularly without any timer or continuous polling.
 _car_pic_boot_refresh = True
 
+# Back-off after a FAILED package download. The `os.path.exists(pkg_path)` short-circuit below can
+# only save a cloud call once a package has been cached at least once — so on an install where the
+# download has never succeeded, every single request went back to the cloud: two attempts, each
+# resetting the session, on every 30s hero refresh (a failed fetch answers 404, which the browser
+# doesn't cache, so it asks again). On an account the cloud is refusing, that is a login storm, and
+# the cloud answers a login storm with the `code 39` throttle — @arnolds77 (#177) logged 42 session
+# resets and 35 refusals in 45 minutes. The image is decoration; it must never hammer the account
+# the rest of Mate depends on. A manual ?refresh=1 always goes now — that's the user asking.
+_CAR_PIC_RETRY_S = 600.0
+_car_pic_retry_after = 0.0
+
 
 @app.get("/api/car-picture")
 async def car_picture(refresh: int = 0):
@@ -3968,7 +3979,7 @@ async def car_picture(refresh: int = 0):
     ZIP is cached to disk; a manual ?refresh=1 OR the first request after each restart re-downloads it,
     so a colour changed on the car gets picked up (#143). Falls back to the cached package, then its
     static render, then the legacy PNG, on any problem — so the Overview never breaks."""
-    global _car_pic_boot_refresh
+    global _car_pic_boot_refresh, _car_pic_retry_after
     import asyncio
     pkg_path = _car_picture_pkg_path()
     # Re-download from the cloud on a manual ?refresh=1, OR once after each (re)start (#143 — the car's
@@ -3983,7 +3994,10 @@ async def car_picture(refresh: int = 0):
         except OSError:
             pkg = None
     if pkg is None:
-        fresh_pkg = await asyncio.get_event_loop().run_in_executor(None, command_client.get_car_picture_package)
+        fresh_pkg = None
+        if refresh or time.monotonic() >= _car_pic_retry_after:      # see _CAR_PIC_RETRY_S above
+            fresh_pkg = await asyncio.get_event_loop().run_in_executor(None, command_client.get_car_picture_package)
+            _car_pic_retry_after = 0.0 if fresh_pkg else time.monotonic() + _CAR_PIC_RETRY_S
         if want_fresh:
             # Attempted the once-per-boot refresh (success or not) → don't re-poll a down cloud on
             # every request; the next real chance is the next restart (or a manual ?refresh=1).
