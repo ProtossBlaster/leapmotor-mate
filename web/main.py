@@ -2898,14 +2898,20 @@ def _csv_response(rows: list, filename: str) -> Response:
     merged trips — and csv.DictWriter crashes (500) the moment a later row has a key the
     FIRST row's fieldnames didn't cover. Union every row's keys instead, in first-seen
     order, and drop list/dict-typed values (segment_ids is internal merge bookkeeping, not
-    something a CSV export needs — and would otherwise show as a raw Python repr)."""
+    something a CSV export needs — and would otherwise show as a raw Python repr).
+
+    "Droppable" is decided over EVERY row before any column is chosen, because a key can be a list
+    on one row and a scalar on another. Judging it row by row would let the scalar occurrence admit
+    the column and the list occurrence then print as `[2, 3]` — the raw repr this exists to avoid,
+    reappearing through the same door the crash came from."""
     import csv, io
     buf = io.StringIO()
     if rows:
+        drop = {k for r in rows for k, v in r.items() if isinstance(v, (list, dict))}
         fieldnames = []
         for r in rows:
-            for k, v in r.items():
-                if k not in fieldnames and not isinstance(v, (list, dict)):
+            for k in r:
+                if k not in fieldnames and k not in drop:
                     fieldnames.append(k)
         clean_rows = [{k: v for k, v in r.items() if k in fieldnames} for r in rows]
         w = csv.DictWriter(buf, fieldnames=fieldnames)

@@ -98,3 +98,19 @@ def test_export_charges_csv_still_works(tmp_path, monkeypatch):
 
     rows = list(csv.DictReader(io.StringIO(resp.body.decode())))
     assert rows[0]["id"] == "1"
+
+
+def test_a_key_that_is_a_list_on_one_row_and_scalar_on_another_is_dropped_everywhere():
+    """The hole the first fix left open: "droppable" was decided per row, so the scalar occurrence
+    admitted the column and the list occurrence then printed as `[2, 3]` — the raw Python repr the
+    fix exists to keep out, arriving through the same door the crash came from. Decide over every
+    row first, then choose the columns."""
+    pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
+    import main
+    rows = [{"id": 1, "segment_ids": [2, 3]}, {"id": 2, "segment_ids": "none"}]
+
+    body = main._csv_response(rows, "test.csv").body.decode()
+
+    assert "[2, 3]" not in body
+    reader = csv.DictReader(io.StringIO(body))
+    assert reader.fieldnames == ["id"]
