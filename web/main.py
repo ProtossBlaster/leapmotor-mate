@@ -2844,12 +2844,23 @@ async def save_retention(request: Request):
 
 
 def _csv_response(rows: list, filename: str) -> Response:
+    """Rows can carry different key sets — e.g. get_trips()'s "segment_ids" only appears on
+    merged trips — and csv.DictWriter crashes (500) the moment a later row has a key the
+    FIRST row's fieldnames didn't cover. Union every row's keys instead, in first-seen
+    order, and drop list/dict-typed values (segment_ids is internal merge bookkeeping, not
+    something a CSV export needs — and would otherwise show as a raw Python repr)."""
     import csv, io
     buf = io.StringIO()
     if rows:
-        w = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
+        fieldnames = []
+        for r in rows:
+            for k, v in r.items():
+                if k not in fieldnames and not isinstance(v, (list, dict)):
+                    fieldnames.append(k)
+        clean_rows = [{k: v for k, v in r.items() if k in fieldnames} for r in rows]
+        w = csv.DictWriter(buf, fieldnames=fieldnames)
         w.writeheader()
-        w.writerows(rows)
+        w.writerows(clean_rows)
     return Response(buf.getvalue(), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
