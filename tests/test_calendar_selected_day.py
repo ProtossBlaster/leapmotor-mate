@@ -65,10 +65,28 @@ def test_the_click_handler_exists_and_clears_the_previous_choice():
 MAIN = (pathlib.Path(__file__).resolve().parent.parent / "web" / "main.py").read_text()
 
 
+# The four month views, by the function that builds each one's context. Wallbox is the odd one out:
+# it renders inside its route instead of a _render_* helper, which is exactly why this list names
+# them explicitly rather than pattern-matching on "_render_".
+RENDERERS = ("_render_trips_calendar", "_render_charges_calendar",
+             "_render_fuel_calendar", "async def wallbox_calendar")
+
+
 def test_every_calendar_renderer_passes_the_open_day_to_its_grid():
-    """The drawer already opened on `open_day`; without it in the context too, the grid has
-    nothing to ring — which is also what a ?highlight= link used to look like."""
-    assert MAIN.count('ctx["open_day"] = open_day') == 3, "expected trips, charges and wallbox"
+    """The drawer already opened on `open_day`; without it in the context too, the grid has nothing
+    to ring — which is also what a ?highlight= link used to look like.
+
+    Checked per FUNCTION rather than by counting the line: a bare count says "expected 3" and has to
+    be bumped every time a calendar is added, which teaches whoever added it to change the number
+    instead of wiring the day. Adding a fifth renderer to the tuple above is the same one-line edit,
+    but it can only be satisfied by actually passing open_day."""
+    for name in RENDERERS:
+        needle = name if name.startswith("async ") else f"def {name}("
+        start = MAIN.find(needle)
+        assert start != -1, f"{name} is gone — renamed? update this list"
+        end = MAIN.find("\n@app.", start)
+        body = MAIN[start:end if end != -1 else len(MAIN)]
+        assert 'ctx["open_day"] = open_day' in body, f"{name} never rings the day its drawer shows"
 
 
 def test_every_grid_rings_the_day_its_drawer_is_showing():

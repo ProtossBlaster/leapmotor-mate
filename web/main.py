@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.13.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.13.1"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -886,6 +886,63 @@ def _render_charges_calendar(request: Request, year: int, month: int, station: s
     return templates.TemplateResponse(request, "partials/charges_calendar_month.html", ctx)
 
 
+def _render_fuel_calendar(request: Request, year: int, month: int, open_day: int = 0):
+    """The Rifornimenti Month view (beta #14 @gm27271). Same shape as _render_charges_calendar above
+    — same week grid, same prev/next/today nav, same lazily-loaded day drawer — because it IS the
+    same view over a different table, and a second way of laying out a month would drift from the
+    first."""
+    import calendar as calmod
+    from datetime import date
+    today = db_reader.today_local()
+    year, month = year or today.year, month or today.month
+    month = max(1, min(12, month))
+    cal = db_reader.get_fuel_calendar_month(year, month)
+    empty = {"count": 0, "liters": 0.0, "cost": 0.0, "has_cost": False}
+    weeks = []
+    for week in calmod.Calendar(firstweekday=0).monthdayscalendar(year, month):
+        weeks.append([None if day == 0 else {"day": day, **cal["days"].get(day, empty)} for day in week])
+    prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
+    next_year, next_month = (year + 1, 1) if month == 12 else (year, month + 1)
+    lang = db_reader.get_language()
+    ctx = {
+        "t": i18n.get_t(lang), "year": year, "month": month, "weeks": weeks, "total": cal["total"],
+        "month_label": i18n.fmt_month_year(lang, date(year, month, 1)),
+        "weekday_abbrs": i18n.weekday_abbrs(lang),
+        "prev_year": prev_year, "prev_month": prev_month,
+        "next_year": next_year, "next_month": next_month,
+        "today": today, "currency": db_reader.get_currency(),
+    }
+    if open_day and open_day in cal["days"]:
+        ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
+        ctx["open_day_fuel"] = db_reader.get_fuel_calendar_day(year, month, open_day)
+        ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
+    return templates.TemplateResponse(request, "partials/fuel_calendar_month.html", ctx)
+
+
+@app.get("/api/fuel/calendar", response_class=HTMLResponse)
+async def fuel_calendar(request: Request, year: int = 0, month: int = 0, open_day: int = 0):
+    """Rifornimenti Month view (HTMX partial, day totals only). Behind the SAME gate as the page it
+    belongs to: a route that serves the page's data without the page's guard hands a BEV or a
+    non-research build the very fuel history the guard exists to withhold."""
+    if _fuel_blocked():
+        return HTMLResponse("", status_code=403)
+    return _render_fuel_calendar(request, year, month, open_day)
+
+
+@app.get("/api/fuel/calendar/day", response_class=HTMLResponse)
+async def fuel_calendar_day(request: Request, year: int, month: int, day: int):
+    """One day's refuels for the Month view's day drawer. Gated like everything else fuel."""
+    if _fuel_blocked():
+        return HTMLResponse("", status_code=403)
+    lang = db_reader.get_language()
+    from datetime import date
+    return templates.TemplateResponse(request, "partials/fuel_calendar_day.html", {
+        "t": i18n.get_t(lang), "currency": db_reader.get_currency(),
+        "fuel": db_reader.get_fuel_calendar_day(year, month, day),
+        "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
+    })
+
+
 @app.get("/api/charges/calendar", response_class=HTMLResponse)
 async def charges_calendar(request: Request, year: int = 0, month: int = 0, station: str = "", open_day: int = 0):
     """Ricariche 'calendar' Month view (HTMX partial, day totals only) — the day drawer
@@ -1230,7 +1287,10 @@ async def fuel_add(request: Request):
                 db_reader.add_fuel_purchase(ts, liters, total_cost=float(tot), note=note)
         except (ValueError, TypeError):
             pass
-    return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request))
+    # …and tell the month calendar below to redraw, so the refuel you just typed shows up in its day
+    # instead of waiting for a page reload (beta #14).
+    return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request),
+                                      headers={"HX-Trigger": "fuelChanged"})
 
 
 @app.post("/api/fuel/delete", response_class=HTMLResponse)
@@ -1242,7 +1302,8 @@ async def fuel_delete(request: Request):
         db_reader.delete_fuel_purchase(int(form.get("id")))
     except (TypeError, ValueError):
         pass
-    return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request))
+    return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request),
+                                      headers={"HX-Trigger": "fuelChanged"})
 
 
 def _maint_ctx(request: Request):

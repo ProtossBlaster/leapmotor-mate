@@ -57,6 +57,13 @@
     {% include "partials/fuel_content.html" %}
   </div>
 
+  <!-- Month calendar (beta #14 @gm27271). Loaded on demand like the Charges one, and refreshed
+       whenever a refuel is added or deleted so a new entry appears in its day without a reload. -->
+  <div class="card mt-6" id="fuel-calendar-wrap"
+       hx-get="api/fuel/calendar" hx-trigger="load, fuelChanged from:body" hx-swap="innerHTML">
+    <div class="text-center text-slate-500 py-10">…</div>
+  </div>
+
 </div>
 
 <script>

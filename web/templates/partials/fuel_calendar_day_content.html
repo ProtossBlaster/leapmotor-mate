@@ -1,0 +1,38 @@
+{# One day's refuels — shared by the drawer's own endpoint (fuel_calendar_day.html) and the Month
+   view's initial "open on this day" render (fuel_calendar_month.html). Expects `fuel` (list) and
+   `day_label`; keep BOTH callers in step, a header wired into only one of the two paths is how the
+   trips twin has broken before. #}
+{% if fuel %}
+{% set day_l = fuel | sum(attribute='liters') %}
+{% set day_cost = fuel | selectattr('total_cost') | sum(attribute='total_cost') %}
+<div class="mb-3 flex items-center justify-between flex-wrap gap-2">
+  <div class="flex items-center gap-2">
+    <span class="text-white font-semibold">{{ day_label }}</span>
+    <span class="text-slate-500 text-xs">{{ fuel|length }} {{ t('fuel_one') if fuel|length == 1 else t('fuel_many') }}</span>
+  </div>
+  <div class="flex items-center flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
+    <span class="text-amber-400 font-semibold whitespace-nowrap">{{ day_l | nice }} L</span>
+    {% if day_cost %}<span class="text-slate-300 whitespace-nowrap">{{ day_cost | money }}</span>{% endif %}
+  </div>
+</div>
+<div class="space-y-1">
+  {% for p in fuel %}
+  <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-700/60 bg-slate-900/40 px-3 py-2">
+    <div class="min-w-0">
+      <div class="text-white text-sm font-medium">⛽ {{ p.liters | nice }} L</div>
+      <div class="text-slate-500 text-xs">
+        {{ p.ts[11:16] if p.ts else '' }}
+        {% if p.price_per_l %} · {{ p.price_per_l | money }}/L{% endif %}
+        {% if p.fuel_before_pct is not none %} · {{ t('fuel_before') }} {{ p.fuel_before_pct | nice }}%{% endif %}
+      </div>
+      {% if p.note %}<div class="text-slate-400 text-xs mt-0.5">{{ p.note }}</div>{% endif %}
+    </div>
+    {% if p.total_cost %}
+    <div class="text-right shrink-0"><span class="text-white text-sm font-bold">{{ p.total_cost | money }}</span></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-slate-500 text-sm py-6">{{ t('fuel_calendar_pick_day') }}</div>
+{% endif %}

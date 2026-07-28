@@ -10,6 +10,10 @@ The repair marks itself in the DATA rather than in a settings flag: a row that a
 skipped. That is what makes it safe to run at every startup — and it is deliberately unlike the other
 one-time repairs in this project, each of which trusts a flag that, if it ever goes missing, re-runs the
 migration over already-migrated rows.
+
+⚠️ That marker alone turned out to be half the story, and v2.12.1 shipped with only half. It is
+idempotent but it freezes the zone in force at the first start after the update — and installing, then
+choosing your zone, is the ordinary order of events. See the second half of this file.
 """
 import sqlite3
 import sys
@@ -84,6 +88,7 @@ def test_repair_moves_manual_rows_to_utc(tmp_path, monkeypatch):
         ("2025-11-03T21:30:00", "2025-11-04T01:37:00", "MANUAL"),
         ("2026-01-15T12:00:00", None, "MANUAL"),
     ])
+    _settings(monkeypatch, {"timezone": "Europe/Rome"})   # nothing converts until one is chosen
     assert db_reader.repair_manual_charge_timezones() == 2
     rows = _rows(path)
     assert rows[0][0] == "2025-11-03T19:30:00+00:00"
@@ -95,6 +100,7 @@ def test_repair_is_idempotent(tmp_path, monkeypatch):
     """The whole point of marking the work in the data: a second pass must move nothing. Run twice and
     the timestamps have to be identical, or every restart would push the charges further out."""
     path = _db(tmp_path, monkeypatch, [("2025-11-03T21:30:00", None, "MANUAL")])
+    _settings(monkeypatch, {"timezone": "Europe/Rome"})
     assert db_reader.repair_manual_charge_timezones() == 1
     after_first = _rows(path)
     assert db_reader.repair_manual_charge_timezones() == 0
@@ -110,3 +116,76 @@ def test_repair_never_touches_the_pollers_own_rows(tmp_path, monkeypatch):
     ])
     assert db_reader.repair_manual_charge_timezones() == 0
     assert [r[0] for r in _rows(path)] == ["2025-11-03T21:30:00+00:00", "2025-11-04T08:00:00"]
+
+
+# ── the flaw v2.12.1 shipped, and what replaced it ───────────────────────────────
+#
+# v2.12.1 marked a row "done" the moment it carried a zone. Idempotent, and wrong: it freezes
+# whatever zone was configured at the first start after the update. Installing and THEN choosing
+# your zone is the normal order, so an install could be stamped as UTC and never revisit itself.
+# @ghuaywen-ai's 150 charges were still 8 hours out while the marker said converted.
+
+PLUS8 = timezone(timedelta(hours=8))
+
+
+def _settings(monkeypatch, store):
+    monkeypatch.setattr(db_reader, "get_setting", lambda k, d="": store.get(k, d))
+    monkeypatch.setattr(db_reader, "set_setting", lambda k, v: store.__setitem__(k, str(v)))
+
+
+def test_nothing_is_converted_before_a_zone_has_been_chosen(tmp_path, monkeypatch):
+    """The heart of it: with no answer to "whose clock is this?", waiting beats guessing and
+    marking the guess as settled."""
+    path = _db(tmp_path, monkeypatch, [("2026-07-21T10:40:00", None, "MANUAL")])
+    _settings(monkeypatch, {})                       # no timezone setting at all
+    assert db_reader.repair_manual_charge_timezones() == 0
+    assert _rows(path)[0][0] == "2026-07-21T10:40:00"   # still naive → still repairable later
+
+
+def test_it_converts_once_the_zone_is_chosen(tmp_path, monkeypatch):
+    path = _db(tmp_path, monkeypatch, [("2026-07-21T10:40:00", None, "MANUAL")])
+    store = {"timezone": "Asia/Kuala_Lumpur"}
+    _settings(monkeypatch, store)
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: PLUS8)
+    assert db_reader.repair_manual_charge_timezones() == 1
+    assert _rows(path)[0][0] == "2026-07-21T02:40:00+00:00"     # 10:40 in +08:00
+    assert store[db_reader.TZ_REPAIR_ZONE_KEY] == "Asia/Kuala_Lumpur"
+
+
+def test_a_zone_chosen_afterwards_re_anchors_what_the_wrong_one_converted(tmp_path, monkeypatch):
+    """ghuaywen-ai's case exactly: converted under UTC, zone set to Kuala Lumpur later. His 10:40
+    must come back to 10:40, not stay at 18:40."""
+    path = _db(tmp_path, monkeypatch, [("2026-07-21T10:40:00", None, "MANUAL")])
+    store = {"timezone": "UTC"}
+    _settings(monkeypatch, store)
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: timezone.utc)
+    db_reader.repair_manual_charge_timezones()
+    assert _rows(path)[0][0] == "2026-07-21T10:40:00+00:00"     # stamped, and displayed 8h late
+
+    store["timezone"] = "Asia/Kuala_Lumpur"
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: PLUS8)
+    monkeypatch.setattr(db_reader, "_resolve_tz", lambda name: timezone.utc)
+    assert db_reader.repair_manual_charge_timezones() == 1
+    assert _rows(path)[0][0] == "2026-07-21T02:40:00+00:00"     # reads 10:40 again, in his zone
+
+
+def test_a_charge_entered_after_the_conversion_is_never_re_anchored(tmp_path, monkeypatch):
+    """Moving to another country doesn't change when you plugged in. Rows written correctly under
+    the zone of the day must stay where they are, which is what the id bound protects."""
+    path = _db(tmp_path, monkeypatch, [("2026-07-21T10:40:00", None, "MANUAL")])
+    store = {"timezone": "UTC"}
+    _settings(monkeypatch, store)
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: timezone.utc)
+    db_reader.repair_manual_charge_timezones()
+
+    import sqlite3 as _s
+    con = _s.connect(path)
+    con.execute("INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, "
+                "location_type) VALUES (1, '2026-07-25T09:00:00+00:00', NULL, 10.0, 'MANUAL')")
+    con.commit(); con.close()
+
+    store["timezone"] = "Asia/Kuala_Lumpur"
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: PLUS8)
+    monkeypatch.setattr(db_reader, "_resolve_tz", lambda name: timezone.utc)
+    db_reader.repair_manual_charge_timezones()
+    assert _rows(path)[1][0] == "2026-07-25T09:00:00+00:00"     # untouched

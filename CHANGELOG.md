@@ -3,6 +3,15 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.13.1] — 2026-07-28
+
+### Fixed
+- **The correction v2.12.1 made to hand-entered charges now waits until you've chosen your time zone — and follows you if you change it.** Yesterday's fix converted those charges using whichever zone was configured the first time Mate started after the update. Installing first and picking your zone afterwards is the ordinary order of events, so an install could be converted as though it were on UTC and then consider the matter closed: **@ghuaywen-ai**'s charges were still eight hours out while Mate believed it had corrected them. Nothing is converted now until a zone has actually been chosen, and the zone used is remembered — set or change it later and the charges that pass converted are re-anchored to it, giving back the times you originally typed. Charges you entered *after* the conversion are deliberately left alone: moving to another country doesn't change when you plugged in.
+- If you updated to v2.12.1 without ever choosing a time zone, that conversion can't be undone automatically — v2.12.1 didn't record what it assumed. Choose your zone and any charge still shifted can be corrected by deleting it and importing your original file again, which now anchors correctly.
+
+### Added
+- **A month calendar for refuels, the same one the Charges page has.** Days you filled up carry their litres and how many stops, the month line totals litres and cost, and opening a day lists each refuel with its time, price per litre and the tank level before it. Asked for by **@gm27271** and seconded by **@michapr**; range-extender cars only, like the rest of the fuel section.
+
 ## [2.13.0] — 2026-07-28
 
 ### Added

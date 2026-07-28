@@ -1378,28 +1378,78 @@ def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] 
         db.close()
 
 
+TZ_REPAIR_ZONE_KEY = "charge_tz_repair_zone"      # which zone the conversion was made in
+TZ_REPAIR_MAXID_KEY = "charge_tz_repair_max_id"   # the last row it covered
+
+
+def _reanchor_iso(s, old_tz, new_tz):
+    """A converted timestamp, moved from one assumed zone to another. Rendering it in the zone the
+    conversion USED gives back the wall clock the user originally typed; anchoring that to the zone
+    they have now is what they meant all along. Zone-less values are left alone — those never went
+    through a conversion and belong to the normal path."""
+    if not s:
+        return s
+    try:
+        dt = datetime.fromisoformat(str(s).replace(" ", "T").replace("Z", "+00:00"))
+    except Exception:  # noqa: BLE001
+        return s
+    if dt.tzinfo is None:
+        return s
+    typed = dt.astimezone(old_tz).replace(tzinfo=None)
+    return typed.replace(tzinfo=new_tz).astimezone(timezone.utc).isoformat()
+
+
 def repair_manual_charge_timezones() -> int:
-    """Rewrite hand-entered charges that were stored as bare wall-clock text (#181). Returns how many
-    rows moved. ONLY touches location_type='MANUAL' — the poller's own rows have always been UTC — and
-    only those whose timestamp carries no zone, so a row already converted is skipped rather than
-    shifted again. That self-marking is deliberate: every other one-time repair in this project is
-    guarded by a settings flag, and a flag that gets lost (or a repair added later) runs the migration
-    on data it has already migrated. Here the data says whether it needs the work."""
+    """Anchor hand-entered charges to the zone the user actually reads them in (#181). Returns how
+    many rows moved. ONLY touches location_type='MANUAL' — the poller's rows have always been UTC.
+
+    v2.12.1 shipped this with one marker: a row carrying a zone was considered done. That is
+    idempotent, and it was wrong, because it freezes whatever zone happened to be configured at the
+    FIRST start after the update. Installing and then choosing your zone is the normal order of
+    events, so a whole install could be stamped as UTC and never look at itself again —
+    @ghuaywen-ai's 150 charges, still eight hours out with the marker saying "converted".
+
+    Two changes. **Nothing is converted until a zone has actually been chosen**: with no answer to
+    "whose clock is this?", the honest move is to wait rather than guess and mark it settled. And the
+    zone used is now recorded, so if it later changes, the rows this pass converted are re-anchored
+    to the new one — bounded by the highest id it covered, because a charge added afterwards was
+    already written correctly and must not move."""
     db = _conn_rw()
     try:
+        chosen = (get_setting("timezone", "") or "").strip()
+        if not chosen:
+            return 0     # see above: converting now would bake in a zone the user hasn't picked
+        tz = _local_tz()
+        prev_zone = (get_setting(TZ_REPAIR_ZONE_KEY, "") or "").strip()
         rows = db.execute(
             "SELECT id, started_at, ended_at FROM charges WHERE location_type = 'MANUAL'").fetchall()
-        tz = _local_tz()
+        try:
+            covered = int(get_setting(TZ_REPAIR_MAXID_KEY, "0") or 0)
+        except (TypeError, ValueError):
+            covered = 0
+
         fixed = 0
         for r in rows:
-            started = local_to_utc_iso(r["started_at"], tz)
-            ended = local_to_utc_iso(r["ended_at"], tz) if r["ended_at"] else r["ended_at"]
+            if prev_zone and prev_zone != chosen and r["id"] <= covered:
+                old = _resolve_tz(prev_zone)
+                started = _reanchor_iso(r["started_at"], old, tz)
+                ended = _reanchor_iso(r["ended_at"], old, tz) if r["ended_at"] else r["ended_at"]
+            else:
+                started = local_to_utc_iso(r["started_at"], tz)
+                ended = local_to_utc_iso(r["ended_at"], tz) if r["ended_at"] else r["ended_at"]
             if started != r["started_at"] or ended != r["ended_at"]:
                 db.execute("UPDATE charges SET started_at = ?, ended_at = ? WHERE id = ?",
                            (started, ended, r["id"]))
                 fixed += 1
         if fixed:
             db.commit()
+        set_setting(TZ_REPAIR_ZONE_KEY, chosen)
+        # The bound is written ONCE, by the pass that actually converted wall-clock text, and never
+        # raised afterwards. A charge entered later was already stored correctly for the zone in
+        # force at the time; re-anchoring it on a later zone change would corrupt a right answer —
+        # moving to another country doesn't change when you plugged in.
+        if not prev_zone and rows:
+            set_setting(TZ_REPAIR_MAXID_KEY, str(max(r["id"] for r in rows)))
         return fixed
     except Exception:      # noqa: BLE001 — a repair must never stop the app from starting
         return 0
@@ -1479,6 +1529,45 @@ def list_fuel_purchases(limit: int = 200) -> list:
         return [dict(r) for r in rows]
     finally:
         db.close()
+
+
+def get_fuel_calendar_month(year: int, month: int) -> dict:
+    """Per-day totals for the Rifornimenti calendar's Month view (beta #14 @gm27271, seconded by
+    @michapr): how many refuels, how many litres and how much they cost on each day, plus the
+    month's own total. The twin of get_charges_calendar_month, and deliberately built the same way —
+    the grid only ever needs ~31 small numbers; the day's actual entries load when a cell is clicked.
+
+    A refuel has no duration and no end, so unlike a charge there is nothing to group: one row is one
+    stop at the pump. `has_cost` mirrors the charges calendar, where a total of 0 and a total nobody
+    has priced yet must not look the same."""
+    days: dict[int, dict] = {}
+    total = {"count": 0, "liters": 0.0, "cost": 0.0, "has_cost": False}
+    for p in list_fuel_purchases(limit=1_000_000):
+        dt = _local_dt(p.get("ts"))
+        if dt is None or dt.year != year or dt.month != month:
+            continue
+        d = days.setdefault(dt.day, {"count": 0, "liters": 0.0, "cost": 0.0, "has_cost": False})
+        for node in (d, total):
+            node["count"] += 1
+            node["liters"] = round(node["liters"] + (p.get("liters") or 0), 2)
+            if p.get("total_cost") is not None:
+                node["cost"] = round(node["cost"] + (p["total_cost"] or 0), 2)
+                node["has_cost"] = True
+    return {"year": year, "month": month, "days": days, "total": total}
+
+
+def get_fuel_calendar_day(year: int, month: int, day: int) -> list[dict]:
+    """One calendar day's refuels, newest first — the Month view's day drawer. Timestamps come back
+    localised, like the charges twin, so the template can slice them without converting again."""
+    out = []
+    for p in list_fuel_purchases(limit=1_000_000):
+        dt = _local_dt(p.get("ts"))
+        if dt is None or (dt.year, dt.month, dt.day) != (year, month, day):
+            continue
+        p = dict(p)
+        p["ts"] = _local_iso(p.get("ts"))
+        out.append(p)
+    return out
 
 
 def delete_fuel_purchase(purchase_id: int) -> bool:
