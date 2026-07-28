@@ -3,6 +3,15 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.13.0] — 2026-07-28
+
+### Added
+- **Your car's charge window, on the Overview.** Mate has known it for a long time, but only inside the Scheduling page — so at the one moment it answers a question, it wasn't there: cable plugged in, nothing happening, and no hint that charging simply starts at 22:05. It now shows as a chip under the car whenever the cable is in and nothing is flowing, which is exactly when you'd wonder. It never appears while the car is actually charging. From **@rop12770**, who sent the official app's own banner. The window is read from the car every half hour and cached, so the page that redraws itself every 30 seconds never costs you a request; changing it from Mate — the Scheduling page or a Home Assistant automation — updates the chip immediately.
+- **Two more drive modes to tag a trip with: ECO and Custom.** The Leapmotor cloud never reports which mode you drove in, so this is a label you attach by hand — and the three Mate offered didn't match any real car. **@adoewa** photographed his C10's own screen: ECO · Comfort · Sport · Custom, with no "normal" at all, while **@gm27271**'s range-extender shows Sport · Normal · Individual. One list now covers both, and every trip you have already tagged keeps its tag.
+
+### Fixed
+- **The day you open in the Trips calendar shows its own totals again.** Distance, ♻️ regen, cost and a distance-weighted efficiency — the same four the old year/month/day list carried on every level, and which quietly went missing when the calendar replaced it. **@ghuaywen-ai** noticed the regen figure was gone; it had been, since v2.9.0. The cost now closes the line, lining up with the month total right above it. Regen stays hidden on a range-extender, where a battery being refilled mid-drive can't be told apart from braking.
+
 ## [2.12.1] — 2026-07-28
 
 ### Fixed
