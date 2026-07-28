@@ -391,6 +391,14 @@ class Database:
         for _c in ("fuel_level_pct", "fuel_range_km", "combined_range_km"):
             if _c not in cols:
                 self._conn.execute(f"ALTER TABLE positions ADD COLUMN {_c} REAL DEFAULT NULL")
+        # migration: the CAR's own timestamp on the frame this row came from (signal sts, or 1) — #178.
+        # `recorded_at` is when MATE wrote the row, which is always a few seconds ago; it says nothing
+        # about how old the data inside it is. When the car can't reach the cloud, the cloud keeps
+        # re-serving the last frame it got, so the row is new and its contents are not. Storing the
+        # frame's own time is what lets the web tell those two apart. NULL where the car doesn't
+        # report it (and on every row written before this column existed).
+        if "frame_ts" not in cols:
+            self._conn.execute("ALTER TABLE positions ADD COLUMN frame_ts INTEGER DEFAULT NULL")
         # migration: the car's DECLARED ability codes (VehicleAbility ints, stored as a JSON list) —
         # lets the diagnostic + future capability-gating show ONLY what a model actually supports,
         # instead of assuming every car has the same commands (#67; also covers models we don't own
@@ -1065,8 +1073,9 @@ class Database:
                 door_driver_open, door_passenger_open, door_rear_left_open, door_rear_right_open,
                 window_fl_open, window_rl_open, ac_port_mode,
                 fan_level, recirculation, climate_mode,
-                fuel_level_pct, fuel_range_km, combined_range_km)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                fuel_level_pct, fuel_range_km, combined_range_km,
+                frame_ts)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 vehicle_id, _now_iso(),
                 data.latitude, data.longitude, data.speed_kmh, data.odometer_km,
@@ -1101,6 +1110,7 @@ class Database:
                 1 if data.recirculation else 0,
                 data.climate_mode,
                 data.fuel_level_pct, data.fuel_range_km, data.combined_range_km,  # REEV dual-energy (NULL on BEV)
+                data.timestamp_ms or None,   # the CAR's own clock on this frame (#178) — 0/absent → NULL
             ),
         )
         self._conn.commit()

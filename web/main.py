@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.13.2"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.13.3"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -288,6 +288,21 @@ def _ctx(**kwargs):
         if pos.get("plug_connected"):
             return t("state_charge_complete") if pos.get("charge_completed") else t("state_plugged")
         return t("state_parked")
+
+    def ago(seconds) -> str:
+        """"How long ago", in the reader's own language. db_reader computes the seconds and can't
+        translate them (no request, no locale there), so every "…ago" on screen goes through here.
+        Until #178 put an Italian phrase next to it, the Overview's `last seen` was English for
+        everyone and nobody noticed it standing alone."""
+        if seconds is None:
+            return "—"
+        s = max(int(seconds), 0)
+        if s < 60:
+            return t("ago_s").format(n=s)
+        if s < 3600:
+            return t("ago_m").format(n=s // 60)
+        return t("ago_h").format(n=s // 3600)
+
     wallbox_enabled = db_reader.get_setting("wallbox_enabled", "0") == "1"
     # Active wallbox profile: shown in sidebar + page title + profiles panel.
     # Only resolved when wallbox is on AND a profile has been loaded.
@@ -347,7 +362,7 @@ def _ctx(**kwargs):
             "auth_dismissed": db_reader.get_setting("auth_warning_dismissed", "0") == "1",
             "desktop_notice_dismissed": db_reader.get_setting("desktop_notice_dismissed", "0") == "1",
             "is_addon": auth.is_addon(),
-            "soc_color": _soc_color, "state_label": state_label, "state_color": _state_color,
+            "soc_color": _soc_color, "state_label": state_label, "state_color": _state_color, "ago": ago,
             "is_driving": _driving, "fmt_dur": _fmt_dur}
 
 

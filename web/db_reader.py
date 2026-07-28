@@ -1886,6 +1886,11 @@ def get_latest_status() -> Optional[dict]:
         ts = datetime.fromisoformat(d["recorded_at"])
         now = datetime.now(timezone.utc)
         delta = int((now - ts).total_seconds())
+        # Raw seconds for the templates, which render it in the reader's language via ago() — this
+        # module has no translator. `last_seen` below stays as it is: English, and the only string
+        # on the Overview that never spoke anyone else's language. It survives for any consumer
+        # that still reads it; nothing on screen does.
+        d["last_seen_s"] = delta
         if delta < 60:
             d["last_seen"] = f"{delta}s ago"
         elif delta < 3600:
@@ -1894,9 +1899,58 @@ def get_latest_status() -> Optional[dict]:
             d["last_seen"] = f"{delta // 3600}h ago"
     except Exception:
         d["last_seen"] = "unknown"
+    _data_age(d)
     # OTA / software-update status (the poller scans the account message inbox for an update notice).
     d["ota"] = get_ota_status()
     return d
+
+
+# How far the data must fall BEHIND THE ROW before the Overview says so. Comfortably above every
+# poll cadence (10s driving, 60s charging), so a slow-but-genuine update is never called stale.
+DATA_AGE_STALE_S = 300
+
+
+def _data_age(d: dict) -> None:
+    """Age of the DATA, as opposed to the age of the row (#178 @riri19).
+
+    `last_seen` is now − when Mate wrote the row: it is always a few seconds, because Mate polls
+    on a timer and the cloud always answers. When the car can't reach the cloud, the cloud re-serves
+    the last frame it received — so a fresh row can carry half-hour-old contents, and the Overview
+    looks healthy while the car is out of touch. `frame_ts` is the car's own clock on that frame, so
+    now − frame_ts is how old what you're reading really is.
+
+    It is shown only when it says something, and TWO conditions gate it.
+
+    First, the data must have fallen behind THE ROW, not merely be old in absolute terms. The two
+    ages usually move together — if Mate itself hasn't polled for nine minutes, then "9 min ago" and
+    "data 9m old" are the same fact printed twice, which is the duplicate-number defect we've been
+    told about before. What's worth saying is the DIVERGENCE: Mate keeps getting answers while the
+    car behind them has stopped moving.
+
+    Second, the last frame must have had the car DRIVING or CHARGING. A car asleep in a garage
+    overnight legitimately has hours-old data, and announcing that every morning is the "light that
+    cries wolf every night" we turned down in #130. Parked and unplugged, Mate stays quiet.
+    """
+    d["data_age"] = None
+    d["data_age_s"] = None
+    ts = d.get("frame_ts")
+    if not ts:
+        return                       # car doesn't report its own clock → nothing honest to say
+    try:
+        age = int((datetime.now(timezone.utc) - datetime.fromtimestamp(int(ts) / 1000, timezone.utc))
+                  .total_seconds())
+    except Exception:  # noqa: BLE001
+        return
+    if age < 0:                      # car clock ahead of the host — not a staleness signal
+        return
+    d["data_age_s"] = age
+    moving = bool(d.get("charging")) or (d.get("gear") == "D") or float(d.get("speed_kmh") or 0) > 0
+    behind = age - int(d.get("last_seen_s") or 0)      # how far the DATA trails the ROW
+    if behind < DATA_AGE_STALE_S or not moving:
+        return
+    d["data_age"] = (f"{age // 60}m" if age < 3600 else
+                     f"{age // 3600}h {(age % 3600) // 60}m" if age < 86400 else
+                     f"{age // 86400}d")
 
 
 def get_ota_status() -> dict:

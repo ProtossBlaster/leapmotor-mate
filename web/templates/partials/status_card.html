@@ -123,7 +123,14 @@
   </div>
   <div class="flex justify-between text-slate-400 col-span-2">
     <span>{{ t('last_seen') }}</span>
-    <span class="text-white font-medium">{{ status.last_seen }}</span>
+    <span class="text-white font-medium">
+      {{ ago(status.last_seen_s) }}{% if status.data_age %}
+      <!-- The car stopped reaching the cloud while it was driving or charging, so the cloud is
+           re-serving an old frame: the row is seconds old, its contents are not (#178). A parked,
+           sleeping car never lands here — see _data_age(). -->
+      <span class="text-amber-400 font-normal" title="{{ t('data_age_hint') }}">· {{ t('data_age').format(age=status.data_age) }}</span>
+      {% endif %}
+    </span>
   </div>
   {% if car_resp %}
   <div class="flex justify-between items-center text-slate-400 col-span-2 gap-2" title="{{ t('car_resp_hint') }}">

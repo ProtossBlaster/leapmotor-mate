@@ -131,7 +131,7 @@
         iconSize: [14,14], iconAnchor: [7,7]
       });
       L.marker([{{ status.latitude }}, {{ status.longitude }}], {icon}).addTo(map)
-        .bindPopup('{{ vehicle.car_type if vehicle else "Leapmotor" }} — {{ status.last_seen }}').openPopup();
+        .bindPopup('{{ vehicle.car_type if vehicle else "Leapmotor" }} — {{ ago(status.last_seen_s) }}').openPopup();
     </script>
     {% else %}
     <div class="flex items-center justify-center h-64 text-slate-500">
