@@ -112,11 +112,24 @@
   </div>
   {% elif plug %}
   <!-- Plugged in but not actively charging (charge complete / paused) — the cable is still in. -->
-  <div class="flex justify-center mt-1">
+  <div class="flex flex-col items-center gap-1 mt-1">
     <span class="hero-chip bg-teal-400/10 text-teal-300 border border-teal-400/30">
       {{ ico.mdi('ev-plug-type2', 'w-4 h-4') }}
       {{ t('state_plugged') }}{% if status.soc is not none %} · {{ status.soc | round | int }}%{% endif %}
     </span>
+    {# The car's own charge window, but ONLY here: cable in and nothing flowing is exactly the
+       moment someone asks "why isn't it charging?", and the answer is usually "it starts at 22:05"
+       (#173 @rop12770, who sent the official app's own banner). Deliberately NOT among the status
+       chips over the car: with windows and trunk open and a longer language that row already
+       stacks four deep and climbs onto the bonnet. And not next to the charging pill either —
+       that one carries "1h 08m to 100%", and two clock-ish numbers side by side is the confusion
+       we have been caught by twice. Cached by the poller; the value can be up to 30 min old,
+       which no one can tell for a time set months ago. #}
+    {% if sched_window %}
+    <span class="hero-chip bg-sky-400/10 text-sky-300 border border-sky-400/30">
+      {{ ico.mdi('clock-outline', 'w-4 h-4 shrink-0') }} {{ t('hero_charge_window').format(window=sched_window) }}
+    </span>
+    {% endif %}
   </div>
   {% endif %}
 

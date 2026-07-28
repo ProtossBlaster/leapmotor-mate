@@ -4,8 +4,28 @@
    `t`/`fmt_dur`/`is_reev`/`research`. #}
 {% if trips %}
 <div class="mb-3 flex items-center justify-between flex-wrap gap-2">
-  <span class="text-white font-semibold">{{ day_label }}</span>
-  <span class="text-slate-500 text-xs">{{ trips|length }} {{ t('trip_singular') if trips|length == 1 else t('trips_plural') }}</span>
+  <div class="flex items-center gap-2">
+    <span class="text-white font-semibold">{{ day_label }}</span>
+    <span class="text-slate-500 text-xs">{{ trips|length }} {{ t('trip_singular') if trips|length == 1 else t('trips_plural') }}</span>
+  </div>
+  {# The day's own totals, back where the old year/month/day accordion had them — dropped when the
+     calendar replaced it (68ff5e7) and missed by @ghuaywen-ai on #175, not asked for as a novelty.
+     Same fields and same look as before: distance · ♻️ regen · cost · efficiency pill. Regen stays
+     out on a range-extender, where a battery refilling itself mid-drive can't be told from braking. #}
+  {% if day_totals %}
+  <div class="flex items-center flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
+    <span class="text-slate-400 font-medium whitespace-nowrap">{{ day_totals.km | dist(1) }}</span>
+    {% if day_totals.regen and not is_reev %}
+    <span class="text-green-400/90 font-medium whitespace-nowrap" title="{{ t('total_regen') }}">♻️ {{ day_totals.regen | nice }} kWh</span>
+    {% endif %}
+    {% if day_totals.avg_eff %}
+    <span class="eff-pill {{ eff_cls(day_totals.avg_eff) }}">{{ day_totals.avg_eff | eff }}</span>
+    {% endif %}
+    {% if day_totals.cost %}
+    <span class="text-slate-300 whitespace-nowrap" title="{{ t('cost') }}">{{ day_totals.cost | money }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
 <div class="space-y-1">
   {% for trip in trips %}

@@ -199,6 +199,11 @@ def _apply_charge_schedule(api, db, vin: str, payload: dict):
         recharge=int(cur.get("recharge", 0) or 0))
     applied = {"start": start_time, "stop": end_time, "soc": soc,
                "active": enabled, "days": cycles}
+    # Keep the Overview's cached window in step with what we just wrote (#173) — the periodic
+    # re-read is 30 minutes away, and a chip still showing the old times right after an automation
+    # moved them looks like a fault rather than like a cache.
+    _store_charge_schedule(db, {"chargeEnable": 1 if enabled else 0,
+                                "starttime": start_time, "endtime": end_time})
     log.info("MQTT: charge schedule → %s", applied)
     return applied
 
@@ -380,6 +385,43 @@ def _write_comfort_state(db, data):
 _OTA_CHECK_INTERVAL = 600   # 10 min — an OTA notice isn't time-critical
 _last_ota_check = 0.0
 _last_ota_log = None        # last logged (ok, scanned, ota) — log only on change, no 10-min spam
+
+
+_SCHEDULE_REFRESH_INTERVAL = 1800   # 30 min — a charge window is set once and left alone for months
+_last_schedule_refresh = 0.0
+
+
+def _maybe_refresh_charge_schedule(db, client):
+    """Cache the car's charge window in settings for the Overview (#173 @rop12770). Throttled and
+    best-effort, exactly like the OTA check above; never raises.
+
+    Why cache at all: the window lives in the CAR — no signal in the poll frame carries it — so it
+    costs a cloud round-trip, while the Overview redraws itself every 30 s. Reading it per page view
+    would mean two extra calls a minute per user for a value that changes about once a month, which
+    is how you end up rate-limited (and, on a shared account, evicted). Thirty minutes stale is
+    invisible to a human reading a start time; a change made from Mate itself refreshes it at once
+    (see _apply_charge_schedule)."""
+    global _last_schedule_refresh
+    now = time.time()
+    if now - _last_schedule_refresh < _SCHEDULE_REFRESH_INTERVAL:
+        return
+    _last_schedule_refresh = now   # before the call, so a slow endpoint can't be hammered
+    with _API_LOCK:
+        sched = client.get_charge_schedule()
+    _store_charge_schedule(db, sched)
+
+
+def _store_charge_schedule(db, sched) -> None:
+    """Write a fetched schedule into settings. A failed read leaves the previous value alone rather
+    than blanking the chip on one bad call."""
+    if not sched:
+        return
+    try:
+        db.set_setting("charge_sched_enabled", "1" if int(sched.get("chargeEnable", 0) or 0) else "0")
+        db.set_setting("charge_sched_start", str(sched.get("starttime") or ""))
+        db.set_setting("charge_sched_end", str(sched.get("endtime") or ""))
+    except Exception as e:  # noqa: BLE001
+        log.debug("Could not store the charge schedule: %s", e)
 
 
 def _maybe_check_ota(db, client):
@@ -684,6 +726,7 @@ def main():
 
             # OTA / software-update check (scans the account inbox) — throttled, best-effort.
             _maybe_check_ota(db, client)
+            _maybe_refresh_charge_schedule(db, client)
 
             # Daily ledger of the official lifetime energy/mileage counters + getEC split
             # (silent phase-1 collector) — throttled to 24h, best-effort.

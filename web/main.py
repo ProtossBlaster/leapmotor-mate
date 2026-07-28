@@ -329,6 +329,11 @@ def _ctx(**kwargs):
             # Charge-schedule view: cars without weekly/cyclic charge abilities (e.g. T03) get the
             # simple start-time + SoC form — no end-time window, no day chips (#146).
             "charge_schedule_advanced": capability_profile.charge_schedule_advanced(_abilities),
+            # The car's charge window as "HH:MM – HH:MM", or "" when there isn't one enabled. Lives
+            # here rather than in the Overview routes because the hero card is rendered from TWO
+            # places (the page, and the 30-second self-refresh) and a value wired into only one of
+            # them is how this template has broken before.
+            "sched_window": _charge_window(),
             "wallbox_enabled": wallbox_enabled,
             "is_reev": db_reader.get_setting("is_reev", "0") == "1",
             "research": research.research_enabled(),
@@ -484,6 +489,10 @@ def _render_trips_calendar(request: Request, year: int, month: int, open_day: in
         ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
         ctx["open_day_trips"] = db_reader.get_trips_calendar_day(year, month, open_day)
         ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
+        # Same totals the drawer's own endpoint passes — the day content is rendered from HERE too
+        # (month view opening straight onto a day), and a header that only appears down one of the
+        # two paths is the classic way this template has broken before.
+        ctx["open_day_totals"] = db_reader.trips_totals(ctx["open_day_trips"])
     return templates.TemplateResponse(request, "partials/trips_calendar_month.html", ctx)
 
 
@@ -496,13 +505,15 @@ async def trips_calendar(request: Request, year: int = 0, month: int = 0, open_d
 
 @app.get("/api/trips/calendar/day", response_class=HTMLResponse)
 async def trips_calendar_day(request: Request, year: int, month: int, day: int):
-    """One day's trips for the Month view's day drawer."""
+    """One day's trips for the Month view's day drawer, with that day's own totals (#175)."""
     lang = db_reader.get_language()
     from datetime import date
+    day_trips = db_reader.get_trips_calendar_day(year, month, day)
     return templates.TemplateResponse(request, "partials/trips_calendar_day.html", {
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
         "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
-        "trips": db_reader.get_trips_calendar_day(year, month, day),
+        "trips": day_trips,
+        "day_totals": db_reader.trips_totals(day_trips),
         "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
     })
 
@@ -3198,6 +3209,23 @@ def _configured_charge_limit() -> int | None:
         return None
 
 
+def _charge_window() -> str:
+    """"HH:MM – HH:MM" for the car's enabled charge window, else "" (#173). Read from the settings
+    the poller caches — never a cloud call, so it costs nothing on a page that redraws every 30 s.
+    Both times must be present and differ: a 00:00–00:00 window is the cloud's way of saying
+    "nothing set", and showing it would be worse than showing nothing."""
+    try:
+        if db_reader.get_setting("charge_sched_enabled", "0") != "1":
+            return ""
+        start = (db_reader.get_setting("charge_sched_start", "") or "").strip()
+        end = (db_reader.get_setting("charge_sched_end", "") or "").strip()
+    except Exception:  # noqa: BLE001 — a decoration must never take the page down
+        return ""
+    if not start or not end or start == end:
+        return ""
+    return f"{start} – {end}"
+
+
 @app.get("/api/overview-hero", response_class=HTMLResponse)
 async def overview_hero(request: Request):
     """Overview hero card (image + live status chips + quick commands + charging animation).
@@ -4000,6 +4028,12 @@ async def save_charge_schedule_api(request: Request):
         None, lambda: command_client.save_charge_schedule(
             enabled=enabled, soc_limit=soc, start_time=start, end_time=end, cycles=cycles))
     if ok:
+        # Refresh the Overview's cached window straight away (#173). The poller re-reads it from the
+        # car only every 30 min; without this the chip would keep showing the OLD times right after
+        # you changed them here, which reads as a bug rather than as a cache.
+        db_reader.set_setting("charge_sched_enabled", "1" if enabled else "0")
+        db_reader.set_setting("charge_sched_start", start)
+        db_reader.set_setting("charge_sched_end", end)
         return HTMLResponse(f'<span style="color:#22c55e">✓ {t("sched_saved")}</span>',
                             headers={"HX-Trigger": "chargeScheduleSaved"})
     return HTMLResponse(_cmd_error_html(msg))

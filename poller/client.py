@@ -258,6 +258,19 @@ class LeapmotorMateClient:
                         "time": int(st) if st else None}
         return {"ok": True, "scanned": len(msgs), "ota": False}
 
+    def get_charge_schedule(self) -> dict | None:
+        """The car's own charge window (cmd 190) — flat dict: chargeEnable, starttime, endtime,
+        chargesoc, cycles, circulation, recharge. Read-only, never raises.
+
+        It lives in the CAR, not in any signal the poll loop already reads, so the only way to show
+        it is to ask for it — which is why the caller does that rarely and caches the answer. A
+        window is set once and then left alone for months; the Overview refreshes every 30 s."""
+        try:
+            return self._api.get_charge_schedule(self._vehicle.vin)
+        except Exception as e:  # noqa: BLE001 — a schedule read must never disturb the poll
+            log.debug("Charge schedule fetch failed: %s", e)
+            return None
+
     def get_energy_counters(self) -> dict | None:
         """The car's official lifetime counters from `mileage/energy/detail`: total consumed
         energy INCLUDING parked/standby (integer kWh — the finest the cloud serves, param-probed

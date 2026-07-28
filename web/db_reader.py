@@ -2718,6 +2718,43 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
     return out
 
 
+def _totals_node() -> dict:
+    return {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "_eff_wsum": 0.0, "_eff_wdist": 0.0}
+
+
+def _totals_add(node: dict, trip: dict) -> None:
+    """Fold one trip into a totals node. Efficiency is a DISTANCE-WEIGHTED mean, never a plain
+    average of the per-trip figures — a 2 km hop and a 200 km drive must not count the same."""
+    km = trip.get("distance_km") or 0
+    eff = trip.get("efficiency_kwh_100km")
+    node["count"] += 1
+    node["km"] = round(node["km"] + km, 2)
+    node["regen"] = round(node["regen"] + (trip.get("regen_kwh") or 0), 3)
+    node["cost"] = round(node["cost"] + (trip.get("cost") or 0), 2)
+    if eff and km > 0:
+        node["_eff_wsum"] += km * eff
+        node["_eff_wdist"] += km
+
+
+def _totals_seal(node: dict) -> dict:
+    """Turn the running weights into avg_eff and drop them. Call once per node."""
+    node["avg_eff"] = round(node["_eff_wsum"] / node["_eff_wdist"], 1) if node["_eff_wdist"] > 0 else None
+    del node["_eff_wsum"]
+    del node["_eff_wdist"]
+    return node
+
+
+def trips_totals(trips: list[dict]) -> dict:
+    """Totals for an arbitrary set of trips — the day drawer's header (#175). Deliberately built on
+    the SAME three helpers the month calendar uses: the day line and the month line sit centimetres
+    apart on screen, so a second implementation of the weighted mean would eventually disagree with
+    the first and the page would contradict itself."""
+    node = _totals_node()
+    for t in trips:
+        _totals_add(node, t)
+    return _totals_seal(node)
+
+
 def get_trips_calendar_month(year: int, month: int) -> dict:
     """Per-day totals for the Viaggi calendar's Month view: session count, distance, regen
     and derived cost for each day of `year`/`month` (local time), plus the month's own
@@ -2725,29 +2762,16 @@ def get_trips_calendar_month(year: int, month: int) -> dict:
     (see get_trips_calendar_day) only when a cell is clicked."""
     trips = _localized_trips(get_trips(limit=1_000_000))
     days: dict[int, dict] = {}
-    total = {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "_eff_wsum": 0.0, "_eff_wdist": 0.0}
+    total = _totals_node()
     for t in trips:
         dt = t["_dt"]
         if dt.year != year or dt.month != month:
             continue
-        d = days.setdefault(dt.day, {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0,
-                                      "_eff_wsum": 0.0, "_eff_wdist": 0.0})
-        km = t.get("distance_km") or 0
-        eff = t.get("efficiency_kwh_100km")
-        regen = t.get("regen_kwh") or 0
-        cost = t.get("cost") or 0
+        d = days.setdefault(dt.day, _totals_node())
         for node in (d, total):
-            node["count"] += 1
-            node["km"] = round(node["km"] + km, 2)
-            node["regen"] = round(node["regen"] + regen, 3)
-            node["cost"] = round(node["cost"] + cost, 2)
-            if eff and km > 0:
-                node["_eff_wsum"] += km * eff
-                node["_eff_wdist"] += km
+            _totals_add(node, t)
     for node in list(days.values()) + [total]:
-        node["avg_eff"] = round(node["_eff_wsum"] / node["_eff_wdist"], 1) if node["_eff_wdist"] > 0 else None
-        del node["_eff_wsum"]
-        del node["_eff_wdist"]
+        _totals_seal(node)
     return {"year": year, "month": month, "days": days, "total": total}
 
 

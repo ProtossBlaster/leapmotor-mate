@@ -69,7 +69,7 @@
 
   <div id="trips-day-drawer" class="mt-4">
     {% if open_day_trips is defined %}
-      {% with trips = open_day_trips, day_label = open_day_label %}
+      {% with trips = open_day_trips, day_label = open_day_label, day_totals = open_day_totals %}
         {% include "partials/trips_calendar_day_content.html" %}
       {% endwith %}
     {% else %}

@@ -406,6 +406,7 @@
     "state_parked": "Geparkt",
     "state_driving": "Fahrt",
     "state_charging": "Lädt",
+    "hero_charge_window": "Lädt {window}",
     "state_plugged": "Kabel angeschlossen",
     "state_charge_complete": "Laden abgeschlossen",
     "battery": "Batterie",
