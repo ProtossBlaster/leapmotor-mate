@@ -12,11 +12,23 @@
     <div class="text-xs text-slate-400">{{ t('distance') }}</div>
     <div class="text-white text-lg font-bold">{{ dist_val(cs.total_mileage_km, 0)|nice }}<span class="text-sm font-normal text-slate-400"> {{ dist_unit() }}</span></div>
   </div>
+  {# On a range-extender this figure is the electricity divided by the WHOLE distance — and part of
+     that distance was driven on petrol. It is a real number (how much electricity a kilometre of
+     travelling costs you, which is what decides how often you charge) but it is NOT the number on
+     the car's own screen, which divides by the electric kilometres alone: @michapr's B10 says 12.6
+     where this says 8.9 over the same 1032 km, 42 % of them on fuel.
+
+     So the value stays and the WORDS change, plus the qualifying line underneath — the same shape
+     the Serbatoio card already uses for "media ponderata". Withholding it would lose a figure that
+     is true; leaving it under "Consumo medio" is two different quantities under one phrase.
+     Computing the car's number is not possible: the electric/fuel split of the distance is in no
+     cloud endpoint we have captured (beta #10, #11). #}
   <div>
-    <div class="text-xs text-slate-400">{{ t('avg_efficiency') }}</div>
+    <div class="text-xs text-slate-400">{{ t('cum_elec_only') if is_reev else t('avg_efficiency') }}</div>
     {% if cs.lifetime_eff_kwh_100km %}
     <div class="text-white text-lg font-bold">{{ eff_val(cs.lifetime_eff_kwh_100km)|nice }}<span class="text-sm font-normal text-slate-400"> {{ eff_unit() }}</span></div>
     {% else %}<div class="text-white text-lg font-bold">—</div>{% endif %}
+    {% if is_reev %}<div class="text-[11px] text-slate-500 mt-0.5 leading-snug">{{ t('cum_elec_all_distance') }}</div>{% endif %}
   </div>
 </div>
 
@@ -48,6 +60,9 @@
 </div>
 {% endif %}
 
+{% if is_reev %}
+<p class="text-[11px] text-amber-500/80 mt-3 leading-snug">⛽ {{ t('cum_reev_note') }}</p>
+{% endif %}
 <p class="text-[10px] text-slate-600 mt-3 leading-snug">{{ t('cum_note') }}</p>
 {% else %}
 <div class="text-center py-4 text-slate-500 text-sm">{{ t('eb_no_data') }}</div>

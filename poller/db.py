@@ -391,6 +391,12 @@ class Database:
         for _c in ("fuel_level_pct", "fuel_range_km", "combined_range_km"):
             if _c not in cols:
                 self._conn.execute(f"ALTER TABLE positions ADD COLUMN {_c} REAL DEFAULT NULL")
+        # migration: the litres the car itself counts (signal 3263, millilitres → litres). Everything
+        # in litres was until now a percentage multiplied by an ASSUMED tank size, and the assumption
+        # was wrong on the C10 (47.5 L, not 50) — so every litre figure a C10 owner ever saw was 5 %
+        # high. With this the car does the counting. NULL on a BEV and on every row written before.
+        if "fuel_liters" not in cols:
+            self._conn.execute("ALTER TABLE positions ADD COLUMN fuel_liters REAL DEFAULT NULL")
         # migration: the CAR's own timestamp on the frame this row came from (signal sts, or 1) — #178.
         # `recorded_at` is when MATE wrote the row, which is always a few seconds ago; it says nothing
         # about how old the data inside it is. When the car can't reach the cloud, the cloud keeps
@@ -471,6 +477,13 @@ class Database:
         # migration: REEV Phase C — fuel tank level % (signal 3235) at trip start/end. The drop gives
         # the fuel burned (× tank litres) → per-trip L/100km and the EV/fuel split. NULL on a BEV.
         for _c, _t in (("fuel_start_pct", "REAL"), ("fuel_end_pct", "REAL")):
+            if _c not in tcols:
+                self._conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
+        # migration: the same two ends in LITRES, straight off the car's own counter (3263) instead of
+        # a percentage times an assumed tank. "× tank litres" above was the whole problem — the assumed
+        # tank was 50 L for everyone and a C10's is 47.5. Where these are present the burn is measured;
+        # where they aren't (a BEV, or any trip recorded before this) the percentages still answer.
+        for _c, _t in (("fuel_start_l", "REAL"), ("fuel_end_l", "REAL")):
             if _c not in tcols:
                 self._conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
         # migration: per-trip elevation gain/loss (metres) + outside temperature (°C), looked up
@@ -1074,8 +1087,8 @@ class Database:
                 window_fl_open, window_rl_open, ac_port_mode,
                 fan_level, recirculation, climate_mode,
                 fuel_level_pct, fuel_range_km, combined_range_km,
-                frame_ts)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                frame_ts, fuel_liters)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 vehicle_id, _now_iso(),
                 data.latitude, data.longitude, data.speed_kmh, data.odometer_km,
@@ -1111,6 +1124,7 @@ class Database:
                 data.climate_mode,
                 data.fuel_level_pct, data.fuel_range_km, data.combined_range_km,  # REEV dual-energy (NULL on BEV)
                 data.timestamp_ms or None,   # the CAR's own clock on this frame (#178) — 0/absent → NULL
+                getattr(data, "fuel_liters", None),   # litres the car counts itself (3263) — NULL on a BEV
             ),
         )
         self._conn.commit()
@@ -1173,11 +1187,12 @@ class Database:
         start_gh = geohash.encode(data.latitude, data.longitude) if data.latitude and data.longitude else None
         cur = self._conn.execute(
             """INSERT INTO trips (vehicle_id, started_at, start_lat, start_lon, start_geohash,
-               start_soc, start_odometer_km, drive_mode, one_pedal, fuel_start_pct)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+               start_soc, start_odometer_km, drive_mode, one_pedal, fuel_start_pct, fuel_start_l)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (vehicle_id, _now_iso(), data.latitude, data.longitude, start_gh,
              data.soc, data.odometer_km, drive_mode, one_pedal,
-             getattr(data, "fuel_level_pct", None)),   # REEV Phase C — fuel % at trip start (NULL on BEV)
+             getattr(data, "fuel_level_pct", None),   # REEV Phase C — fuel % at trip start (NULL on BEV)
+             getattr(data, "fuel_liters", None)),     # …and the car's own litre count (3263)
         )
         self._conn.commit()
         trip_id = cur.lastrowid
@@ -1273,13 +1288,14 @@ class Database:
         self._conn.execute(
             """UPDATE trips SET ended_at=?, end_lat=?, end_lon=?, end_geohash=?, end_soc=?,
                end_odometer_km=?, distance_km=?, duration_min=?,
-               efficiency_kwh_100km=?, regen_kwh=?, fuel_end_pct=?
+               efficiency_kwh_100km=?, regen_kwh=?, fuel_end_pct=?, fuel_end_l=?
                WHERE id=?""",
             (_now_iso(), data.latitude, data.longitude, end_gh, data.soc,
              data.odometer_km, round(distance_km, 2) if distance_km is not None else None,
              round(duration_min, 1),
              round(efficiency, 2) if efficiency else None, round(regen_kwh, 3),
              getattr(data, "fuel_level_pct", None),   # REEV Phase C — fuel % at trip end (NULL on BEV)
+             getattr(data, "fuel_liters", None),      # …and the car's own litre count (3263)
              trip_id),
         )
         self._conn.commit()

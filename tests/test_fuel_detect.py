@@ -14,16 +14,21 @@ import db_reader
 
 
 def _setup_db(path, readings):
-    """`readings` = [(recorded_at, fuel_level_pct), …] — the tank trail the car logged."""
+    """`readings` = [(recorded_at, fuel_level_pct), …] or [(recorded_at, pct, litres), …].
+
+    Two-item rows leave `fuel_liters` NULL on purpose: that is a car from before v2.14.1, where the
+    litres can only be the percentage against the model's assumed tank. Three-item rows carry the
+    car's own counter (signal 3263) and the litres become measured.
+    """
     con = sqlite3.connect(path)
     con.execute("CREATE TABLE vehicles (id INTEGER PRIMARY KEY, vin TEXT, car_type TEXT)")
     con.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (1, 'VINX', 'C10 REEV')")
     con.execute("CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT)")
     con.execute("CREATE TABLE positions (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                "vehicle_id INTEGER, recorded_at TEXT, fuel_level_pct REAL)")
+                "vehicle_id INTEGER, recorded_at TEXT, fuel_level_pct REAL, fuel_liters REAL)")
     con.executemany(
-        "INSERT INTO positions (vehicle_id, recorded_at, fuel_level_pct) VALUES (?,?,?)",
-        [(1, ts, pct) for ts, pct in readings])
+        "INSERT INTO positions (vehicle_id, recorded_at, fuel_level_pct, fuel_liters) VALUES (?,?,?,?)",
+        [(1, r[0], r[1], r[2] if len(r) > 2 else None) for r in readings])
     con.commit()
     con.close()
 
@@ -48,7 +53,7 @@ def test_a_rise_is_a_refuel(tmp_path, monkeypatch):
     assert db_reader.scan_fuel_refuels(1) == 1
     (d,) = db_reader.list_fuel_detected(1)
     assert (d["fuel_before_pct"], d["fuel_after_pct"]) == (18.0, 43.0)
-    assert abs(d["liters"] - 12.5) < 1e-6            # 25 % of a 50 L tank
+    assert abs(d["liters"] - 11.88) < 1e-6           # 25 % of a C10's 47.5 L tank, not 50
     # The instant is the first reading that SHOWED the new level, and the window opens at the last
     # one that still showed the old — because that is genuinely all we know.
     assert (d["ts_from"], d["ts"]) == (_t(660), _t(720))
@@ -138,8 +143,8 @@ def test_confirming_keeps_the_estimate_when_he_does_not_correct_it(tmp_path, mon
     (d,) = db_reader.list_fuel_detected(1)
     db_reader.confirm_fuel_detected(d["id"], liters=None, total_cost=22.0)
     (p,) = db_reader.list_fuel_purchases()
-    assert abs(p["liters"] - 12.5) < 1e-6
-    assert abs(p["price_per_l"] - 22.0 / 12.5) < 1e-4
+    assert abs(p["liters"] - 11.88) < 1e-6
+    assert abs(p["price_per_l"] - 22.0 / 11.88) < 1e-4
 
 
 def test_a_confirmed_refuel_is_not_re_detected(tmp_path, monkeypatch):

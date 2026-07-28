@@ -1,5 +1,10 @@
 """REEV — what the driving cost, over every trip (db_reader.reev_total_consumption).
 
+NB the litres here: the fixture car is a C10, whose tank measures 47.5 L (signal 3263, beta #10)
+and not the 50 L Mate assumed for every range-extender until v2.14.1. These trips carry no
+fuel_start_l/fuel_end_l, so they take the per-model fallback — which is the path every trip
+recorded before v2.14.1 will take for ever.
+
 Mate blanks the efficiency figure on a trip where the range-extender ran, which is right for
 "how efficient was this" and leaves "what did it cost me" unanswered on exactly the long trips
 that cost the most. This fills that in: net battery drop (grid energy you bought) beside the
@@ -48,9 +53,9 @@ def test_a_plain_electric_trip_is_the_battery_drop(reev):
 
 def test_a_generator_trip_counts_too_instead_of_being_skipped(reev):
     """The whole point. Mate stores no efficiency for this trip; the cost still happened."""
-    _trip(reev, 200.0, 50.0, 45.0, fuel_from=60.0, fuel_to=40.0)   # 20% of 50 L = 10 L
+    _trip(reev, 200.0, 50.0, 45.0, fuel_from=60.0, fuel_to=40.0)   # 20% of a C10's 47.5 L
     out = db_reader.reev_total_consumption()
-    assert out["total_fuel_l"] == 10.0
+    assert out["total_fuel_l"] == 9.5
     assert out["total_kwh"] == 1.4
     assert out["total_km"] == 200.0
 
@@ -60,10 +65,10 @@ def test_a_refuel_is_a_purchase_not_a_negative_consumption(reev):
     22 litres genuinely burned into MINUS 23. A tank only goes up at a pump, so a trip that
     ends fuller than it started must not be subtracted — the same guard reev_fuel_summary
     already applies. Without it this test reports a negative total."""
-    _trip(reev, 300.0, 60.0, 20.0, fuel_from=80.0, fuel_to=40.0, day=1)   # burned 20 L
+    _trip(reev, 300.0, 60.0, 20.0, fuel_from=80.0, fuel_to=40.0, day=1)   # burned 40% = 19 L
     _trip(reev, 10.0, 30.0, 28.0, fuel_from=6.0, fuel_to=76.0, day=2)     # refuelled
     out = db_reader.reev_total_consumption()
-    assert out["total_fuel_l"] == 20.0
+    assert out["total_fuel_l"] == 19.0
     assert out["fuel_l_100km"] > 0
 
 
@@ -75,7 +80,7 @@ def test_a_generator_that_overfills_the_pack_never_reports_negative_electricity(
     out = db_reader.reev_total_consumption()
     assert out["total_kwh"] == 0.0
     assert out["kwh_100km"] == 0.0
-    assert out["total_fuel_l"] == 15.0
+    assert out["total_fuel_l"] == 14.2
 
 
 def test_trips_with_no_fuel_reading_at_all_still_contribute_their_kilometres(reev):
@@ -84,7 +89,7 @@ def test_trips_with_no_fuel_reading_at_all_still_contribute_their_kilometres(ree
     _trip(reev, 50.0, 80.0, 78.0, fuel_from=50.0, fuel_to=40.0, day=2)
     out = db_reader.reev_total_consumption()
     assert out["total_km"] == 100.0
-    assert out["total_fuel_l"] == 5.0
+    assert out["total_fuel_l"] == 4.8
 
 
 def test_it_is_scoped_to_the_current_vehicle(reev, monkeypatch):

@@ -1273,7 +1273,12 @@ def _fuel_ctx(request: Request):
         _ld = db_reader._local_dt(p.get("ts"))
         p["ts_local"] = _ld.strftime("%d/%m/%Y %H:%M") if _ld else (p.get("ts") or "")
     fuel_pct = db_reader.latest_fuel_pct(vid)
-    liters = round(fuel_pct / 100.0 * db_reader._REEV_TANK_L, 1) if fuel_pct is not None else None
+    # Litres the car counted itself (3263) when it reports them; otherwise the tank % against the
+    # model's capacity — which is where a C10 used to read 5 % high off a 50 L assumption.
+    liters = db_reader.latest_fuel_liters(vid)
+    if liters is None and fuel_pct is not None:
+        liters = fuel_pct / 100.0 * db_reader.reev_tank_l()
+    liters = round(liters, 1) if liters is not None else None
     blend = db_reader.fuel_blended_price_at(vid, datetime.now(timezone.utc).isoformat()) if vid is not None else None
     tank = {"fuel_pct": fuel_pct, "liters": liters,
             "eur_per_l": round(blend, 3) if blend else None,

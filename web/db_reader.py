@@ -192,11 +192,34 @@ PRICE_KEYS = {
     "HPC":  "price_hpc_kwh",
 }
 
-# REEV Phase C — fuel tank litres (C10/B10 REEV both 50 L, confirmed) and the minimum fuel-% drop over
-# a trip that counts as the engine having run (the 3235 signal steps at 0.1% ≈ 50 mL; 0.2% guards the
-# single-tick noise). A real range-extender drive drops several %.
-_REEV_TANK_L = 50.0
+# REEV Phase C — the minimum fuel-% drop over a trip that counts as the engine having run (the 3235
+# signal steps at 0.1% ≈ 50 mL; 0.2% guards the single-tick noise). A real range-extender drive drops
+# several %.
 _REEV_FUEL_MIN_DROP = 0.2
+
+# Tank size, per model — the FALLBACK for turning a percentage into litres. Prefer the car's own
+# litre count (signal 3263, positions.fuel_liters / trips.fuel_start_l|fuel_end_l): where that is
+# present nothing here is used at all.
+#
+# It used to be one number, 50 L, "C10/B10 REEV both 50 L, confirmed" — confirmed from spec sheets,
+# never measured. Signal 3263 measures it, and the two models differ: dividing 3263 by 3235 across
+# seven bundles from three owners gives 47.5 L on a C10 and 50.0 L on a B10, each constant to
+# ±0.05 L, and the fullest C10 tank ever logged reads exactly 47 500 mL. So every litre Mate ever
+# showed a C10 owner was 5.3 % too big. Decoded by @gm27271 (beta #10).
+_REEV_TANK_L_BY_MODEL = {"C10": 47.5, "B10": 50.0}
+_REEV_TANK_L = 50.0        # last resort: an unknown range-extender model
+
+
+def reev_tank_l(car_type: Optional[str] = None) -> float:
+    """Assumed tank litres for `car_type` (default: the current vehicle's). Only ever reached when
+    the car has not reported its own litres."""
+    if car_type is None:
+        try:
+            v, _ = get_vehicle()
+            car_type = (v or {}).get("car_type") or ""
+        except Exception:      # noqa: BLE001 — a fallback must never be the thing that raises
+            car_type = ""
+    return _REEV_TANK_L_BY_MODEL.get((car_type or "").strip().upper()[:3], _REEV_TANK_L)
 
 # REEV only: signal 3736 does not mean what its name says, so on a range-extender it is not read
 # at all.
@@ -261,25 +284,33 @@ def _reev_engine_on(db, vehicle_id, started_at, ended_at) -> Optional[dict]:
     return {"engine_km": round(engine_km, 1), "engine_fuel_pct": round(engine_fuel_pct, 2)}
 
 
-def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None) -> dict:
+def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
+                    fuel_start_l=None, fuel_end_l=None, tank_l=None) -> dict:
     """REEV Phase C — per-trip fuel from the tank-% drop. There's no 'engine on' PID: the range-extender
     ran iff the fuel level dropped more than the signal-noise floor. `engine` (from _reev_engine_on) is
     the generator's driving footprint; when present the L/100 km is fuel-burned-while-driving over
     distance-while-driving — matching the car — instead of spreading the litres over the WHOLE trip
     (which under-reports on a mixed EV+generator drive). Falls back to the whole-trip distance when the
     per-position trail isn't available (old, pruned trips). Returns {fuel_used_l, fuel_l_100km,
-    engine_ran, engine_km}; all inert when there's no fuel data (BEV) or the drive was pure-electric."""
+    engine_ran, engine_km}; all inert when there's no fuel data (BEV) or the drive was pure-electric.
+
+    The litres come from the car's OWN counter (fuel_start_l/fuel_end_l, signal 3263) when the trip
+    has them; the tank-% × assumed-capacity path below is the fallback for a BEV, an unknown model,
+    or any trip recorded before v2.14.1. `tank_l` overrides the assumed capacity (per model)."""
     out = {"fuel_used_l": None, "fuel_l_100km": None, "engine_ran": False, "engine_km": None}
     if fuel_start_pct is None or fuel_end_pct is None:
         return out
     drop = fuel_start_pct - fuel_end_pct
     if drop <= _REEV_FUEL_MIN_DROP:
         return out
-    out["fuel_used_l"] = round(drop / 100.0 * _REEV_TANK_L, 2)   # total litres that left the tank
+    cap = tank_l if tank_l else reev_tank_l()
+    measured = (fuel_start_l - fuel_end_l) if (fuel_start_l is not None and fuel_end_l is not None) else None
+    out["fuel_used_l"] = (round(measured, 2) if measured is not None and measured > 0
+                          else round(drop / 100.0 * cap, 2))
     out["engine_ran"] = True
     if engine and engine.get("engine_km", 0) > 0.5:
         out["engine_km"] = engine["engine_km"]
-        out["fuel_l_100km"] = round((engine["engine_fuel_pct"] / 100.0 * _REEV_TANK_L)
+        out["fuel_l_100km"] = round((engine["engine_fuel_pct"] / 100.0 * cap)
                                     / engine["engine_km"] * 100, 1)
     elif distance_km and distance_km > 0.5:
         out["fuel_l_100km"] = round(out["fuel_used_l"] / distance_km * 100, 1)
@@ -1635,9 +1666,10 @@ def scan_fuel_refuels(vehicle_id: Optional[int] = None) -> int:
         _ensure_fuel_purchases(db)
         mark = get_setting("fuel_scan_watermark", "")
         rows = db.execute(
-            "SELECT recorded_at, fuel_level_pct FROM positions "
+            "SELECT recorded_at, fuel_level_pct, fuel_liters FROM positions "
             "WHERE vehicle_id = ? AND fuel_level_pct IS NOT NULL AND recorded_at >= ? "
             "ORDER BY recorded_at", (vid, mark or "")).fetchall()
+        tank = reev_tank_l()
         if len(rows) < 2:
             return 0
         found = 0
@@ -1659,10 +1691,18 @@ def scan_fuel_refuels(vehicle_id: Optional[int] = None) -> int:
             if db.execute("SELECT 1 FROM fuel_detected WHERE vehicle_id = ? AND ts = ? LIMIT 1",
                           (vid, ts)).fetchone():
                 continue                                   # already known (pending or dismissed)
+            # Litres: the car counts them itself (3263) — when both ends of the rise carry that, the
+            # figure is MEASURED and the "≈" in front of it on the card stops being an apology.
+            # @gm27271's own fill read 34.416 L against a pump ticket of 33.84. Percentage × assumed
+            # tank stays as the fallback for rows written before v2.14.1.
+            l_before, l_after = rows[i]["fuel_liters"], rows[i + 1]["fuel_liters"]
+            liters = ((l_after - l_before) if (l_before is not None and l_after is not None
+                                               and l_after > l_before)
+                      else (after - before) / 100.0 * tank)
             db.execute(
                 "INSERT INTO fuel_detected (vehicle_id, ts, ts_from, liters, fuel_before_pct, "
                 "fuel_after_pct, status, created_at) VALUES (?,?,?,?,?,?,'pending',?)",
-                (vid, ts, ts_from, round((after - before) / 100.0 * _REEV_TANK_L, 2),
+                (vid, ts, ts_from, round(liters, 2),
                  before, after, datetime.now(timezone.utc).isoformat()))
             found += 1
         # Stop one pair short: the final reading may yet be the "before" of a rise still arriving.
@@ -1758,6 +1798,20 @@ def latest_fuel_pct(vehicle_id: Optional[int] = None) -> Optional[float]:
             "AND fuel_level_pct IS NOT NULL ORDER BY recorded_at DESC LIMIT 1",
             (vehicle_id if vehicle_id is not None else _current_vehicle_id(),)).fetchone()
         return r["fuel_level_pct"] if r else None
+    except sqlite3.Error:
+        return None
+
+
+def latest_fuel_liters(vehicle_id: Optional[int] = None) -> Optional[float]:
+    """Most recent litres the car itself counted (signal 3263) — None before v2.14.1 and on a BEV,
+    where the caller falls back to the tank % times the model's capacity."""
+    try:
+        db = _get()
+        r = db.execute(
+            "SELECT fuel_liters FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND fuel_liters IS NOT NULL ORDER BY recorded_at DESC LIMIT 1",
+            (vehicle_id if vehicle_id is not None else _current_vehicle_id(),)).fetchone()
+        return r["fuel_liters"] if r else None
     except sqlite3.Error:
         return None
 
@@ -2817,7 +2871,8 @@ def get_trips(limit: int = 500) -> list[dict]:
                 f"SELECT MIN(started_at) s, MAX(ended_at) e FROM trips WHERE id IN ({','.join('?' * len(_seg))})",
                 _seg).fetchone()
             _eng = _reev_engine_on(db, r["vehicle_id"], _b["s"], _b["e"])
-        td.update(_reev_trip_fuel(_fs, _fe, td.get("distance_km"), _eng))
+        td.update(_reev_trip_fuel(_fs, _fe, td.get("distance_km"), _eng,
+                                  td.get("fuel_start_l"), td.get("fuel_end_l")))
         out.append(td)
     return out
 
@@ -2832,23 +2887,32 @@ def reev_fuel_summary() -> Optional[dict]:
     db = _get()
     try:
         rows = db.execute(
-            "SELECT id, vehicle_id, started_at, ended_at, distance_km, fuel_start_pct, fuel_end_pct "
+            "SELECT id, vehicle_id, started_at, ended_at, distance_km, fuel_start_pct, fuel_end_pct, "
+            "fuel_start_l, fuel_end_l "
             "FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
             "AND fuel_start_pct IS NOT NULL AND fuel_end_pct IS NOT NULL "
             "AND fuel_start_pct - fuel_end_pct > ?",
             (_current_vehicle_id(), _REEV_FUEL_MIN_DROP)).fetchall()
     except sqlite3.Error:
         return None
+    tank = reev_tank_l()
     total_l, engine_km, engine_l, n = 0.0, 0.0, 0.0, 0
     for r in rows:
-        total_l += (r["fuel_start_pct"] - r["fuel_end_pct"]) / 100.0 * _REEV_TANK_L
+        # The car's own litre counter where the trip has it, the tank-% × capacity where it doesn't
+        # (trips from before v2.14.1). Mixing the two across a history is fine — each trip's litres
+        # are simply as exact as that trip's data allows.
+        measured = ((r["fuel_start_l"] - r["fuel_end_l"])
+                    if (r["fuel_start_l"] is not None and r["fuel_end_l"] is not None) else None)
+        drop_l = (measured if measured and measured > 0
+                  else (r["fuel_start_pct"] - r["fuel_end_pct"]) / 100.0 * tank)
+        total_l += drop_l
         eng = _reev_engine_on(db, r["vehicle_id"], r["started_at"], r["ended_at"])
         if eng:
             engine_km += eng["engine_km"]
-            engine_l += eng["engine_fuel_pct"] / 100.0 * _REEV_TANK_L
+            engine_l += eng["engine_fuel_pct"] / 100.0 * tank
         else:  # positions pruned → fall back to the whole-trip distance + full drop
             engine_km += r["distance_km"] or 0
-            engine_l += (r["fuel_start_pct"] - r["fuel_end_pct"]) / 100.0 * _REEV_TANK_L
+            engine_l += drop_l
         n += 1
     if not n:
         return None
@@ -2892,12 +2956,17 @@ def reev_total_consumption() -> Optional[dict]:
                       -- fill-up erases weeks of real burning. Found by running this over a real
                       -- range-extender history, where a single 6% → 76% stop turned 22 litres
                       -- burned into MINUS 23. Same guard reev_fuel_summary already applies.
-                      SUM(CASE WHEN fuel_start_pct IS NOT NULL AND fuel_end_pct IS NOT NULL
+                      -- Litres straight off the car's own counter (3263) where the trip carries it;
+                      -- the tank-% × capacity below is the fallback for trips predating v2.14.1.
+                      SUM(CASE WHEN fuel_start_l IS NOT NULL AND fuel_end_l IS NOT NULL
+                                AND fuel_start_l > fuel_end_l
+                               THEN fuel_start_l - fuel_end_l
+                               WHEN fuel_start_pct IS NOT NULL AND fuel_end_pct IS NOT NULL
                                 AND fuel_start_pct > fuel_end_pct
                                THEN (fuel_start_pct - fuel_end_pct) / 100.0 * ? END) AS litres
                  FROM trips
                 WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL""",
-            (get_battery_capacity_kwh(), _REEV_TANK_L, _current_vehicle_id())).fetchone()
+            (get_battery_capacity_kwh(), reev_tank_l(), _current_vehicle_id())).fetchone()
     except sqlite3.Error:
         return None
     km = (row["km"] if row else None) or 0
@@ -3368,10 +3437,11 @@ def blended_price_at(vehicle_id: int, ts: str) -> Optional[float]:
     return _wac_blend([dict(r) for r in rows])
 
 
-def _fuel_wac_blend(purchases) -> Optional[float]:
+def _fuel_wac_blend(purchases, tank_l: float = _REEV_TANK_L) -> Optional[float]:
     """Weighted-average-cost blended €/L of the tank after a chronological list of refuels — the FUEL
-    twin of _wac_blend (#53). Pure (no DB) so it's simulation/unit-testable. Each item is a dict with
-    fuel_before_pct (tank % just before this refuel), liters (added), price_per_l (€/L paid).
+    twin of _wac_blend (#53). Pure (no DB) so it's simulation/unit-testable — hence `tank_l` as an
+    argument rather than a lookup. Each item is a dict with fuel_before_pct (tank % just before this
+    refuel), liters (added), price_per_l (€/L paid).
 
     Same reservoir model as the battery: the tank is ONE blend, only a refuel moves the price and
     driving never does. Each refuel mixes the RESIDUAL (fuel_before_pct, at the running blend) with the
@@ -3394,7 +3464,7 @@ def _fuel_wac_blend(purchases) -> Optional[float]:
             if p is None:
                 p = rate                     # first refuel, unknown residual → bootstrap to its rate
             continue                         # else carry-forward (an unknown residual can't weight)
-        add_pct = liters / _REEV_TANK_L * 100.0
+        add_pct = liters / tank_l * 100.0
         p = rate if p is None else (fs * p + add_pct * rate) / (fs + add_pct)
     return p
 
@@ -3412,7 +3482,7 @@ def fuel_blended_price_at(vehicle_id: int, ts: str) -> Optional[float]:
             "SELECT fuel_before_pct, liters, price_per_l FROM fuel_purchases "
             "WHERE (vehicle_id = ? OR vehicle_id IS NULL) AND ts <= ? ORDER BY ts, id",
             (vehicle_id, ts)).fetchall()
-        return _fuel_wac_blend([dict(r) for r in rows])
+        return _fuel_wac_blend([dict(r) for r in rows], reev_tank_l())
     finally:
         db.close()
 
@@ -3483,7 +3553,8 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     _fbounds = db.execute(f"SELECT MIN(started_at) s, MAX(ended_at) e FROM trips WHERE id IN ({ph})",
                           seg_ids).fetchone()
     _feng = _reev_engine_on(db, trip["vehicle_id"], _fbounds["s"], _fbounds["e"])
-    trip_d.update(_reev_trip_fuel(_fs, _fe, dist, _feng))
+    trip_d.update(_reev_trip_fuel(_fs, _fe, dist, _feng,
+                                  _tp.get("fuel_start_l"), _tp.get("fuel_end_l")))
     # REEV Phase D — the electric counterpart, from the metered getEC (driverEC) not ΔSoC. Shown
     # research-only next to the fuel so REEV testers can validate it against the car's own dashboard
     # before we ever promote it to the headline efficiency (see _reev_trip_elec).
