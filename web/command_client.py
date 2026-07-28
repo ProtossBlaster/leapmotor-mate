@@ -621,11 +621,38 @@ class LeapmotorSession:
         raw = resp.get("body")
         return _json.loads(raw) if isinstance(raw, str) else (raw or {})
 
+    def _raw_mileage_energy(self, begin_ms: int, end_ms: int):
+        """Raw, UNMAPPED mileage/energy/detail response (research probe helper).
+
+        The one endpoint whose full reply nobody has ever seen: get_cumulative_summary calls it live,
+        reads `totalEnergy` and `totalmileage`, and drops the rest of `data` on the spot. That matters
+        on a range-extender, where the two figures it does read produce a misleading average — the
+        electricity divided by a distance that was partly driven on petrol. @michapr's car shows
+        12.6 kWh/100 km over its electric kilometres where Mate shows 8.9 over all of them, and the
+        cloud's own weekly `ec100km` collapses the same way when fuel use rises, so the split the car
+        has (58 % electric / 42 % fuel) is not in any endpoint we have captured. If it exists at all
+        it is in here, in a field we throw away — hence this probe. Needs the SIGNED begin/end window
+        (body_params) like the live call, or the reply carries mileage only."""
+        import json as _json
+        from urllib.parse import quote
+        from leapmotor_api.crypto import build_signed_headers
+        api, vin = self._api, self._vehicle.vin
+        headers = build_signed_headers(
+            sign_key=api.sign_key, device_id=api.device_id, vin=vin, language=api.language,
+            body_params={"begintime": str(begin_ms), "endtime": str(end_ms)}).to_dict()
+        headers.update(api._auth_headers())
+        body = f"endtime={end_ms}&begintime={begin_ms}&vin={quote(vin, safe='')}"
+        resp = api._post(path="/carownerservice/oversea/drivingRecord/v1/mileage/energy/detail",
+                         headers=headers, data=body, cert=api.account_cert)
+        raw = resp.get("body")
+        return _json.loads(raw) if isinstance(raw, str) else (raw or {})
+
     def get_consumption_probe_raw(self) -> dict | None:
         """Research/beta ONLY: UNMAPPED raw JSON of the cloud consumption endpoints, for REEV field
         discovery — e.g. a fuel L/100km field the BEV mapping (driverEC/acEC/otherEC, hundredKmEC)
         would silently drop. Captures getEC over the last 24h and last 7d, the 6-week 100km rank,
-        plus the REEV plug-in split (getPlugInLastNweeks100kmEC — carries oc100km fuel). Returns
+        the REEV plug-in split (getPlugInLastNweeks100kmEC — carries oc100km fuel), and the whole
+        mileage/energy/detail reply, of which the live call keeps only two fields. Returns
         {label: raw_json} or None. Called only from the research-gated export."""
         import time as _time
         with self._lock:
@@ -638,6 +665,9 @@ class LeapmotorSession:
                     "getEC_last7d":   self._raw_getec(now - 7 * 86400, now),
                     "weekly_rank_6w": self._raw_weekly_rank(),
                     "getplugin_100km_6w": self._raw_getplugin(),
+                    # Whole reply, not the two fields the live call keeps — see _raw_mileage_energy.
+                    "mileage_energy_detail": self._raw_mileage_energy(
+                        (now - 7 * 86400) * 1000, now * 1000),
                 }
             except Exception as e:  # noqa: BLE001
                 log.warning("consumption probe (research) failed: %s", e)

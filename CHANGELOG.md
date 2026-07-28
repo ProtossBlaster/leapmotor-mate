@@ -3,6 +3,15 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.14.1] — 2026-07-28
+
+### Fixed
+- **Choosing ECO or Custom as your default drive mode now actually tags your trips.** Both were added to the list two releases ago, but only to the half of Mate that draws the Settings page — the half that stamps the tag on a new trip kept its own older copy of the list and threw anything outside it away. So the setting saved, came back selected, and quietly did nothing: every screen agreed with you and the trips came out untagged. Reported by **@adoewa**, who picked ECO the day it appeared. The three modes that already worked are unaffected, and trips you have tagged by hand were never involved.
+- The two lists are now checked against each other, because that is the fault here: not a wrong value, a second copy nobody updated. A test that had used "eco" as its example of *an invalid mode* was still passing — it was asserting the bug.
+
+### Changed
+- Beta bundles now carry the full reply from the cloud's mileage/energy endpoint, not the two figures Mate reads from it. On a range-extender the lifetime average is electricity divided by a distance partly driven on petrol — **@michapr**'s car reports 12.6 kWh/100 km over its electric kilometres where Mate reports 8.9 over all of them, and **@gm27271** described the same thing from the other side. The split that would settle it is in none of the endpoints we had ever captured; if it exists it is in a field that call currently discards. Range-extender research builds only.
+
 ## [2.14.0] — 2026-07-28
 
 ### Added

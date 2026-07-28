@@ -75,7 +75,7 @@ _RECONSTRUCT_TRIP_MAX_KMH = 160.0
 # #119: drive mode / One-Pedal are NOT reported by the cloud (verified on-car) — they can only be
 # tagged manually. To spare drivers with a fixed habit from re-tagging every trip, two app-level
 # settings pre-fill new trips with a chosen default; "" (unset) keeps the current NULL / "not set".
-_DRIVE_MODES = ("comfort", "normal", "sport")
+_DRIVE_MODES = ("eco", "comfort", "normal", "sport", "custom")   # keep == web/db_reader.DRIVE_MODES
 
 
 def _wb_energy_ceiling(max_power_kw: Optional[float], hours: Optional[float]) -> float:

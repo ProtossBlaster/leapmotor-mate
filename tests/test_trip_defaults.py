@@ -53,10 +53,16 @@ def test_only_one_default_set(tmp_path):
 
 
 def test_invalid_setting_value_is_ignored(tmp_path):
-    """A stray/garbage setting value can never land an invalid tag on a trip — it falls back to NULL."""
+    """A stray/garbage setting value can never land an invalid tag on a trip — it falls back to NULL.
+
+    This test used to use "eco" as its example of "not a real drive mode", and that is how #185 got
+    through: v2.13.0 added ECO and Custom to the list the WEB accepts and left the poller's copy at
+    comfort/normal/sport, so a green test went on asserting that the poller was right to throw ECO
+    away. The example is now a value that will never be a drive mode; the two real lists are pinned
+    against each other in test_drive_modes_agree.py instead."""
     db = D.Database(str(tmp_path / "t.db"))
-    db.set_setting("default_drive_mode", "eco")     # not a real drive mode
-    db.set_setting("default_one_pedal", "yes")      # not 0/1
+    db.set_setting("default_drive_mode", "ludicrous")   # not a drive mode, and never will be
+    db.set_setting("default_one_pedal", "yes")          # not 0/1
     row = _trip_row(db, db.create_trip(1, _data()))
     assert row["drive_mode"] is None
     assert row["one_pedal"] is None
