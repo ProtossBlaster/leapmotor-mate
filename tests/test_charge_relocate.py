@@ -233,3 +233,22 @@ def test_manual_entry_strings_present_in_every_locale():
         t = i18n.get_t(lang)
         for key in ("charger_locator_manual_hint", "charger_locator_manual_ph"):
             assert t(key) != key, f"{lang} is missing {key}"
+
+
+def test_manual_form_state_lives_in_classes_not_inline_style():
+    """The first version shipped `class="hidden"` next to `style="display:flex"` — and inline
+    style beats any class, so the input was permanently open and ✏️ toggled nothing (verified
+    on the test container before fixing). The open/closed state must live in the classes alone:
+    no `display` in the form's inline style, and the toggle flips hidden AND flex together."""
+    import pathlib
+    src = (pathlib.Path(__file__).resolve().parent.parent
+           / "web" / "templates" / "partials" / "charge_location.html").read_text()
+    # anchor to the FORM tag itself — "loc-manual-" alone first matches the ✏️ button's
+    # onclick, which is how the first version of this very test passed nothing at all
+    form = src[src.index('<form id="loc-manual-'):]
+    form_tag = form[:form.index(">")]
+    assert "display" not in form_tag                      # the class decides, nothing else
+    assert 'class="hidden' in form_tag
+    btn = src[src.index("charger_locator_manual_hint"):src.index('<form id="loc-manual-')]
+    assert "classList.toggle('hidden')" in btn
+    assert "classList.toggle('flex')" in btn              # both, or the row collapses to block
