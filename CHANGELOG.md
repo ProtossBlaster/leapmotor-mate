@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.19.0] — 2026-07-30
+
+### Added
+- **A trip's own map now marks where you charged at the end of it.** Same amber marker as the Map's stations, with a popup carrying the kWh, the cost and a link straight to the charge. What counts as "this trip's stop" is a time window — from this trip's end to the moment the car next moved — so no GPS guesswork is involved: the car cannot have charged anywhere else in between. Charges at your own wallbox are left out, or every drive home would earn a "charging stop" for parking in the driveway.
+- **‹ › buttons on a trip, to step to the one before or after.** Chronological, through the same trips the Trips list shows: a merged trip has no page of its own, so the arrows skip past it to somewhere you can actually land. A trip with nothing on one side simply doesn't show that arrow.
+- **The Map's station cap is adjustable from the map itself.** It has always drawn the 15 busiest spots; someone who charges in many one-off places could see an older single visit pushed out by newer ones. A small box on the legend row now sets it — 0 shows them all. Both features and the box come from **@hubcasale** (#195).
+
+### Fixed
+- A charge the car reported with **no GPS fix** is stored as latitude 0, longitude 0 — which is not the same as *missing*, and the new trip marker took it at face value: on the test data one landed **5 132 km** away, in the Gulf of Guinea, on a trip that never left Milan. It now uses the same guard the Map's station cluster has always used, where 0 counts as absent.
+- The station-count box saves through a POST rather than a URL parameter. A page that writes a stored preference just by being loaded gets re-triggered by every bookmark, Back button and link prefetch that touches it — and on an install two people share, one person's link would change the other's map. The value is clamped too, like the marker-threshold setting next to it.
+
 ## [2.18.0] — 2026-07-30
 
 ### Added

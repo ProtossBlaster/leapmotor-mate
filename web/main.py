@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.18.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.19.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1451,7 +1451,7 @@ async def maintenance_baseline(request: Request):
 
 
 @app.get("/map", response_class=HTMLResponse)
-async def map_page(request: Request, top_n: int = -1):
+async def map_page(request: Request):
     vehicle, _ = db_reader.get_vehicle()
     track    = db_reader.get_all_track()
     places   = db_reader.get_frequent_places()
@@ -1462,12 +1462,10 @@ async def map_page(request: Request, top_n: int = -1):
         min_sessions = max(1, int(db_reader.get_setting("map_station_min_sessions", "1")))
     except (TypeError, ValueError):
         min_sessions = 1
-    # How many station markers to draw (get_charging_stations' top_n), settable inline on the
-    # map itself (map.html's legend-row box) rather than buried in Settings, since it's a "how
-    # crowded do I want THIS view" knob, not a durable preference. -1 (the number input's min
-    # is 0) means "box wasn't submitted this request" → fall back to the persisted setting.
-    if top_n >= 0:
-        db_reader.set_setting("map_station_top_n", str(top_n))
+    # How many station markers to draw (get_charging_stations' top_n), set from the box on the
+    # map's own legend row rather than buried in Settings. READ ONLY here — the box POSTs to
+    # save_map_station_count and comes back through a redirect, so the page that renders the
+    # map never writes anything.
     try:
         stations_top_n = max(0, int(db_reader.get_setting("map_station_top_n", "15")))
     except (TypeError, ValueError):
@@ -2984,6 +2982,24 @@ async def save_map_station_threshold(request: Request):
     db_reader.set_setting("map_station_min_sessions", str(n))
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("map_station_threshold_saved")}</span>')
+
+
+@app.post("/api/settings/map-station-count")
+async def save_map_station_count(request: Request):
+    """How many station markers the Map draws (get_charging_stations' top_n); 0 = all of them.
+    Set from the box on the map's own legend row, but a POST like its twin above — a GET that
+    writes a stored preference is re-applied by every bookmark, Back button and link prefetch
+    that touches the URL, and on a shared install one person's link would change everyone's map.
+    Redirects back to the map (POST-Redirect-GET) so the new marker set is simply what the page
+    renders next. Clamped: the box is the only way in, but a hand-typed number shouldn't be
+    stored verbatim any more than the threshold's 1–10 is."""
+    form = await request.form()
+    try:
+        n = max(0, min(999, int(form.get("top_n") or 0)))
+    except (TypeError, ValueError):
+        n = 15
+    db_reader.set_setting("map_station_top_n", str(n))
+    return RedirectResponse(request.headers.get("x-ingress-path", "") + "/map", status_code=303)
 
 
 @app.post("/api/settings/retention", response_class=HTMLResponse)
