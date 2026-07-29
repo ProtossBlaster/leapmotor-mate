@@ -646,6 +646,7 @@
     "avg_duration": "Śr. czas trwania",
     "peak_power": "Szczytowa moc",
     "total_cost": "Łączny koszt",
+    "avg_price_partial": "{n} z {tot} sesji",
     "charge_limit": "Limit ładowania",
     "charge_limit_desc": "Maks. SoC do którego samochód będzie się ładować",
     "set_limit": "Ustaw limit",

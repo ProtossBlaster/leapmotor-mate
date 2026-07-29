@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.17.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.18.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -121,11 +121,12 @@ def _money(x) -> str:
 templates.env.filters["money"] = _money
 
 
-def _price_l(x) -> str:
-    """A per-litre fuel price: fixed 3 decimals with the UI-language decimal separator (comma for
-    it/fr/de, dot for en), no currency symbol \u2014 the template appends ' <sym>/L'. Fuel is quoted to
-    3 decimals (1,858 \u20ac/L): unlike `nice` this keeps them, and unlike a bare number it follows the
-    same comma/dot rule as `money` (a price is a monetary value)."""
+def _price_3(x) -> str:
+    """A UNIT price \u2014 \u20ac/L at the pump, \u20ac/kWh at the plug: fixed 3 decimals with the UI-language
+    decimal separator (comma for it/fr/de, dot for en), no currency symbol \u2014 the template appends
+    ' <sym>/L' or ' <sym>/kWh'. Both are quoted to 3 decimals in the real world (1,858 \u20ac/L,
+    0,250 \u20ac/kWh) and `money`'s 2 would flatten 0,250 and 0,199 onto 0,25 and 0,20. Unlike `nice`
+    this keeps the decimals, and unlike a bare number it follows `money`'s comma/dot rule."""
     if x is None:
         return "\u2014"
     s = f"{float(x):,.3f}"
@@ -133,7 +134,7 @@ def _price_l(x) -> str:
         s = s.translate(str.maketrans({",": ".", ".": ","}))
     return s
 
-templates.env.filters["pricel"] = _price_l
+templates.env.filters["price3"] = _price_3
 
 
 def _localdate(s) -> str:

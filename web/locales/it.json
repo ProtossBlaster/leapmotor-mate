@@ -646,6 +646,7 @@
     "avg_duration": "Durata media",
     "peak_power": "Potenza picco",
     "total_cost": "Costo totale",
+    "avg_price_partial": "{n} di {tot} sessioni",
     "charge_limit": "Limite di carica",
     "charge_limit_desc": "SOC massimo raggiungibile in ricarica",
     "set_limit": "Imposta",

@@ -254,16 +254,17 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 </div>
 {% endif %}
 
-<!-- Summary cards — 5 columns, compact — global totals, hidden while a station filter narrows the tree below -->
+<!-- Summary cards — 6 columns, compact — global totals, hidden while a station filter narrows the tree below -->
 {% if not station and stats and stats.session_count %}
-<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
 
-  {% macro scard(label, value, unit, color='text-white') %}
+  {% macro scard(label, value, unit, color='text-white', note='') %}
   <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:12px 14px;text-align:center">
     <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">{{ label }}</div>
     <div style="font-size:1.4rem;font-weight:700" class="{{ color }}">
       {{ value }}<span style="font-size:0.8rem;font-weight:400;color:#94a3b8"> {{ unit }}</span>
     </div>
+    {% if note %}<div style="font-size:10px;color:#64748b;margin-top:2px">{{ note }}</div>{% endif %}
   </div>
   {% endmacro %}
 
@@ -274,6 +275,13 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
   {{ scard(t('total_cost'),
       stats.total_cost | money if stats.total_cost else '—',
       '', 'text-green-400') }}
+  {# #187: the €/kWh actually paid. Over the PRICED charges alone — so when some charge has no
+     cost yet, the note says so: energy and spend above would otherwise divide into a lower
+     number than this one, and the reader has no way to know why. #}
+  {{ scard(t('report_avg_price'),
+      stats.avg_price | price3 if stats.avg_price is not none else '—',
+      currency.symbol ~ '/kWh' if stats.avg_price is not none else '', 'text-emerald-400',
+      t('avg_price_partial').format(n=stats.priced_count, tot=stats.total_count) if stats.partial else '') }}
 
 </div>
 {% endif %}

@@ -93,7 +93,7 @@
             <div class="stat-label" style="font-size:10px">⛽ {{ t('reev_fuel_used') }}</div>
             <div class="text-xl font-bold text-amber-400">{{ trip.fuel_used_l | nice }}<span class="text-sm font-normal text-slate-400"> L</span></div>
             <div class="text-[11px] text-amber-300/80 mt-0.5">{% if trip.fuel_l_100km is not none %}{{ trip.fuel_l_100km | nice }} L/100km{% else %}—{% endif %}</div>
-            {% if trip.fuel_cost is not none %}<div class="text-[11px] font-semibold text-amber-200 mt-0.5">💶 {{ trip.fuel_cost | money }}{% if trip.fuel_price_per_l %} <span class="font-normal text-amber-300/70">· {{ trip.fuel_price_per_l | pricel }} {{ currency.symbol }}/L</span>{% endif %}</div>{% endif %}
+            {% if trip.fuel_cost is not none %}<div class="text-[11px] font-semibold text-amber-200 mt-0.5">💶 {{ trip.fuel_cost | money }}{% if trip.fuel_price_per_l %} <span class="font-normal text-amber-300/70">· {{ trip.fuel_price_per_l | price3 }} {{ currency.symbol }}/L</span>{% endif %}</div>{% endif %}
           </div>
         </div>
         <div class="text-[10px] text-slate-500 mt-2 leading-snug">🔋 {{ t('reev_elec_source_note') }}{% if trip.engine_km %} · ⛽ {{ t('reev_engine_km') }}: {{ trip.engine_km | nice }} km{% endif %}</div>

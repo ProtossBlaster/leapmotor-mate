@@ -646,6 +646,7 @@
     "avg_duration": "Avg duration",
     "peak_power": "Peak power",
     "total_cost": "Total cost",
+    "avg_price_partial": "{n} of {tot} sessions",
     "charge_limit": "Charge Limit",
     "charge_limit_desc": "Max SOC the car will charge to",
     "set_limit": "Set limit",
