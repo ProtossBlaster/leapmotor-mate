@@ -638,8 +638,14 @@ async def trip_detail(request: Request, trip_id: int):
     trip = db_reader.get_trip_detail(trip_id)
     if not trip:
         return RedirectResponse(request.headers.get("x-ingress-path", "") + "/trips")
+    # Same server-side currency formatting the Map gives its charging-station popups (main.py's
+    # map_page) — a bare .toFixed(2) in the map script would show "13.00" with no symbol.
+    for c in trip["charges"]:
+        c["cost_fmt"] = _money(c["cost"]) if c.get("cost") is not None else None
+    adjacent = db_reader.get_adjacent_trips(trip_id)
     return templates.TemplateResponse(request, "trip_detail.html", _ctx(
         page="trips", vehicle=vehicle, trip=trip,
+        prev_trip_id=adjacent["prev_id"], next_trip_id=adjacent["next_id"],
     ))
 
 
@@ -1444,7 +1450,7 @@ async def maintenance_baseline(request: Request):
 
 
 @app.get("/map", response_class=HTMLResponse)
-async def map_page(request: Request):
+async def map_page(request: Request, top_n: int = -1):
     vehicle, _ = db_reader.get_vehicle()
     track    = db_reader.get_all_track()
     places   = db_reader.get_frequent_places()
@@ -1455,7 +1461,18 @@ async def map_page(request: Request):
         min_sessions = max(1, int(db_reader.get_setting("map_station_min_sessions", "1")))
     except (TypeError, ValueError):
         min_sessions = 1
-    stations = db_reader.get_charging_stations(min_sessions=min_sessions)
+    # How many station markers to draw (get_charging_stations' top_n), settable inline on the
+    # map itself (map.html's legend-row box) rather than buried in Settings, since it's a "how
+    # crowded do I want THIS view" knob, not a durable preference. -1 (the number input's min
+    # is 0) means "box wasn't submitted this request" → fall back to the persisted setting.
+    if top_n >= 0:
+        db_reader.set_setting("map_station_top_n", str(top_n))
+    try:
+        stations_top_n = max(0, int(db_reader.get_setting("map_station_top_n", "15")))
+    except (TypeError, ValueError):
+        stations_top_n = 15
+    stations = db_reader.get_charging_stations(
+        min_sessions=min_sessions, top_n=None if stations_top_n == 0 else stations_top_n)
     # Popup markup is built client-side from this JSON (see map.html), so the currency symbol/
     # placement/decimal-separator formatting `| money` gives every other cost on the site has to be
     # baked in server-side here too — a bare .toFixed(2) in JS would show "13.00" with no symbol.
@@ -1465,6 +1482,7 @@ async def map_page(request: Request):
             c["cost_fmt"] = _money(c["cost"]) if c["cost"] is not None else None
     return templates.TemplateResponse(request, "map.html", _ctx(
         page="map", vehicle=vehicle, track=track, places=places, stations=stations,
+        stations_top_n=stations_top_n,
     ))
 
 

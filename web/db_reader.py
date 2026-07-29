@@ -3539,6 +3539,69 @@ def fuel_blended_price_at(vehicle_id: int, ts: str) -> Optional[float]:
         db.close()
 
 
+def get_adjacent_trips(trip_id: int) -> dict:
+    """{prev_id, next_id} — the top-level trip immediately before/after this one in time, for
+    the trip detail page's ←/→ navigation. A merged child resolves to its parent group's
+    started_at first (same as get_trip_detail): children have no place of their own in the
+    Viaggi list, so stepping through them would land on a page that isn't next in that list."""
+    db = _get()
+    row = db.execute("SELECT id, merged_into_id FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                     (trip_id, _current_vehicle_id())).fetchone()
+    if not row:
+        return {"prev_id": None, "next_id": None}
+    parent_id = row["merged_into_id"] or row["id"]
+    parent = db.execute("SELECT started_at FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                        (parent_id, _current_vehicle_id())).fetchone()
+    if not parent:
+        return {"prev_id": None, "next_id": None}
+    prev_row = db.execute(
+        "SELECT id FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND merged_into_id IS NULL "
+        "AND started_at < ? ORDER BY started_at DESC LIMIT 1", (_current_vehicle_id(), parent["started_at"])).fetchone()
+    next_row = db.execute(
+        "SELECT id FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND merged_into_id IS NULL "
+        "AND started_at > ? ORDER BY started_at ASC LIMIT 1", (_current_vehicle_id(), parent["started_at"])).fetchone()
+    return {"prev_id": prev_row["id"] if prev_row else None,
+            "next_id": next_row["id"] if next_row else None}
+
+
+def _trip_stop_charges(db, vehicle_id, raw_ended_at) -> list[dict]:
+    """Charges during the stop right after a trip ends — what the trip's own map marks
+    alongside the start/end flags. A charge belongs to THIS trip's stop if it started at/after
+    the trip's end and before the next top-level trip started: nowhere else the car could have
+    been charging in that window, so no separate GPS-proximity check is needed. `raw_ended_at`
+    must be the UN-localized value (trips.started_at is stored the same raw way), or every
+    comparison below silently misses by the local UTC offset.
+
+    Home-wallbox charges are excluded — same _is_home_charge test the general Map's station
+    cluster already uses, so a trip that simply ends back at the driver's own wallbox doesn't
+    get a "charging stop" marker for parking in their own driveway."""
+    if not raw_ended_at:
+        return []
+    nxt = db.execute(
+        "SELECT MIN(started_at) AS s FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "AND merged_into_id IS NULL AND started_at > ?", (vehicle_id, raw_ended_at)).fetchone()
+    hi = nxt["s"] if nxt and nxt["s"] else None
+    q = ("SELECT id, latitude, longitude, location_name, location_url, charge_type, cost, "
+         "energy_added_kwh, ac_energy_kwh, location_type, started_at, ended_at FROM charges "
+         "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
+         "AND latitude IS NOT NULL AND longitude IS NOT NULL AND started_at >= ?")
+    params = [vehicle_id, raw_ended_at]
+    if hi:
+        q += " AND started_at < ?"
+        params.append(hi)
+    q += " ORDER BY started_at"
+    home = _learned_wallbox_location(vehicle_id)
+    out = []
+    for r in db.execute(q, params).fetchall():
+        c = dict(r)
+        if _is_home_charge(c, home):
+            continue
+        c["kwh"] = round(_billed_kwh(c), 2)
+        c["started_at"] = _local_iso(c["started_at"])
+        out.append(c)
+    return out
+
+
 def get_trip_detail(trip_id: int) -> Optional[dict]:
     db = _get()
     row = db.execute("SELECT * FROM trips WHERE id = ? AND vehicle_id = COALESCE(?, vehicle_id)",
@@ -3575,6 +3638,9 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
         elapsed = _gap_minutes(trip_d.get("started_at"), trip_d.get("ended_at"))
         trip_d["stop_min"] = (round(max(elapsed - (trip_d.get("duration_min") or 0), 0))
                               if elapsed is not None else None)
+    # The charge(s) at THIS trip's destination — read before ended_at below is overwritten
+    # with its localized form, since trips.started_at in the DB is stored raw/UTC like it is.
+    trip_d["charges"] = _trip_stop_charges(db, trip["vehicle_id"], trip_d.get("ended_at"))
     trip_d["started_at"] = _local_iso(trip_d.get("started_at"))
     trip_d["ended_at"] = _local_iso(trip_d.get("ended_at"))
 

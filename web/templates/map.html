@@ -93,6 +93,14 @@
   {% if places %}<span><span style="color:#14b8a6">●</span> {{ t('map_frequent_places') }} ({{ places|length }})</span>{% endif %}
   {% if stations %}<span><span style="color:#f59e0b">●</span> {{ t('map_charging_stations') }} ({{ stations|length }})</span>{% endif %}
   <span><span id="map-pts">—</span> {{ t('map_points') }}</span>
+  <form method="get" action="map" class="ml-auto flex items-center gap-1.5">
+    <label for="map-top-n">{{ t('map_station_count_label') }}</label>
+    <input id="map-top-n" type="number" name="top_n" min="0" step="1" inputmode="numeric"
+           value="{{ stations_top_n }}" title="{{ t('map_station_count_hint') }}"
+           onchange="this.value = this.value === '' ? 0 : this.value; this.form.submit()"
+           style="width:52px;background:#0f172a;border:1px solid #334155;border-radius:6px;
+                  color:#e2e8f0;padding:2px 6px;font-size:11px">
+  </form>
 </div>
 
 {% else %}
