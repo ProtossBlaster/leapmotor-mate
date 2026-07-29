@@ -11,6 +11,18 @@
     {{ trip.started_at | localdate if trip.started_at else 'Trip' }}
     <span class="text-slate-400 font-normal text-base ml-1">{{ trip.started_at[11:16] if trip.started_at else '' }}</span>
   </h1>
+  {# Chronological ←/→ through the SAME trips the Viaggi list shows (top-level only — see
+     get_adjacent_trips); a missing side just hides its arrow rather than showing a dead one. #}
+  <div class="flex items-center gap-1">
+    {% if prev_trip_id %}
+    <a href="trips/{{ prev_trip_id }}" title="{{ t('trip_prev') }}"
+       class="border border-slate-600 text-slate-300 rounded-lg w-7 h-7 flex items-center justify-center hover:border-brand hover:text-white flex-shrink-0">‹</a>
+    {% endif %}
+    {% if next_trip_id %}
+    <a href="trips/{{ next_trip_id }}" title="{{ t('trip_next') }}"
+       class="border border-slate-600 text-slate-300 rounded-lg w-7 h-7 flex items-center justify-center hover:border-brand hover:text-white flex-shrink-0">›</a>
+    {% endif %}
+  </div>
   {% if trip.reconstructed %}
   <span class="text-[11px] text-amber-400/90 border border-amber-400/40 rounded-full px-2 py-0.5"
         title="{{ t('trip_reconstructed_hint') }}">✨ {{ t('trip_reconstructed') }}</span>
@@ -346,6 +358,25 @@
         .bindPopup('Start — {{ "%.1f"|format(trip.start_soc or 0) }}% SOC');
       L.marker(latlngs[latlngs.length-1], {icon: flagIcon('#444',   true) }).addTo(map)
         .bindPopup('End — {{ "%.1f"|format(trip.end_soc or 0) }}% SOC');
+
+      // Charge(s) at this trip's destination (db_reader._trip_stop_charges) — same amber
+      // styling as the general Map's station markers, so the two views read as one language.
+      const tripCharges = {{ trip.charges | tojson }};
+      const chargeIcon = L.divIcon({
+        className: '', iconSize: [22, 22], iconAnchor: [11, 11],
+        html: '<div style="width:22px;height:22px;border-radius:50%;background:#f59e0b73;'
+            + 'border:2px solid #f59e0b;display:flex;align-items:center;justify-content:center;'
+            + 'font-size:11px;box-shadow:0 0 0 2px #00000022">⚡</div>'
+      });
+      tripCharges.forEach(function (c) {
+        if (c.latitude == null || c.longitude == null) return;
+        const popup = '<div style="min-width:160px">'
+          + '<b>' + (c.location_name ? c.location_name.replace(/</g, '&lt;') : '{{ t('map_unnamed_station') }}') + '</b><br>'
+          + c.kwh + ' kWh' + (c.cost_fmt != null ? ' · ' + c.cost_fmt : '') + '<hr style="margin:6px 0;border-color:#334155">'
+          + '<a href="charges?highlight=' + c.id + '" style="color:#f59e0b;font-weight:600;text-decoration:none">'
+          + '{{ t('trip_charge_view') }}</a></div>';
+        L.marker([c.latitude, c.longitude], {icon: chargeIcon}).addTo(map).bindPopup(popup);
+      });
     </script>
     <!-- SoC & speed profile -->
     <div style="padding:12px 16px 16px; background:#1e293b; border-top:1px solid #334155">

@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.18.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.19.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -639,8 +639,14 @@ async def trip_detail(request: Request, trip_id: int):
     trip = db_reader.get_trip_detail(trip_id)
     if not trip:
         return RedirectResponse(request.headers.get("x-ingress-path", "") + "/trips")
+    # Same server-side currency formatting the Map gives its charging-station popups (main.py's
+    # map_page) — a bare .toFixed(2) in the map script would show "13.00" with no symbol.
+    for c in trip["charges"]:
+        c["cost_fmt"] = _money(c["cost"]) if c.get("cost") is not None else None
+    adjacent = db_reader.get_adjacent_trips(trip_id)
     return templates.TemplateResponse(request, "trip_detail.html", _ctx(
         page="trips", vehicle=vehicle, trip=trip,
+        prev_trip_id=adjacent["prev_id"], next_trip_id=adjacent["next_id"],
     ))
 
 
@@ -1456,7 +1462,16 @@ async def map_page(request: Request):
         min_sessions = max(1, int(db_reader.get_setting("map_station_min_sessions", "1")))
     except (TypeError, ValueError):
         min_sessions = 1
-    stations = db_reader.get_charging_stations(min_sessions=min_sessions)
+    # How many station markers to draw (get_charging_stations' top_n), set from the box on the
+    # map's own legend row rather than buried in Settings. READ ONLY here — the box POSTs to
+    # save_map_station_count and comes back through a redirect, so the page that renders the
+    # map never writes anything.
+    try:
+        stations_top_n = max(0, int(db_reader.get_setting("map_station_top_n", "15")))
+    except (TypeError, ValueError):
+        stations_top_n = 15
+    stations = db_reader.get_charging_stations(
+        min_sessions=min_sessions, top_n=None if stations_top_n == 0 else stations_top_n)
     # Popup markup is built client-side from this JSON (see map.html), so the currency symbol/
     # placement/decimal-separator formatting `| money` gives every other cost on the site has to be
     # baked in server-side here too — a bare .toFixed(2) in JS would show "13.00" with no symbol.
@@ -1466,6 +1481,7 @@ async def map_page(request: Request):
             c["cost_fmt"] = _money(c["cost"]) if c["cost"] is not None else None
     return templates.TemplateResponse(request, "map.html", _ctx(
         page="map", vehicle=vehicle, track=track, places=places, stations=stations,
+        stations_top_n=stations_top_n,
     ))
 
 
@@ -2966,6 +2982,24 @@ async def save_map_station_threshold(request: Request):
     db_reader.set_setting("map_station_min_sessions", str(n))
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("map_station_threshold_saved")}</span>')
+
+
+@app.post("/api/settings/map-station-count")
+async def save_map_station_count(request: Request):
+    """How many station markers the Map draws (get_charging_stations' top_n); 0 = all of them.
+    Set from the box on the map's own legend row, but a POST like its twin above — a GET that
+    writes a stored preference is re-applied by every bookmark, Back button and link prefetch
+    that touches the URL, and on a shared install one person's link would change everyone's map.
+    Redirects back to the map (POST-Redirect-GET) so the new marker set is simply what the page
+    renders next. Clamped: the box is the only way in, but a hand-typed number shouldn't be
+    stored verbatim any more than the threshold's 1–10 is."""
+    form = await request.form()
+    try:
+        n = max(0, min(999, int(form.get("top_n") or 0)))
+    except (TypeError, ValueError):
+        n = 15
+    db_reader.set_setting("map_station_top_n", str(n))
+    return RedirectResponse(request.headers.get("x-ingress-path", "") + "/map", status_code=303)
 
 
 @app.post("/api/settings/retention", response_class=HTMLResponse)
