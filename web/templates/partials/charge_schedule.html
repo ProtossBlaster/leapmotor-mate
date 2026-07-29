@@ -8,6 +8,12 @@
     <span id="cs-badge" class="ml-auto text-sm font-bold px-3 py-1 rounded-full text-slate-400 bg-slate-700 border border-slate-600">—</span>
   </div>
   <div class="text-xs text-slate-500 mb-3">{{ t('sched_charge_desc') }}</div>
+  {# What the CAR is doing right now, in words, above the form that changes it (#190). Everything
+     below is an editor: seven chips a user has to interpret, and empty ones mean "every day" —
+     which is the state every car leaves the factory in. @riri19 selected all seven, saw them
+     cleared on reload and reported the schedule as lost. Nothing was lost; nothing said so either.
+     Filled from the same GET that populates the form — no extra call to the car. #}
+  <div id="cs-summary" class="text-sm mb-3 px-3 py-2 rounded-lg border border-slate-700 bg-slate-800/40 text-slate-400">—</div>
   <form hx-post="api/charge-schedule" hx-target="#cs-result" hx-swap="innerHTML"
         hx-confirm="{{ t('sched_confirm') }}"
         class="flex flex-wrap gap-4 items-end">
@@ -105,7 +111,41 @@
       }
       var dw = document.getElementById('cs-days-wrap');
       if (dw) dw.style.opacity = on ? '1' : '0.55';
+      summary(d, on, sel, n);
     }).catch(function () {});
+  }
+
+  // The read-out. Says what the car will DO, in a sentence, from the same payload the form is
+  // filled with. `n` days out of 7 — none and all seven both mean "every day", which is exactly
+  // what the empty chip row could never convey.
+  var S = {
+    every:    {{ t('sched_summary_every_day')|tojson }},
+    {# A car without a charge WINDOW (T03, #146) has a start and no end — the sentence has to
+       stop there rather than trail off into an empty "to". #}
+    on:       {% if charge_schedule_advanced %}{{ t('sched_summary_on')|tojson }}{% else %}{{ t('sched_summary_on_start_only')|tojson }}{% endif %},
+    off:      {{ t('sched_summary_off')|tojson }},
+    recharge: {{ t('sched_summary_recharge')|tojson }},
+    dow: [{{ t('dow_mon')|tojson }}, {{ t('dow_tue')|tojson }}, {{ t('dow_wed')|tojson }},
+          {{ t('dow_thu')|tojson }}, {{ t('dow_fri')|tojson }}, {{ t('dow_sat')|tojson }},
+          {{ t('dow_sun')|tojson }}]      // cycles order: Mon-first
+  };
+  function summary(d, on, sel, n) {
+    var el = document.getElementById('cs-summary');
+    if (!el) return;
+    if (!on) {
+      el.textContent = S.off;
+      el.className = 'text-sm mb-3 px-3 py-2 rounded-lg border border-slate-700 bg-slate-800/40 text-slate-400';
+      return;
+    }
+    var days = (n === 0 || n === 7) ? S.every
+             : S.dow.filter(function (_, i) { return sel[i]; }).join(', ');
+    var txt = S.on.replace('{days}', days)
+                  .replace('{start}', (d && d.starttime) || document.getElementById('cs-start').value)
+                  .replace('{end}', (d && d.endtime) || '')
+                  .replace('{soc}', (d && d.chargesoc) || document.getElementById('cs-soc').value);
+    if (d && String(d.recharge) === '1') txt += ' ' + S.recharge;
+    el.textContent = txt;
+    el.className = 'text-sm mb-3 px-3 py-2 rounded-lg border border-brand/30 bg-brand/10 text-slate-200';
   }
   refresh();
   // Re-read only after a CONFIRMED save: the server fires HX-Trigger 'chargeScheduleSaved' on the

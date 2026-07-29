@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.15.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.16.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1000,6 +1000,13 @@ async def charges_search(request: Request, q: str = "", type: str = "",
         text=q, charge_type=type, cost_min=n_cost_min, cost_max=n_cost_max,
         kwh_min=n_kwh_min, kwh_max=n_kwh_max, date_from=date_from, date_to=date_to,
         station=station or None)
+    # #191 (@riri19): a result card shows "16:38 → 16:42" and nothing else — in the calendar the
+    # day is the heading above it, but a search result stands alone and the day was simply gone.
+    # He searched "Intermarché", found the session, and had to go back to the calendar to learn
+    # WHEN. Same day label the history tree uses, so the two views read alike.
+    for c in charges:
+        dt = db_reader._local_dt(c.get("started_at"))
+        c["date_label"] = i18n.fmt_day_month_year(lang, dt) if dt else None
     today = db_reader.today_local()
     return templates.TemplateResponse(request, "partials/charges_search_results.html", {
         "t": i18n.get_t(lang), "charge_types": db_reader.CHARGE_TYPES, "fmt_dur": _fmt_dur,

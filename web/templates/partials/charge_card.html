@@ -19,6 +19,13 @@
     <div class="flex items-center gap-3">
       <div style="width:4px;height:40px;background:#fbbf24;border-radius:2px;flex-shrink:0"></div>
       <div>
+        {# The day, but only where nothing else carries it: in the calendar and the day accordion
+           the date is the heading above these cards, and repeating it there would be noise. A
+           SEARCH result stands on its own — @riri19 found a session by station name and had no
+           way to tell which day it was (#191). Set by the search route alone. #}
+        {% if c.date_label %}
+        <div class="text-[11px] text-slate-500 leading-tight">{{ c.date_label }}</div>
+        {% endif %}
         <div class="text-white font-semibold text-sm">
           {{ c.started_at[11:16] if c.started_at else '—' }}
           <span class="text-slate-500 font-normal">→ {{ c.ended_at[11:16] if c.ended_at else '' }}</span>

@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.16.0] — 2026-07-29
+
+### Added
+- **The Scheduling page now says what your car is actually doing, before the form that changes it.** Both cards open with a line in plain words — *"Charges every day from 00:50 to 12:00, up to 100%"*, *"Quick cool once only at 07:00, 18°C"* — built from the car's own answer, with no extra call. **@riri19** selected all seven days of his charge schedule, saw the chips empty again after a reload and reported the schedule as lost (#190). Nothing was lost: on that card **no day selected means every day**, which is also the state every car leaves the factory in, so the row is empty for almost everyone. The chips still work the way they did — you pick the days you want rather than deselecting six of seven — but now the card says what the empty row means.
+- The same line on the **climate** card, where it was needed more: an empty day row there means the **opposite** — one time only, not every day. Two cards, one under the other, identical rows of chips, opposite meanings, and nothing on screen to tell them apart. It also spells out the mode ("Quick cool" rather than a payload), the time and the temperature, and says plainly when nothing is scheduled at all.
+- **A charge found by search now shows its date.** In the calendar the day is the heading above the cards; a search result stands alone, and it showed only "16:38 → 16:42". **@riri19** looked up a station by name and had to go back to the calendar to find out which day it was (#191). Same date format the history uses. Unchanged in the calendar, which already says it once.
+
+### Changed
+- The litres on a detected refuel now say they are yours to overwrite: *"gauge estimate — replace it with the litres on your receipt"*. The box was always editable, and the amber "≈ 35.15 L" above it reads like a figure the car produced, so people leave it. **@gm27271** worked out the consequence before hitting it: confirm 9 litres against a 10-litre receipt and the price per litre comes out 20/9 rather than the 2.00 actually paid — and that price weights the blend behind every trip that burns from that tankful. Range-extender research builds only.
+
 ## [2.15.0] — 2026-07-29
 
 ### Added
