@@ -26,5 +26,28 @@
           style="background:none;border:none;cursor:pointer;padding:0;font-size:11px;line-height:1">
     <span class="htmx-indicator">⏳</span><span>🔄</span>
   </button>
+  {# #193: "Where to add stationname" — OSM/OCM simply don't have every real station, so
+     the lookup (🔄) can never fill it in on its own. A free-text fallback the user types
+     themselves. location_name IS NOT NULL either way, so this also takes the charge out
+     of the background sweep's queue, same as an auto-resolved name would. #}
+  {# The open/closed state lives in the CLASSES alone (hidden ↔ flex, toggled together) — an
+     inline `display:flex` would beat the `hidden` class and leave the input permanently open,
+     which is exactly how the first version of this shipped to review. Same class-toggle idiom
+     as the type-selector menu above and the add-charge form on this page. #}
+  <button type="button" title="{{ t('charger_locator_manual_hint') }}"
+          onclick="var f=document.getElementById('loc-manual-{{ charge.id }}');f.classList.toggle('hidden');f.classList.toggle('flex');if(!f.classList.contains('hidden'))f.querySelector('input').focus()"
+          class="text-slate-500 hover:text-brand"
+          style="background:none;border:none;cursor:pointer;padding:0;font-size:11px;line-height:1">✏️</button>
+  <form id="loc-manual-{{ charge.id }}" class="hidden items-center" style="gap:4px"
+        hx-post="api/charges/{{ charge.id }}/locate/manual"
+        hx-target="#loc-{{ charge.id }}" hx-swap="outerHTML">
+    <input type="text" name="name" maxlength="200" placeholder="{{ t('charger_locator_manual_ph') }}"
+           value="{{ charge.location_name or '' }}"
+           style="width:140px;background:#0f172a;border:1px solid #334155;border-radius:6px;
+                  color:#e2e8f0;padding:2px 6px;font-size:11px">
+    <button type="submit" title="{{ t('note_save') }}"
+            class="text-slate-500 hover:text-brand"
+            style="background:none;border:none;cursor:pointer;padding:0;font-size:11px;line-height:1">✓</button>
+  </form>
   {% endif %}
 </div>

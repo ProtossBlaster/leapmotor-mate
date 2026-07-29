@@ -164,3 +164,91 @@ def test_the_two_empty_answers_read_differently(env):
         tl = i18n.get_t(lang)
         for key in ("charger_locator_relocate_kept", "charger_locator_relocate_none"):
             assert tl(key) != key, f"{lang} is missing {key}"
+
+
+# ── ✏️ manual station name (#193: "Where to add stationname") ────────────────────
+
+def test_manual_name_is_saved(env):
+    main, fake, add_charge, answer = env
+    cid = add_charge()
+
+    class Form(_Req):
+        async def form(self):
+            return {"name": "Colonnina del bar Mario"}
+
+    asyncio.run(main.set_manual_charge_location(Form(), cid))
+
+    row = db_reader.get_charge_location(cid)
+    assert row["location_name"] == "Colonnina del bar Mario"
+    assert row["location_url"] is None   # a hand-typed name never has a source link
+
+
+def test_manual_name_removes_the_charge_from_the_sweep_queue(env):
+    """location_name IS NOT NULL either way — set_charge_location_name is the SAME write
+    path the automatic sweep and the candidate-picker use, so this charge drops out of
+    get_location_lookup_candidates exactly like an auto-resolved name would."""
+    main, fake, add_charge, answer = env
+    cid = add_charge()
+    assert any(c["id"] == cid for c in db_reader.get_location_lookup_candidates())
+
+    class Form(_Req):
+        async def form(self):
+            return {"name": "Colonnina del bar Mario"}
+
+    asyncio.run(main.set_manual_charge_location(Form(), cid))
+
+    assert not any(c["id"] == cid for c in db_reader.get_location_lookup_candidates())
+
+
+def test_empty_submission_leaves_an_existing_name_untouched(env):
+    main, fake, add_charge, answer = env
+    cid = add_charge(name="Old name", url="https://old/1")
+
+    class Form(_Req):
+        async def form(self):
+            return {"name": "  "}   # whitespace-only, same as leaving the field blank
+
+    asyncio.run(main.set_manual_charge_location(Form(), cid))
+
+    row = db_reader.get_charge_location(cid)
+    assert row["location_name"] == "Old name"
+    assert row["location_url"] == "https://old/1"
+
+
+def test_manual_name_on_a_missing_charge_returns_404(env):
+    main, fake, add_charge, answer = env
+
+    class Form(_Req):
+        async def form(self):
+            return {"name": "Anything"}
+
+    resp = asyncio.run(main.set_manual_charge_location(Form(), 999))
+
+    assert resp.status_code == 404
+
+
+def test_manual_entry_strings_present_in_every_locale():
+    import i18n
+    for lang in ("en", "it", "de", "fr", "pl", "pt-PT"):
+        t = i18n.get_t(lang)
+        for key in ("charger_locator_manual_hint", "charger_locator_manual_ph"):
+            assert t(key) != key, f"{lang} is missing {key}"
+
+
+def test_manual_form_state_lives_in_classes_not_inline_style():
+    """The first version shipped `class="hidden"` next to `style="display:flex"` — and inline
+    style beats any class, so the input was permanently open and ✏️ toggled nothing (verified
+    on the test container before fixing). The open/closed state must live in the classes alone:
+    no `display` in the form's inline style, and the toggle flips hidden AND flex together."""
+    import pathlib
+    src = (pathlib.Path(__file__).resolve().parent.parent
+           / "web" / "templates" / "partials" / "charge_location.html").read_text()
+    # anchor to the FORM tag itself — "loc-manual-" alone first matches the ✏️ button's
+    # onclick, which is how the first version of this very test passed nothing at all
+    form = src[src.index('<form id="loc-manual-'):]
+    form_tag = form[:form.index(">")]
+    assert "display" not in form_tag                      # the class decides, nothing else
+    assert 'class="hidden' in form_tag
+    btn = src[src.index("charger_locator_manual_hint"):src.index('<form id="loc-manual-')]
+    assert "classList.toggle('hidden')" in btn
+    assert "classList.toggle('flex')" in btn              # both, or the row collapses to block

@@ -198,6 +198,8 @@
     "charger_locator_relocate_kept": "Nessuna colonnina trovata — nome invariato",
     "charger_locator_pick": "Questa colonnina ha più opzioni di ricarica, scegli la tua:",
     "charger_locator_cancel": "Annulla",
+    "charger_locator_manual_hint": "Inserisci manualmente il nome della colonnina",
+    "charger_locator_manual_ph": "Nome colonnina…",
     "nav_find_chargers": "Trova colonnine",
     "nav_charger_radius": "Distanza massima (km)",
     "nav_charger_count": "Risultati per pagina",
