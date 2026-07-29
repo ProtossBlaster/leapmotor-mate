@@ -29,14 +29,22 @@ PLUS2 = timezone(timedelta(hours=2))
 
 
 def _db(tmp_path, monkeypatch, charges):
-    """A real schema in a throwaway file — never the ambient DB, which would mask the dependency."""
+    """A real schema in a throwaway file — never the ambient DB, which would mask the dependency.
+
+    Each charge is (started, ended, location_type) or (started, ended, location_type, manual_entry).
+    Left out, the marker follows the location_type — which is what these fixtures have always meant
+    by 'MANUAL': a row somebody typed. The two meanings of that word are pulled apart in the last
+    section of this file, where a MEASURED charge wears the same tag."""
     path = str(tmp_path / "web.db")
     poller_db.Database(path)
     con = sqlite3.connect(path)
     con.execute("INSERT INTO vehicles (id, vin) VALUES (1, 'VIN123')")
-    for started, ended, loc in charges:
+    for row in charges:
+        started, ended, loc = row[:3]
+        manual = row[3] if len(row) > 3 else (1 if loc == "MANUAL" else 0)
         con.execute("INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, "
-                    "location_type) VALUES (1, ?, ?, 10.0, ?)", (started, ended, loc))
+                    "location_type, manual_entry) VALUES (1, ?, ?, 10.0, ?, ?)",
+                    (started, ended, loc, manual))
     con.commit(); con.close()
     monkeypatch.setattr(db_reader, "DB_PATH", path)
     monkeypatch.setattr(db_reader, "_local_tz", lambda: PLUS2)
@@ -189,3 +197,45 @@ def test_a_charge_entered_after_the_conversion_is_never_re_anchored(tmp_path, mo
     monkeypatch.setattr(db_reader, "_resolve_tz", lambda name: timezone.utc)
     db_reader.repair_manual_charge_timezones()
     assert _rows(path)[1][0] == "2026-07-25T09:00:00+00:00"     # untouched
+
+
+# ── #188: 'MANUAL' means two things, and only one of them belongs here ───────────
+#
+# location_type='MANUAL' is what add_manual_charge writes on a typed-in charge — AND what the badge
+# writes on a MEASURED one when the user picks "Manual" to type the price of a public charge Mate
+# can't tariff. This repair asks "is this wall-clock text somebody typed?", and until v2.15.0 it
+# asked with the wider of the two, so a measured session was in scope. The first pass leaves it be
+# (its timestamp already carries a zone), which is why nobody saw this; a later zone CHANGE puts it
+# through the re-anchoring branch and rewrites the timestamp the CAR recorded.
+#
+# Measured while building #188: a charge recorded at 07:54 UTC came out at 13:54 after a move from
+# Europe/Rome to America/New_York. The marker the edit form needed, manual_entry, is also the right
+# question to ask here.
+
+def test_a_measured_charge_tagged_manual_for_its_price_is_out_of_scope(tmp_path, monkeypatch):
+    path = _db(tmp_path, monkeypatch, [("2026-07-08T07:54:12+00:00", None, "MANUAL", 0)])
+    store = {"timezone": "UTC"}
+    _settings(monkeypatch, store)
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: timezone.utc)
+    assert db_reader.repair_manual_charge_timezones() == 0
+    assert _rows(path)[0][0] == "2026-07-08T07:54:12+00:00"
+
+
+def test_a_zone_change_does_not_move_the_car_s_own_timestamp(tmp_path, monkeypatch):
+    """The failure this fixes: the typed row is re-anchored, the measured one stays put."""
+    path = _db(tmp_path, monkeypatch, [
+        ("2026-07-21T10:40:00", None, "MANUAL"),                  # typed: wall clock, no zone
+        ("2026-07-08T07:54:12+00:00", None, "MANUAL", 0),         # measured, tagged for its price
+    ])
+    store = {"timezone": "UTC"}
+    _settings(monkeypatch, store)
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: timezone.utc)
+    db_reader.repair_manual_charge_timezones()
+
+    store["timezone"] = "Asia/Kuala_Lumpur"
+    monkeypatch.setattr(db_reader, "_local_tz", lambda: PLUS8)
+    monkeypatch.setattr(db_reader, "_resolve_tz", lambda name: timezone.utc)
+    assert db_reader.repair_manual_charge_timezones() == 1        # the typed one, and only it
+    rows = _rows(path)
+    assert rows[0][0] == "2026-07-21T02:40:00+00:00"              # re-anchored, reads 10:40 again
+    assert rows[1][0] == "2026-07-08T07:54:12+00:00"              # untouched, to the second

@@ -452,6 +452,20 @@ class Database:
         # 0 when is_free). "Free-away" stays the FREE location_type — this flag is HOME-only.
         if "is_free" not in ccols:
             self._conn.execute("ALTER TABLE charges ADD COLUMN is_free INTEGER DEFAULT 0")
+        # migration: #188 — mark a charge the user TYPED IN (the "add a past charge" form or the CSV
+        # import) as opposed to one the poller measured. location_type='MANUAL' cannot answer this:
+        # it doubles as the COST BASIS someone picks to type the price of a real charge, so an edit
+        # form gated on it would hand out the times and SoC of measured sessions to be rewritten.
+        # Existing rows are backfilled from the signature a typed-in charge has always carried — the
+        # MANUAL basis plus no telemetry whatsoever (the poller fills lat/lon at charge start and
+        # duration/peak power at the end, and a reconstructed charge gets both too).
+        if "manual_entry" not in ccols:
+            self._conn.execute("ALTER TABLE charges ADD COLUMN manual_entry INTEGER DEFAULT 0")
+            self._conn.execute(
+                "UPDATE charges SET manual_entry = 1 "
+                "WHERE location_type = 'MANUAL' AND COALESCE(reconstructed, 0) = 0 "
+                "AND latitude IS NULL AND longitude IS NULL "
+                "AND duration_min IS NULL AND max_power_kw IS NULL AND ac_energy_kwh IS NULL")
         # migration: manual trip-merge link — a child trip points to the parent it was merged into
         tcols = {r[1] for r in self._conn.execute("PRAGMA table_info(trips)").fetchall()}
         if "merged_into_id" not in tcols:

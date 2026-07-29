@@ -1392,19 +1392,63 @@ def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] 
     cost, AC/DC and — optionally — start/end SoC can be given (the latter drives the card's SoC-gain
     tile, requested by @rossiadobe on #67). It stays SoH-safe either way: a manual charge has no power
     curve, so get_battery_health integrates ~0 energy and skips it regardless of SoC. location_type=
-    'MANUAL' keeps the automatic costers from overwriting the cost the user typed."""
+    'MANUAL' keeps the automatic costers from overwriting the cost the user typed, and manual_entry=1
+    is what says the row was TYPED (#188) — the location_type alone can't, since it doubles as the
+    cost basis a user picks on a real charge."""
     db = _conn_rw()
     try:
         vrow = db.execute("SELECT id FROM vehicles ORDER BY id LIMIT 1").fetchone()
         vehicle_id = vrow["id"] if vrow else None
         ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
         cur = db.execute(
-            "INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, "
-            "charge_type, location_type, cost, start_soc, end_soc, reconstructed) "
-            "VALUES (?, ?, ?, ?, ?, 'MANUAL', ?, ?, ?, 0)",
-            (vehicle_id, started_at, ended_at or started_at, energy_kwh, ct, cost, start_soc, end_soc))
+            "INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, duration_min, "
+            "charge_type, location_type, cost, start_soc, end_soc, reconstructed, manual_entry) "
+            "VALUES (?, ?, ?, ?, ?, ?, 'MANUAL', ?, ?, ?, 0, 1)",
+            (vehicle_id, started_at, ended_at or started_at, energy_kwh,
+             _span_minutes(started_at, ended_at), ct, cost, start_soc, end_soc))
         db.commit()
         return cur.lastrowid
+    finally:
+        db.close()
+
+
+def _span_minutes(started_at: Optional[str], ended_at: Optional[str]) -> Optional[float]:
+    """Minutes between two stored timestamps, or None when there is no real span. A typed-in charge
+    that carries an end time deserves the same ⏱ duration a measured one shows — without this the
+    card prints the two times and then nothing between them (#188)."""
+    if not started_at or not ended_at or started_at == ended_at:
+        return None
+    try:
+        a = datetime.fromisoformat(str(started_at).replace(" ", "T").replace("Z", "+00:00"))
+        b = datetime.fromisoformat(str(ended_at).replace(" ", "T").replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    mins = (b - a).total_seconds() / 60.0
+    return round(mins, 1) if mins > 0 else None
+
+
+def update_manual_charge(charge_id: int, started_at: str, energy_kwh: float,
+                         cost: Optional[float] = None, charge_type: str = "AC",
+                         ended_at: Optional[str] = None, start_soc: Optional[float] = None,
+                         end_soc: Optional[float] = None) -> bool:
+    """Rewrite a charge the user typed in (#188) — @adoewa imported his whole history from a
+    spreadsheet and could then change only its note, its AC/DC tag and its cost, while the times and
+    the SoC (which the add form never even asked for) were frozen for good.
+
+    Guarded on manual_entry=1, and that guard is the point: on a MEASURED charge these fields are
+    readings, and handing them to a form would let a typo overwrite what the car reported. Returns
+    False — changing nothing — when the id isn't a typed-in charge."""
+    db = _conn_rw()
+    try:
+        ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
+        cur = db.execute(
+            "UPDATE charges SET started_at=?, ended_at=?, energy_added_kwh=?, duration_min=?, "
+            "charge_type=?, cost=?, start_soc=?, end_soc=? "
+            "WHERE id=? AND manual_entry=1",
+            (started_at, ended_at or started_at, energy_kwh, _span_minutes(started_at, ended_at),
+             ct, cost, start_soc, end_soc, charge_id))
+        db.commit()
+        return cur.rowcount > 0
     finally:
         db.close()
 
@@ -1432,7 +1476,15 @@ def _reanchor_iso(s, old_tz, new_tz):
 
 def repair_manual_charge_timezones() -> int:
     """Anchor hand-entered charges to the zone the user actually reads them in (#181). Returns how
-    many rows moved. ONLY touches location_type='MANUAL' — the poller's rows have always been UTC.
+    many rows moved. ONLY touches rows marked manual_entry=1 — the poller's are already UTC.
+
+    🔴 That predicate used to be location_type='MANUAL', and it was too wide by exactly one meaning:
+    the same value is what someone picks on the badge to say "I'll type the price myself", on a REAL
+    charge. Measured, and therefore selected here. A first pass leaves it alone (its timestamp carries
+    a zone, so the wall-clock conversion is a no-op) — but on a later zone CHANGE it lands in the
+    re-anchoring branch and the car's own timestamp is rewritten. Measured on a test install while
+    building #188: a charge the car recorded at 07:54 UTC, tagged MANUAL for its price, came out at
+    13:54 after a move from Europe/Rome to America/New_York.
 
     v2.12.1 shipped this with one marker: a row carrying a zone was considered done. That is
     idempotent, and it was wrong, because it freezes whatever zone happened to be configured at the
@@ -1453,7 +1505,7 @@ def repair_manual_charge_timezones() -> int:
         tz = _local_tz()
         prev_zone = (get_setting(TZ_REPAIR_ZONE_KEY, "") or "").strip()
         rows = db.execute(
-            "SELECT id, started_at, ended_at FROM charges WHERE location_type = 'MANUAL'").fetchall()
+            "SELECT id, started_at, ended_at FROM charges WHERE manual_entry = 1").fetchall()
         try:
             covered = int(get_setting(TZ_REPAIR_MAXID_KEY, "0") or 0)
         except (TypeError, ValueError):

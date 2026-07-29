@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "2.14.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "2.15.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -2581,31 +2581,85 @@ def _wallbox_overlay(curve: dict, charge_id: int) -> list | None:
     return out if any(v is not None for v in out) else None
 
 
+def _typed_charge_payload(form) -> tuple[dict | None, bool]:
+    """The fields a TYPED-IN charge is made of, read once for both forms that write one — the "add a
+    past charge" form and the #188 edit form. Returns (payload, ok): two callers, one answer on what
+    a comma decimal, a blank cost or an out-of-range SoC mean, so the pair can't drift.
+
+    The wall clock is anchored here too: a time the user typed means nothing until it's tied to a
+    zone, and everything the DB holds is UTC (#181)."""
+    def _num(name):
+        raw = str(form.get(name, "") or "").strip().replace(",", ".")
+        try:
+            return float(raw) if raw else None
+        except ValueError:
+            return None
+
+    def _soc(name):
+        v = _num(name)
+        return v if (v is not None and 0 <= v <= 100) else None
+
+    date = (form.get("date") or "").strip()
+    time_ = (form.get("time") or "").strip() or "12:00"        # noon default → no day-shift on display
+    energy = _num("energy") or 0.0
+    if not date or energy <= 0:
+        return None, False
+
+    end_date = (form.get("end_date") or "").strip()
+    end_time = (form.get("end_time") or "").strip()
+    ended_at = None
+    if end_date or end_time:
+        ended_at = db_reader.local_to_utc_iso(f"{end_date or date}T{end_time or time_}:00")
+
+    started_at = db_reader.local_to_utc_iso(f"{date}T{time_}:00")
+    # An end before the start is a typo, not a negative charge: drop it rather than store a span
+    # that would come back as a negative duration everywhere it's summed.
+    if ended_at and ended_at <= started_at:
+        ended_at = None
+    return {
+        "started_at": started_at,
+        "ended_at": ended_at,
+        "energy_kwh": energy,
+        "cost": _num("cost"),
+        "charge_type": (form.get("charge_type") or "AC").strip().upper(),
+        "start_soc": _soc("start_soc"),
+        "end_soc": _soc("end_soc"),
+    }, True
+
+
 @app.post("/api/charges/manual", response_class=HTMLResponse)
 async def add_manual_charge_api(request: Request):
     """Add a historical charge by hand (#87) — for sessions from before Mate was installed, so the
     lifetime totals / monthly report are complete. Only date+energy are required; cost and AC/DC are
-    optional. No SoC / power curve (manual entries carry no telemetry)."""
+    optional. No power curve (manual entries carry no telemetry); SoC and an end time can be given
+    through the CSV import or corrected afterwards on the charge itself (#188)."""
     form = await request.form()
     t = i18n.get_t(db_reader.get_language())
-    date = (form.get("date") or "").strip()
-    time_ = (form.get("time") or "").strip() or "12:00"        # noon default → no day-shift on display
-    try:
-        energy = float(str(form.get("energy", "")).strip().replace(",", "."))
-    except ValueError:
-        energy = 0.0
-    cost_raw = str(form.get("cost", "")).strip().replace(",", ".")
-    try:
-        cost = float(cost_raw) if cost_raw else None
-    except ValueError:
-        cost = None
-    ctype = (form.get("charge_type") or "AC").strip().upper()
-    if not date or energy <= 0:
+    payload, ok = _typed_charge_payload(form)
+    if not ok:
         return HTMLResponse(f'<span style="color:#ef4444">✗ {t("manual_charge_required")}</span>', status_code=400)
-    # The date and time above are what the user reads off their own clock, so they mean nothing until
-    # they're anchored to a zone. Store UTC like everything else the DB holds (#181).
-    db_reader.add_manual_charge(db_reader.local_to_utc_iso(f"{date}T{time_}:00"), energy, cost, ctype)
+    db_reader.add_manual_charge(**payload)
     return HTMLResponse(f'<span style="color:#22c55e">✓ {t("manual_charge_added")}</span>',
+                        headers={"HX-Trigger": "chargeAdded"})
+
+
+@app.post("/api/charges/{charge_id}/edit", response_class=HTMLResponse)
+async def edit_manual_charge_api(request: Request, charge_id: int):
+    """Correct a charge that was typed in — the times, the SoC, the energy, the cost (#188).
+
+    @adoewa entered his whole charging history from a spreadsheet and then found the only things he
+    could change were the note, the AC/DC tag and the cost; the start and end times and the SoC, which
+    the add form had never asked him for, were frozen. Restricted to typed-in rows: on a MEASURED
+    charge those numbers are readings, and a form over them would let a typo overwrite what the car
+    reported. db_reader enforces that too — this route is not the only gate."""
+    form = await request.form()
+    t = i18n.get_t(db_reader.get_language())
+    payload, ok = _typed_charge_payload(form)
+    if not ok:
+        return HTMLResponse(f'<span style="color:#ef4444">✗ {t("manual_charge_required")}</span>', status_code=400)
+    if not db_reader.update_manual_charge(charge_id, **payload):
+        return HTMLResponse(f'<span style="color:#ef4444">✗ {t("charge_edit_not_manual")}</span>', status_code=400)
+    return HTMLResponse(f'<span style="color:#22c55e">✓ {t("charge_edit_saved")}</span>',
                         headers={"HX-Trigger": "chargeAdded"})
 
 

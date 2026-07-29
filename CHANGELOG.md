@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.15.0] — 2026-07-29
+
+### Added
+- **A charge you typed in can now be corrected — all of it.** Until now, once a past charge was in, the only things you could still change were its note, its AC/DC tag and its cost; the times and the battery levels were fixed for good. **@adoewa** entered his entire charging history from a spreadsheet and then found no way to fix any of it (#188). Every charge you entered by hand — through the form or the CSV import — now carries an **✏️ Edit** button holding the start, an optional end, the energy, the cost, AC/DC and the two SoC readings, filled in with whatever is already there. Give it an end time and the session gets its duration back too.
+- The button is on charges **you** typed and on no others. What the car measured stays as the car measured it: those numbers are readings, and a form over them would let one keystroke overwrite what actually happened. Mate now marks a charge as hand-entered when it is created, and the existing ones are recognised on update — the "Manual" tag on the badge could never do that job, because it also means *"I'll type the price myself"*, which people rightly use on real charges.
+
+### Fixed
+- **A charge with no battery reading no longer shows one.** A typed-in charge carries no SoC — the form has never asked for it — and the card was drawing that absence as a measured **0.0% → 0.0%**, with a yellow **+0.0%** beside it and an empty bar underneath. The figures were not wrong so much as invented, sitting next to real ones. Unknown now reads as a dash, and only a genuine zero still prints as 0.0%.
+- **Changing your time zone can no longer move a charge the car recorded.** Since v2.12.1 Mate re-anchors hand-entered charges when you pick a different zone — correctly, because a time you typed is a time on your clock. It found them by their "Manual" tag, and that tag has a second meaning: it is also what you pick to type the price of a **real** charge Mate can't tariff by itself, which is a perfectly ordinary thing to do on a public charging session. Such a charge was therefore in scope, and while the first pass left it alone, a later change of zone shifted it by the whole offset — a session the car timed at 07:54 came back at 13:54 after a move between two continents. Found while building the edit form above, which needed to tell the two meanings apart anyway; the repair now asks the same, narrower question. Nothing you typed is affected, and no charge moves on update.
+
 ## [2.14.1] — 2026-07-28
 
 ### Fixed

@@ -2,11 +2,16 @@
    and the search results list. Expects `c` (a charge dict, localized like get_charges_grouped
    produces) plus the page-level `t`, `charge_types`, `ico` already in the including template's
    context (Jinja includes share the parent scope by default). #}
+{# `or 0` used to stand in for a MISSING SoC, so a typed-in charge that carries none was drawn as a
+   measured 0.0% → 0.0% with a yellow +0.0% beside it — an invented reading, next to real ones (#188,
+   @adoewa). Unknown now shows as an em dash and an empty bar; the numbers below are only for the
+   geometry, which needs a number either way. #}
+{% set has_soc   = c.start_soc is not none and c.end_soc is not none %}
 {% set soc_start = c.start_soc or 0 %}
 {% set soc_end   = c.end_soc   or 0 %}
 {% set soc_delta = soc_end - soc_start %}
 
-<div data-charge-id="{{ c.id }}" class="charge-card"
+<div data-charge-id="{{ c.id }}" id="charge-card-{{ c.id }}" class="charge-card"
      style="background:#060e1a;border:1px solid #111c2e;border-radius:12px;padding:16px">
 
   <!-- Header -->
@@ -121,15 +126,21 @@
     <div class="flex justify-between text-xs mb-1.5">
       <span class="text-slate-500">SOC</span>
       <span class="text-white font-medium">
+        {% if has_soc %}
         {{ "%.1f"|format(soc_start) }}%
         <span class="text-slate-600 mx-1">→</span>
         {{ "%.1f"|format(soc_end) }}%
         <span class="text-yellow-400 ml-1 font-bold">+{{ "%.1f"|format(soc_delta) }}%</span>
+        {% else %}
+        <span class="text-slate-600" title="{{ t('soc_unknown_hint') }}">—</span>
+        {% endif %}
       </span>
     </div>
     <div style="position:relative;height:12px;background:#1e293b;border-radius:6px;overflow:hidden">
+      {% if has_soc %}
       <div style="position:absolute;left:0;top:0;height:100%;width:{{ soc_start }}%;background:#334155"></div>
       <div class="soc-bar" style="position:absolute;left:{{ soc_start }}%;top:0;height:100%;width:{{ soc_delta }}%;background:linear-gradient(90deg,#fbbf24,#f59e0b)"></div>
+      {% endif %}
     </div>
     <div class="flex justify-between text-xs text-slate-700 mt-1">
       <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
@@ -158,7 +169,8 @@
     <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
       <div class="stat-label" style="font-size:10px">{{ t('soc_gain') }}</div>
       <div style="font-size:16px;font-weight:700;color:white">
-        +{{ "%.1f"|format(soc_delta) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> %</span>
+        {% if has_soc %}+{{ "%.1f"|format(soc_delta) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> %</span>
+        {% else %}<span style="color:#475569" title="{{ t('soc_unknown_hint') }}">—</span>{% endif %}
       </div>
     </div>
     <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
@@ -199,12 +211,77 @@
     </form>
   </div>
 
-  <div class="flex justify-end mt-2">
+  <div class="flex justify-between items-center mt-2">
+    {# #188: a TYPED-IN charge can be corrected — times, SoC, energy, cost. A measured one cannot:
+       those numbers are readings. `manual_entry` is the test, not location_type='MANUAL', which
+       doubles as the cost basis a user picks on a real charge. #}
+    {% if c.manual_entry %}
+    <button type="button" onclick="document.getElementById('cedit-{{ c.id }}').classList.toggle('hidden')"
+            style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
+            onmouseover="this.style.color='#38bdf8'" onmouseout="this.style.color='#64748b'">
+      ✏️ {{ t('charge_edit') }}</button>
+    {% else %}<span></span>{% endif %}
     <button hx-delete="api/charges/{{ c.id }}" hx-confirm="{{ t('charge_delete_confirm') }}"
             style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
             onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'">
       🗑 {{ t('charge_delete') }}</button>
   </div>
+
+  {% if c.manual_entry %}
+  <div id="cedit-{{ c.id }}" class="hidden mt-2 pt-3" style="border-top:1px solid #1e293b">
+    <p class="text-[11px] text-slate-500 mb-2">{{ t('charge_edit_hint') }}</p>
+    <form hx-post="api/charges/{{ c.id }}/edit" hx-target="#cedit-msg-{{ c.id }}" hx-swap="innerHTML"
+          hx-on::after-request="if(event.detail.successful){setTimeout(function(){location.reload();},900);}"
+          class="flex flex-wrap items-end gap-3">
+      <label class="text-xs text-slate-400">{{ t('manual_charge_when') }}
+        <span class="flex gap-1 mt-1">
+          <input type="date" name="date" required value="{{ c.started_at[:10] if c.started_at }}"
+                 class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+          <input type="time" name="time" value="{{ c.started_at[11:16] if c.started_at }}"
+                 class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+        </span>
+      </label>
+      {% set has_end = c.ended_at and c.ended_at != c.started_at %}
+      <label class="text-xs text-slate-400">{{ t('charge_edit_end') }}
+        <span class="flex gap-1 mt-1">
+          <input type="date" name="end_date" value="{{ c.ended_at[:10] if has_end }}"
+                 class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+          <input type="time" name="end_time" value="{{ c.ended_at[11:16] if has_end }}"
+                 class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+        </span>
+      </label>
+      <label class="text-xs text-slate-400">{{ t('manual_charge_energy') }}
+        <input type="number" name="energy" min="0" step="0.01" required placeholder="kWh"
+               value="{{ '%.2f'|format(c.energy_added_kwh) if c.energy_added_kwh is not none }}"
+               class="block mt-1 w-24 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+      </label>
+      <label class="text-xs text-slate-400">{{ t('manual_charge_cost') }}
+        <input type="number" name="cost" min="0" step="0.01"
+               value="{{ '%.2f'|format(c.cost) if c.cost is not none }}"
+               class="block mt-1 w-24 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+      </label>
+      <label class="text-xs text-slate-400">{{ t('charge_edit_soc') }}
+        <span class="flex items-center gap-1 mt-1">
+          <input type="number" name="start_soc" min="0" max="100" step="0.1" placeholder="%"
+                 value="{{ '%.1f'|format(c.start_soc) if c.start_soc is not none }}"
+                 class="w-20 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+          <span class="text-slate-600">→</span>
+          <input type="number" name="end_soc" min="0" max="100" step="0.1" placeholder="%"
+                 value="{{ '%.1f'|format(c.end_soc) if c.end_soc is not none }}"
+                 class="w-20 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+        </span>
+      </label>
+      <label class="text-xs text-slate-400">{{ t('manual_charge_type') }}
+        <select name="charge_type" class="block mt-1 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+          <option value="AC" {% if c.charge_type != 'DC' %}selected{% endif %}>AC</option>
+          <option value="DC" {% if c.charge_type == 'DC' %}selected{% endif %}>DC</option>
+        </select>
+      </label>
+      <button type="submit" class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:opacity-90 active:scale-95 transition">{{ t('note_save') }}</button>
+      <span id="cedit-msg-{{ c.id }}" class="text-sm font-medium"></span>
+    </form>
+  </div>
+  {% endif %}
 
   <!-- Power curve (expandable, lazy-loaded on first open) -->
   <details class="mt-3">
