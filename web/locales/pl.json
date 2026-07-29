@@ -198,6 +198,8 @@
     "charger_locator_relocate_kept": "Nie znaleziono stacji — nazwa bez zmian",
     "charger_locator_pick": "Ta stacja ma kilka opcji ładowania, wybierz swoją:",
     "charger_locator_cancel": "Anuluj",
+    "charger_locator_manual_hint": "Wpisz nazwę stacji ręcznie",
+    "charger_locator_manual_ph": "Nazwa stacji…",
     "nav_find_chargers": "Znajdź stacje ładowania",
     "nav_charger_radius": "Maks. odległość (km)",
     "nav_charger_count": "Wyniki na stronę",

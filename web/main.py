@@ -2561,6 +2561,28 @@ async def cancel_charge_location(request: Request, charge_id: int):
                                       {"charge": charge or {"id": charge_id}, "t": t})
 
 
+@app.post("/api/charges/{charge_id}/locate/manual", response_class=HTMLResponse)
+async def set_manual_charge_location(request: Request, charge_id: int):
+    """✏️ free-text station name — for a station OSM/OCM simply doesn't have (#193:
+    "Where to add stationname"). No coordinates/URL involved, just the label the
+    automatic lookup could never produce on its own. Persists through
+    set_charge_location_name exactly like a picked candidate would — location_name
+    IS NOT NULL either way, so the background sweep (_LOCATION_CANDIDATES_WHERE) never
+    revisits this charge. An empty submission changes nothing (closes the input with
+    whatever was already saved, same as clicking away)."""
+    form = await request.form()
+    name = (form.get("name") or "").strip()[:200]
+    charge = db_reader.get_charge_location(charge_id)
+    if not charge:
+        return HTMLResponse("", status_code=404)
+    if name:
+        db_reader.set_charge_location_name(charge_id, name, None)
+        charge["location_name"], charge["location_url"] = name, None
+    t = i18n.get_t(db_reader.get_language())
+    return templates.TemplateResponse(request, "partials/charge_location.html",
+                                      {"charge": charge, "t": t})
+
+
 def _wallbox_overlay(curve: dict, charge_id: int) -> list | None:
     """Wallbox power (from HA history) resampled onto the car curve's timestamps,
     so it overlays the car's DC power on the same axis. None when unavailable.

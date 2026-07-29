@@ -164,3 +164,72 @@ def test_the_two_empty_answers_read_differently(env):
         tl = i18n.get_t(lang)
         for key in ("charger_locator_relocate_kept", "charger_locator_relocate_none"):
             assert tl(key) != key, f"{lang} is missing {key}"
+
+
+# ── ✏️ manual station name (#193: "Where to add stationname") ────────────────────
+
+def test_manual_name_is_saved(env):
+    main, fake, add_charge, answer = env
+    cid = add_charge()
+
+    class Form(_Req):
+        async def form(self):
+            return {"name": "Colonnina del bar Mario"}
+
+    asyncio.run(main.set_manual_charge_location(Form(), cid))
+
+    row = db_reader.get_charge_location(cid)
+    assert row["location_name"] == "Colonnina del bar Mario"
+    assert row["location_url"] is None   # a hand-typed name never has a source link
+
+
+def test_manual_name_removes_the_charge_from_the_sweep_queue(env):
+    """location_name IS NOT NULL either way — set_charge_location_name is the SAME write
+    path the automatic sweep and the candidate-picker use, so this charge drops out of
+    get_location_lookup_candidates exactly like an auto-resolved name would."""
+    main, fake, add_charge, answer = env
+    cid = add_charge()
+    assert any(c["id"] == cid for c in db_reader.get_location_lookup_candidates())
+
+    class Form(_Req):
+        async def form(self):
+            return {"name": "Colonnina del bar Mario"}
+
+    asyncio.run(main.set_manual_charge_location(Form(), cid))
+
+    assert not any(c["id"] == cid for c in db_reader.get_location_lookup_candidates())
+
+
+def test_empty_submission_leaves_an_existing_name_untouched(env):
+    main, fake, add_charge, answer = env
+    cid = add_charge(name="Old name", url="https://old/1")
+
+    class Form(_Req):
+        async def form(self):
+            return {"name": "  "}   # whitespace-only, same as leaving the field blank
+
+    asyncio.run(main.set_manual_charge_location(Form(), cid))
+
+    row = db_reader.get_charge_location(cid)
+    assert row["location_name"] == "Old name"
+    assert row["location_url"] == "https://old/1"
+
+
+def test_manual_name_on_a_missing_charge_returns_404(env):
+    main, fake, add_charge, answer = env
+
+    class Form(_Req):
+        async def form(self):
+            return {"name": "Anything"}
+
+    resp = asyncio.run(main.set_manual_charge_location(Form(), 999))
+
+    assert resp.status_code == 404
+
+
+def test_manual_entry_strings_present_in_every_locale():
+    import i18n
+    for lang in ("en", "it", "de", "fr", "pl", "pt-PT"):
+        t = i18n.get_t(lang)
+        for key in ("charger_locator_manual_hint", "charger_locator_manual_ph"):
+            assert t(key) != key, f"{lang} is missing {key}"

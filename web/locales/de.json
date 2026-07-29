@@ -198,6 +198,8 @@
     "charger_locator_relocate_kept": "Keine Ladestation gefunden — Name unverändert",
     "charger_locator_pick": "Diese Station hat mehrere Lademöglichkeiten, wähle deine:",
     "charger_locator_cancel": "Abbrechen",
+    "charger_locator_manual_hint": "Namen der Ladestation manuell eingeben",
+    "charger_locator_manual_ph": "Name der Ladestation…",
     "nav_find_chargers": "Ladestationen finden",
     "nav_charger_radius": "Max. Entfernung (km)",
     "nav_charger_count": "Ergebnisse pro Seite",

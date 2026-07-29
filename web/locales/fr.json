@@ -198,6 +198,8 @@
     "charger_locator_relocate_kept": "Aucune borne trouvée — nom inchangé",
     "charger_locator_pick": "Cette borne propose plusieurs options de recharge, choisissez la vôtre :",
     "charger_locator_cancel": "Annuler",
+    "charger_locator_manual_hint": "Saisir manuellement le nom de la borne",
+    "charger_locator_manual_ph": "Nom de la borne…",
     "nav_find_chargers": "Trouver des bornes",
     "nav_charger_radius": "Distance max. (km)",
     "nav_charger_count": "Résultats par page",
