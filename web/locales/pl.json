@@ -1015,6 +1015,7 @@
     "fuel_add_btn": "Dodaj tankowanie",
     "fuel_when": "Kiedy",
     "fuel_liters": "Litry",
+    "fuel_liters_hint": "Szacunek z pływaka — zastąp go litrami z paragonu.",
     "fuel_price_per_l": "Cena za litr",
     "fuel_total": "Razem",
     "fuel_note": "Notatka",

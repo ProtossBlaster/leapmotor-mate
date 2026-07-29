@@ -40,11 +40,17 @@
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {# The litres are a float-gauge estimate and the box is there to be typed over — but it
+           reads like a reading from the car, so people leave it. @gm27271 (beta #10) worked out
+           the consequence before hitting it: confirm 9 L against a 10 L receipt and the price per
+           litre comes out 20/9 = 2.22 instead of the 2.00 actually paid, which then weights the
+           blend and every trip that burns from that tankful. #}
         <label class="block">
           <span class="text-[11px] text-slate-400">⛽ {{ t('fuel_liters') }}</span>
           <input type="number" name="liters" step="0.01" min="0" inputmode="decimal"
-                 value="{{ d.liters }}"
+                 value="{{ d.liters }}" title="{{ t('fuel_liters_hint') }}"
                  class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-sm text-right focus:outline-none focus:border-brand">
+          <span class="block text-[10px] text-slate-500 mt-0.5 leading-tight">{{ t('fuel_liters_hint') }}</span>
         </label>
         {# The price is what makes a detection confirmable, so Confirm stays disabled until one of
            the two money fields has something in it. Without this the button is simply dead: a

@@ -1015,6 +1015,7 @@
     "fuel_add_btn": "Ajouter le plein",
     "fuel_when": "Quand",
     "fuel_liters": "Litres",
+    "fuel_liters_hint": "Estimation de la jauge — remplacez-la par les litres du ticket.",
     "fuel_price_per_l": "Prix au litre",
     "fuel_total": "Total",
     "fuel_note": "Note",

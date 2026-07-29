@@ -1015,6 +1015,7 @@
     "fuel_add_btn": "Adicionar abastecimento",
     "fuel_when": "Quando",
     "fuel_liters": "Litros",
+    "fuel_liters_hint": "Estimativa da boia — substitui pelos litros do talão.",
     "fuel_price_per_l": "Preço por litro",
     "fuel_total": "Total",
     "fuel_note": "Nota",

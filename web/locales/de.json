@@ -1015,6 +1015,7 @@
     "fuel_add_btn": "Tankvorgang hinzufügen",
     "fuel_when": "Wann",
     "fuel_liters": "Liter",
+    "fuel_liters_hint": "Schätzung des Gebers — durch die Liter auf dem Beleg ersetzen.",
     "fuel_price_per_l": "Preis pro Liter",
     "fuel_total": "Gesamt",
     "fuel_note": "Notiz",

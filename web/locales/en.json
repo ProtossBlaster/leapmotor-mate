@@ -1015,6 +1015,7 @@
     "fuel_add_btn": "Add refuel",
     "fuel_when": "When",
     "fuel_liters": "Litres",
+    "fuel_liters_hint": "Gauge estimate — replace it with the litres on your receipt.",
     "fuel_price_per_l": "Price per litre",
     "fuel_total": "Total",
     "fuel_note": "Note",

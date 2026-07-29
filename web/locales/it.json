@@ -1015,6 +1015,7 @@
     "fuel_add_btn": "Aggiungi rifornimento",
     "fuel_when": "Quando",
     "fuel_liters": "Litri",
+    "fuel_liters_hint": "Stima del galleggiante — sostituiscila con i litri dello scontrino.",
     "fuel_price_per_l": "Prezzo al litro",
     "fuel_total": "Totale",
     "fuel_note": "Nota",
