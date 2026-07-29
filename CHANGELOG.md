@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.17.0] — 2026-07-30
+
+### Added
+- **You can now type a charging station's name yourself.** Every station name in Mate comes from OpenStreetMap and Open Charge Map, and some real stations are in neither: a company car park or any charger behind a barrier is invisible to both **by design**, so the 🔄 lookup could only ever come back empty on them — exactly **@adoewa**'s case in #193. A **✏️** button next to the lookup opens a small field: type the name, press ✓, done. It opens pre-filled with the current name, so it doubles as a quick correction; an empty submission changes nothing; and a typed name takes the charge out of the background lookup queue exactly like a found one would. One thing worth knowing: 🔄 still re-runs the database lookup and replaces the name when it finds exactly one match — press it only when a re-lookup is what you want. Written overnight by **@hubcasale** (#194), on top of yesterday evening's release, with all six languages covered.
+
 ## [2.16.0] — 2026-07-29
 
 ### Added
