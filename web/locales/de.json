@@ -651,6 +651,7 @@
     "avg_duration": "Ø-Dauer",
     "peak_power": "Spitzenleistung",
     "total_cost": "Gesamtkosten",
+    "avg_price_partial": "{n} von {tot} Sitzungen",
     "charge_limit": "Ladelimit",
     "charge_limit_desc": "Max. SOC, bis zu dem das Auto lädt",
     "set_limit": "Setzen",

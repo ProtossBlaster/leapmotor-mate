@@ -3,7 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [2.17.0] — 2026-07-30
+## [2.18.0] — 2026-07-30
+
+### Added
+- **The Charges page now tells you what a kWh actually costs you.** A sixth card next to the totals: your spend divided by the energy you paid for, quoted to three decimals — the one number that turns "I spent 101 €" into something you can compare against a tariff, a public charger or a litre of petrol. Asked for by **@adoewa** in #187, and it turned out he was asking for something Mate could already work out but only showed one month at a time, on another page.
+- The card says what it covers. A charge with no cost yet — one you haven't tagged, or of a type you haven't priced — still has kWh, so leaving it in the division would report a price lower than the one you pay. It is left out, and a line under the number says so: *"25 of 26 sessions"*. Without that line the page would show a total energy and a total spend that divide into a **different** number from the one printed beside them, and nothing to explain the gap.
+
+### Fixed
+- **The monthly Report's "Avg price" was under-reporting, sometimes badly.** It divided the month's spend by the month's *total* energy, unpriced charges included. On the test data a single untagged charge out of ten was enough to show **0.199 €/kWh** for a month whose real price was **0.250** — a fifth off, and plausible enough that nobody would question it. Both places now compute the average the same way, from one function, so they cannot drift apart.
+- The Report also quoted that price with two decimals, which flattens 0.250 and 0.199 onto 0.25 and 0.20 — hiding both the error and the correction. Prices per kWh now keep three decimals, like the per-litre prices already did.
+
+## [2.17.0] — 2026-07-29
 
 ### Added
 - **You can now type a charging station's name yourself.** Every station name in Mate comes from OpenStreetMap and Open Charge Map, and some real stations are in neither: a company car park or any charger behind a barrier is invisible to both **by design**, so the 🔄 lookup could only ever come back empty on them — exactly **@adoewa**'s case in #193. A **✏️** button next to the lookup opens a small field: type the name, press ✓, done. It opens pre-filled with the current name, so it doubles as a quick correction; an empty submission changes nothing; and a typed name takes the charge out of the background lookup queue exactly like a found one would. One thing worth knowing: 🔄 still re-runs the database lookup and replaces the name when it finds exactly one match — press it only when a re-lookup is what you want. Written overnight by **@hubcasale** (#194), on top of yesterday evening's release, with all six languages covered.

@@ -651,6 +651,7 @@
     "avg_duration": "Durée moyenne",
     "peak_power": "Puissance max",
     "total_cost": "Coût total",
+    "avg_price_partial": "{n} sessions sur {tot}",
     "charge_limit": "Limite de charge",
     "charge_limit_desc": "SOC max que la voiture atteindra",
     "set_limit": "Définir",
