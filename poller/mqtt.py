@@ -17,6 +17,12 @@ log = logging.getLogger(__name__)
 
 _DISC = "homeassistant"  # HA discovery prefix
 
+# Value template for a topic whose payload is legitimately EMPTY sometimes. Without it Home
+# Assistant hands "" to the device_class parser and logs an error on every poll; with it the entity
+# simply reads `unknown`, which is the honest answer. Only an empty string is falsy in Jinja, so a
+# real "0" still goes through.
+_EMPTY_NONE = "{{ value if value else none }}"
+
 
 class MqttService:
     def __init__(self, broker, port, username=None, password=None, topic_prefix="leapmotor",
@@ -186,6 +192,29 @@ class MqttService:
         pub("steering_heat", data.steering_heat)
         pub("mirror_heat_left", data.mirror_heat_left);     pub("mirror_heat_right", data.mirror_heat_right)
         pub("last_seen", datetime.now(timezone.utc).isoformat())
+        # The CAR's own clock on this frame, and how far behind it has fallen (#178 @riri19).
+        # `last_seen` above is when MATE wrote the row — the POLL clock — so it stays a few seconds
+        # old forever: Mate polls on a timer and the cloud always answers. When the car can't reach
+        # the cloud, the cloud re-serves the last frame it holds, and that fresh `last_seen` then
+        # sits on top of half-hour-old contents. These two say how old the CONTENT is.
+        #
+        # Deliberately UNGATED, unlike the Overview's "· data 33m old" tail. That gate (car driving
+        # or charging, and the data behind the polling) exists so a sleeping car doesn't paint
+        # "data 8h old" on the panel every morning — a decision about a screen. An automation wants
+        # the raw number and its OWN conditions, and the phone is the only co-signer that can't
+        # freeze along with the cloud (Mate's own speed/gear/charging go out frozen here too).
+        #
+        # Both empty when the car doesn't report its clock: timestamp_ms is
+        # `int(sig.get("sts") or sig.get("1") or 0)` and 0 would hand HA 1 January 1970 with an age
+        # of fifty-six years, every poll, forever. The discovery configs map empty → none.
+        if data.timestamp_ms:
+            pub("frame_ts", datetime.fromtimestamp(data.timestamp_ms / 1000, timezone.utc).isoformat())
+            # Clamped at 0: a car clock running AHEAD of the host isn't negative staleness — it's the
+            # same drift recorder.py measured at −48 s in the wild, with the sign the other way.
+            pub("data_age", max(0, int(time.time() - data.timestamp_ms / 1000)))
+        else:
+            pub("frame_ts", None)
+            pub("data_age", None)
         self._publish_evcc(base, data)
         self.client.publish(f"{base}/location",
                             json.dumps({"latitude": data.latitude, "longitude": data.longitude}),
@@ -258,6 +287,12 @@ class MqttService:
             ("gear", "Gear", {"icon": "mdi:car-shift-pattern"}),
             ("state", "State", {"icon": "mdi:car-info"}),
             ("last_seen", "Last Seen", {"dc": "timestamp", "icon": "mdi:clock-outline"}),
+            # Last Seen is when MATE last wrote; Data Timestamp is when the CAR last spoke, and Data
+            # Age is the distance between them (#178). `_EMPTY_NONE` is what keeps a car that never
+            # reports its clock from logging a parse error on every single poll — see _publish_sensors.
+            ("frame_ts", "Data Timestamp", {"dc": "timestamp", "icon": "mdi:car-clock", "tpl": _EMPTY_NONE}),
+            ("data_age", "Data Age", {"dc": "duration", "unit": "s",
+                                      "icon": "mdi:timer-sand", "tpl": _EMPTY_NONE}),
             ("climate_mode", "Climate Mode", {"icon": "mdi:air-conditioner"}),
         ]
         for key, name, extra in sensors:
@@ -265,6 +300,7 @@ class MqttService:
             if "unit" in extra: c["unit_of_measurement"] = extra["unit"]
             if "dc" in extra: c["device_class"] = extra["dc"]
             if "icon" in extra: c["icon"] = extra["icon"]
+            if "tpl" in extra: c["value_template"] = extra["tpl"]
             cfg("sensor", key, c)
 
         # Comfort STATE sensors — read-only, shown only where they work on THIS car (the B10

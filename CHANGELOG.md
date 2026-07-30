@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.19.1] — 2026-07-30
+
+### Added
+- **Home Assistant can now see how old the car's data really is.** Two new MQTT sensors: **Data Timestamp**, the clock the *car* put on the frame it last sent, and **Data Age**, the seconds since. The existing *Last Seen* is when **Mate** last wrote a row — it stays a few seconds old for as long as the cloud keeps answering, even when what the cloud is answering with is half an hour stale. That gap is the whole point: it is the difference between a car that is genuinely parked and a car that stopped reporting while it was moving. Both go out **without** the driving-or-charging condition the Overview applies, because an automation should apply its own. Empty rather than 1970 on a car that doesn't report its clock. Asked for by **@riri19** (#178).
+
+### Fixed
+- **The kilometres driven before the cloud caught up are no longer lost.** When a car sets off somewhere without coverage, the cloud keeps re-serving the last frame it holds — gear P, speed 0 — so Mate stayed parked through the opening kilometres and then opened the trip with the odometer read *after* them. Those kilometres, and the energy that moved them, were dropped: the odometer-jump reconstruction couldn't catch them either, because it hands over to the live trip in the same poll. The trip is now anchored to the last reading taken before it, so the distance and the consumption are right. Its start time and start point are deliberately left alone — when the car set off is unknown, and a frozen frame's GPS is routinely 0,0. Reported by **@riri19** (#130, #129). No effect at all where the cloud link is healthy: measured against 303 real trips, none was touched.
+
 ## [2.19.0] — 2026-07-30
 
 ### Added

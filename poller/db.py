@@ -1192,19 +1192,26 @@ class Database:
         one_pedal = int(op) if op in ("0", "1") else None
         return drive_mode, one_pedal
 
-    def create_trip(self, vehicle_id: int, data) -> int:
+    def create_trip(self, vehicle_id: int, data, head=None) -> int:
+        """`head` (optional) is {"odometer_km", "soc"} from the last poll before the trip opened,
+        supplied only when the car demonstrably drove while we couldn't see it — see
+        Recorder._offline_head (#130). It moves the trip's START anchors back over those unseen
+        kilometres so the distance and the energy include them. Position and started_at are NOT
+        moved: the frozen frame's GPS is routinely 0,0, and when the drive began is unknown."""
         drive_mode, one_pedal = self._default_trip_tags()
         # start_geohash feeds the similar-trips comparator's candidate pre-filter
         # (web/db_reader.py get_similar_trips) — NULL on a missing/zero fix, same guard
         # add_trip_position uses, so a (0,0) glitch never becomes a bogus "near the
         # Gulf of Guinea" bucket.
         start_gh = geohash.encode(data.latitude, data.longitude) if data.latitude and data.longitude else None
+        start_soc = head["soc"] if head else data.soc
+        start_odo = head["odometer_km"] if head else data.odometer_km
         cur = self._conn.execute(
             """INSERT INTO trips (vehicle_id, started_at, start_lat, start_lon, start_geohash,
                start_soc, start_odometer_km, drive_mode, one_pedal, fuel_start_pct, fuel_start_l)
                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (vehicle_id, _now_iso(), data.latitude, data.longitude, start_gh,
-             data.soc, data.odometer_km, drive_mode, one_pedal,
+             start_soc, start_odo, drive_mode, one_pedal,
              getattr(data, "fuel_level_pct", None),   # REEV Phase C — fuel % at trip start (NULL on BEV)
              getattr(data, "fuel_liters", None)),     # …and the car's own litre count (3263)
         )

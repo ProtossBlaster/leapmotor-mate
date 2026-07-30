@@ -155,6 +155,41 @@ class Recorder:
         self._maybe_reconstruct_trip(data)
         self._maybe_reconstruct_charge(data)
 
+    def _offline_head(self, data: Optional[VehicleData]):
+        """The odometer and SoC of the poll BEFORE this trip opened, when they show the car already
+        drove while we couldn't see it — the kilometres @riri19 lost off the front of a trip (#130).
+
+        A trip opens on the first FRESH frame. While the car is out of touch the cloud re-serves the
+        last frame it holds — gear P, speed 0 — so the state machine stays parked through the
+        opening kilometres and the trip is then created with the odometer read AFTER them.
+        _maybe_reconstruct_trip cannot rescue those either: it advances its own baseline and only
+        then bows out to the live trip, so the jump is consumed and discarded in that same poll.
+
+        The previous reading is still in memory right here — both baselines are advanced later in
+        the same process() cycle — so hand it to create_trip as the trip's start anchor. A parked
+        car's odometer never moves, so any advance at all is a drive; the floor is the same
+        whole-kilometre resolution _maybe_reconstruct_trip uses, because below it the signal cannot
+        tell a drive from its own quantisation.
+
+        DISTANCE and ENERGY only. started_at is not moved (the frozen window may hold hours of
+        parking, so when the car set off is unknown — duration stays as observed, which does make
+        the average speed of such a trip read high), and neither is the start POSITION (a frozen
+        frame's GPS is routinely 0,0 → it would plant the trip in the Gulf of Guinea, the same trap
+        the charge markers hit). Returns None in every ordinary case, which is all of them for a
+        car whose cloud link is healthy.
+        """
+        prev_odo, prev_soc = self._last_odometer, self._last_soc
+        if data is None or prev_odo is None or prev_soc is None:
+            return None
+        if not (prev_odo > 0 and (data.odometer_km or 0) > 0):
+            return None                       # a 0 from a partial frame would hand us the lifetime
+        gap_km = data.odometer_km - prev_odo
+        if gap_km < self._reconstruct_min_km:
+            return None
+        log.info("Trip opened %.1f km after it really started (car was out of touch) — anchoring "
+                 "to the last seen odometer %.0f km / SoC %.1f%%", gap_km, prev_odo, prev_soc)
+        return {"odometer_km": prev_odo, "soc": prev_soc}
+
     def _maybe_reconstruct_trip(self, data: VehicleData) -> None:
         """Catch a DRIVE that was never seen live — the trip twin of _maybe_reconstruct_charge (#118).
         While the car is offline to the cloud the poller gets no live signals (or only stale ones), so a
@@ -313,7 +348,8 @@ class Recorder:
 
         if to == State.DRIVING:
             self._regen_kwh = 0.0
-            self._active_trip_id = self._db.create_trip(self._vehicle_id, data)
+            self._active_trip_id = self._db.create_trip(
+                self._vehicle_id, data, head=self._offline_head(data))
 
         elif frm == State.DRIVING and to in _PARKED_STATES:
             if self._active_trip_id and data:
