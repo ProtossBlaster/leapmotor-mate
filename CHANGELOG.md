@@ -3,6 +3,33 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.0.0] — 2026-07-30
+
+> Nothing in this release breaks anything: no setting changes meaning, no data is migrated, and an
+> existing install updates in place as always.
+
+### Added
+- **Dutch — Mate now speaks seven languages.** The whole application: every page, the setup wizard,
+  the login screen and the maintenance schedule. It is not a partial translation to be finished
+  later — all 1117 strings are in, and a test now refuses any language that falls short of the
+  others. Choosing it: **Settings ▸ Language & Currency**, or the flag on the first setup screen,
+  which also picks Dutch by itself when the browser asks for it. Asked for by **@adoewa** (#187).
+  A handful of labels are shorter than the literal translation on purpose — *Km-stand*, *Stand*,
+  *Airco-doel* — because Dutch compounds are long and those three sit in fixed-width tiles where
+  the full word was cut off. Every page was checked at desktop and phone width before release.
+
+### Fixed
+- **The Maintenance page was in English for Polish users, and always had been.** That page keeps
+  its own dictionary inside `maintenance.py`, separate from the locale files, and Polish was never
+  added to it — the community translation (**@irek**, PR #90) covered the locale files, which is
+  where anyone would look. Nothing ever failed: a missing key falls back to English, silently, and
+  no test reached that file. All 62 service items, categories and phrases are now in Polish, and
+  the page title matches the sidebar the way it does in every other language.
+- **The trip count in Statistics read "trips" in every language.** The year and month rows had the
+  word hardcoded in the template, so Italian showed *58 trips* and German *58 trips*. Both rows now
+  use the same singular/plural handling as the Trips calendar — *58 viaggi*, *58 Fahrten*,
+  *58 ritten*, and *1 viaggio* when there is one.
+
 ## [2.19.3] — 2026-07-30
 
 ### Fixed

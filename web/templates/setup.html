@@ -48,6 +48,10 @@
               class="px-4 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer">
         🇵🇹 Português (Portugal)
       </button>
+      <button type="button" onclick="setLang('nl')" id="btn-nl"
+              class="px-4 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer">
+        🇳🇱 Nederlands
+      </button>
     </div>
     <h1 id="setup-title" class="text-2xl font-bold text-white mb-1">Welcome to LeapMotor Mate</h1>
     <p id="setup-subtitle" class="text-slate-400 text-sm">Configure your vehicle connection to get started</p>
@@ -439,6 +443,44 @@ const strings = {
     demoNote:      "Apenas dados de demonstração — nada é real. Pode sair a qualquer momento.",
     demoStarting:  "A iniciar a demonstração…",
 },
+  nl: {
+    title:         "Welkom bij LeapMotor Mate",
+    subtitle:      "Kies hoe je wilt beginnen",
+    acctWarn:      "⚠️ Gebruik een Leapmotor-account dat alleen voor Mate is. Gebruik dit account niet tegelijk in een andere app, add-on, Docker of koppeling — ze gooien elkaars sessie eruit en je krijgt ontbrekende of tegenstrijdige gegevens.",
+    email:         "E-mailadres van je Leapmotor-account",
+    emailPh:       "jij@voorbeeld.nl",
+    password:      "Wachtwoord",
+    pin:           "Bedienings-pincode",
+    pinPh:         "Pincode van 4 cijfers",
+    detectBtn:     "🔍 Mijn auto zoeken",
+    detecting:     "⏳ Bezig met zoeken…",
+    detected:      "Auto gevonden",
+    carLine:       (model, vin) => `Leapmotor ${model} · VIN ···${vin.slice(-6)}`,
+    batteryLabel:  "Batterijpakket",
+    batteryHint:   "Kies je batterijvariant",
+    batteryAutoSet:"Batterij herkend (EU-uitvoering)",
+    detectFail:    "Kon het voertuig niet vinden",
+    manualEntry:   "Batterijcapaciteit met de hand invoeren (kWh)",
+    manualHint:    "B10 Pro: 56,2 · B10 Pro Max: 67,1 · T03: 37,3 · C10 RWD: 69,9 · C10 AWD: 81,9",
+    submit:        "Verbinden en starten",
+    required:      "E-mailadres, wachtwoord en pincode zijn verplicht.",
+    noBattery:     "Kies eerst een batterijvariant.",
+    certTitle:     "Stap 1 — App-certificaat",
+    certDesc:      "Mate heeft het TLS-certificaat van de Leapmotor-app nodig (voor iedereen hetzelfde, niet van jouw account). Download de twee bestanden app.crt en app.key bij:",
+    certBtn:       "Certificaat opslaan",
+    certSaving:    "⏳ Opslaan…",
+    certToPaste:   "Plak in plaats daarvan de PEM-tekst",
+    certToFile:    "Upload in plaats daarvan de bestanden",
+    certBoth:      "Zowel app.crt als app.key zijn verplicht.",
+    certSaved:     "✓ Certificaat opgeslagen",
+    certCrtLabel:  "app.crt (certificaat)",
+    certKeyLabel:  "app.key (privésleutel)",
+    setupChoice:   "Mijn auto instellen",
+    back:          "Terug",
+    demoBtn:       "De demo proberen",
+    demoNote:      "Alleen voorbeeldgegevens — niets is echt. Je kunt er altijd uit.",
+    demoStarting:  "Demo starten…",
+  },
 };
 
 let currentLang = 'en';
@@ -529,6 +571,7 @@ function setLang(lang) {
   document.getElementById('btn-de').className = lang === 'de' ? active : inactive;
   document.getElementById('btn-pl').className = lang === 'pl' ? active : inactive;
   document.getElementById('btn-pt-PT').className = lang === 'pt-PT' ? active : inactive;
+  document.getElementById('btn-nl').className = lang === 'nl' ? active : inactive;
 }
 
 // ── Demo mode ─────────────────────────────────────────────────────────────────
@@ -786,6 +829,7 @@ const initLang = navigator.language.startsWith('it') ? 'it'
                : navigator.language.startsWith('de') ? 'de'
                : navigator.language.startsWith('pl') ? 'pl'
                : navigator.language.startsWith('pt') ? 'pt-PT'
+               : navigator.language.startsWith('nl') ? 'nl'
                : 'en';
 setLang('{{ prefill.language if prefill else "" }}' || initLang);
 
