@@ -724,6 +724,8 @@
     "energy": "Energie",
     "energy_in_battery": "In de batterij",
     "energy_in_battery_help": "De energie die daadwerkelijk in de batterij terechtgekomen is (DC). Wat je van het net afneemt ligt ongeveer 10-15% hoger (omzettingsverliezen AC→DC); zonder meting van een wallbox kan Mate alleen dit cijfer tonen.",
+    "blended_price": "Gem. prijs in de batterij",
+    "blended_price_help": "De gewogen gemiddelde prijs van de energie die nu in de batterij zit: elke laadbeurt met een prijs telt naar verhouding van wat hij heeft toegevoegd. Tegen dit tarief worden de kosten van elke rit berekend — laden verandert het, rijden nooit.",
     "car_data_dc": "gegevens van de auto (DC)",
     "cancel": "Annuleren",
     "confirm_proceed": "Doorgaan",

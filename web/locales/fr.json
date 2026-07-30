@@ -724,6 +724,8 @@
     "energy": "Énergie",
     "energy_in_battery": "Dans la batterie",
     "energy_in_battery_help": "L'énergie réellement entrée dans la batterie (DC). Celle tirée du réseau est ~10–15 % plus élevée (pertes de conversion AC→DC) ; sans relevé de la wallbox, Mate ne peut afficher que cette valeur.",
+    "blended_price": "Prix moyen dans la batterie",
+    "blended_price_help": "Le prix moyen pondéré de l'énergie actuellement dans la batterie : chaque charge tarifée compte proportionnellement à ce qu'elle a ajouté. C'est le tarif utilisé pour calculer le coût de chaque trajet — recharger le déplace, rouler jamais.",
     "car_data_dc": "données voiture (DC)",
     "cancel": "Annuler",
     "confirm_proceed": "Continuer",

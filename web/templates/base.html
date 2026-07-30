@@ -87,6 +87,14 @@
       font-weight: 700;
       color: white;
     }
+    /* A grid of label+value pairs whose values must line up across a row. The label is what
+       varies: in a narrow cell it wraps in some languages and not in others, and since the
+       value simply follows it, one value ended up 18px lower than the one beside it. Reserving
+       the two-line height for every label in the grid puts them back on a shared baseline.
+       3em = two lines at this font-size and line-height, so it follows the type rather than a
+       hard-coded pixel count. Scoped to .stat-pairs: .stat-label itself is used all over the
+       app, mostly where nothing wraps and the extra height would only add slack. */
+    .stat-pairs .stat-label { min-height: 3em; }
     .bg-slate-750 { background: rgb(36 49 65); }
 
     /* ── Trips tree ─────────────────────────────────────────────── */

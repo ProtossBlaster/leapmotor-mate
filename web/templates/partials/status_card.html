@@ -26,9 +26,24 @@
 </div>
 
 <!-- SOC bar -->
-<div class="w-full bg-slate-700 rounded-full h-3 mb-5">
+<div class="w-full bg-slate-700 rounded-full h-3 {% if battery_price %}mb-1{% else %}mb-5{% endif %}">
   <div class="soc-bar h-3 rounded-full" style="width:{{ soc }}%; background:{{ color }}"></div>
 </div>
+
+{# #200 — what the energy in the pack cost on average, i.e. the rate the next trip is costed at.
+   Full width UNDER the bar rather than tucked under the % : the label is long in every language
+   (“Prezzo medio in batteria”, “Średnia cena w akumulatorze”) and the left column is 130px, so up
+   there it wrapped onto two cramped `leading-none` lines. It is deliberately NOT shortened to just
+   “Avg price” — the Charges page already uses that for a different figure, the period average, and
+   two different numbers must not share a label. Absent (not “—”) until the first priced charge:
+   there is genuinely no rate yet, and a dash under a battery reads as “free”. #}
+{% if battery_price %}
+<div class="mb-5 text-[11px] leading-tight text-right" title="{{ t('blended_price_help') }}">
+  <span class="text-slate-400">{{ t('blended_price') }}:</span>
+  <span class="font-semibold text-teal-300">{{ battery_price | price3 }}</span>
+  <span class="text-slate-400">{{ currency.symbol }}/kWh</span>
+</div>
+{% endif %}
 
 {% if is_reev and research and status.get('fuel_level_pct') is not none %}
 {# REEV dual-energy — the fuel tank shown alongside the battery (range-extender models). Beta-gated

@@ -3537,6 +3537,20 @@ def blended_price_at(vehicle_id: int, ts: str) -> Optional[float]:
     return _wac_blend([dict(r) for r in rows])
 
 
+def current_blended_price() -> Optional[float]:
+    """The blend RIGHT NOW — the €/kWh of the energy sitting in the battery at this moment (#200).
+
+    Same number `blended_price_at` gives a trip, read at `now` instead of at the trip's start: the
+    rate the next trip will be costed at. Asked for by @riri19, who could see a trip's cost in € but
+    not the price behind it, and had to work backwards by hand to check it.
+
+    A helper rather than the call inlined, because the Overview's battery card is rendered from TWO
+    routes — the page itself and `/api/status-card`, which replaces it on the live refresh. One of
+    them missing this would make the figure vanish a few seconds after the page loads.
+    """
+    return blended_price_at(_current_vehicle_id(), datetime.now(timezone.utc).isoformat())
+
+
 def _fuel_wac_blend(purchases, tank_l: float = _REEV_TANK_L) -> Optional[float]:
     """Weighted-average-cost blended €/L of the tank after a chronological list of refuels — the FUEL
     twin of _wac_blend (#53). Pure (no DB) so it's simulation/unit-testable — hence `tank_l` as an

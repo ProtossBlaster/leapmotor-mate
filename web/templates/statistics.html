@@ -35,7 +35,11 @@
     <div class="stat-label">{{ t('best_efficiency') }}</div>
     <div class="flex items-baseline gap-1">
       {% if totals.best_efficiency %}
-      <span class="stat-value text-green-400">{{ totals.best_efficiency | eff }}</span>
+      {# #199 (@adoewa) — the `eff` filter returns "18.5 kWh/100km" as ONE string, so the unit sat
+         inside stat-value and came out big and green like the number, while the Avg consumption
+         tile right beside it already split the two. Same split here: value large, unit small and
+         grey, as in every other tile on the page. #}
+      <span class="stat-value text-green-400">{{ eff_val(totals.best_efficiency)|nice }}<span class="text-base font-normal text-slate-400"> {{ eff_unit() }}</span></span>
       {% else %}
       <span class="stat-value text-slate-500">—</span>
       {% endif %}

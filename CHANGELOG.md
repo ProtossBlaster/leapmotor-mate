@@ -3,6 +3,30 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.1.0] — 2026-07-30
+
+### Added
+- **The price behind a trip's cost is now on screen.** A trip is costed at the average price of the
+  energy in the battery when it started — every priced charge counted in proportion to the charge
+  it added, so a tank filled half at home and half at a fast charger sits somewhere between the two.
+  Mate has computed that rate since per-trip costs shipped and simply never printed it, which left
+  the € with no way to check it short of redoing the arithmetic. It now appears under the cost on a
+  trip, and under the battery on the Overview, where it is the rate your **next** trip will be
+  costed at. Hover either for what moves it: charging does, driving never does. Asked for by
+  **@riri19** (#200), whose description of the mechanism was exactly right.
+
+### Fixed
+- **The unit on *Best efficiency* was as large and as green as the number.** The `eff` filter hands
+  back value and unit as one string, so `18.5 kWh/100km` went into the tile as a single lump and the
+  unit inherited the number's size and colour — while *Avg consumption*, sitting right beside it,
+  already set its unit small and grey. Both now match. Spotted by **@adoewa** (#199).
+- **Two figures on a trip no longer sit at different heights.** Those cells are 130px wide, so
+  whether a label wraps depends on the language: *Energia consumata* takes two lines where *Consumo
+  medio* takes one, and the value below simply followed, leaving one number 18px lower than the one
+  next to it while the rows above and below lined up. Every label in that grid now reserves the same
+  two lines. The consumption unit is a step smaller there too — at the shared size `16.5 kWh/100km`
+  did not fit the column and the unit dropped onto its own line, the same orphaned look as above.
+
 ## [3.0.0] — 2026-07-30
 
 > Nothing in this release breaks anything: no setting changes meaning, no data is migrated, and an

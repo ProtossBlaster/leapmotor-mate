@@ -724,6 +724,8 @@
     "energy": "Energia",
     "energy_in_battery": "W baterii",
     "energy_in_battery_help": "Energia, która faktycznie weszła do baterii (DC). To co pobierasz z sieci jest ~10–15% wyższe (straty konwersji AC→DC); bez odczytu wallboxa Mate może pokazać tylko tę wartość.",
+    "blended_price": "Średnia cena w akumulatorze",
+    "blended_price_help": "Średnia ważona cena energii znajdującej się obecnie w akumulatorze: każde wycenione ładowanie liczy się proporcjonalnie do tego, ile dodało. Według tej stawki obliczany jest koszt każdej trasy — ładowanie ją zmienia, jazda nigdy.",
     "car_data_dc": "dane samochodu (DC)",
     "cancel": "Anuluj",
     "confirm_proceed": "Kontynuuj",

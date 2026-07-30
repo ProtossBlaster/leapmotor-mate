@@ -724,6 +724,8 @@
     "energy": "Energie",
     "energy_in_battery": "In der Batterie",
     "energy_in_battery_help": "Die tatsächlich in die Batterie geflossene Energie (DC). Die aus dem Netz bezogene ist ~10–15 % höher (AC→DC-Umwandlungsverluste); ohne Wallbox-Messung kann Mate nur diesen Wert anzeigen.",
+    "blended_price": "Ø-Preis in der Batterie",
+    "blended_price_help": "Der gewichtete Durchschnittspreis der Energie, die gerade in der Batterie steckt: jede bepreiste Ladung zählt im Verhältnis zu dem, was sie hinzugefügt hat. Mit diesem Satz werden die Kosten jeder Fahrt berechnet — Laden verändert ihn, Fahren nie.",
     "car_data_dc": "Fahrzeugdaten (DC)",
     "cancel": "Abbrechen",
     "confirm_proceed": "Fortfahren",

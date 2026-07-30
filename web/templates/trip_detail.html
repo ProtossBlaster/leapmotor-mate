@@ -46,7 +46,11 @@
   <!-- Stats -->
   <div class="space-y-4">
     <div class="card">
-      <div class="grid grid-cols-2 gap-4">
+      {# stat-pairs: reserves two lines for every label in this grid. These cells are narrow (130px),
+         so whether a label wraps depends on the language — "Energia consumata" and "Verbruikte
+         energie" take two lines while "Consumo medio" beside them takes one, which pushed one
+         value 18px below its neighbour while the rows above and below lined up perfectly. #}
+      <div class="grid grid-cols-2 gap-4 stat-pairs">
         <div>
           <div class="stat-label">{{ t('distance') }}</div>
           <div class="stat-value">{{ "%.1f"|format(dist_val(trip.distance_km or 0)) }}<span class="text-base font-normal text-slate-400"> {{ dist_unit() }}</span></div>
@@ -58,9 +62,13 @@
         <div>
           <div class="stat-label">{{ t('avg_efficiency') }}</div>
           {% if trip.efficiency_kwh_100km %}
-          {# number big, unit small — the full "20 kWh/100km" at stat-value size wrapped on phones #}
+          {# number big, unit small — and one step smaller HERE than in the tiles beside it. These
+             cells are 130px: "16.5 kWh/100km" needs 138 at the shared 16px, so the unit dropped
+             under the number and left this tile a line taller than its neighbour, which is the
+             same orphaned-unit look reported on Statistics (#199). 12px keeps it inline with room
+             for a three-digit consumption and for mi/kWh in imperial. #}
           <div class="stat-value {% if trip.efficiency_kwh_100km < 18 %}text-green-400{% elif trip.efficiency_kwh_100km < 22 %}text-yellow-400{% else %}text-red-400{% endif %}">
-            {{ eff_val(trip.efficiency_kwh_100km)|nice }}<span class="text-base font-normal text-slate-400"> {{ eff_unit() }}</span>
+            {{ eff_val(trip.efficiency_kwh_100km)|nice }}<span class="text-xs font-normal text-slate-400"> {{ eff_unit() }}</span>
           </div>
           {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
         </div>
@@ -82,6 +90,14 @@
           <div class="stat-label">{{ t('cost') }}</div>
           {% if trip.cost is not none %}
           <div class="stat-value text-green-400">{{ trip.cost | money }}</div>
+          {# #200 — the rate the € above was worked out at. It has been computed all along (get_trip_detail
+             sets it on the line beside the cost) and simply never printed, so the only way to check the
+             figure was to redo the arithmetic by hand. #}
+          {% if trip.cost_per_kwh %}
+          <div class="mt-1 text-[11px] leading-none text-slate-400" title="{{ t('blended_price_help') }}">
+            {{ trip.cost_per_kwh | price3 }} {{ currency.symbol }}/kWh
+          </div>
+          {% endif %}
           {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
         </div>
       </div>

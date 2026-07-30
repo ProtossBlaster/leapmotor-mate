@@ -724,6 +724,8 @@
     "energy": "Energy",
     "energy_in_battery": "In battery",
     "energy_in_battery_help": "The energy that actually entered the battery (DC). What you draw from the grid is ~10–15% higher (AC→DC conversion losses); without a wallbox reading, Mate can only show this figure.",
+    "blended_price": "Avg price in battery",
+    "blended_price_help": "The weighted average price of the energy currently in the battery: every priced charge counts in proportion to the charge it added. It is the rate each trip's cost is worked out at — charging moves it, driving never does.",
     "car_data_dc": "car data (DC)",
     "cancel": "Cancel",
     "confirm_proceed": "Proceed",

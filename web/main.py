@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.0.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.1.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -447,6 +447,7 @@ async def overview(request: Request):
         v2l=db_reader.get_v2l_status(),
         charge_limit=_configured_charge_limit(),
         car_resp=db_reader.command_responsiveness(),
+        battery_price=db_reader.current_blended_price(),   # #200 — must match /api/status-card
     ))
 
 
@@ -3454,6 +3455,7 @@ async def status_card(request: Request):
     return templates.TemplateResponse(request, "partials/status_card.html", _ctx(
         status=status, vehicle=vehicle,
         car_resp=db_reader.command_responsiveness(),
+        battery_price=db_reader.current_blended_price(),   # #200 — must match the overview route
     ))
 
 
