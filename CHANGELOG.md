@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.19.2] — 2026-07-30
+
+### Fixed
+- **One tank of fuel is one refuel again.** A float gauge does not jump to the final level — it climbs there in steps, and the car reports every one. Measured on **@pdifeo**'s C10 (beta #17): 70.2 → 78.0 → 87.0 → 98.1 → 100.0 % in twenty-eight seconds. Mate read those pairwise and filed each rise as its own refuel, so one fill-up showed up as **three**. It now follows the fill while the level keeps climbing and records it once, absorbing the small final step as well — that step is under the detection floor, and dropping it was costing nine tenths of a litre off every full tank. His fill reads 33.390 → 47.500 L, one row. Tuning the floor could never have fixed this: raise it and you still get three, lower it and you get four. **This affects every REEV owner, not only beta testers** — the Refuels page is in the public release. As a bonus his tank reads 47.500 L at 100 %, confirming the C10 capacity correction from v2.14.1 on a second car.
+
+### Changed
+- The comment describing when a charge session closes said it "only CLOSES when the cable is pulled". Measured on a real car over one night: when a load-balancing wallbox stops the current, the car reports the cable **gone** — so the session does close, and a single plug-in was recorded as six charges. Behaviour is unchanged; the comment now states what the data says, so the next reader does not inherit a false premise.
+
 ## [2.19.1] — 2026-07-30
 
 ### Added

@@ -1686,6 +1686,10 @@ def delete_fuel_purchase(purchase_id: int) -> bool:
 _FUEL_DETECT_MIN_RISE_PCT = 2.0   # 2 % of 50 L ≈ 1 L. The gauge itself steps at 0.1 % ≈ 50 mL, so
                                   # this is a noise floor, not a sensitivity limit — tune on real data.
 _FUEL_DETECT_DEDUP_H = 12         # a rise this close to a refuel already logged is that same refuel
+_FUEL_DETECT_SETTLE_MIN = 15      # a further rise within this of the last one is the SAME fill-up.
+                                  # @pdifeo's gauge took 28 s to climb from 70.2 % to full, so this
+                                  # is thirty times the measured settle — and still nowhere near
+                                  # any believable gap between two real visits to a pump.
 
 
 def _ensure_fuel_detected(db: sqlite3.Connection) -> None:
@@ -1725,8 +1729,33 @@ def scan_fuel_refuels(vehicle_id: Optional[int] = None) -> int:
         if len(rows) < 2:
             return 0
         found = 0
+        run = None      # the fill-up currently being followed; see below
         for i in range(len(rows) - 1):
             before, after = rows[i]["fuel_level_pct"], rows[i + 1]["fuel_level_pct"]
+            rising = after > before
+
+            # ── extend the fill-up in progress ───────────────────────────────────
+            # A float gauge does not jump to the final level, it CLIMBS there. Measured on
+            # @pdifeo's C10 (beta #17, 30/07/2026): 70.2 → 78.0 → 87.0 → 98.1 → 100.0 % in four
+            # steps over twenty-eight seconds, every one of them reported. Counting the steps
+            # instead of the fill turned one tank into THREE refuels — and no floor can fix that:
+            # raise it and you still get three, lower it and you get four.
+            #
+            # So once a fill is open, absorb every further rise near it, HOWEVER SMALL. The tail
+            # is not a rounding detail: his last step is +1.9 points, under the floor, and
+            # dropping it books 13.213 L against a real 14.110.
+            # NB: measured to the reading being ABSORBED (i+1), not to rows[i] — rows[i] is the run's
+            # own last reading, so that distance is always zero and the window would never bite.
+            if run is not None and rising and \
+                    _minutes_between(run["ts"], rows[i + 1]["recorded_at"]) <= _FUEL_DETECT_SETTLE_MIN:
+                run.update(after=after, ts=rows[i + 1]["recorded_at"],
+                           l_after=rows[i + 1]["fuel_liters"])
+                continue
+            if run is not None:
+                found += _flush_fuel_run(db, vid, run, tank)
+                run = None
+
+            # ── or open a new one ────────────────────────────────────────────────
             if after - before < _FUEL_DETECT_MIN_RISE_PCT:
                 continue
             # Confirm the rise held: the next reading must not have dropped back to the old level.
@@ -1735,28 +1764,11 @@ def scan_fuel_refuels(vehicle_id: Optional[int] = None) -> int:
             nxt = rows[i + 2]["fuel_level_pct"] if i + 2 < len(rows) else None
             if nxt is None or nxt < before + _FUEL_DETECT_MIN_RISE_PCT / 2:
                 continue
-            ts_from, ts = rows[i]["recorded_at"], rows[i + 1]["recorded_at"]
-            lo = (_iso_shift(ts_from, -_FUEL_DETECT_DEDUP_H), _iso_shift(ts, _FUEL_DETECT_DEDUP_H))
-            if db.execute("SELECT 1 FROM fuel_purchases WHERE (vehicle_id = ? OR vehicle_id IS NULL) "
-                          "AND ts BETWEEN ? AND ? LIMIT 1", (vid, lo[0], lo[1])).fetchone():
-                continue                                   # already logged by hand — same refuel
-            if db.execute("SELECT 1 FROM fuel_detected WHERE vehicle_id = ? AND ts = ? LIMIT 1",
-                          (vid, ts)).fetchone():
-                continue                                   # already known (pending or dismissed)
-            # Litres: the car counts them itself (3263) — when both ends of the rise carry that, the
-            # figure is MEASURED and the "≈" in front of it on the card stops being an apology.
-            # @gm27271's own fill read 34.416 L against a pump ticket of 33.84. Percentage × assumed
-            # tank stays as the fallback for rows written before v2.14.1.
-            l_before, l_after = rows[i]["fuel_liters"], rows[i + 1]["fuel_liters"]
-            liters = ((l_after - l_before) if (l_before is not None and l_after is not None
-                                               and l_after > l_before)
-                      else (after - before) / 100.0 * tank)
-            db.execute(
-                "INSERT INTO fuel_detected (vehicle_id, ts, ts_from, liters, fuel_before_pct, "
-                "fuel_after_pct, status, created_at) VALUES (?,?,?,?,?,?,'pending',?)",
-                (vid, ts, ts_from, round(liters, 2),
-                 before, after, datetime.now(timezone.utc).isoformat()))
-            found += 1
+            run = {"ts_from": rows[i]["recorded_at"], "ts": rows[i + 1]["recorded_at"],
+                   "before": before, "after": after,
+                   "l_before": rows[i]["fuel_liters"], "l_after": rows[i + 1]["fuel_liters"]}
+        if run is not None:
+            found += _flush_fuel_run(db, vid, run, tank)
         # Stop one pair short: the final reading may yet be the "before" of a rise still arriving.
         db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('fuel_scan_watermark', ?)",
                    (rows[-2]["recorded_at"],))
@@ -1766,6 +1778,42 @@ def scan_fuel_refuels(vehicle_id: Optional[int] = None) -> int:
         return 0
     finally:
         db.close()
+
+
+def _minutes_between(a: str, b: str) -> float:
+    """Minutes from `a` to `b`. A value that can't be parsed reads as forever, so a run is closed
+    rather than extended across a timestamp nobody understands."""
+    try:
+        return abs((datetime.fromisoformat(str(b)) - datetime.fromisoformat(str(a))).total_seconds()) / 60
+    except (ValueError, TypeError):
+        return float("inf")
+
+
+def _flush_fuel_run(db: sqlite3.Connection, vid: int, run: dict, tank: float) -> int:
+    """Record one followed fill-up as a single pending detection. Returns 1 if it was new."""
+    ts_from, ts = run["ts_from"], run["ts"]
+    lo = (_iso_shift(ts_from, -_FUEL_DETECT_DEDUP_H), _iso_shift(ts, _FUEL_DETECT_DEDUP_H))
+    if db.execute("SELECT 1 FROM fuel_purchases WHERE (vehicle_id = ? OR vehicle_id IS NULL) "
+                  "AND ts BETWEEN ? AND ? LIMIT 1", (vid, lo[0], lo[1])).fetchone():
+        return 0                                       # already logged by hand — same refuel
+    if db.execute("SELECT 1 FROM fuel_detected WHERE vehicle_id = ? AND ts = ? LIMIT 1",
+                  (vid, ts)).fetchone():
+        return 0                                       # already known (pending or dismissed)
+    # Litres: the car counts them itself (3263) — when both ends of the fill carry that, the figure
+    # is MEASURED and the "≈" in front of it on the card stops being an apology. @gm27271's own fill
+    # read 34.416 L against a pump ticket of 33.84; @pdifeo's whole tank read 33.390 → 47.500, and
+    # that 47.5 confirms the C10 tank size on a second car. Percentage × assumed tank stays as the
+    # fallback for rows written before v2.14.1.
+    l_before, l_after = run["l_before"], run["l_after"]
+    liters = ((l_after - l_before) if (l_before is not None and l_after is not None
+                                       and l_after > l_before)
+              else (run["after"] - run["before"]) / 100.0 * tank)
+    db.execute(
+        "INSERT INTO fuel_detected (vehicle_id, ts, ts_from, liters, fuel_before_pct, "
+        "fuel_after_pct, status, created_at) VALUES (?,?,?,?,?,?,'pending',?)",
+        (vid, ts, ts_from, round(liters, 2), run["before"], run["after"],
+         datetime.now(timezone.utc).isoformat()))
+    return 1
 
 
 def _iso_shift(ts: str, hours: float) -> str:

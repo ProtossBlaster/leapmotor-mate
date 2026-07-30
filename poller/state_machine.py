@@ -18,7 +18,9 @@ Transitions (all independent of HA and phone):
   PARKED_ALERT        → PARKED_ACTIVE  no drive within ALERT_EXPIRES_S (5 min)
   DRIVING             → PARKED_ACTIVE  gear P held ~1 min (6 × 10s), OR cable plugged (trip ends now)
   ANY_PARKED          → CHARGING       charging_status > 0  (REAL current / 1149==2; NOT the cable alone)
-  CHARGING            → PARKED_ACTIVE  cable unplugged (1149→0) and no current — a current dip alone won't close
+  CHARGING            → PARKED_ACTIVE  no current AND the cable reads gone (1149→0) — a dip with the
+                                       cable still connected won't close. NB: a modulating wallbox
+                                       makes the car report the cable gone too (see is_charging)
   ANY                 → OFFLINE        3 consecutive API errors
 """
 import logging
@@ -128,10 +130,24 @@ class StateMachine:
                 charge_active = True
         else:
             self._reev_last_soc = None      # cable out / driving → forget the reference
-        # The session STAYS open across brief current dips and only CLOSES when the cable is pulled
-        # (1149→0, which the car also reports at completion) — keeping the cable as the close/keep
-        # signal stops one physical charge fragmenting into many when the current modulates. The cable
-        # also ends the trip immediately on plug-in (DRIVING branch), before any current flows.
+        # The session stays open across a current dip FOR AS LONG AS THE CABLE STILL READS
+        # CONNECTED, and closes when both signals go.
+        #
+        # ⚠️ That is not the same as "closes only when you unplug", which is what this comment used
+        # to claim. MEASURED on a B10, 29→30 July 2026 — cable in at 19:30, out the next morning,
+        # never touched in between: when a load-balancing wallbox stops the current, the car itself
+        # reports the cable GONE. plug_connected 1→0 and charging 1→0 in the same frame, current
+        # −11.8 A → 0.5 A, remaining time → NULL, and everything back sixty seconds later. On FRESH
+        # frames (frame_ts advancing every poll) — so it is neither the stale-frame artefact nor an
+        # OFFLINE gap, both of which are handled elsewhere. That one plug-in was recorded as SIX
+        # charges, with pauses of 60, 70, 180 and 60 s.
+        #
+        # So on such a wallbox this OR-term goes false on every pause and the session DOES fragment.
+        # Deliberately not fixed here: a grace window would have to guess, and its guess would be
+        # irreversible. The chosen remedy is to let the user join the rows afterwards, the way trips
+        # are merged — reversible, and it never recomputes a cost.
+        #
+        # The cable also ends the trip immediately on plug-in (DRIVING branch), before any current flows.
         is_charging = charge_active or data.plug_connected
         # V2L (bidirectional discharge) is parked activity that changes with the load → poll fast.
         self._v2l_active = getattr(data, "ac_port_mode", 0) == 2
