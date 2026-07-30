@@ -16,6 +16,9 @@
   <span class="text-[11px] text-amber-400">⚠️ {{ t('charger_locator_relocate_kept') if charge.location_name
                                                 else t('charger_locator_relocate_none') }}</span>
   {% endif %}
+  {# The LOOKUP needs a point to search around — without coordinates there is nothing to ask OSM
+     or OCM about, so the button would only ever produce a failure. The falsy test is deliberate:
+     a charge the car reported with no GPS fix is stored 0,0, which is not NULL. #}
   {% if charge.location_type != 'HOME' and charge.latitude and charge.longitude %}
   <button type="button" title="{{ t('charger_locator_relocate_hint') }}"
           hx-post="api/charges/{{ charge.id }}/locate"
@@ -26,6 +29,13 @@
           style="background:none;border:none;cursor:pointer;padding:0;font-size:11px;line-height:1">
     <span class="htmx-indicator">⏳</span><span>🔄</span>
   </button>
+  {% endif %}
+  {# …but TYPING a name needs no position at all, and requiring one hid the pencil exactly where it
+     was most needed: a charge entered by hand has no coordinates by construction, so a whole class
+     of charges could never be labelled (#197 @adoewa). This block used to sit inside the guard
+     above, having inherited it when it was appended there in v2.17.0. HOME is still excluded —
+     naming your own wallbox as a public station means nothing. #}
+  {% if charge.location_type != 'HOME' %}
   {# #193: "Where to add stationname" — OSM/OCM simply don't have every real station, so
      the lookup (🔄) can never fill it in on its own. A free-text fallback the user types
      themselves. location_name IS NOT NULL either way, so this also takes the charge out

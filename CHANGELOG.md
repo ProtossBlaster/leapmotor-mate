@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.19.3] — 2026-07-30
+
+### Fixed
+- **A charge with no position can be given a station name again.** The ✏️ free-text name (v2.17.0) was added at the end of a block guarded by *the charge must have coordinates* — a condition that belongs to the 🔄 lookup beside it, which searches OSM/OCM **around a point** and genuinely cannot run without one. Typing a name never needed it. So the pencil was hidden from exactly the charges that had no other way to be labelled: the ones entered by hand or imported from CSV, which carry no position by construction, and the ones the car recorded with **no GPS fix**, stored as 0,0. The two conditions are now separate. HOME still shows neither — naming your own wallbox as a public station means nothing. Reported by **@adoewa** (#197), who found it the only way anybody could: with older charges he had typed in himself.
+
 ## [2.19.2] — 2026-07-30
 
 ### Fixed
