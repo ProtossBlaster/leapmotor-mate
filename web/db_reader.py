@@ -3501,17 +3501,27 @@ def _wac_blend(charges) -> Optional[float]:
 
         p' = (start_soc·p + (end_soc − start_soc)·rate) / end_soc
 
-    where rate = charge cost ÷ its billed energy (_billed_kwh: wallbox AC for HOME, else battery DC —
-    same basis as the per-charge € and the #51 trip-rate fix). Bootstrap: the first priced charge
-    sets p to its own rate (the pre-existing energy is valued at the first thing we can measure).
-    Unconfirmed charges (cost=NULL) are simply ABSENT from this list → carry-forward, i.e. the blend
-    is unchanged across them — Mate's framework rule "no cost until confirmed, HOME excluded"."""
+    where rate = the FULL cost paid ÷ the energy that actually REACHED THE BATTERY
+    (`energy_added_kwh`). Bootstrap: the first priced charge sets p to its own rate (the pre-existing
+    energy is valued at the first thing we can measure). Unconfirmed charges (cost=NULL) are simply
+    ABSENT from this list → carry-forward, i.e. the blend is unchanged across them — Mate's framework
+    rule "no cost until confirmed, HOME excluded".
+
+    ⚠️ The divisor used to be `_billed_kwh`, which for a HOME charge with a wallbox reading is the
+    METER's AC kWh. That priced battery energy at the wall's rate, so the 8-15% the on-board charger
+    turns into heat — real money, off your bill — landed on no trip at all and the trip costs summed
+    to LESS than what was spent. A trip consumes what is in the pack, so that is what has to be
+    divided into. Only home-with-wallbox charges were ever affected: every other charge already had
+    the meter and the battery agreeing, because there is no meter (Silvio's call, 31/07/26).
+    `_billed_kwh` itself is untouched — the per-charge card, the period totals and the €/kWh on the
+    Charges page still show what the METER billed, which is the right answer to a different question.
+    """
     p = None
     for c in charges:
         ss, es = c.get("start_soc"), c.get("end_soc")
         if ss is None or es is None or es <= 0 or es <= ss:
             continue                         # need a real SoC rise to weight the mix
-        basis = _billed_kwh(c)
+        basis = c.get("energy_added_kwh")
         cost = c.get("cost")
         if cost is None or not basis or basis <= 0:
             continue                         # unpriced → must not move the blend
@@ -3549,6 +3559,110 @@ def current_blended_price() -> Optional[float]:
     them missing this would make the figure vanish a few seconds after the page loads.
     """
     return blended_price_at(_current_vehicle_id(), datetime.now(timezone.utc).isoformat())
+
+
+def _paid_stock_replay(events, capacity_kwh: float) -> list[dict]:
+    """REEV — replay of (priced charges, trip draws) in time order, returning what each draw COST.
+
+    The battery of a range-extender takes energy from TWO sources but money from ONE. The socket
+    adds kWh *and* euros. The generator adds kWh only: those kWh were already paid for **in litres**,
+    on the very trip that burned them (see `_reev_trip_fuel`), so charging for them again would bill
+    the same petrol twice. Hence the generator never appears in this replay — it shows up only
+    through its consequence, that a draw can be LARGER than the paid stock left. The excess is free.
+
+    A DEPLETING STOCK, not a blended price. `_wac_blend` gives a €/kWh that charges raise and nothing
+    ever consumes, which is right on a BEV (every kWh in the pack has an invoice) and wrong here: a
+    REEV owner who charges once a month would pay grid rate for a month of generator kWh. Worse, a
+    blend leaves an exponential tail that keeps billing bought energy after it is gone — 28 kWh
+    bought, 10 a day: on day three they are finished, full stop, not 0.44 then 0.15 then 0.05.
+    First-in-first-out is also the PHYSICAL order: the car empties the pack and only then fires the
+    generator, so the accounting order and the car's behaviour are the same order.
+
+    Each event is a dict: {"kind": "charge"|"draw", "id", "kwh", "cost", "start_soc"}. Pure (no DB)
+    like `_wac_blend`, so it can be simulated and unit-tested. Returns one row per draw with
+    paid_kwh / free_kwh / cost / rate.
+    """
+    qp = v = 0.0            # kWh bought at the socket still in the pack, and what they cost
+    out = []
+    for e in events:
+        if e.get("kind") == "charge":
+            # Re-anchor to the pack's REAL content. Between charges the pack also loses energy that
+            # is not a trip draw — vampire drain, preconditioning, climate while parked (beta #18
+            # michapr: 1.6% burned standing still). Without this the paid stock would never shrink
+            # for those and would leave behind kWh that were paid for but no longer exist.
+            ss = e.get("start_soc")
+            if ss is not None and capacity_kwh:
+                anchor = max(0.0, ss) / 100.0 * capacity_kwh
+                if anchor < qp:
+                    v = v * (anchor / qp) if qp > 0 else 0.0
+                    qp = anchor
+            kwh, cost = e.get("kwh") or 0.0, e.get("cost")
+            if kwh > 0 and cost is not None and cost > 0:
+                qp += kwh
+                v += cost
+            continue
+        draw = max(0.0, e.get("kwh") or 0.0)
+        paid = min(draw, qp)
+        cost = paid * (v / qp) if qp > 0 else 0.0
+        qp -= paid
+        v = max(0.0, v - cost)          # float drift must never leave a negative balance behind
+        out.append({"id": e.get("id"), "draw_kwh": round(draw, 3),
+                    "paid_kwh": round(paid, 3), "free_kwh": round(draw - paid, 3),
+                    "cost": round(cost, 4), "rate": round(cost / paid, 4) if paid > 0 else 0.0})
+    return out
+
+
+def reev_trip_electric_cost(vehicle_id: int, trip_id: int) -> Optional[dict]:
+    """REEV — what the electricity of ONE trip cost, from the depleting paid stock.
+
+    Replays every priced charge and every trip draw in time order (`_paid_stock_replay`) and returns
+    this trip's row: {paid_kwh, free_kwh, cost, rate}. None when the car isn't a range-extender, or
+    when this trip has no draw to price.
+
+    The draw is `ec_kwh` — the energy the car itself metered leaving the battery — falling back to
+    the SoC drop when the cloud hasn't locked a value. On a REEV that fallback is the weaker of the
+    two: mid-drive the generator refills the pack, so the SoC drop is a NET figure and understates
+    what actually came out (see the note on `_reev_trip_elec`).
+
+    The stock is measured in the DC kWh that reached the pack (`energy_added_kwh`) against the FULL
+    cost paid — it has to be an amount the pack can actually hold, and it is what makes "billed +
+    left over == spent" come out exact. `_wac_blend` divides on the same basis since 31/07/26, so
+    the two agree and the same charge prices a REEV trip and a BEV trip identically.
+
+    Recomputed from history on each call, no stored counter — same reason as `blended_price_at`:
+    correct a charge's price months later and every trip after it re-derives itself.
+    """
+    if get_setting("is_reev", "0") != "1":
+        return None
+    cap = get_battery_capacity_kwh()
+    db = _get()
+    charges = db.execute(
+        "SELECT ended_at ts, energy_added_kwh kwh, cost, start_soc FROM charges "
+        "WHERE vehicle_id = ? AND ended_at IS NOT NULL AND cost IS NOT NULL AND energy_added_kwh > 0",
+        (vehicle_id,)).fetchall()
+    trips = db.execute(
+        "SELECT id, ended_at ts, ec_kwh, ec_stable, start_soc, end_soc FROM trips "
+        "WHERE vehicle_id = ? AND ended_at IS NOT NULL AND merged_into_id IS NULL",
+        (vehicle_id,)).fetchall()
+
+    events = [{"kind": "charge", "ts": r["ts"], "kwh": r["kwh"], "cost": r["cost"],
+               "start_soc": r["start_soc"]} for r in charges]
+    for r in trips:
+        if r["ec_kwh"] and r["ec_stable"]:
+            draw = r["ec_kwh"]
+        elif r["start_soc"] is not None and r["end_soc"] is not None:
+            draw = (r["start_soc"] - r["end_soc"]) / 100.0 * cap
+        else:
+            draw = 0.0
+        events.append({"kind": "draw", "ts": r["ts"], "id": r["id"], "kwh": max(0.0, draw)})
+
+    # A charge and a trip can share a timestamp only by accident; when they do, settle the charge
+    # first — you cannot spend energy that arrives in the same instant.
+    events.sort(key=lambda e: (e["ts"] or "", 0 if e["kind"] == "charge" else 1))
+    for row in _paid_stock_replay(events, cap):
+        if row["id"] == trip_id:
+            return row
+    return None
 
 
 def _fuel_wac_blend(purchases, tank_l: float = _REEV_TANK_L) -> Optional[float]:
@@ -3766,6 +3880,24 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
         if rate and rate > 0:
             trip_d["cost_per_kwh"] = round(rate, 4)
             trip_d["cost"] = round(trip_d["energy_kwh"] * rate, 2)
+    # REEV — the blend above cannot answer this car. Its pack also takes kWh from the generator,
+    # which are energy but not SPEND: they were already paid for in litres, on the trip that burned
+    # them, and a price that only charges can move would bill them again at grid rate (an owner who
+    # charges once a month would pay grid rate for a month of petrol-made kWh). Priced instead from
+    # the paid stock, which depletes and can run out — see reev_trip_electric_cost. Replaces both
+    # numbers rather than adding a third: the electric line of a trip has one right answer.
+    trip_d["paid_kwh"] = trip_d["free_kwh"] = None
+    _stock = reev_trip_electric_cost(trip["vehicle_id"], trip["id"])
+    if _stock is not None and _stock["draw_kwh"] > 0:
+        trip_d["paid_kwh"], trip_d["free_kwh"] = _stock["paid_kwh"], _stock["free_kwh"]
+        trip_d["cost"] = round(_stock["cost"], 2)
+        trip_d["cost_per_kwh"] = _stock["rate"] or None
+    # The trip's real bill = electricity drawn from the pack + the petrol burned getting there.
+    # Kept as its OWN field: `cost` stays the electric line (every existing reader expects that),
+    # and a REEV trip whose electricity cost 0 still cost money — which is why the headline tile
+    # showing "—" on a 24,63 € tank of petrol was wrong.
+    _parts = [c for c in (trip_d.get("cost"), trip_d.get("fuel_cost")) if c is not None]
+    trip_d["cost_total"] = round(sum(_parts), 2) if _parts else None
 
     # Provisional-SoC marker: a getEC-candidate trip (feature on, started on/after the cutoff) whose
     # official cloud value hasn't locked yet is showing the SoC ESTIMATE for energy/efficiency/cost.

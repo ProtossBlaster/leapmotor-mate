@@ -3,6 +3,82 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.2.0] — 2026-07-31
+
+> ⚠️ **If you have a wallbox meter configured, the cost of your past trips goes up on update —
+> by around 8%.** Nothing was lost and nothing is being recalculated wrongly: money you had already
+> spent was simply landing on no trip at all. The first entry below explains exactly which money.
+> No setting changes meaning, no data is migrated, and nothing else in the app moves.
+
+### Changed
+- **A trip is now costed on the energy that reached the battery, not on the energy the meter
+  billed.** These are not the same number. Charge at home and the wallbox counts what left the
+  wall; the car's on-board charger turns 8-15% of it into heat, and only the rest arrives in the
+  pack. Mate was dividing what you paid by the meter's figure, then applying that rate to energy
+  taken *out of the battery* — so the kilowatt-hours lost in the charger, real money off your bill,
+  were charged to no trip at all and the trips of a month never added up to the month's
+  electricity. The divisor is now the energy that actually reached the pack.
+
+  Measured on a real 302-trip history: **77,52 € becomes 83,90 €**, and 243 of those trips move.
+  Only home charges **with a wallbox reading** are affected — every other charge already had one
+  figure and not two, because without a meter there is nothing to disagree with.
+
+  Trip costs have never been stored: they are worked out from the charge history each time a page
+  is drawn, which is what lets a price corrected months later fix every trip after it. That same
+  property is why this correction reaches the whole history at once rather than only new charges.
+
+  **What is shown on the Charges page does not change.** The kWh on a charge card, the period
+  totals and the €/kWh there still come from the meter, because there the question is what you paid
+  at the wall — a different question with a different right answer.
+
+### Added
+- **Range-extender: the electricity you bought is now spent, and can run out.** A REEV's battery
+  takes energy from two places but money from one. The socket adds kilowatt-hours *and* euros; the
+  generator adds kilowatt-hours only — those were already paid for in litres, on the very trip that
+  burned them. Mate used to price the pack at a rate that charges raised and nothing ever consumed,
+  so an owner who charges once a month paid grid rate for a month of petrol-made kilowatt-hours.
+
+  Now what you bought is a stock that depletes: trips draw on it in order, and once it is gone the
+  electric line of a trip is **0,00 €** — not a fading remainder, zero, because there is nothing
+  left that you paid for. Charge 28 kWh and drive 10 a day and the electricity is spent on day
+  three, exactly as it is in the car. A trip shows how much of what left the pack had been bought
+  and how much came from the generator. From the discussion opened by **@michapr**, with
+  **@gm27271**.
+
+- **The tank on the Overview now shows litres, not only a percentage.** Range-extender build only.
+  The figure comes from the car's own litre counter, which makes it the better of the two: the
+  percentage is a float gauge, and converting it would need the tank capacity — something Mate
+  assumes per model rather than measures. Mate has been reading that counter since v2.14.1 and no
+  page had ever printed it. Asked for by **@rop12770** (#202).
+- **A range-extender trip shows what it cost.** The cost tile keyed off the electric figure alone,
+  so a trip run on a tank of petrol showed a dash while the fuel € sat in the block below it. It
+  now shows electricity plus fuel, with both parts under it.
+
+### Fixed
+- **Mate was telling range-extender owners something untrue about their own consumption.** The note
+  under the dual-energy block said the electric figure came from the car's metered `getEC` rather
+  than the battery percentage, *because a running generator recharges the pack mid-drive*. Measured
+  against two cars' data, `getEC` is roughly what **left the battery** — what the generator sends
+  straight to the wheels never passes through the pack and is invisible to it. One week of driving
+  reads 645 km against 20 kWh, which no car can do. The note now says what the number is, in all
+  seven languages. It remains the right figure for the **cost** — what came out of the pack has to
+  be paid for — and the wrong one for the **consumption**.
+- **Maintenance item names were being cut off on a phone.** Each name was held to a single line and
+  truncated with an ellipsis — fine on a desktop, where they all fit, and unusable on a phone: after
+  the icon and the two buttons a name has roughly 165px, and 19 of the 20 Dutch names are wider than
+  that. *Verlichting, claxon, ruitenwissers — controleren* needs 351px, more than double the room it
+  had, so what you actually read was *Verlichting, claxon…*. Names now wrap and the card grows to
+  fit. Reported by **@adoewa** (#201).
+- **The three counters at the top of Maintenance had no room for their labels.** They sit in a fixed
+  three-across row, so on a phone each tile is about 100px wide and the label inside is a single
+  uppercase word that cannot wrap: Dutch *BINNENKORT* measured 83px and touched both edges, which
+  looks like bad centring rather than a tight fit. It was centred — it simply had nowhere to go.
+  Below 480px the letter-spacing goes and the type drops a notch, which is enough for every
+  language. Italian *IN SCADENZA* needed 87px and did not fit at all, so this was ours too and
+  nobody had said so.
+- **Dutch: *recuperatie* is now *regeneratie***, in all five places it appears. Corrected by
+  **@adoewa**, who translated the language in the first place and then went back over it.
+
 ## [3.1.0] — 2026-07-30
 
 ### Added

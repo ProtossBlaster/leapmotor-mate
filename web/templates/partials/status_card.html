@@ -53,6 +53,14 @@
   <div>
     <div class="stat-label">⛽ {{ t('reev_fuel_level') }}</div>
     <div class="text-4xl font-bold text-amber-400">{{ status.fuel_level_pct | nice }}<span class="text-2xl text-slate-400">%</span></div>
+    {# The litres the car counts itself (signal 3263), which get_latest_status has carried all along
+       — `SELECT *` on positions — and no template ever printed. Worth more than the percentage
+       above it: the % is a float gauge, and turning it into litres would need the tank capacity,
+       which Mate assumes per model (C10 47.5 L, B10 50 L). This one is measured. Asked for by
+       @rop12770 (#202). #}
+    {% if status.get('fuel_liters') %}
+    <div class="text-[11px] text-amber-300/80 mt-0.5">{{ status.fuel_liters | nice }} L</div>
+    {% endif %}
   </div>
   {% if status.get('fuel_range_km') %}
   <div class="text-right">

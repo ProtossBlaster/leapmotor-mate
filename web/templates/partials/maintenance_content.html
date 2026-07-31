@@ -55,7 +55,7 @@
 </details>
 {% endif %}
 
-<div class="grid grid-cols-3 gap-3 mb-6">
+<div class="stat-tiles grid grid-cols-3 gap-3 mb-6">
   <div class="card text-center py-3"><div class="stat-label">{{ m.overdue }}</div><div class="text-2xl font-bold {% if maint.summary.overdue %}text-red-400{% else %}text-slate-500{% endif %}">{{ maint.summary.overdue }}</div></div>
   <div class="card text-center py-3"><div class="stat-label">{{ m.soon }}</div><div class="text-2xl font-bold {% if maint.summary.soon %}text-amber-400{% else %}text-slate-500{% endif %}">{{ maint.summary.soon }}</div></div>
   <div class="card text-center py-3"><div class="stat-label">{{ m.ok }}</div><div class="text-2xl font-bold text-emerald-400">{{ maint.summary.ok }}</div></div>
@@ -72,7 +72,13 @@
     <div class="flex items-center gap-3">
       <span class="text-lg shrink-0">{{ item.icon }}</span>
       <div class="flex-1 min-w-0">
-        <div class="font-medium truncate">{{ item.label }}</div>
+        {# `truncate` held this to ONE line and cut the rest with an ellipsis, which is fine on a
+           desktop where every name fits and unusable on a phone: after the icon and the two
+           buttons the title has roughly 165px, and 19 of the 20 Dutch names are wider than that —
+           "Verlichting, claxon, ruitenwissers — controleren" needs 351px, more than double
+           (#201 @adoewa). It now wraps, and the card grows to fit rather than hiding the name.
+           `break-words` so a single long compound breaks instead of pushing the row wider. #}
+        <div class="font-medium break-words">{{ item.label }}</div>
         {% if item.next_text %}<div class="text-xs {{ scol[item.status] }}">{{ item.next_text }}</div>{% endif %}
       </div>
       <span class="text-[11px] px-2 py-0.5 rounded-full shrink-0 {{ spill[item.status] }}">{{ slbl[item.status] }}</span>

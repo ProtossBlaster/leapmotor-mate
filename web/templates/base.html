@@ -95,6 +95,15 @@
        hard-coded pixel count. Scoped to .stat-pairs: .stat-label itself is used all over the
        app, mostly where nothing wraps and the extra height would only add slack. */
     .stat-pairs .stat-label { min-height: 3em; }
+    /* A fixed 3-up row of counters leaves each tile about 100px on a phone, and the label inside
+       is one uppercase word that cannot wrap. Dutch BINNENKORT measures 83px there, so it touches
+       both edges — which reads as badly centred rather than merely tight, and is what @adoewa
+       reported (#201); it IS centred, it just has no room. Italian IN SCADENZA needs 87px and is
+       worse. Below 480px the tracking goes and the type drops a notch, buying back ~15px. Scoped
+       to .stat-tiles so no other .stat-label in the app changes. */
+    @media (max-width: 480px) {
+      .stat-tiles .stat-label { font-size: 0.7rem; letter-spacing: 0; }
+    }
     .bg-slate-750 { background: rgb(36 49 65); }
 
     /* ── Trips tree ─────────────────────────────────────────────── */

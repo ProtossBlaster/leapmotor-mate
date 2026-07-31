@@ -38,16 +38,25 @@ def _trip(pdb, tid, *, started="2026-06-12T13:20:00+00:00", dist=38.0, eff=21.6)
     pdb._conn.commit()
 
 
-def test_home_wallbox_trip_rate_uses_ac_energy(tmp_path, monkeypatch):
-    """The #51 case: 16 kWh AC × 0.16 = 2.56 €, only 8 kWh reached the battery.
-    Rate must be 0.16 (cost/AC), not the inflated 0.32 (cost/battery)."""
+def test_home_wallbox_trip_rate_uses_battery_energy(tmp_path, monkeypatch):
+    """16 kWh AC x 0.16 = 2.56 EUR, ma nel pacco ne sono arrivati 8.
+
+    Un viaggio consuma l'energia CHE STA NEL PACCO, quindi il costo pagato va diviso per quella:
+    2,56 / 8 = 0,32. Dividendo per i 16 del contatore (com'era fino al 31/07/26) gli 8 kWh persi
+    nel caricatore — soldi spesi davvero — non finivano nel costo di nessun viaggio, e la somma
+    dei costi restava sotto la bolletta. Scelta di Silvio, 31/07/26.
+
+    ⚠️ Cambia solo la BASE con cui si prezza un viaggio. Quanti kWh mostra la scheda della
+    ricarica, i totali di periodo e il €/kWh della pagina Ricariche restano quelli del contatore
+    (`_billed_kwh`): la' la domanda e' «quanto ho pagato al muro», e la risposta e' un'altra.
+    """
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, location_type="HOME", energy_added=8.0, ac=16.0, cost=2.56)
     _trip(pdb, 10)
     d = db_reader.get_trip_detail(10)
     assert d["energy_kwh"] == 8.21
-    assert d["cost_per_kwh"] == 0.16                 # 2.56 / 16 (AC), NOT 2.56/8 = 0.32
-    assert d["cost"] == 1.31                         # 8.21 × 0.16, not the inflated 2.63
+    assert d["cost_per_kwh"] == 0.32                 # 2,56 / 8 (pacco), non 2,56/16 = 0,16
+    assert d["cost"] == 2.63                         # 8,21 x 0,32
 
 
 def test_public_charge_trip_rate_uses_battery_energy(tmp_path, monkeypatch):
