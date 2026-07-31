@@ -3,6 +3,26 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.3] — 2026-08-01
+
+### Changed
+- **The BetaTester banner told testers not to report anything, and one of them almost didn't.**
+  Every page of the beta build carried a single instruction — *"do NOT open issues about
+  inconsistent data"* — written to hold back a flood of *"my costs look wrong"* on a REEV, which is
+  expected while REEV behaviour isn't integrated. It held back more than that. A tester found a
+  real defect — **one refuel filed three times**, in code that ships in the **public** build, so
+  every REEV owner was seeing it — and wrote it as an afterthought at the bottom of a report about
+  something else, because, in his words, *"it says all over the place not to report data
+  inconsistencies"*.
+
+  The banner now draws the line where it belongs. A figure that merely looks off still needs no
+  issue; anything that looks **broken** — an event counted twice, a duplicate row, a value that
+  cannot be true — is worth reporting. The same split replaces the old sentence on the one-time
+  consent screen. All seven languages. The beta repository's issue form, its acknowledgement
+  checkbox, both READMEs, the add-on documentation, the consent notice and the add-on store
+  description carried the same discouragement in seven more places and now say the same thing.
+  _(beta #17, @pdifeo.)_
+
 ## [3.4.2] — 2026-07-31
 
 ### Fixed
