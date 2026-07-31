@@ -3,6 +3,25 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.3.0] — 2026-07-31
+
+### Changed
+- **Merging two trips now happens inside the day, under the date.** The 🔗 button moved off the top
+  of the page and sits beside the day's heading, appearing only once a day is open: press it and the
+  calendar stays where it is while that day's list narrows to just the pairs you could join, gap
+  slider and all. Before, it replaced the whole calendar with every joinable pair in your history —
+  and a trip row prints a clock, not a date, so twenty-two pairs arrived as bare times with nothing
+  saying which day any of them was. Two of them began at 17:52 and 17:53, weeks apart, four rows
+  from each other. The day's heading already says the date; the pairs now sit under it.
+  _(#204, reported by @riri19.)_
+
+### Added
+- **A trip you found by searching now says which day it was.** A result stands on its own — there is
+  no calendar heading above it — and it showed only `17:52 → 18:15`, so the one thing you were
+  missing was the one thing you had to go back to the calendar for. Charges learned this in v2.16.0;
+  Trips never did. The date appears on search results only: in the day drawer it would repeat the
+  heading directly above it, once per trip.
+
 ## [3.2.1] — 2026-07-31
 
 ### Added

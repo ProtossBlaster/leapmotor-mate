@@ -2890,13 +2890,21 @@ def get_mergeable_pairs(gap_min: int = TRIP_MERGE_GAP_DEFAULT) -> list:
     return pairs
 
 
-def get_merge_candidates(gap_min: int = TRIP_MERGE_GAP_DEFAULT) -> list[dict]:
+def get_merge_candidates(gap_min: int = TRIP_MERGE_GAP_DEFAULT, day=None) -> list[dict]:
     """Mergeable pairs (get_mergeable_pairs) hydrated with full trip_row.html-ready data —
-    the Viaggi 🔗 button's dedicated candidates view. Previously these surfaced as inline
-    connectors between adjacent rows in the full year/month/day accordion; the calendar
-    only ever renders one day at a time, so there's no "whole page" left to scan for
-    them — this view lists just the (typically few) actual candidates instead, unrelated
-    to whichever month is currently browsed. Most-recent-first."""
+    the day drawer's 🔗 view. Previously these surfaced as inline connectors between adjacent
+    rows in the full year/month/day accordion, then as one flat all-history list when the
+    calendar replaced it; that list carried no date at all, so 22 pairs came back as bare
+    clock times and two of them (17:52 and 17:53, weeks apart) sat four rows from each other
+    — #204 @riri19. The drawer already prints the date as its heading, so the pairs moved
+    back under it.
+
+    `day` (a date) scopes them to ONE calendar day, which is what the drawer asks for; None
+    keeps every pair. A pair is anchored to the EARLIER trip's local day, so one straddling
+    midnight appears on the day the merged trip would start — the merged trip takes the
+    parent's date, so that's the day it will end up on. Measured on 302 real trips: 22 pairs
+    at the default gap, 160 at the widest, none straddling midnight — the anchor decides a
+    case that so far only exists in theory, but it has to decide it. Most-recent-first."""
     pairs = get_mergeable_pairs(gap_min)
     if not pairs:
         return []
@@ -2904,8 +2912,15 @@ def get_merge_candidates(gap_min: int = TRIP_MERGE_GAP_DEFAULT) -> list[dict]:
     out = []
     for p in pairs:
         a, b = trips_by_id.get(p["a_id"]), trips_by_id.get(p["b_id"])
-        if a and b:
-            out.append({"a": a, "b": b, "gap_min": p["gap_min"]})
+        if not (a and b):
+            continue
+        # `_dt` is the same localized field get_trips_calendar_day buckets on, so the pairs and
+        # the list under them can never disagree about which day a trip belongs to — near
+        # midnight that's the whole ballgame. (started_at is localized by now too, so slicing it
+        # would land on the same day; _dt is just the date itself instead of a string prefix.)
+        if day is not None and a["_dt"].date() != day:
+            continue
+        out.append({"a": a, "b": b, "gap_min": p["gap_min"]})
     out.sort(key=lambda p: p["b"]["started_at"], reverse=True)
     return out
 

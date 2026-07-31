@@ -1,12 +1,26 @@
 {# Day header + trip rows — shared by the day-drawer's own endpoint (trips_calendar_day.html)
    and the Month view's initial "open on this day" render (trips_calendar_month.html, via
    ?open_day=). Expects `trips` (list) and `day_label` (str) in scope, plus the page-level
-   `t`/`fmt_dur`/`is_reev`/`research`. #}
+   `t`/`fmt_dur`/`is_reev`/`research`, and `year`/`month`/`day` so the 🔗 button can address
+   its own day. BOTH include paths must pass them — a header that only appears down one of
+   the two is the classic way this template has broken before. #}
 {% if trips %}
 <div class="mb-3 flex items-center justify-between flex-wrap gap-2">
-  <div class="flex items-center gap-2">
+  <div class="flex items-center gap-2 flex-wrap">
     <span class="text-white font-semibold">{{ day_label }}</span>
     <span class="text-slate-500 text-xs">{{ trips|length }} {{ t('trip_singular') if trips|length == 1 else t('trips_plural') }}</span>
+    {# 🔗 lives HERE, beside the date, and only exists once a day is open: merging is something you
+       do to two trips of one day, and this heading is the only place on the page that says which
+       day that is (#204 @riri19). The same button toggles back — ✕ with the same noun, so no new
+       i18n key is invented for a word seven locales would have to guess at. #}
+    {% if day is defined and day %}
+    <button type="button"
+            hx-get="api/trips/calendar/day?year={{ year }}&month={{ month }}&day={{ day }}{% if not merge_mode %}&merge=1{% if gap %}&gap={{ gap }}{% endif %}{% endif %}"
+            hx-target="#trips-day-drawer" hx-swap="innerHTML"
+            class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-colors {% if merge_mode %}border-yellow-500/60 bg-yellow-400/15 text-yellow-400 hover:bg-yellow-400/25{% else %}border-slate-600 bg-slate-800/60 text-slate-300 hover:border-yellow-500/50 hover:text-yellow-400{% endif %}">
+      {% if merge_mode %}✕{% else %}🔗{% endif %} {{ t('merge_eligible') }}
+    </button>
+    {% endif %}
   </div>
   {# The day's own totals, back where the old year/month/day accordion had them — dropped when the
      calendar replaced it (68ff5e7) and missed by @ghuaywen-ai on #175, not asked for as a novelty.
@@ -27,11 +41,56 @@
   </div>
   {% endif %}
 </div>
+
+{% if merge_mode %}
+{# The slider stays with the pairs and re-asks THIS day. It's also why the ✕ view stays reachable
+   on a day with no pairs instead of the button hiding itself: a wider stop can turn nothing into
+   two, and hiding it would mean guessing which gap the reader has in mind. #}
+<div class="flex items-center justify-end mb-3">
+  <label class="text-xs text-slate-300 inline-flex items-center gap-2 whitespace-nowrap">
+    {{ t('merge_max_gap') }}: <output class="text-yellow-400 font-semibold">{{ gap }}</output> min
+    <input type="range" name="gap" min="{{ merge_gap_min }}" max="{{ merge_gap_max }}" step="5" value="{{ gap }}"
+           hx-get="api/trips/calendar/day?year={{ year }}&month={{ month }}&day={{ day }}&merge=1"
+           hx-trigger="change" hx-target="#trips-day-drawer" hx-swap="innerHTML"
+           class="accent-yellow-400 w-36 align-middle">
+  </label>
+</div>
+
+{% if candidates %}
+<div class="space-y-4">
+  {% for pair in candidates %}
+  {# The same card the all-history view used, opening the same #merge-modal — that modal is defined
+     once in trips.html, OUTSIDE this swapped area, so it survives every drawer swap. #}
+  <div class="rounded-xl border border-yellow-500/20 bg-yellow-400/5 p-2">
+    {% with trip = pair.a %}{% include "partials/trip_row.html" %}{% endwith %}
+    <div class="flex justify-center my-1">
+      <button type="button"
+              hx-get="api/trips/merge-preview?a={{ pair.a.id }}&b={{ pair.b.id }}&gap={{ merge_gap_max }}"
+              hx-target="#merge-modal-body" hx-swap="innerHTML"
+              onclick="document.getElementById('merge-modal').style.display='flex'"
+              class="inline-flex items-center gap-1.5 rounded-md border border-yellow-500/50 bg-yellow-400/10 text-yellow-400 px-2.5 py-1 text-[11px] font-semibold hover:bg-yellow-400/15">
+        🔗 {{ t('merge_join') }} <span class="font-normal opacity-70">· {{ t('merge_stop') }} {{ pair.gap_min }}′</span>
+      </button>
+    </div>
+    {% with trip = pair.b %}{% include "partials/trip_row.html" %}{% endwith %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-slate-500 py-8">
+  <div class="text-3xl mb-2">🔗</div>
+  <div>{{ t('merge_none') }}</div>
+</div>
+{% endif %}
+
+{% else %}
 <div class="space-y-1">
   {% for trip in trips %}
   {% include "partials/trip_row.html" %}
   {% endfor %}
 </div>
+{% endif %}
+
 {% else %}
 <div class="text-center text-slate-500 text-sm py-6">{{ t('trips_calendar_pick_day') }}</div>
 {% endif %}

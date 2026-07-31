@@ -1,4 +1,4 @@
-{# Single trip row — reused by the day-drawer, search results and the merge-candidates list.
+{# Single trip row — reused by the day-drawer (plain and in 🔗 merge mode) and search results.
    Expects `trip` in scope, plus the page-level `t`/`fmt_dur`/`is_reev`/`research` already in
    context (Jinja includes share the parent scope). `eff_cls` and the `dist`/`eff`/`nice`
    filters are global (see main.py), no extra wiring needed.
@@ -20,6 +20,12 @@
   {% endif %}
 
   <div class="min-w-0 flex-1">
+    {# Only a search result carries a date (set by the search route, #191's split) — in the day
+       drawer the date is the heading above these rows, and printing it here too would repeat that
+       heading once per trip. #}
+    {% if trip.date_label %}
+    <div class="text-[11px] text-slate-500 leading-tight">{{ trip.date_label }}</div>
+    {% endif %}
     <div class="text-white text-sm font-medium">
       {{ trip.started_at[11:16] if trip.started_at else '—' }}
       <span class="text-slate-500 font-normal text-xs ml-1">

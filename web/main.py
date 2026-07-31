@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.2.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.3.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -483,8 +483,9 @@ async def trips_page(request: Request, highlight: int = 0):
     return templates.TemplateResponse(request, "trips.html", _ctx(
         page="trips", vehicle=vehicle,
         total=total, highlight=highlight, summary=summary,
-        merge_gap_default=db_reader.TRIP_MERGE_GAP_DEFAULT,
-        merge_gap_min=db_reader.TRIP_MERGE_GAP_MIN, merge_gap_max=db_reader.TRIP_MERGE_GAP_MAX,
+        # No merge_gap_* here any more: the slider moved into the day drawer, which gets them
+        # from the day route (#204). The page keeps only #merge-modal, which lives outside the
+        # swapped calendar area so the drawer's 🔗 preview still has somewhere to open.
         cal_year=cal_year, cal_month=cal_month, cal_open_day=cal_open_day,
         cal_years=db_reader.get_trip_years(),
     ))
@@ -537,17 +538,30 @@ async def trips_calendar(request: Request, year: int = 0, month: int = 0, open_d
 
 
 @app.get("/api/trips/calendar/day", response_class=HTMLResponse)
-async def trips_calendar_day(request: Request, year: int, month: int, day: int):
-    """One day's trips for the Month view's day drawer, with that day's own totals (#175)."""
+async def trips_calendar_day(request: Request, year: int, month: int, day: int,
+                             merge: int = 0, gap: int = db_reader.TRIP_MERGE_GAP_DEFAULT):
+    """One day's trips for the Month view's day drawer, with that day's own totals (#175).
+
+    `merge=1` swaps that list for THIS day's mergeable pairs, each with the 🔗 connector between
+    them, and keeps the max-stop slider (#204 @riri19). The pairs used to live in their own
+    all-history view that replaced the whole calendar — which is how they lost the date: the
+    drawer's heading already says which day this is, so under it a row needs only its clock."""
     lang = db_reader.get_language()
     from datetime import date
+    d = date(year, month, day)
+    gap = max(db_reader.TRIP_MERGE_GAP_MIN, min(db_reader.TRIP_MERGE_GAP_MAX, gap))
     day_trips = db_reader.get_trips_calendar_day(year, month, day)
     return templates.TemplateResponse(request, "partials/trips_calendar_day.html", {
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
         "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
         "trips": day_trips,
         "day_totals": db_reader.trips_totals(day_trips),
-        "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
+        "day_label": i18n.fmt_day_month_year(lang, d),
+        # The drawer builds its own 🔗 / slider URLs, so it needs the day back as three numbers.
+        "year": year, "month": month, "day": day,
+        "merge_mode": bool(merge), "gap": gap,
+        "candidates": db_reader.get_merge_candidates(gap, day=d) if merge else [],
+        "merge_gap_min": db_reader.TRIP_MERGE_GAP_MIN, "merge_gap_max": db_reader.TRIP_MERGE_GAP_MAX,
     })
 
 
@@ -578,26 +592,19 @@ async def trips_search(request: Request, q: str = "", drive_mode: str = "",
         km_min=units.dist_to_km(n_km_min), km_max=units.dist_to_km(n_km_max),
         eff_min=n_eff_min, eff_max=n_eff_max, duration_min=n_duration_min, duration_max=n_duration_max,
         date_from=date_from, date_to=date_to)
+    # The same split Ricariche got in #191, which Viaggi never got: a result standing on its own has
+    # to say WHICH DAY it was — a hit read "17:52 → 18:15" and nothing more. Set the label HERE, in
+    # the search route only, and let the row print it when it's there. Unconditionally in the row
+    # and the calendar's day drawer starts repeating its own heading underneath itself, once per
+    # trip — the same reason merging moved INTO the drawer rather than carrying its own dates (#204).
+    for t in trips:
+        dt = db_reader._local_dt(t.get("started_at"))
+        t["date_label"] = i18n.fmt_day_month_year(lang, dt) if dt else None
     today = db_reader.today_local()
     return templates.TemplateResponse(request, "partials/trips_search_results.html", {
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
         "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
         "trips": trips, "year": year or today.year, "month": month or today.month,
-    })
-
-
-@app.get("/api/trips/merge-candidates", response_class=HTMLResponse)
-async def trips_merge_candidates(request: Request, gap: int = db_reader.TRIP_MERGE_GAP_DEFAULT):
-    """Viaggi 🔗 button (HTMX partial) — replaces the calendar with the (typically few) actual
-    mergeable pairs across all history, independent of whichever month is currently browsed."""
-    gap = max(db_reader.TRIP_MERGE_GAP_MIN, min(db_reader.TRIP_MERGE_GAP_MAX, gap))
-    lang = db_reader.get_language()
-    return templates.TemplateResponse(request, "partials/trip_merge_candidates.html", {
-        "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
-        "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
-        "candidates": db_reader.get_merge_candidates(gap), "gap": gap,
-        "merge_gap_default": db_reader.TRIP_MERGE_GAP_DEFAULT,
-        "merge_gap_min": db_reader.TRIP_MERGE_GAP_MIN, "merge_gap_max": db_reader.TRIP_MERGE_GAP_MAX,
     })
 
 

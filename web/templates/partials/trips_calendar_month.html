@@ -69,7 +69,11 @@
 
   <div id="trips-day-drawer" class="mt-4">
     {% if open_day_trips is defined %}
-      {% with trips = open_day_trips, day_label = open_day_label, day_totals = open_day_totals %}
+      {# `day` too: the day content's 🔗 button addresses its own day, and this is the second of
+         the two paths that render it (a ?highlight= link, or the remembered day after a reload).
+         Bind it here or the button silently vanishes down exactly one of them. #}
+      {% with trips = open_day_trips, day_label = open_day_label, day_totals = open_day_totals,
+              day = open_day %}
         {% include "partials/trips_calendar_day_content.html" %}
       {% endwith %}
     {% else %}

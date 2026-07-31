@@ -128,16 +128,9 @@
 </div>
 {% endif %}
 
-<!-- Merge candidates — dedicated view (see main.py trips_merge_candidates for why it's
-     no longer inline connectors between accordion rows) -->
-<div class="mb-4">
-  <button type="button"
-          hx-get="api/trips/merge-candidates" hx-trigger="click"
-          hx-target="#trips-calendar-month-wrap" hx-swap="innerHTML"
-          class="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:border-yellow-500/50 transition-all">
-    🔗 {{ t('merge_eligible') }}
-  </button>
-</div>
+<!-- 🔗 is NOT here any more: merging moved into the day drawer's header, beside the date
+     (#204 @riri19). A page-level button replaced the whole calendar with a flat all-history
+     list whose rows carried no date at all — see trips_calendar_day_content.html. -->
 
 <div class="card mb-6" id="trips-calendar-month-wrap"
      hx-get="api/trips/calendar?year={{ cal_year }}&month={{ cal_month }}{% if cal_open_day %}&open_day={{ cal_open_day }}{% endif %}"
