@@ -2861,6 +2861,16 @@ def _trip_group_stats(parent: dict, children: list) -> dict:
         d["distance_km"] = round(sum((s.get("distance_km") or 0) for s in segs), 2)
     d["duration_min"] = round(sum((s.get("duration_min") or 0) for s in segs), 1)   # DRIVING only
     d["regen_kwh"] = round(sum((s.get("regen_kwh") or 0) for s in segs), 3)
+    # Fuel spans the group exactly like SoC does — first segment's start, last segment's end (beta
+    # #20, @michapr). It used to be left on the parent row alone, and merge_trips makes the EARLIER
+    # trip the parent: merging a short electric hop with the long generator-on drive that followed it
+    # took the hop's flat tank as the whole group's, so the litres vanished and the trip's cost fell
+    # from 7.53 € to 0.50 € — the petrol simply stopped being counted. Taken from the first and last
+    # segment that actually HAS a reading rather than blindly first/last, since a segment can carry
+    # none (a BEV, or a trip recorded before the signal was read).
+    for _key, _pick in (("fuel_start_pct", segs), ("fuel_start_l", segs),
+                        ("fuel_end_pct", segs[::-1]), ("fuel_end_l", segs[::-1])):
+        d[_key] = next((s[_key] for s in _pick if s.get(_key) is not None), None)
     # Elevation is per-segment like regen_kwh, but None here means "not enriched yet" (not "zero") —
     # summing None-as-0 would show a misleading "+0 m" while some segments still await the Open-Meteo
     # sweep. Only aggregate once EVERY segment has a value; the outside temperature is the mean of the
@@ -3963,8 +3973,9 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
 
     # REEV Phase C — per-trip fuel consumption from the fuel-tank % drop (signal 3235). L/100 km is over
     # the generator-on DRIVING distance (across every merged segment), not the whole trip → matches the car.
-    _fs, _fe = _tp.get("fuel_start_pct"), _tp.get("fuel_end_pct")
-    trip_d["fuel_start_pct"], trip_d["fuel_end_pct"] = _fs, _fe
+    # From the GROUP, not from `_tp` (the parent row): on a merged trip the parent is only the first
+    # segment, and its tank says nothing about what the later segments burned — see beta #20.
+    _fs, _fe = trip_d.get("fuel_start_pct"), trip_d.get("fuel_end_pct")
     _fbounds = db.execute(f"SELECT MIN(started_at) s, MAX(ended_at) e FROM trips WHERE id IN ({ph})",
                           seg_ids).fetchone()
     _feng = _reev_engine_on(db, trip["vehicle_id"], _fbounds["s"], _fbounds["e"])

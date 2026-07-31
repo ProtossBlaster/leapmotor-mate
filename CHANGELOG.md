@@ -3,6 +3,23 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.1] — 2026-07-31
+
+### Fixed
+- **Merging two trips could throw away the petrol one of them burned.** On a range-extender, a
+  merged trip took its fuel readings from the **parent row alone** — and the parent is the *earlier*
+  of the two. Merge a short electric hop with the long generator-on drive that followed it and the
+  group inherited the hop's untouched tank: the litres vanished, the ⛽ marker went with them, and
+  the trip's cost fell from **7.53 € to 0.50 €** because only the electricity was still being
+  counted. Distance, duration, SoC, regen and elevation had always spanned the whole group; fuel had
+  simply never been added to that list, and it now spans it the same way — first segment's reading
+  at the start, last segment's at the end, skipping segments that carry none.
+
+  Nothing was lost from the database: the segments kept their own readings throughout, so every
+  merged trip already in your history reports its fuel again with no re-recording, and unmerging was
+  never necessary. The same figure feeds the trips list, so the ⛽ marker returns there too.
+  _(beta #20, reported by @michapr — who hit it by following Mate's own advice to merge.)_
+
 ## [3.4.0] — 2026-07-31
 
 ### Added

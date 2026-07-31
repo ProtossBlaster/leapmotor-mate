@@ -140,3 +140,78 @@ def test_reev_elec_inert_without_getec():
 
 def test_reev_elec_zero_distance_is_safe():
     assert db_reader._reev_trip_elec(2.1, 0, True) == {"reev_elec_kwh": None, "reev_elec_kwh_100km": None}
+
+
+# ── beta #20 (@michapr): merging a trip must not lose the petrol ──────────────
+#
+# He was told to merge two trips to recover the official combined figure, did so, and the fuel
+# disappeared: 3.7 L and 7.14 € of petrol gone, the trip's cost falling from 7.53 € to 0.50 €.
+# _trip_group_stats aggregated SoC, distance, duration, regen and elevation but not fuel, and the
+# detail read the tank off the PARENT row — and merge_trips makes the EARLIER trip the parent. His
+# earlier segment was a 2 km electric hop with a flat tank, so the group inherited "no fuel burned"
+# from the one segment that had burned none.
+
+def _merged_pair(tmp_path, monkeypatch):
+    """His shape: a short electric hop at 09:45, then the long generator-on drive at 09:56."""
+    pdb = D.Database(str(tmp_path / "t.db"))
+    monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
+    pdb._conn.execute(
+        "INSERT INTO trips (id,vehicle_id,started_at,ended_at,distance_km,start_soc,end_soc,"
+        " start_odometer_km,end_odometer_km,fuel_start_pct,fuel_end_pct) "
+        "VALUES (1,1,'2026-07-28T09:45:00+00:00','2026-07-28T09:53:00+00:00',2.0,89.9,88.0,"
+        " 903,905,72.7,72.7)")                                  # hop: tank flat
+    pdb._conn.execute(
+        "INSERT INTO trips (id,vehicle_id,started_at,ended_at,distance_km,start_soc,end_soc,"
+        " start_odometer_km,end_odometer_km,fuel_start_pct,fuel_end_pct,merged_into_id) "
+        "VALUES (2,1,'2026-07-28T09:56:00+00:00','2026-07-28T10:38:00+00:00',57.0,87.8,79.6,"
+        " 905,962,72.7,65.3,1)")                                # generator ran: 7.4 points burned
+    pdb._conn.commit()
+    return pdb
+
+
+def test_a_merged_trip_keeps_the_petrol_its_later_segment_burned(tmp_path, monkeypatch):
+    _merged_pair(tmp_path, monkeypatch)
+    d = db_reader.get_trip_detail(1)
+    assert d["fuel_start_pct"] == 72.7
+    assert d["fuel_end_pct"] == 65.3, "the group took the parent's flat tank — the petrol is gone"
+    assert d["engine_ran"] is True
+    assert d["fuel_used_l"] and d["fuel_used_l"] > 3.0
+
+
+def test_the_merged_trip_in_the_list_shows_the_engine_too(tmp_path, monkeypatch):
+    """The list builds its row from the same helper, so it carried the same loss — the ⛽ flag on a
+    merged generator-on trip simply stopped appearing."""
+    _merged_pair(tmp_path, monkeypatch)
+    rows = [t for t in db_reader.get_trips(limit=50) if t["id"] == 1]
+    assert rows and rows[0]["engine_ran"] is True
+
+
+def test_an_unmerged_trip_is_unaffected(tmp_path, monkeypatch):
+    """The single-trip path must read exactly as before — no children, nothing to span."""
+    pdb = D.Database(str(tmp_path / "t.db"))
+    monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
+    pdb._conn.execute(
+        "INSERT INTO trips (id,vehicle_id,started_at,ended_at,distance_km,start_soc,end_soc,"
+        " fuel_start_pct,fuel_end_pct) VALUES (1,1,'2026-07-28T09:56:00+00:00',"
+        " '2026-07-28T10:38:00+00:00',57.0,87.8,79.6,72.7,65.3)")
+    pdb._conn.commit()
+    d = db_reader.get_trip_detail(1)
+    assert (d["fuel_start_pct"], d["fuel_end_pct"]) == (72.7, 65.3)
+    assert d["engine_ran"] is True
+
+
+def test_a_bev_group_stays_inert(tmp_path, monkeypatch):
+    """No segment carries a tank → nothing invented, and the fuel card stays away."""
+    pdb = D.Database(str(tmp_path / "t.db"))
+    monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
+    pdb._conn.execute(
+        "INSERT INTO trips (id,vehicle_id,started_at,ended_at,distance_km,start_soc,end_soc) "
+        "VALUES (1,1,'2026-07-28T09:45:00+00:00','2026-07-28T09:53:00+00:00',2.0,89.9,88.0)")
+    pdb._conn.execute(
+        "INSERT INTO trips (id,vehicle_id,started_at,ended_at,distance_km,start_soc,end_soc,"
+        " merged_into_id) VALUES (2,1,'2026-07-28T09:56:00+00:00','2026-07-28T10:38:00+00:00',"
+        " 57.0,87.8,79.6,1)")
+    pdb._conn.commit()
+    d = db_reader.get_trip_detail(1)
+    assert d["fuel_start_pct"] is None and d["fuel_end_pct"] is None
+    assert d["engine_ran"] is False
