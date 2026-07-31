@@ -3943,6 +3943,24 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     dist = trip_d.get("distance_km") or 0
     trip_d["energy_kwh"] = round(eff * dist / 100, 2) if (eff and dist) else None
 
+    # NET change in the pack over the trip, signed — and only kept when the pack ended FULLER than it
+    # started (beta #11, @michapr + @gm27271). On a range-extender the generator can put back more
+    # than the motor took out; the poller computes exactly this at trip close and then discards it,
+    # because a SoC-derived consumption is meaningless once the pack is being refilled mid-drive
+    # (beta #10) — so the cell those two photographed was never a suppressed value, it was nothing at
+    # all. Derived here from the stored SoC pair rather than kept in a column, so every trip already
+    # recorded gets it without a migration.
+    #
+    # NOT the same quantity as energy_kwh above, and that is why it has its own label: energy_kwh is
+    # the GROSS energy that left the pack (getEC, when the cloud has it), which stays positive even on
+    # a trip that ended with more charge. Printing a minus sign on that one would answer the question
+    # with the wrong number. Only the negative case is surfaced: where the net is positive, the
+    # consumption figure beside it already says so, and two numbers under one word is its own defect.
+    _s0, _s1 = trip_d.get("start_soc"), trip_d.get("end_soc")
+    trip_d["battery_net_kwh"] = None
+    if _s0 is not None and _s1 is not None and _s1 > _s0:
+        trip_d["battery_net_kwh"] = round((_s0 - _s1) / 100.0 * get_battery_capacity_kwh(), 2)
+
     # REEV Phase C — per-trip fuel consumption from the fuel-tank % drop (signal 3235). L/100 km is over
     # the generator-on DRIVING distance (across every merged segment), not the whole trip → matches the car.
     _fs, _fe = _tp.get("fuel_start_pct"), _tp.get("fuel_end_pct")

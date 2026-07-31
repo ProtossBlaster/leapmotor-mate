@@ -3,6 +3,29 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.0] — 2026-07-31
+
+### Added
+- **A trip that ends with more charge than it started now says so, instead of showing nothing.** On a
+  range-extender the generator can put back more than the motor took out; the energy tile on such a
+  trip was simply empty. It was not a hidden value — the number is computed when the trip closes and
+  then discarded, because a consumption per hundred kilometres means nothing while the pack is being
+  refilled mid-drive, and that rule is right. So the tile now carries the **battery's net change**
+  with its sign: `−2.9 kWh` where the pack ended fuller. Derived from the trip's own SoC pair, so
+  every trip already recorded has it, with no migration and nothing to re-record.
+
+  It is deliberately **not** the same figure as the consumption beside it: that one is the gross
+  energy that left the pack, which stays positive even on a trip you finished with more charge. Both
+  are true, they answer different questions, and putting a minus sign on the second would have been
+  the wrong number under the right label. Where the pack drained normally, the net stays out — the
+  consumption figure already says it, and one trip should not print two energy numbers.
+  _(beta #11, reported by @michapr and @gm27271.)_
+
+### Changed
+- **"From the car's own gauges" now reads "Measured by the car".** The old wording made the figure
+  sound like a second opinion when it is the energy you actually have to put back in. All seven
+  languages. _(beta #11, @michapr.)_
+
 ## [3.3.1] — 2026-07-31
 
 ### Fixed

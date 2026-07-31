@@ -73,10 +73,18 @@
           {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
         </div>
         <div>
+          {# When the pack ended fuller than it started there is no consumption to print — the poller
+             withholds it on purpose — and the tile used to sit empty (beta #11). Show the NET gain
+             instead, under its own label: this is the battery's net change, not what the trip used. #}
+          {% if trip.battery_net_kwh is not none %}
+          <div class="stat-label">{{ t('battery_net') }}</div>
+          <div class="stat-value text-green-400">{{ "%.1f"|format(trip.battery_net_kwh) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
+          {% else %}
           <div class="stat-label">{{ t('energy_used') }}</div>
           {% if trip.energy_kwh %}
           <div class="stat-value text-amber-400">{{ "%.1f"|format(trip.energy_kwh) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
           {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
+          {% endif %}
         </div>
         {% if not is_reev %}
         <!-- Regen is hidden for REEVs: with a generator on board, "battery charging while driving" can't be
