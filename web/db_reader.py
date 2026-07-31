@@ -106,6 +106,60 @@ def local_to_utc_iso(s, tz=None):
     return dt.replace(tzinfo=tz or _local_tz()).astimezone(timezone.utc).isoformat()
 
 
+TZ_PINNED_KEY = "timezone_pinned_v1"     # one-shot: Auto turned into an explicit, recorded zone
+
+
+def detected_tz_name() -> str:
+    """The container's zone as an IANA NAME — what "Automatic" silently resolves to. 'UTC' when
+    there is nothing to read, which is what a bare Docker container actually runs on."""
+    try:
+        known = available_timezones()
+    except Exception:  # noqa: BLE001
+        known = set()
+    env = (os.environ.get("TZ") or "").strip()
+    if env and (not known or env in known):
+        return env
+    try:                                    # Debian/Alpine write the name here
+        name = Path("/etc/timezone").read_text(encoding="utf-8").strip()
+        if name and (not known or name in known):
+            return name
+    except Exception:  # noqa: BLE001
+        pass
+    try:                                    # …otherwise /etc/localtime points into the tz database
+        p = Path("/etc/localtime").resolve()
+        parts = p.parts
+        if "zoneinfo" in parts:
+            name = "/".join(parts[parts.index("zoneinfo") + 1:])
+            if name and (not known or name in known):
+                return name
+    except Exception:  # noqa: BLE001
+        pass
+    return "UTC"
+
+
+def pin_auto_timezone() -> str:
+    """One-shot: turn "Automatic" into the zone it was already resolving to, and RECORD it.
+
+    Auto was never wrong so much as UNRECORDED. `_local_tz` fell back to the container's zone while
+    the setting stayed '', so a charge you typed or imported was anchored to a clock nobody had
+    named — and `repair_manual_charge_timezones` (rightly) refuses to run without a chosen zone, so
+    it could never put those rows back either. If the container ran on neither UTC nor your real
+    zone, the offset was baked in and unrecoverable. Writing the resolved name down closes that:
+    every write from here on anchors to a zone that is known, and can be re-anchored if it changes.
+
+    Nothing moves and nobody's times change — the zone stored is exactly the one already in use.
+    What DOES change is that the setting stops following the container: on Home Assistant, altering
+    HA's zone no longer silently re-interprets what you typed. That is the point, and it is in the
+    CHANGELOG. Runs once, guarded by a flag, and never overrides an explicit choice."""
+    if get_setting("timezone", "").strip() or get_setting(TZ_PINNED_KEY, "") == "1":
+        set_setting(TZ_PINNED_KEY, "1")
+        return ""
+    name = detected_tz_name()
+    set_timezone(name)
+    set_setting(TZ_PINNED_KEY, "1")
+    return name
+
+
 def get_timezone() -> str:
     """The user's chosen IANA zone name, or '' for Auto (container/system tz). Display-only."""
     return get_setting("timezone", "")

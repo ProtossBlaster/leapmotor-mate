@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.2.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.2.1"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -80,6 +80,22 @@ def _repair_manual_charge_timezones() -> None:
         pass
 
 
+def _pin_auto_timezone() -> None:
+    """Runs BEFORE the repair below, and the order is the point: the repair refuses to convert while
+    the zone is Auto (it will not bake in a guess), so an install left on Auto could never have its
+    old hand-entered rows put right. Pinning the resolved zone first gives the repair the answer it
+    was waiting for. Safe either way — local_to_utc_iso is a no-op on a value that already carries a
+    zone, so rows written after v2.12.1 cannot be shifted twice."""
+    try:
+        name = db_reader.pin_auto_timezone()
+        if name:
+            log.info("Time zone was on Automatic and is now recorded as %s — nothing moved, "
+                     "but what you type is no longer anchored to an unnamed clock", name)
+    except Exception:  # noqa: BLE001 — never block startup over a migration
+        pass
+
+
+_pin_auto_timezone()
 _repair_manual_charge_timezones()
 
 app = FastAPI(title="LeapMotor Mate")
@@ -4838,6 +4854,10 @@ async def setup_page(request: Request):
     return templates.TemplateResponse(request, "setup.html", {
         "battery_options": battery_options_for_build(),
         "research": research.research_enabled(),
+        # Asked here, pre-filled with what Mate detected — see the note in setup_submit. The full
+        # grouped list is the same one Settings uses, so the two pickers can never diverge.
+        "tz_options": db_reader.timezone_options(),
+        "tz_detected": db_reader.detected_tz_name(),
     })
 
 
@@ -4960,6 +4980,12 @@ async def setup_submit(request: Request):
     car_type = (form.get("car_type", "") or "").strip().upper()
     is_reev  = "1" if form.get("is_reev") in ("1", "on", "true") else "0"
     vin      = (form.get("vin", "") or "").strip()
+    # The zone is asked here, pre-filled with the one detected, because leaving it implicit is what
+    # cost @ghuaywen-ai 150 charges seven hours out (#181): a time you type is anchored to whatever
+    # clock Mate happens to be running on, and on a bare container that is UTC. On Home Assistant
+    # the detected value is already right and this is one more Next; on plain Docker the field reads
+    # "UTC" and says so, which is the whole point of showing it.
+    tz       = (form.get("timezone", "") or "").strip()
 
     if not user or not pwd or not pin:
         t = i18n.get_t(lang)
@@ -4984,6 +5010,11 @@ async def setup_submit(request: Request):
     db_reader.set_setting("battery_capacity_kwh", str(battery_kwh))
     db_reader.set_setting("is_reev", is_reev)   # REEV variant selected in the wizard → gates fuel features
     db_reader.set_setting("language", lang if lang in ("en", "it", "fr", "de", "pl", "pt-PT", "nl") else "en")
+    # set_timezone validates against the tz database and falls back to Auto on anything unknown, so
+    # a tampered field cannot wedge every date render. Marked as pinned either way, so the startup
+    # migration never comes back and overwrites a fresh answer with the container's clock.
+    db_reader.set_timezone(tz or db_reader.detected_tz_name())
+    db_reader.set_setting(db_reader.TZ_PINNED_KEY, "1")
 
     # Pre-populate vehicles table so the UI shows model info before the first poller run
     if vin and car_type:

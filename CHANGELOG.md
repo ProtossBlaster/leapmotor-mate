@@ -3,6 +3,33 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.2.1] — 2026-07-31
+
+### Added
+- **Setup now asks for your time zone, pre-filled with the one it detected.** It is the only
+  setting whose default can be silently wrong, and the wizard never asked: Mate simply used
+  whatever clock it was running on. On Home Assistant that is your own zone and this is one more
+  field to skip past; on a bare Docker container it is **UTC**, and now it says so — in the open,
+  before there is any data to anchor wrongly. The full zone list, in all seven languages.
+
+### Fixed
+- **"Automatic" was never wrong so much as unrecorded, and that is what made it dangerous.** Times
+  you type are anchored to the zone in force at that moment; on Automatic the setting stayed empty,
+  so a charge you entered or imported was pinned to a clock nobody had named. The repair that puts
+  such rows back **refuses to run without a chosen zone** — correctly, it will not bake in a guess —
+  so those installs could never be corrected either. If the container ran on neither UTC nor your
+  real zone, the offset stayed in for good.
+
+  On update, Automatic is turned into the zone it was already resolving to, and written down.
+  **Nothing moves and no time on your screen changes** — it is the same zone, now named. Two things
+  follow: the old hand-entered rows can finally be repaired, and the setting stops silently
+  following the container, so changing Home Assistant's zone no longer re-interprets what you typed.
+  Pick a different one whenever you like; that has always worked and still does.
+
+  Found while closing **@ghuaywen-ai**'s #181, whose 150 imported charges went in seven hours late
+  and took three releases to put right. This is the fourth, and the one that stops it happening to
+  the next person.
+
 ## [3.2.0] — 2026-07-31
 
 > ⚠️ **If you have a wallbox meter configured, the cost of your past trips goes up on update —

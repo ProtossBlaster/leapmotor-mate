@@ -182,6 +182,32 @@
           </svg>
         </button>
       </div>
+
+    {# Asked once, here, pre-selected with what Mate detected. It is the only setting whose default
+       can be silently wrong: a bare Docker container runs on UTC, and a time you type is anchored
+       to whatever clock Mate is on — which is how @ghuaywen-ai's 150 imported charges landed seven
+       hours late (#181). On Home Assistant the detected value is already right and this is one more
+       field to skip past; on plain Docker it reads UTC, in the open, where it can be corrected
+       before there is any data to anchor wrongly. #}
+    <div>
+      <label id="lbl-tz" for="inp-tz" class="block text-sm font-medium text-slate-300 mb-1.5">
+        Time zone
+      </label>
+      <select name="timezone" id="inp-tz"
+              class="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-white
+                     focus:outline-none focus:border-brand text-sm">
+        {% for region, zones in (tz_options or {}).items() %}
+        <optgroup label="{{ region }}">
+          {% for value, label in zones %}
+          <option value="{{ value }}"{% if value == tz_detected %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+      <p id="hint-tz" class="mt-1.5 text-xs text-slate-500">
+        Trips and charges are shown in this zone. Detected: {{ tz_detected }} — change it if that isn't where you are.
+      </p>
+    </div>
     </div>
 
     <!-- Detect button -->
@@ -205,6 +231,8 @@
 </div>
 
 <script>
+  // Il fuso rilevato dal server: l'unico pezzo di quella frase che non e' traduzione.
+  const TZ_DETECTED = {{ (tz_detected or 'UTC') | tojson }};
 // ── Battery options ─────────────────────────────────────────────────────────
 // Rendered from the server's map (battery_options_for_build), already filtered for this build —
 // deliberately not a hand-kept copy, so this list can never drift from what detect-vehicle answers.
@@ -224,6 +252,8 @@ const strings = {
     password:      "Password",
     pin:           "Operation PIN",
     pinPh:         "4-digit PIN",
+    tz:            "Time zone",
+    tzHint:        "Trips and charges are shown in this zone. Detected: {tz} — change it if that isn't where you are.",
     detectBtn:     "🔍 Detect My Car",
     detecting:     "⏳ Detecting…",
     detected:      "Car detected",
@@ -262,6 +292,8 @@ const strings = {
     password:      "Password",
     pin:           "PIN operativo",
     pinPh:         "PIN a 4 cifre",
+    tz:            "Fuso orario",
+    tzHint:        "Viaggi e ricariche sono mostrati in questo fuso. Rilevato: {tz} — cambialo se non è dove ti trovi.",
     detectBtn:     "🔍 Rileva la mia auto",
     detecting:     "⏳ Rilevamento…",
     detected:      "Auto rilevata",
@@ -300,6 +332,8 @@ const strings = {
     password:      "Mot de passe",
     pin:           "Code PIN d'opération",
     pinPh:         "PIN à 4 chiffres",
+    tz:            "Fuseau horaire",
+    tzHint:        "Les trajets et les recharges s'affichent dans ce fuseau. Détecté : {tz} — changez-le si ce n'est pas là que vous êtes.",
     detectBtn:     "🔍 Détecter ma voiture",
     detecting:     "⏳ Détection…",
     detected:      "Voiture détectée",
@@ -338,6 +372,8 @@ const strings = {
     password:      "Passwort",
     pin:           "Bedien-PIN",
     pinPh:         "4-stellige PIN",
+    tz:            "Zeitzone",
+    tzHint:        "Fahrten und Ladevorgänge werden in dieser Zone angezeigt. Erkannt: {tz} — ändern Sie sie, wenn Sie woanders sind.",
     detectBtn:     "🔍 Mein Auto erkennen",
     detecting:     "⏳ Erkennung…",
     detected:      "Auto erkannt",
@@ -376,6 +412,8 @@ const strings = {
     password:      "Hasło",
     pin:           "PIN operacyjny",
     pinPh:         "4-cyfrowy PIN",
+    tz:            "Strefa czasowa",
+    tzHint:        "Przejazdy i ładowania są pokazywane w tej strefie. Wykryto: {tz} — zmień, jeśli to nie tam jesteś.",
     detectBtn:     "🔍 Wykryj mój samochód",
     detecting:     "⏳ Wykrywanie…",
     detected:      "Samochód wykryty",
@@ -414,6 +452,8 @@ const strings = {
     password:      "Palavra-passe",
     pin:           "PIN de operação",
     pinPh:         "PIN de 4 dígitos",
+    tz:            "Fuso horário",
+    tzHint:        "Viagens e carregamentos são mostrados neste fuso. Detetado: {tz} — altere se não for onde está.",
     detectBtn:     "🔍 Detetar o meu veículo",
     detecting:     "⏳ A detetar…",
     detected:      "Veículo detetado",
@@ -452,6 +492,8 @@ const strings = {
     password:      "Wachtwoord",
     pin:           "Bedienings-pincode",
     pinPh:         "Pincode van 4 cijfers",
+    tz:            "Tijdzone",
+    tzHint:        "Ritten en laadbeurten worden in deze zone getoond. Gedetecteerd: {tz} — wijzig het als je daar niet bent.",
     detectBtn:     "🔍 Mijn auto zoeken",
     detecting:     "⏳ Bezig met zoeken…",
     detected:      "Auto gevonden",
@@ -549,6 +591,9 @@ function setLang(lang) {
   document.getElementById('inp-email').placeholder       = s.emailPh;
   document.getElementById('lbl-password').textContent    = s.password;
   document.getElementById('lbl-pin').textContent         = s.pin;
+  document.getElementById('lbl-tz').textContent           = s.tz;
+  // il fuso rilevato lo mette il server: e' l'unico pezzo di questa frase che non e' traduzione
+  document.getElementById('hint-tz').textContent          = s.tzHint.replace('{tz}', TZ_DETECTED);
   document.getElementById('inp-pin').placeholder         = s.pinPh;
   document.getElementById('detect-label').textContent    = s.detectBtn;
   document.getElementById('submit-label').textContent    = s.submit;
