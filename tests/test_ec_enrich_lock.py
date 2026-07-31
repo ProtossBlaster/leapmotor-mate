@@ -596,3 +596,38 @@ def test_an_expired_carry_is_unknown_not_an_observed_power_off(tmp_path, monkeyp
         "SELECT recorded_at FROM positions WHERE ready = 0")]
     assert zeros == [], "the fixture must contain no observed zero, or this proves nothing"
     assert s.get("on_lo") is None, "on_lo was invented from an expired carry, not an observed zero"
+
+
+# ── beta #19 follow-up: the message has to say WHICH trips ────────────────────
+
+def test_the_shared_session_message_names_the_other_trips_by_time(tmp_path, monkeypatch):
+    """@michapr: "the adjacent one" doesn't say previous, next, or how many — his was the previous
+    trip and he had to ask. The route now fills the other trips' start times into the message.
+
+    This exercises the ROUTE, not just convert_trip: the formatting, the escaping and the i18n
+    placeholder all live there, and testing the helper alone left that whole line unrun — which is
+    exactly how a NameError in it survived a green suite."""
+    pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
+    import asyncio
+    import main
+    pdb = _two_session_trips(tmp_path, monkeypatch, ready_continuous=True)
+    monkeypatch.setattr(main.db_reader, "DB_PATH", str(tmp_path / "t.db"))
+    monkeypatch.setattr(main.db_reader, "get_language", lambda: "en")
+    monkeypatch.setattr(command_client, "get_energy_breakdown_range", lambda b, e: _ec(2.3))
+
+    class _R: pass
+    resp = asyncio.run(main.trip_convert_ec(_R(), trip_id=1))
+    body = resp.body.decode()
+
+    other = dict(pdb._conn.execute("SELECT * FROM trips WHERE id=2").fetchone())
+    hhmm = db_reader.trip_local_start_hhmm(2)
+    assert hhmm and hhmm in body, f"the other trip's time ({hhmm}) isn't named: {body!r}"
+    assert "adjacent" not in body.lower(), "still describing it as merely 'adjacent'"
+
+
+def test_convert_trip_hands_back_which_trips_share_the_session(tmp_path, monkeypatch):
+    pdb = _two_session_trips(tmp_path, monkeypatch, ready_continuous=True)
+    monkeypatch.setattr(command_client, "get_energy_breakdown_range", lambda b, e: _ec(2.3))
+    res = ec_enrich.convert_trip(1)
+    assert res["reason"] == "shared_session"
+    assert res["other_ids"] == [2]

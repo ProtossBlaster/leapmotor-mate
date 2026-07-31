@@ -888,7 +888,7 @@
     "ec_convert_nodata": "Il cloud non fornisce il dettaglio ufficiale per questo tragitto — vale la stima da SoC qui sopra.",
     "ec_convert_merged": "Il cloud ha unito questo viaggio al precedente (sosta troppo breve): unisci i due viaggi per recuperare il dato.",
     "ec_convert_implausible": "Il dato ufficiale del cloud per questo viaggio non sembra attendibile (implicherebbe un consumo impossibile — capita sui percorsi molto corti), quindi viene mantenuta la stima da SoC qui sopra.",
-    "ec_convert_shared": "Mate legge questo viaggio e quello adiacente come un'unica accensione, quindi il dato ufficiale li copre entrambi e non può essere diviso. Uniscili per ottenere il consumo combinato.",
+    "ec_convert_shared": "Mate vede questo viaggio nella stessa accensione di: {trips}. Il dato ufficiale li copre insieme e non può essere diviso. Uniscili per ottenere il consumo combinato.",
     "ec_revert_btn": "Ripristina la stima",
     "ec_revert_confirm": "Ripristinare la stima da SoC per questo viaggio? Potrai riconvertirlo in seguito.",
     "ec_breakdown_title": "Ripartizione consumo",

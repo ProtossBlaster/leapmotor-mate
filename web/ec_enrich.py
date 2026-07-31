@@ -242,7 +242,10 @@ def convert_trip(trip_id: int) -> dict:
     own_ids = {trip_id} | {c["id"] for c in children}
     sess = db_reader.ready_session(grp)
     if sess and (set(sess["trip_ids"]) - own_ids):
-        return {"ok": False, "reason": "shared_session"}
+        # Hand back WHICH trips share it. "the adjacent one" told @michapr nothing — his was the
+        # previous trip, and the word doesn't say previous, next, or how many (beta #19).
+        return {"ok": False, "reason": "shared_session",
+                "other_ids": sorted(set(sess["trip_ids"]) - own_ids)}
     bq, eq = db_reader.trip_ec_window(grp)
     if not bq or not eq:
         return {"ok": False, "reason": "no_window"}

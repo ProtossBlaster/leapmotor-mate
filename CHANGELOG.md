@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.2] — 2026-07-31
+
+### Fixed
+- **The shared-session message now says WHICH trips, instead of "the adjacent one".** When Mate
+  can't separate a trip's official figure from its neighbours it asks you to merge them — and named
+  the neighbour as *"the adjacent one"*, which says neither *previous* nor *next* nor *how many*.
+  The reporter had to come back and ask which trip was meant; his was the previous one. The message
+  now lists the other trips by their start time, so a session holding three of them no longer
+  describes itself in the singular either. All seven languages. _(beta #19, @michapr.)_
+
 ## [3.4.1] — 2026-07-31
 
 ### Fixed

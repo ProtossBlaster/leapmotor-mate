@@ -6126,3 +6126,15 @@ def get_charging_stations(min_sessions: int = 1, top_n: Optional[int] = 15, rece
         })
     stations.sort(key=lambda s: s["sessions"], reverse=True)
     return stations if top_n is None else stations[:top_n]
+
+
+def trip_local_start_hhmm(trip_id: int) -> Optional[str]:
+    """A trip's start as HH:MM in the display time zone — for naming trips inside a message rather
+    than calling them "the adjacent one" (beta #19). None when the trip or its start is missing."""
+    row = _get().execute(
+        "SELECT started_at FROM trips WHERE id = ? AND vehicle_id = COALESCE(?, vehicle_id)",
+        (trip_id, _current_vehicle_id())).fetchone()
+    if not row or not row["started_at"]:
+        return None
+    dt = _local_dt(row["started_at"])
+    return dt.strftime("%H:%M") if dt else None

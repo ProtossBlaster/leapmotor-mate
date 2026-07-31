@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.4.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.4.2"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -761,9 +761,16 @@ async def trip_convert_ec(request: Request, trip_id: int):
         # Actionable (amber): merging the two trips would recover the data.
         return HTMLResponse(f'<span class="text-amber-400 text-xs">⚠️ {t("ec_convert_merged")}</span>')
     if res.get("reason") == "shared_session":
-        # Actionable (amber): the car was never powered off, so the cloud bundles these trips into one
-        # session — merging them lets Mate convert the combined drive over its full distance.
-        return HTMLResponse(f'<span class="text-amber-400 text-xs">⚠️ {t("ec_convert_shared")}</span>')
+        # Actionable (amber): Mate reads these trips as one power-on session, so the official figure
+        # covers them together — merging lets it convert the combined drive over its full distance.
+        # Name the other trips by their start time (beta #19): "the adjacent one" doesn't say which,
+        # and @michapr's was the previous one. The list also carries the count for free, so a session
+        # holding three trips no longer describes itself in the singular.
+        from html import escape as _escape          # module-local elsewhere in this file
+        _times = [c for c in (db_reader.trip_local_start_hhmm(i)
+                              for i in res.get("other_ids") or []) if c]
+        return HTMLResponse(f'<span class="text-amber-400 text-xs">⚠️ '
+                            f'{_escape(t("ec_convert_shared").format(trips=", ".join(_times)))}</span>')
     if res.get("reason") == "implausible":
         # The cloud returned a value, but it's an incomplete aggregation (would imply an impossible
         # efficiency). Calm tone: the reliable SoC estimate above is deliberately kept, nothing broke.

@@ -888,7 +888,7 @@
     "ec_convert_nodata": "Die Cloud liefert für diese Fahrt kein offizielles Detail — es gilt die SoC-Schätzung oben.",
     "ec_convert_merged": "Die Cloud hat diese Fahrt mit der vorherigen zusammengefasst (zu kurzer Halt): Fahrten zusammenführen, um die Daten zu erhalten.",
     "ec_convert_implausible": "Der offizielle Cloud-Wert für diese Fahrt wirkt unzuverlässig (er würde einen unmöglichen Verbrauch ergeben — bei sehr kurzen Fahrten häufig), daher bleibt die SoC-Schätzung oben erhalten.",
-    "ec_convert_shared": "Mate liest diese und die angrenzende Fahrt als eine einzige Einschaltsitzung, daher deckt der offizielle Wert beide ab und lässt sich nicht aufteilen. Führe sie zusammen, um den kombinierten Verbrauch zu erhalten.",
+    "ec_convert_shared": "Mate sieht diese Fahrt in derselben Einschaltphase wie: {trips}. Der offizielle Wert deckt sie gemeinsam ab und lässt sich nicht aufteilen. Führe sie zusammen, um den kombinierten Verbrauch zu erhalten.",
     "ec_revert_btn": "Schätzung wiederherstellen",
     "ec_revert_confirm": "Für diese Fahrt die SoC-Schätzung wiederherstellen? Sie können sie später erneut umwandeln.",
     "ec_breakdown_title": "Verbrauchsaufteilung",
