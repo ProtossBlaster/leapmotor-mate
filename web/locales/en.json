@@ -888,7 +888,7 @@
     "ec_convert_nodata": "The cloud has no official breakdown for this trip — the SoC estimate above is used.",
     "ec_convert_merged": "The cloud merged this trip with the previous one (stop too short): merge the two trips to recover the data.",
     "ec_convert_implausible": "The cloud's official figure for this trip looks unreliable (it would imply an impossible consumption — common on very short trips), so the SoC estimate above is kept.",
-    "ec_convert_shared": "The car was never switched off between this trip and the adjacent one, so the cloud counts them as a single session. Merge the trips to get the real official consumption.",
+    "ec_convert_shared": "Mate reads this trip and the adjacent one as one power-on session, so the official figure covers both and can't be split between them. Merge them to get the combined consumption.",
     "ec_revert_btn": "Revert to estimate",
     "ec_revert_confirm": "Revert this trip to the SoC estimate? You can convert it again later.",
     "ec_breakdown_title": "Consumption breakdown",

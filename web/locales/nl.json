@@ -888,7 +888,7 @@
     "ec_convert_nodata": "De cloud heeft geen officiële verdeling voor deze rit — de schatting op basis van de SoC hierboven wordt gebruikt.",
     "ec_convert_merged": "De cloud heeft deze rit met de vorige samengevoegd (stop te kort): voeg de twee ritten samen om de gegevens terug te krijgen.",
     "ec_convert_implausible": "Het officiële cijfer van de cloud voor deze rit lijkt onbetrouwbaar (het zou een onmogelijk verbruik betekenen — gebruikelijk bij heel korte ritten), dus de schatting op basis van de SoC hierboven blijft staan.",
-    "ec_convert_shared": "De auto is tussen deze rit en de aangrenzende rit nooit uitgezet, dus de cloud telt ze als één sessie. Voeg de ritten samen om het echte officiële verbruik te krijgen.",
+    "ec_convert_shared": "Mate ziet deze rit en de aangrenzende rit als één keer dat de auto aanstond, dus het officiële cijfer dekt ze allebei en is niet te splitsen. Voeg ze samen om het gecombineerde verbruik te krijgen.",
     "ec_revert_btn": "Terug naar de schatting",
     "ec_revert_confirm": "Deze rit terugzetten op de schatting uit de SoC? Je kunt hem later opnieuw omzetten.",
     "ec_breakdown_title": "Verdeling van het verbruik",

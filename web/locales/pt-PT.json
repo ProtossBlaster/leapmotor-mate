@@ -888,7 +888,7 @@
     "ec_convert_nodata": "A cloud não tem desagregação oficial para esta viagem — usa-se a estimativa por SoC acima.",
     "ec_convert_merged": "A cloud fundiu esta viagem com a anterior (paragem demasiado curta): une as duas viagens para recuperar os dados.",
     "ec_convert_implausible": "O valor oficial da cloud para esta viagem parece pouco fiável (implicaria um consumo impossível — comum em viagens muito curtas), por isso mantém-se a estimativa por SoC acima.",
-    "ec_convert_shared": "O carro nunca foi desligado entre esta viagem e a adjacente, por isso a cloud conta-as como uma única sessão. Une as viagens para obter o consumo oficial real.",
+    "ec_convert_shared": "O Mate lê esta viagem e a adjacente como uma única sessão de ignição, por isso o valor oficial cobre as duas e não pode ser dividido. Une-as para obter o consumo combinado.",
     "ec_revert_btn": "Reverter para estimativa",
     "ec_revert_confirm": "Reverter esta viagem para a estimativa por SoC? Podes convertê-la novamente mais tarde.",
     "ec_breakdown_title": "Detalhe do consumo",

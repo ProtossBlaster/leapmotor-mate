@@ -3,6 +3,31 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.3.1] — 2026-07-31
+
+### Fixed
+- **A message about your car said something Mate cannot know.** When the official per-trip figure
+  can't be separated from the neighbouring trip, Mate offered to merge them and explained why with
+  *"the car was never switched off between this trip and the adjacent one"* — a statement about the
+  vehicle, presented as fact. A range-extender owner showed it was false for him: his raw signals
+  have the car going off at 07:55:21 and back on at 07:56:33, a real 72-second switch-off between
+  two drives. Mate saw it and discarded it, because it ignores power-off dips shorter than 90
+  seconds — the signal does blip, and a blip would otherwise split one drive in two. His was the
+  only one of 28 power-offs in three weeks to fall below that line; the next shortest was 120
+  seconds. The threshold stays: measured against a dense signal log, lowering it to 45 seconds
+  rewrites the session of 175 trips out of 300, and two attempts to tell a blip from a brief
+  switch-off structurally didn't separate them. So the wording changed instead, to what Mate can
+  actually back — that it reads the two trips as one power-on session and the official figure
+  covers both. Same advice, no claim about your car. All seven languages.
+- **A known power state is no longer carried forward for ever.** Reconstructing that session means
+  reusing the last reported power state across polls that didn't carry one, which is right for a
+  missed reading and wrong for hours of silence: on a car that reports the signal rarely, one
+  reading could keep meaning "still on" straight across a genuine power-off. It now expires after
+  fifteen minutes, or three polls if you have widened the parked interval, and expires into
+  "unknown" rather than "off" — a value nobody read is not evidence the car was switched off.
+  No effect where the signal is dense: on a full-electric log carrying it in 89.8% of rows, all 60
+  most recent trips reconstruct identically.
+
 ## [3.3.0] — 2026-07-31
 
 ### Changed

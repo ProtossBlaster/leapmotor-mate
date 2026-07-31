@@ -2430,6 +2430,20 @@ def trip_ec_window(trip: dict, pad_s: int = 120):
 
 
 _READY_DEBOUNCE_S = 90        # ignore ready=0 dips shorter than this — signal blips seen in the log
+# How long a READY value may be carried forward over polls that didn't report one. The floor is
+# above the widest parked cadence the settings allow (10–600 s), so even the slowest poller keeps
+# a value across a missed reading; the 3× term keeps that margin at three polls when the user has
+# widened the interval. Beyond it the value expires — see ready_session for what that buys.
+_READY_CARRY_MIN_S = 900
+
+
+def _parked_poll_seconds() -> int:
+    """The user's parked poll interval, clamped to the same 10–600 s the settings form allows so a
+    hand-edited row can't stretch the carry window without limit."""
+    try:
+        return max(10, min(int(float(get_setting("poll_parked", "30") or 30)), 600))
+    except (TypeError, ValueError):
+        return 30
 _READY_LOOKBACK_S = 6 * 3600  # how far around the trip to scan positions for the session bounds
 
 
@@ -2452,14 +2466,30 @@ def ready_session(trip: dict):
         "SELECT recorded_at, ready FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
         "AND recorded_at >= ? AND recorded_at <= ? "
         "ORDER BY recorded_at", (_current_vehicle_id(), lo, hi)).fetchall()
-    samples, last = [], None
+    # Carry a known value forward across polls that didn't report one — but only for a while. The
+    # carry-forward is meant to bridge a missed poll or two; on a car that reports READY rarely it
+    # was instead becoming the only source of truth, and one ready=1 kept meaning "still on" for
+    # hours, straight across a real power-off. Measured: on a BEV, 89.8% of position rows carry a
+    # READY value and 99.9% of consecutive samples are ONE poll apart, so expiry never fires there;
+    # on michapr's REEV (beta #19) the signal arrives in ~0.8% of frames and effectively never as a
+    # zero, so the carry ran for hours and two separate drives were reported as one power-on —
+    # which told him to MERGE trips that must stay apart.
+    #
+    # Past the window the sample becomes None, not 0: "we no longer know" is the truth, and claiming
+    # "off" would be the same overreach in the other direction. None ends the ready=1 run (anything
+    # that isn't 1 does) without being picked up as an observed zero by the on_lo bracket below.
+    carry_max = max(_READY_CARRY_MIN_S, 3 * _parked_poll_seconds())
+    samples, last, last_e = [], None, None
     for r in rows:
         e = _trip_epoch(r["recorded_at"])
         if e is None:
             continue
         rd = r["ready"]
-        rd = (last if last is not None else 0) if rd is None else rd  # carry-forward unknown
-        last = rd
+        if rd is None:
+            rd = last if (last is not None and last_e is not None
+                          and e - last_e <= carry_max) else None
+        else:
+            last, last_e = rd, e
         samples.append((e, rd))
     if not any(rd for _, rd in samples):
         return None                          # no ready=1 anywhere → no session info

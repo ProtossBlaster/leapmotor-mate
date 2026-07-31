@@ -493,3 +493,106 @@ def test_revert_trip_ec_noop_when_not_converted(tmp_path, monkeypatch):
     pdb = _setup(tmp_path, monkeypatch, age_min=120)
     assert db_reader.revert_trip_ec(1) is False
     assert _row(pdb)[3] == pytest.approx(30.0)
+
+
+# ── beta #19 (@michapr): a READY value may not be carried forward for ever ────
+#
+# ready_session bridges polls that report no READY value by reusing the last one. That is right for
+# a missed reading and wrong for a car that barely reports the signal at all: on his REEV B10 it
+# arrives in ~0.8% of frames and effectively never as a zero, so one ready=1 kept meaning "still on"
+# for hours and two genuinely separate drives came back as one power-on — which told him to MERGE
+# trips that must stay apart. On a BEV the same code is unaffected: 89.8% of position rows carry a
+# value and 99.9% of consecutive samples are one poll apart, so the window never expires.
+
+def _sparse_ready(pdb, start, minutes, *, samples_at, step=30):
+    """A REEV-shaped log: a poll every `step` seconds for `minutes`, but only the polls listed in
+    `samples_at` (seconds from start) actually report READY=1. Everything else is NULL — and a zero
+    is never observed, which is the part that made the carry-forward the only source of truth."""
+    t, end = start, start + timedelta(minutes=minutes)
+    while t <= end:
+        off = int((t - start).total_seconds())
+        val = 1 if off in samples_at else None
+        pdb._conn.execute("INSERT INTO positions (vehicle_id, recorded_at, ready) VALUES (1,?,?)",
+                          (t.isoformat(), val))
+        t += timedelta(seconds=step)
+    pdb._conn.commit()
+
+
+def _two_trips_only(tmp_path, monkeypatch, aS, aE, bS, bE):
+    pdb = D.Database(str(tmp_path / "t.db"))
+    monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
+    pdb._conn.execute("INSERT INTO trips (id,vehicle_id,started_at,ended_at,distance_km,"
+                      "efficiency_kwh_100km,start_soc,end_soc) VALUES (1,1,?,?,57.0,24.0,87.8,79.6)",
+                      (aS.isoformat(), aE.isoformat()))
+    pdb._conn.execute("INSERT INTO trips (id,vehicle_id,started_at,ended_at,distance_km,"
+                      "efficiency_kwh_100km,start_soc,end_soc) VALUES (2,1,?,?,12.0,24.0,79.5,77.0)",
+                      (bS.isoformat(), bE.isoformat()))
+    pdb._conn.commit()
+    db_reader.set_setting("ec_trip_energy_enabled", "1")
+    db_reader.set_setting("ec_trip_since", (aS - timedelta(hours=1)).isoformat())
+    return pdb
+
+
+def test_sparse_ready_does_not_span_a_real_power_off(tmp_path, monkeypatch):
+    """His case: READY seen three times at the start of trip A and never again, two trips 78 minutes
+    apart with the car off in between. The carry-forward must expire rather than report one session
+    over both — that report is what asks the user to merge them."""
+    aS = datetime(2026, 7, 28, 7, 56, tzinfo=timezone.utc)
+    aE, bS, bE = aS + timedelta(minutes=42), aS + timedelta(minutes=120), aS + timedelta(minutes=150)
+    pdb = _two_trips_only(tmp_path, monkeypatch, aS, aE, bS, bE)
+    _sparse_ready(pdb, aS, 240, samples_at={60, 180, 300})
+
+    s = db_reader.ready_session(dict(pdb._conn.execute("SELECT * FROM trips WHERE id=1").fetchone()))
+    assert s, "trip A's own session should still be recognised from the samples it does have"
+    assert 2 not in s["trip_ids"], "the second drive is a separate power-on, not part of this one"
+    monkeypatch.setattr(command_client, "get_energy_breakdown_range", lambda b, e: _ec(2.3))
+    assert ec_enrich.convert_trip(1).get("reason") != "shared_session"
+
+
+def test_a_dense_ready_log_still_reports_a_genuinely_shared_session(tmp_path, monkeypatch):
+    """The other side, and the one the fix must not break: a BEV reporting READY every poll, with the
+    car left ON across a six-minute stop. That IS one power-on and must still be reported as such —
+    measured on 60 real BEV trips, five look like this and all five are genuine."""
+    aS = datetime(2026, 7, 28, 7, 56, tzinfo=timezone.utc)
+    aE, bS, bE = aS + timedelta(minutes=42), aS + timedelta(minutes=48), aS + timedelta(minutes=70)
+    pdb = _two_trips_only(tmp_path, monkeypatch, aS, aE, bS, bE)
+    _ready(pdb, aS, bE)                              # continuous ready=1 over both trips
+
+    s = db_reader.ready_session(dict(pdb._conn.execute("SELECT * FROM trips WHERE id=1").fetchone()))
+    assert s and set(s["trip_ids"]) == {1, 2}
+    monkeypatch.setattr(command_client, "get_energy_breakdown_range", lambda b, e: _ec(2.3))
+    assert ec_enrich.convert_trip(1)["reason"] == "shared_session"
+
+
+def test_the_carry_forward_still_bridges_a_few_missed_polls(tmp_path, monkeypatch):
+    """The window exists to survive a gap, not to forbid one: READY reported, then five minutes of
+    polls with no value, then reported again. That is one unbroken session."""
+    aS = datetime(2026, 7, 28, 7, 56, tzinfo=timezone.utc)
+    aE, bS, bE = aS + timedelta(minutes=42), aS + timedelta(minutes=48), aS + timedelta(minutes=70)
+    pdb = _two_trips_only(tmp_path, monkeypatch, aS, aE, bS, bE)
+    # a value every poll except a 5-minute hole in the middle of trip A
+    hole = set(range(1200, 1500, 30))
+    _sparse_ready(pdb, aS, 75, samples_at={s for s in range(0, 75 * 60, 30)} - hole)
+
+    s = db_reader.ready_session(dict(pdb._conn.execute("SELECT * FROM trips WHERE id=1").fetchone()))
+    assert s and set(s["trip_ids"]) == {1, 2}, "a five-minute gap must not split one power-on"
+
+
+def test_an_expired_carry_is_unknown_not_an_observed_power_off(tmp_path, monkeypatch):
+    """What the window expires INTO matters as much as when. `on_lo` — the last observed ready=0
+    before a session — is the primary getEC start, and trip_ec_window trusts it as a moment the car
+    was *provably* off. If expiry wrote 0 instead of "no longer known", every long silence would
+    manufacture such a moment out of a reading nobody ever took. Here READY is only ever seen as 1,
+    so there is no observed zero anywhere and on_lo must stay None."""
+    aS = datetime(2026, 7, 28, 7, 56, tzinfo=timezone.utc)
+    aE, bS, bE = aS + timedelta(minutes=42), aS + timedelta(minutes=120), aS + timedelta(minutes=150)
+    pdb = _two_trips_only(tmp_path, monkeypatch, aS, aE, bS, bE)
+    # READY reported only inside trip B, never before it, and never as a zero.
+    _sparse_ready(pdb, aS, 240, samples_at={7260, 7380, 7500})
+
+    s = db_reader.ready_session(dict(pdb._conn.execute("SELECT * FROM trips WHERE id=2").fetchone()))
+    assert s, "trip B's own samples should still form a session"
+    zeros = [r[0] for r in pdb._conn.execute(
+        "SELECT recorded_at FROM positions WHERE ready = 0")]
+    assert zeros == [], "the fixture must contain no observed zero, or this proves nothing"
+    assert s.get("on_lo") is None, "on_lo was invented from an expired carry, not an observed zero"

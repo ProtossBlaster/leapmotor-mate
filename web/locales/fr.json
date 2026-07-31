@@ -888,7 +888,7 @@
     "ec_convert_nodata": "Le cloud ne fournit pas de détail officiel pour ce trajet — l'estimation SoC ci-dessus s'applique.",
     "ec_convert_merged": "Le cloud a fusionné ce trajet avec le précédent (arrêt trop court) : fusionnez les deux trajets pour récupérer la donnée.",
     "ec_convert_implausible": "La donnée officielle du cloud pour ce trajet semble peu fiable (elle impliquerait une consommation impossible — fréquent sur les trajets très courts), donc l'estimation SoC ci-dessus est conservée.",
-    "ec_convert_shared": "La voiture n'a jamais été éteinte entre ce trajet et le trajet adjacent, donc le cloud les compte comme une seule session. Fusionnez les trajets pour obtenir la consommation officielle réelle.",
+    "ec_convert_shared": "Mate lit ce trajet et le trajet adjacent comme une seule session d'allumage : la donnée officielle couvre les deux et ne peut pas être répartie entre eux. Fusionnez-les pour obtenir la consommation combinée.",
     "ec_revert_btn": "Rétablir l'estimation",
     "ec_revert_confirm": "Rétablir l'estimation SoC pour ce trajet ? Vous pourrez le reconvertir plus tard.",
     "ec_breakdown_title": "Répartition conso",

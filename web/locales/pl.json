@@ -888,7 +888,7 @@
     "ec_convert_nodata": "Chmura nie udostępnia oficjalnego rozbicia dla tej trasy — obowiązuje szacunek z SoC powyżej.",
     "ec_convert_merged": "Chmura połączyła tę trasę z poprzednią (zbyt krótki postój): połącz obie trasy, aby odzyskać dane.",
     "ec_convert_implausible": "Oficjalna wartość z chmury dla tej trasy wygląda na niewiarygodną (sugerowałaby niemożliwe zużycie — częste na bardzo krótkich trasach), więc zachowano szacunek z SoC powyżej.",
-    "ec_convert_shared": "Samochód nie został wyłączony między tą a sąsiednią trasą, więc chmura liczy je jako jedną sesję. Połącz trasy, aby uzyskać rzeczywiste oficjalne zużycie.",
+    "ec_convert_shared": "Mate widzi tę trasę i sąsiednią jako jeden okres, w którym samochód był włączony, więc oficjalna wartość obejmuje obie i nie da się jej rozdzielić. Połącz je, aby uzyskać łączne zużycie.",
     "ec_revert_btn": "Przywróć szacunek",
     "ec_revert_confirm": "Przywrócić szacunek z SoC dla tej trasy? Można ją później ponownie przeliczyć.",
     "ec_breakdown_title": "Podział zużycia",
