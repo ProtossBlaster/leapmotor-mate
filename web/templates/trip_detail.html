@@ -379,9 +379,21 @@
         referrerPolicy: 'origin'
       }).addTo(map);
 
-      // Route: single red with white outline for visibility
-      L.polyline(latlngs, { color: '#ffffff', weight: 8, opacity: 0.7 }).addTo(map);
-      L.polyline(latlngs, { color: '#e63946', weight: 5, opacity: 1.0 }).addTo(map);
+      // Route: single red with white outline for visibility. A gap-bridge run (real signal
+      // loss — see db_reader._split_track_gaps) gets its own white casing too, then a bold
+      // magenta dash on top — a colour used nowhere else on this map (not the route red, not
+      // OSM's own grey/brown dashed tracks and borders), wide enough to read as a deliberate
+      // marking instead of blending into the base tiles.
+      const routeSegments = {{ trip.route_segments | tojson }};
+      routeSegments.forEach(function (run) {
+        if (run.gap) {
+          L.polyline(run.points, { color: '#ffffff', weight: 6, opacity: 0.6, lineCap: 'round' }).addTo(map);
+          L.polyline(run.points, { color: '#ec4899', weight: 3.5, opacity: 0.95, dashArray: '10,8', lineCap: 'round' }).addTo(map);
+        } else {
+          L.polyline(run.points, { color: '#ffffff', weight: 8, opacity: 0.7 }).addTo(map);
+          L.polyline(run.points, { color: '#e63946', weight: 5, opacity: 1.0 }).addTo(map);
+        }
+      });
 
       // Flag markers
       const flagIcon = (color, checkered) => L.divIcon({

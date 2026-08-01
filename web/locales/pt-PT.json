@@ -196,6 +196,8 @@
     "map_station_threshold_saved": "Limite guardado",
     "map_station_count_label": "Estações mostradas",
     "map_station_count_hint": "Número máximo de marcadores de estações de carregamento mostrados no mapa (0 = mostrar todas).",
+    "map_trip_count_label": "Viagens mostradas",
+    "map_trip_count_hint": "Número máximo das viagens mais recentes mostradas no mapa (0 = mostrar todas).",
     "charger_locator_relocate_hint": "Recalcular a estação desta carga",
     "charger_locator_relocate_confirm": "Recalcular a estação desta carga?",
     "charger_locator_relocate_error": "Pesquisa falhou — tente novamente mais tarde",

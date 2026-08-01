@@ -196,6 +196,8 @@
     "map_station_threshold_saved": "Seuil enregistré",
     "map_station_count_label": "Bornes affichées",
     "map_station_count_hint": "Nombre maximum de marqueurs de bornes de recharge affichés sur la carte (0 = toutes les afficher).",
+    "map_trip_count_label": "Trajets affichés",
+    "map_trip_count_hint": "Nombre maximum des trajets les plus récents affichés sur la carte (0 = tous les afficher).",
     "charger_locator_relocate_hint": "Recalculer la borne de cette recharge",
     "charger_locator_relocate_confirm": "Recalculer la borne de cette recharge ?",
     "charger_locator_relocate_error": "Échec de la recherche — réessayez plus tard",

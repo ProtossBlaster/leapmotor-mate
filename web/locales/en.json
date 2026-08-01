@@ -196,6 +196,8 @@
     "map_station_threshold_saved": "Threshold saved",
     "map_station_count_label": "Stations shown",
     "map_station_count_hint": "Maximum number of charging-station markers shown on the map (0 = show them all).",
+    "map_trip_count_label": "Trips shown",
+    "map_trip_count_hint": "Maximum number of most-recently-driven trips shown on the map (0 = show them all).",
     "charger_locator_relocate_hint": "Recalculate this charge's station",
     "charger_locator_relocate_confirm": "Recalculate this charge's station?",
     "charger_locator_relocate_error": "Lookup failed — try again later",

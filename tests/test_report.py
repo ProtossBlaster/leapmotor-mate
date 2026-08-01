@@ -139,7 +139,8 @@ def test_unconfirmed_excluded_from_split(tmp_path, monkeypatch):
 
 def test_month_track_filters_by_month(tmp_path, monkeypatch):
     """The month map shows only trips STARTED in the selected local month; each trip is its
-    own polyline, endpoints preserved, empty/bogus month → []."""
+    own track (one solid run — the fixture's points are 1 minute apart, well under the gap
+    threshold), endpoints preserved, empty/bogus month → []."""
     pdb = _setup(tmp_path, monkeypatch)
     _trip(pdb, 1, month="2026-05")
     _trip(pdb, 2, month="2026-06")
@@ -147,11 +148,13 @@ def test_month_track_filters_by_month(tmp_path, monkeypatch):
     _pos(pdb, 2, [(45.50, 9.20), (45.51, 9.21)])
 
     may = db_reader.get_month_track("2026-05")
-    assert len(may) == 1 and len(may[0]) == 3
-    assert may[0][0] == [45.4, 9.1] and may[0][-1] == [45.42, 9.12]
+    assert len(may) == 1 and len(may[0]) == 1            # one trip, one solid run (no gap)
+    assert may[0][0]["gap"] is False
+    assert may[0][0]["points"][0] == [45.4, 9.1] and may[0][0]["points"][-1] == [45.42, 9.12]
 
     jun = db_reader.get_month_track("2026-06")
-    assert len(jun) == 1 and len(jun[0]) == 2
+    assert len(jun) == 1 and len(jun[0]) == 1
+    assert len(jun[0][0]["points"]) == 2
 
     assert db_reader.get_month_track("2026-04") == []   # month with no trips
     assert db_reader.get_month_track("") == []          # guard
