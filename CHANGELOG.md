@@ -3,6 +3,35 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.5] — 2026-08-01
+
+### Added
+- **A stretch where the signal was lost now draws as a dashed bridge, not as a road you drove.**
+  Every map — the global Map, the report's month map, a trip's own map — joined the recorded GPS
+  fixes with a plain straight line, including across a real dropout: a tunnel, a dead zone, a cloud
+  hiccup. That line cuts through buildings and fields, and nothing distinguished *"the car really
+  drove this straight"* from *"we lost it here"*.
+
+  A jump much larger than **that trip's own** typical sampling interval (its median × 3, never under
+  a minute) is now its own two-point run, drawn thin, dashed and magenta, while every normal stretch
+  keeps the solid line it always had. The threshold being relative is the point: it follows whatever
+  polling cadence you have configured instead of assuming one. It is the same honesty the trip's
+  SoC/speed chart already applied to a hole in its data by leaving it blank rather than joining
+  across it. Verified against a real 322-trip history, where it found **nine such gaps across four
+  trips** and put the dashes exactly where the car had gone quiet. _(#209, by **@hubcasale**.)_
+- **"Trips shown" on the Map.** A long history leaves the map a solid mass of overlapping lines, so
+  the legend row gains a box capping it to the N most recently driven trips — and because the point
+  budget is then spent on fewer trips, each one that is drawn hugs the real road more closely.
+  **0 = every trip**, which is the behaviour you have today, so nothing changes until you set it.
+  _(#209.)_
+
+### Fixed
+- **A test that was named after a rule it never reached.** The one-minute floor under the gap
+  threshold is what stops an ordinary drive that misses a few polls from sprouting dashed bridges —
+  and removing it left the entire suite green, so nothing was holding it in place. The test named
+  for it exercised the multiplier instead, as its own description conceded. It now has a case that
+  fails when the floor goes, and the neighbouring one is named after what it really checks.
+
 ## [3.4.4] — 2026-08-01
 
 ### Fixed
