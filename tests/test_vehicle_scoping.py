@@ -117,7 +117,8 @@ def _two_car_db_with_tracks(tmp_path, monkeypatch):
 def test_get_all_track_scoped_to_current(tmp_path, monkeypatch):
     """trip_positions class — scoped via `trip_id IN (SELECT id FROM trips WHERE vehicle_id=...)`."""
     _two_car_db_with_tracks(tmp_path, monkeypatch)
-    pts = [p for seg in db_reader.get_all_track() for p in seg]   # flatten polylines → [lat,lon] pts
+    # flatten tracks → runs → [lat,lon] pts
+    pts = [p for track in db_reader.get_all_track() for run in track for p in run["points"]]
     assert pts and all(lat > 44 for lat, lon in pts)     # only Milan (v1), never Rome (v2, lat ~41.9)
 
 

@@ -261,17 +261,28 @@
   (function () {
     const segments = {{ track | tojson }};
     const allPts = [];
-    segments.forEach(function (s) { s.forEach(function (p) { allPts.push(p); }); });
+    segments.forEach(function (trip) { trip.forEach(function (run) { run.points.forEach(function (p) { allPts.push(p); }); }); });
     if (!allPts.length) return;
     const map = L.map('report-map', { preferCanvas: true }).fitBounds(L.latLngBounds(allPts).pad(0.05));
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       referrerPolicy: 'origin'   // keep OSM tiles loading under Firefox strict tracking protection
     }).addTo(map);
-    // White casing under a blue line so each route stays legible over any road colour.
-    segments.forEach(function (s) {
-      L.polyline(s, { color: '#ffffff', weight: 5,   opacity: 0.7, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-      L.polyline(s, { color: '#2563eb', weight: 2.5, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+    // White casing under a blue line so each route stays legible over any road colour. A
+    // gap-bridge run (real signal loss — see db_reader._split_track_gaps) gets its own white
+    // casing too, then a bold magenta dash on top — a colour used nowhere else on this map
+    // (not the route blue, not OSM's own grey/brown dashed tracks and borders), with dashes
+    // wide enough to read as a deliberate marking instead of blending into the base tiles.
+    segments.forEach(function (trip) {
+      trip.forEach(function (run) {
+        if (run.gap) {
+          L.polyline(run.points, { color: '#ffffff', weight: 5, opacity: 0.6, lineCap: 'round' }).addTo(map);
+          L.polyline(run.points, { color: '#ec4899', weight: 3, opacity: 0.95, dashArray: '10,8', lineCap: 'round' }).addTo(map);
+        } else {
+          L.polyline(run.points, { color: '#ffffff', weight: 5,   opacity: 0.7, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+          L.polyline(run.points, { color: '#2563eb', weight: 2.5, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+        }
+      });
     });
   })();
   </script>

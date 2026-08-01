@@ -3921,7 +3921,14 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     # elevation_m is only fetched for the DOWNSAMPLED subset the sweep queried Open-Meteo for — fill
     # the rest by interpolation so the chart draws a smooth line, not one broken at every un-sampled point.
     positions = _interpolate_elevation(positions)
+    # Same solid/gap-bridge split the global Map and the report's month map use (see
+    # _split_track_gaps) — a real signal-loss stretch draws dashed instead of as a solid line
+    # implying an actually-driven straight path. Kept SEPARATE from `positions` itself: the
+    # SoC/speed chart below indexes `positions` 1:1 by position, and rounding/regrouping it here
+    # would break that alignment.
+    route_segments = _split_track_gaps(positions)
     trip_d = _trip_group_stats(dict(trip), children)
+    trip_d["route_segments"] = route_segments
     trip_d["elevation_profile_available"] = elevation_profile_available
     if trip_d.get("is_merged"):
         elapsed = _gap_minutes(trip_d.get("started_at"), trip_d.get("ended_at"))
@@ -5917,57 +5924,129 @@ def get_v2l_total_kwh() -> float:
 
 # ── Global map (all tracks + frequent places) ──────────────────────────────────
 
-def _rows_to_segments(rows, max_points: int) -> list[list[list[float]]]:
-    """Group ordered (trip_id, lat, lon) rows into one polyline per trip (never joined across
-    trips), then proportionally downsample to ~max_points total while keeping each trip's real
-    first/last point. Shared by the global map (get_all_track) and the report's month map."""
-    segments: list[list[list[float]]] = []
-    cur_id, cur = None, []
+_TRACK_GAP_MULTIPLIER = 3.0   # a jump this many times the trip's own median sample interval...
+_TRACK_GAP_MIN_S = 60         # ...but never under a minute — keeps normal jitter at a fast
+                              # poll rate from being mistaken for a real signal loss
+
+
+def _split_track_gaps(rows: list[dict]) -> list[dict]:
+    """One trip's time-ordered GPS rows → alternating solid/gap segments, so a real signal-loss
+    stretch (tunnel, dead zone, a cloud hiccup) draws as a short dashed bridge instead of a solid
+    line implying an actually-driven straight path — same treatment the trip-profile chart
+    already gives a gap in SoC/speed (blank rather than joined). The threshold is relative to
+    THIS trip's own typical sampling interval (median inter-sample delay × _TRACK_GAP_MULTIPLIER,
+    floored at _TRACK_GAP_MIN_S), so it self-adjusts to whatever driving poll interval is
+    configured instead of a hardcoded cadence.
+
+    Each dict is {"points": [[lat,lon], ...], "gap": bool}; a gap segment is always exactly its
+    two bounding (last-known, first-resumed) points. rows must be pre-sorted chronologically."""
+    n = len(rows)
+    if n == 0:
+        return []
+    if n < 2:
+        return [{"points": [[round(rows[0]["latitude"], 5), round(rows[0]["longitude"], 5)]], "gap": False}]
+
+    def pt(r):
+        return [round(r["latitude"], 5), round(r["longitude"], 5)]
+
+    times = [_trip_epoch(r["recorded_at"]) for r in rows]
+    deltas = sorted(times[i] - times[i - 1] for i in range(1, n)
+                    if times[i] is not None and times[i - 1] is not None and times[i] > times[i - 1])
+    threshold = max(deltas[len(deltas) // 2] * _TRACK_GAP_MULTIPLIER, _TRACK_GAP_MIN_S) if deltas else _TRACK_GAP_MIN_S
+
+    segments = []
+    run = [rows[0]]
+    for i in range(1, n):
+        t0, t1 = times[i - 1], times[i]
+        if t0 is not None and t1 is not None and (t1 - t0) > threshold:
+            if len(run) >= 2:
+                segments.append({"points": [pt(r) for r in run], "gap": False})
+            segments.append({"points": [pt(rows[i - 1]), pt(rows[i])], "gap": True})
+            run = [rows[i]]
+        else:
+            run.append(rows[i])
+    if len(run) >= 2:
+        segments.append({"points": [pt(r) for r in run], "gap": False})
+    return segments
+
+
+def _downsample_points(pts: list, keep: int) -> list:
+    """Evenly reduce a plain [lat,lon] list to ``keep`` points, always ending on the real last
+    point — the same index math _rows_to_segments has always used, factored out so it can be
+    applied per solid RUN now instead of once per whole trip."""
+    if keep >= len(pts):
+        return pts
+    st = len(pts) / keep
+    ds = [pts[int(i * st)] for i in range(keep)]
+    ds[-1] = pts[-1]
+    return ds
+
+
+def _rows_to_segments(rows, max_points: int) -> list[list[dict]]:
+    """Group ordered (trip_id, lat, lon, recorded_at) rows into one track per trip (never joined
+    across trips), each track split into alternating solid/gap-bridge segments (see
+    _split_track_gaps). Solid runs are proportionally downsampled to ~max_points total (summed
+    across every trip) while keeping each run's real first/last point; gap bridges are already
+    just their 2 endpoints and are never thinned further. Shared by the global map
+    (get_all_track) and the report's month map."""
+    tracks: list[list[dict]] = []
+    cur_id, cur_rows = None, []
     for r in rows:
         if r["trip_id"] != cur_id:
-            if len(cur) >= 2:
-                segments.append(cur)
-            cur, cur_id = [], r["trip_id"]
-        cur.append([round(r["latitude"], 5), round(r["longitude"], 5)])
-    if len(cur) >= 2:
-        segments.append(cur)
+            if len(cur_rows) >= 2:
+                tracks.append(_split_track_gaps(cur_rows))
+            cur_rows, cur_id = [], r["trip_id"]
+        cur_rows.append(r)
+    if len(cur_rows) >= 2:
+        tracks.append(_split_track_gaps(cur_rows))
 
-    total = sum(len(s) for s in segments)
+    total = sum(len(seg["points"]) for t in tracks for seg in t if not seg["gap"])
     if total <= max_points or total == 0:
-        return segments
-    # Proportional per-trip downsample, keeping each segment's real endpoints.
+        return tracks
     step = total / max_points
     out = []
-    for s in segments:
-        keep = max(2, int(len(s) / step))
-        if keep >= len(s):
-            out.append(s)
-            continue
-        st = len(s) / keep
-        ds = [s[int(i * st)] for i in range(keep)]
-        ds[-1] = s[-1]
-        out.append(ds)
+    for t in tracks:
+        new_t = []
+        for seg in t:
+            if seg["gap"]:
+                new_t.append(seg)
+                continue
+            keep = max(2, int(len(seg["points"]) / step))
+            new_t.append({"points": _downsample_points(seg["points"], keep), "gap": False})
+        out.append(new_t)
     return out
 
 
-def get_all_track(max_points: int = 12000) -> list[list[list[float]]]:
-    """Every trip's GPS track as a list of polylines (one [lat, lon] list per trip),
-    so the global map draws the actual driven roads as connected lines instead of
-    loose dots. Points are NEVER joined across trips. Downsampled to roughly
-    ``max_points`` total while always keeping each trip's first and last point, so the
-    lines stay continuous even when zoomed in."""
+def get_all_track(max_points: int = 12000, max_trips: Optional[int] = None) -> list[list[dict]]:
+    """Every trip's GPS track as a list of tracks (one per trip, never joined across trips),
+    each itself a list of {"points": [[lat,lon],...], "gap": bool} segments — so the global map
+    draws the actual driven roads as connected lines, with a real signal-loss stretch shown as a
+    dashed bridge (_split_track_gaps) instead of a solid line implying an actually-driven path.
+    Downsampled to roughly ``max_points`` total while always keeping each run's first and last
+    point, so the lines stay continuous even when zoomed in.
+
+    `max_trips` (None/0 = every trip) caps the map to the N most recently STARTED trips — a long
+    driving history otherwise leaves the whole map a solid mess of hundreds of overlapping lines.
+    Capping the trip COUNT (not just the point budget) also means the SAME max_points is spent on
+    fewer trips, so each kept trip's own line stays closer to the actually-driven road instead of
+    being thinned into long chords by a budget split hundreds of ways."""
     db = _get()
+    trip_filter = "SELECT id FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id)"
+    params: list = [_current_vehicle_id()]
+    if max_trips:
+        trip_filter += " ORDER BY started_at DESC LIMIT ?"
+        params.append(max_trips)
     rows = db.execute(
-        "SELECT trip_id, latitude, longitude FROM trip_positions "
-        "WHERE trip_id IN (SELECT id FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id)) "
+        f"SELECT trip_id, latitude, longitude, recorded_at FROM trip_positions "
+        f"WHERE trip_id IN ({trip_filter}) "
         "AND latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY trip_id, id",
-        (_current_vehicle_id(),)
+        params
     ).fetchall()
     return _rows_to_segments(rows, max_points)
 
 
-def get_month_track(month: str, max_points: int = 8000) -> list[list[list[float]]]:
-    """GPS polylines for every trip STARTED in the given local 'YYYY-MM' — the report's month
+def get_month_track(month: str, max_points: int = 8000) -> list[list[dict]]:
+    """GPS tracks for every trip STARTED in the given local 'YYYY-MM' — the report's month
     map. Same shape/downsampling as get_all_track, scoped to one month's trips (parent and
     merged-child trips alike, so every road driven that month is drawn)."""
     if not month:
@@ -5983,7 +6062,7 @@ def get_month_track(month: str, max_points: int = 8000) -> list[list[list[float]
         return []
     ph = ",".join("?" * len(ids))
     rows = db.execute(
-        "SELECT trip_id, latitude, longitude FROM trip_positions "
+        "SELECT trip_id, latitude, longitude, recorded_at FROM trip_positions "
         f"WHERE trip_id IN ({ph}) AND latitude IS NOT NULL AND longitude IS NOT NULL "
         "ORDER BY trip_id, id", ids
     ).fetchall()

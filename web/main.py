@@ -1484,7 +1484,14 @@ async def maintenance_baseline(request: Request):
 @app.get("/map", response_class=HTMLResponse)
 async def map_page(request: Request):
     vehicle, _ = db_reader.get_vehicle()
-    track    = db_reader.get_all_track()
+    # How many trip routes to draw (get_all_track's max_trips), set from the box on the map's own
+    # legend row — same POST-Redirect-GET convention as the station-count box (save_map_trip_count
+    # below): 0 = every trip, the pre-existing behavior, so a fresh install is unaffected.
+    try:
+        trips_shown = max(0, int(db_reader.get_setting("map_trips_shown", "0")))
+    except (TypeError, ValueError):
+        trips_shown = 0
+    track    = db_reader.get_all_track(max_trips=trips_shown or None)
     places   = db_reader.get_frequent_places()
     # Default 1, deliberately: a station used ONCE is exactly what this layer is for (see
     # get_charging_stations). The slider exists for the opposite taste — someone who charges
@@ -1512,7 +1519,7 @@ async def map_page(request: Request):
             c["cost_fmt"] = _money(c["cost"]) if c["cost"] is not None else None
     return templates.TemplateResponse(request, "map.html", _ctx(
         page="map", vehicle=vehicle, track=track, places=places, stations=stations,
-        stations_top_n=stations_top_n,
+        stations_top_n=stations_top_n, trips_shown=trips_shown,
     ))
 
 
@@ -3030,6 +3037,21 @@ async def save_map_station_count(request: Request):
     except (TypeError, ValueError):
         n = 15
     db_reader.set_setting("map_station_top_n", str(n))
+    return RedirectResponse(request.headers.get("x-ingress-path", "") + "/map", status_code=303)
+
+
+@app.post("/api/settings/map-trip-count")
+async def save_map_trip_count(request: Request):
+    """How many trip routes the Map draws (get_all_track's max_trips, the N most recently
+    STARTED trips); 0 = every trip. Same box-on-the-map / POST-Redirect-GET convention as
+    save_map_station_count above, and the same reason: a GET that writes a stored preference
+    would be re-applied by a bookmark, Back, or link prefetch."""
+    form = await request.form()
+    try:
+        n = max(0, min(9999, int(form.get("trips") or 0)))
+    except (TypeError, ValueError):
+        n = 0
+    db_reader.set_setting("map_trips_shown", str(n))
     return RedirectResponse(request.headers.get("x-ingress-path", "") + "/map", status_code=303)
 
 

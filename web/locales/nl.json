@@ -196,6 +196,8 @@
     "map_station_threshold_saved": "Drempel opgeslagen",
     "map_station_count_label": "Getoonde laadpalen",
     "map_station_count_hint": "Maximum aantal laadpaalmarkers dat op de kaart getoond wordt (0 = allemaal tonen).",
+    "map_trip_count_label": "Getoonde ritten",
+    "map_trip_count_hint": "Maximum aantal meest recente ritten dat op de kaart getoond wordt (0 = allemaal tonen).",
     "charger_locator_relocate_hint": "De laadpaal van deze laadbeurt opnieuw bepalen",
     "charger_locator_relocate_confirm": "De laadpaal van deze laadbeurt opnieuw bepalen?",
     "charger_locator_relocate_error": "Opzoeken mislukt — probeer het later opnieuw",

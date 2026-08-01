@@ -18,9 +18,9 @@
     const places   = {{ places | tojson }};
     const stations = {{ stations | tojson }};
 
-    // All points (across every segment) just to frame the map.
+    // All points (across every run, solid or gap-bridge) just to frame the map.
     const allPts = [];
-    segments.forEach(function (s) { s.forEach(function (p) { allPts.push(p); }); });
+    segments.forEach(function (trip) { trip.forEach(function (run) { run.points.forEach(function (p) { allPts.push(p); }); }); });
 
     const map = L.map('map', { preferCanvas: true }).fitBounds(L.latLngBounds(allPts).pad(0.05));
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -33,10 +33,21 @@
 
     // Each trip as its own connected polyline — never joined across trips. A white
     // casing under a blue line keeps the route legible over any road colour (OSM
-    // motorways/primaries are red/orange/yellow, so a plain red line blended in).
-    segments.forEach(function (s) {
-      L.polyline(s, { color: '#ffffff', weight: 5,   opacity: 0.7, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-      L.polyline(s, { color: '#2563eb', weight: 2.5, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+    // motorways/primaries are red/orange/yellow, so a plain red line blended in). A
+    // gap-bridge run (real signal loss — see db_reader._split_track_gaps) gets its own white
+    // casing too, then a bold magenta dash on top — a colour used nowhere else on this map
+    // (not the route blue, not OSM's own grey/brown dashed tracks and borders), with dashes
+    // wide enough to read as a deliberate marking instead of blending into the base tiles.
+    segments.forEach(function (trip) {
+      trip.forEach(function (run) {
+        if (run.gap) {
+          L.polyline(run.points, { color: '#ffffff', weight: 5, opacity: 0.6, lineCap: 'round' }).addTo(map);
+          L.polyline(run.points, { color: '#ec4899', weight: 3, opacity: 0.95, dashArray: '10,8', lineCap: 'round' }).addTo(map);
+        } else {
+          L.polyline(run.points, { color: '#ffffff', weight: 5,   opacity: 0.7, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+          L.polyline(run.points, { color: '#2563eb', weight: 2.5, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+        }
+      });
     });
 
     // Frequent places: bubble sized by visit count, on top of the routes.
@@ -93,9 +104,18 @@
   {% if places %}<span><span style="color:#14b8a6">●</span> {{ t('map_frequent_places') }} ({{ places|length }})</span>{% endif %}
   {% if stations %}<span><span style="color:#f59e0b">●</span> {{ t('map_charging_stations') }} ({{ stations|length }})</span>{% endif %}
   <span><span id="map-pts">—</span> {{ t('map_points') }}</span>
-  {# POSTs and comes back through a redirect — see save_map_station_count: a GET here would
-     re-save the preference every time someone hit Back or opened a bookmarked map URL. #}
-  <form method="post" action="api/settings/map-station-count" class="ml-auto flex items-center gap-1.5">
+  {# Both POST and come back through a redirect — see save_map_trip_count/save_map_station_count:
+     a GET here would re-save the preference every time someone hit Back or opened a bookmarked
+     map URL. #}
+  <form method="post" action="api/settings/map-trip-count" class="ml-auto flex items-center gap-1.5">
+    <label for="map-trip-n">{{ t('map_trip_count_label') }}</label>
+    <input id="map-trip-n" type="number" name="trips" min="0" step="1" inputmode="numeric"
+           value="{{ trips_shown }}" title="{{ t('map_trip_count_hint') }}"
+           onchange="this.value = this.value === '' ? 0 : this.value; this.form.submit()"
+           style="width:52px;background:#0f172a;border:1px solid #334155;border-radius:6px;
+                  color:#e2e8f0;padding:2px 6px;font-size:11px">
+  </form>
+  <form method="post" action="api/settings/map-station-count" class="flex items-center gap-1.5">
     <label for="map-top-n">{{ t('map_station_count_label') }}</label>
     <input id="map-top-n" type="number" name="top_n" min="0" step="1" inputmode="numeric"
            value="{{ stations_top_n }}" title="{{ t('map_station_count_hint') }}"

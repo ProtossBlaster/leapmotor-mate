@@ -196,6 +196,8 @@
     "map_station_threshold_saved": "Soglia salvata",
     "map_station_count_label": "Colonnine mostrate",
     "map_station_count_hint": "Numero massimo di colonnine mostrate sulla mappa (0 = mostrale tutte).",
+    "map_trip_count_label": "Viaggi mostrati",
+    "map_trip_count_hint": "Numero massimo di viaggi più recenti mostrati sulla mappa (0 = mostrali tutti).",
     "charger_locator_relocate_hint": "Ricalcola la colonnina di questa ricarica",
     "charger_locator_relocate_confirm": "Ricalcolare la colonnina di questa ricarica?",
     "charger_locator_relocate_error": "Ricerca non riuscita — riprova più tardi",

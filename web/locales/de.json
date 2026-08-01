@@ -196,6 +196,8 @@
     "map_station_threshold_saved": "Schwelle gespeichert",
     "map_station_count_label": "Angezeigte Stationen",
     "map_station_count_hint": "Maximale Anzahl an Ladestationen-Markern auf der Karte (0 = alle anzeigen).",
+    "map_trip_count_label": "Angezeigte Fahrten",
+    "map_trip_count_hint": "Maximale Anzahl der zuletzt gefahrenen Fahrten, die auf der Karte angezeigt werden (0 = alle anzeigen).",
     "charger_locator_relocate_hint": "Ladestation dieser Ladung neu berechnen",
     "charger_locator_relocate_confirm": "Ladestation dieser Ladung neu berechnen?",
     "charger_locator_relocate_error": "Suche fehlgeschlagen — später erneut versuchen",

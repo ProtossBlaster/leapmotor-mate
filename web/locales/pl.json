@@ -196,6 +196,8 @@
     "map_station_threshold_saved": "Próg zapisany",
     "map_station_count_label": "Wyświetlane stacje",
     "map_station_count_hint": "Maksymalna liczba znaczników stacji ładowania wyświetlanych na mapie (0 = pokaż wszystkie).",
+    "map_trip_count_label": "Wyświetlane trasy",
+    "map_trip_count_hint": "Maksymalna liczba najnowszych tras wyświetlanych na mapie (0 = pokaż wszystkie).",
     "charger_locator_relocate_hint": "Przelicz stację dla tego ładowania",
     "charger_locator_relocate_confirm": "Przeliczyć stację dla tego ładowania?",
     "charger_locator_relocate_error": "Wyszukiwanie nie powiodło się — spróbuj później",
