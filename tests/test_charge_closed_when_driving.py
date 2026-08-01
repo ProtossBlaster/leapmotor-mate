@@ -197,3 +197,41 @@ def test_orphan_close_uses_the_last_charging_reading_not_the_morning_after(tmp_p
     assert row["id"] == charge_id
     assert row["end_soc"] == 100.0, "closed on the morning's driving, not on the charge"
     assert datetime.fromisoformat(row["ended_at"]).astimezone(timezone.utc).hour == 6
+
+
+# ── 7. the orphan must not reach into a LATER charging session ────────────────
+def test_orphan_close_stops_at_the_end_of_its_own_session(tmp_path, monkeypatch):
+    """@mikeeeeekoo again, #208 — this time broken by the v3.4.4 fix itself.
+
+    "Last reading taken while charging" had no upper bound when no later charge row existed to
+    cap it. He updated Mate in the evening, the orphan close ran, and the search walked straight
+    past a whole morning of driving to grab the FIRST sample of that evening's plug-in: his
+    overnight charge closed at 17:10 with 80.7 % and a 17-hour duration, when it had really ended
+    at 06:10 at 100 %.
+
+    A charge ends where its own contiguous run of charging samples ends — the first sample that
+    says the car is not charging closes it, whatever happens later."""
+    db, rec, clock = _rec(tmp_path, monkeypatch)
+    clock.poll(rec, _vd(12.8, plug=True, ts_ms=_ms("2026-08-01T00:06:00+00:00")))
+    clock.poll(rec, _charging(12.8, ts_ms=_ms("2026-08-01T00:07:00+00:00")))
+    clock.poll(rec, _charging(100.0, ts_ms=_ms("2026-08-01T06:10:00+00:00")))
+    charge_id = rec._active_charge_id
+
+    # The poller dies. The car drives all morning, then plugs in again in the evening — and both
+    # land in positions before anything closes the night's charge.
+    for hhmm, soc, chg in (("09:40", 97.8, 0), ("11:08", 95.4, 0), ("15:00", 85.0, 0),
+                           ("17:10", 80.7, 1)):
+        clock.now = "2026-08-01T%s:00+00:00" % hhmm
+        db._conn.execute(
+            "INSERT INTO positions (vehicle_id, recorded_at, soc, charging) VALUES (1,?,?,?)",
+            (clock.now, soc, chg))
+    db._conn.commit()
+
+    clock.now = "2026-08-01T17:15:00+00:00"
+    assert db.close_orphan_charges(1) == 1
+
+    row = _charges(db)[0]
+    assert row["id"] == charge_id
+    assert row["end_soc"] == 100.0, "closed on the EVENING's charge, not on its own"
+    assert datetime.fromisoformat(row["ended_at"]).astimezone(timezone.utc).hour == 6
+    assert row["duration_min"] < 8 * 60, "a six-hour charge recorded as seventeen"

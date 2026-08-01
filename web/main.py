@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.4.6"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.4.7"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1404,6 +1404,24 @@ async def fuel_detected_dismiss(request: Request):
         db_reader.dismiss_fuel_detected(int(form.get("id")))
     except (TypeError, ValueError):
         pass
+    return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request),
+                                      headers={"HX-Trigger": "fuelChanged"})
+
+
+@app.post("/api/fuel/{purchase_id}/auto-note", response_class=HTMLResponse)
+async def fuel_generate_auto_note(request: Request, purchase_id: int):
+    """🧭 on a refuel: writes where the car was standing into that refuel's note, so the pump
+    identifies itself instead of being typed in — asked for by @gm27271 (beta discussion #14).
+    Same shape as the charge button above: a live reverse-geocode, so it only ever runs on a click
+    for THIS one refuel, never as a background sweep. Swaps the whole list back because the note
+    is shown inline on the row rather than in an editable field of its own."""
+    if _fuel_blocked():
+        return RedirectResponse(request.headers.get("x-ingress-path", "") + "/", status_code=303)
+    import asyncio
+    provider = db_reader.get_setting("geocoder_provider", "")
+    key = db_reader.get_secret("geocoder_key", "") or None
+    await asyncio.get_event_loop().run_in_executor(
+        None, db_reader.generate_fuel_auto_note, purchase_id, provider, key)
     return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request),
                                       headers={"HX-Trigger": "fuelChanged"})
 

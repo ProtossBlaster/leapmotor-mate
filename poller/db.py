@@ -1488,6 +1488,20 @@ class Database:
         92.3 % and half past noon. `ended_at` is the CAR's own clock when the frame carries one:
         while the cloud re-serves a frozen snapshot our `recorded_at` keeps advancing and the car's
         does not, and the car's is the one that says when the charge really stopped."""
+        # Stop at the end of THIS session, not at the last charging sample in the database. Without
+        # this the search walks forward for as long as no later charge row exists to cap it, and
+        # @mikeeeeekoo's overnight charge (#208) closed on the first sample of that EVENING's
+        # plug-in — 17:10 at 80.7 %, seventeen hours, for a charge that ended at 06:10 at 100 %.
+        # The first sample that says "not charging" ends the session; a contiguity bound, not a
+        # time one, because that is what "this session" actually means.
+        # NULL is left as not-breaking on purpose: it means "we don't know", and rows old enough to
+        # predate the column would otherwise close every historical charge at its own start.
+        stop = self._conn.execute(
+            "SELECT MIN(recorded_at) AS s FROM positions WHERE vehicle_id=? AND recorded_at>? "
+            "AND charging = 0", (vehicle_id, started_at)).fetchone()
+        stop = stop["s"] if stop else None
+        if stop and (not before or stop < before):
+            before = stop
         sql = ("SELECT soc, recorded_at, frame_ts FROM positions WHERE vehicle_id=? AND charging=1 "
                "AND soc IS NOT NULL AND recorded_at>=?")
         args = [vehicle_id, started_at]

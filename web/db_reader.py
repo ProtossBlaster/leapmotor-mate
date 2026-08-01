@@ -4728,6 +4728,56 @@ def generate_trip_auto_note(trip_id: int, provider: str = "", api_key: "str | No
     return text
 
 
+_FUEL_NOTE_TOLERANCE_MIN = 20     # how far from the refuel a position may sit and still be "there"
+
+
+def generate_fuel_auto_note(purchase_id: int, provider: str = "", api_key: "str | None" = None,
+                            only_if_note_empty: bool = False) -> "str | None":
+    """Write where you filled up into the refuel's own note — the 🧭 that trips and charges have.
+
+    Asked for by **@gm27271** (beta discussion #14): *"add GPS coordinates of the gas station
+    registered during the refueling timestamp… then users do not need to enter any notes"*. The
+    cloud reports no station, so the place has to come from where the CAR was: the position nearest
+    the refuel's timestamp, reverse-geocoded through the same provider the trip note uses.
+
+    The tolerance is the honest part. A refuel's timestamp is not always the moment fuel went in —
+    on a detected one it is when the NEW level was first seen, which for someone who fills up and
+    drives home is the next time the car woke. So a position is only accepted within
+    _FUEL_NOTE_TOLERANCE_MIN of it; beyond that the car was demonstrably somewhere else and the
+    note is left alone rather than naming the wrong forecourt. Returns the note it wrote, or None.
+
+    `only_if_note_empty` mirrors the charge path: something you typed is never overwritten by an
+    automatic call. The button always overwrites — the page asks first when there is something to
+    lose."""
+    import geocode
+    row = _get().execute(
+        "SELECT * FROM fuel_purchases WHERE id=? AND (vehicle_id = COALESCE(?, vehicle_id) "
+        "OR vehicle_id IS NULL)", (purchase_id, _current_vehicle_id())).fetchone()
+    if not row:
+        return None
+    row = dict(row)
+    if only_if_note_empty and (row.get("note") or "").strip():
+        return row.get("note")
+    pos = get_position_near(row.get("ts"), tolerance_min=_FUEL_NOTE_TOLERANCE_MIN)
+    if not pos or pos.get("latitude") is None or pos.get("longitude") is None:
+        return None
+    try:
+        address = geocode.reverse_geocode(pos["latitude"], pos["longitude"], provider, api_key)
+    except Exception:  # noqa: BLE001 — a DNS/timeout blip must not lose the refuel
+        return None
+    if not address:
+        return None
+    db = _conn_rw()
+    try:
+        db.execute("UPDATE fuel_purchases SET note=? WHERE id=?", (address, purchase_id))
+        db.commit()
+    except sqlite3.Error:
+        return None
+    finally:
+        db.close()
+    return address
+
+
 def generate_charge_auto_note(charge_id: int, provider: str = "", api_key: "str | None" = None,
                                only_if_note_empty: bool = False) -> "str | None":
     """Builds the station-address+start/end time+temperature summary and writes it

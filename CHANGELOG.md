@@ -3,6 +3,39 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.7] — 2026-08-01
+
+### Fixed
+- **A charge left open no longer closes on the NEXT charge.** v3.4.4 taught the crash-recovery path
+  to close an open session on the last reading taken *while charging* rather than on whatever the
+  car was doing when Mate noticed. That search had no upper bound whenever no later charge row
+  existed to stop it — so it walked forward through everything. **@mikeeeeekoo** updated Mate in
+  the evening, the recovery ran, and his overnight charge closed on the **first sample of that
+  evening's plug-in**: 17:10, 80.7 %, seventeen hours long, for a charge that had really ended at
+  06:10 at 100 %. The previous behaviour was wrong too — it took the last position of any kind, a
+  whole morning of driving — so this is a defect introduced by its own fix, and it found the one
+  person who had reported the original.
+
+  A charge now ends where its own **contiguous** run of charging samples ends: the first reading
+  that says the car is not charging closes it, whatever happens hours later. A bound on continuity,
+  not on time, because that is what "this session" means. His night replays as
+  **00:06 → 06:10, 12.8 → 100 %, 61.0 kWh** — the figures his own app shows. A session still stuck
+  open in your database is closed correctly the next time the poller starts. _(#208.)_
+
+### Added
+- **Refuels can write down where you filled up.** The 🧭 button that trips and charges already had
+  is now on each refuel: it takes where the car was standing at that moment, turns it into a street
+  address and puts it in the note — so the pump identifies itself instead of being typed in. Asked
+  for by **@gm27271**: *"then users do not need to enter any notes, it will autodetect where the gas
+  was added"*.
+
+  One limit is built in deliberately. A refuel's timestamp is not always when the fuel went in: on
+  one Mate spotted by itself it is when the **new level was first seen**, which for someone who
+  fills up and drives home is the next time the car woke. So the address is only written when the
+  car actually reported a position within twenty minutes of it — otherwise the note is left empty,
+  because naming the wrong forecourt is worse than naming none. Range-extender cars only.
+  _(beta discussion #14.)_
+
 ## [3.4.6] — 2026-08-01
 
 ### Fixed
