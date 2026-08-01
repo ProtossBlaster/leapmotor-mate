@@ -432,6 +432,20 @@ def get_setting(key: str, default: str = "") -> str:
     return row["value"] if row else default
 
 
+def get_account_user() -> str:
+    """The Leapmotor account this instance polls with — the login, not the car.
+
+    Asked for in beta #13 by @ebagnoli, who runs several Mate instances on several Leapmotor
+    accounts: the Settings card named the model and the VIN but never the account, so from
+    inside Mate there was no way to tell one instance from another.
+
+    The wizard stores it in settings; a dev/add-on install passes it in the environment and
+    the setting stays empty — hence the fallback, which is the SAME precedence the command
+    client uses for the credentials. Empty string when neither is set (fresh install), and
+    the caller decides what to do with that (the Settings card hides the row)."""
+    return get_setting("leapmotor_user") or os.environ.get("LEAPMOTOR_USER", "")
+
+
 def set_setting(key: str, value: str) -> None:
     db = _conn_rw()
     db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?,?)", (key, str(value)))

@@ -203,6 +203,18 @@
           <span class="text-slate-400">{{ t('vin') }}</span>
           <span class="text-white font-mono text-xs">{{ vehicle.vin }}</span>
         </div>
+        {% if account_user %}
+        <!-- Which account this instance is logged in with (beta #13): with several instances on
+             several Leapmotor accounts, the car alone doesn't say which one you are looking at.
+             Stacked rather than label-left/value-right like the two rows above: this card sits in
+             a ~280px column, and an address is longer than a VIN — on one line it broke mid-word
+             ("silvio.bressa / ni@dxc.com"), which is unreadable exactly when you are comparing
+             two instances letter by letter. -->
+        <div class="flex flex-col gap-0.5 pt-1">
+          <span class="text-slate-400">{{ t('setup_email') }}</span>
+          <span class="text-white font-mono text-xs break-all">{{ account_user }}</span>
+        </div>
+        {% endif %}
       </div>
       {% if not env_login %}
       <!-- Log out of the Leapmotor account to link a different one. Clears only the stored

@@ -450,7 +450,10 @@ ist in drei Spalten unterteilt.
 **Spalte 1 — Fahrzeug und Fahren**
 
 - **🌍 Sprache & Währung** — Sprache der Oberfläche, Währung der Kosten, **Einheiten** (metrisch/imperial).
-- **Fahrzeug** — Modell und VIN Ihres Autos. Hier gibt es auch die Schaltfläche **🔓 Vom Konto abmelden**
+- **Fahrzeug** — Modell und VIN Ihres Autos sowie **mit welchem Leapmotor-Konto sich diese Instanz
+  anmeldet**. Das Konto ist wichtig, wenn Sie Mate mehrfach betreiben — eine zweite Instanz, eine zum
+  Testen, eine pro Auto: Modell und VIN beschreiben das *Auto*, zwei Instanzen am selben Auto waren von
+  innen also bisher nicht zu unterscheiden. Hier gibt es auch die Schaltfläche **🔓 Vom Konto abmelden**
   (Logout), um ein anderes Konto zu verbinden: Sie löscht *nur* die gespeicherten Zugangsdaten, **nicht** Ihre
   Fahrten/Ladungen und auch nicht das Zertifikat.
 - **Batterie** — die **Kapazität** in kWh, die für alle Berechnungen verwendet wird; korrigierbar. Wenn Mate eine

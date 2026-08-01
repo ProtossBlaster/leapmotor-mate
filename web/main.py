@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.4.8"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.4.9"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1934,6 +1934,10 @@ async def settings_page(request: Request):
         # Dev/env-var mode skips the wizard, so the credentials live in the environment,
         # not the DB — the Logout button (which clears DB creds) wouldn't apply there.
         env_login=bool(os.environ.get("LEAPMOTOR_USER")),
+        # WHICH Leapmotor account this instance polls with (beta #13, @ebagnoli). He runs several
+        # instances on several accounts and had no way to tell them apart from inside Mate — the
+        # card named the car but never the login. Empty → the row is skipped.
+        account_user=db_reader.get_account_user(),
         wb_keywords=db_reader.get_setting("wb_keywords", ""),
         currencies=db_reader.CURRENCIES,
         currency_code=db_reader.get_currency_code(),

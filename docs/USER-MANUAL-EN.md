@@ -458,8 +458,11 @@ divided into three columns.
 
 - **🌍 Language & Currency** — the interface language, the currency for costs, the **units**
   (metric/imperial).
-- **Vehicle** — your car's model and VIN. Here you also have the **🔓 Log out** button to link a
-  different account: it deletes *only* the saved credentials, **not** your trips/charges nor the
+- **Vehicle** — your car's model, its VIN, and **which Leapmotor account this instance signs in
+  with**. The account matters if you run Mate more than once — a second instance, a test one, one
+  per car: model and VIN describe the *car*, so two instances watching the same car used to look
+  identical from the inside. Here you also have the **🔓 Log out** button to link a different
+  account: it deletes *only* the saved credentials, **not** your trips/charges nor the
   certificate.
 - **Battery** — the **capacity** in kWh used for all calculations; correctable. If Mate has a
   "measured" estimate from your data, it offers it to you.

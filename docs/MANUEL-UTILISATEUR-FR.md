@@ -465,7 +465,11 @@ Elle est divisée en trois colonnes.
 **Colonne 1 — Véhicule et conduite**
 
 - **🌍 Langue et Devise** — langue de l'interface, devise des coûts, **unités** (métriques/impériales).
-- **Véhicule** — modèle et VIN de votre voiture. C'est aussi ici que se trouve le bouton **🔓 Se déconnecter**
+- **Véhicule** — modèle et VIN de votre voiture, et **avec quel compte Leapmotor cette instance se
+  connecte**. Le compte compte si vous faites tourner Mate plus d'une fois — une deuxième instance, une
+  de test, une par voiture : le modèle et le VIN décrivent la *voiture*, donc deux instances qui
+  surveillaient la même voiture étaient auparavant impossibles à distinguer de l'intérieur. C'est aussi
+  ici que se trouve le bouton **🔓 Se déconnecter**
   (logout) pour relier un autre compte : il efface *seulement* les identifiants enregistrés, **pas** vos
   trajets/recharges ni le certificat.
 - **Batterie** — la **capacité** en kWh utilisée pour tous les calculs ; modifiable. Si Mate dispose d'une

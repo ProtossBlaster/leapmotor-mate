@@ -3,6 +3,37 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.9] — 2026-08-01
+
+### Added
+- **Settings → Vehicle now names the account this instance signs in with.** Asked for by
+  **@ebagnoli** (beta #13), who runs several Mate instances against several Leapmotor accounts and
+  had no way to tell them apart from inside the app: the card gave the model and the VIN, and both
+  of those describe the **car**, not the login. Two instances watching the same car were identical
+  on screen. The row sits under the VIN and reuses the label the setup wizard already has, so it
+  arrives translated in all seven languages rather than in English everywhere else.
+
+  It is stacked rather than put on the right like Model and VIN, because that card lives in a
+  ~280 px column and an address is longer than a VIN: on one line it broke mid-word
+  (`silvio.bressa` / `ni@dxc.com`), which is unreadable at exactly the moment you are comparing two
+  instances letter by letter. Shown in full, like the VIN beside it — the card is behind a menu on
+  your own instance, and a masked address would not answer the question it exists to answer.
+
+  Behind it, the "stored login first, environment second" rule now has **one** definition
+  (`get_account_user`) instead of a copy in the command client — so the account the page names is
+  by construction the account Mate logs in with, not a second guess at it.
+
+### Documentation
+- **The four user manuals are current again, and findable.** They still declared **v1.27/v1.28**
+  with Mate at 3.4.8, and nothing in the repository linked to them. All four now carry the real
+  version and describe what shipped since: the third install route (MateDesktop), the map's
+  full-history routes with dashed bridges where the signal was lost, and the rewritten battery-health
+  section — the 95 % cut-off, the pooling, and what the ± actually measures. English and Italian also
+  gained the trip calendar, the day-scoped merge and the elevation lookup. README and DOCKERHUB now
+  link them.
+- The README's Features section gained the account row above, in English and Italian, and both lists
+  were checked item-by-item — 40 entries each.
+
 ## [3.4.8] — 2026-08-01
 
 ### Changed

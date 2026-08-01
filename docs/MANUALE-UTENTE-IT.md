@@ -475,7 +475,10 @@ volta. È divisa in tre colonne.
 **Colonna 1 — Veicolo e guida**
 
 - **🌍 Lingua e valuta** — lingua dell'interfaccia, valuta dei costi, **unità** (metriche/imperiali).
-- **Veicolo** — modello e VIN della tua auto. Qui c'è anche il pulsante **🔓 Esci dall'account**
+- **Veicolo** — modello e VIN della tua auto, e **con quale account Leapmotor questa istanza fa il
+  login**. L'account conta se hai più di un'installazione di Mate — una seconda istanza, una di
+  prova, una per auto: modello e VIN descrivono l'*auto*, quindi due istanze che guardano la stessa
+  macchina prima erano indistinguibili dall'interno. Qui c'è anche il pulsante **🔓 Esci dall'account**
   (logout) per collegare un account diverso: cancella *solo* le credenziali salvate, **non** i tuoi
   viaggi/ricariche né il certificato.
 - **Batteria** — la **capacità** in kWh usata per tutti i calcoli; correggibile. Se Mate ha una
