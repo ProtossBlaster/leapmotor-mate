@@ -3,6 +3,39 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.8] — 2026-08-01
+
+### Changed
+- **Battery health stops counting the BMS re-anchoring as energy.** **@riri19** has a nine-month-old
+  B10 Max LFP reading **94.9 %** and said the figure was being dragged down by one charge with a
+  small SoC rise. He was right, and the same charge sat in the maintainer's own history: a 12.9-point
+  top-up ending at 100 % that estimated the pack at **57.7 kWh** where every other charge said 64-67.
+
+  The cause is not the SoC being "noisy". An LFP's voltage curve is flat across the middle of its
+  range, so the BMS counts coulombs and drifts; near the top the curve finally rises and it
+  **re-anchors** — adding SoC points that no energy paid for. Dividing measured energy by a delta
+  containing them under-states the pack, and worst on a short top-up where they are most of the
+  delta.
+
+  So the estimate now **stops at 95 %** instead of discarding those charges: a charge to 100 % is
+  the one that re-calibrates the pack and belongs in the history, only its last few points leave the
+  arithmetic. On the maintainer's 24-charge history every full charge rises — 64.5 → 66.9, 64.2 →
+  65.6, 63.8 → 65.7 — while charges that never reach 95 % do not move at all, and the scatter across
+  all of them falls from **2.39 to 0.67 kWh**.
+
+- **The headline pools the charges instead of averaging their ratios.** It used to weight a charge
+  by where it *ended*, so a 13-point top-up to 100 % counted as much as a 57-point charge. It now
+  sums the energy and the SoC covered across a window measured in **SoC points** rather than in
+  number of charges, so a charge counts in proportion to how much of the scale it actually spanned —
+  riri19's own suggestion — and nothing is discarded to achieve it. The figure moves by **0.12 kWh**
+  on a new charge where it used to move by 0.67.
+
+- **The number no longer pretends to be a measurement.** Battery health now shows its own **scatter**
+  next to it — *98.2 % ± 0.8* rather than a bare *93.6 %* — because the divisor is still a SoC the
+  BMS counted, and removing a known systematic error makes the figure steadier, not true. A single
+  charge shows no ±: printing *± 0.0* would be the false precision riri19 asked us to stop giving.
+  _(#205.)_
+
 ## [3.4.7] — 2026-08-01
 
 ### Fixed

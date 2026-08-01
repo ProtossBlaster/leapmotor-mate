@@ -20,9 +20,16 @@
   {% endmacro %}
 
   {% set soh = health.latest_soh_pct %}
-  {{ tile(t('battery_soh'), soh, '%',
+  {# The ± is the SCATTER of the charges behind the figure, not an accuracy: the divisor is still
+     a SoC the BMS counted. Shown so the headline stops reading like a lab measurement (#205,
+     @riri19). Absent on a single charge — '± 0.0' would be the false precision he asked us to
+     drop. No new strings: the spread rides in the unit slot. #}
+  {{ tile(t('battery_soh'), soh,
+       '%' ~ (' ± %s'|format(health.latest_spread_pct) if health.latest_spread_pct else ''),
        'text-green-400' if soh >= 92 else 'text-yellow-400' if soh >= 85 else 'text-red-400') }}
-  {{ tile(t('battery_est_capacity'), health.latest_capacity_kwh, 'kWh', 'text-blue-400') }}
+  {{ tile(t('battery_est_capacity'), health.latest_capacity_kwh,
+       'kWh' ~ (' ± %s'|format(health.latest_spread_kwh) if health.latest_spread_kwh else ''),
+       'text-blue-400') }}
   {{ tile(t('battery_nominal'), health.nominal_kwh, 'kWh', 'text-slate-300') }}
   {{ tile(t('battery_samples'), health.sample_count, '', 'text-slate-300') }}
 </div>

@@ -47,18 +47,23 @@ def test_cold_charge_is_shown_but_excluded(tmp_path, monkeypatch):
     assert h["latest_capacity_kwh"] == 67.0                          # headline = the warm one only
 
 
-def test_full_charges_weigh_more_in_headline(tmp_path, monkeypatch):
+def test_bigger_charges_weigh_more_in_headline(tmp_path, monkeypatch):
+    """Replaces test_full_charges_weigh_more_in_headline, which asserted the very thing #205 asked
+    us to change: the headline used to weight a charge by where it ENDED, so a short top-up to
+    100 % outranked a deep charge. It now pools total energy over total SoC covered, so a charge
+    counts in proportion to how much of the scale it spanned — @riri19's own suggestion."""
     db = _seed(tmp_path)
-    # X ends at 100% (weight 1.0), est 67.0 ; Y ends at 70% (weight 0.4), est 33/0.55 = 60.0.
-    # Y starts at 15% (not below the low-start guard) so this test isolates the end-SoC weighting.
+    # X spans 80 points, est 67.0 ; Y spans 55 points, est 33/0.55 = 60.0.
     _charge(db, 1, "06-01", 20, 100, amps=268, temp=25, odo=1000)
     _charge(db, 2, "06-05", 15, 70,  amps=165, temp=25, odo=2000)
     monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
 
     h = db_reader.get_battery_health()
     assert h["sample_count"] == 2
-    # plain mean would be 63.5; weighting toward the 100%-ender gives (67·1 + 60·0.4)/1.4 = 65.0
-    assert h["latest_capacity_kwh"] == 65.0
+    # (53.6 + 33.0) / 1.35 = 64.1 — the 80-point charge carries 80/135 of the answer, not a
+    # weight taken from the fact that it happened to finish at 100 %.
+    assert h["latest_capacity_kwh"] == 64.1
+    assert h["latest_spread_kwh"] == 3.5          # and the page can say ± instead of pretending
 
 
 def test_active_use_charge_is_shown_but_excluded(tmp_path, monkeypatch):
@@ -95,11 +100,16 @@ def test_soc_jump_charge_is_shown_but_excluded(tmp_path, monkeypatch):
     t0 = "2026-06-05T08:00:00+00:00"   # soc 77 (normal start)
     t1 = "2026-06-05T08:15:00+00:00"   # soc 81 (+4% in 15 min, 0.27 %/min — fine)
     t2 = "2026-06-05T08:16:00+00:00"   # soc 84 (+3% in 1 min = 3 %/min — BMS snap!)
-    t3 = "2026-06-05T08:31:00+00:00"   # soc 88 (+4% in 15 min — back to normal)
+    # NB: the last sample must agree with the charge's end_soc. Since the capacity estimate pairs
+    # the integrated energy with the SoC that energy actually covered (v3.4.8), a fixture whose
+    # samples stop two points short of end_soc leaves a usable delta of 11 and falls under the
+    # 12-point floor. Measured on a real 24-charge history the gap is 0.10 points at the median
+    # and 0.9 at worst, so a 2-point gap is a fixture artefact, not something to design around.
+    t3 = "2026-06-05T08:31:00+00:00"   # soc 90 (+6% in 15 min — back to normal)
     db._conn.execute(
         "INSERT INTO charges (id,vehicle_id,started_at,ended_at,start_soc,end_soc,charge_type) "
         "VALUES (2,1,?,?,77,90,'AC')", (t0, "2026-06-05T08:32:00+00:00"))
-    for t, soc in ((t0, 77.0), (t1, 81.0), (t2, 84.0), (t3, 88.0)):
+    for t, soc in ((t0, 77.0), (t1, 81.0), (t2, 84.0), (t3, 90.0)):
         db._conn.execute(
             "INSERT INTO positions (vehicle_id,recorded_at,soc,charging,charge_voltage_v,"
             "charge_current_a,battery_min_temp,odometer_km) VALUES (1,?,?,1,400,30,25,1500)",

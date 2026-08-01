@@ -2,6 +2,7 @@
 import json
 import math
 import sqlite3
+import statistics
 import time
 from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
@@ -5477,6 +5478,57 @@ def scan_missed_charges(threshold: float = 2.0, apply: bool = False) -> list[dic
     return candidates
 
 
+_SOH_TOP_CUTOFF_SOC = 95.0    # above this the BMS re-anchors an LFP's counted SoC: points arrive
+                              # without matching energy, so they are not part of the capacity sum
+_SOH_SOC_BUDGET = 200.0       # how many SoC points the headline pools over (see get_battery_health)
+
+
+def _charge_energy_below_soc(db, start: str, end: str | None, cap_soc: float):
+    """(energy, SoC reached) for the part of a charge BELOW `cap_soc`, or None when there is none.
+
+    Same integral as _integrate_charge_energy_kwh, stopped where the SoC scale stops being energy.
+    On an LFP the open-circuit voltage is flat across the middle of the range, so the BMS counts
+    coulombs and drifts; near the top the curve finally rises and it re-anchors — adding SoC points
+    that no energy paid for. Dividing measured energy by a delta containing them under-states the
+    pack, worst on a short top-up where they are most of the delta: @riri19's 94.9 % (#205), and a
+    12.9-point charge in Silvio's own history that read 57.7 kWh against 64-67 everywhere else.
+
+    Truncating rather than discarding is the point. A charge to 100 % is the one that re-calibrates
+    the pack and belongs in the history; only its last few points are excluded from the arithmetic."""
+    if end:
+        lo, hi, excl = _power_window_bounds(db, start, end)
+        rows = db.execute(
+            "SELECT recorded_at, soc, charge_voltage_v, charge_current_a FROM positions "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? "
+            "AND recorded_at " + ("<" if excl else "<=") + " ? ORDER BY recorded_at",
+            (_current_vehicle_id(), lo, hi)).fetchall()
+    else:
+        rows = db.execute(
+            "SELECT recorded_at, soc, charge_voltage_v, charge_current_a FROM positions "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? "
+            "ORDER BY recorded_at", (_current_vehicle_id(), start)).fetchall()
+    energy, prev_t, prev_p, reached = 0.0, None, 0.0, None
+    for r in rows:
+        if r["soc"] is not None and r["soc"] > cap_soc:
+            break
+        try:
+            t = datetime.fromisoformat(str(r["recorded_at"]).replace(" ", "T").rstrip("Z"))
+        except Exception:  # noqa: BLE001
+            continue
+        p = abs((r["charge_voltage_v"] or 0) * (r["charge_current_a"] or 0)) / 1000.0
+        if prev_t is not None:
+            dt_h = (t - prev_t).total_seconds() / 3600.0
+            if 0 < dt_h <= 0.25:                      # same gap guard as the full integral
+                energy += (p + prev_p) / 2.0 * dt_h
+        prev_t, prev_p = t, p
+        if r["soc"] is not None:
+            reached = r["soc"]
+    # `reached` stays None when not one sample carried a SoC (a partial frame, an older database).
+    # The caller then falls back to the charge's own delta: we cannot truncate what we cannot see,
+    # and an estimate with a known bias beats making the whole page disappear.
+    return (energy, reached) if rows else None
+
+
 def _integrate_charge_energy_kwh(db, start: str, end: str | None) -> float:
     """Real DC energy delivered into the pack during a charge = ∫|V·I|dt over the
     logged samples (trapezoidal). V/I come from signals 1177/1178 in `positions`, the
@@ -5636,10 +5688,18 @@ def get_battery_health(min_soc_delta: float = 12.0, temp_min_c: float | None = N
         delta = (r["end_soc"] or 0) - (r["start_soc"] or 0)
         if delta < min_soc_delta:                      # tiny top-ups → huge relative error
             continue
-        energy = _integrate_charge_energy_kwh(db, r["started_at"], r["ended_at"])
+        # Capacity comes from the part of the charge BELOW the re-anchor zone; everything the user
+        # SEES about the charge (its real delta, where it ended) is unchanged.
+        below = _charge_energy_below_soc(db, r["started_at"], r["ended_at"], _SOH_TOP_CUTOFF_SOC)
+        if not below:
+            continue
+        energy, reached = below
+        used = delta if reached is None else reached - (r["start_soc"] or 0)
+        if used < min_soc_delta:                       # nothing left once the top is set aside
+            continue
         if energy <= 0.1:                              # no usable telemetry (pruned / AC-only meter)
             continue
-        est = energy / (delta / 100.0)
+        est = energy / (used / 100.0)
         # Drop physically implausible estimates (sampling gaps, bad V/I spikes).
         if not (nominal * 0.5 <= est <= nominal * 1.15):
             continue
@@ -5663,6 +5723,7 @@ def get_battery_health(min_soc_delta: float = 12.0, temp_min_c: float | None = N
             "capacity_kwh": round(est, 1),
             "soh_pct": round(est / nominal * 100, 1) if nominal else None,
             "soc_delta": round(delta, 1),
+            "soc_delta_used": round(used, 1),
             "end_soc": round(r["end_soc"], 1) if r["end_soc"] is not None else None,
             "energy_kwh": round(energy, 2),
             "temp_c": round(temp, 1) if temp is not None else None,
@@ -5679,13 +5740,30 @@ def get_battery_health(min_soc_delta: float = 12.0, temp_min_c: float | None = N
         es = p.get("end_soc")
         return 1.0 if es is None else max(0.25, min(1.0, (es - 50.0) / 50.0))
 
-    tail = valid[-5:]                                  # weighted mean of the recent valid estimates
-    if tail:
-        wsum = sum(_w(p) for p in tail)
-        latest_cap = round(sum(p["capacity_kwh"] * _w(p) for p in tail) / wsum, 1)
+    # Pool the recent charges instead of averaging their ratios: total energy over total SoC
+    # covered. A charge then counts in proportion to how much of the scale it actually spanned —
+    # @riri19's own suggestion (#205) — so a 13-point top-up can no longer weigh as much as a
+    # 57-point charge, and nothing has to be thrown away to achieve it. The window is measured in
+    # SoC POINTS rather than in number of charges, so someone who tops up often and someone who
+    # charges deeply stand on the same amount of evidence.
+    window, e_sum, d_sum = [], 0.0, 0.0
+    for p in reversed(valid):
+        window.append(p)
+        e_sum += p["energy_kwh"]
+        d_sum += p["soc_delta_used"]
+        if d_sum >= _SOH_SOC_BUDGET:
+            break
+    if window and d_sum > 0:
+        latest_cap = round(e_sum / (d_sum / 100.0), 1)
         latest_soh = round(latest_cap / nominal * 100, 1) if nominal else None
+        # The scatter of the individual estimates behind that figure. It is a PRECISION, not an
+        # accuracy: the divisor is still a counted SoC, so a tight band means the charges agree
+        # with each other, not that the pack is truly this size. Shown so the headline stops
+        # reading like a lab measurement (riri19's last point). One charge has no scatter.
+        caps = [p["capacity_kwh"] for p in window]
+        spread = round(statistics.pstdev(caps), 2) if len(caps) > 1 else None
     else:
-        latest_cap = latest_soh = None
+        latest_cap = latest_soh = spread = None
     return {
         "nominal_kwh": round(nominal, 1),
         "points": points,
@@ -5698,6 +5776,9 @@ def get_battery_health(min_soc_delta: float = 12.0, temp_min_c: float | None = N
         "temp_min_c": round(temp_min_c, 1),
         "min_start_soc": round(min_start_soc, 1),
         "latest_capacity_kwh": latest_cap,
+        "latest_spread_kwh": spread,
+        "latest_spread_pct": round(spread / nominal * 100, 1) if (spread and nominal) else None,
+        "window_count": len(window),
         "latest_soh_pct": latest_soh,
     }
 
