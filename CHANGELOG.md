@@ -3,6 +3,25 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.6] — 2026-08-01
+
+### Fixed
+- **A 72-second power-off is a power-off.** **@michapr** switched his car off between two drives and
+  Mate still reported them as sharing one power-on session — *"the car was never switched off"* —
+  and asked him to merge two trips that belong apart. Mate had seen the switch-off and thrown it
+  away: a `ready=0` gap shorter than 90 seconds was treated as a signal blip.
+
+  That 90 came from *"signal blips seen in the log"* and had never been measured. It has been now,
+  across eight diagnostic bundles from three owners: of **123 distinct power-offs in three weeks,
+  only three fall under 90 seconds** — 38.8 s, 72.0 s and 89.8 s — and the 72 s one is his real
+  switch-off. The blips the threshold was defending against amount to that single 38.8 s event. It
+  is now **60 seconds**, which still absorbs that one and stops swallowing the rest.
+
+  The same constant was quietly doing a second, unrelated job: the slack that lets a session still
+  be matched to the trip it belongs to, sized on the ~1 minute the gear-P trip-end lags behind
+  ready-off. Lowering both together would have left that slack exactly equal to the lag it exists to
+  cover, so the two questions now have two numbers. _(beta #19.)_
+
 ## [3.4.5] — 2026-08-01
 
 ### Added

@@ -29,7 +29,8 @@ import time
 
 log = logging.getLogger("leapmotor.ready_automation")
 
-READY_DEBOUNCE_S = 90   # same constant/reasoning as db_reader._READY_DEBOUNCE_S
+READY_DEBOUNCE_S = 60   # same job and same number as db_reader._READY_BLIP_S: how short a
+                        # ready=0 gap has to be to be a glitch rather than a real switch-off
 
 _VALID_PRESETS = {"cool", "heat", "vent", "defrost", "none"}
 _VALID_SEAT_MODES = {"off", "heat", "vent"}

@@ -2429,7 +2429,21 @@ def trip_ec_window(trip: dict, pad_s: int = 120):
     return (int(begin), int(e))
 
 
-_READY_DEBOUNCE_S = 90        # ignore ready=0 dips shorter than this — signal blips seen in the log
+# Two different questions used to share one number. They are not the same question.
+#
+# _READY_BLIP_S — how short a ready=0 gap has to be before we call it a signal glitch rather than
+# the driver switching the car off. It was 90 s, on the strength of "signal blips seen in the log".
+# Measured afterwards on eight bundles from three owners (beta #19): of 123 distinct READY
+# switch-offs in three weeks, only THREE are under 90 s — 38.8 s, 72.0 s and 89.8 s — and the 72 s
+# one is @michapr's real power-off, which Mate swallowed and then told him the car had never been
+# switched off. The blips the number defended against amount to that single 38.8 s event, so 60 s
+# still absorbs it and stops eating everything else.
+_READY_BLIP_S = 60
+# _READY_MATCH_SLACK_S — how far a session may miss the trip it belongs to and still be matched to
+# it. Nothing to do with blips: it absorbs the ~1 minute the gear-P trip-end lags behind ready-off
+# (PARKED_CONFIRM = 6 polls). Lowering it with the other one would have left it exactly equal to
+# the lag it exists to cover.
+_READY_MATCH_SLACK_S = 90
 # How long a READY value may be carried forward over polls that didn't report one. The floor is
 # above the widest parked cadence the settings allow (10–600 s), so even the slowest poller keeps
 # a value across a missed reading; the 3× term keeps that margin at three polls when the user has
@@ -2455,7 +2469,7 @@ def ready_session(trip: dict):
 
     Returns {on, off, n_trips, trip_ids} (epoch seconds) or None when no ready data covers the trip
     (old trips before the signal existed → caller falls back to the T0−2min window). Brief ready=0
-    dips shorter than _READY_DEBOUNCE_S are treated as still-on (blips)."""
+    dips shorter than _READY_BLIP_S are treated as still-on (blips)."""
     t0, t1 = _trip_epoch(trip.get("started_at")), _trip_epoch(trip.get("ended_at"))
     if not t0 or not t1:
         return None
@@ -2504,14 +2518,14 @@ def ready_session(trip: dict):
         runs.append(cur)
     merged = []
     for run in runs:
-        if merged and run[0] - merged[-1][1] < _READY_DEBOUNCE_S:
+        if merged and run[0] - merged[-1][1] < _READY_BLIP_S:
             merged[-1][1] = run[1]
         else:
             merged.append(list(run))
     # The session = the run that brackets the trip (small slack: the gear-P trip-end lags ready-off
     # by ~1 min, and ready-on can sit a poll after T0).
     sess = next(((s, e) for s, e in merged
-                 if s - _READY_DEBOUNCE_S <= t0 and t1 <= e + _READY_DEBOUNCE_S), None)
+                 if s - _READY_MATCH_SLACK_S <= t0 and t1 <= e + _READY_MATCH_SLACK_S), None)
     if sess is None:                         # fallback: any run overlapping the trip
         sess = next(((s, e) for s, e in merged if not (e < t0 or s > t1)), None)
     if sess is None:
@@ -2523,8 +2537,8 @@ def ready_session(trip: dict):
     # at the scan edge with no preceding off-sample (caller then uses its fallback).
     on_lo = max((ts for ts, rd in samples if ts < on and rd == 0), default=None)
     # Count finalized, non-merged trips whose span falls inside the session.
-    olo = datetime.fromtimestamp(on - _READY_DEBOUNCE_S, timezone.utc).isoformat()
-    ohi = datetime.fromtimestamp(off + _READY_DEBOUNCE_S, timezone.utc).isoformat()
+    olo = datetime.fromtimestamp(on - _READY_MATCH_SLACK_S, timezone.utc).isoformat()
+    ohi = datetime.fromtimestamp(off + _READY_MATCH_SLACK_S, timezone.utc).isoformat()
     trs = db.execute(
         "SELECT id, started_at, ended_at FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
         "AND merged_into_id IS NULL "
@@ -2533,7 +2547,7 @@ def ready_session(trip: dict):
     ids = []
     for tr in trs:
         ts0, ts1 = _trip_epoch(tr["started_at"]), _trip_epoch(tr["ended_at"])
-        if ts0 and ts1 and ts0 >= on - _READY_DEBOUNCE_S and ts1 <= off + _READY_DEBOUNCE_S:
+        if ts0 and ts1 and ts0 >= on - _READY_MATCH_SLACK_S and ts1 <= off + _READY_MATCH_SLACK_S:
             ids.append(tr["id"])
     return {"on": int(on), "off": int(off),
             "on_lo": int(on_lo) if on_lo is not None else None,
