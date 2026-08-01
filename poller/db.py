@@ -1480,17 +1480,62 @@ class Database:
             (vehicle_id, started_at, ended_at or _now_iso())).fetchone()
         return row["soc"] if row else None
 
+    def _charging_end_in_window(self, vehicle_id: int, started_at: str, before: str | None = None):
+        """(soc, ended_at) from the last position taken WHILE CHARGING in [started_at, before).
+
+        Charging rows only. The rows AFTER a charge belong to whatever the car did next — for
+        @mikeeeeekoo (#208) a whole morning of driving, which would close his overnight charge at
+        92.3 % and half past noon. `ended_at` is the CAR's own clock when the frame carries one:
+        while the cloud re-serves a frozen snapshot our `recorded_at` keeps advancing and the car's
+        does not, and the car's is the one that says when the charge really stopped."""
+        sql = ("SELECT soc, recorded_at, frame_ts FROM positions WHERE vehicle_id=? AND charging=1 "
+               "AND soc IS NOT NULL AND recorded_at>=?")
+        args = [vehicle_id, started_at]
+        if before:
+            sql += " AND recorded_at<?"
+            args.append(before)
+        row = self._conn.execute(sql + " ORDER BY recorded_at DESC LIMIT 1", args).fetchone()
+        if row is None:
+            return None
+        ended_at = row["recorded_at"]
+        if row["frame_ts"]:
+            frame_iso = datetime.fromtimestamp(int(row["frame_ts"]) / 1000, timezone.utc).isoformat()
+            # Only ahead of the start: a frame_ts from before the charge opened (clock skew, or a
+            # partial frame carrying someone else's timestamp) would invert the session.
+            if frame_iso > started_at and (not before or frame_iso < before):
+                ended_at = frame_iso
+        return row["soc"], ended_at
+
+    def charge_end_from_last_charging(self, charge_id: int):
+        """The last reading taken WHILE CHARGING in this charge's window, as (soc, ended_at).
+
+        For a charge the car drove away from (#208) this is the only honest end: by the time Mate
+        sees the car again its SoC has moved on, and the frames in between may be the cloud
+        re-serving one frozen snapshot. That snapshot is still a real measurement — so the time
+        comes from the CAR's own clock (`frame_ts`) rather than from when we happened to poll it,
+        which on @mikeeeeekoo's overnight charge is the difference between 06:10 and 09:36.
+
+        Returns None when the charge has no charging sample at all (nothing to stand on)."""
+        charge = self._conn.execute(
+            "SELECT vehicle_id, started_at FROM charges WHERE id=?", (charge_id,)).fetchone()
+        if charge is None or not charge["started_at"]:
+            return None
+        return self._charging_end_in_window(charge["vehicle_id"], charge["started_at"])
+
     def finalize_charge(self, charge_id: int, data, max_power_kw: float = 0.0,
-                        price_per_kwh: float = 0.0) -> None:
+                        price_per_kwh: float = 0.0, end_override=None) -> None:
+        """`end_override` = (soc, ended_at) closes the charge on a reading other than `data` —
+        used when the car drove away and the live frame is no longer the end of the charge."""
         charge = self._conn.execute("SELECT * FROM charges WHERE id = ?", (charge_id,)).fetchone()
         start_soc    = charge["start_soc"]
+        end_soc, end_at = (end_override if end_override else (data.soc, _now_iso()))
         # Energy from ΔSoC × capacity. ONLY on 100%-ending charges, anchor the ΔSoC to the
         # last SoC seen while still charging (see _last_charging_soc): the snap-to-full is a
         # top-of-charge phenomenon, while on mid-SoC charges the final tick (e.g. 94.9→95.0
         # in the poll where charging stops) is real energy that must stay counted.
         # end_soc itself stays data.soc — users should still see the charge reached 100%.
-        soc_for_energy = data.soc
-        if data.soc >= 100.0:
+        soc_for_energy = end_soc
+        if end_soc >= 100.0:
             last = self._last_charging_soc(charge["vehicle_id"], charge["started_at"])
             if last is not None:
                 soc_for_energy = last
@@ -1521,7 +1566,7 @@ class Database:
         # ac_energy_kwh is NOT touched here — it's the running wallbox-counter sum built up over the
         # charge by accumulate_wallbox_energy() (the wallbox-billed energy).
         started_at   = datetime.fromisoformat(charge["started_at"])
-        duration_min = (datetime.now(timezone.utc) - started_at).total_seconds() / 60
+        duration_min = (datetime.fromisoformat(end_at) - started_at).total_seconds() / 60
 
         self._conn.execute(
             """UPDATE charges
@@ -1529,7 +1574,7 @@ class Database:
                    charge_type=?, max_power_kw=?, cost=?
                WHERE id=?""",
             (
-                _now_iso(), data.soc, round(energy_added, 3), round(duration_min, 1),
+                end_at, end_soc, round(energy_added, 3), round(duration_min, 1),
                 charge_type, round(max_power_kw, 2), cost,
                 charge_id,
             ),
@@ -1545,7 +1590,7 @@ class Database:
                         charge_id, ac_kwh)
         log.info(
             "Charge #%d ended — SOC %.1f→%.1f%% | +%.1f kWh | %.0f min | %s | peak %.1f kW",
-            charge_id, start_soc, data.soc, energy_added, duration_min,
+            charge_id, start_soc, end_soc, energy_added, duration_min,
             charge_type, max_power_kw,
         )
 
@@ -1668,8 +1713,15 @@ class Database:
                     (vehicle_id, charge["started_at"]),
                 ).fetchone()
 
-            end_soc      = float((last_pos["soc"] if last_pos else None) or charge["start_soc"] or 0)
-            ended_at_iso = (last_pos["recorded_at"] if last_pos else None) or next_start or _now_iso()
+            # Prefer the last reading taken WHILE CHARGING: an orphan is usually discovered long
+            # after the fact, and by then `last_pos` is whatever the car has been doing since
+            # (#208 — a morning of driving would close an overnight charge at 92 % and midday).
+            charging_end = self._charging_end_in_window(vehicle_id, charge["started_at"], next_start)
+            if charging_end:
+                end_soc, ended_at_iso = charging_end
+            else:
+                end_soc      = float((last_pos["soc"] if last_pos else None) or charge["start_soc"] or 0)
+                ended_at_iso = (last_pos["recorded_at"] if last_pos else None) or next_start or _now_iso()
             energy_added = max((end_soc - charge["start_soc"]) / 100.0 * self.get_battery_capacity(vehicle_id), 0)
 
             started_at   = datetime.fromisoformat(charge["started_at"])

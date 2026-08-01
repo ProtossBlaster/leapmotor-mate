@@ -37,45 +37,58 @@ LeapMotor Mate is free and open-source, developed in my spare time. If it's usef
 
 ## Features
 
-- **Demo mode** — explore the whole app on a realistic, self‑contained month of **sample data** (commutes, home + DC fast charging, costs, battery health, a weekend trip) with **no car or account needed**. On first launch just click **"Try the demo"** on the welcome screen — **one click, no command line**, so it works straight from the Home Assistant add‑on too. (Standalone, you can also run `docker run --rm -p 4000:4000 -e MATE_DEMO=1 ghcr.io/protossblaster/leapmotor-mate` and open <http://localhost:4000>.) A **DEMO** badge is shown throughout and *"Exit demo & set up my car"* takes you to the real setup. _All data is purely demonstrative — nothing is real._
-- **Overview** — live status, battery, range, **READY state**, location map, vehicle picture.
-- **At-a-glance status** — the Overview's first card now also shows a **Security** indicator (green **Active** when the car is locked and its alarm is armed) and, while the cable's still plugged in after a completed charge, a **Fully charged** badge.
-- **Trips** — automatic trip detection with route map, distance, energy, efficiency and regen. Each trip also shows its **total kWh consumed** and its **cost** (energy × the price per kWh of the last charge before the trip, in your currency). You can **delete a trip** (with confirmation) to drop bad data, or **merge trips** that a short, non-charging stop split apart — open a day in the calendar and the 🔗 button beside its date shows that day's joinable pairs, under the heading that says which day you are looking at; a gap slider widens what counts as one stop, you preview the combined route, and it's fully reversible (Unmerge any time).
-- **Official trip consumption (cloud) 🆕** — each trip's **energy, efficiency and cost** now use Leapmotor's **official cloud figure** (the real **driving / A·C / other** split) when the cloud has it, instead of only the battery‑% estimate — shown with a **breakdown** on the trip, and flowing into the Report and Statistics. While the cloud is still aggregating a fresh trip it shows the estimate marked **⏳ provisional**, then swaps to the official number on its own (the estimate is kept as a reversible backup). A **"Convert with official data"** button upgrades older trips on demand, and a since‑delivery **"Vehicle Cumulative Total"** card shows lifetime energy, mileage and average. If the car didn't upload a trip to the cloud (it happens, on any brand), that trip simply stays on the estimate — never an error. Always on, no setup. The official figure is measured from when the car is switched **on** (Ready), not from when driving starts; if you **never switch off between two trips**, the cloud counts them as one session and Mate asks you to **merge** them for the real combined consumption.
-- **Elevation profile & outside temperature per trip 🆕** — the Leapmotor cloud reports neither altitude nor outside temperature, so Mate looks each finished trip's GPS track up against [Open-Meteo](https://open-meteo.com) (free, no key, no account). The trip detail then gains an **altitude line on the SoC & speed chart** (a topographic cross-section under your telemetry), the trip's total **elevation gain and loss** (↑ climbed / ↓ descended), and the **outside temperature at departure and on arrival** — not an average, so a valley-to-pass climb shows the real drop. Together they explain a good part of a trip's consumption: a climb costs energy, cold costs range. It runs quietly in the background a few minutes after the trip (one lookup per trip); trips recorded before this existed get a **Calculate elevation** button. Only the trip's GPS points are sent, and you can switch it off in *Settings*.
-- **Charges** — charge sessions with AC/DC detection, energy added, power and a distribution chart. Each session shows its **effective €/kWh** (cost ÷ energy), and for messy public charges you can set a **✎ Manual** cost — the real total you actually paid — which overrides the table estimate and feeds the trip cost / weighted‑average cost.
-- **Battery card on the Charges page** — battery %, range and a battery bar with a **marker at your charge limit**, refreshing live while you watch a charge — no more flipping back to Overview. The **Unlock cable** button now lives here too (it's a charging action, after all).
-- **User notes 🆕** — jot a **free-text note** on any **charge** (station location, shade, reliability, parking, weather…) or **trip** (traffic, road type, any remark), and tag each trip's **drive mode** (Comfort / Normal / Sport) and **One-Pedal** (on/off). The cloud doesn't report drive mode or One-Pedal, so you set those by hand — they explain why two similar drives consumed differently. _(#107, idea by @riri19.)_
-- **V2L (vehicle-to-load) monitoring** — when the car powers an external device through the V2L adapter, the Overview shows a live **V2L block** (status, **net power** in watts with a 0–3500 W bar, and energy drawn this session — refreshing every 10 s), the Statistics page tracks the **total energy drawn** over all time, and three **MQTT entities** (`V2L Active`, `V2L Power`, `V2L Session Energy`) appear in Home Assistant. Power is reported **net of the car's own overhead**, so it matches what your device actually draws. Read-only (V2L is started on the car: Park + a connected device). *A first for any Leapmotor tool — found by on-car testing; accurate from ~42 W up (the car's own current resolution).*
-- **Battery health (SoH)** — a dedicated page estimating your **usable capacity over time**: each charge's *measured* energy (∫ voltage × current) divided by the SoC it added is a capacity estimate that actually tracks ageing (no efficiency guess, no wallbox needed). It plots the trend per **time or distance** (calendar vs cycle ageing), **excludes cold‑weather charges** (an LFP pack reads low when cold) and **weighs full charges most** (where the BMS recalibrates the SoC), for a stable State‑of‑Health figure.
-- **Charge prices** — flat 24h pricing or **time-of-use bands**: set prices per time window, per **day of the week** and per charge type, and each session is costed correctly (energy split across the bands it spans by the real power curve).
-- **One-touch vehicle preparation** — a dedicated **Prepare car** page mirroring the official app's *"prepare the vehicle with one tap"*: bundle **A/C** (cool / heat / ventilation / defrost / auto + temperature), **front-seat heating / ventilation**, **steering-wheel & mirror heating**, and run it **now** (immediate) or on a **schedule** (time + weekdays). Scheduled preparations are read from the car, **editable** and removable, and a **Cancel preparation (all off)** button turns everything back off. **New 🆕: Automatic on power-on** — the same preparation can now run **by itself the moment the car goes Ready**, with an optional **interior-temperature condition** (run only *above*, or only *below*, a threshold — e.g. pre-cool above 25 °C; leave it off and it runs on every start). It fires once per power-on, decided at the instant you switch on.
-- **Charge & climate scheduling** — a dedicated **Scheduling** page. Program a **charge window** (on/off, target SoC, start/end, days of the week) and the **climate pre-conditioning** schedule (quick **cool / heat / ventilation / defrost / auto** presets, time, days, target temperature). Both write to the car and stay in sync with the Leapmotor app; "Active" is a master switch (off = no schedule / charge anytime).
-- **CSV export** — export your trips and charges to **CSV** (plus per-trip **GPX**), from the Trips/Charges pages or *Settings → Export/Backup*.
-- **Wallbox (optional)** — pair a wallbox already in Home Assistant to see live charging power/status, set the max charging current, and compare **AC delivered by the wallbox** vs **DC into the battery** per session, with charging efficiency. A **"show all entities" advanced mode** lets you map *any* sensor — handy for foreign-language entity names or a generic energy-meter/relay.
-- **Saved wallbox profiles 🆕** — charge in more than one place? Save each wallbox (its Home Assistant connection, entity mapping **and** tariff) under a name and switch between them in one click from **Settings**; the active profile shows on the Costs page, and switching is blocked mid‑charge so a session is never split across two wallboxes. _(Community feature by @domevite, #84.)_
-- **Charging-station names on your charges (optional)** — every public charge is tagged automatically with the **name of the station** (📍 on the Charges list and on the Overview "last charge"), looked up from **OpenStreetMap** and the **Italian national registry (PUN)**. Home charges are never looked up, and charges already recorded get filled in too. Off by default *(Settings → Charging stations)*. *(Idea: @hubcasale.)*
-- **Find charging stations (Navigation)** — a **⚡ Find chargers** button maps the public stations around the car: pick the **max distance** and **results per page**, filter **by operator** (e.g. Electra, Ionity), and see **AC/DC, kW and live availability**, both as map pins and a list underneath — tap one to set it as your destination and send it to the car's navigator. Fuses **OpenStreetMap + the Italian PUN registry** (both keyless), plus **Open Charge Map** and **TomTom** when you add their free API keys — the more sources, the better the coverage.
-- **Auto-assign "Home" charges (optional)** — a *Settings → Wallbox* toggle: charges where **your wallbox measured the energy** are confirmed as **Home** automatically — no more tapping the badge after every overnight charge. The cost goes through the **same engine as a manual confirm** (flat prices *and* time-of-use bands, billed on the wallbox AC energy), the type stays editable, and DC/public/reconstructed charges are never touched. Off by default. *(Idea: @hubcasale.)*
-- **ABRP (optional)** — forward live telemetry to **A Better Route Planner** for live route planning (enable it with your ABRP token).
-- **MQTT → Home Assistant (optional)** — publish the car to Home Assistant via **MQTT Discovery** as native entities (sensors, binary sensors, GPS tracker) plus command buttons.
-- **EVCC (optional)** — publish EVCC-friendly MQTT topics so an **EVCC** `type: custom` vehicle reads SoC, plug/charging status, range and odometer (ready-to-paste config in `docs/EVCC.md`).
-- **Statistics** — driving/AC/other energy split and a 6‑week consumption trend (from the Leapmotor cloud).
-- **Monthly Report** — a per-month dashboard of driving, charging and **cost** in one place: distance, efficiency and energy; charging cost, sessions and average €/kWh; a **Home vs public** split; **deltas vs the previous month**; daily distance/cost charts; and a **map of every trip that month**. Move between months with ◀ ▶. The numbers match the Statistics and Charges pages exactly.
-- **Remote control** — lock, windows, trunk, panoramic roof, **climate** (cool / heat / ventilation / defrost, A/C on-off, target temperature), **heated & ventilated seats** (per-seat level), **heated steering wheel & mirrors**, find car, battery preheat, **unlock charge cable**.
-- **Navigation** — search an address and **send the destination straight to the car's built‑in navigation**. Shows the car's current address too. Address lookup is keyless by default (OpenStreetMap) with an optional API key (Geoapify/LocationIQ/TomTom) for better house‑number coverage.
-- **Independent** — polls the Leapmotor cloud directly (configurable 10–30 s). No dependency on the phone app or Home Assistant; polling the cloud does **not** wake or drain the car. It isn't real-time, so a **Refresh** button (in the sidebar, and the mobile header) pulls the car's latest state on demand.
-- **Multilingual UI** — English · Italiano · Français · Deutsch · **Polski**.
-- **Currency** — pick your display currency from 30 world currencies (€, $, £, CHF, kr, zł…); every cost reformats to it, with the right symbol placement and decimals.
-- **Units** — choose **Metric**, **Imperial UK** (miles & mph, but °C) or **Imperial US** (miles, °F, psi). Distances, speeds, temperatures and tyre pressures display in your chosen system. It's display-only — your stored data always stays metric, so you can switch any time with nothing lost.
-- **Diagnostics** — a *Settings → Diagnostics* card with a read-only system snapshot, the recent poller/web logs and the car's current raw signals (with Copy), plus a one-click **downloadable bundle** to attach to a GitHub issue. Personal info (VIN — including where it's embedded in the MQTT topic, credentials, e-mail and **exact GPS coordinates**) is **always masked** in the exported logs.
-- **OTA-update indicator** — the Overview card tells you when the car has a **vehicle software update** waiting, without opening the official app.
-- **Mate self-update badge** — a small badge next to the version number when a **newer Mate release** is on GitHub (checked in the background every 6 h) — handy for standalone-Docker installs.
-- **Editable battery capacity** — pre-filled per model (usable/net kWh); edit it if yours differs, or click **“use measured”** to adopt the value Mate worked out from your own charges. Changing it never rewrites past charges.
-- **Advanced settings** — a collapsible card to tune the edge cases: missed-charge detection threshold, vampire-drain noise floor, the AC/DC power threshold (for 22 kW AC wallboxes), and the **battery-health cold cutoff**. Sane defaults, one-tap reset.
-- **Recover missed charges** — scan your history for charges that happened while the car was asleep before automatic detection existed; previews what it finds before adding anything.
-- **Single Home Assistant lock toggle** — an MQTT *lock* entity for dashboards **plus a “Door Lock Toggle” switch** for launcher widgets that can't toggle locks (e.g. Samsung's): one tap locks, the next unlocks — perfect as a phone front-screen button. The classic buttons stay too.
-- **Delete account / Factory reset** — a guarded action in *Settings → Vehicle* that wipes **everything** (account, trips, charges and all settings) and reopens the setup wizard as a brand‑new install — for handing the install on, or starting clean. Type‑to‑confirm; the app certificate is kept, so re‑onboarding only needs your login.
+**At a glance**
+- **Overview** — live status, battery, range, **READY state**, location map and the car's own picture.
+- **Security and charge state** — a **Security** indicator (green *Active* when the car is locked and the alarm is armed) and, while the cable is still in after a completed charge, a **Fully charged** badge.
+- **When the data is old, it says so** — the cloud answers even when the car cannot reach it, by re-serving the last frame it holds. Mate shows that frame's real age instead of passing it off as current.
+- **Vehicle software updates** — the Overview tells you when the car has an **OTA update** waiting, without opening the official app.
+
+**On the road**
+- **Trips** — automatic detection with route map, distance, energy, efficiency and regen; every trip carries its own kWh and its cost.
+- **Consumption measured by the car** — energy, efficiency and cost come from Leapmotor's own figure (the real **driving / A·C / other** split) whenever the cloud has it, with the battery-% estimate kept as a marked, reversible fallback and a **Vehicle Cumulative Total** card for the lifetime numbers.
+- **Elevation and outside temperature** — an altitude line under the SoC & speed chart, the metres climbed and descended, and the temperature at departure and on arrival ([Open-Meteo](https://open-meteo.com) — no key, no account).
+- **Calendar, search and merging** — browse trips by month, open a day, or search a date range. Trips that a short stop split apart can be **merged** from that day's list with a gap slider and a route preview, and unmerged whenever you like.
+- **Your own notes** — free text on any trip or charge, plus the **drive mode** (Comfort / Normal / Sport) and **One-Pedal** tags the cloud never reports.
+
+**Charging**
+- **Charges** — AC/DC detection, energy added, the power curve and the effective €/kWh; for a messy public charge a **manual cost** overrides the estimate everywhere it is used.
+- **Battery card on the Charges page** — battery %, range and a bar with a **marker at your charge limit**, live while a charge runs. The **Unlock cable** button lives here too.
+- **Prices** — flat, or **time-of-use bands** per day of the week and per charge type, with each session split across the bands it really spans, by the real power curve.
+- **Battery health (SoH)** — a page estimating your **usable capacity over time**: each charge's *measured* energy (∫ voltage × current) divided by the SoC it added. Plotted against calendar or distance ageing, cold charges excluded, full charges weighted most.
+- **Charging-station names** — public charges are tagged automatically with the station's name, from OpenStreetMap and the Italian PUN registry. Home charges are never looked up. *(Optional, off by default.)*
+- **Find charging stations** — a **⚡ Find chargers** button maps the public stations around the car with **AC/DC, kW, operator and live availability**; tap one to send it to the car's navigator.
+- **Wallbox** — pair one already in Home Assistant for live power, max current and **AC delivered vs DC into the battery** per session. Save a **profile per location** (connection, entity mapping and tariff) and switch in one click. *(Optional.)*
+- **Auto-assign "Home"** — charges your own wallbox measured are confirmed as **Home** by themselves, priced through the same engine as a manual confirm. *(Optional, off by default.)*
+- **Recover missed charges** — scan your history for charges that happened while the car was asleep, before automatic detection existed. Previews what it finds before adding anything.
+
+**Control**
+- **Remote control** — locks, windows, trunk, panoramic roof, **climate** (cool / heat / ventilation / defrost, target temperature), **heated and ventilated seats** per seat, heated steering wheel and mirrors, find car, battery preheat, **unlock the charge cable**.
+- **Navigation** — search an address and send the destination **straight to the car's own navigator**. Keyless by default (OpenStreetMap), with an optional API key for better house-number coverage.
+- **V2L (vehicle-to-load)** — while the car powers an external device through the V2L adapter, Mate shows live **net power** and the **energy drawn this session**, tracks the all-time total, and publishes three Home Assistant entities. Read-only. *A first for any Leapmotor tool — found by on-car testing.*
+
+**At home**
+- **Home Assistant via MQTT** — MQTT Discovery publishes the car as **native entities** — sensors, binary sensors, GPS tracker — plus command buttons. *(Optional.)*
+- **One lock toggle for dashboards** — an MQTT *lock* entity plus a **Door Lock Toggle** switch for launcher widgets that cannot toggle locks: one tap locks, the next unlocks.
+- **Scheduling** — program the **charge window** (target SoC, start/end, days) and the **climate pre-conditioning**, written to the car and in step with the official app.
+- **Prepare car** — climate, front-seat heating and ventilation, steering wheel and mirrors in **one tap**: now, on a **schedule**, or **by itself the moment the car goes Ready**, optionally only above or below a cabin temperature.
+- **ABRP** — forward live telemetry to **A Better Route Planner** for live route planning. *(Optional.)*
+- **EVCC** — publish EVCC-friendly MQTT topics so an **EVCC** `type: custom` vehicle reads SoC, plug and charging status, range and odometer. Ready-to-paste config in [`docs/EVCC.md`](docs/EVCC.md). *(Optional.)*
+
+**Making sense of it**
+- **Monthly report** — distance, efficiency and cost in one page, with the **home vs public** split, the deltas against last month, daily charts and a **map of every trip that month**.
+- **Statistics** — the driving / A·C / other energy split and the consumption trend, from the Leapmotor cloud.
+- **Export** — **CSV** for trips and charges, **GPX** per trip, and a full **database backup** you can restore.
+
+**Setup and the rest**
+- **Demo mode** — the whole app on a realistic month of sample data — commutes, home and DC charging, costs, battery health — with **no car and no account**. One click on the welcome screen. *Nothing in it is real.*
+- **Seven languages** — English · Italiano · Français · Deutsch · Polski · Nederlands · Português.
+- **Currency and units** — 30 currencies, and **metric / imperial UK / imperial US**. Display only: what is stored stays metric, so you can switch back with nothing lost.
+- **Editable battery capacity** — pre-filled per model, editable if yours differs, or adopt the value Mate worked out **from your own charges**. Changing it never rewrites past charges.
+- **Advanced settings** — the edge cases in one collapsible card: missed-charge threshold, vampire-drain noise floor, the AC/DC power threshold for 22 kW wallboxes, the battery-health cold cutoff. Sane defaults, one-tap reset.
+- **Diagnostics** — a read-only system snapshot, the recent logs and the car's raw signals, plus a **downloadable bundle** to attach to an issue. VIN, credentials and **exact GPS** are always masked.
+- **Update badge** — a badge next to the version number when a newer Mate release is on GitHub, checked every 6 h. Handy for standalone Docker.
+- **Delete account / factory reset** — a guarded action that wipes **everything** and reopens the setup wizard as a brand-new install. Type-to-confirm.
+- **Independent** — talks to the Leapmotor cloud directly, at the cadence you choose: **10 s to 10 minutes** while parked, **10–60 s** while driving. It needs neither the phone app nor Home Assistant, and polling does **not** wake or drain the car. It isn't real-time either, so a **Refresh** button (sidebar, and the mobile header) pulls the car's latest state on demand.
 
 ## How it works
 
@@ -153,6 +166,18 @@ Then open **http://localhost:4000** and follow the setup wizard.
 The database is stored in `./data/` (mounted at `/data` in the container).
 
 ---
+
+### Option C — MateDesktop (no Home Assistant, no Docker)
+
+Neither of the above? **[MateDesktop](https://github.com/ProtossBlaster/MateDesktop)** is Mate as an
+ordinary desktop application: download it, open it, and follow the same setup wizard. Same Mate,
+same database, nothing to install around it.
+
+- **macOS** (Apple Silicon) — `LeapMotor-Mate-<version>-arm64.dmg`
+- **Windows** — `LeapMotor-Mate-Setup-<version>-x64.exe.zip` or the `.msi.zip`
+
+> Windows ships **inside a .zip**: unpack it first, then run the installer. A bare `.exe` off the
+> internet has no SmartScreen reputation yet and gets stopped on the way in.
 
 ## Setup wizard
 
@@ -279,42 +304,58 @@ LeapMotor Mate è gratuito e open-source, sviluppato nel tempo libero. Se ti è 
 
 ## Funzionalità
 
-- **Modalità demo** — esplora tutta l'app su un mese realistico e autonomo di **dati di esempio** (pendolarismo, ricarica casa + DC fast, costi, salute batteria, un weekend al mare) **senza auto né account**. Al primo avvio basta cliccare **"Prova la demo"** nella schermata di benvenuto — **un clic, niente riga di comando**, quindi funziona direttamente anche dall'add‑on Home Assistant. (Standalone puoi anche usare `docker run --rm -p 4000:4000 -e MATE_DEMO=1 ghcr.io/protossblaster/leapmotor-mate` e aprire <http://localhost:4000>.) Un badge **DEMO** è sempre visibile e *"Esci dalla demo e configura la mia auto"* ti porta al setup reale. _I dati sono puramente dimostrativi — niente è reale._
-- **Panoramica** — stato live, batteria, autonomia, **stato READY**, mappa posizione, immagine del veicolo.
-- **Stato a colpo d'occhio** — la prima scheda della Panoramica mostra ora anche un indicatore **Sicurezza** (verde **Attiva** quando l'auto è chiusa e l'allarme è inserito) e, finché il cavo è ancora collegato dopo una ricarica completata, un badge **Carica completa**.
-- **Viaggi** — rilevamento automatico con mappa del percorso, distanza, energia, efficienza e regen. Ogni viaggio mostra anche i **kWh totali consumati** e il **costo** (energia × prezzo per kWh dell'ultima ricarica prima del viaggio, nella tua valuta). Puoi **eliminare un viaggio** (con conferma) per togliere dati sbagliati, o **unire viaggi** separati da una sosta breve senza ricarica — apri un giorno nel calendario e il pulsante 🔗 accanto alla data mostra le coppie unibili di quel giorno, sotto l'intestazione che dice che giorno stai guardando; uno slider allarga quanto può durare la sosta, vedi l'anteprima del percorso combinato, ed è totalmente reversibile (Separa quando vuoi).
-- **Consumi ufficiali del viaggio (cloud) 🆕** — energia, efficienza e costo di ogni viaggio ora usano il **dato ufficiale del cloud** Leapmotor (la vera ripartizione **guida / A·C / altro**) quando il cloud ce l'ha, invece della sola stima dal % batteria — con la **ripartizione** sul viaggio e i valori che confluiscono in Report e Statistiche. Mentre il cloud sta ancora elaborando un viaggio appena fatto mostra la stima marcata **⏳ provvisorio**, poi passa da solo al numero ufficiale (la stima resta come backup reversibile). Un bottone **"Converti con dati ufficiali"** aggiorna i viaggi più vecchi su richiesta, e una card **"Cumulativo Totale del Veicolo"** mostra energia, km e media da consegna. Se l'auto non ha caricato un viaggio sul cloud (capita, su qualsiasi marca), quel viaggio resta semplicemente sulla stima — mai un errore. Sempre attivo, nessuna configurazione.
-- **Profilo altimetrico e temperatura esterna per viaggio 🆕** — il cloud Leapmotor non espone né l'altitudine né la temperatura esterna, così Mate confronta la traccia GPS di ogni viaggio concluso con [Open-Meteo](https://open-meteo.com) (gratuito, senza chiave né account). Nel dettaglio del viaggio compaiono la **linea della quota sul grafico SoC e velocità** (una sezione topografica sotto la tua telemetria), il **dislivello totale** (↑ salita / ↓ discesa) e la **temperatura esterna alla partenza e all'arrivo** — non una media, così una salita da fondovalle al passo mostra il calo reale. Insieme spiegano buona parte dei consumi di un viaggio: una salita costa energia, il freddo costa autonomia. Gira in background pochi minuti dopo il viaggio (una richiesta per viaggio); i viaggi registrati prima hanno un pulsante **Calcola dislivello**. Vengono inviati solo i punti GPS del viaggio, e puoi disattivarlo in *Impostazioni*.
-- **Ricariche** — sessioni con rilevamento AC/DC, energia aggiunta, potenza e grafico di distribuzione. Ogni sessione mostra il **€/kWh effettivo** (costo ÷ energia) e per le ricariche pubbliche "ingestibili" puoi impostare un costo **✎ Manuale** — il totale reale pagato — che scavalca la stima da tabella ed entra nel costo viaggio / media‑ponderata.
-- **Scheda Batteria nella pagina Ricariche** — % batteria, autonomia e barra con un **marker sul tuo limite di carica**, aggiornate live mentre segui una ricarica — senza più tornare in Panoramica. Anche il pulsante **Sblocca cavo** ora vive qui (in fondo è un'azione di ricarica).
-- **Prezzi di ricarica** — prezzo fisso 24h o **fasce orarie**: prezzi per fascia, per **giorno della settimana** e per tipo di ricarica, e ogni sessione viene calcolata correttamente (energia ripartita tra le fasce attraversate dalla curva di potenza reale).
-- **Preparazione veicolo con un tocco** — una pagina **Preparazione veicolo** dedicata che rispecchia la *"preparazione del veicolo con un solo tocco"* dell'app ufficiale: combina **A/C** (raffreddamento / riscaldamento / ventilazione / sbrinamento / auto + temperatura), **riscaldamento / ventilazione dei sedili anteriori**, **riscaldamento volante e specchietti**, ed eseguila **subito** (immediata) o su **programmazione** (orario + giorni). Le programmazioni si leggono dall'auto, sono **modificabili** e rimovibili, e un pulsante **Annulla preparazione (spegni tutto)** riporta tutto in off.
-- **Schedulazione ricarica e clima** — una pagina **Schedulazione** dedicata. Programma una **fascia di ricarica** (on/off, SoC obiettivo, inizio/fine, giorni della settimana) e la **pre-climatizzazione** (preset rapidi **raffreddamento / riscaldamento / ventilazione / sbrinamento / auto**, orario, giorni, temperatura). Entrambe scrivono sull'auto e restano allineate con l'app Leapmotor; "Attivo" è l'interruttore principale (off = nessuna schedulazione / ricarica sempre).
-- **Esportazione CSV** — esporta viaggi e ricariche in **CSV** (più **GPX** per viaggio), dalle pagine Viaggi/Ricariche o da *Impostazioni → Esporta/Backup*.
-- **Wallbox (opzionale)** — abbina una wallbox già presente in Home Assistant per vedere potenza/stato di carica live, impostare la corrente max e confrontare l'**AC erogato dalla wallbox** con il **DC entrato in batteria** per sessione, col rendimento di carica. Una **modalità avanzata "mostra tutte le entità"** permette di mappare *qualsiasi* sensore — utile per nomi in altre lingue o un contatore/relè generico.
-- **Profili wallbox salvati 🆕** — carichi in più posti? Salva ogni wallbox (connessione Home Assistant, mappatura entità **e** tariffa) con un nome e passa dall'una all'altra con un clic dalle **Impostazioni**; quella attiva è mostrata nella pagina Costi e il cambio è bloccato durante una ricarica, così una sessione non viene mai divisa tra due wallbox. _(Feature della community di @domevite, #84.)_
-- **Nome della colonnina sulle ricariche (opzionale)** — ogni ricarica pubblica viene etichettata automaticamente col **nome della colonnina** (📍 nella lista Ricariche e sull'"ultima ricarica" della Panoramica), cercato su **OpenStreetMap** e sul **registro nazionale italiano (PUN)**. Le ricariche di casa non vengono mai interrogate, e vengono completate anche quelle già registrate. Spento di default *(Impostazioni → Colonnine di ricarica)*. *(Idea: @hubcasale.)*
-- **Trova colonnine (Navigazione)** — un pulsante **⚡ Trova colonnine** mappa le colonnine pubbliche attorno all'auto: scegli **distanza massima** e **risultati per pagina**, filtra **per operatore** (es. Electra, Ionity) e vedi **AC/DC, kW e disponibilità live**, sia come pin sulla mappa sia in una lista sotto — tocca una colonnina per impostarla come destinazione e inviarla al navigatore dell'auto. Fonde **OpenStreetMap + il registro nazionale PUN** (entrambi senza chiave), più **Open Charge Map** e **TomTom** se aggiungi le loro chiavi API gratuite — più fonti, più copertura.
-- **Assegnazione automatica "Casa" (opzionale)** — un toggle in *Impostazioni → Wallbox*: le ricariche in cui **il tuo wallbox ha misurato l'energia** vengono confermate come **Casa** automaticamente — basta toccare il badge dopo ogni ricarica notturna. Il costo passa dallo **stesso motore della conferma manuale** (prezzi flat *e* fasce orarie, fatturato sull'energia AC del wallbox), il tipo resta modificabile, e le ricariche DC/pubbliche/ricostruite non vengono mai toccate. Spento di default. *(Idea: @hubcasale.)*
-- **ABRP (opzionale)** — invia la telemetria live ad **A Better Route Planner** per la pianificazione dei percorsi (attivala col tuo token ABRP).
-- **MQTT → Home Assistant (opzionale)** — pubblica l'auto a Home Assistant via **MQTT Discovery** come entità native (sensori, binary sensor, tracker GPS) più pulsanti comando.
-- **EVCC (opzionale)** — pubblica topic MQTT compatibili con **EVCC** così un veicolo `type: custom` legge SoC, stato spina/ricarica, autonomia e odometro (configurazione pronta in `docs/EVCC.md`).
-- **Statistiche** — ripartizione energia guida/clima/altro e trend consumo a 6 settimane (dal cloud Leapmotor).
-- **Report mensile** — un cruscotto per-mese di guida, ricariche e **costi** in un colpo solo: distanza, efficienza ed energia; costo ricariche, sessioni e €/kWh medio; split **Casa vs pubblico**; **variazioni rispetto al mese precedente**; grafici giornalieri distanza/costo; e una **mappa di tutti i viaggi del mese**. Naviga i mesi con ◀ ▶. I numeri combaciano esattamente con le pagine Statistiche e Ricariche.
-- **Controllo remoto** — blocco, finestrini, bagagliaio, tetto panoramico, **clima** (raffredda / riscalda / ventilazione / sbrinamento, A/C on-off, temperatura), **sedili riscaldati e ventilati** (livello per sedile), **volante e specchietti riscaldati**, trova auto, preriscaldo batteria, **sblocco cavo di ricarica**.
-- **Navigazione** — cerca un indirizzo e **invia la destinazione direttamente al navigatore di bordo dell'auto**. Mostra anche l'indirizzo attuale dell'auto. La ricerca indirizzi funziona senza chiave (OpenStreetMap) con una chiave API opzionale (Geoapify/LocationIQ/TomTom) per una copertura migliore dei civici.
-- **Indipendente** — interroga direttamente il cloud Leapmotor (configurabile 10–30 s). Nessuna dipendenza dall'app o da Home Assistant; interrogare il cloud **non** sveglia né scarica l'auto. Non è in tempo reale, quindi un pulsante **Aggiorna** (barra laterale, e nell'header su mobile) recupera lo stato attuale dell'auto su richiesta.
-- **UI multilingua** — Italiano · English · Français · Deutsch · **Polski**.
-- **Valuta** — scegli la valuta di visualizzazione tra 30 valute mondiali (€, $, £, CHF, kr, zł…); ogni costo si riformatta con simbolo e decimali corretti.
-- **Unità di misura** — scegli **Metrico**, **Imperiale UK** (miglia e mph, ma °C) o **Imperiale US** (miglia, °F, psi). Distanze, velocità, temperature e pressioni gomme si mostrano nel sistema scelto. È **solo visualizzazione**: i dati restano sempre in metrico, quindi puoi cambiare quando vuoi senza perdere nulla.
-- **Diagnostica** — una scheda in *Impostazioni → Diagnostica* con uno snapshot di sistema in sola lettura, i log recenti poller/web e i segnali grezzi attuali dell'auto (con Copia), più un **bundle scaricabile** con un clic da allegare a una issue su GitHub. Le info personali (VIN — anche dove è incorporato nel topic MQTT, credenziali, e-mail e **coordinate GPS esatte**) sono **sempre mascherate** nei log esportati.
-- **Indicatore aggiornamenti OTA** — la scheda Panoramica ti dice quando l'auto ha un **aggiornamento software del veicolo** in attesa, senza aprire l'app ufficiale.
-- **Badge auto-aggiornamento di Mate** — un piccolo badge accanto al numero di versione quando su GitHub c'è una **release di Mate più recente** (controllo in background ogni 6 h) — comodo per le installazioni Docker standalone.
-- **Capacità batteria modificabile** — precompilata per modello (kWh netti/utilizzabili); modificala se la tua è diversa, o clicca **“usa misurata”** per adottare il valore che Mate ha calcolato dalle tue ricariche. Cambiarla non riscrive mai le ricariche passate.
-- **Impostazioni avanzate** — una scheda richiudibile per regolare i casi particolari: soglia rilevamento ricariche perse, soglia rumore consumo-da-fermo, soglia potenza AC/DC (per wallbox AC da 22 kW) e la **soglia freddo per la salute batteria**. Valori predefiniti sensati, reset con un tocco.
-- **Recupero ricariche perse** — cerca nella cronologia le ricariche avvenute mentre l'auto dormiva prima che esistesse il rilevamento automatico; mostra cosa trova prima di aggiungere qualcosa.
-- **Toggle blocco singolo per Home Assistant** — un'entità MQTT *lock* per i dashboard **più uno switch “Door Lock Toggle”** per i widget launcher che non sanno toggleare i lock (es. Samsung): un tocco blocca, il successivo sblocca — perfetto come bottone singolo sulla home del telefono. I pulsanti classici restano.
-- **Cancella account / Factory reset** — un'azione protetta in *Impostazioni → Veicolo* che azzera **tutto** (account, viaggi, ricariche e ogni impostazione) e riapre il wizard di setup come una nuova installazione — per passare l'installazione a qualcun altro o ripartire da zero. Conferma da digitare; il certificato dell'app viene mantenuto, quindi il re-onboarding chiede solo il login.
+**A colpo d'occhio**
+- **Panoramica** — stato in tempo reale, batteria, autonomia, **stato READY**, mappa della posizione e l'immagine della tua auto.
+- **Sicurezza e stato di carica** — un indicatore **Sicurezza** (verde *Attiva* quando l'auto è chiusa e l'allarme inserito) e, finché il cavo è ancora inserito a ricarica finita, un distintivo **Carica completa**.
+- **Quando il dato è vecchio, lo dice** — il cloud risponde anche quando l'auto non lo raggiunge, ripetendo l'ultimo fotogramma che ha. Mate ne mostra l'età vera invece di spacciarlo per attuale.
+- **Aggiornamenti software dell'auto** — la Panoramica ti dice quando l'auto ha un **aggiornamento OTA** in attesa, senza aprire l'app ufficiale.
+
+**In strada**
+- **Viaggi** — rilevamento automatico con mappa del percorso, distanza, energia, efficienza e recupero; ogni viaggio porta i suoi kWh e il suo costo.
+- **Consumo misurato dall'auto** — energia, efficienza e costo arrivano dal dato ufficiale Leapmotor (la ripartizione vera fra **guida / clima / altro**) quando il cloud ce l'ha, con la stima dal SoC come ripiego segnalato e reversibile, e una scheda **Totale cumulativo del veicolo** per i numeri di sempre.
+- **Altimetria e temperatura esterna** — il profilo dell'altitudine sotto il grafico SoC e velocità, i metri saliti e scesi, e la temperatura alla partenza e all'arrivo ([Open-Meteo](https://open-meteo.com) — senza chiave e senza account).
+- **Calendario, ricerca e unione** — sfogli i viaggi per mese, apri un giorno, o cerchi un intervallo di date. I viaggi che una sosta breve ha spezzato si **uniscono** dall'elenco di quel giorno, con un cursore per la pausa e l'anteprima del percorso, e si separano quando vuoi.
+- **Le tue annotazioni** — testo libero su ogni viaggio o ricarica, più la **modalità di guida** (Comfort / Normale / Sport) e il **One-Pedal**, che il cloud non dice mai.
+
+**Ricariche**
+- **Ricariche** — riconoscimento AC/DC, energia entrata, curva di potenza e €/kWh effettivo; per una colonnina pubblica confusa un **costo manuale** sostituisce la stima ovunque venga usata.
+- **Scheda Batteria nella pagina Ricariche** — percentuale, autonomia e una barra con il **segno sul tuo limite di carica**, aggiornata mentre la ricarica va. Qui c'è anche il pulsante **Sblocca cavo**.
+- **Prezzi** — tariffa piatta, oppure **fasce orarie** per giorno della settimana e per tipo di ricarica, con ogni sessione divisa fra le fasce che attraversa davvero, seguendo la curva di potenza reale.
+- **Salute della batteria (SoH)** — una pagina che stima la **capacità utilizzabile nel tempo**: l'energia *misurata* di ogni ricarica (∫ tensione × corrente) divisa per il SoC che ha aggiunto. Sull'asse del tempo o dei chilometri, escluse le ricariche al freddo, con più peso a quelle piene.
+- **Nome della colonnina** — le ricariche pubbliche prendono da sole il nome della stazione, da OpenStreetMap e dal registro nazionale PUN. Le ricariche di casa non vengono mai cercate. *(Opzionale, spento di default.)*
+- **Trova colonnine** — un pulsante **⚡ Trova colonnine** mappa le stazioni pubbliche attorno all'auto con **AC/DC, kW, gestore e disponibilità in tempo reale**; ne tocchi una e la mandi al navigatore dell'auto.
+- **Wallbox** — colleghi quella che hai già in Home Assistant per potenza, corrente massima e confronto fra **AC erogata e DC entrata in batteria** per sessione. Salvi un **profilo per ogni posto** (connessione, mappatura entità e tariffa) e cambi con un clic. *(Opzionale.)*
+- **Assegnazione automatica «Casa»** — le ricariche che ha misurato la tua wallbox si confermano da sole come **Casa**, prezzate con lo stesso motore della conferma manuale. *(Opzionale, spento di default.)*
+- **Recupero ricariche perse** — cerca nello storico le ricariche avvenute mentre l'auto dormiva, prima che esistesse il rilevamento automatico. Ti mostra cosa ha trovato prima di aggiungere qualcosa.
+
+**Controllo**
+- **Comandi a distanza** — chiusure, finestrini, bagagliaio, tetto panoramico, **clima** (raffresca / riscalda / ventila / sbrina, temperatura obiettivo), **sedili riscaldati e ventilati** uno per uno, volante e specchietti riscaldati, trova l'auto, preriscaldo batteria, **sblocco del cavo**.
+- **Navigazione** — cerchi un indirizzo e mandi la destinazione **direttamente al navigatore dell'auto**. Senza chiave di default (OpenStreetMap), con una chiave API opzionale per i numeri civici.
+- **V2L (vehicle-to-load)** — mentre l'auto alimenta un dispositivo esterno con l'adattatore V2L, Mate mostra la **potenza netta** dal vivo e l'**energia della sessione**, tiene il totale di sempre e pubblica tre entità in Home Assistant. Sola lettura. *Primo strumento Leapmotor a farlo — scoperto provando sull'auto.*
+
+**A casa**
+- **Home Assistant via MQTT** — MQTT Discovery pubblica l'auto come **entità native** — sensori, sensori binari, tracciatore GPS — più i pulsanti di comando. *(Opzionale.)*
+- **Un solo interruttore di chiusura per le dashboard** — un'entità *lock* MQTT più un interruttore **Door Lock Toggle** per i widget che non sanno gestire i lock: un tocco chiude, quello dopo apre.
+- **Programmazione** — imposti la **finestra di ricarica** (SoC obiettivo, inizio e fine, giorni) e il **preclima**, scritti sull'auto e allineati con l'app ufficiale.
+- **Prepara l'auto** — clima, riscaldamento e ventilazione dei sedili anteriori, volante e specchietti in **un tocco**: adesso, a **orario**, o **da sola nell'istante in cui l'auto si accende**, volendo solo sopra o sotto una certa temperatura in abitacolo.
+- **ABRP** — inoltra la telemetria dal vivo a **A Better Route Planner** per la pianificazione del percorso. *(Opzionale.)*
+- **EVCC** — pubblica i topic MQTT che **EVCC** si aspetta, così un veicolo `type: custom` legge SoC, stato del cavo e della ricarica, autonomia e contachilometri. Configurazione pronta da copiare in [`docs/EVCC.md`](docs/EVCC.md). *(Opzionale.)*
+
+**Per capirci qualcosa**
+- **Report mensile** — distanza, efficienza e costo in una pagina sola, con la divisione **casa/pubblico**, le differenze rispetto al mese prima, i grafici giornalieri e la **mappa di tutti i viaggi del mese**.
+- **Statistiche** — la ripartizione dell'energia fra guida, clima e altro, e l'andamento dei consumi, dal cloud Leapmotor.
+- **Esportazione** — **CSV** di viaggi e ricariche, **GPX** per viaggio, e un **backup completo del database** che puoi ripristinare.
+
+**Configurazione e tutto il resto**
+- **Modalità demo** — l'app intera su un mese realistico di dati di esempio — pendolarismo, ricariche di casa e in DC, costi, salute della batteria — **senza auto e senza account**. Un clic sulla schermata di benvenuto. *Niente di quello che vedi è reale.*
+- **Sette lingue** — Italiano · English · Français · Deutsch · Polski · Nederlands · Português.
+- **Valuta e unità** — 30 valute, e **metrico / imperiale UK / imperiale US**. Solo visualizzazione: quello che è salvato resta metrico, quindi torni indietro senza perdere niente.
+- **Capacità batteria modificabile** — precompilata per modello, modificabile se la tua è diversa, oppure prendi il valore che Mate ha ricavato **dalle tue ricariche**. Cambiarla non riscrive mai le ricariche passate.
+- **Impostazioni avanzate** — i casi particolari in una scheda richiudibile: soglia delle ricariche perse, rumore del consumo da fermo, soglia di potenza AC/DC per le wallbox da 22 kW, taglio a freddo della salute batteria. Valori sensati, ripristino in un tocco.
+- **Diagnostica** — una fotografia del sistema in sola lettura, i log recenti e i segnali grezzi dell'auto, più un **pacchetto scaricabile** da allegare a una segnalazione. VIN, credenziali e **coordinate GPS esatte** sono sempre mascherati.
+- **Distintivo di aggiornamento** — un distintivo accanto al numero di versione quando su GitHub c'è una release più nuova, controllato ogni 6 ore. Comodo per chi usa Docker da solo.
+- **Cancella account / ripristino di fabbrica** — un'azione protetta che cancella **tutto** e riapre il wizard come su un'installazione nuova. Conferma da digitare.
+- **Indipendente** — parla direttamente col cloud Leapmotor, alla cadenza che scegli tu: **da 10 secondi a 10 minuti** da fermo, **10–60 s** in marcia. Non gli serve né l'app del telefono né Home Assistant, e interrogare il cloud **non** sveglia né scarica l'auto. E non è in tempo reale, quindi un pulsante **Aggiorna** (barra laterale, e header su mobile) recupera lo stato attuale su richiesta.
 
 ## Come funziona
 
@@ -386,6 +427,18 @@ docker compose up -d
 Poi apri **http://localhost:4000** e segui il wizard.
 
 Il database è salvato in `./data/` (montato su `/data` nel container).
+
+### Opzione C — MateDesktop (senza Home Assistant e senza Docker)
+
+Non usi né l'uno né l'altro? **[MateDesktop](https://github.com/ProtossBlaster/MateDesktop)** è Mate
+come normale applicazione da scrivania: scarichi, apri, e trovi lo stesso wizard di configurazione.
+Stesso Mate, stesso database, niente da installare attorno.
+
+- **macOS** (Apple Silicon) — `LeapMotor-Mate-<versione>-arm64.dmg`
+- **Windows** — `LeapMotor-Mate-Setup-<versione>-x64.exe.zip` oppure il `.msi.zip`
+
+> Su Windows si scarica **dentro uno .zip**: prima lo scompatti, poi lanci l'installatore. Un `.exe`
+> preso da internet non ha ancora una reputazione per SmartScreen e viene fermato all'ingresso.
 
 ## Wizard di setup
 

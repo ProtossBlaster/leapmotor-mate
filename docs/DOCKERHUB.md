@@ -16,7 +16,7 @@ Supported models: **B05 · B10 · C10 · T03** — full‑electric (BEV) only, E
 - 🎛️ **Remote control** — climate, locks, windows, seat heating, charge limit, schedules, one-touch "prepare car"
 - 🏠 **Home Assistant / MQTT** — full MQTT Discovery: sensors, switches and controls appear automatically
 - 🗺️ **Live map**, statistics, vampire-drain insight, ABRP and EVCC integration
-- 🌍 English · Italiano · Français · Deutsch — metric & imperial units
+- 🌍 English · Italiano · Français · Deutsch · Polski · Nederlands · Português — metric & imperial units
 - 🔒 **Self-hosted & private** — your data stays in a local SQLite database, no third-party cloud
 
 ## Quick start
@@ -49,6 +49,11 @@ The same image is also published to GHCR as `ghcr.io/protossblaster/leapmotor-ma
 
 Running Home Assistant OS/Supervised? Install Mate as an add-on instead (one-click updates,
 ingress UI): see the [add-on repository](https://github.com/ProtossBlaster/leapmotor-mate-addon).
+
+## Desktop app
+
+Neither Home Assistant nor Docker? **[MateDesktop](https://github.com/ProtossBlaster/MateDesktop)**
+packages Mate as an ordinary **macOS / Windows** application — download, open, same setup wizard.
 
 ## Docs & source
 

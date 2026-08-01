@@ -3,6 +3,7 @@ Recorder: reacts to state machine events to persist trips, charges, and position
 """
 import logging
 import threading
+from datetime import datetime, timezone
 from typing import Optional
 
 from db import Database, _now_iso
@@ -10,6 +11,13 @@ from state_machine import State, StateMachine, StateEvent, _PARKED_STATES
 from client import VehicleData
 
 log = logging.getLogger(__name__)
+
+
+def _frame_iso(data: VehicleData) -> Optional[str]:
+    """The CAR's own clock on this frame, as ISO-UTC. None when the frame carries no timestamp."""
+    if not getattr(data, "timestamp_ms", None):
+        return None
+    return datetime.fromtimestamp(data.timestamp_ms / 1000, timezone.utc).isoformat()
 
 
 class Recorder:
@@ -264,6 +272,40 @@ class Recorder:
         for e in events:
             self._handle_event(e, None)
 
+    def _close_charge_driven_away(self, data: VehicleData) -> None:
+        """Close a charge whose car turned up on the road — on the right reading, not this one.
+
+        The live frame is no longer the end of the charge. @mikeeeeekoo's car finished at 100 %
+        and read 98.1 % by the time Mate saw it: ten kilometres of road, not two points that never
+        went in. So the end comes from the last reading taken WHILE CHARGING, dated by the car's
+        own clock.
+
+        ONE EXCEPTION, and it is a measurement rather than a guess: a car whose odometer has not
+        moved cannot have spent anything, so if it reappears HIGHER than that last reading it kept
+        charging while we were blind — Silvio's "lost at 80 %, seen at 95 %". When it HAS moved,
+        the peak is unknowable (100 % then driven, or stopped at 97 %, look identical from here)
+        and we keep the measured value rather than invent one.
+        """
+        end = self._db.charge_end_from_last_charging(self._active_charge_id)
+        if end is not None:
+            last_soc, _ended_at = end
+            moved = (self._last_odometer or 0) > 0 and (data.odometer_km or 0) > 0 \
+                and data.odometer_km > self._last_odometer
+            if not moved and data.soc > last_soc:
+                end = (data.soc, _frame_iso(data) or _now_iso())
+        if self._charge_at_wallbox:
+            end_wb = self._read_wallbox_energy()
+            if end_wb is not None:
+                self._db.accumulate_wallbox_energy(self._active_charge_id, end_wb)
+        log.info("Charge #%d: the car is driving — closing it on the last reading seen while "
+                 "charging (%s)", self._active_charge_id,
+                 "SoC %.1f%% at %s" % end if end else "none available, using the live frame")
+        self._db.finalize_charge(self._active_charge_id, data,
+                                 max_power_kw=self._max_charge_kw, end_override=end)
+        self._auto_note_charge(self._active_charge_id)
+        self._active_charge_id = None
+        self._max_charge_kw = 0.0
+
     def _read_wallbox_energy(self) -> Optional[float]:
         """Current wallbox kWh-counter reading from Home Assistant (best-effort, never raises).
         Returns None when no wallbox is configured/reachable → the charge falls back to DC billing.
@@ -347,6 +389,13 @@ class Recorder:
         frm, to = event.from_state, event.to_state
 
         if to == State.DRIVING:
+            # A car cannot be driving and charging. This is the mirror of the CHARGING branch
+            # below, which closes an open trip on plug-in — and it was missing (#208,
+            # @mikeeeeekoo): a charge is closed ONLY on CHARGING → parked, so a car that went
+            # CHARGING → OFFLINE (three refused logins) → DRIVING left its charge open forever,
+            # and an open charge appears in no calendar and in no AC count.
+            if self._active_charge_id:
+                self._close_charge_driven_away(data)
             self._regen_kwh = 0.0
             self._active_trip_id = self._db.create_trip(
                 self._vehicle_id, data, head=self._offline_head(data))
