@@ -62,16 +62,33 @@ def test_small_jump_at_fast_poll_rate_is_not_a_gap():
     assert len(segs) == 1 and segs[0]["gap"] is False
 
 
-def test_absolute_floor_flags_a_relatively_small_but_real_gap():
-    """At a very fast poll rate (2s), a 90s hole is "only" 45x the median — clearly a gap by the
-    multiplier alone, but the point of the _TRACK_GAP_MIN_S floor is that even a SMALLER relative
-    jump still gets flagged once it crosses an absolute minute, so a fast-polling trip can't have
-    a real dropout hidden by its own tight cadence."""
+def test_a_fast_poll_rate_still_flags_a_gap_over_a_minute():
+    """At a very fast poll rate (2s) a 65s hole clears both tests — 32x the median AND over the
+    absolute floor — so it is a gap. (This case does NOT exercise the floor: see the test below,
+    which is the one that does.)"""
     base = datetime(2026, 7, 18, 10, 0, tzinfo=timezone.utc)
     before = [_pt(_secs(base, i * 2), 45.0, 9.0) for i in range(5)]
     after = [_pt(_secs(base, 8 + 65), 45.01, 9.01)]   # 65s gap: > _TRACK_GAP_MIN_S (60s)
     segs = DR._split_track_gaps(before + after)
     assert [s["gap"] for s in segs] == [False, True]
+
+
+def test_the_floor_keeps_a_sub_minute_jump_at_a_fast_poll_rate_solid():
+    """THE FLOOR'S OWN CASE, and the only one that fails if _TRACK_GAP_MIN_S is removed.
+
+    The floor RAISES the threshold, so it makes detection less eager, not more: on a 2s cadence
+    the multiplier alone would call anything past 6s a signal loss, and a car that simply misses
+    a handful of polls in traffic would sprout dashed bridges all over an ordinary drive. A 30s
+    jump is 15x the median — well past the multiplier — and must still draw SOLID, because a
+    minute is the point below which we are not willing to claim the signal was lost.
+
+    Written by the maintainers on top of #209: the suite passed unchanged with the floor set to
+    zero, so nothing was holding this behaviour in place."""
+    base = datetime(2026, 7, 18, 10, 0, tzinfo=timezone.utc)
+    rows = [_pt(_secs(base, i * 2), 45.0, 9.0) for i in range(5)] + \
+           [_pt(_secs(base, 8 + 30), 45.01, 9.01)]      # 30s: past median x3 (6s), under the 60s floor
+    segs = DR._split_track_gaps(rows)
+    assert [s["gap"] for s in segs] == [False], "a sub-minute jump must not be called a signal loss"
 
 
 def test_empty_and_single_point_do_not_crash():
