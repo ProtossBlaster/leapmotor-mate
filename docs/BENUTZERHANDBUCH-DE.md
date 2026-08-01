@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v1.28.0 · **Sprache:** Deutsch (erste Ausgabe)
+> **Mate-Version:** v3.4.8 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -84,13 +84,18 @@ Um Mate einzurichten, benötigen Sie drei Dinge:
 
 ## 3. Installation
 
-Mate läuft auf dieselbe Weise in zwei Umgebungen (die Oberfläche ist identisch):
+Mate läuft auf dieselbe Weise in drei Umgebungen (die Oberfläche ist identisch):
 
 - **Als Add-on von Home Assistant** — der einfachste Weg, wenn Sie bereits Home Assistant haben. Man fügt das
   Add-on-Repository hinzu, installiert „LeapMotor Mate" und öffnet es aus der Seitenleiste von HA (Ingress). In
   diesem Fall kann Mate auch Ihre **Wallbox** direkt aus Home Assistant auslesen.
 - **Als eigenständiger Docker-Container** (zum Beispiel auf einem NAS) — über `docker-compose`. In diesem Fall ist
   die App vom Browser aus über **Port 4000** erreichbar (`http://ADRESSE-DES-SERVERS:4000`).
+- **Als Desktop-Anwendung** — [**MateDesktop**](https://github.com/ProtossBlaster/MateDesktop) ist dasselbe
+  Mate, verpackt für **macOS und Windows**, für alle, die weder Home Assistant noch Docker betreiben:
+  herunterladen, öffnen, und derselbe Einrichtungsassistent erscheint. Unter Windows wird es **in einer
+  `.zip`** ausgeliefert — erst entpacken, dann den Installer starten: Eine blanke `.exe` aus dem Internet
+  hat bei SmartScreen noch keinen Ruf und wird beim Eintreten gestoppt.
 
 Die Schritt-für-Schritt-Anleitungen zur Installation (Repository, Compose usw.) finden Sie im **README** des
 Projekts und auf der **Docker-Hub**-Seite. Nach dem Start ist der *erste Zugriff* für beide gleich und wird hier
@@ -179,7 +184,8 @@ laufende Ladung…) frisch bleiben, ohne die Seite neu zu laden.
 
 **Sprache, Währung und Einheiten** ändern Sie unter *Einstellungen → 🌍 Sprache & Währung*:
 
-- **Sprache:** Italiano, English, Français, Deutsch.
+- **Sprache:** Italiano, English, Français, Deutsch, Polski, Nederlands, Português.
+  *(Ein geschriebenes Handbuch wie dieses gibt es auf Deutsch, Englisch, Italienisch und Französisch.)*
 - **Währung:** für die Kosten (€, £, …).
 - **Einheiten:** metrisch (km, °C) oder imperial UK/US (Meilen, °F). Die Daten bleiben immer in km/°C gespeichert;
   es ändert sich nur, wie sie **angezeigt** werden.
@@ -239,9 +245,23 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   Fahrten unterschiedlich verbraucht haben.
 
 ### Karte
-**(Menü: Karte)** — Die Position des Autos auf der Karte. Sie zeigt die letzte bekannte Position; wenn das letzte
-Datum aus der Cloud kein gültiges GPS hat, **behält Mate die letzte gültige Position** bei, anstatt die Karte
-verschwinden zu lassen.
+**(Menü: Karte)** — Alle Orte, an denen Sie gefahren sind, auf einer einzigen Karte. Die aktuelle Position des
+Autos ist dabei (hat das letzte Datum aus der Cloud kein gültiges GPS, **behält Mate die letzte gültige
+Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
+
+- **Die Strecke jeder Fahrt**, als zusammenhängende Linie gezeichnet statt als lose Punkte, und nie über zwei
+  verschiedene Fahrten hinweg verbunden.
+- **Eine gestrichelte magentafarbene Brücke dort, wo das Signal verloren ging.** Ein Tunnel, ein Funkloch, ein
+  Aussetzer der Cloud: Ist die Lücke zwischen zwei aufgezeichneten Punkten deutlich größer als der Abtastrhythmus
+  *dieser* Fahrt, zeichnet Mate die Verbindung **gestrichelt** statt durchgezogen. Eine durchgezogene Linie
+  heißt *hier ist das Auto wirklich gefahren*; eine gestrichelte heißt *hier haben wir es verloren*, und die
+  Gerade zwischen den Enden ist keine Straße.
+- **Häufige Orte**, als Blasen in der Größe Ihrer Aufenthaltshäufigkeit, und die **Ladesäulen**, die Sie
+  benutzt haben.
+- **„Angezeigte Fahrten“**, ein Feld in der Legendenzeile. Eine lange Historie macht die Karte zu einem
+  Gewirr überlagerter Linien; Sie können sie daher auf die N zuletzt gefahrenen Fahrten begrenzen. **0 heißt
+  alle**, und so beginnt es. Die Begrenzung lässt jede gezeichnete Strecke außerdem näher an der echten
+  Straße liegen, weil sich das Punktebudget auf weniger Fahrten verteilt.
 
 ### Ladungen
 **(Menü: Ladungen)** — Die Liste der Ladungen. Für jede: **hinzugefügte Energie (kWh)**, **Spitzenleistung**,
@@ -286,11 +306,34 @@ kumulierten Energie.
 Sie verbraucht und geladen haben, wie viel Sie ausgegeben haben. Praktisch, um die Entwicklung im Auge zu behalten.
 
 ### Batteriezustand
-**(Menü: Batteriezustand)** — Eine **Schätzung des Gesundheitszustands (SoH)** der Batterie, also wie viel „echte"
-Kapazität gegenüber dem Neuzustand verblieben ist. Mate berechnet sie aus den realen Ladedaten (tatsächlich
-eingespeiste Energie gegenüber dem gewonnenen Prozentsatz), **schließt** die Kaltladungen, die die Messung
-verfälschen würden, **aus**, und zeigt sie über die Zeit und/oder nach Kilometerstand. Es ist eine **Schätzung**,
-keine offizielle Diagnose, aber sie verbessert sich mit dem Anhäufen der Daten.
+**(Menü: Batteriezustand)** — Eine **Schätzung des Gesundheitszustands (SoH)** der Batterie: wie viel nutzbare
+Kapazität gegenüber dem Neuzustand verblieben ist. Für jede Ladung teilt Mate die Energie, die es als in den
+Akku fließend **gemessen** hat (Spannung × Strom, über die Sitzung integriert), durch den Prozentsatz, den
+diese Ladung hinzugefügt hat. Dieses Verhältnis ist eine Schätzung der Kapazität des gesamten Akkus, und ihr
+Verlauf über die Zeit — oder über die Kilometer, ganz wie Sie wollen — ist die Alterung.
+
+Drei Dinge zur Berechnung, denn sie ändern die Bedeutung der Zahl.
+
+- **Die Rechnung endet bei 95 %.** Bei einem LFP-Akku ändert sich die Spannung in der Mitte des Bereichs kaum,
+  daher **zählt** das BMS die Ladung, statt sie zu lesen, und driftet; nahe am oberen Ende steigt die Kurve
+  endlich an und das BMS **richtet sich neu aus** — es fügt Prozentpunkte hinzu, für die keine Energie bezahlt
+  hat. Sie mitzuzählen ließe den Akku kleiner erscheinen, und am schlimmsten bei einer kurzen Nachladung bis
+  100 %, wo sie den größten Teil des Anstiegs ausmachen. Die Rechnung endet daher bei 95 %: Die Ladung zählt
+  weiterhin, nur ihr letztes Stück bleibt außen vor.
+- **Größere Ladungen wiegen mehr, und zwar anteilig.** Die Kennzahl summiert Energie und Prozentsatz der
+  jüngsten Ladungen, statt einzeln zu mitteln: Eine Ladung über 50 Punkte wiegt etwa viermal so viel wie eine
+  über 13. Und dafür wird nichts verworfen.
+- **Kaltladungen werden angezeigt, aber ausgeschlossen** — ein LFP liest im Kalten zu niedrig — ebenso Ladungen,
+  die fast leer begonnen haben, oder solche, bei denen das BMS springt.
+
+**Die Zahl trägt ein ± bei sich, und das ist der ehrliche Teil.** Es ist die **Streuung** der dahinterliegenden
+Ladungen, keine Genauigkeit: Die Energie ist gemessen, aber der Prozentsatz, durch den sie geteilt wird, ist
+eine Zahl, die das BMS gezählt hat — und die driftet. Ein schmales Band heißt, dass Ihre Ladungen untereinander
+übereinstimmen, nicht dass der Akku wirklich diese Größe hat. Bei einer einzigen Ladung erscheint gar kein ±:
+Eine Messung hat keine Streuung zu berichten.
+
+Es ist also eine **Schätzung** — keine Labordiagnose — und sie stabilisiert sich, je mehr Ladungen sich
+ansammeln.
 
 ### Wartung
 **(Menü: Wartung)** — Die **Wartungsfälligkeiten** Ihres Autos, basierend auf dem **offiziellen Programm Ihres

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v1.28.0 · **Lingua:** Italiano (prima edizione)
+> **Versione di Mate:** v3.4.8 · **Lingua:** Italiano
 > Questo manuale è pensato per chi *usa* Mate, non per chi lo sviluppa. Spiega come configurarlo
 > dall'inizio e cosa fa ogni pagina. Per i dettagli tecnici interni c'è `ARCHITECTURE.md`.
 
@@ -84,13 +84,18 @@ Per configurare Mate ti servono tre cose:
 
 ## 3. Installazione
 
-Mate gira allo stesso modo in due ambienti (l'interfaccia è identica):
+Mate gira allo stesso modo in tre ambienti (l'interfaccia è identica):
 
 - **Come add-on di Home Assistant** — il modo più semplice se hai già Home Assistant. Si aggiunge
   il repository dell'add-on, si installa "LeapMotor Mate" e si apre dalla barra laterale di HA
   (ingress). In questo caso Mate può anche leggere la tua **wallbox** direttamente da Home Assistant.
 - **Come container Docker autonomo** (per esempio su un NAS) — tramite `docker-compose`. In questo
   caso l'app è raggiungibile dal browser sulla **porta 4000** (`http://INDIRIZZO-DEL-SERVER:4000`).
+- **Come applicazione da scrivania** — [**MateDesktop**](https://github.com/ProtossBlaster/MateDesktop)
+  è lo stesso Mate impacchettato per **macOS e Windows**, per chi non usa né Home Assistant né
+  Docker: scarichi, apri, e trovi lo stesso wizard di configurazione. Su Windows si distribuisce
+  **dentro uno `.zip`**: prima lo scompatti, poi lanci l'installatore — un `.exe` preso da internet
+  non ha ancora una reputazione per SmartScreen e viene fermato all'ingresso.
 
 Le istruzioni passo-passo di installazione (repository, compose, ecc.) sono nel **README** del
 progetto e nella pagina **Docker Hub**. Una volta avviato, il *primo accesso* è uguale per entrambi
@@ -179,7 +184,8 @@ ricarica in corso…) restano freschi senza ricaricare la pagina.
 
 **Lingua, valuta e unità** si cambiano da *Impostazioni → 🌍 Lingua e valuta*:
 
-- **Lingua:** Italiano, English, Français, Deutsch.
+- **Lingua:** Italiano, English, Français, Deutsch, Polski, Nederlands, Português.
+  *(Un manuale scritto come questo esiste in italiano, inglese, francese e tedesco.)*
 - **Valuta:** per i costi (€, £, …).
 - **Unità:** metriche (km, °C) o imperiali UK/US (miglia, °F). I dati restano sempre salvati in
   km/°C; cambia solo come vengono **mostrati**.
@@ -220,9 +226,23 @@ Più in basso trovi mini-statistiche e un **indicatore di "reattività auto"** (
 
 - Cliccando un viaggio apri il **dettaglio**, con il **tracciato GPS** su mappa e i dati di quel
   singolo viaggio.
-- Puoi **unire** due viaggi spezzati per errore (Fusione 🔗) o **separarli** di nuovo, e
-  **cancellare** un viaggio.
+- **Un calendario, e una ricerca.** I viaggi si sfogliano per **mese**; clicchi un giorno e vedi solo
+  le guidate di quel giorno, oppure usi la **ricerca** con un intervallo di date, di distanza o di
+  efficienza per tirare fuori un insieme da tutta la cronologia.
+- **L'unione parte dal giorno che stai guardando.** Una sosta abbastanza lunga da chiudere una guidata
+  può spezzare un unico spostamento in due righe. Apri un giorno e il pulsante **🔗** accanto alla data
+  ti propone le coppie unibili *di quel giorno*: un cursore allarga cosa conta come una sola sosta,
+  vedi l'anteprima del percorso combinato prima di confermare, ed è **reversibile** quando vuoi
+  (Separa). Puoi anche **cancellare** un viaggio.
 - Soste brevi (semafori, code) **non** spezzano un viaggio: una guidata resta una sola riga.
+- **Altimetria e temperatura esterna.** Il cloud Leapmotor non riporta né l'una né l'altra, quindi
+  qualche minuto dopo la fine di un viaggio Mate cerca il suo tracciato GPS su
+  [Open-Meteo](https://open-meteo.com) (gratuito, senza chiave e senza account). Nel dettaglio
+  compaiono la **linea dell'altitudine sotto il grafico SoC e velocità**, i metri **saliti e scesi**, e
+  la temperatura **alla partenza e all'arrivo** — non una media, così una salita da fondovalle a passo
+  mostra il calo vero. Insieme spiegano buona parte del consumo di una guidata: la salita costa
+  energia, il freddo costa autonomia. I viaggi registrati prima che esistesse hanno un pulsante
+  **Calcola altimetria**, e tutto si può spegnere dalle Impostazioni.
 - **Consumi ufficiali dal cloud 🆕** — quando disponibili, **consumo, efficienza e costo** del viaggio
   vengono dal **dato ufficiale Leapmotor** (la vera ripartizione **guida / A·C / altro**) invece della
   sola stima dal calo di batteria. Subito dopo il viaggio vedi la stima con l'avviso **⏳ provvisorio**;
@@ -244,9 +264,23 @@ Più in basso trovi mini-statistiche e un **indicatore di "reattività auto"** (
   simili hanno consumato in modo diverso.
 
 ### Mappa
-**(menu: Mappa)** — La posizione dell'auto su mappa. Mostra l'ultima posizione nota; se l'ultimo
-dato dal cloud non ha un GPS valido, Mate **mantiene l'ultima posizione valida** invece di far
-sparire la mappa.
+**(menu: Mappa)** — Tutti i posti dove hai guidato, su una mappa sola. C'è la posizione attuale
+dell'auto (se l'ultimo dato dal cloud non ha un GPS valido, Mate **mantiene l'ultima posizione
+valida** invece di far sparire la mappa), e insieme:
+
+- **Il percorso di ogni viaggio**, disegnato come linea continua invece che a puntini sparsi, e mai
+  unito fra due viaggi diversi.
+- **Un ponte magenta tratteggiato dove il segnale si è perso.** Un tunnel, una zona senza copertura,
+  un intoppo del cloud: quando il buco fra due punti registrati è molto più grande della cadenza di
+  campionamento *di quel viaggio*, Mate disegna il collegamento **tratteggiato** invece che pieno. Una
+  linea piena vuol dire *l'auto ha percorso davvero questo*; una tratteggiata vuol dire *qui l'abbiamo
+  persa*, e la retta fra i due capi non è una strada.
+- **I luoghi frequenti**, come bolle grandi quanto spesso ti fermi lì, e le **colonnine** che hai
+  usato.
+- **«Viaggi mostrati»**, una casella nella riga della legenda. Una cronologia lunga riduce la mappa a
+  una massa di linee sovrapposte, quindi puoi limitarla agli N viaggi più recenti; **0 vuol dire
+  tutti**, ed è così che parte. Limitarla fa anche seguire meglio la strada vera a ogni percorso
+  disegnato, perché il budget di punti si distribuisce su meno viaggi.
 
 ### Ricariche
 **(menu: Ricariche)** — L'elenco delle ricariche. Per ognuna: **energia aggiunta (kWh)**, **potenza
@@ -297,11 +331,34 @@ usato e ricaricato, quanto hai speso. Comodo per tenere d'occhio l'andamento. In
 **consumo ufficiale** (Oggi / Questa settimana / Questo mese) dal cloud. 🆕
 
 ### Salute batteria
-**(menu: Salute batteria)** — Una **stima dello stato di salute (SoH)** della batteria, cioè quanta
-capacità "vera" è rimasta rispetto al nuovo. Mate la calcola dai dati reali di ricarica (energia
-realmente entrata rispetto alla percentuale guadagnata), **escludendo** le ricariche a freddo che
-falserebbero la misura, e la mostra nel tempo e/o per chilometraggio. È una **stima**, non una
-diagnosi ufficiale, ma migliora con l'accumularsi dei dati.
+**(menu: Salute batteria)** — Una **stima dello stato di salute (SoH)** della batteria: quanta capacità
+utilizzabile è rimasta rispetto al nuovo. Per ogni ricarica Mate divide l'energia che ha **misurato**
+entrare nel pacco (tensione × corrente, integrata sulla sessione) per la percentuale che quella
+ricarica ha aggiunto. Quel rapporto è una stima della capacità dell'intero pacco, e il suo andamento
+nel tempo — o sui chilometri, come preferisci — è l'invecchiamento.
+
+Tre cose su come viene calcolata, perché cambiano il significato del numero.
+
+- **Si ferma al 95 %.** Su un pacco LFP la tensione cambia pochissimo in mezzo alla scala, quindi il
+  BMS **conta** la carica invece di leggerla, e deriva; vicino al massimo la curva finalmente sale e il
+  BMS **si riancora**, aggiungendo punti percentuali che nessuna energia ha pagato. Contarli farebbe
+  sembrare il pacco più piccolo, e nel modo peggiore su un rabbocco breve fino al 100 %, dove sono
+  quasi tutta la salita. Quindi l'aritmetica si ferma al 95 %: la ricarica conta lo stesso, resta fuori
+  solo il suo ultimo tratto.
+- **Le ricariche grandi contano di più, in proporzione.** Il numero in cima somma energia e percentuale
+  delle ricariche recenti invece di fare una media una-per-una, quindi una che ha coperto 50 punti pesa
+  circa quattro volte una da 13. E non si butta via niente per ottenerlo.
+- **Le ricariche a freddo si vedono ma non contano** — una LFP legge basso quando è fredda — come quelle
+  partite quasi a zero o quelle in cui il BMS fa un salto.
+
+**Il numero porta con sé un ± , ed è la parte onesta.** È la **dispersione** delle ricariche che ci
+stanno dietro, non un'accuratezza: l'energia è misurata, ma la percentuale per cui viene divisa è un
+numero che il BMS ha contato, e quel numero deriva. Una banda stretta vuol dire che le tue ricariche
+concordano fra loro, non che il pacco sia certamente di quella misura. Con una sola ricarica il ± non
+compare affatto, perché una misura non ha dispersione da riportare.
+
+È una **stima**, quindi — non una diagnosi di laboratorio — e si assesta man mano che le ricariche si
+accumulano.
 
 ### Manutenzione
 **(menu: Manutenzione)** — Le **scadenze di manutenzione** della tua auto, basate sul **programma

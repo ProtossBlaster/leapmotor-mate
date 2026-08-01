@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v1.28.0 · **Langue :** Français (première édition)
+> **Version de Mate :** v3.4.8 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 
@@ -89,7 +89,7 @@ Pour configurer Mate, il vous faut trois choses :
 
 ## 3. Installation
 
-Mate fonctionne de la même manière dans deux environnements (l'interface est identique) :
+Mate fonctionne de la même manière dans trois environnements (l'interface est identique) :
 
 - **Comme module complémentaire de Home Assistant** — la façon la plus simple si vous avez déjà Home
   Assistant. On ajoute le dépôt du module complémentaire, on installe « LeapMotor Mate » et on l'ouvre depuis
@@ -98,6 +98,11 @@ Mate fonctionne de la même manière dans deux environnements (l'interface est i
 - **Comme conteneur Docker autonome** (par exemple sur un NAS) — via `docker-compose`. Dans ce cas,
   l'application est accessible depuis le navigateur sur le **port 4000**
   (`http://ADRESSE-DU-SERVEUR:4000`).
+- **Comme application de bureau** — [**MateDesktop**](https://github.com/ProtossBlaster/MateDesktop) est le
+  même Mate empaqueté pour **macOS et Windows**, pour ceux qui n'utilisent ni Home Assistant ni Docker :
+  vous téléchargez, vous ouvrez, et vous retrouvez le même assistant de configuration. Sous Windows il est
+  distribué **dans un `.zip`** — décompressez-le d'abord, puis lancez l'installateur : un `.exe` téléchargé
+  depuis Internet n'a pas encore de réputation auprès de SmartScreen et se fait bloquer à l'entrée.
 
 Les instructions d'installation pas à pas (dépôt, compose, etc.) se trouvent dans le **README** du projet et
 sur la page **Docker Hub**. Une fois lancé, le *premier accès* est identique pour les deux et est décrit
@@ -188,7 +193,8 @@ De nombreuses pages **se mettent à jour toutes seules** environ toutes les 30 s
 
 **La langue, la devise et les unités** se changent depuis *Paramètres → 🌍 Langue et Devise* :
 
-- **Langue :** Italiano, English, Français, Deutsch.
+- **Langue :** Italiano, English, Français, Deutsch, Polski, Nederlands, Português.
+  *(Un manuel écrit comme celui-ci existe en français, anglais, italien et allemand.)*
 - **Devise :** pour les coûts (€, £, …).
 - **Unités :** métriques (km, °C) ou impériales UK/US (miles, °F). Les données restent toujours enregistrées
   en km/°C ; seule change la façon dont elles sont **affichées**.
@@ -250,9 +256,23 @@ capteur de courant de la voiture — une petite charge de ~10 W reste invisible)
   expliquer pourquoi deux conduites semblables ont consommé différemment.
 
 ### Carte
-**(menu : Carte)** — La position de la voiture sur la carte. Elle affiche la dernière position connue ; si la
-dernière donnée du cloud n'a pas de GPS valide, Mate **conserve la dernière position valide** au lieu de
-faire disparaître la carte.
+**(menu : Carte)** — Tous les endroits où vous avez roulé, sur une seule carte. La position actuelle de la
+voiture y figure (si la dernière donnée du cloud n'a pas de GPS valide, Mate **conserve la dernière position
+valide** au lieu de faire disparaître la carte), et avec elle :
+
+- **Le trajet de chaque déplacement**, tracé comme une ligne continue plutôt qu'en points épars, et jamais
+  raccordé entre deux trajets différents.
+- **Un pont magenta en pointillés là où le signal s'est perdu.** Un tunnel, une zone sans couverture, un
+  hoquet du cloud : quand l'écart entre deux points enregistrés est bien plus grand que la cadence
+  d'échantillonnage *de ce trajet-là*, Mate trace la liaison **en pointillés** au lieu d'un trait plein. Un
+  trait plein signifie *la voiture a vraiment roulé là* ; des pointillés signifient *nous l'avons perdue
+  ici*, et la droite entre les deux extrémités n'est pas une route.
+- **Les lieux fréquents**, sous forme de bulles proportionnelles à la fréquence de vos arrêts, et les
+  **bornes** que vous avez utilisées.
+- **« Trajets affichés »**, une case sur la ligne de légende. Un long historique réduit la carte à une masse
+  de lignes superposées : vous pouvez donc la limiter aux N trajets les plus récents ; **0 signifie tous**,
+  et c'est ainsi qu'elle démarre. Limiter permet aussi à chaque trajet tracé de mieux épouser la vraie
+  route, le budget de points étant réparti sur moins de trajets.
 
 ### Recharges
 **(menu : Recharges)** — La liste des recharges. Pour chacune : **énergie ajoutée (kWh)**, **puissance
@@ -298,11 +318,34 @@ incluent désormais une carte **Total V2L** avec l'énergie cumulée soutirée v
 avez consommée et rechargée, combien vous avez dépensé. Pratique pour suivre l'évolution.
 
 ### Santé de la batterie
-**(menu : Santé batterie)** — Une **estimation de l'état de santé (SoH)** de la batterie, c'est-à-dire combien
-de capacité « réelle » il reste par rapport au neuf. Mate la calcule à partir des données réelles de recharge
-(énergie réellement entrée par rapport au pourcentage gagné), en **excluant** les recharges à froid qui
-fausseraient la mesure, et l'affiche dans le temps et/ou par kilométrage. C'est une **estimation**, pas un
-diagnostic officiel, mais elle s'améliore à mesure que les données s'accumulent.
+**(menu : Santé batterie)** — Une **estimation de l'état de santé (SoH)** de la batterie : combien de capacité
+utilisable il reste par rapport au neuf. Pour chaque recharge, Mate divise l'énergie qu'il a **mesurée**
+entrant dans le pack (tension × courant, intégrée sur la session) par le pourcentage que cette recharge a
+ajouté. Ce rapport est une estimation de la capacité du pack entier, et son évolution dans le temps — ou sur
+les kilomètres, au choix — c'est le vieillissement.
+
+Trois points sur la façon dont c'est calculé, car ils changent le sens du chiffre.
+
+- **Le calcul s'arrête à 95 %.** Sur un pack LFP la tension varie très peu au milieu de la plage : le BMS
+  **compte** la charge au lieu de la lire, et il dérive ; près du haut la courbe remonte enfin et le BMS
+  **se recale**, ajoutant des points de pourcentage qu'aucune énergie n'a payés. Les compter ferait paraître
+  le pack plus petit, et surtout sur un petit appoint jusqu'à 100 %, où ils représentent l'essentiel de la
+  montée. Le calcul s'arrête donc à 95 % : la recharge compte quand même, seule sa dernière portion est
+  laissée de côté.
+- **Les grosses recharges pèsent davantage, proportionnellement.** Le chiffre principal additionne l'énergie
+  et le pourcentage des recharges récentes au lieu d'en faire une moyenne une par une : une recharge ayant
+  couvert 50 points pèse environ quatre fois plus qu'une de 13. Et rien n'est écarté pour y parvenir.
+- **Les recharges à froid sont affichées mais exclues** — une LFP lit bas quand elle est froide — tout comme
+  celles parties presque à vide ou celles où le BMS fait un saut.
+
+**Le chiffre est accompagné d'un ± , et c'est la partie honnête.** C'est la **dispersion** des recharges qui
+sont derrière, pas une exactitude : l'énergie est mesurée, mais le pourcentage qui la divise est un nombre
+que le BMS a compté, et ce nombre dérive. Une fourchette étroite signifie que vos recharges s'accordent entre
+elles, pas que le pack fait certainement cette taille. Avec une seule recharge, le ± ne s'affiche pas du
+tout : une mesure n'a pas de dispersion à rapporter.
+
+C'est donc une **estimation** — pas un diagnostic de laboratoire — et elle se stabilise à mesure que les
+recharges s'accumulent.
 
 ### Entretien
 **(menu : Entretien)** — Les **échéances d'entretien** de votre voiture, basées sur le **programme officiel de

@@ -179,6 +179,20 @@ same database, nothing to install around it.
 > Windows ships **inside a .zip**: unpack it first, then run the installer. A bare `.exe` off the
 > internet has no SmartScreen reputation yet and gets stopped on the way in.
 
+## User manual
+
+A full written manual — every page explained, the setup wizard step by step, an FAQ and a glossary:
+
+| | |
+|---|---|
+| 🇬🇧 English | [USER-MANUAL-EN.md](docs/USER-MANUAL-EN.md) |
+| 🇮🇹 Italiano | [MANUALE-UTENTE-IT.md](docs/MANUALE-UTENTE-IT.md) |
+| 🇫🇷 Français | [MANUEL-UTILISATEUR-FR.md](docs/MANUEL-UTILISATEUR-FR.md) |
+| 🇩🇪 Deutsch | [BENUTZERHANDBUCH-DE.md](docs/BENUTZERHANDBUCH-DE.md) |
+
+The **interface** speaks seven languages (Polski, Nederlands and Português too) — the written
+manual, for now, exists in these four.
+
 ## Setup wizard
 
 The first launch opens on a choice — **Set up my car** or **Try the demo**. Choosing *Set up my car* walks you through two steps:
@@ -439,6 +453,21 @@ Stesso Mate, stesso database, niente da installare attorno.
 
 > Su Windows si scarica **dentro uno .zip**: prima lo scompatti, poi lanci l'installatore. Un `.exe`
 > preso da internet non ha ancora una reputazione per SmartScreen e viene fermato all'ingresso.
+
+## Manuale utente
+
+Un manuale scritto completo — ogni pagina spiegata, il wizard di configurazione passo passo, le
+domande frequenti e un glossario:
+
+| | |
+|---|---|
+| 🇮🇹 Italiano | [MANUALE-UTENTE-IT.md](docs/MANUALE-UTENTE-IT.md) |
+| 🇬🇧 English | [USER-MANUAL-EN.md](docs/USER-MANUAL-EN.md) |
+| 🇫🇷 Français | [MANUEL-UTILISATEUR-FR.md](docs/MANUEL-UTILISATEUR-FR.md) |
+| 🇩🇪 Deutsch | [BENUTZERHANDBUCH-DE.md](docs/BENUTZERHANDBUCH-DE.md) |
+
+L'**interfaccia** parla sette lingue (anche polacco, olandese e portoghese) — il manuale scritto,
+per ora, esiste in queste quattro.
 
 ## Wizard di setup
 

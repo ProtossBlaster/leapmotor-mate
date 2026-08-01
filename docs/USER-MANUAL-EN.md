@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v1.27.0 · **Language:** English (first edition)
+> **Mate version:** v3.4.8 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -84,13 +84,18 @@ To set Mate up you need three things:
 
 ## 3. Installation
 
-Mate runs the same way in two environments (the interface is identical):
+Mate runs the same way in three environments (the interface is identical):
 
 - **As a Home Assistant add-on** — the easiest way if you already have Home Assistant. You add the
   add-on repository, install "LeapMotor Mate" and open it from the HA sidebar (ingress). In this case
   Mate can also read your **wallbox** directly from Home Assistant.
 - **As a standalone Docker container** (for example on a NAS) — via `docker-compose`. In this case
   the app is reachable from the browser on **port 4000** (`http://YOUR-SERVER-ADDRESS:4000`).
+- **As a desktop application** — [**MateDesktop**](https://github.com/ProtossBlaster/MateDesktop)
+  is the same Mate packaged for **macOS and Windows**, for people who run neither Home Assistant nor
+  Docker: download it, open it, and you get the same setup wizard. On Windows it is distributed
+  **inside a `.zip`** — unpack it first, then run the installer, because a bare `.exe` downloaded
+  from the internet has no reputation with SmartScreen yet and gets stopped on the way in.
 
 The step-by-step installation instructions (repository, compose, etc.) are in the project's
 **README** and on the **Docker Hub** page. Once it's up and running, the *first sign-in* is the same
@@ -179,7 +184,8 @@ progress…) stay fresh without reloading the page.
 
 **Language, currency and units** are changed from *Settings → 🌍 Language & Currency*:
 
-- **Language:** Italiano, English, Français, Deutsch.
+- **Language:** English, Italiano, Français, Deutsch, Polski, Nederlands, Português.
+  *(A written manual like this one exists in English, Italian, French and German.)*
 - **Currency:** for costs (€, £, …).
 - **Units:** metric (km, °C) or imperial UK/US (miles, °F). The data is always stored in km/°C; only
   the way it's **displayed** changes.
@@ -220,9 +226,21 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
 
 - Clicking a trip opens the **detail**, with the **GPS track** on a map and the data of that single
   trip.
-- You can **merge** two trips that were split by mistake (Merge 🔗) or **split** them again, and
-  **delete** a trip.
+- **A calendar, and a search.** Trips are browsed by **month**; click a day to see just that day's
+  drives, or use the **search** with a date range, a distance or an efficiency window to pull out a
+  set across the whole history.
+- **Merging, from the day you are looking at.** A stop long enough to end a drive can split one
+  journey into two rows. Open a day and the **🔗** button beside its date offers that day's joinable
+  pairs: a slider widens what counts as one stop, you preview the combined route before committing,
+  and it is **reversible** at any time (Unmerge). You can also **delete** a trip.
 - Short stops (traffic lights, queues) do **not** split a trip: one drive stays a single row.
+- **Elevation and outside temperature.** The Leapmotor cloud reports neither, so a few minutes after
+  a drive ends Mate looks the trip's GPS track up against [Open-Meteo](https://open-meteo.com) (free,
+  no key, no account). The detail then gains an **altitude line under the SoC & speed chart**, the
+  metres **climbed and descended**, and the temperature **at departure and on arrival** — not an
+  average, so a valley-to-pass climb shows the real drop. Between them they explain a good part of a
+  drive's consumption: a climb costs energy, cold costs range. Trips recorded before this existed
+  have a **Calculate elevation** button, and the whole thing can be switched off in Settings.
 - **Official consumption from the cloud 🆕** — when available, a trip's **consumption, efficiency and
   cost** come from Leapmotor's **official figure** (the real **driving / A·C / other** split) instead of
   the battery‑% estimate alone. Right after a drive you see the estimate marked **⏳ provisional**; once
@@ -241,9 +259,22 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   you set them by hand; they help explain why two otherwise similar drives consumed differently.
 
 ### Map
-**(menu: Map)** — The car's position on a map. It shows the last known position; if the latest data
-from the cloud doesn't have a valid GPS fix, Mate **keeps the last valid position** instead of making
-the map disappear.
+**(menu: Map)** — Everywhere you have driven, on one map. The car's current position is there (if the
+latest data from the cloud has no valid GPS fix, Mate **keeps the last valid position** rather than
+making the map disappear), and with it:
+
+- **Every trip's route**, drawn as a connected line rather than loose dots, never joined across two
+  different trips.
+- **A dashed magenta bridge where the signal was lost.** A tunnel, a dead zone, a hiccup at the
+  cloud — when the gap between two recorded points is much larger than that trip's own sampling
+  rhythm, Mate draws the join **dashed** instead of solid. A solid line means *the car really drove
+  this*; a dashed one means *we lost it here* and the straight line between the ends is not a road.
+- **Frequent places**, as bubbles sized by how often you stop there, and **charging stations** you
+  have used.
+- **"Trips shown"**, a box on the legend row. A long history leaves the map a solid mass of
+  overlapping lines, so you can cap it to the N most recently driven trips; **0 means all of them**,
+  which is how it starts. Capping also makes each drawn route hug the real road more closely,
+  because the drawing budget is spread over fewer trips.
 
 ### Charges
 **(menu: Charges)** — The list of charges. For each one: **energy added (kWh)**, **peak power**,
@@ -288,11 +319,33 @@ card showing the cumulative energy drawn via V2L over all time.
 used and charged, how much you spent. Handy for keeping an eye on the trend.
 
 ### Battery health
-**(menu: Battery health)** — An **estimate of the state of health (SoH)** of the battery, that is, how
-much "real" capacity is left compared to new. Mate calculates it from the real charging data (energy
-actually delivered versus the percentage gained), **excluding** cold charges that would distort the
-measurement, and shows it over time and/or by mileage. It is an **estimate**, not an official
-diagnosis, but it improves as data accumulates.
+**(menu: Battery health)** — An **estimate of the state of health (SoH)** of the battery: how much
+usable capacity is left compared to new. For each charge Mate divides the energy it **measured**
+going into the pack (voltage × current, integrated over the session) by the percentage that charge
+added. That ratio is an estimate of the whole pack's capacity, and its trend over time — or over
+mileage, your choice — is what ageing looks like.
+
+Three things about how it is worked out, because they change what the number means.
+
+- **It stops at 95 %.** On an LFP pack the voltage barely changes across the middle of the range, so
+  the BMS **counts** charge instead of reading it, and drifts; near the top the curve finally rises
+  and the BMS **re-anchors** — adding percentage points that no energy paid for. Counting those
+  points would make the pack look smaller, and worst of all on a short top-up to 100 %, where they
+  are most of the rise. So the arithmetic stops at 95 %: the charge itself still counts, only its
+  last stretch is left out.
+- **Bigger charges count more, in proportion.** The headline pools the energy and the percentage
+  across recent charges rather than averaging them one for one, so a charge that spanned 50 points
+  carries about four times the weight of one that spanned 13. Nothing is discarded to achieve it.
+- **Cold charges are shown but excluded** — an LFP reads low when it is cold — as are charges that
+  started nearly empty or that show the BMS jumping.
+
+**The figure comes with a ± , and that is the honest part.** It is the **scatter** of the charges
+behind it, not an accuracy: the energy is measured, but the percentage it is divided by is a number
+the BMS counted, and that number drifts. A narrow band means your charges agree with each other, not
+that the pack is certainly that size. With a single charge no ± is shown at all, because one
+measurement has no spread to report.
+
+It is an **estimate**, then — not a laboratory diagnosis — and it settles as charges accumulate.
 
 ### Maintenance
 **(menu: Maintenance)** — The **maintenance due dates** for your car, based on the **official schedule
