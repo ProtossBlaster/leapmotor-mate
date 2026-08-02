@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.4.8 · **Sprache:** Deutsch
+> **Mate-Version:** v3.5.2 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -497,6 +497,16 @@ ist in drei Spalten unterteilt.
   [§8](#8-die-integrationen-im-detail)).
 
 **Spalte 3 — Daten und Wartung**
+
+- **🔐 Zugang** *(nur eigenständiges Docker — unter dem Home-Assistant-Add-on authentifiziert der
+  Ingress bereits jede Anfrage, und die Karte erscheint nicht)* — ein Passwort, um Mate zu öffnen.
+  Es lohnt sich: ohne eines kann alles in Ihrem Netz Mate öffnen, und Mate kann Ihr Auto öffnen.
+
+  Sie geben es **zweimal** ein, denn es lässt sich danach nirgends mehr nachlesen — gespeichert wird
+  ein gesalzener Hash, nie der Klartext. **Wenn Sie es verlieren**, sind Sie nicht endgültig
+  ausgesperrt: das Feld *Neues Passwort* fragt das alte nicht ab, Sie vergeben also von jedem noch
+  angemeldeten Gerät aus einfach ein neues. Ist kein Gerät mehr angemeldet, überschreibt die
+  Umgebungsvariable `MATE_AUTH_PASSWORD` das gespeicherte.
 
 - **Datenbank** — Größe der DB und **Aufbewahrung der Positionen** (Retention): Sie können die GPS-Punkte „für
   immer" behalten (Standard) oder die älter als 6/12/18/24 Monate löschen, um Platz zu sparen. *Es werden nur die

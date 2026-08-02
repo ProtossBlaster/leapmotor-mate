@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v3.4.8 · **Langue :** Français
+> **Version de Mate :** v3.5.2 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 
@@ -513,6 +513,18 @@ Elle est divisée en trois colonnes.
   [§8](#8-les-intégrations-en-détail)).
 
 **Colonne 3 — Données et maintenance**
+
+- **🔐 Accès** *(Docker autonome uniquement — sous l'add-on Home Assistant, l'ingress authentifie
+  déjà chaque requête et la carte n'apparaît pas)* — un mot de passe pour ouvrir Mate. Cela vaut la
+  peine : sans lui, n'importe quoi sur votre réseau peut ouvrir Mate, et Mate peut ouvrir votre
+  voiture.
+
+  Vous le saisissez **deux fois**, car il n'y a aucun moyen de le relire ensuite — il est stocké
+  sous forme d'empreinte salée, jamais en clair. **Si vous le perdez**, vous n'êtes pas enfermé
+  dehors pour autant : le champ *Nouveau mot de passe* ne demande pas l'ancien, donc depuis
+  n'importe quel appareil encore connecté vous en définissez un nouveau. S'il n'y a plus aucun
+  appareil connecté, la variable d'environnement `MATE_AUTH_PASSWORD` prend le dessus sur celui qui
+  est enregistré.
 
 - **Base de données** — taille de la base et **conservation des positions** (rétention) : vous pouvez garder
   les points GPS « pour toujours » (par défaut) ou supprimer ceux de plus de 6/12/18/24 mois pour économiser

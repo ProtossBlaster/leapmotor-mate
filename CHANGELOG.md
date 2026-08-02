@@ -3,6 +3,50 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.5.2] — 2026-08-02
+
+### Changed
+- **The access password is typed twice.** Raised by **@rop12770** (#214), who set one in
+  Settings → Access, gets in from his PC, and is told it's wrong on his phone.
+
+  With a single box a typo is hashed in silence — and the machine you set it on **keeps working**,
+  because the browser saved what you actually typed. The mistake only surfaces on the next device,
+  by which time there is no way left to know which key you pressed. The password isn't readable
+  anywhere afterwards, by design: what's stored is a salted hash.
+
+  Both forms now ask for it twice — the one that turns protection on and the one that changes it —
+  and refuse to save unless the two agree. The check runs in the browser through its own constraint
+  validation, so an htmx form simply doesn't fire while they differ, **and** on the server, because
+  a form attribute is a convenience rather than a guarantee.
+
+  Each box also has its own **👁 reveal button**, like the setup wizard has always had. One per box
+  rather than one for both: the pair exists so you can compare them, and uncovering only the one you
+  doubt is the smaller exposure. It re-hides itself as soon as you leave the field, so a revealed
+  password can't be left sitting on a shared screen.
+
+- **And the card now says how to get back in.** Losing it does **not** lock you out for good, but
+  nothing said so anywhere: the *New password* box never asks for the old one, so from any device
+  still signed in you can just set a new one, and `MATE_AUTH_PASSWORD` overrides whatever is stored
+  if no device is. That is now written where you set the password, and in all four manuals.
+
+### Documentation
+- The four user manuals gained the **🔐 Access** card, which none of them described: what it
+  protects, why it is typed twice, and the two ways back in. Their version stamps are current again.
+
+### Internal
+- **The template guards for this card live where CI can run them.** The endpoint tests import
+  `web/main.py` and therefore FastAPI, which CI doesn't install, so that whole file skips there —
+  and a guard that only runs on one laptop guards nothing. The checks that merely read
+  `settings.html` were split into their own file with no such import. The same mistake cost a
+  release the day before; this time it was caught by running the suite the way CI runs it, before
+  publishing rather than after.
+- One of those guards exists because the reveal button was first written with its two icons inside
+  `data-` attributes. An `<svg>` in an attribute ends the attribute on its own first quote: the
+  browser then parses the rest of the tag as text and the **entire card renders as an empty box** —
+  no console error, no failing test, nothing in the logs. Jinja's `|e` doesn't help, since a macro's
+  output is already Markup. It was found by looking at the page; the guard now scans every template
+  for markup inside an attribute value.
+
 ## [3.5.1] — 2026-08-02
 
 ### Fixed

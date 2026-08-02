@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.5.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.5.2"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -3435,7 +3435,16 @@ async def set_ui_password(request: Request):
     form = await request.form()
     if auth.env_password_wins():
         return Response("set in the environment", status_code=409)   # don't pretend otherwise
-    if not auth.set_password(form.get("password") or ""):
+    pw = form.get("password") or ""
+    # Typed twice, and the two must match (#214 @rop12770). With one box a typo is hashed in
+    # silence and the machine you set it on keeps working — the browser saved what you actually
+    # typed — so the mistake only surfaces on the NEXT device, when there is no longer any way to
+    # know what you pressed. Required rather than optional: both forms send it, and a password
+    # nobody typed twice is exactly the one that locks its owner out. Enforced here and not only in
+    # the browser — the form's `required`/`minlength` are a convenience, not a guarantee.
+    if (form.get("password2") or "") != pw:
+        return Response("mismatch", status_code=422)
+    if not auth.set_password(pw):
         return Response("too short", status_code=422)
     resp = Response(status_code=204, headers={"HX-Refresh": "true"})
     resp.set_cookie(auth.COOKIE, auth.make_token(), max_age=auth.TTL,

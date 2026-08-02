@@ -8,6 +8,13 @@
    {% call %} body runs in the page context, so t()/settings/etc. work inside it; the macro body
    itself relies only on its arguments (Jinja macros don't see the render context).
    Cards are split 5/4/4 across the three columns so the collapsed page stays balanced. #}
+{# Eye icon for the access-password boxes. Same shape and behaviour as the setup wizard's, which
+   has had one since the beginning — reproduced rather than shared because the wizard renders before
+   the app has a language and keeps its own everything. #}
+{% macro ico_eye() %}<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>{% endmacro %}
+
+{% macro ico_eye_off() %}<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>{% endmacro %}
+
 {% macro scard(key, title, open=False, status_url='', new_badge='') %}
 <div class="card">
   <details class="group" ontoggle="saveUiState('{{ key }}', this.open){% if new_badge %}; if(this.open) markNewSeen('{{ key }}'){% endif %}"{% if new_badge %} data-new="1"{% endif %}{% if open and not new_badge %} open{% endif %}>
@@ -165,10 +172,33 @@
       <div class="flex items-center gap-2 text-sm text-emerald-400 mb-3">
         <span>🔒</span><span>{{ t('auth_on') }}</span>
       </div>
+      {# Typed twice on purpose (#214): with one box a typo is stored in silence and this machine
+         keeps working, because the browser saved what was really typed — the mistake only appears
+         on the next device, with no way left to know what was pressed. #}
       <form hx-post="api/settings/password" hx-swap="none" class="flex flex-wrap items-end gap-2">
         <label class="text-xs text-slate-400">{{ t('auth_change') }}
-          <input type="password" name="password" minlength="8" required autocomplete="new-password"
-                 class="block mt-1 w-48 px-2 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+          <span class="relative block mt-1 w-48">
+            <input type="password" name="password" minlength="8" required autocomplete="new-password"
+                   oninput="lmPwMatch(this.form.password2)"
+                   class="block w-full pl-2 pr-9 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+            <button type="button" onclick="lmPwReveal(this)" title="{{ t('auth_reveal') }}"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+            >{# both icons live in the DOM and one is hidden: an <svg> inside an attribute breaks the
+                attribute on its own first quote, which silently collapses the whole card #}
+              <span data-eye="on">{{ ico_eye() }}</span><span data-eye="off" class="hidden">{{ ico_eye_off() }}</span></button>
+          </span>
+        </label>
+        <label class="text-xs text-slate-400">{{ t('auth_confirm') }}
+          <span class="relative block mt-1 w-48">
+            <input type="password" name="password2" minlength="8" required autocomplete="new-password"
+                   data-mismatch="{{ t('auth_mismatch') }}" oninput="lmPwMatch(this)"
+                   class="block w-full pl-2 pr-9 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+            <button type="button" onclick="lmPwReveal(this)" title="{{ t('auth_reveal') }}"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+            >{# both icons live in the DOM and one is hidden: an <svg> inside an attribute breaks the
+                attribute on its own first quote, which silently collapses the whole card #}
+              <span data-eye="on">{{ ico_eye() }}</span><span data-eye="off" class="hidden">{{ ico_eye_off() }}</span></button>
+          </span>
         </label>
         <button type="submit" class="px-3 py-2 rounded-lg text-sm font-medium text-white border border-slate-600 hover:bg-slate-600">{{ t('save') }}</button>
       </form>
@@ -181,12 +211,33 @@
       </div>
       <form hx-post="api/settings/password" hx-swap="none" class="flex flex-wrap items-end gap-2">
         <label class="text-xs text-slate-400">{{ t('auth_set') }}
-          <input type="password" name="password" minlength="8" required autocomplete="new-password"
-                 class="block mt-1 w-48 px-2 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+          <span class="relative block mt-1 w-48">
+            <input type="password" name="password" minlength="8" required autocomplete="new-password"
+                   oninput="lmPwMatch(this.form.password2)"
+                   class="block w-full pl-2 pr-9 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+            <button type="button" onclick="lmPwReveal(this)" title="{{ t('auth_reveal') }}"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+            >{# both icons live in the DOM and one is hidden: an <svg> inside an attribute breaks the
+                attribute on its own first quote, which silently collapses the whole card #}
+              <span data-eye="on">{{ ico_eye() }}</span><span data-eye="off" class="hidden">{{ ico_eye_off() }}</span></button>
+          </span>
+        </label>
+        <label class="text-xs text-slate-400">{{ t('auth_confirm') }}
+          <span class="relative block mt-1 w-48">
+            <input type="password" name="password2" minlength="8" required autocomplete="new-password"
+                   data-mismatch="{{ t('auth_mismatch') }}" oninput="lmPwMatch(this)"
+                   class="block w-full pl-2 pr-9 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+            <button type="button" onclick="lmPwReveal(this)" title="{{ t('auth_reveal') }}"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+            >{# both icons live in the DOM and one is hidden: an <svg> inside an attribute breaks the
+                attribute on its own first quote, which silently collapses the whole card #}
+              <span data-eye="on">{{ ico_eye() }}</span><span data-eye="off" class="hidden">{{ ico_eye_off() }}</span></button>
+          </span>
         </label>
         <button type="submit" class="px-3 py-2 rounded-lg text-sm font-medium text-white bg-brand/80 hover:bg-brand">{{ t('auth_enable') }}</button>
       </form>
       <p class="text-[11px] text-slate-500 mt-2">{{ t('auth_hint') }}</p>
+      <p class="text-[11px] text-slate-500 mt-1">{{ t('auth_lockout_hint') }}</p>
       {% endif %}
     {% endcall %}
     {% endif %}
@@ -962,5 +1013,30 @@
     if (hint) { hint.textContent = ''; }
     window.location.href = 'api/diagnostics/bundle?parts=' + parts.join(',');
   }
+
+// Access password: the two boxes must agree. Uses the browser's own constraint validation, so an
+// htmx form simply doesn't fire while they differ and the message comes from the browser in its own
+// language chrome — no toast to build, and nothing to keep in sync. The server checks it too: this
+// is convenience, not the guarantee (#214).
+function lmPwMatch(confirmEl) {
+  if (!confirmEl) return;
+  var f = confirmEl.form;
+  confirmEl.setCustomValidity(f.password.value === confirmEl.value ? '' : confirmEl.dataset.mismatch);
+}
+
+// Show/hide one password box. Both boxes have their own button on purpose: the pair exists so you
+// can compare them, and revealing only the one you are unsure about is the smaller exposure.
+// Re-hides itself when focus leaves, so a revealed password can't be left on a shared screen.
+function lmPwReveal(btn) {
+  var inp = btn.parentElement.querySelector('input');
+  var show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.querySelector('[data-eye=on]').classList.toggle('hidden', show);
+  btn.querySelector('[data-eye=off]').classList.toggle('hidden', !show);
+  if (show) inp.addEventListener('blur', function once() {
+    lmPwReveal(btn);
+    inp.removeEventListener('blur', once);
+  });
+}
 </script>
 {% endblock %}

@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.4.8 · **Language:** English
+> **Mate version:** v3.5.2 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -504,6 +504,16 @@ divided into three columns.
   [§8](#8-the-integrations-in-detail)).
 
 **Column 3 — Data and maintenance**
+
+- **🔐 Access** *(standalone Docker only — under the Home Assistant add-on, ingress already
+  authenticates every request and the card isn't shown)* — a password to open Mate. Worth setting:
+  without one, anything on your network can open Mate, and Mate can unlock your car.
+
+  You type it **twice**, because there is nowhere to read it back afterwards — it's stored as a
+  salted hash, never in clear text. **If you lose it**, you are not locked out for good: the *New
+  password* box doesn't ask for the old one, so from any device still signed in you can simply set
+  a new one. If no device is signed in any more, the `MATE_AUTH_PASSWORD` environment variable
+  overrides whatever is stored.
 
 - **Database** — the size of the DB and the **GPS retention**: you can keep the GPS points "forever"
   (default) or delete those older than 6/12/18/24 months to save space. *Only positions are pruned*:
