@@ -1,13 +1,17 @@
 """
 Adaptive polling state machine.
 
-States and intervals:
-  PARKED_SLEEP   5 min   — no activity for 30+ min (car sleeping)
-  PARKED_ACTIVE  60s     — normal parked, nothing unusual
-  PARKED_ALERT   15s     — something changed (door/lock/temp): drive imminent
-  DRIVING        10s     — speed > 0 or gear D
-  CHARGING       60s     — plugged in
-  OFFLINE        parked  — cloud unreachable; keeps the parked cadence (re-login rate-limited 60s)
+States and intervals. There are only TWO cadences, both set by the user in Settings
+(`poll_parked` / `poll_driving`, 30s and 10s by default) — every state maps onto one of
+them, so the numbers below are which cadence, not a fixed value per state:
+  PARKED_SLEEP   parked   — no activity for 30+ min (car sleeping)
+  PARKED_ACTIVE  parked   — normal parked, nothing unusual
+  PARKED_ALERT   driving  — something changed (door/lock/temp): drive imminent
+  DRIVING        driving  — speed > 0 or gear D
+  CHARGING       parked   — plugged in
+  OFFLINE        parked   — cloud unreachable; keeps the parked cadence (re-login rate-limited 60s)
+  UNKNOWN        parked, capped at 30s — before the first successful poll
+  (V2L discharge overrides all of them with the driving cadence — see poll_interval.)
 
 Transitions (all independent of HA and phone):
   UNKNOWN/OFFLINE     → PARKED_ACTIVE  first successful poll

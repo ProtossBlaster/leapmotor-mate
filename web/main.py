@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.4.9"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.4.10"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -2294,7 +2294,7 @@ def _integrate_kwh(points: list) -> float:
     """Trapezoidal integral of (epoch_seconds, kW) points → kWh. Skips non-positive and
     >15min gaps so a charger pause / poll miss inside one window is never integrated as a
     phantom interval — keeps the AC/DC comparison energy (and the HOME cost billed on the AC
-    energy) consistent with compute_cost's split and _integrate_charge_energy_kwh, which both
+    energy) consistent with compute_cost's split and _charge_energy_below_soc, which both
     already skip multi-hour gaps."""
     e = 0.0
     for i in range(1, len(points)):

@@ -3,6 +3,69 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.10] — 2026-08-02
+
+### Fixed
+- **The charging animation on the Overview now runs to the end — and works out for itself which way
+  round it goes.** Reported by **@banolka** (#211), who noticed on a T03 that the energy appears to
+  flow *out of* the car rather than into it, in the official app as well as here.
+
+  The animated car picture is not drawn by Mate: it comes from the cloud as a set of numbered frames,
+  per vehicle, and both apps simply play them in file order. Two things were wrong with the playing.
+
+  First, **not all the frames were being shown**. The player asked for a fixed range that stops at
+  frame 15; the B10's package ships **18**, and the three it never drew are the ones where the pulse
+  completes its run and reaches the car. So the pulse died halfway along the cable and restarted at
+  the wallbox.
+
+  Second, **the direction was being assumed**. It is now **measured from the package itself**: the
+  highlight is the only thing that moves between frames, so subtracting the darkest value each pixel
+  ever takes leaves the highlight alone, and whichever end of its path is nearer the car's silhouette
+  is the end the energy should arrive at. If the first frame is already there, the package is
+  numbered backwards and it is played in reverse. On the B10 the measurement separates the two ends
+  six-fold (61 px against 10) and confirms the existing order, so nothing changes for a car that was
+  already right.
+
+  Measuring it rather than writing "reverse it for the T03" in the code matters for two reasons: it
+  works for models nobody here owns, and it cannot go stale — a hardcoded reversal would start
+  breaking the animation the day Leapmotor corrects the artwork, and nobody would connect the two.
+
+### Changed
+- **"Home" no longer reads as "wallbox".** The label under the Home charge type said *Home Wallbox /
+  private charging*, and the slash made the two look like the same thing. **@michapr** (#207) built a
+  whole energy calculation on the assumption that a home charge is always metered by a wallbox, and
+  **@adoewa** (#196) asked for a feature that already exists for exactly that reason. It now reads
+  **Wallbox or domestic socket**, in all seven languages.
+
+  *Home* is where you charged, not what you charged from. That distinction decides which energy you
+  are billed on: with a wallbox meter mapped, the meter's kWh; without one, the kWh that reached the
+  battery, exactly like a public charge.
+
+### Documentation
+- **The four user manuals said the same thing the label did** — "Home (your wallbox)". All four now
+  explain that Home is a place, not a device, and which of the two energies gets billed in each case,
+  with the charger's 10–15 % heat loss named as what sits between them.
+- **`CAPABILITY-PROFILE.md` describes the code again.** It had been left at v1.11.5 since June and
+  had drifted into being wrong in three ways: it documented **one** gating mechanism when there are
+  now **three** (the per-VIN verdicts it describes, plus `MODEL_ABSENT` for hardware a model doesn't
+  have — #144 — and the ability whitelist for what the car itself declares — #142); it **contradicted
+  itself about the windows**, saying in one section that the command works on a four-stop 0–10 scale
+  and in another that it is accepted-but-not-executed; and it still listed the charge-port unlock as
+  unconfirmed, when it has been confirmed actuating on a real B10 since June.
+
+  It now also records the two things that were never written down: why the per-model table exists at
+  all when the car declares its own abilities (because the T03's declarations are wrong in **both**
+  directions — it claims heated seats it doesn't have and omits the A/C it does), and the T03 climate
+  behaviour from #67, marked as what it is: derived from logs, not verified on a car we own.
+- **Dutch: `inschakelbeurt` is gone.** It was a coinage no Dutch source knows, invented while
+  translating "power-on session". The sentence now says the same thing with ordinary words. Every
+  other `-beurt` word in the file (`laadbeurt`, `tankbeurt`) is genuine Dutch and untouched.
+- Internal tidying that changes nothing on screen: the polling state machine's header listed a fixed
+  interval per state (`PARKED_SLEEP 5 min`, `PARKED_ALERT 15s`) when the code has only **two**
+  user-configurable cadences and maps every state onto one of them; and a 40-line charge-energy
+  integrator that no longer had a single caller has been removed, with the three comments that
+  pointed at it redirected to the function actually doing the work.
+
 ## [3.4.9] — 2026-08-01
 
 ### Added

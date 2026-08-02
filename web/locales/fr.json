@@ -949,7 +949,7 @@
     "charge_prices": "Prix de recharge",
     "charge_prices_desc": "Coût par kWh pour chaque type de recharge — utilisé pour calculer automatiquement le coût des sessions.",
     "save_prices": "Enregistrer les prix",
-    "home_desc": "Wallbox domestique / recharge privée",
+    "home_desc": "Wallbox ou prise domestique",
     "ac_desc": "Bornes AC publiques jusqu'à 22 kW",
     "fast_desc": "Recharge rapide DC jusqu'à 100 kW",
     "hpc_desc": "Recharge haute puissance 150 kW+",

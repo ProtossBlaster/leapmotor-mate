@@ -949,7 +949,7 @@
     "charge_prices": "Ceny ładowania",
     "charge_prices_desc": "Koszt za kWh dla każdego typu ładowania — używany do automatycznego obliczania kosztów sesji.",
     "save_prices": "Zapisz ceny",
-    "home_desc": "Wallbox domowy / prywatne ładowanie",
+    "home_desc": "Wallbox lub gniazdko domowe",
     "ac_desc": "Publiczne stacje AC do 22 kW",
     "fast_desc": "Szybkie ładowarki DC do 100 kW",
     "hpc_desc": "Ładowanie wysokomocowe 150 kW+",

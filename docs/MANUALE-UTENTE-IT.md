@@ -287,8 +287,14 @@ valida** invece di far sparire la mappa), e insieme:
 massima**, **tipo** e **costo**, con il **€/kWh effettivo** ben in vista. Il tipo è classificato con
 un'etichetta:
 
-- **Casa** (la tua wallbox), **AC** (corrente alternata pubblica), **Veloce/FAST** (DC),
-  **HPC** (ricarica ultraveloce) e **✎ Manuale**.
+- **Casa** (la tua wallbox **o una presa domestica**), **AC** (corrente alternata pubblica),
+  **Veloce/FAST** (DC), **HPC** (ricarica ultraveloce) e **✎ Manuale**.
+- **Casa non vuol dire wallbox.** *Casa* è **dove** hai caricato, non da cosa: anche una presa
+  normale in garage è una ricarica di casa. La differenza conta per il conteggio: se hai collegato
+  il contatore di una wallbox (vedi *Wallbox* più sotto), la ricarica si fattura sull'**energia
+  erogata dal contatore**; se non l'hai collegato, si fattura sull'**energia arrivata in batteria**,
+  esattamente come una ricarica pubblica. Fra le due c'è la perdita in calore del caricabatterie,
+  tipicamente il 10-15%.
 - **✎ Manuale**: per le colonnine pubbliche con tariffe complicate (abbonamenti, costi di sessione…)
   puoi **scrivere a mano il totale realmente pagato**; questo valore scavalca la stima automatica.
 - Anche le ricariche avvenute mentre l'auto era spenta/offline vengono **ricostruite** dal salto di

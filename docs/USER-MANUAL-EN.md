@@ -281,8 +281,13 @@ making the map disappear), and with it:
 **type** and **cost**, with the **effective €/kWh** clearly visible. The type is classified with a
 label:
 
-- **Home** (your wallbox), **AC** (public alternating current), **Fast/DC**, **HPC** (ultra-fast
-  charging) and **✎ Manual**.
+- **Home** (your wallbox **or a domestic socket**), **AC** (public alternating current), **Fast/DC**,
+  **HPC** (ultra-fast charging) and **✎ Manual**.
+- **Home does not mean wallbox.** *Home* is where you charged, not what you charged from — a
+  three-pin socket in the garage is a Home charge too. It matters because of what gets billed: with a
+  wallbox meter mapped (see *Wallbox* below), the charge is billed on the **energy the meter
+  delivered**; without one, it is billed on the **energy that reached the battery**, exactly like a
+  public charge. Between the two there is the charger's own loss as heat, typically 10–15 %.
 - **✎ Manual**: for public charging points with complicated tariffs (subscriptions, session fees…)
   you can **write in the total you actually paid by hand**; this value overrides the automatic
   estimate.

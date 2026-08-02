@@ -1204,7 +1204,7 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
         hours = (dt1 - dt0).total_seconds() / 3600.0
         if hours <= 0 or hours > 0.25:   # skip non-positive AND multi-hour gaps (charger
             continue                     # paused / poll miss): never price a phantom interval
-                                         # across the gap (mirrors _integrate_charge_energy_kwh)
+                                         # across the gap (same guard as _charge_energy_below_soc)
         e = (p0 + p1) / 2.0 * hours
         if e <= 0:
             continue
@@ -5500,7 +5500,9 @@ _SOH_SOC_BUDGET = 200.0       # how many SoC points the headline pools over (see
 def _charge_energy_below_soc(db, start: str, end: str | None, cap_soc: float):
     """(energy, SoC reached) for the part of a charge BELOW `cap_soc`, or None when there is none.
 
-    Same integral as _integrate_charge_energy_kwh, stopped where the SoC scale stops being energy.
+    ∫|V·I|dt over the logged samples (trapezoidal, signals 1177/1178 — the same source as the
+    power-curve chart), stopped where the SoC scale stops being energy. Measured, not derived from
+    SoC, so dividing it by the SoC delta tracks battery ageing instead of being circular.
     On an LFP the open-circuit voltage is flat across the middle of the range, so the BMS counts
     coulombs and drifts; near the top the curve finally rises and it re-anchors — adding SoC points
     that no energy paid for. Dividing measured energy by a delta containing them under-states the
@@ -5541,48 +5543,6 @@ def _charge_energy_below_soc(db, start: str, end: str | None, cap_soc: float):
     # The caller then falls back to the charge's own delta: we cannot truncate what we cannot see,
     # and an estimate with a known bias beats making the whole page disappear.
     return (energy, reached) if rows else None
-
-
-def _integrate_charge_energy_kwh(db, start: str, end: str | None) -> float:
-    """Real DC energy delivered into the pack during a charge = ∫|V·I|dt over the
-    logged samples (trapezoidal). V/I come from signals 1177/1178 in `positions`, the
-    same source as the power-curve chart and the Wallbox DC comparison. This is a
-    MEASURED energy, independent of SoC — so dividing it by the SoC delta gives an
-    estimate of usable pack capacity that actually tracks battery ageing (unlike the
-    stored energy_added_kwh, which is SoC × nominal capacity and would be circular)."""
-    if end:
-        # Cap at the next charge's start (same leak guard as get_charge_power_curve / compute_cost)
-        # so an overlapping orphan charge can't inflate the integrated DC energy / SoH estimate.
-        lo, hi, excl = _power_window_bounds(db, start, end)
-        rows = db.execute(
-            "SELECT recorded_at, charge_voltage_v, charge_current_a FROM positions "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? AND recorded_at "
-            + ("<" if excl else "<=")
-            + " ? ORDER BY recorded_at",
-            (_current_vehicle_id(), lo, hi),
-        ).fetchall()
-    else:
-        rows = db.execute(
-            "SELECT recorded_at, charge_voltage_v, charge_current_a FROM positions "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? ORDER BY recorded_at",
-            (_current_vehicle_id(), start),
-        ).fetchall()
-    energy = 0.0
-    prev_t = None
-    prev_p = 0.0
-    for r in rows:
-        try:
-            t = datetime.fromisoformat(str(r["recorded_at"]).replace(" ", "T").rstrip("Z"))
-        except Exception:
-            continue
-        p = abs((r["charge_voltage_v"] or 0) * (r["charge_current_a"] or 0)) / 1000.0
-        if prev_t is not None:
-            dt_h = (t - prev_t).total_seconds() / 3600.0
-            # Guard against gaps (deep-sleep / pruning): ignore intervals over 15 min.
-            if 0 < dt_h <= 0.25:
-                energy += (p + prev_p) / 2.0 * dt_h
-        prev_t, prev_p = t, p
-    return energy
 
 
 _AC_CHARGE_TYPES = ('AC', 'HOME', 'FREE')   # types where DC fast-rate is impossible

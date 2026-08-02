@@ -949,7 +949,7 @@
     "charge_prices": "Charge Prices",
     "charge_prices_desc": "Cost per kWh for each charge type — used to calculate session costs automatically.",
     "save_prices": "Save prices",
-    "home_desc": "Home Wallbox / private charging",
+    "home_desc": "Wallbox or domestic socket",
     "ac_desc": "Public AC stations up to 22 kW",
     "fast_desc": "DC fast chargers up to 100 kW",
     "hpc_desc": "High Power Charging 150 kW+",

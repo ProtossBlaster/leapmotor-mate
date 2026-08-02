@@ -267,8 +267,14 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
 **(Menü: Ladungen)** — Die Liste der Ladungen. Für jede: **hinzugefügte Energie (kWh)**, **Spitzenleistung**,
 **Typ** und **Kosten**, mit dem **tatsächlichen €/kWh** gut sichtbar. Der Typ ist mit einem Etikett klassifiziert:
 
-- **Zuhause** (Ihre Wallbox), **AC** (öffentlicher Wechselstrom), **Schnell/FAST** (DC),
-  **HPC** (Ultraschnellladung) und **✎ Manuell**.
+- **Zuhause** (Ihre Wallbox **oder eine Haushaltssteckdose**), **AC** (öffentlicher Wechselstrom),
+  **Schnell/FAST** (DC), **HPC** (Ultraschnellladung) und **✎ Manuell**.
+- **Zuhause bedeutet nicht Wallbox.** *Zuhause* sagt, **wo** Sie geladen haben, nicht woraus — auch
+  eine gewöhnliche Steckdose in der Garage ist eine Ladung zuhause. Für die Abrechnung macht das
+  einen Unterschied: Ist der Zähler einer Wallbox eingebunden (siehe *Wallbox* weiter unten), wird
+  die Ladung über die **vom Zähler gelieferte Energie** abgerechnet; ohne ihn über die **in der
+  Batterie angekommene Energie**, genau wie eine öffentliche Ladung. Dazwischen liegt der
+  Wärmeverlust des Ladegeräts, typischerweise 10–15 %.
 - **✎ Manuell**: Für öffentliche Ladesäulen mit komplizierten Tarifen (Abonnements, Sitzungskosten…) können Sie
   **den tatsächlich gezahlten Gesamtbetrag von Hand eintragen**; dieser Wert überschreibt die automatische Schätzung.
 - Auch Ladungen, die stattgefunden haben, während das Auto ausgeschaltet/offline war, werden aus dem Sprung des

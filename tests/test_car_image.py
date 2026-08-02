@@ -115,3 +115,93 @@ def test_compose_animated_webp_when_charging():
 def test_static_image_extracts_tripsum_from_real_shape():
     pkg = _tiny_package()
     assert car_image.static_image(pkg) is not None
+
+
+# ── the animation: which frames, and which way round (#211) ─────────────────────
+def _animated_package(dot_x: list[int], *, body_right_edge: int = 60) -> bytes:
+    """A package whose charging frames carry one bright dot at the given x positions.
+
+    The car is a solid block from the left edge to `body_right_edge`; the dot stands in for the
+    highlight travelling along the cable. Feed the positions in the order the frames are numbered
+    and the measurement has to work out which end is the car."""
+    pytest.importorskip("PIL")
+    from PIL import Image
+    W, H = 120, 40
+    body = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    for x in range(body_right_edge):
+        for y in range(H):
+            body.putpixel((x, y), (200, 200, 200, 255))
+
+    def _png(img):
+        b = io.BytesIO()
+        img.save(b, format="PNG")
+        return b.getvalue()
+
+    files = {"carpic_body.png": _png(body)}
+    for n in ("carpic_hood_close.png", "carpic_rightbehind_close.png", "carpic_rightfront_close.png",
+              "carpic_leftbehind_close.png", "carpic_leftfront_close.png",
+              "carpic_leftfront_window_close.png", "carpic_leftbehind_window_close.png",
+              "carpic_charge_open.png", "carpic_charge1.png", "carpic_for_tripsum.png"):
+        files[n] = _png(Image.new("RGBA", (W, H), (0, 0, 0, 0)))
+    for i, x in enumerate(dot_x, start=2):
+        f = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
+                f.putpixel((x + dx, H // 2 + dy), (255, 255, 255, 255))
+        files[f"carpic_charge{i}.png"] = _png(f)
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        for n, b in files.items():
+            z.writestr(f"android/xxhdpi/{n}", b)
+    return buf.getvalue()
+
+
+def _order_of(pkg_bytes):
+    car_image.clear_cache()
+    return car_image._order(pkg_bytes)
+
+
+def test_flow_towards_the_car_keeps_the_file_order():
+    # Dot starts far from the car and ends against it — numbered the right way round already.
+    assert _order_of(_animated_package([110, 100, 90, 80, 70, 63])) == [2, 3, 4, 5, 6, 7]
+
+
+def test_flow_away_from_the_car_is_played_backwards():
+    # The T03 case @banolka reported: frame 2 is already at the car, so the cycle reads as energy
+    # leaving it. Same pixels, played the other way.
+    assert _order_of(_animated_package([63, 70, 80, 90, 100, 110])) == [7, 6, 5, 4, 3, 2]
+
+
+def test_ends_too_close_to_call_are_left_alone():
+    # Both ends the same distance from the car → no evidence either way → don't touch the order.
+    assert _order_of(_animated_package([100, 90, 80, 90, 100])) == [2, 3, 4, 5, 6]
+
+
+def test_every_frame_in_the_package_is_played():
+    # The library stopped at carpic_charge15; the real B10 package ships 18, and the three it
+    # dropped are the ones where the pulse reaches the car.
+    pkg = _animated_package([110 - 2 * i for i in range(17)])          # carpic_charge2..18
+    assert len(_order_of(pkg)) == 17
+    car_image.clear_cache()
+    body, mime = car_image.compose(pkg, {"charging": 1})
+    assert mime == "image/webp"
+    from PIL import Image
+    assert Image.open(io.BytesIO(body)).n_frames == 17
+
+
+def test_a_single_frame_package_still_composes():
+    pkg = _animated_package([80])
+    car_image.clear_cache()
+    body, mime = car_image.compose(pkg, {"charging": 1})
+    assert mime == "image/webp" and body[:4] == b"RIFF"
+
+
+def test_measurement_is_cached_per_package():
+    pkg = _animated_package([63, 70, 80, 90, 100, 110])
+    car_image.clear_cache()
+    first = car_image._order(pkg)
+    assert car_image._parsed["order"] is first          # second call must not re-measure
+    assert car_image._order(pkg) is first
+    car_image.clear_cache()
+    assert car_image._parsed["order"] is None

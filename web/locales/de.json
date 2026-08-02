@@ -949,7 +949,7 @@
     "charge_prices": "Ladepreise",
     "charge_prices_desc": "Kosten pro kWh je Ladetyp — zur automatischen Berechnung der Sitzungskosten.",
     "save_prices": "Preise speichern",
-    "home_desc": "Heim-Wallbox / privates Laden",
+    "home_desc": "Wallbox oder Haushaltssteckdose",
     "ac_desc": "Öffentliche AC-Stationen bis 22 kW",
     "fast_desc": "DC-Schnelllader bis 100 kW",
     "hpc_desc": "High Power Charging 150 kW+",

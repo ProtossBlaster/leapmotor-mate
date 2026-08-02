@@ -949,7 +949,7 @@
     "charge_prices": "Preços de carregamento",
     "charge_prices_desc": "Custo por kWh para cada tipo de carregamento — usado para calcular automaticamente o custo das sessões.",
     "save_prices": "Guardar preços",
-    "home_desc": "Wallbox doméstica / carregamento privado",
+    "home_desc": "Wallbox ou tomada doméstica",
     "ac_desc": "Estações públicas AC até 22 kW",
     "fast_desc": "Carregadores rápidos DC até 100 kW",
     "hpc_desc": "High Power Charging 150 kW+",

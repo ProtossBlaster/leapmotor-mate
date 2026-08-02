@@ -279,8 +279,14 @@ valide** au lieu de faire disparaître la carte), et avec elle :
 maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidence. Le type est classé par une
 étiquette :
 
-- **Domicile** (votre wallbox), **AC** (courant alternatif public), **Rapide/FAST** (DC), **HPC** (recharge
-  ultra-rapide) et **✎ Manuel**.
+- **Domicile** (votre wallbox **ou une prise domestique**), **AC** (courant alternatif public),
+  **Rapide/FAST** (DC), **HPC** (recharge ultra-rapide) et **✎ Manuel**.
+- **Domicile ne veut pas dire wallbox.** *Domicile* désigne **où** vous avez rechargé, pas à partir
+  de quoi : une prise ordinaire dans le garage est aussi une recharge à domicile. La différence
+  compte pour le calcul : si le compteur d'une wallbox est relié (voir *Wallbox* plus bas), la
+  recharge est facturée sur l'**énergie délivrée par le compteur** ; sinon, elle l'est sur
+  l'**énergie arrivée à la batterie**, exactement comme une recharge publique. Entre les deux se
+  trouve la perte en chaleur du chargeur, typiquement 10 à 15 %.
 - **✎ Manuel** : pour les bornes publiques aux tarifs compliqués (abonnements, frais de session…), vous pouvez
   **saisir à la main le total réellement payé** ; cette valeur remplace l'estimation automatique.
 - Même les recharges effectuées pendant que la voiture était éteinte/hors ligne sont **reconstruites** à
