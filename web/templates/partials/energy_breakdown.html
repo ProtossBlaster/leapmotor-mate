@@ -5,7 +5,7 @@
   <h2 class="font-semibold text-white">{{ t('energy_distribution') }}</h2>
   {% endif %}
   {% if eb and eb.total_kwh and eb.total_kwh > 0 %}
-  <span class="text-xs text-slate-500">{% if not eb_label %}{{ t('last_week') }} · {% endif %}{{ eb.total_kwh }} kWh</span>
+  <span class="text-xs text-slate-500">{% if not eb_label %}{{ t('last_week') }} · {% endif %}{{ eb.total_kwh | nice }} kWh</span>
   {% endif %}
 </div>
 
@@ -31,6 +31,13 @@
      vita dell'auto, i viaggi locali no → niente Distanza/Durata/Media (GitHub #105), solo il perché. -->
 <p class="text-[11px] text-slate-500 mb-4 pb-3 border-b border-slate-700/60 leading-snug">{{ t('ec_trips_partial').format(d=eb.trips_since) }}</p>
 {% endif %}
+{% if eb.cloud_short %}
+<!-- Il totale del cloud è molto sotto la somma dei viaggi di Mate per la stessa finestra: l'auto non
+     è riuscita a caricare tutte le sessioni (#212). Qui i valori restano quelli del cloud — la
+     ripartizione Guida/Clima/Altro esiste solo lì — ma va detto che descrivono solo una parte. -->
+<p class="text-[11px] text-amber-400/80 mb-4 pb-3 border-b border-slate-700/60 leading-snug">
+  {{ t('ec_cloud_short_split').format(local=eb.local_kwh) }}</p>
+{% endif %}
 <div class="flex w-full h-4 rounded-full overflow-hidden bg-slate-700 mb-4">
   {% if eb.driving_pct %}<div class="bg-brand"     style="width:{{ eb.driving_pct }}%"></div>{% endif %}
   {% if eb.ac_pct %}<div class="bg-sky-400"        style="width:{{ eb.ac_pct }}%"></div>{% endif %}
@@ -39,18 +46,18 @@
 <div class="grid grid-cols-3 gap-3">
   <div>
     <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-brand"></span><span class="text-xs text-slate-400">{{ t('eb_driving') }}</span></div>
-    <div class="text-white font-bold mt-1">{{ eb.driving_pct }}%</div>
-    <div class="text-xs text-slate-500">{{ eb.driving_kwh }} kWh</div>
+    <div class="text-white font-bold mt-1">{{ eb.driving_pct | nice }}%</div>
+    <div class="text-xs text-slate-500">{{ eb.driving_kwh | nice }} kWh</div>
   </div>
   <div>
     <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span><span class="text-xs text-slate-400">{{ t('eb_ac') }}</span></div>
-    <div class="text-white font-bold mt-1">{{ eb.ac_pct }}%</div>
-    <div class="text-xs text-slate-500">{{ eb.ac_kwh }} kWh</div>
+    <div class="text-white font-bold mt-1">{{ eb.ac_pct | nice }}%</div>
+    <div class="text-xs text-slate-500">{{ eb.ac_kwh | nice }} kWh</div>
   </div>
   <div>
     <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span><span class="text-xs text-slate-400">{{ t('eb_other') }}</span></div>
-    <div class="text-white font-bold mt-1">{{ eb.other_pct }}%</div>
-    <div class="text-xs text-slate-500">{{ eb.other_kwh }} kWh</div>
+    <div class="text-white font-bold mt-1">{{ eb.other_pct | nice }}%</div>
+    <div class="text-xs text-slate-500">{{ eb.other_kwh | nice }} kWh</div>
   </div>
 </div>
 {% else %}

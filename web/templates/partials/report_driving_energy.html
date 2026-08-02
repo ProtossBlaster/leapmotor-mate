@@ -1,22 +1,36 @@
+{# Consumo medio + Energia consumata for the Monthly Report's driving tiles.
+
+   Normally the car's own cloud figure for the period. When that total comes back far below what
+   Mate's own trips add up to (#212 — sessions the car never managed to upload), it isn't the
+   period's consumption, so Mate's own sum is shown instead and the tile says which one it is. #}
+{% set short = eb and eb.cloud_short %}
+{% set avg   = (eb.local_avg_kwh100 if short else eb.avg_kwh100) if eb else none %}
+{% set used  = (eb.local_kwh if short else eb.total_kwh) if eb else none %}
 <div class="card">
   <div class="stat-label">{{ t('avg_efficiency') }}</div>
   <div class="flex items-baseline gap-2">
-    {% if eb and eb.avg_kwh100 %}
-    <span class="stat-value {% if eb.avg_kwh100 < 18 %}text-green-400{% elif eb.avg_kwh100 < 22 %}text-yellow-400{% else %}text-red-400{% endif %}">
-      {{ eff_val(eb.avg_kwh100)|nice }}<span class="text-base font-normal text-slate-400"> {{ eff_unit() }}</span>
+    {% if avg %}
+    <span class="stat-value {% if avg < 18 %}text-green-400{% elif avg < 22 %}text-yellow-400{% else %}text-red-400{% endif %}">
+      {{ eff_val(avg)|nice }}<span class="text-base font-normal text-slate-400"> {{ eff_unit() }}</span>
     </span>
     {% else %}
     <span class="stat-value text-slate-500">—</span>
     {% endif %}
   </div>
+  {% if short %}
+  <div class="text-[11px] text-slate-500 mt-1 leading-snug">{{ t('ec_cloud_short') }}</div>
+  {% endif %}
 </div>
 <div class="card">
   <div class="stat-label">{{ t('energy_used') }}</div>
   <div class="flex items-baseline gap-2">
-    {% if eb and eb.total_kwh is not none %}
-    <span class="stat-value">{{ eb.total_kwh }}</span><span class="text-slate-400 text-sm">kWh</span>
+    {% if used is not none %}
+    <span class="stat-value">{{ used | nice }}</span><span class="text-slate-400 text-sm">kWh</span>
     {% else %}
     <span class="stat-value text-slate-500">—</span>
     {% endif %}
   </div>
+  {% if short %}
+  <div class="text-[11px] text-slate-500 mt-1 leading-snug">{{ t('ec_cloud_short_amount').format(cloud=eb.cloud_total_kwh) }}</div>
+  {% endif %}
 </div>

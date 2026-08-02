@@ -11,7 +11,7 @@
   {% endif %}
 </div>
 <div class="flex items-end justify-between mb-3">
-  <div class="text-4xl font-bold" style="color:{{ color }}">{{ "%.1f"|format(soc) }}<span class="text-xl text-slate-400">%</span></div>
+  <div class="text-4xl font-bold" style="color:{{ color }}">{{ soc|dec(1) }}<span class="text-xl text-slate-400">%</span></div>
   <div class="text-right">
     <div class="text-slate-500 text-xs mb-1">{{ t('range') }}</div>
     <div class="font-bold text-white text-lg">{{ dist_val((status.range_km or 0) if status else 0)|int }} <span class="text-xs font-normal text-slate-400">{{ dist_unit() }}</span></div>

@@ -767,7 +767,7 @@
         <div>Mate <span class="text-slate-200">{{ diag.version }}</span> · {{ diag.model }}{% if diag.year and diag.year != '—' %} ({{ diag.year }}){% endif %} · {{ diag.vin_masked }}</div>
         <div>DB {{ diag.db_size_mb }} MB · {{ diag.counts.trips }} {{ t('trips_title') | lower }} · {{ diag.counts.charges }} {{ t('charges_title') | lower }} · {{ diag.counts.positions }} pos</div>
         <div>{{ t('diag_last_poll') }}:
-          {% if diag.last_poll_age_min is not none %}{{ diag.last_poll_age_min }} min · SoC {{ diag.last_soc }}% · {{ diag.last_gear }}{% if diag.last_charging %} · ⚡{% endif %}{% else %}{{ t('diag_never') }}{% endif %}
+          {% if diag.last_poll_age_min is not none %}{{ diag.last_poll_age_min }} min · SoC {{ diag.last_soc | nice }}% · {{ diag.last_gear }}{% if diag.last_charging %} · ⚡{% endif %}{% else %}{{ t('diag_never') }}{% endif %}
         </div>
         <div>{{ t('diag_integrations') }}:
           {% for key, on in [('MQTT', diag.features.mqtt), ('Wallbox', diag.features.wallbox), ('ABRP', diag.features.abrp), ('Add-on', diag.features.addon)] %}<span class="{% if on %}text-emerald-400{% else %}text-slate-600{% endif %}">{{ key }} {% if on %}✓{% else %}✗{% endif %}</span>{% if not loop.last %} · {% endif %}{% endfor %}
@@ -838,6 +838,10 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <span class="text-sm text-white">{{ t('adv_reconstruct_label') }}</span>
+            {# These three readouts stay DOT-separated on purpose: the slider's oninput
+               overwrites them with `this.value`, which is always a raw dotted number. Put a
+               comma in the server-rendered one and it would flip to a dot the moment the user
+               touched the slider — worse than being consistently dotted. #}
             <span class="font-bold text-brand"><span id="adv-rc-val">{{ settings.get('charge_reconstruct_min_pct', '2.0') }}</span>%</span>
           </div>
           <input type="range" name="charge_reconstruct_min_pct" min="1" max="10" step="0.5"

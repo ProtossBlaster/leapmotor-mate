@@ -67,11 +67,11 @@
     <div class="space-y-3">
       <div class="flex justify-between items-center">
         <span class="stat-label">{{ t('energy_added') }}</span>
-        <span class="text-xl font-bold text-yellow-400">+{{ "%.1f"|format(last_charge.energy_added_kwh or 0) }} kWh</span>
+        <span class="text-xl font-bold text-yellow-400">+{{ (last_charge.energy_added_kwh or 0)|dec(1) }} kWh</span>
       </div>
       <div class="flex justify-between text-sm">
         <span class="text-slate-400">{{ t('soc') }}</span>
-        <span class="text-white">{{ "%.0f"|format(last_charge.start_soc or 0) }}% → {{ "%.0f"|format(last_charge.end_soc or 0) }}%</span>
+        <span class="text-white">{{ (last_charge.start_soc or 0)|dec(0) }}% → {{ (last_charge.end_soc or 0)|dec(0) }}%</span>
       </div>
       <div class="flex justify-between text-sm">
         <span class="text-slate-400">{{ t('duration') }}</span>
@@ -81,7 +81,7 @@
         <span class="text-slate-400">{{ t('type') }}</span>
         <span class="text-white {% if last_charge.charge_type == 'DC' %}text-yellow-400{% endif %}">
           {{ last_charge.charge_type or 'AC' }}
-          {% if last_charge.max_power_kw %} · {{ "%.1f"|format(last_charge.max_power_kw) }} kW{% endif %}
+          {% if last_charge.max_power_kw %} · {{ last_charge.max_power_kw|dec(1) }} kW{% endif %}
         </span>
       </div>
       {% if last_charge.cost %}

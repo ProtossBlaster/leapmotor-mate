@@ -30,10 +30,30 @@ def _imperial(system: str) -> bool:
     return system in ("imperial_uk", "imperial_us")
 
 
+def decimal_point(s: str) -> str:
+    """Put the decimal separator in the UI language's own place.
+
+    `money` and `price3` have always done this, and nothing else did: in Italian the Monthly
+    Report showed a cost of "38,74 €" beside an energy of "110.3 kWh" — the same page writing
+    the same kind of number two ways. Applied here and in `main._nice`, which between them
+    format every displayed number, so the whole app now follows one rule.
+
+    Only the decimal mark: no thousands grouping, because these are short quantities (kWh, km,
+    °C) where a group separator would be noise, and `money` already handles the amounts where
+    it isn't. English keeps the dot.
+
+    Formatting a number must never be able to raise: with no database reachable (a unit test on
+    the pure conversion helpers, a very early request) the dot stands."""
+    try:
+        return s.replace(".", ",") if db_reader.get_language() != "en" else s
+    except Exception:                                            # noqa: BLE001
+        return s
+
+
 def _num(v: float, dec: int) -> str:
     """Number with `dec` decimals, trailing zeros trimmed (matches main._nice)."""
     s = f"{float(v):.{dec}f}"
-    return s.rstrip("0").rstrip(".") if dec else s
+    return decimal_point(s.rstrip("0").rstrip(".") if dec else s)
 
 
 # ── unit labels (for chart axes / headers: "Distance ({{ dist_unit() }})") ────

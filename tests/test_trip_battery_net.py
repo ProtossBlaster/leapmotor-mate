@@ -76,6 +76,7 @@ def test_the_tile_renders_the_net_instead_of_the_empty_consumption(tmp_path, mon
     block = src[src.index("{% if trip.battery_net_kwh is not none %}"):]
     block = block[:block.index("</div>", block.index("{% endif %}"))]
     env = jinja2.Environment()
+    env.filters["dec"] = lambda v, n=1: "\u2014" if v is None else f"{float(v):.{n}f}"
     out = env.from_string(block + "</div>").render(
         trip=trip, t=lambda k: {"battery_net": "Battery change", "energy_used": "Energy used"}[k])
     import re

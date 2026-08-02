@@ -16,7 +16,7 @@
       {{ fmt_dur(s.duration_min) }}
       {% if s.outside_temp_start_c is not none %}· 🌡️ {{ s.outside_temp_start_c | temp(1) }}{% endif %}
       {% if s.avg_speed_kmh %}· 🚗 {{ s.avg_speed_kmh | speed }}{% endif %}
-      · {{ t('similar_overlap') }} {{ s.overlap_pct }}%
+      · {{ t('similar_overlap') }} {{ s.overlap_pct | nice }}%
     </div>
   </div>
   <div class="text-right flex-shrink-0" style="min-width:84px">

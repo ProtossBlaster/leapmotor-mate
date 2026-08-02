@@ -55,7 +55,7 @@
       </div>
       <div style="font-size:2rem;font-weight:800" class="{{ pct_color }}">{% if pct is not none %}{{ pct | nice }}{% else %}—{% endif %}<span style="font-size:1rem;color:#94a3b8;font-weight:400">%</span></div>
       <div style="height:8px;background:#0f172a;border-radius:5px;overflow:hidden;margin-top:8px">
-        <div style="height:100%;width:{{ pct or 0 }}%;background:linear-gradient(90deg,{{ bar_from }},{{ bar_to }})"></div>
+        <div style="height:100%;width:{{ (pct or 0) }}%;background:linear-gradient(90deg,{{ bar_from }},{{ bar_to }})"></div>
       </div>
     </div>
     {% endmacro %}

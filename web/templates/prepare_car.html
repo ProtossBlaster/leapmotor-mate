@@ -313,8 +313,8 @@
           <div id="ready-windows-fields" class="flex items-center gap-2">
             <input type="range" id="ready-wins-idx" min="0" max="{{ (wins_stops | length) - 1 }}" step="1"
                    value="{{ ready_wins_idx }}" class="accent-brand cursor-pointer" oninput="winsIdxChanged(this.value)">
-            <span id="ready-wins-label" class="text-slate-200 font-semibold text-sm w-10">{{ wins_stops[ready_wins_idx] }}%</span>
-            <input type="hidden" name="windows_pct" id="ready-wins-pct" value="{{ wins_stops[ready_wins_idx] }}">
+            <span id="ready-wins-label" class="text-slate-200 font-semibold text-sm w-10">{{ wins_stops[ready_wins_idx] | nice }}%</span>
+            <input type="hidden" name="windows_pct" id="ready-wins-pct" value="{{ wins_stops[ready_wins_idx] | nice }}">
           </div>
         </div>
 

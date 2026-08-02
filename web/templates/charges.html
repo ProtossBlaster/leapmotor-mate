@@ -36,7 +36,7 @@
     <span>{{ t('charges_station_filter') }}
       <b>{{ station_info.name if station_info and station_info.name else t('map_unnamed_station') }}</b>
       {% if station_info %}
-      — {{ station_info.sessions }} {{ t('sessions_recorded') }} · {{ station_info.kwh }} kWh
+      — {{ station_info.sessions }} {{ t('sessions_recorded') }} · {{ station_info.kwh | nice }} kWh
       {% if station_info.cost is not none %}· {{ station_info.cost | money }}{% endif %}
       {% endif %}
     </span>
@@ -211,7 +211,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
         <div class="text-2xl font-bold text-white">{{ ac_dc.ac.count }}
           <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
         </div>
-        <div class="text-xs text-slate-500 mt-1">{{ ac_dc.ac.kwh }} kWh
+        <div class="text-xs text-slate-500 mt-1">{{ ac_dc.ac.kwh | nice }} kWh
           {% if ac_dc.total %}· {{ (ac_dc.ac.count / ac_dc.total * 100) | round | int }}%{% endif %}
         </div>
       </div>
@@ -223,7 +223,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
         <div class="text-2xl font-bold text-white">{{ ac_dc.dc.count }}
           <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
         </div>
-        <div class="text-xs text-slate-500 mt-1">{{ ac_dc.dc.kwh }} kWh
+        <div class="text-xs text-slate-500 mt-1">{{ ac_dc.dc.kwh | nice }} kWh
           {% if ac_dc.total %}· {{ (ac_dc.dc.count / ac_dc.total * 100) | round | int }}%{% endif %}
         </div>
       </div>
@@ -270,7 +270,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 
   {{ scard(t('sessions'),     stats.session_count,                        '',    'text-yellow-400') }}
   {{ scard(t('total_energy'), stats.total_kwh or 0,                       'kWh', 'text-yellow-400') }}
-  {{ scard(t('avg_duration'), "%.1f"|format(stats.avg_duration_h or 0),   'h',   'text-white')      }}
+  {{ scard(t('avg_duration'), (stats.avg_duration_h or 0)|dec(1),   'h',   'text-white')      }}
   {{ scard(t('peak_power'),   stats.peak_power_kw or '—',                 'kW',  'text-blue-400')   }}
   {{ scard(t('total_cost'),
       stats.total_cost | money if stats.total_cost else '—',

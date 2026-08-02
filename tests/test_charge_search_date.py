@@ -32,6 +32,7 @@ def _card(**over):
     c.update(over)
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(str(TEMPLATES)), autoescape=True)
     env.filters["money"] = lambda v: f"{v:.2f} €"
+    env.filters["dec"] = lambda v, n=1: "\u2014" if v is None else f"{float(v):.{n}f}"
     return env.get_template("partials/charge_card.html").render(
         c=c, t=lambda k: k, charge_types=db_reader.CHARGE_TYPES,
         fmt_dur=lambda v: "—" if v is None else f"{v:.0f} min")

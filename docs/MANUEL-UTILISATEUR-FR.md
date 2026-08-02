@@ -321,7 +321,21 @@ incluent désormais une carte **Total V2L** avec l'énergie cumulée soutirée v
 
 ### Rapport mensuel
 **(menu : Rapport mensuel)** — Une synthèse **mois par mois** : combien vous avez roulé, combien d'énergie vous
-avez consommée et rechargée, combien vous avez dépensé. Pratique pour suivre l'évolution.
+avez consommée et rechargée, combien vous avez dépensé. Pratique pour suivre l'évolution. Il porte
+aussi les cartes **consommation officielle** (Aujourd'hui / Cette semaine / Ce mois-ci) du cloud.
+
+Il s'ouvre toujours sur le **mois en cours**, même le 1er sans un seul kilomètre : un mois vide le
+dit, au lieu de vous montrer sans rien signaler celui d'avant. Et sur un mois encore vide, aucune
+comparaison avec le précédent n'apparaît — chaque case afficherait −100 %, ce qui décrit le
+calendrier et non votre conduite.
+
+**D'où vient la consommation, et quand Mate la remplace.** *Consommation moyenne* et *Énergie
+consommée* sont normalement le total officiel de la voiture pour ce mois. Ce total n'est complet que
+dans la mesure où la liaison de votre voiture l'a été : si la voiture n'a pas pu joindre le cloud
+pendant un trajet, ce trajet n'y figure pas. Quand le total revient très en dessous de la somme des
+trajets que Mate a enregistrés pour le même mois, Mate affiche **son propre chiffre** — celui de la
+page Trajets — et l'indique sous la case. La répartition Conduite / Clim / Autre reste celle de la
+voiture, avec une ligne précisant qu'elle ne couvre que la partie arrivée au cloud.
 
 ### Santé de la batterie
 **(menu : Santé batterie)** — Une **estimation de l'état de santé (SoH)** de la batterie : combien de capacité

@@ -91,6 +91,14 @@
     <div class="text-lg">{{ t('report_no_data') }}</div>
     <div class="text-sm mt-1">{{ t('report_no_data_hint') }}</div>
   </div>
+{% elif r.month_empty %}
+  {# The month exists but hasn't happened yet. Say so instead of rendering a page of zeros —
+     and instead of quietly showing the previous month, which is what used to happen. #}
+  <div class="card text-center py-12 text-slate-500">
+    <div class="text-5xl mb-3">📆</div>
+    <div class="text-lg">{{ t('report_month_empty') }}</div>
+    <div class="text-sm mt-1">{{ t('report_month_empty_hint') }}</div>
+  </div>
 {% else %}
 {% set c = r.cur %}
 {% set prev_label = r.prev_label %}
@@ -139,7 +147,7 @@
   <div class="card">
     <div class="stat-label">{{ t('energy_charged') }}</div>
     <div class="flex items-baseline gap-2">
-      <span class="stat-value">{{ c.charge_kwh }}</span><span class="text-slate-400 text-sm">kWh</span>
+      <span class="stat-value">{{ c.charge_kwh | nice }}</span><span class="text-slate-400 text-sm">kWh</span>
       {% if r.deltas %}{{ delta_badge(r.deltas.charge_kwh, 'neutral') }}{% endif %}
     </div>
   </div>
@@ -168,11 +176,11 @@
     <div class="space-y-2">
       <div class="flex items-center justify-between text-sm">
         <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#22c55e"></span><span class="text-slate-200">🏠 {{ t('report_home') }}</span></span>
-        <span class="text-slate-400">{{ c.home.count }} · {{ c.home.kwh }} kWh · <span class="text-white font-medium">{{ c.home.cost | money }}</span></span>
+        <span class="text-slate-400">{{ c.home.count }} · {{ c.home.kwh | nice }} kWh · <span class="text-white font-medium">{{ c.home.cost | money }}</span></span>
       </div>
       <div class="flex items-center justify-between text-sm">
         <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#60a5fa"></span><span class="text-slate-200">🌐 {{ t('report_public') }}</span></span>
-        <span class="text-slate-400">{{ c.public.count }} · {{ c.public.kwh }} kWh · <span class="text-white font-medium">{{ c.public.cost | money }}</span></span>
+        <span class="text-slate-400">{{ c.public.count }} · {{ c.public.kwh | nice }} kWh · <span class="text-white font-medium">{{ c.public.cost | money }}</span></span>
       </div>
       {% if c.unconfirmed > 0 %}
       <div class="text-xs text-slate-500 pt-1">+{{ c.unconfirmed }} {{ t('report_unconfirmed') }}</div>
@@ -190,7 +198,7 @@
     {% if not is_reev %}
     <div>
       <div class="stat-label">{{ t('total_regen') }}</div>
-      <div class="stat-value text-xl text-green-400">{{ c.regen_kwh }}<span class="text-sm font-normal text-slate-400"> kWh</span></div>
+      <div class="stat-value text-xl text-green-400">{{ c.regen_kwh | nice }}<span class="text-sm font-normal text-slate-400"> kWh</span></div>
     </div>
     {% endif %}
     <div>

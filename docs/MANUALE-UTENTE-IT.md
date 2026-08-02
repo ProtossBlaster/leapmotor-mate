@@ -336,6 +336,19 @@ dell'auto, quindi non intaccata dai rari viaggi che il cloud non registra), con 
 usato e ricaricato, quanto hai speso. Comodo per tenere d'occhio l'andamento. Include anche le schede
 **consumo ufficiale** (Oggi / Questa settimana / Questo mese) dal cloud. 🆕
 
+Si apre sempre sul **mese in cui sei**, anche il primo del mese con ancora zero chilometri: un mese
+vuoto te lo dice, invece di mostrarti in silenzio quello prima. E su un mese senza niente dentro non
+compare nessun confronto col mese precedente — ogni casella direbbe −100 %, che descrive il
+calendario e non la tua guida.
+
+**Da dove viene il consumo, e quando Mate lo scavalca.** *Consumo medio* ed *Energia consumata*
+normalmente sono il totale ufficiale dell'auto per quel mese. Quel totale è completo quanto lo è
+stato il collegamento della tua auto: se durante un viaggio l'auto non è riuscita a parlare col
+cloud, quel viaggio lì dentro non c'è. Quando il totale torna molto sotto la somma dei viaggi che
+Mate ha registrato nello stesso mese, Mate mostra **il proprio numero** — lo stesso della pagina
+Viaggi — e lo scrive sotto la casella. La ripartizione Guida / Clima / Altro resta quella dell'auto,
+con una riga che avverte che copre solo la parte arrivata al cloud.
+
 ### Salute batteria
 **(menu: Salute batteria)** — Una **stima dello stato di salute (SoH)** della batteria: quanta capacità
 utilizzabile è rimasta rispetto al nuovo. Per ogni ricarica Mate divide l'energia che ha **misurato**

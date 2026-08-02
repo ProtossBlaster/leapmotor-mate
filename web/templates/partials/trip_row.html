@@ -39,11 +39,11 @@
 
   <div class="hidden sm:flex flex-col items-end gap-1 flex-shrink-0">
     <div class="soc-mini" title="{{ '%.0f'|format(trip.start_soc or 0) }}% → {{ '%.0f'|format(trip.end_soc or 0) }}%">
-      <i class="soc-rem"  style="width:{{ trip.end_soc or 0 }}%"></i>
-      <i class="soc-used" style="left:{{ trip.end_soc or 0 }}%;width:{{ used if used > 0 else 0 }}%"></i>
+      <i class="soc-rem"  style="width:{{ (trip.end_soc or 0) }}%"></i>
+      <i class="soc-used" style="left:{{ (trip.end_soc or 0) }}%;width:{{ (used if used > 0 else 0) }}%"></i>
     </div>
     <div class="text-slate-500 text-[11px]">
-      {{ "%.0f"|format(trip.start_soc or 0) }}→{{ "%.0f"|format(trip.end_soc or 0) }}%
+      {{ (trip.start_soc or 0)|dec(0) }}→{{ (trip.end_soc or 0)|dec(0) }}%
     </div>
   </div>
 

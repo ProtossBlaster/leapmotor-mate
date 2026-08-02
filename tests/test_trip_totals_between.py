@@ -11,9 +11,12 @@ import db_reader
 def _db(trips):
     con = sqlite3.connect(":memory:")
     con.row_factory = sqlite3.Row
+    # efficiency_kwh_100km is part of the real trips schema and the query now sums
+    # distance x efficiency as the window's local energy (#212) — the stand-in table has to carry
+    # it too, or these tests pass/fail on a column that only exists here.
     con.execute(
         "CREATE TABLE trips (id INT, started_at TEXT, ended_at TEXT, distance_km REAL, duration_min REAL, "
-        "vehicle_id INTEGER DEFAULT 1)"
+        "efficiency_kwh_100km REAL, vehicle_id INTEGER DEFAULT 1)"
     )
     con.executemany(
         "INSERT INTO trips (id, started_at, ended_at, distance_km, duration_min) VALUES (?,?,?,?,?)",

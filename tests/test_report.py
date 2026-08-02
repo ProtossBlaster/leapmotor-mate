@@ -81,12 +81,19 @@ def test_single_month_aggregates(tmp_path, monkeypatch):
 
 
 def test_default_and_invalid_month(tmp_path, monkeypatch):
+    """No month asked for (or an unknown one) → the CURRENT month, which always exists even with
+    nothing in it. It used to be "the newest month that has data", which on a quiet 2nd of the
+    month opened on the previous one — see test_report_current_month.py."""
+    from datetime import datetime
+    now_key = datetime.now(db_reader._local_tz()).strftime("%Y-%m")
     pdb = _setup(tmp_path, monkeypatch)
     _trip(pdb, 1, month="2026-04")
     _trip(pdb, 2, month="2026-06")
-    assert db_reader.get_monthly_report()["month"] == "2026-06"          # None → latest
-    assert db_reader.get_monthly_report("1999-01")["month"] == "2026-06"  # unknown → latest
-    assert [m["key"] for m in db_reader.get_monthly_report()["months"]] == ["2026-06", "2026-04"]
+    assert db_reader.get_monthly_report()["month"] == now_key           # None → current
+    assert db_reader.get_monthly_report("1999-01")["month"] == now_key   # unknown → current
+    keys = [m["key"] for m in db_reader.get_monthly_report()["months"]]
+    assert keys[:1] == [now_key]                    # newest first
+    assert keys[-2:] == ["2026-06", "2026-04"]      # the months with data, untouched
 
 
 def test_prev_month_deltas(tmp_path, monkeypatch):
@@ -119,7 +126,9 @@ def test_navigation_skips_gaps(tmp_path, monkeypatch):
     assert r["deltas"] is None                         # calendar-prev April has no data
 
     top = db_reader.get_monthly_report("2026-06")
-    assert top["next_month"] is None                   # newest
+    # ▶ from the newest month WITH data now lands on the current month, which always exists.
+    from datetime import datetime
+    assert top["next_month"] == datetime.now(db_reader._local_tz()).strftime("%Y-%m")
     assert top["prev_month"] == "2026-05"
 
 

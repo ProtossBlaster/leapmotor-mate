@@ -6,7 +6,7 @@
     <div style="font-size:12px" class="text-slate-300 space-y-0.5 flex-1">
       <div>🛣️ {{ (g.distance_km or 0) | dist(1) }}</div>
       <div>⏱ {{ (g.duration_min or 0)|int }} min <span class="text-slate-500">({{ t('driving_only') }})</span>{% if g.stop_min %} · ☕ {{ g.stop_min }} min {{ t('merge_stop') }}{% endif %}</div>
-      <div>🔋 {{ "%.0f"|format(g.start_soc or 0) }}% → {{ "%.0f"|format(g.end_soc or 0) }}%</div>
+      <div>🔋 {{ (g.start_soc or 0)|dec(0) }}% → {{ (g.end_soc or 0)|dec(0) }}%</div>
       {% if g.efficiency_kwh_100km %}<div>⚡ {{ g.efficiency_kwh_100km | eff }}</div>{% endif %}
     </div>
   </div>

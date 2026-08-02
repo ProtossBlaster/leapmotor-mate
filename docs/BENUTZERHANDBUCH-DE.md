@@ -310,6 +310,20 @@ kumulierten Energie.
 ### Monatsbericht
 **(Menü: Monatsbericht)** — Eine Zusammenfassung **Monat für Monat**: wie viel Sie gefahren sind, wie viel Energie
 Sie verbraucht und geladen haben, wie viel Sie ausgegeben haben. Praktisch, um die Entwicklung im Auge zu behalten.
+Er enthält außerdem die Karten **offizieller Verbrauch** (Heute / Diese Woche / Dieser Monat) aus der Cloud.
+
+Er öffnet immer den **laufenden Monat**, auch am Ersten ohne einen einzigen Kilometer: ein leerer
+Monat sagt das, statt Ihnen stillschweigend den vorherigen zu zeigen. Und für einen noch leeren Monat
+erscheint kein Vergleich mit dem vorherigen — jede Kachel läse −100 %, was den Kalender beschreibt
+und nicht Ihr Fahren.
+
+**Woher der Verbrauch kommt und wann Mate ihn übergeht.** *Durchschnittsverbrauch* und *Verbrauchte
+Energie* sind normalerweise die offizielle Monatssumme des Autos. Diese Summe ist nur so vollständig
+wie die Verbindung Ihres Autos war: Konnte das Auto während einer Fahrt die Cloud nicht erreichen,
+fehlt diese Fahrt darin. Liegt die Summe weit unter dem, was Mates eigene Fahrten für denselben
+Monat ergeben, zeigt Mate **die eigene Zahl** — dieselbe wie auf der Seite Fahrten — und schreibt es
+unter die Kachel. Die Aufteilung Fahren / Klima / Sonstiges bleibt die des Autos, mit einer Zeile,
+die sagt, dass sie nur den in der Cloud angekommenen Teil abdeckt.
 
 ### Batteriezustand
 **(Menü: Batteriezustand)** — Eine **Schätzung des Gesundheitszustands (SoH)** der Batterie: wie viel nutzbare

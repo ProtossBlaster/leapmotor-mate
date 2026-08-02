@@ -117,21 +117,21 @@
   <div class="card">
     <div class="stat-label">{{ t('energy_used') }}</div>
     <div class="flex items-baseline gap-1">
-      <span class="stat-value">{{ totals.total_kwh_used or 0 }}</span>
+      <span class="stat-value">{{ (totals.total_kwh_used or 0) | nice }}</span>
       <span class="text-slate-400 text-sm">kWh</span>
     </div>
   </div>
   <div class="card">
     <div class="stat-label">{{ t('v2l_total') }}</div>
     <div class="flex items-baseline gap-1">
-      <span class="stat-value text-emerald-400">{{ totals.v2l_total_kwh or 0 }}</span>
+      <span class="stat-value text-emerald-400">{{ (totals.v2l_total_kwh or 0) | nice }}</span>
       <span class="text-slate-400 text-sm">kWh</span>
     </div>
   </div>
   <div class="card">
     <div class="stat-label">{{ t('energy_charged') }}</div>
     <div class="flex items-baseline gap-1">
-      <span class="stat-value">{{ totals.total_kwh_charged or 0 }}</span>
+      <span class="stat-value">{{ (totals.total_kwh_charged or 0) | nice }}</span>
       <span class="text-slate-400 text-sm">kWh</span>
     </div>
     {% if totals.charge_count %}<div class="text-slate-500 text-xs mt-1">{{ totals.charge_count }} {{ t('charge_sessions') }}</div>{% endif %}
@@ -216,14 +216,14 @@
   <div class="card">
     <div class="stat-label">{{ t('total_regen') }}</div>
     <div class="flex items-baseline gap-1">
-      <span class="stat-value text-green-400">{{ totals.total_regen_kwh or 0 }}</span>
+      <span class="stat-value text-green-400">{{ (totals.total_regen_kwh or 0) | nice }}</span>
       <span class="text-slate-400 text-sm">kWh</span>
     </div>
   </div>
   <div class="card">
     <div class="stat-label">{{ t('avg_regen_trip') }}</div>
     <div class="flex items-baseline gap-1">
-      <span class="stat-value text-green-400">{{ totals.avg_regen_kwh or 0 }}</span>
+      <span class="stat-value text-green-400">{{ (totals.avg_regen_kwh or 0) | nice }}</span>
       <span class="text-slate-400 text-sm">kWh</span>
     </div>
   </div>
@@ -231,7 +231,7 @@
     <div class="stat-label">{{ t('regen_pct') }}</div>
     <div class="flex items-baseline gap-1">
       {% if totals.regen_pct %}
-      <span class="stat-value text-green-400">{{ totals.regen_pct }}</span>
+      <span class="stat-value text-green-400">{{ totals.regen_pct | nice }}</span>
       <span class="text-slate-400 text-sm">%</span>
       <span class="text-slate-500 text-xs ml-1">{{ t('energy_used') | lower }}</span>
       {% else %}
@@ -273,7 +273,7 @@
       <div class="flex items-center flex-wrap justify-end gap-x-5 gap-y-1 text-sm text-right">
         <span class="text-slate-500 whitespace-nowrap">{{ year.trip_count }} {{ t('trip_singular') if year.trip_count == 1 else t('trips_plural') }}</span>
         <span class="text-white font-semibold whitespace-nowrap">{{ year.total_km | dist(0) }}</span>
-        <span class="text-slate-400 whitespace-nowrap">{{ year.total_kwh }} kWh</span>
+        <span class="text-slate-400 whitespace-nowrap">{{ year.total_kwh | nice }} kWh</span>
         {{ eff_badge(year.avg_efficiency) }}
         <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
       </div>
@@ -293,7 +293,7 @@
           <div class="flex items-center flex-wrap justify-end gap-x-5 gap-y-1 text-xs text-right">
             <span class="text-slate-500 whitespace-nowrap">{{ month.trip_count }} {{ t('trip_singular') if month.trip_count == 1 else t('trips_plural') }}</span>
             <span class="text-slate-200 font-semibold whitespace-nowrap">{{ month.total_km | dist(0) }}</span>
-            <span class="text-slate-400 whitespace-nowrap">{{ month.total_kwh }} kWh</span>
+            <span class="text-slate-400 whitespace-nowrap">{{ month.total_kwh | nice }} kWh</span>
             {{ eff_badge(month.avg_efficiency) }}
             <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
           </div>

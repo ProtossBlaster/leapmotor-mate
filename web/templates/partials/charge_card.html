@@ -32,7 +32,7 @@
         </div>
         <div class="text-slate-500 text-xs mt-0.5">
           ⏱ {{ fmt_dur(c.duration_min) }}
-          {% if c.max_power_kw %}· {{ "%.1f"|format(c.max_power_kw) }} kW peak{% endif %}
+          {% if c.max_power_kw %}· {{ c.max_power_kw|dec(1) }} kW peak{% endif %}
           {% set is_dc = c.charge_type == 'DC' or (c.charge_type is none and (c.max_power_kw or 0) > 11) %}
           · <span style="color:{% if is_dc %}#fb923c{% else %}#38bdf8{% endif %};font-weight:700">{% if is_dc %}DC{% else %}AC{% endif %}</span>
         </div>
@@ -134,10 +134,10 @@
       <span class="text-slate-500">SOC</span>
       <span class="text-white font-medium">
         {% if has_soc %}
-        {{ "%.1f"|format(soc_start) }}%
+        {{ soc_start|dec(1) }}%
         <span class="text-slate-600 mx-1">→</span>
-        {{ "%.1f"|format(soc_end) }}%
-        <span class="text-yellow-400 ml-1 font-bold">+{{ "%.1f"|format(soc_delta) }}%</span>
+        {{ soc_end|dec(1) }}%
+        <span class="text-yellow-400 ml-1 font-bold">+{{ soc_delta|dec(1) }}%</span>
         {% else %}
         <span class="text-slate-600" title="{{ t('soc_unknown_hint') }}">—</span>
         {% endif %}
@@ -160,7 +160,7 @@
     <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
       <div class="stat-label" style="font-size:10px">{{ t('energy') }}</div>
       <div style="font-size:16px;font-weight:700;color:#fbbf24">
-        +{{ "%.1f"|format((c.ac_energy_kwh if show_wb else c.energy_added_kwh) or 0) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span>
+        +{{ ((c.ac_energy_kwh if show_wb else c.energy_added_kwh) or 0)|dec(1) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span>
         {% if show_wb %}<span style="font-size:10px;color:#60a5fa;font-weight:400" title="{{ t('wallbox_billed_help') }}"> 🔌 {{ t('wallbox_billed') }}</span>{% else %}<span style="font-size:10px;color:#94a3b8;font-weight:400" title="{{ t('energy_in_battery_help') }}"> 🔋 {{ t('energy_in_battery') }} (DC)</span>{% endif %}
       </div>
       {% if show_wb %}
@@ -169,14 +169,14 @@
            inflated (BMS snap-to-full on 100%-ending charges recorded before the fix), so
            hide the % rather than show nonsense. #}
         {% set _eff = (100 * c.energy_added_kwh / c.ac_energy_kwh) if c.energy_added_kwh else 0 %}
-        🔋 {{ "%.1f"|format(c.energy_added_kwh or 0) }} kWh {{ t('energy_in_battery') }} (DC){% if c.energy_added_kwh and _eff <= 100 %} · {{ t('efficiency') }} {{ "%.0f"|format(_eff) }}%{% endif %}
+        🔋 {{ (c.energy_added_kwh or 0)|dec(1) }} kWh {{ t('energy_in_battery') }} (DC){% if c.energy_added_kwh and _eff <= 100 %} · {{ t('efficiency') }} {{ _eff|dec(0) }}%{% endif %}
       </div>
       {% endif %}
     </div>
     <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
       <div class="stat-label" style="font-size:10px">{{ t('soc_gain') }}</div>
       <div style="font-size:16px;font-weight:700;color:white">
-        {% if has_soc %}+{{ "%.1f"|format(soc_delta) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> %</span>
+        {% if has_soc %}+{{ soc_delta|dec(1) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> %</span>
         {% else %}<span style="color:#475569" title="{{ t('soc_unknown_hint') }}">—</span>{% endif %}
       </div>
     </div>

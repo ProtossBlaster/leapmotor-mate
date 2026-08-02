@@ -19,7 +19,7 @@
   <div style="background:#0f172a;border-radius:8px;padding:10px 14px">
     <div class="text-slate-500 text-xs mb-1">{{ t('power') }}</div>
     <div class="font-bold {% if is_charging %}text-yellow-400{% else %}text-slate-600{% endif %}">
-      {% if is_charging %}{{ "%.2f"|format(status.charge_power_kw or 0) }} <span class="text-xs font-normal text-slate-400">kW</span>{% else %}—{% endif %}
+      {% if is_charging %}{{ (status.charge_power_kw or 0)|dec(2) }} <span class="text-xs font-normal text-slate-400">kW</span>{% else %}—{% endif %}
     </div>
   </div>
   <div style="background:#0f172a;border-radius:8px;padding:10px 14px">
@@ -35,13 +35,13 @@
   <div style="background:#0f172a;border-radius:8px;padding:10px 14px">
     <div class="text-slate-500 text-xs mb-1">{{ t('current_a') }}</div>
     <div class="font-bold {% if is_charging %}text-white{% else %}text-slate-600{% endif %}">
-      {% if is_charging and status.charge_current_a %}{{ "%.1f"|format(status.charge_current_a|abs) }} <span class="text-xs font-normal text-slate-400">A</span>{% else %}—{% endif %}
+      {% if is_charging and status.charge_current_a %}{{ status.charge_current_a|abs|dec(1) }} <span class="text-xs font-normal text-slate-400">A</span>{% else %}—{% endif %}
     </div>
   </div>
   <div style="background:#0f172a;border-radius:8px;padding:10px 14px">
     <div class="text-slate-500 text-xs mb-1">{{ t('voltage') }}</div>
     <div class="font-bold {% if is_charging %}text-white{% else %}text-slate-600{% endif %}">
-      {% if is_charging and status.charge_voltage_v %}{{ "%.1f"|format(status.charge_voltage_v) }} <span class="text-xs font-normal text-slate-400">V</span>{% else %}—{% endif %}
+      {% if is_charging and status.charge_voltage_v %}{{ status.charge_voltage_v|dec(1) }} <span class="text-xs font-normal text-slate-400">V</span>{% else %}—{% endif %}
     </div>
   </div>
 </div>

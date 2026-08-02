@@ -450,6 +450,7 @@ def set_setting(key: str, value: str) -> None:
     db = _conn_rw()
     db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?,?)", (key, str(value)))
     db.commit()
+    _lang_memo[0] = None          # cheap and unconditional: any write re-reads the language once
 
 
 def set_vehicle_capacity_current(kwh: float, nominal: float = None) -> None:
@@ -650,8 +651,17 @@ def is_setup_complete() -> bool:
     return get_setting("setup_complete") == "1"
 
 
+# The UI language is read for EVERY number displayed (units.decimal_point / main._nice put the
+# decimal separator where the language wants it), and a settings row costs ~0.5 ms to fetch — on a
+# page with 200 figures that would be 100 ms of pure lookup. It changes about once in the life of
+# an install, so it is memoised and the memo is dropped by set_setting when anything is written.
+_lang_memo: list = [None]
+
+
 def get_language() -> str:
-    return get_setting("language", "en")
+    if _lang_memo[0] is None:
+        _lang_memo[0] = get_setting("language", "en")
+    return _lang_memo[0]
 
 
 # ── Currency ──────────────────────────────────────────────────────────────────
@@ -4329,17 +4339,24 @@ def get_last_charge_end() -> Optional[datetime]:
 
 
 def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
-    """Distance/duration/count of LOCAL trips started within [begin_ts, end_ts] (epoch seconds) —
-    paired by the caller with a live getEC total for the SAME window, to show distance + average
-    kWh/100km alongside the official split (mirrors the car's own "since last charge" screen, which
-    shows Distanza/Durata/Media next to the same Guida/AC/Altro breakdown)."""
+    """Distance/duration/count/energy of LOCAL trips started within [begin_ts, end_ts] (epoch
+    seconds) — paired by the caller with a live getEC total for the SAME window, to show distance +
+    average kWh/100km alongside the official split (mirrors the car's own "since last charge"
+    screen, which shows Distanza/Durata/Media next to the same Guida/AC/Altro breakdown).
+
+    `energy_kwh` is Mate's OWN figure for the window — the same per-trip values the Trips page adds
+    up, cloud getEC where the cloud had a usable one and the SoC estimate where it didn't. The
+    caller uses it as the reference the cloud's period total is checked against (#212). A trip with
+    no efficiency counts as 0, which can only make the local total SMALLER — i.e. the check errs
+    toward leaving the cloud figure alone."""
     b = datetime.fromtimestamp(begin_ts, tz=timezone.utc).isoformat()
     e = datetime.fromtimestamp(end_ts, tz=timezone.utc).isoformat()
     db = _get()
     row = db.execute(
         """SELECT COUNT(*) AS trip_count,
                   ROUND(SUM(distance_km), 2) AS distance_km,
-                  ROUND(SUM(duration_min), 0) AS duration_min
+                  ROUND(SUM(duration_min), 0) AS duration_min,
+                  ROUND(SUM(distance_km * COALESCE(efficiency_kwh_100km, 0) / 100.0), 2) AS energy_kwh
            FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
              AND started_at >= ? AND started_at <= ?""",
         (_current_vehicle_id(), b, e),
@@ -5327,6 +5344,13 @@ def get_monthly_report(month: Optional[str] = None) -> dict:
     if not buckets:
         return {"has_data": False, "month": None, "months": []}
 
+    # The current month always exists, even before its first trip. Without this the page silently
+    # fell back to the newest month that HAD data: on the 2nd of August, with nothing driven yet,
+    # it opened on "July 2026" showing July's totals — right numbers under the wrong month for
+    # anyone who doesn't read the header. An empty month is an answer ("nothing yet"), not a
+    # missing page. Costs nothing when the month already has data.
+    buckets.setdefault(datetime.now(_local_tz()).strftime("%Y-%m"), _report_bucket())
+
     months_desc = sorted(buckets.keys(), reverse=True)
     if not month or month not in buckets:
         month = months_desc[0]
@@ -5347,8 +5371,12 @@ def get_monthly_report(month: Optional[str] = None) -> dict:
             return {"diff": round(now, 2), "pct": None}
         return {"diff": round(now - was, 2), "pct": int(round((now - was) / was * 100))}
 
+    # A month with nothing in it yet has nothing to compare: every delta would read −100 % against
+    # the previous month, which describes the calendar rather than the driving.
+    month_empty = cur["trip_count"] == 0 and cur["charge_count"] == 0
+
     deltas = None
-    if prev:
+    if prev and not month_empty:
         eff_d = None
         if cur["avg_efficiency"] is not None and prev["avg_efficiency"] is not None:
             eff_d = _delta(cur["avg_efficiency"], prev["avg_efficiency"])
@@ -5374,7 +5402,7 @@ def get_monthly_report(month: Optional[str] = None) -> dict:
              for d in range(1, ndays + 1)]
 
     return {
-        "has_data": True,
+        "has_data": True, "month_empty": month_empty,
         "month": month, "label": _label(month),
         "prev_month": older[0] if older else None,
         "next_month": newer[-1] if newer else None,

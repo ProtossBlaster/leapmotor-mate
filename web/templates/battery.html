@@ -162,7 +162,7 @@
   <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px">
     <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">{{ t('battery_vampire_typical') }}</div>
     <div style="font-size:1.6rem;font-weight:700" class="text-brand">
-      {{ vampire.typical_pct_per_day }}<span style="font-size:0.85rem;font-weight:400;color:#94a3b8"> %/{{ t('day_unit') }}</span>
+      {{ vampire.typical_pct_per_day | nice }}<span style="font-size:0.85rem;font-weight:400;color:#94a3b8"> %/{{ t('day_unit') }}</span>
     </div>
   </div>
 </div>

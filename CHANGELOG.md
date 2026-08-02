@@ -3,6 +3,59 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.5.0] — 2026-08-02
+
+### Changed
+- **Numbers are written the way your language writes them.** Until now `money` and the €/kWh price
+  followed the interface language and nothing else did, so an Italian Monthly Report showed a cost of
+  **38,74 €** on the same row as an energy of **110.3 kWh** and a price of **0,250 €/kWh** — the same
+  page writing the same kind of number three different ways. One rule now sits under every displayed
+  figure: the decimal separator is the comma in Italian, French, German, Dutch, Polish and Portuguese,
+  and stays the dot in English.
+
+  This is the most visible change in the release: it touches every screen. Nothing is rounded
+  differently and no value moves — only the mark between the units and the decimals.
+
+  Three places deliberately keep the dot, and it is worth knowing why: the width of a coloured bar,
+  anything inside a chart, and the three live readouts beside the Advanced-settings sliders, which
+  JavaScript rewrites from the slider itself the moment you touch it. A comma in the first two is a
+  syntax error rather than a separator — the bar would silently collapse to nothing — and in the
+  third it would flip to a dot under your finger.
+
+### Fixed
+- **The Monthly Report opens on the month you are in.** It used to open on the newest month that had
+  any data, so on the 2nd of August, with nothing driven yet, it showed **July** — July's real
+  numbers, under this month's page, with only the small header saying so. The current month now
+  always exists: empty, it says *"nothing this month yet"* instead of a page of zeros, and it shows
+  no comparison against last month, because every tile would read −100 % and that describes the
+  calendar rather than the driving.
+- **The report stops trusting a monthly total that is missing drives.** Reported by **@riri19**
+  (#212), whose Trips page and Monthly Report disagreed by a quarter about the same three drives:
+  16.4 kWh/100 km against 12.3, over the same 221 km.
+
+  Neither figure was miscalculated — they come from **different places**. A trip takes the car's
+  official energy when the cloud has a usable one and falls back to the battery-percentage estimate
+  when it doesn't; the report's two tiles took the car's official **monthly** total whole, with no
+  fallback and no check.
+
+  That total is only as complete as the car's uplink. On his own log the car was reading a stale
+  cloud frame on **59 %** of its polls while driving — and, on the afternoon in question, **8.9 %**
+  of the time during the drive whose energy the cloud got right against **75.1 %** during the one it
+  lost entirely. The drive the cloud missed is the drive the car couldn't reach it.
+
+  So the same reasoning the per-trip path already used now applies to the period: when the car's
+  total comes back far below what Mate's own trips add up to for the same window, Mate shows **its
+  own figure** and says so under the tile. The Guida / A·C / Altro split stays the car's own — that
+  breakdown exists nowhere else — with a line noting it covers only what reached the cloud. The
+  threshold was measured rather than picked: three months of a well-connected car put the cloud at
+  0.895, 1.032 and 0.982 of the local sum, and his broken month at 0.747. Only the low side is
+  guarded; a total **above** the local sum is normal, since it carries climate and standby energy
+  that no trip is charged with.
+
+### Documentation
+- The four user manuals and the README's Features list describe both report changes: where *Average
+  consumption* and *Energy used* come from, and when Mate overrules the car's own total.
+
 ## [3.4.10] — 2026-08-02
 
 ### Fixed

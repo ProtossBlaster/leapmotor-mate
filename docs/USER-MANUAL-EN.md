@@ -321,7 +321,21 @@ card showing the cumulative energy drawn via V2L over all time.
 
 ### Monthly Report
 **(menu: Monthly Report)** — A summary **month by month**: how much you drove, how much energy you
-used and charged, how much you spent. Handy for keeping an eye on the trend.
+used and charged, how much you spent. Handy for keeping an eye on the trend. It also carries the
+**official consumption** cards (Today / This week / This month) from the cloud.
+
+It always opens on the **month you are in**, even on the 1st with nothing driven yet — an empty
+month says so rather than quietly showing you the previous one, and a month with nothing in it
+shows no comparison against the one before (every figure would read −100 %, which describes the
+calendar and not your driving).
+
+**Where the consumption figure comes from, and when Mate overrules it.** *Average consumption* and
+*Energy used* normally come from the car's own official total for the month. That total is only as
+complete as your car's connection was: if the car couldn't reach the cloud during a drive, that
+whole drive is missing from it. When the total comes back far below what Mate's own trips add up to
+for the same month, Mate shows **its own figure instead** — the same one the Trips page shows — and
+says so under the tile. The Guida / A·C / Altro split stays the car's own, with a line saying it
+covers only the part that reached the cloud.
 
 ### Battery health
 **(menu: Battery health)** — An **estimate of the state of health (SoH)** of the battery: how much

@@ -53,7 +53,7 @@
       <div class="grid grid-cols-2 gap-4 stat-pairs">
         <div>
           <div class="stat-label">{{ t('distance') }}</div>
-          <div class="stat-value">{{ "%.1f"|format(dist_val(trip.distance_km or 0)) }}<span class="text-base font-normal text-slate-400"> {{ dist_unit() }}</span></div>
+          <div class="stat-value">{{ (dist_val(trip.distance_km or 0))|dec(1) }}<span class="text-base font-normal text-slate-400"> {{ dist_unit() }}</span></div>
         </div>
         <div>
           <div class="stat-label">{{ t('duration') }}</div>
@@ -78,11 +78,11 @@
              instead, under its own label: this is the battery's net change, not what the trip used. #}
           {% if trip.battery_net_kwh is not none %}
           <div class="stat-label">{{ t('battery_net') }}</div>
-          <div class="stat-value text-green-400">{{ "%.1f"|format(trip.battery_net_kwh) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
+          <div class="stat-value text-green-400">{{ trip.battery_net_kwh|dec(1) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
           {% else %}
           <div class="stat-label">{{ t('energy_used') }}</div>
           {% if trip.energy_kwh %}
-          <div class="stat-value text-amber-400">{{ "%.1f"|format(trip.energy_kwh) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
+          <div class="stat-value text-amber-400">{{ trip.energy_kwh|dec(1) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
           {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
           {% endif %}
         </div>
@@ -91,7 +91,7 @@
              told apart from real braking regen (no dedicated regen sensor), so the number is unreliable. -->
         <div>
           <div class="stat-label">{{ t('regen') }}</div>
-          <div class="stat-value text-green-400">{{ "%.2f"|format(trip.regen_kwh or 0) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
+          <div class="stat-value text-green-400">{{ (trip.regen_kwh or 0)|dec(2) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
         </div>
         {% endif %}
         <div>
@@ -198,23 +198,23 @@
     <div class="card space-y-3 text-sm">
       <div class="flex justify-between">
         <span class="text-slate-400">{{ t('start_soc') }}</span>
-        <span class="text-white font-medium">{{ "%.1f"|format(trip.start_soc or 0) }}%</span>
+        <span class="text-white font-medium">{{ (trip.start_soc or 0)|dec(1) }}%</span>
       </div>
       <div class="flex justify-between">
         <span class="text-slate-400">{{ t('end_soc') }}</span>
-        <span class="text-white font-medium">{{ "%.1f"|format(trip.end_soc or 0) }}%</span>
+        <span class="text-white font-medium">{{ (trip.end_soc or 0)|dec(1) }}%</span>
       </div>
       {% if is_reev and research and trip.engine_ran and (trip.end_soc or 0) > (trip.start_soc or 0) %}
       <!-- REEV engine-on trip where the generator OUT-produced the motor → the pack ended fuller than it
            started. "SoC used −3%" reads as nonsense here; show it as what it is: a net recharge. -->
       <div class="flex justify-between">
         <span class="text-slate-400">🔋 {{ t('reev_battery_recharged') }}</span>
-        <span class="text-blue-300 font-medium">+{{ "%.1f"|format((trip.end_soc or 0) - (trip.start_soc or 0)) }}%</span>
+        <span class="text-blue-300 font-medium">+{{ ((trip.end_soc or 0) - (trip.start_soc or 0))|dec(1) }}%</span>
       </div>
       {% else %}
       <div class="flex justify-between">
         <span class="text-slate-400">{{ t('soc_used') }}</span>
-        <span class="text-white font-medium">{{ "%.1f"|format((trip.start_soc or 0) - (trip.end_soc or 0)) }}%</span>
+        <span class="text-white font-medium">{{ ((trip.start_soc or 0) - (trip.end_soc or 0))|dec(1) }}%</span>
       </div>
       {% endif %}
       <div class="flex justify-between">
@@ -285,7 +285,7 @@
       <h2 class="font-semibold text-white text-sm mb-2">{{ t('ec_breakdown_title') }}</h2>
       <div class="flex items-baseline justify-between mb-3">
         <span class="text-xs text-slate-400 uppercase tracking-wide">{{ t('ec_total') }}</span>
-        <span class="text-2xl font-bold text-white">{{ "%.1f"|format(_t) }}<span class="text-sm font-normal text-slate-400"> kWh</span></span>
+        <span class="text-2xl font-bold text-white">{{ _t|dec(1) }}<span class="text-sm font-normal text-slate-400"> kWh</span></span>
       </div>
       <div class="flex w-full h-3 rounded-full overflow-hidden bg-slate-700 mb-3">
         <div class="bg-brand"     style="width:{{ (_d / _t * 100) | round(1) }}%"></div>
@@ -295,15 +295,15 @@
       <div class="space-y-2 text-sm">
         <div class="flex items-center justify-between">
           <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-brand shrink-0"></span><span class="text-slate-300">{{ t('eb_driving') }}</span></span>
-          <span class="text-white font-medium">{{ "%.1f"|format(_d) }} kWh <span class="text-slate-500 font-normal">· {{ (_d / _t * 100) | round | int }}%</span></span>
+          <span class="text-white font-medium">{{ _d|dec(1) }} kWh <span class="text-slate-500 font-normal">· {{ (_d / _t * 100) | round | int }}%</span></span>
         </div>
         <div class="flex items-center justify-between">
           <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 shrink-0"></span><span class="text-slate-300">{{ t('eb_ac') }}</span></span>
-          <span class="text-white font-medium">{{ "%.1f"|format(_a) }} kWh <span class="text-slate-500 font-normal">· {{ (_a / _t * 100) | round | int }}%</span></span>
+          <span class="text-white font-medium">{{ _a|dec(1) }} kWh <span class="text-slate-500 font-normal">· {{ (_a / _t * 100) | round | int }}%</span></span>
         </div>
         <div class="flex items-center justify-between">
           <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span><span class="text-slate-300">{{ t('eb_other') }}</span></span>
-          <span class="text-white font-medium">{{ "%.1f"|format(_o) }} kWh <span class="text-slate-500 font-normal">· {{ (_o / _t * 100) | round | int }}%</span></span>
+          <span class="text-white font-medium">{{ _o|dec(1) }} kWh <span class="text-slate-500 font-normal">· {{ (_o / _t * 100) | round | int }}%</span></span>
         </div>
       </div>
       <p class="text-[10px] text-slate-600 mt-3 leading-snug">{{ t('ec_trip_note') }}</p>

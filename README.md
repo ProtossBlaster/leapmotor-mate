@@ -75,7 +75,7 @@ LeapMotor Mate is free and open-source, developed in my spare time. If it's usef
 - **EVCC** — publish EVCC-friendly MQTT topics so an **EVCC** `type: custom` vehicle reads SoC, plug and charging status, range and odometer. Ready-to-paste config in [`docs/EVCC.md`](docs/EVCC.md). *(Optional.)*
 
 **Making sense of it**
-- **Monthly report** — distance, efficiency and cost in one page, with the **home vs public** split, the deltas against last month, daily charts and a **map of every trip that month**.
+- **Monthly report** — distance, efficiency and cost in one page, with the **home vs public** split, the deltas against last month, daily charts and a **map of every trip that month**. Always opens on the **month you are in** — an empty one says so instead of quietly showing the previous month — and when the car's official monthly total is missing drives it never managed to upload, it shows **Mate's own figure** instead and says which is which.
 - **Statistics** — the driving / A·C / other energy split and the consumption trend, from the Leapmotor cloud.
 - **Export** — **CSV** for trips and charges, **GPX** per trip, and a full **database backup** you can restore.
 
@@ -357,7 +357,7 @@ LeapMotor Mate è gratuito e open-source, sviluppato nel tempo libero. Se ti è 
 - **EVCC** — pubblica i topic MQTT che **EVCC** si aspetta, così un veicolo `type: custom` legge SoC, stato del cavo e della ricarica, autonomia e contachilometri. Configurazione pronta da copiare in [`docs/EVCC.md`](docs/EVCC.md). *(Opzionale.)*
 
 **Per capirci qualcosa**
-- **Report mensile** — distanza, efficienza e costo in una pagina sola, con la divisione **casa/pubblico**, le differenze rispetto al mese prima, i grafici giornalieri e la **mappa di tutti i viaggi del mese**.
+- **Report mensile** — distanza, efficienza e costo in una pagina sola, con la divisione **casa/pubblico**, le differenze rispetto al mese prima, i grafici giornalieri e la **mappa di tutti i viaggi del mese**. Si apre sempre sul **mese in cui sei** — se è vuoto te lo dice, invece di mostrarti in silenzio quello prima — e quando al totale ufficiale dell'auto mancano viaggi che non è riuscita a caricare, mostra **il numero di Mate** dicendo qual è quale.
 - **Statistiche** — la ripartizione dell'energia fra guida, clima e altro, e l'andamento dei consumi, dal cloud Leapmotor.
 - **Esportazione** — **CSV** di viaggi e ricariche, **GPX** per viaggio, e un **backup completo del database** che puoi ripristinare.
 
