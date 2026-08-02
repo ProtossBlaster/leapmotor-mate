@@ -39,6 +39,21 @@
   <base href="{{ request.headers.get('x-ingress-path', '') }}/">
   <title>{% block title %}LeapMotor Mate{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="static/mate-icon.svg">
+  {# "Add to Home Screen" on a phone: without these it lands as a browser bookmark — Mate opens
+     inside the address bar and toolbar (110 px of it) with a cropped screenshot for an icon.
+     With them the phone treats it as an app: full screen, Mate's own icon, one tap. It changes
+     NOTHING about the layout — the interface was already responsive; only the window around it.
+     Every path here is relative on purpose, so it survives the HA ingress prefix set by <base>
+     above; inside the manifest, "../" resolves against the manifest's own URL back to the app
+     root. It remains a shortcut to a server you run: with that server off, the icon opens
+     nothing. #}
+  <link rel="manifest" href="static/manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="apple-touch-icon" href="static/mate-icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mate">
   <script src="static/vendor/tailwind.js"></script>
   <script src="static/vendor/htmx.min.js"></script>
   <script src="static/vendor/apexcharts.min.js"></script>

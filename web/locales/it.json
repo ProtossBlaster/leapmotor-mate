@@ -418,7 +418,7 @@
     "state_driving": "In guida",
     "state_charging": "In ricarica",
     "hero_charge_window": "Carica {window}",
-    "state_plugged": "Cavo collegato",
+    "state_plugged": "Cavo connesso",
     "state_charge_complete": "Carica completa",
     "battery": "Batteria",
     "range": "Autonomia",

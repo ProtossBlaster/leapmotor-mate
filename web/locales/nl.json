@@ -426,7 +426,7 @@
     "state": "Status",
     "speed": "Snelheid",
     "gear": "Stand",
-    "odometer": "Km-stand",
+    "odometer": "Kilometerstand",
     "inside_temp": "Binnen",
     "ac_target": "Airco-doel",
     "battery_temp": "Batterijtemp.",

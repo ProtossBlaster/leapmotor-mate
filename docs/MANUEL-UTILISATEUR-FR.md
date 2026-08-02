@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v3.5.2 · **Langue :** Français
+> **Version de Mate :** v3.6.0 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 
@@ -107,6 +107,14 @@ Mate fonctionne de la même manière dans trois environnements (l'interface est 
 Les instructions d'installation pas à pas (dépôt, compose, etc.) se trouvent dans le **README** du projet et
 sur la page **Docker Hub**. Une fois lancé, le *premier accès* est identique pour les deux et est décrit
 ci-dessous.
+
+> 📱 **Sur votre téléphone.** Mate n'est pas une application mobile et ne peut pas l'être : il doit
+> interroger le cloud pendant des années, et un téléphone suspend ce qui tourne en arrière-plan.
+> Vous pouvez toutefois le placer **sur votre écran d'accueil** : ouvrez Mate dans le navigateur du
+> téléphone, puis *Partager → Sur l'écran d'accueil* sur iPhone, ou *⋮ → Ajouter à l'écran d'accueil*
+> sur Android. Il prend l'icône de Mate et s'ouvre en plein écran, sans la barre d'adresse ni la
+> barre d'outils — environ 110 px d'écran récupérés. Cela reste un raccourci vers le serveur que
+> vous faites tourner : s'il est éteint, il n'ouvre rien.
 
 > 🔒 **Sauvegarde.** Toutes les données de Mate se trouvent dans un dossier persistant (`/data`) : la base de
 > données, la clé de chiffrement des secrets (`secret.key`) et le certificat. Si vous faites une sauvegarde,

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.5.2 · **Sprache:** Deutsch
+> **Mate-Version:** v3.6.0 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -100,6 +100,14 @@ Mate läuft auf dieselbe Weise in drei Umgebungen (die Oberfläche ist identisch
 Die Schritt-für-Schritt-Anleitungen zur Installation (Repository, Compose usw.) finden Sie im **README** des
 Projekts und auf der **Docker-Hub**-Seite. Nach dem Start ist der *erste Zugriff* für beide gleich und wird hier
 unten beschrieben.
+
+> 📱 **Auf dem Handy.** Mate ist keine Handy-App und kann keine sein: Es muss über Jahre hinweg die
+> Cloud abfragen, und ein Handy hält an, was im Hintergrund läuft. Sie können es aber **auf den
+> Startbildschirm legen**: Öffnen Sie Mate im Browser des Handys und wählen Sie *Teilen → Zum
+> Home-Bildschirm* auf dem iPhone bzw. *⋮ → Zum Startbildschirm hinzufügen* auf Android. Es bekommt
+> Mates eigenes Symbol und öffnet sich im Vollbild, ohne Adress- und Werkzeugleiste — rund 110 px
+> Bildschirm zurück. Es bleibt eine Verknüpfung zu dem Server, den Sie betreiben: Ist der aus,
+> öffnet sie nichts.
 
 > 🔒 **Backup.** Alle Daten von Mate liegen in einem dauerhaften Ordner (`/data`): die Datenbank, der
 > Verschlüsselungsschlüssel der Geheimnisse (`secret.key`) und das Zertifikat. Wenn Sie ein Backup erstellen,

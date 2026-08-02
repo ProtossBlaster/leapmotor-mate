@@ -3,6 +3,64 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.6.0] — 2026-08-02
+
+### Added
+- **Mate goes on your phone's home screen, as an app rather than a bookmark.** Asked for by
+  **@jose-knowee** (#213), who wanted a native Android/iOS app. There can't be one — Mate is a
+  recorder that has to poll for years, and a phone suspends what runs in the background — but the
+  part he actually wanted is the launch, and that costs a manifest and six tags.
+
+  *Add to Home Screen* now gives Mate **its own icon** and opens it **full screen**: no address bar,
+  no toolbar, about **110 px of screen** handed back. Not one line of the interface changed — it was
+  already responsive. Only the window around it.
+
+  Two icons ship for it, drawn from the existing `mate-icon.svg`: a square 180 px one for iOS, which
+  ignores the manifest and rounds the corners itself, and a 512 px maskable one for Android, which
+  crops to a circle.
+
+  Every path is relative on purpose. Under the Home Assistant add-on, Mate is served below an ingress
+  prefix, and a leading `/` would send the installed app to the host root — breaking it for add-on
+  users only, on a screen nobody opens twice. A test scans for that.
+
+  It remains a shortcut to the server you run: with that off, the icon opens nothing.
+
+### Changed
+- **The translations were checked against the sources that define the words**, rather than against
+  the ear of whoever wrote them — which was, for four of the seven languages, this project's
+  maintainer working from English. 41 strings moved.
+
+  **German — one concept had three names.** `Sitzung`, `Ladesitzung` and `Ladevorgang` all meant a
+  charging session. The **Bundesnetzagentur**, the federal regulator, uses **`Ladevorgang`**, and
+  neither `Sitzung` nor `Ladesitzung` appears anywhere in its material; the *Ladesäulenverordnung*
+  defines `Ladepunkt` and `Ladesäule` in the same register. 30 strings now use one word, declined
+  properly — `diesen Ladevorgang`, `jedes Ladevorgangs`, `Ladevorgängen`, and in one sentence the
+  pronoun had to follow the gender. Three of those strings were **not** charging sessions and were
+  handled separately: the car's power-on window is now `Einschaltphase`, and the drives the car
+  fails to upload are `Fahrten`.
+
+  **Portuguese — `Estação` was not the word.** The national charging network **MOBI.E** and the
+  regulator **ERSE** both say **`Posto de carregamento`** (their own tiers are PCN, PCR, PCSR,
+  PCUR). Five strings changed, with the gender agreements that follow from *posto* being masculine.
+
+  **Two words were simply wrong, and the files said so themselves.** German `clim_temp` read
+  *Temperatura* — an Italian word — two keys away from `sched_temp`, which already had `Temperatur`.
+  German and Polish `mode_comfort` read *Comfort* while `comfort_section` already had `Komfort`.
+
+  **And three were merely inconsistent**, with no source to settle them, so they follow the majority
+  already in the file: Italian and French now say *connesso* / *connecté* for a plugged-in cable in
+  all three places, and Dutch writes `Kilometerstand` in full, as it already did twice out of three.
+
+  Confirmed correct and left alone: Portuguese **autonomia combinada** — which is
+  [Leapmotor Portugal's own wording](https://www.leapmotor.net/pt/c10reev) — plus *tomada*,
+  *bagageira* and *odómetro*; Polish **rekuperacja**, **zasięg**, **stacja ładowania**; Dutch
+  **actieradius**, and *accu* / *batterij*, which RVO and Milieu Centraal use interchangeably;
+  French **bornes de recharge** and **autonomie**.
+
+### Documentation
+- The four user manuals explain how to put Mate on a phone's home screen, and why it is a shortcut
+  rather than an app. The README's Features list gained it in both languages.
+
 ## [3.5.2] — 2026-08-02
 
 ### Changed

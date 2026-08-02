@@ -418,7 +418,7 @@
     "state_driving": "En conduite",
     "state_charging": "En charge",
     "hero_charge_window": "Charge {window}",
-    "state_plugged": "Câble branché",
+    "state_plugged": "Câble connecté",
     "state_charge_complete": "Charge terminée",
     "battery": "Batterie",
     "range": "Autonomie",
