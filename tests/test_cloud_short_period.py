@@ -8,7 +8,10 @@ figure a quarter higher, both labelled "average consumption".
 Only the LOW side is guarded: a cloud total ABOVE the local sum is normal, it carries climate and
 standby energy that no trip is charged with.
 """
-import main
+# The guard lives in db_reader, not main: `main` pulls in fastapi, which the minimal CI
+# test env doesn't install — importing it here would skip these tests exactly where they
+# matter most, and a top-level import would kill the whole run at collection.
+import db_reader
 
 
 def _eb(total_kwh):
@@ -21,7 +24,7 @@ def _tot(km, kwh, minutes=120):
 
 def test_a_short_cloud_total_is_replaced_by_mates_own(monkeypatch):
     # riri19's 1 August: cloud 27.1 kWh over 221 km against the 36.3 his trips add up to.
-    eb = main._flag_short_cloud_total(_eb(27.1), _tot(221.0, 36.3), 221.0)
+    eb = db_reader.flag_short_cloud_total(_eb(27.1), _tot(221.0, 36.3), 221.0)
     assert eb["cloud_short"] is True
     assert eb["cloud_total_kwh"] == 27.1        # the cloud's own figure is kept, not lost
     assert eb["local_kwh"] == 36.3
@@ -31,37 +34,37 @@ def test_a_short_cloud_total_is_replaced_by_mates_own(monkeypatch):
 def test_a_healthy_month_is_left_alone(monkeypatch):
     # The three months measured on a car with a good uplink: cloud/local 0.895, 1.032, 0.982.
     for cloud, local, km in ((40.1, 44.8, 281.0), (181.5, 175.8, 908.2), (110.3, 112.3, 654.6)):
-        eb = main._flag_short_cloud_total(_eb(cloud), _tot(km, local), km)
+        eb = db_reader.flag_short_cloud_total(_eb(cloud), _tot(km, local), km)
         assert "cloud_short" not in eb, f"false positive at {cloud}/{local}"
         assert eb["total_kwh"] == cloud
 
 
 def test_a_cloud_total_above_the_local_sum_is_never_touched(monkeypatch):
     # Climate and standby energy live in the cloud figure and in no trip — higher is expected.
-    eb = main._flag_short_cloud_total(_eb(60.0), _tot(200.0, 30.0), 200.0)
+    eb = db_reader.flag_short_cloud_total(_eb(60.0), _tot(200.0, 30.0), 200.0)
     assert "cloud_short" not in eb
 
 
 def test_a_window_too_small_to_judge_is_left_alone(monkeypatch):
     # A school run is not evidence about an uplink: the ratio is noise below the floors.
-    eb = main._flag_short_cloud_total(_eb(0.2), _tot(8.0, 2.0), 8.0)          # 8 km
+    eb = db_reader.flag_short_cloud_total(_eb(0.2), _tot(8.0, 2.0), 8.0)          # 8 km
     assert "cloud_short" not in eb
-    eb = main._flag_short_cloud_total(_eb(0.2), _tot(60.0, 1.5), 60.0)        # 1.5 kWh
+    eb = db_reader.flag_short_cloud_total(_eb(0.2), _tot(60.0, 1.5), 60.0)        # 1.5 kWh
     assert "cloud_short" not in eb
 
 
 def test_no_local_energy_means_no_verdict(monkeypatch):
     # Trips with no efficiency at all sum to 0 — nothing to compare the cloud against, so the
     # cloud figure stands rather than being "corrected" toward zero.
-    eb = main._flag_short_cloud_total(_eb(25.0), _tot(300.0, 0.0), 300.0)
+    eb = db_reader.flag_short_cloud_total(_eb(25.0), _tot(300.0, 0.0), 300.0)
     assert "cloud_short" not in eb
     assert eb["total_kwh"] == 25.0
 
 
 def test_the_boundary_is_where_it_was_measured(monkeypatch):
     # Exactly at the ratio → not short (>= keeps it). A hair below → short.
-    at   = main._flag_short_cloud_total(_eb(80.0), _tot(500.0, 100.0), 500.0)
-    below = main._flag_short_cloud_total(_eb(79.9), _tot(500.0, 100.0), 500.0)
+    at   = db_reader.flag_short_cloud_total(_eb(80.0), _tot(500.0, 100.0), 500.0)
+    below = db_reader.flag_short_cloud_total(_eb(79.9), _tot(500.0, 100.0), 500.0)
     assert "cloud_short" not in at
     assert below["cloud_short"] is True
 
@@ -116,7 +119,7 @@ def _render(name, **ctx):
 
 
 def _short_eb():
-    return main._flag_short_cloud_total(_eb(27.1), _tot(221.0, 36.3), 221.0) | {
+    return db_reader.flag_short_cloud_total(_eb(27.1), _tot(221.0, 36.3), 221.0) | {
         "distance_km": 221.0, "duration_min": 175, "avg_kwh100": 12.3}
 
 
@@ -128,7 +131,7 @@ def test_the_report_tiles_show_mates_figure_and_say_so():
 
 
 def test_the_report_tiles_are_untouched_when_the_cloud_is_fine():
-    eb = main._flag_short_cloud_total(_eb(110.3), _tot(654.6, 112.3), 654.6)
+    eb = db_reader.flag_short_cloud_total(_eb(110.3), _tot(654.6, 112.3), 654.6)
     eb = eb | {"distance_km": 654.6, "duration_min": 2373, "avg_kwh100": 16.8}
     html = _render("partials/report_driving_energy.html", eb=eb)
     assert "110.3" in html and "16.8" in html

@@ -3,6 +3,19 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.5.1] — 2026-08-02
+
+### Fixed
+- **The test suite runs again on CI.** v3.5.0's new tests for the cloud-total guard imported
+  `web/main.py`, which pulls in FastAPI — absent from the minimal environment CI installs, so the
+  run died at collection. Nothing shipped to anyone was affected: the Docker images were built from
+  the same commit and the app itself never imports differently.
+
+  The guard has moved from `main.py` to `db_reader.py`, beside `get_trip_totals_between`, which is
+  where the data it compares already comes from. The other FastAPI-dependent tests guard themselves
+  with `importorskip`, which would have **skipped these exactly where they matter most**; moving the
+  function lets them run everywhere instead. Verified with FastAPI deliberately blocked.
+
 ## [3.5.0] — 2026-08-02
 
 ### Changed

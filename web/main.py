@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.5.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.5.1"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -4068,42 +4068,9 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int) -
     eb = {**eb, "distance_km": dist_km, "duration_min": tot.get("duration_min") or 0}
     if dist_km > 0:
         eb["avg_kwh100"] = round(eb["total_kwh"] / dist_km * 100, 1)
-    return _flag_short_cloud_total(eb, tot, dist_km)
+    return db_reader.flag_short_cloud_total(eb, tot, dist_km)
 
 
-# The cloud's period total is only as complete as the car's uplink was. On a car that often can't
-# reach the cloud while driving, whole sessions are simply absent from it — and unlike the per-trip
-# path, which notices and falls back to the SoC estimate (ec_enrich._ec_implausible), the period
-# cards used to print whatever came back. #212 @riri19: 27.1 kWh against the 36.3 his own trips add
-# up to, from a car whose driving polls read a stale frame 59 % of the time (8.9 % on the drive the
-# cloud got right, 75.1 % on the one it lost).
-#
-# The per-trip guard cannot be reused as-is: it fires on physically impossible efficiencies
-# (< 5 kWh/100 km), and his 12.3 is perfectly plausible — it is only wrong RELATIVE to what Mate
-# itself measured over the same window. So the reference here is the local trip sum.
-#
-# ⚠️ The threshold is measured on a thin sample: three months of a healthy car gave cloud/local
-# 0.895, 1.032 and 0.982, and the broken month gave 0.747. 0.80 sits between them with about the
-# same margin on each side. Widen it if a healthy month ever trips it.
-_CLOUD_SHORT_RATIO = 0.80
-_CLOUD_SHORT_MIN_KM = 20.0     # below this a window is too small for the ratio to mean anything
-_CLOUD_SHORT_MIN_KWH = 3.0
-
-
-def _flag_short_cloud_total(eb: dict, tot: dict, dist_km: float) -> dict:
-    """Mark (and correct) a cloud period total that is far below Mate's own trips for the window.
-
-    Only the LOW side is guarded. A cloud total ABOVE the local sum is normal — it carries climate
-    and standby energy that no trip is charged with — so it is left exactly as it is."""
-    local_kwh = tot.get("energy_kwh") or 0
-    cloud_kwh = eb.get("total_kwh") or 0
-    if dist_km < _CLOUD_SHORT_MIN_KM or local_kwh < _CLOUD_SHORT_MIN_KWH:
-        return eb
-    if cloud_kwh >= local_kwh * _CLOUD_SHORT_RATIO:
-        return eb
-    eb = {**eb, "cloud_short": True, "cloud_total_kwh": cloud_kwh, "local_kwh": local_kwh}
-    eb["local_avg_kwh100"] = round(local_kwh / dist_km * 100, 1) if dist_km > 0 else None
-    return eb
 
 
 def _clamp_begin_to_first_trip(begin_ts: int) -> int:
