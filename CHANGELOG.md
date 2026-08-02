@@ -3,6 +3,51 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.6.1] — 2026-08-02
+
+### Changed
+- **The blended €/kWh under a trip's cost now says why it is above the tariff you typed.** Asked for
+  by **@michapr** (#207), who wanted a trip priced as `8 kWh × €0.25 + €0.07 charge loss`, or as a
+  single rate with a note explaining it.
+
+  The single rate already existed: the trip detail has printed the €/kWh each cost was worked out at
+  since #200, with a tooltip describing how it blends. What the tooltip never said is **why** it
+  comes out higher than the price in *Charge Prices* — on a home charge billed on a meter's kWh, the
+  rate is the tariff divided by the charger's efficiency, so the energy that became heat before
+  reaching the battery is already in every trip's cost. Someone reading the two numbers side by side
+  had no way to learn that the gap was the charger. One sentence, seven languages, no number moved.
+
+  The split form he also proposed cannot be built: without a meter there is nothing measuring the
+  loss, so the €0.07 would have to be a figure the user guesses. On that instance the rate correctly
+  equals the tariff — numerator and denominator are the same energy — and it starts telling the
+  truth on its own the day a metering socket is mapped.
+
+- **Twelve more strings, checked the same way as the forty-one before them.** Polish put the side
+  before the position on doors and windows — `Lewy przedni`, not `Przedni lewy` — which is how the
+  tyre rows in the same file were already written. Its odometer said `Licznik`, a meter of any kind;
+  the Highway Code (*Prawo o ruchu drogowym*, art. 80a) calls the instrument `drogomierz` and every
+  dashboard calls the reading **`Przebieg`**. French battery health was the only telegraphic entry in
+  a menu of full noun phrases, and is now *Santé de la batterie*.
+
+### Fixed
+- **A code comment described a diagnosis that had been publicly retracted ten days earlier.** The
+  REEV charge-detection rule in `poller/client.py` cited beta #12 (@michapr) as an instance of "pack
+  current reads ~0 during AC charging". That is the **C10** signature; his B10 reads −3.8 A, the
+  rule shipped for him in v2.8.4 changed nothing, and his car is covered by the SoC-rise branch
+  added in v2.8.6 instead. All of that was said in the issue on 24 July and never made it back into
+  the file. Two REEV models, two signatures, two rules — now written down where the next reader
+  will be.
+
+### Internal
+- **A new import here can no longer quietly break MateDesktop.** The desktop app is a signed shell
+  plus a payload, and the payload is this repository's `web/` and `poller/`, delivered on every tag.
+  The shell only carries what it was built knowing about, and its updater's dependency guard reads
+  `requirements.txt` — so it catches a new *package* and is blind to a new module of the standard
+  library. Mate 3.4.10 started importing PIL directly and the contract never learned; it worked only
+  because Pillow arrives as an extra of `leapmotor-api[image]`. A test now re-runs the scan and goes
+  red before a tag rather than on someone's Mac. It skips where the two repositories are not side by
+  side, which is everywhere except the machine releases are cut on.
+
 ## [3.6.0] — 2026-08-02
 
 ### Added

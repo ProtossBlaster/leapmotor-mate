@@ -546,14 +546,24 @@ def _is_charging(sig: dict) -> bool:
 
     if current is not None:
         if abs(current) < _CHARGE_CURRENT_MIN_A:   # resting/plugged-idle → not charging
-            # ...EXCEPT a REEV charging in AC: on the B10/C10 range-extender the pack current
-            # (1178) reads ~0 during slow AC charging — the on-board charger feeds the pack by a
-            # path this sensor doesn't see — so the BEV rule "current ≥ 2 A" never fires and the
-            # session is missed (beta #12 michapr, #13 ebagnoli; same signature back to the
-            # earliest 1.36.1 bundle). Trust the cable's OWN state when it explicitly says
-            # "charging" (1149==2, not the "connected/waiting" 1149==1 of a scheduled charge) AND
-            # a charge is in progress (remaining minutes > 0). Driving is already gated out above,
-            # and a bare 0→2→0 cable blip has no remaining-time so it still can't open a phantom.
+            # ...EXCEPT a C10 REEV charging in AC: on that car the pack current (1178) reads ~0
+            # during slow AC charging — the on-board charger feeds the pack by a path this sensor
+            # doesn't see — so the BEV rule "current ≥ 2 A" never fires and the session is missed
+            # (beta #13 ebagnoli; same signature back to the earliest 1.36.1 bundle). Trust the
+            # cable's OWN state when it explicitly says "charging" (1149==2, not the
+            # "connected/waiting" 1149==1 of a scheduled charge) AND a charge is in progress
+            # (remaining minutes > 0). Driving is already gated out above, and a bare 0→2→0 cable
+            # blip has no remaining-time so it still can't open a phantom.
+            #
+            # ⚠️ This is the C10 signature ONLY — NOT the B10 REEV, whatever this comment used to
+            # say. @michapr (beta #12) was diagnosed as this case on 23/07 and it was wrong: his
+            # pack current during AC charging reads −3.8 A, well above the floor. v2.8.4 shipped
+            # this very rule for him and changed nothing, because his cable sits at 1149==1 and
+            # only brushes 2 for a few seconds at a time — the test below essentially never fires
+            # on that car. Retracted in the issue on 24/07 ("I had tuned it on a C10's signature
+            # and wrongly assumed the two REEVs behaved the same"), and fixed for real in v2.8.6
+            # by the SoC-rise branch in state_machine.py, which is what actually covers a B10 REEV.
+            # Do not re-add michapr here: two REEV models, two different signatures, two rules.
             if _si(sig, "1149") == 2 and (_si(sig, "1200") or 0) > 0:
                 return True
             return False
