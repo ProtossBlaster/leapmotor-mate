@@ -181,6 +181,31 @@ same database, nothing to install around it.
 > Windows ships **inside a .zip**: unpack it first, then run the installer. A bare `.exe` off the
 > internet has no SmartScreen reputation yet and gets stopped on the way in.
 
+## Uninstall
+
+Mate writes **nothing outside its data directory** — no system files, no services. Removing it means
+removing two things: the image, and the data.
+
+**Home Assistant add‑on** — uninstall it from the add‑on's page. Export your database **first** if
+you want to keep it: afterwards you have no way to reach it.
+
+**Docker** — the container is not where your data lives:
+
+```bash
+docker rm -v leapmotor-mate
+docker rmi ghcr.io/protossblaster/leapmotor-mate:latest
+```
+
+The **`-v` is the part that matters**. Without it, the anonymous volume Docker created for `/data`
+outlives the container and stays on your disk, invisible unless you run `docker volume ls`. If you
+mounted a folder of your own instead (`-v "$(pwd)/data:/data"`), that folder is untouched — delete
+it by hand.
+
+> ⚠️ **What is in there is your car's location history** — every position, every trip, every charge,
+> plus the key that decrypts your stored login. If you are leaving for good, remove it. If you might
+> come back, take **Settings → Export database** first and keep that one file: **Settings → Import
+> database** puts everything back, down to the last row.
+
 ## User manual
 
 A full written manual — every page explained, the setup wizard step by step, an FAQ and a glossary:
@@ -457,6 +482,31 @@ Stesso Mate, stesso database, niente da installare attorno.
 
 > Su Windows si scarica **dentro uno .zip**: prima lo scompatti, poi lanci l'installatore. Un `.exe`
 > preso da internet non ha ancora una reputazione per SmartScreen e viene fermato all'ingresso.
+
+## Disinstallare
+
+Mate non scrive **niente fuori dalla sua cartella dati** — nessun file di sistema, nessun servizio.
+Toglierlo vuol dire togliere due cose: l'immagine e i dati.
+
+**Add‑on Home Assistant** — lo disinstalli dalla sua pagina. Se vuoi tenere il database esportalo
+**prima**: dopo non hai più modo di arrivarci.
+
+**Docker** — il container non è il posto dove stanno i tuoi dati:
+
+```bash
+docker rm -v leapmotor-mate
+docker rmi ghcr.io/protossblaster/leapmotor-mate:latest
+```
+
+**Il `-v` è la parte che conta.** Senza, il volume anonimo che Docker aveva creato per `/data`
+sopravvive al container e resta sul disco, invisibile finché non lanci `docker volume ls`. Se invece
+avevi montato una cartella tua (`-v "$(pwd)/data:/data"`), quella non viene toccata: la cancelli a
+mano.
+
+> ⚠️ **Lì dentro c'è la cronologia degli spostamenti della tua auto** — ogni posizione, ogni viaggio,
+> ogni ricarica, più la chiave che decifra le credenziali salvate. Se stai andando via davvero,
+> toglila. Se pensi di tornare, fai prima **Impostazioni → Esporta database** e tieni quel file:
+> **Impostazioni → Importa database** rimette tutto a posto, fino all'ultima riga.
 
 ## Manuale utente
 
