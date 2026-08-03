@@ -641,7 +641,11 @@ Diagnostic) aide à retrouver les recharges non enregistrées.
 
 **Je vois une recharge étrange / un coût absurde.**
 Mate dispose de protections contre les valeurs impossibles (ex. compteurs de wallbox qui rapportent le total
-cumulé à vie). Si une recharge publique a un tarif compliqué, utilisez le type **✎ Manuel** et saisissez le
+cumulé à vie). Le cas inverse est couvert aussi : si le compteur de la wallbox **s'arrête** en cours de recharge
+alors que la voiture continue de tirer du courant, Mate cesse de se fier à son total pour cette session et
+facture sur l'énergie arrivée à la batterie — le total du compteur serait amputé de tout ce qu'il a manqué
+pendant l'arrêt.
+Si une recharge publique a un tarif compliqué, utilisez le type **✎ Manuel** et saisissez le
 total payé.
 
 **Le graphique de décharge à l'arrêt (vampire drain) est vide.**

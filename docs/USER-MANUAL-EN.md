@@ -626,6 +626,9 @@ recorded.
 
 **I see a strange charge / an absurd cost.**
 Mate has protections against impossible values (e.g. wallbox meters that report the lifetime total).
+The opposite case is covered too: if the wallbox meter **stops** mid-charge while the car goes on
+drawing power, Mate stops trusting its total for that session and bills on the energy that reached
+the battery instead — the meter's figure would be short by whatever it missed while frozen.
 If a public charge has a complicated tariff, use the **✎ Manual** type and enter the total paid.
 
 **The vampire-drain chart is empty.**

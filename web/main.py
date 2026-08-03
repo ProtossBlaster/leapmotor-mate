@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.6.2"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.6.3"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo

@@ -620,7 +620,11 @@ erfasste Ladevorgänge wiederzufinden.
 
 **Ich sehe einen seltsamen Ladevorgang / absurde Kosten.**
 Mate hat Schutzmechanismen gegen unmögliche Werte (z. B. Wallbox-Zähler, die den Gesamtwert seit Inbetriebnahme
-melden). Wenn ein öffentlicher Ladevorgang einen komplizierten Tarif hat, verwenden Sie den Typ **✎ Manuell** und
+melden). Auch der umgekehrte Fall ist abgedeckt: Bleibt der Wallbox-Zähler mitten im Ladevorgang **stehen**,
+während das Auto weiter Strom zieht, vertraut Mate seinem Gesamtwert für diesen Ladevorgang nicht mehr und
+rechnet über die in der Batterie angekommene Energie ab — der Zählerwert wäre um alles zu niedrig, was er im
+Stillstand versäumt hat.
+Wenn ein öffentlicher Ladevorgang einen komplizierten Tarif hat, verwenden Sie den Typ **✎ Manuell** und
 tragen Sie den gezahlten Gesamtbetrag ein.
 
 **Das Diagramm des Ruhestromverlusts (Vampire Drain) ist leer.**

@@ -52,6 +52,91 @@ def test_finalize_keeps_plausible_total(tmp_path):
     assert ac == 6.7                                  # real wallbox energy untouched
 
 
+# ── The mirror: a counter that STOPS (#215 @riri19) ──────────────────────────────
+# His Tuya froze for 2h18 while the car charged on at 6.9 kW. A rise that is too small always looks
+# plausible, so the ceiling above never sees it: the session was billed on 22.1 kWh instead of 38.9.
+# The test is between two MEASUREMENTS — the counter stands still while the CAR reports power — and
+# is counted in kWh rather than in polls, so a coarse meter that legitimately sits still is safe.
+
+def _stalled(db, cid, kwh, reading=100.0, step=0.25):
+    """Feed `kwh` of car-reported energy in `step` slices while the counter never moves."""
+    for _ in range(int(kwh / step)):
+        db.accumulate_wallbox_energy(cid, reading, step)
+
+
+def test_a_counter_that_stops_is_caught_at_close(tmp_path):
+    db = D.Database(str(tmp_path / "t.db"))
+    cid = db.create_charge(1, types.SimpleNamespace(soc=28, latitude=1.0, longitude=2.0))
+    db._conn.execute("UPDATE charges SET started_at=? WHERE id=?", (_at(hours=6), cid))
+    db._conn.commit()
+    db.set_charge_wallbox_start(cid, 100.0)
+    db.accumulate_wallbox_energy(cid, 122.1, 0.06)     # 22.1 kWh really counted…
+    _stalled(db, cid, 16.9)                            # …then frozen through 16.9 kWh the car drew
+    assert db._conn.execute("SELECT wb_stuck_kwh FROM charges WHERE id=?",
+                            (cid,)).fetchone()[0] >= D._WB_STUCK_KWH
+
+    db.finalize_charge(cid, types.SimpleNamespace(soc=80, latitude=1.0, longitude=2.0),
+                       max_power_kw=6.9)
+    ac = db._conn.execute("SELECT ac_energy_kwh FROM charges WHERE id=?", (cid,)).fetchone()[0]
+    assert ac is None                                  # short by an unknown amount → bill on DC
+
+
+def test_a_coarse_counter_that_ticks_slowly_is_left_alone(tmp_path):
+    """The scenario that must NOT trip it: a 1 kWh-resolution meter at low power sits still for
+    many polls and then jumps a whole kWh. Nothing is wrong and its total is exact."""
+    db = D.Database(str(tmp_path / "t.db"))
+    cid = db.create_charge(1, types.SimpleNamespace(soc=40, latitude=1.0, longitude=2.0))
+    db._conn.execute("UPDATE charges SET started_at=? WHERE id=?", (_at(hours=4), cid))
+    db._conn.commit()
+    db.set_charge_wallbox_start(cid, 100.0)
+    reading = 100.0
+    for _ in range(8):                                 # eight whole-kWh ticks, 0.25 kWh per poll
+        _stalled(db, cid, 1.0, reading=reading)        # flat while the car draws 1 kWh…
+        reading += 1.0
+        db.accumulate_wallbox_energy(cid, reading, 0.25)   # …then the meter ticks
+    db.finalize_charge(cid, types.SimpleNamespace(soc=70, latitude=1.0, longitude=2.0),
+                       max_power_kw=3.0)
+    ac = db._conn.execute("SELECT ac_energy_kwh FROM charges WHERE id=?", (cid,)).fetchone()[0]
+    assert ac == 8.0                                   # kept: it never missed 3 kWh in a row
+
+
+def test_a_flat_counter_proves_nothing_when_the_car_is_not_drawing(tmp_path):
+    """Charge finished, cable still in: the counter is flat because nothing is flowing. The car
+    reports no power, so the recorder sends 0 and none of it counts against the meter."""
+    db = D.Database(str(tmp_path / "t.db"))
+    cid = db.create_charge(1, types.SimpleNamespace(soc=80, latitude=1.0, longitude=2.0))
+    db.set_charge_wallbox_start(cid, 100.0)
+    for _ in range(80):                                # forty minutes of flat counter, no car power
+        db.accumulate_wallbox_energy(cid, 100.0, 0.0)
+    assert (db._conn.execute("SELECT wb_stuck_kwh FROM charges WHERE id=?",
+                             (cid,)).fetchone()[0] or 0.0) == 0.0
+
+
+def test_the_stall_latches_once_it_has_gone_too_far(tmp_path):
+    """A meter that wakes up again has still missed what it missed — the total it ends on is short,
+    so a later rise must not clear the verdict."""
+    db = D.Database(str(tmp_path / "t.db"))
+    cid = db.create_charge(1, types.SimpleNamespace(soc=30, latitude=1.0, longitude=2.0))
+    db.set_charge_wallbox_start(cid, 100.0)
+    _stalled(db, cid, 10.0)                            # frozen through 10 kWh
+    db.accumulate_wallbox_energy(cid, 101.0, 0.25)     # …and back to life
+    assert db._conn.execute("SELECT wb_stuck_kwh FROM charges WHERE id=?",
+                            (cid,)).fetchone()[0] >= D._WB_STUCK_KWH
+
+
+def test_a_brief_gap_clears_itself(tmp_path):
+    """One or two polls without a reading is an HA hiccup, not a dead meter: below the threshold a
+    real rise wipes the slate, so it never accumulates across a whole session."""
+    db = D.Database(str(tmp_path / "t.db"))
+    cid = db.create_charge(1, types.SimpleNamespace(soc=30, latitude=1.0, longitude=2.0))
+    db.set_charge_wallbox_start(cid, 100.0)
+    for i in range(20):
+        db.accumulate_wallbox_energy(cid, 100.0 + i, 0.25)   # a rise…
+        db.accumulate_wallbox_energy(cid, 100.0 + i, 0.25)   # …then one flat poll
+    assert db._conn.execute("SELECT wb_stuck_kwh FROM charges WHERE id=?",
+                            (cid,)).fetchone()[0] < D._WB_STUCK_KWH
+
+
 def test_repair_cleans_bogus_and_rescales_cost(tmp_path):
     db = D.Database(str(tmp_path / "t.db"))
     con = db._conn

@@ -32,6 +32,23 @@ _WB_MAX_KW = 22.0
 _WB_MARGIN = 1.5
 _WB_FLOOR_KWH = 1.0
 
+# The OTHER way a counter lies: it stops. @riri19 (#215) traced a session where his Tuya energy
+# sensor froze for 2h18 while the car went on charging at 6.9 kW — 16.9 kWh that the meter never
+# counted, so the charge was billed on 22.1 kWh instead of 38.9. A rise that is too SMALL always
+# looks plausible, which is why the ceiling above never sees it.
+#
+# What is NOT a safe test: comparing the counter against the charge's DC energy. That figure is
+# ΔSoC × the CONFIGURED battery capacity — an estimate resting on a constant the user can set — so
+# a car with the capacity typed in wrong would have its perfectly good meter thrown away on every
+# single charge. The weaker number must never be allowed to discredit the stronger one.
+#
+# So the test is between two MEASUREMENTS: the counter stands still while the CAR reports it is
+# drawing power. Counted in the kWh the car says it took during the stall rather than in polls,
+# because a coarse meter (1 kWh resolution at low power) legitimately sits still for many polls —
+# but no meter has three kWh of resolution.
+_WB_STUCK_KWH = 3.0        # car-reported energy drawn while the counter never moved → meter dead
+_WB_STUCK_MIN_KW = 1.0     # below this the car isn't really charging, so a flat counter proves nothing
+
 # A reachable home wallbox answers a counter reading even while the car charges elsewhere — and if
 # an energy meter also sees the wallbox's few watts of standby, that counter slowly RISES with the
 # car far away, so its per-poll creep can accumulate past the 0.05 kWh floor and mislabel a public
@@ -191,6 +208,7 @@ CREATE TABLE IF NOT EXISTS charges (
     cost             REAL,
     ac_energy_kwh    REAL,         -- wallbox energy a HOME charge is billed on = sum of the counter's rises
     wallbox_energy_start_kwh REAL, -- last wallbox counter reading seen (running baseline for that sum)
+    wb_stuck_kwh     REAL,         -- #215: kWh the CAR reported drawing while the counter never moved
     note             TEXT          -- #107: optional free-text user note (location, shade, weather…)
 );
 
@@ -427,6 +445,9 @@ class Database:
             self._conn.execute("ALTER TABLE charges ADD COLUMN ac_energy_kwh REAL")
         if "wallbox_energy_start_kwh" not in ccols:
             self._conn.execute("ALTER TABLE charges ADD COLUMN wallbox_energy_start_kwh REAL")
+        # migration: #215 — energy the car reported drawing while the wallbox counter stood still
+        if "wb_stuck_kwh" not in ccols:
+            self._conn.execute("ALTER TABLE charges ADD COLUMN wb_stuck_kwh REAL")
         # migration: flag charges reconstructed from a SoC jump (car was asleep/offline to the
         # cloud during the charge, so it was never seen live — recorded from the SoC delta instead).
         if "reconstructed" not in ccols:
@@ -1432,20 +1453,34 @@ class Database:
             "UPDATE charges SET wallbox_energy_start_kwh=?, ac_energy_kwh=0 WHERE id=?", (kwh, charge_id))
         self._conn.commit()
 
-    def accumulate_wallbox_energy(self, charge_id: int, reading: float) -> None:
+    def accumulate_wallbox_energy(self, charge_id: int, reading: float,
+                                  car_kwh_since_last: float = 0.0) -> None:
         """Add the wallbox counter's POSITIVE rise since the last reading to the charge's running total
         (ac_energy_kwh), called every poll while charging. Race/reset-proof: a counter that zeroes
         mid-session is a single negative step (ignored) and the post-reset rise is still counted — so it
         works whether the counter is a lifetime total or resets each session, and no matter WHEN it
         resets relative to our polls. wallbox_energy_start_kwh holds the last reading seen (the running
-        baseline), persisted so the sum survives a poller restart mid-charge."""
+        baseline), persisted so the sum survives a poller restart mid-charge.
+
+        `car_kwh_since_last` is what the CAR says it drew over this poll (its own power × the poll
+        interval), and it is only used to catch a counter that has stopped (#215, see _WB_STUCK_KWH):
+        while the counter does not move, that energy piles up in wb_stuck_kwh. A real rise clears it
+        again — unless it has already passed the threshold, in which case it LATCHES: energy the meter
+        missed while frozen stays missed even if the meter later comes back to life."""
         row = self._conn.execute(
             "SELECT wallbox_energy_start_kwh AS last, ac_energy_kwh AS accum, "
-            "started_at, max_power_kw FROM charges WHERE id=?",
+            "started_at, max_power_kw, wb_stuck_kwh AS stuck FROM charges WHERE id=?",
             (charge_id,)).fetchone()
         if row is None:
             return
         last, accum = row["last"], (row["accum"] or 0.0)
+        stuck = row["stuck"] or 0.0
+        moved = last is not None and reading > last
+        if moved:
+            if stuck < _WB_STUCK_KWH:
+                stuck = 0.0                      # counter alive again, and it never went far enough
+        elif car_kwh_since_last > 0:
+            stuck += car_kwh_since_last          # flat counter while the car draws → count what it missed
         if last is not None and reading >= last:
             rise = reading - last
             # Physical guard (GitHub #46): a single step that exceeds what the wallbox could deliver
@@ -1465,8 +1500,8 @@ class Database:
                 log.warning("Charge #%d: ignoring implausible wallbox step +%.1f kWh "
                             "(counter glitch / lifetime total)", charge_id, rise)
         self._conn.execute(
-            "UPDATE charges SET wallbox_energy_start_kwh=?, ac_energy_kwh=? WHERE id=?",
-            (reading, round(accum, 3), charge_id))
+            "UPDATE charges SET wallbox_energy_start_kwh=?, ac_energy_kwh=?, wb_stuck_kwh=? "
+            "WHERE id=?", (reading, round(accum, 3), round(stuck, 3), charge_id))
         self._conn.commit()
 
     def _last_charging_soc(self, vehicle_id: int, started_at: str, ended_at: str | None = None):
@@ -1606,6 +1641,17 @@ class Database:
             self._conn.commit()
             log.warning("Charge #%d: dropped implausible wallbox energy %.1f kWh (kept DC billing)",
                         charge_id, ac_kwh)
+        # The mirror of it (#215): the counter did not run away, it STOPPED. wb_stuck_kwh is the
+        # energy the car itself reported drawing while the reading never moved — past the threshold
+        # the meter missed more than any meter's resolution could explain, so the total it ended on
+        # is short by an unknown amount. Drop it and bill on the DC (SoC) energy, which is at least
+        # complete. NB deliberately NOT a comparison against that DC figure: see _WB_STUCK_KWH.
+        elif (row_stuck := (charge["wb_stuck_kwh"] or 0.0)) >= _WB_STUCK_KWH and ac_kwh:
+            self._conn.execute("UPDATE charges SET ac_energy_kwh=NULL WHERE id=?", (charge_id,))
+            self._conn.commit()
+            log.warning("Charge #%d: wallbox counter stood still through %.1f kWh the car reported "
+                        "drawing — dropped its %.1f kWh total (kept DC billing)",
+                        charge_id, row_stuck, ac_kwh)
         log.info(
             "Charge #%d ended — SOC %.1f→%.1f%% | +%.1f kWh | %.0f min | %s | peak %.1f kW",
             charge_id, start_soc, end_soc, energy_added, duration_min,

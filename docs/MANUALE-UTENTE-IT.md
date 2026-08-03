@@ -653,7 +653,11 @@ ritrovare ricariche non registrate.
 
 **Vedo una ricarica strana / costo assurdo.**
 Mate ha protezioni contro i valori impossibili (es. contatori wallbox che riportano il totale a
-vita). Se una ricarica pubblica ha una tariffa complicata, usa il tipo **✎ Manuale** e scrivi il
+vita). Vale anche il caso opposto: se il contatore della wallbox **si ferma** durante la ricarica
+mentre l'auto continua a tirare corrente, Mate smette di fidarsi del suo totale per quella sessione
+e fattura sull'energia arrivata in batteria — il totale del contatore sarebbe corto di tutto quello
+che si è perso mentre era fermo.
+Se una ricarica pubblica ha una tariffa complicata, usa il tipo **✎ Manuale** e scrivi il
 totale pagato.
 
 **Il grafico del consumo da fermo (vampire drain) è vuoto.**

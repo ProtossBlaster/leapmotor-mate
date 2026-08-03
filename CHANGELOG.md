@@ -3,6 +3,57 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.6.3] — 2026-08-03
+
+### Fixed
+- **A wallbox meter that stops mid-charge no longer bills you for only the kilowatt-hours it managed
+  to count.** Opened by **@riri19** (#215) as a physical impossibility — 22.1 kWh from the wall for
+  33.8 kWh into the battery, which no charger can do — and then solved by **@riri19 himself**: his
+  Tuya energy sensor froze at `2083.40 kWh` for **2h18** while the car went on charging at 6.9 kW,
+  and only caught up **24 hours later**, by which time that charge had been closed for a day. The
+  session was billed on **22.1 kWh instead of 38.9** — undercharged by roughly 43 %.
+
+  Mate already guarded the opposite failure, a counter that runs away (a lifetime total, a glitch),
+  because a rise that is too big announces itself. A rise that is too small does not: it just looks
+  like a slower charge.
+
+  The new check is between two **measurements**. While the counter does not move, Mate adds up the
+  energy the **car itself** reports drawing; once that passes 3 kWh, no meter's resolution can
+  explain the silence, so the counter's total for that session is dropped and the charge is billed
+  on the energy that reached the battery — short by conversion losses, but not short by an unknown
+  amount.
+
+  It is deliberately **not** a comparison against that battery figure. That number is ΔSoC × the
+  capacity configured in Settings — an estimate resting on a constant anyone can type in wrong — so
+  letting it sit in judgement would throw away a perfectly good meter on every single charge for
+  those owners. The weaker number must not get to discredit the stronger one.
+
+  Two things keep it from firing on a healthy meter: it only counts while the car reports at least
+  1 kW, so a counter standing still because nothing is flowing proves nothing, and it is counted in
+  kilowatt-hours rather than in polls, so a coarse meter that legitimately ticks once per kWh is
+  left alone. Once it does trip it **latches** — energy missed while the meter was frozen stays
+  missed even if the meter later comes back to life, which is precisely what @riri19's did, a day
+  late and into the wrong session.
+
+### Documentation
+- **The four user manuals now describe this protection beside the one it mirrors.** *"I see a strange
+  charge / an absurd cost"* already explained the runaway counter; it now covers the stopped one too,
+  in English, Italian, French and German.
+
+### Internal
+- **A test that had never once run.** Two tests in `test_reev_total_consumption.py` were both called
+  `test_it_is_scoped_to_the_current_vehicle` — one for the derived total, one for the actual spend.
+  Python keeps the last definition, so pytest collected 14 tests out of 15 written and the trip-side
+  vehicle-scoping check was silently discarded. Both renamed after the function each one covers, and
+  the restored test was watched fail before being trusted.
+
+- **Six return annotations that told a type checker the wrong thing**, with no runtime change.
+  `finalize_trip` was declared `-> None` while returning a distance that `trip_distance_km` leaves
+  `None` when neither the odometer nor the GPS track can supply one — the caller already handled
+  that, only the signature lied. The other five return `cur.lastrowid` straight after an `INSERT`,
+  which the sqlite3 stub types `int | None`; widening them would have pushed a check that can never
+  fire onto every caller, so the invariant is written down at the source instead.
+
 ## [3.6.2] — 2026-08-03
 
 ### Fixed
