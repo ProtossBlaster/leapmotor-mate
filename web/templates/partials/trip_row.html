@@ -55,7 +55,20 @@
     </span>
     {% endif %}
     {% if is_reev and research and trip.engine_ran %}
-    {# REEV Phase C — flag an engine-on trip with its fuel consumption #}
+    {# REEV Phase C — an engine-on trip, with BOTH energies. The ⚡ pill above is blank here by
+       design (finalize_trip drops the efficiency once the generator refills the pack underneath),
+       so without this line the row showed petrol only and the electricity the car also used was
+       invisible until you opened the trip — @michapr, beta #11. Same figures as the detail page. #}
+    {% if trip.reev_elec_kwh_100km is not none %}
+    <span class="block mt-0.5 text-blue-400 text-[11px] font-semibold">⚡ {{ trip.reev_elec_kwh_100km | nice }} kWh/100km</span>
+    {% else %}
+    {# A dash, not nothing. A range-extender always draws from the pack to move, so a row carrying
+       petrol alone reads as a car that ran on fuel only — which never happens. What is missing is
+       the cloud's measurement, and an empty row cannot say so: the ⏳ below expires after six hours
+       and then the absence becomes silent. The dash keeps the slot, the tooltip names the reason. #}
+    <span class="block mt-0.5 text-blue-400/50 text-[11px] font-semibold"
+          title="{{ t('reev_elec_pending') }}">⚡ —</span>
+    {% endif %}
     <span class="block mt-0.5 text-amber-400 text-[11px] font-semibold" title="{{ t('reev_engine_ran') }}">⛽ {% if trip.fuel_l_100km is not none %}{{ trip.fuel_l_100km | nice }} L/100km{% else %}{{ trip.fuel_used_l | nice }} L{% endif %}</span>
     {% endif %}
     {% if trip.ec_pending %}

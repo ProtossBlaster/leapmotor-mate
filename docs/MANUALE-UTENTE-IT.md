@@ -595,7 +595,7 @@ Invia la telemetria dell'auto ad ABRP per la pianificazione viaggi in tempo real
 ### MQTT → Home Assistant
 Pubblica lo stato dell'auto (carica, autonomia, posizione, porte, stato ricarica…) come **entità in
 Home Assistant**, con **auto-discovery**. Tra queste, tre nuove entità V2L **di sola lettura**:
-**`V2L Active`** (binary sensor), **`V2L Power`** (W) e **`V2L Session Energy`** (Wh), più i dati del
+**`V2L Active`** (binary sensor), **`V2L Power`** (W) e **`V2L Session Energy`** (Wh), un binary sensor **`Ready`** che si accende appena l'auto viene accesa — prima che si muova, cioè finché un'automazione fa ancora in tempo ad agire, più i dati del
 clima letti dall'auto: il **Livello ventola** (`number` scrivibile, 1–7), il **Ricircolo**
 (interruttore scrivibile) e la **Modalità clima** (sensore: AUTO / Raffreddamento / Riscaldamento /
 Ventilazione). Puoi anche **comandare** l'auto dalle entità di HA — incluso un **limite di carica**

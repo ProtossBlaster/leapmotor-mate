@@ -160,6 +160,12 @@ class MqttService:
         pub("soc", data.soc);                  pub("range", data.range_km)
         pub("odometer", data.odometer_km);     pub("speed", data.speed_kmh)
         pub("gear", data.gear);                pub("state", data.vehicle_state)
+        # The car is powered up — signal 1258 (ON3), the same one the Ready automation triggers on.
+        # `state` above cannot stand in for it: it only turns to "driving" once a gear is engaged or
+        # the car moves, which is after the moment an automation wants (#220 @Torbynator — by then
+        # the car is refusing the very commands the automation would send). A door opening is the
+        # other end of the same problem: it fires early, and it fires without a drive following.
+        pub("ready", data.ready)
         pub("charging", data.charging_status > 0)
         pub("charge_power", data.charge_power_kw)
         pub("charge_voltage", data.charge_voltage_v)
@@ -329,6 +335,9 @@ class MqttService:
             ("charging", "Charging", "battery_charging"), ("locked", "Locked", "lock"),
             ("plug_connected", "Plug Connected", "plug"), ("climate_on", "Climate", "power"),
             ("v2l_active", "V2L Active", "power"),
+            # `running` rather than `power`: HA reads it as "is this thing going", which is what a
+            # powered-up car is, and it gives the automation an edge to trigger on (#220).
+            ("ready", "Ready", "running"),
             # Friendly names are physical positions (signals 1277=lbcm/left, 1278=rbcm/right) — the old
             # "Driver/Passenger" labels were wrong on RHD cars. Entity object_ids kept (no HA churn).
             ("door_driver", "Door Front Left", "door"), ("door_passenger", "Door Front Right", "door"),

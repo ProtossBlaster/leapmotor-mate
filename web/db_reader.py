@@ -3151,6 +3151,12 @@ def get_trips(limit: int = 500) -> list[dict]:
             _eng = _reev_engine_on(db, r["vehicle_id"], _b["s"], _b["e"])
         td.update(_reev_trip_fuel(_fs, _fe, td.get("distance_km"), _eng,
                                   td.get("fuel_start_l"), td.get("fuel_end_l")))
+        # …and the ELECTRIC counterpart, the same call the detail page makes. Without it the list
+        # can only ever show one of the two energies: a generator trip has its efficiency blanked on
+        # purpose (finalize_trip), so the ⚡ pill has nothing to print and only the ⛽ line survives —
+        # "only one will be shown" (@michapr, beta #11). ec_driving is a stored column, so this
+        # costs a dict lookup, not a cloud call.
+        td.update(_reev_trip_elec(td.get("ec_driving"), td.get("distance_km"), td.get("engine_ran")))
         out.append(td)
     return out
 

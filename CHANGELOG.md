@@ -3,6 +3,37 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.6.4] — 2026-08-03
+
+### Added
+- **A `Ready` entity on MQTT — the moment an automation can still act.** Asked for by
+  **@Torbynator** (#220), who wanted to open the sunshade when the car wakes up and found that
+  neither published state fits: `state` only turns to *driving* once a gear is engaged or the car
+  moves, and by then the car refuses the very commands the automation wants to send; a door opening
+  is the other end — it fires early, and it fires without a drive following.
+
+  Mate has been reading that signal since the power-on automation shipped, and storing it, and
+  never publishing it. It is now a Home Assistant **binary sensor** (`device_class: running`), so
+  it arrives as an on/off entity with an edge to trigger on rather than a string to parse. No new
+  signal, no extra cloud call — the figure was already in hand.
+
+### Fixed
+- **A range-extender trip showed one energy where there are two.** Reported by **@michapr**
+  (BetaTester #11): *"only one will be shown"*. In the trips list the electric figure and the fuel
+  figure lived behind two conditions that can never both be true — a trip where the generator ran
+  has its efficiency blanked on purpose (a SoC drop stops measuring anything once the generator is
+  refilling the pack underneath), so the row had nothing electric to print and showed petrol alone.
+
+  The electric number existed all along and the trip's own page has been showing it; the list
+  simply never asked for it. It does now — the same call, reading a stored column, so a list of
+  twenty trips costs twenty dictionary lookups and not twenty cloud calls.
+
+  **Where it is missing, the row says so.** A range-extender always draws from the pack to move, so
+  a row carrying litres alone reads as a car that ran on petrol only, which never happens. The
+  metered figure comes from the cloud and can lag; that slot now holds a dash naming the reason,
+  because the existing *provisional* marker expires after six hours and the absence then went
+  silent — with no way to tell *not yet* from *never*.
+
 ## [3.6.3] — 2026-08-03
 
 ### Fixed
