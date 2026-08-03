@@ -38,6 +38,27 @@ def test_status_card_prints_the_battery_price():
     assert "battery_price" in tpl, "the Overview battery card no longer shows the blended price"
 
 
+# ── A rate of zero is a rate (#218, the free-charging end of it) ─────────────────
+# An owner who charges only from his own roof has a blend of exactly 0.0. Jinja treats that as
+# false, so both surfaces went blank — the trip cost printed "—" ("we don't know") to the one
+# person who knows for certain, and the battery card said nothing at all. Truthiness is the bug.
+
+def test_the_trip_rate_is_printed_when_it_is_zero():
+    tpl = _read("templates/trip_detail.html")
+    assert "{% if trip.cost_per_kwh is not none %}" in tpl, (
+        "0.000 €/kWh is a real rate — a plain `if` hides it"
+    )
+    assert "{% if trip.cost_per_kwh %}" not in tpl
+
+
+def test_the_battery_price_is_printed_when_it_is_zero():
+    tpl = _read("templates/partials/status_card.html")
+    assert tpl.count("battery_price is not none") == 2, (
+        "both the block AND the spacing class must test for None, or the card mis-spaces"
+    )
+    assert "{% if battery_price %}" not in tpl
+
+
 def test_both_routes_that_render_the_battery_card_pass_the_price():
     """A card fed by two routes: miss one and the number vanishes on the first auto-refresh.
 
@@ -76,8 +97,13 @@ def test_the_rate_is_hidden_rather_than_dashed_before_the_first_priced_charge():
 
     A '—' would read as 'this trip was free' sitting under a cost; absent reads as 'not known yet',
     which is what it is.
+
+    ⚠️ This used to anchor on the literal `{% if battery_price %}` — a TRUTHINESS guard, which is
+    the defect it now guards against: it also hid a blend of exactly 0.0, the true rate for an
+    owner who charges only from his own roof. The rule was always "None draws nothing", never
+    "falsy draws nothing", so the anchor is the None test.
     """
     tpl = _read("templates/partials/status_card.html")
-    block = re.search(r"\{%\s*if battery_price\s*%\}(.*?)\{%\s*endif\s*%\}", tpl, re.S)
-    assert block, "the battery price must be wrapped in a truthiness guard"
+    block = re.search(r"\{%\s*if battery_price is not none\s*%\}(.*?)\{%\s*endif\s*%\}", tpl, re.S)
+    assert block, "the battery price must be guarded on None, not on truthiness"
     assert "—" not in block.group(1), "no em-dash placeholder inside the guarded block"

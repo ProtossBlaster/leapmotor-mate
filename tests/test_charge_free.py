@@ -92,6 +92,37 @@ def test_switching_type_away_from_home_drops_free(tmp_path, monkeypatch):
 
 
 # ── the whole point: a free home charge counts in Home, at 0, NOT in Public ────
+def test_free_charge_lowers_the_battery_blended_price(tmp_path, monkeypatch):
+    # #218 @oenukr, the whole chain: mark → cost 0.0 in the DB → the battery's blended €/kWh drops.
+    # It used to stay at the last PAID rate, so trips were billed more than the owner ever spent.
+    pdb = _setup(tmp_path, monkeypatch)
+    pdb._conn.execute(
+        "INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc,"
+        " energy_added_kwh, location_type, cost) VALUES"
+        " (9,1,'2026-06-01T08:00:00+00:00','2026-06-01T09:00:00+00:00',20,80,30.0,'HPC',12.0)")
+    pdb._conn.commit()
+    LATER = "2026-06-03T00:00:00+00:00"
+    paid_only = db_reader.blended_price_at(1, LATER)
+    assert abs(paid_only - 0.40) < 1e-9                  # 12 € / 30 kWh
+
+    _charge(pdb, 10, ctype="HOME")                       # 40→52 %, 8 kWh, from the roof
+    db_reader.set_charge_free(10, True)
+    assert _row(pdb, 10)["cost"] == 0.0                  # a price of zero, not a missing price
+
+    after = db_reader.blended_price_at(1, LATER)
+    assert abs(after - (40 * 0.40 + 12 * 0.0) / 52) < 1e-9
+    assert after < paid_only
+
+
+def test_a_pack_charged_only_from_the_roof_is_priced_at_zero(tmp_path, monkeypatch):
+    """The other end of #218: with every charge free the blend is 0.0 — a price, not a blank.
+    What the trip then does with it is pinned in test_trip_cost.py, on the real get_trip_detail."""
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype="HOME")
+    db_reader.set_charge_free(1, True)
+    assert db_reader.blended_price_at(1, "2026-06-03T00:00:00+00:00") == 0.0
+
+
 def test_free_home_charge_lands_in_home_bucket_not_public(tmp_path, monkeypatch):
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, ctype="HOME")

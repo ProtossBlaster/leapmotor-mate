@@ -1065,6 +1065,7 @@
     "fuel_detected_title": "Wykryte tankowania",
     "fuel_detected_hint": "Poziom paliwa wzrósł, a do zbiornika paliwo trafia tylko w jeden sposób. Kiedy i ile — wpisuje Mate; ile zapłaciłeś, wiesz tylko Ty.",
     "fuel_detected_badge": "do potwierdzenia",
+    "fuel_detected_capped": "Na koniec zbiornik był pełny. Samochód liczy tylko do 100 %, więc to, co weszło ponad tę wartość, tutaj nie figuruje — weź litry z paragonu.",
     "fuel_detected_window": "między {a} a {b}",
     "fuel_detected_tank": "zbiornik {a}% → {b}%",
     "fuel_detected_confirm": "Potwierdź",

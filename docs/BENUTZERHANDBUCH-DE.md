@@ -14,7 +14,7 @@
 4. [Erster Start: die geführte Einrichtung](#4-erster-start-die-geführte-einrichtung)
 5. [Die Oberfläche kennenlernen](#5-die-oberfläche-kennenlernen)
 6. [Die Seiten, eine nach der anderen](#6-die-seiten-eine-nach-der-anderen)
-   - [Übersicht](#übersicht) · [Fahrten](#fahrten) · [Karte](#karte) · [Ladungen](#ladungen)
+   - [Übersicht](#übersicht) · [Fahrten](#fahrten) · [Karte](#karte) · [Ladevorgänge](#ladevorgänge)
    - [Ladepreise](#ladepreise) · [Statistik](#statistik) · [Monatsbericht](#monatsbericht)
    - [Batteriezustand](#batteriezustand) · [Wartung](#wartung) · [Befehle](#befehle)
    - [Planung](#planung) · [Fahrzeug vorbereiten](#fahrzeug-vorbereiten)
@@ -34,7 +34,7 @@ elektrisches Leapmotor-Auto dient. Sie verbindet sich mit der **Leapmotor-Cloud*
 offizielle App spricht), liest den Zustand des Autos aus und rekonstruiert daraus eigenständig:
 
 - Ihre **Fahrten** (Strecke, Dauer, Verbrauch, Rekuperation beim Bremsen);
-- Ihre **Ladungen** (Energie, Leistung, Typ, Kosten);
+- Ihre **Ladevorgänge** (Energie, Leistung, Typ, Kosten);
 - die **Kosten** und die **Effizienz** über die Zeit;
 - den **Batteriezustand** und die **Wartungsfälligkeiten**.
 
@@ -66,7 +66,7 @@ Um Mate einzurichten, benötigen Sie drei Dinge:
    Sitzungen pro Konto: Ist dasselbe Konto auch in der offiziellen App, in einer anderen Integration oder in einer
    zweiten Mate-Instanz angemeldet, „verdrängen" sich die Clients gegenseitig die Sitzung. Das Ergebnis ist eine
    Flut von *„Token ungültig"* / wiederholten erneuten Anmeldungen, das Auto geht **offline** und es gehen
-   **Daten verloren** (nicht erfasste Fahrten und Ladungen). Das ist die häufigste Ursache der gemeldeten Probleme.
+   **Daten verloren** (nicht erfasste Fahrten und Ladevorgänge). Das ist die häufigste Ursache der gemeldeten Probleme.
    *Lösung:* ein zweites Konto mit einem **nur in Mate verwendeten Passwort**.
 
 2. **Das Zertifikat der Leapmotor-App** (`app.crt` + `app.key`). Es ist ein für **alle gleiches** Zertifikat (es ist
@@ -170,7 +170,7 @@ Je nach Modell:
 
 Drücken Sie **Verbinden & starten**. Mate speichert die Konfiguration, verbindet sich und führt Sie zur
 **Übersicht**. Ab diesem Moment beginnt der „Poller", im Hintergrund Daten zu sammeln: Die ersten Fahrten und
-Ladungen erscheinen nach und nach, während Sie fahren und laden.
+Ladevorgänge erscheinen nach und nach, während Sie fahren und laden.
 
 ---
 
@@ -188,7 +188,7 @@ Die Oberfläche besteht aus:
 Am Ende des Menüs finden Sie **⚙️ Einstellungen** und **🚪 Abmelden** (Logout).
 
 Viele Seiten **aktualisieren sich von selbst** etwa alle 30 Sekunden, sodass die „lebendigen" Werte (Status,
-laufende Ladung…) frisch bleiben, ohne die Seite neu zu laden.
+laufender Ladevorgang…) frisch bleiben, ohne die Seite neu zu laden.
 
 **Sprache, Währung und Einheiten** ändern Sie unter *Einstellungen → 🌍 Sprache & Währung*:
 
@@ -271,23 +271,23 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   alle**, und so beginnt es. Die Begrenzung lässt jede gezeichnete Strecke außerdem näher an der echten
   Straße liegen, weil sich das Punktebudget auf weniger Fahrten verteilt.
 
-### Ladungen
-**(Menü: Ladungen)** — Die Liste der Ladungen. Für jede: **hinzugefügte Energie (kWh)**, **Spitzenleistung**,
+### Ladevorgänge
+**(Menü: Ladevorgänge)** — Die Liste der Ladevorgänge. Für jede: **hinzugefügte Energie (kWh)**, **Spitzenleistung**,
 **Typ** und **Kosten**, mit dem **tatsächlichen €/kWh** gut sichtbar. Der Typ ist mit einem Etikett klassifiziert:
 
 - **Zuhause** (Ihre Wallbox **oder eine Haushaltssteckdose**), **AC** (öffentlicher Wechselstrom),
   **Schnell/FAST** (DC), **HPC** (Ultraschnellladung) und **✎ Manuell**.
 - **Zuhause bedeutet nicht Wallbox.** *Zuhause* sagt, **wo** Sie geladen haben, nicht woraus — auch
-  eine gewöhnliche Steckdose in der Garage ist eine Ladung zuhause. Für die Abrechnung macht das
+  eine gewöhnliche Steckdose in der Garage ist ein Ladevorgang zuhause. Für die Abrechnung macht das
   einen Unterschied: Ist der Zähler einer Wallbox eingebunden (siehe *Wallbox* weiter unten), wird
-  die Ladung über die **vom Zähler gelieferte Energie** abgerechnet; ohne ihn über die **in der
-  Batterie angekommene Energie**, genau wie eine öffentliche Ladung. Dazwischen liegt der
+  der Ladevorgang über die **vom Zähler gelieferte Energie** abgerechnet; ohne ihn über die **in der
+  Batterie angekommene Energie**, genau wie ein öffentlicher Ladevorgang. Dazwischen liegt der
   Wärmeverlust des Ladegeräts, typischerweise 10–15 %.
 - **✎ Manuell**: Für öffentliche Ladesäulen mit komplizierten Tarifen (Abonnements, Sitzungskosten…) können Sie
   **den tatsächlich gezahlten Gesamtbetrag von Hand eintragen**; dieser Wert überschreibt die automatische Schätzung.
-- Auch Ladungen, die stattgefunden haben, während das Auto ausgeschaltet/offline war, werden aus dem Sprung des
+- Auch Ladevorgänge, die stattgefunden haben, während das Auto ausgeschaltet/offline war, werden aus dem Sprung des
   Ladestands **rekonstruiert**.
-- **Ihre Notiz 🆕** (#107) — jede Ladung hat eine **freie Notiz** (direkt über *Ladung löschen*) für das,
+- **Ihre Notiz 🆕** (#107) — jeder Ladevorgang hat eine **freie Notiz** (direkt über *Ladevorgang löschen*) für das,
   was die Zahlen nicht erfassen: wo die Ladesäule stand, Schatten/Unterstand, ihre Zuverlässigkeit, die
   Parkbedingungen, das Wetter, jede persönliche Anmerkung.
 
@@ -302,7 +302,7 @@ kann. Sie können einen Preis **für jeden Ladetyp** (Zuhause, AC, Schnell, HPC)
 Der Preis für **Zuhause** speist die Kosten der Heimladungen und, in der Folge, die Kosten der Fahrten (berechnet
 auf dem „durchschnittlichen" Energiepreis in der Batterie zum Zeitpunkt der Fahrt).
 
-> Die Änderungen an den Preisen gelten **nur für zukünftige Ladungen**: Bereits berechnete Kosten ändern sich
+> Die Änderungen an den Preisen gelten **nur für zukünftige Ladevorgänge**: Bereits berechnete Kosten ändern sich
 > nicht. Mit den Zeitfenstern können Sie auch wählen, *wie* eine Sitzung auf die Fenster aufgeteilt wird —
 > *Genaue Aufteilung* (anhand der realen Leistungskurve) oder *Nach Startzeit* (die ganze Sitzung zu dem Fenster,
 > in dem sie begonnen hat).
@@ -335,9 +335,9 @@ die sagt, dass sie nur den in der Cloud angekommenen Teil abdeckt.
 
 ### Batteriezustand
 **(Menü: Batteriezustand)** — Eine **Schätzung des Gesundheitszustands (SoH)** der Batterie: wie viel nutzbare
-Kapazität gegenüber dem Neuzustand verblieben ist. Für jede Ladung teilt Mate die Energie, die es als in den
+Kapazität gegenüber dem Neuzustand verblieben ist. Für jeden Ladevorgang teilt Mate die Energie, die es als in den
 Akku fließend **gemessen** hat (Spannung × Strom, über die Sitzung integriert), durch den Prozentsatz, den
-diese Ladung hinzugefügt hat. Dieses Verhältnis ist eine Schätzung der Kapazität des gesamten Akkus, und ihr
+dieser Ladevorgang hinzugefügt hat. Dieses Verhältnis ist eine Schätzung der Kapazität des gesamten Akkus, und ihr
 Verlauf über die Zeit — oder über die Kilometer, ganz wie Sie wollen — ist die Alterung.
 
 Drei Dinge zur Berechnung, denn sie ändern die Bedeutung der Zahl.
@@ -346,21 +346,21 @@ Drei Dinge zur Berechnung, denn sie ändern die Bedeutung der Zahl.
   daher **zählt** das BMS die Ladung, statt sie zu lesen, und driftet; nahe am oberen Ende steigt die Kurve
   endlich an und das BMS **richtet sich neu aus** — es fügt Prozentpunkte hinzu, für die keine Energie bezahlt
   hat. Sie mitzuzählen ließe den Akku kleiner erscheinen, und am schlimmsten bei einer kurzen Nachladung bis
-  100 %, wo sie den größten Teil des Anstiegs ausmachen. Die Rechnung endet daher bei 95 %: Die Ladung zählt
-  weiterhin, nur ihr letztes Stück bleibt außen vor.
-- **Größere Ladungen wiegen mehr, und zwar anteilig.** Die Kennzahl summiert Energie und Prozentsatz der
-  jüngsten Ladungen, statt einzeln zu mitteln: Eine Ladung über 50 Punkte wiegt etwa viermal so viel wie eine
+  100 %, wo sie den größten Teil des Anstiegs ausmachen. Die Rechnung endet daher bei 95 %: Der Ladevorgang zählt
+  weiterhin, nur sein letztes Stück bleibt außen vor.
+- **Größere Ladevorgänge wiegen mehr, und zwar anteilig.** Die Kennzahl summiert Energie und Prozentsatz der
+  jüngsten Ladevorgänge, statt einzeln zu mitteln: Ein Ladevorgang über 50 Punkte wiegt etwa viermal so viel wie einer
   über 13. Und dafür wird nichts verworfen.
-- **Kaltladungen werden angezeigt, aber ausgeschlossen** — ein LFP liest im Kalten zu niedrig — ebenso Ladungen,
+- **Kalte Ladevorgänge werden angezeigt, aber ausgeschlossen** — ein LFP liest im Kalten zu niedrig — ebenso Ladevorgänge,
   die fast leer begonnen haben, oder solche, bei denen das BMS springt.
 
 **Die Zahl trägt ein ± bei sich, und das ist der ehrliche Teil.** Es ist die **Streuung** der dahinterliegenden
-Ladungen, keine Genauigkeit: Die Energie ist gemessen, aber der Prozentsatz, durch den sie geteilt wird, ist
-eine Zahl, die das BMS gezählt hat — und die driftet. Ein schmales Band heißt, dass Ihre Ladungen untereinander
-übereinstimmen, nicht dass der Akku wirklich diese Größe hat. Bei einer einzigen Ladung erscheint gar kein ±:
+Ladevorgänge, keine Genauigkeit: Die Energie ist gemessen, aber der Prozentsatz, durch den sie geteilt wird, ist
+eine Zahl, die das BMS gezählt hat — und die driftet. Ein schmales Band heißt, dass Ihre Ladevorgänge untereinander
+übereinstimmen, nicht dass der Akku wirklich diese Größe hat. Bei einem einzigen Ladevorgang erscheint gar kein ±:
 Eine Messung hat keine Streuung zu berichten.
 
-Es ist also eine **Schätzung** — keine Labordiagnose — und sie stabilisiert sich, je mehr Ladungen sich
+Es ist also eine **Schätzung** — keine Labordiagnose — und sie stabilisiert sich, je mehr Ladevorgänge sich
 ansammeln.
 
 ### Wartung
@@ -483,21 +483,21 @@ ist in drei Spalten unterteilt.
   Testen, eine pro Auto: Modell und VIN beschreiben das *Auto*, zwei Instanzen am selben Auto waren von
   innen also bisher nicht zu unterscheiden. Hier gibt es auch die Schaltfläche **🔓 Vom Konto abmelden**
   (Logout), um ein anderes Konto zu verbinden: Sie löscht *nur* die gespeicherten Zugangsdaten, **nicht** Ihre
-  Fahrten/Ladungen und auch nicht das Zertifikat.
+  Fahrten/Ladevorgänge und auch nicht das Zertifikat.
 - **Batterie** — die **Kapazität** in kWh, die für alle Berechnungen verwendet wird; korrigierbar. Wenn Mate eine
   aus Ihren Daten „gemessene" Schätzung hat, schlägt es sie Ihnen vor.
 - **Abfrageintervall** — wie oft Mate den Zustand aus der Cloud liest, mit zwei Schiebereglern: **geparkt**
   (10 s–5 min, Standard 30 s) und **in Fahrt** (10–60 s, Standard 10 s). Häufigeres Auslesen entlädt das Auto
   nicht, erzeugt aber mehr Verkehr zur Cloud.
-- **Ladeerkennung** — die **Stromschwelle** (in Ampere), oberhalb derer Mate „laufende Ladung" annimmt. Nur
-  herabsetzen, wenn Sie sehr langsame, nicht erkannte Ladungen haben.
+- **Ladeerkennung** — die **Stromschwelle** (in Ampere), oberhalb derer Mate „laufender Ladevorgang" annimmt. Nur
+  herabsetzen, wenn Sie sehr langsame, nicht erkannte Ladevorgänge haben.
 
 **Spalte 2 — Integrationen**
 
 - **ABRP** — Senden von Telemetrie an A Better Routeplanner (siehe [§8](#8-die-integrationen-im-detail)).
 - **Adresssuche** — der Dienst, um Adressen ↔ Koordinaten auf der Seite Navigation zu übersetzen (Geoapify
   *empfohlen*, LocationIQ, TomTom). Erfordert einen kostenlosen **Schlüssel** des gewählten Dienstes.
-- **⚡ Ladestationen** — aktiviert die **Namen der Ladestationen** bei den Ladungen (📍) und akzeptiert optionale
+- **⚡ Ladestationen** — aktiviert die **Namen der Ladestationen** bei den Ladevorgängen (📍) und akzeptiert optionale
   Schlüssel (OpenChargeMap, TomTom), um die Suche anzureichern. Standardmäßig **deaktiviert**.
 - **Wallbox** — verbinden Sie Ihre Wallbox für die **realen Kosten** und die eventuellen Steuerungen (siehe
   [§8](#8-die-integrationen-im-detail)).
@@ -518,15 +518,15 @@ ist in drei Spalten unterteilt.
 
 - **Datenbank** — Größe der DB und **Aufbewahrung der Positionen** (Retention): Sie können die GPS-Punkte „für
   immer" behalten (Standard) oder die älter als 6/12/18/24 Monate löschen, um Platz zu sparen. *Es werden nur die
-  Positionen entfernt*: Fahrten, Ladungen und Ladekurven bleiben erhalten.
-- **Export / Backup** — laden Sie **Fahrten (CSV)**, **Ladungen (CSV)** und ein **Backup der Datenbank** herunter.
+  Positionen entfernt*: Fahrten, Ladevorgänge und Ladekurven bleiben erhalten.
+- **Export / Backup** — laden Sie **Fahrten (CSV)**, **Ladevorgänge (CSV)** und ein **Backup der Datenbank** herunter.
 - **🩺 Diagnose** — eine Momentaufnahme des Systems (Version, Modell, Zählwerte, letzte Abfrage, aktive
   Integrationen), die Möglichkeit, die **Logs anzusehen** (Poller/Web) und vor allem ein **Diagnosepaket
   herunterzuladen**, indem Sie die gewünschten Teile ankreuzen (Info, Poller-Log, Web-Log, **Rohsignale**). Das
   Paket ist **bereits von sensiblen Daten bereinigt**: **GPS entfernt** und VIN/Geheimnisse verschleiert, sodass es
-  sicher anzuhängen ist, wenn Sie um Hilfe bitten. Es gibt auch eine **Suche nach verpassten Ladungen**, während
+  sicher anzuhängen ist, wenn Sie um Hilfe bitten. Es gibt auch eine **Suche nach verpassten Ladevorgängen**, während
   das Auto schlief.
-- **⚙️ Erweitert** — Feineinstellungen für erfahrene Benutzer: Mindestschwelle, um eine übersprungene Ladung zu
+- **⚙️ Erweitert** — Feineinstellungen für erfahrene Benutzer: Mindestschwelle, um einen übersprungenen Ladevorgang zu
   **rekonstruieren**, Schwelle des **Ruhestromverlusts (Vampire Drain)**, kW-Schwelle, um **DC** zu unterscheiden,
   und Mindesttemperatur für die Berechnung des **Batteriezustands**. Es gibt eine Schaltfläche, um die
   **Standardwerte wiederherzustellen**.
@@ -556,7 +556,7 @@ Mate liest die Wallbox **über Home Assistant**:
    `wallbox, charger, evse, keba, pulsar`). Einige bekannte Wallboxen (z. B. V2C Trydan) werden automatisch erkannt;
    die „Fallen"-Entitäten (Solar/Haus) werden ausgeschlossen.
 5. Öffnen Sie die Entitätsliste, um zu prüfen, ob Mate die richtigen **Energie-/Leistungssensoren** erfasst hat.
-6. Option **„Zuhause automatisch"**: weist Ladungen, die an Ihrer Wallbox erfolgt sind, automatisch das Etikett
+6. Option **„Zuhause automatisch"**: weist Ladevorgänge, die an Ihrer Wallbox erfolgt sind, automatisch das Etikett
    **Zuhause** zu.
 
 ### ABRP (A Better Routeplanner)
@@ -613,14 +613,14 @@ Das ist (in der Regel) kein Problem von Mate. Die Befehle erfolgen in *Echtzeit*
 durch. Der Indikator **„Fahrzeug-Reaktion"** in der Übersicht gibt Ihnen einen Eindruck von der Lage.
 
 **Nach einer Offline-Phase fehlen Fahrten oder Kilometer.**
-Wenn das Auto unerreichbar war, können einige Daten nicht erfasst worden sein. Die Ladungen, die „im Schlaf"
+Wenn das Auto unerreichbar war, können einige Daten nicht erfasst worden sein. Die Ladevorgänge, die „im Schlaf"
 erfolgten, werden in der Regel aus dem Sprung des Ladestands **rekonstruiert**; die verlorenen Kilometer lassen
-sich nicht immer wiederherstellen. Die **Suche nach verpassten Ladungen** (Einstellungen → Diagnose) hilft, nicht
-erfasste Ladungen wiederzufinden.
+sich nicht immer wiederherstellen. Die **Suche nach verpassten Ladevorgängen** (Einstellungen → Diagnose) hilft, nicht
+erfasste Ladevorgänge wiederzufinden.
 
-**Ich sehe eine seltsame Ladung / absurde Kosten.**
+**Ich sehe einen seltsamen Ladevorgang / absurde Kosten.**
 Mate hat Schutzmechanismen gegen unmögliche Werte (z. B. Wallbox-Zähler, die den Gesamtwert seit Inbetriebnahme
-melden). Wenn eine öffentliche Ladung einen komplizierten Tarif hat, verwenden Sie den Typ **✎ Manuell** und
+melden). Wenn ein öffentlicher Ladevorgang einen komplizierten Tarif hat, verwenden Sie den Typ **✎ Manuell** und
 tragen Sie den gezahlten Gesamtbetrag ein.
 
 **Das Diagramm des Ruhestromverlusts (Vampire Drain) ist leer.**

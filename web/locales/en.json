@@ -1065,6 +1065,7 @@
     "fuel_detected_title": "Refuels detected",
     "fuel_detected_hint": "The tank level went up, and fuel gets into a tank one way only. Mate fills in when and how much; what you paid is the one thing only you know.",
     "fuel_detected_badge": "to confirm",
+    "fuel_detected_capped": "The tank ended up full. The car stops counting at 100 %, so whatever went in above that is missing here — take the litres from your receipt.",
     "fuel_detected_window": "between {a} and {b}",
     "fuel_detected_tank": "tank {a}% → {b}%",
     "fuel_detected_confirm": "Confirm",

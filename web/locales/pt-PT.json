@@ -1065,6 +1065,7 @@
     "fuel_detected_title": "Abastecimentos detetados",
     "fuel_detected_hint": "O nível do depósito subiu, e o combustível só entra num depósito de uma maneira. Quando e quanto é o Mate que preenche; quanto pagaste só tu sabes.",
     "fuel_detected_badge": "por confirmar",
+    "fuel_detected_capped": "O depósito ficou cheio. O carro só conta até aos 100 %, por isso o que entrou acima disso não está aqui — tira os litros do talão.",
     "fuel_detected_window": "entre {a} e {b}",
     "fuel_detected_tank": "depósito {a}% → {b}%",
     "fuel_detected_confirm": "Confirmar",

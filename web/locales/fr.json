@@ -1065,6 +1065,7 @@
     "fuel_detected_title": "Pleins détectés",
     "fuel_detected_hint": "Le niveau du réservoir a monté, et le carburant n'entre dans un réservoir que d'une seule façon. Quand et combien, Mate les renseigne ; ce que tu as payé, toi seul le sais.",
     "fuel_detected_badge": "à confirmer",
+    "fuel_detected_capped": "Le réservoir est arrivé à plein. La voiture cesse de compter à 100 %, donc ce qui est entré au-delà manque ici — prends les litres sur ton ticket.",
     "fuel_detected_window": "entre le {a} et le {b}",
     "fuel_detected_tank": "réservoir {a} % → {b} %",
     "fuel_detected_confirm": "Confirmer",

@@ -109,7 +109,9 @@
           {# #200 — the rate the € above was worked out at. It has been computed all along (get_trip_detail
              sets it on the line beside the cost) and simply never printed, so the only way to check the
              figure was to redo the arithmetic by hand. #}
-          {% if trip.cost_per_kwh %}
+          {# `is not none`, not truthiness: 0.000 €/kWh is the real rate for an owner who charges
+             only from his own roof, and hiding it leaves a 0.00 € with nothing explaining it. #}
+          {% if trip.cost_per_kwh is not none %}
           <div class="mt-1 text-[11px] leading-none text-slate-400" title="{{ t('blended_price_help') }}">
             {{ trip.cost_per_kwh | price3 }} {{ currency.symbol }}/kWh
           </div>

@@ -1065,6 +1065,7 @@
     "fuel_detected_title": "Rifornimenti rilevati",
     "fuel_detected_hint": "Il livello del serbatoio è salito, e in un serbatoio il carburante entra in un modo solo. Quando e quanto li mette Mate; quanto hai pagato lo sai solo tu.",
     "fuel_detected_badge": "da confermare",
+    "fuel_detected_capped": "Il serbatoio è arrivato a pieno. L'auto smette di contare al 100 %, quindi quello che è entrato oltre qui non c'è — prendi i litri dallo scontrino.",
     "fuel_detected_window": "tra il {a} e il {b}",
     "fuel_detected_tank": "serbatoio {a}% → {b}%",
     "fuel_detected_confirm": "Conferma",

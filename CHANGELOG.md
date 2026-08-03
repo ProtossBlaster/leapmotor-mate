@@ -3,6 +3,69 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.6.2] — 2026-08-03
+
+### Fixed
+- **A charge that cost nothing was read as a charge with no price, and the battery kept the rate of
+  the last one you paid for.** Reported by **@oenukr** (#218), who charges from his own solar panels
+  and marks those charges 🆓 Free: *"if I only paid 50 euros to charge my car, the total cost of my
+  trips cannot be higher than that."*
+
+  He was right, and the gap was not small. `cost = 0.00` is only ever written on purpose — the Free
+  mark, the FREE type, a time band priced at 0, a manual 0 — while a price that is genuinely unknown
+  is stored as NULL. One guard treated the two the same and dropped both, so free energy entered the
+  pack and the blended €/kWh did not move. Measured on the real code: **50 kWh from the roof plus
+  10 kWh at €0.30 — €3.00 spent — used to bill €18.00 across the trips that emptied that pack. It
+  now bills €3.00**, to the cent. The error had no ceiling: the rarer your paid charges, the further
+  it ran (one paid charge in twenty billed twenty times what you spent, and grew with every trip).
+
+  The two figures @oenukr compared now agree in the case he described — 30 kWh free + 30 kWh at
+  €0.30 gives **0.150 €/kWh** on both the Charges page and the battery card, which is €9.00 ÷ 60 kWh.
+  They still differ once you have driven in between, and correctly so: the Charges page averages a
+  **period**, the battery card prices **what is in the pack right now**.
+
+  Trips made before a paid charge are untouched, for ever — the rate a trip is priced at only ever
+  looks at charges that ended **before that trip started**, and costs are recomputed from history on
+  every page rather than stored. That is now held by a test.
+
+- **A trip that ran entirely on free energy said "—" where it should have said €0.00.** With every
+  charge free the blended rate is exactly zero, and three places tested it for truthiness rather
+  than for "no value" — so the trip cost, the rate beneath it and the battery card all went blank.
+  A dash means *we do not know*, to the one owner who knows for certain. A charge that has no price
+  yet still shows "—", which is what it is for.
+
+### Changed
+- **A refuel that fills the tank to the brim is now shown as a floor, not an estimate.** Found by
+  **@pdifeo** (BetaTester #21), whose pump delivered **10.51 L** where the car reported **9.204 L**.
+  It is not arithmetic: the car's own litre counter stops at its nominal full tank — 100.0 % and
+  47 500 mL arrive in the same frame — while the tank keeps accepting fuel. Across 22 459 readings
+  the value never once exceeds that. Such a refuel now reads **"≥ 9.2 L"** instead of "≈", with a
+  line in seven languages telling you to take the litres off your receipt. Partial refuels are
+  untouched: there the car's counter is exact.
+
+- **Sixty-two German strings: `Ladung` → `Ladevorgang`.** *Ladung* is the everyday word; the German
+  regulator (Bundesnetzagentur, *Ladesäulenverordnung*) calls the process a *Ladevorgang*, which is
+  also what the app already used in nineteen other places. Classified one by one rather than
+  replaced, because the word has two meanings and one of them was already right: the vampire-drain
+  subtitle keeps *Ladung*, the electric charge that leaks away while the car is off. The gender
+  changes with the word, so the sentences around it changed too — *Letzte Ladung* → *Letzter
+  Ladevorgang*, *während dieser Ladung* → *während dieses Ladevorgangs*, and *sie* → *er* where a
+  pronoun pointed at it. The sidebar now reads **Ladevorgänge / Tankvorgänge**, a pair.
+
+### Documentation
+- **The German user manual follows the app**, including the table of contents: it still sent readers
+  to a menu entry called *Ladungen*, which no longer exists. Thirty-eight lines, with the same
+  two-meanings rule — the four places where *Ladung* is the battery's charge are deliberately left.
+
+### Internal
+- **A code comment claimed a measurement that was really a ceiling.** @pdifeo's earlier full tank
+  (BetaTester #17) read 33.390 → 47.500 L, and that 47.500 was written down as confirmation of the
+  C10's tank size on a second car. It was the counter's limit, and in the same report he had already
+  said he stopped at the pump's first click with room to spare. The constant itself stands — it also
+  comes from dividing signal 3263 by 3235 across seven bundles — but it is what the **car** calls a
+  full tank, not what the tank holds: his measured at least 48.81 L. Corrected in all three places
+  that repeated it, including a test's own docstring.
+
 ## [3.6.1] — 2026-08-02
 
 ### Changed

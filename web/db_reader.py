@@ -259,8 +259,14 @@ _REEV_FUEL_MIN_DROP = 0.2
 # It used to be one number, 50 L, "C10/B10 REEV both 50 L, confirmed" — confirmed from spec sheets,
 # never measured. Signal 3263 measures it, and the two models differ: dividing 3263 by 3235 across
 # seven bundles from three owners gives 47.5 L on a C10 and 50.0 L on a B10, each constant to
-# ±0.05 L, and the fullest C10 tank ever logged reads exactly 47 500 mL. So every litre Mate ever
-# showed a C10 owner was 5.3 % too big. Decoded by @gm27271 (beta #10).
+# ±0.05 L. So every litre Mate ever showed a C10 owner was 5.3 % too big. Decoded by @gm27271
+# (beta #10).
+#
+# ⚠️ This is what the CAR calls a full tank, not what the tank holds. 3263 is the percentage scaled
+# by this constant, so the two stop together — 100.0 % and 47 500 mL in the same frame, and never a
+# millilitre more across 22 459 readings. @pdifeo's C10 took 10.51 L off the pump into 9.204 L of
+# nominal room (beta #21, 03/08/26), so the physical tank holds at least 48.81 L. A fill that tops
+# the gauge out is therefore a LOWER bound, and `_fill_is_capped` is what says so.
 _REEV_TANK_L_BY_MODEL = {"C10": 47.5, "B10": 50.0}
 _REEV_TANK_L = 50.0        # last resort: an unknown range-extender model
 
@@ -1880,9 +1886,16 @@ def _flush_fuel_run(db: sqlite3.Connection, vid: int, run: dict, tank: float) ->
         return 0                                       # already known (pending or dismissed)
     # Litres: the car counts them itself (3263) — when both ends of the fill carry that, the figure
     # is MEASURED and the "≈" in front of it on the card stops being an apology. @gm27271's own fill
-    # read 34.416 L against a pump ticket of 33.84; @pdifeo's whole tank read 33.390 → 47.500, and
-    # that 47.5 confirms the C10 tank size on a second car. Percentage × assumed tank stays as the
-    # fallback for rows written before v2.14.1.
+    # read 34.416 L against a pump ticket of 33.84. Percentage × assumed tank stays as the fallback
+    # for rows written before v2.14.1.
+    #
+    # ⚠️ Unless the fill topped the gauge out, and this is where that was got wrong. @pdifeo's
+    # 33.390 → 47.500 (beta #17) was read here as "47.5 confirms the C10 tank size on a second car":
+    # 47 500 is the counter's CEILING, and in the same issue he had already said he stopped at the
+    # pump's first click with room left. His next fill settled it (beta #21) — the pump gave
+    # 10.51 L, the car reported 9.204, and both fills land on 47.500 exactly. The litres stay as
+    # measured (they are the best we have); `_fill_is_capped` marks the row so the card can say
+    # "≥" instead of "≈" and send the owner to the receipt.
     l_before, l_after = run["l_before"], run["l_after"]
     liters = ((l_after - l_before) if (l_before is not None and l_after is not None
                                        and l_after > l_before)
@@ -1903,6 +1916,20 @@ def _iso_shift(ts: str, hours: float) -> str:
         return str(ts)
 
 
+def _fill_is_capped(fuel_after_pct) -> bool:
+    """True when a fill ended with the gauge reading FULL — so its litres are a lower bound.
+
+    The car's litre counter is its own percentage scaled by a per-model constant, and both stop at
+    the top in the same frame (100.0 % / 47 500 mL on a C10). Fuel that goes in above that is simply
+    not counted: @pdifeo's pump gave 10.51 L into 9.204 L of nominal room (beta #21). Read off the
+    PERCENTAGE, not the litres, so this holds on any model without knowing its ceiling — and so it
+    also covers the rows written before v2.14.1, which carry no litres at all.
+
+    Derived on read rather than stored: `fuel_after_pct` is already on every row, so the detections
+    sitting pending right now start telling the truth as soon as this ships, with no migration."""
+    return fuel_after_pct is not None and fuel_after_pct >= 100
+
+
 def list_fuel_detected(vehicle_id: Optional[int] = None) -> list:
     """Refuels Mate spotted and the user has not yet ruled on, newest first."""
     vid = vehicle_id if vehicle_id is not None else _current_vehicle_id()
@@ -1913,7 +1940,7 @@ def list_fuel_detected(vehicle_id: Optional[int] = None) -> list:
             "SELECT id, ts, ts_from, liters, fuel_before_pct, fuel_after_pct FROM fuel_detected "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) AND status = 'pending' "
             "ORDER BY ts DESC, id DESC", (vid,)).fetchall()
-        return [dict(r) for r in rows]
+        return [{**dict(r), "capped": _fill_is_capped(r["fuel_after_pct"])} for r in rows]
     except sqlite3.Error:
         return []
     finally:
@@ -3655,6 +3682,13 @@ def _wac_blend(charges) -> Optional[float]:
     ABSENT from this list → carry-forward, i.e. the blend is unchanged across them — Mate's framework
     rule "no cost until confirmed, HOME excluded".
 
+    ⚠️ A charge that cost ZERO is NOT one of those. `cost=0.0` is only ever written deliberately —
+    the #120 free mark (own solar), the FREE type, a band priced at 0, a manual 0 — while an unknown
+    price is `cost=NULL` (`compute_cost` returns None, never 0, when no tariff applies). The guard
+    here used to drop `rate <= 0`, so free energy really sitting in the pack left the blend at the
+    last PAID rate: @oenukr charged from his roof and Mate billed his trips more than he had ever
+    spent (#218). Zero is a price. Only a NEGATIVE rate is nonsense and still skipped.
+
     ⚠️ The divisor used to be `_billed_kwh`, which for a HOME charge with a wallbox reading is the
     METER's AC kWh. That priced battery energy at the wall's rate, so the 8-15% the on-board charger
     turns into heat — real money, off your bill — landed on no trip at all and the trip costs summed
@@ -3674,8 +3708,8 @@ def _wac_blend(charges) -> Optional[float]:
         if cost is None or not basis or basis <= 0:
             continue                         # unpriced → must not move the blend
         rate = cost / basis
-        if rate <= 0:
-            continue
+        if rate < 0:
+            continue                         # below zero is not a price anyone paid → nonsense
         p = rate if p is None else (ss * p + (es - ss) * rate) / es
     return p
 
@@ -4049,9 +4083,15 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     # Stores the number only — the `money` filter applies the currency. Final trip cost → 2 decimals.
     trip_d["cost"] = None
     trip_d["cost_per_kwh"] = None
+    # A rate of ZERO is a rate. `if rate and rate > 0` treated 0.0 as "no price known" and the tile
+    # printed "—", which says we don't know — to the one owner who knows exactly: the pack he
+    # charged from his own roof cost him nothing, so the trip cost 0.00 and that is what it must
+    # say. Same defect as #218 seen from the other end: there free energy left the price too HIGH,
+    # here it erases it. `is None` is the only "unknown" (no priced charge yet); negatives can't
+    # reach here, `_wac_blend` drops them.
     if trip_d["energy_kwh"]:
         rate = blended_price_at(trip["vehicle_id"], trip["started_at"])
-        if rate and rate > 0:
+        if rate is not None and rate >= 0:
             trip_d["cost_per_kwh"] = round(rate, 4)
             trip_d["cost"] = round(trip_d["energy_kwh"] * rate, 2)
     # REEV — the blend above cannot answer this car. Its pack also takes kWh from the generator,

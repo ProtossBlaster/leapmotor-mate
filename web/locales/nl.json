@@ -1065,6 +1065,7 @@
     "fuel_detected_title": "Tankbeurten herkend",
     "fuel_detected_hint": "Het tankniveau ging omhoog, en brandstof komt maar op één manier in een tank. Mate vult in wanneer en hoeveel; wat je betaald hebt is het enige dat alleen jij weet.",
     "fuel_detected_badge": "te bevestigen",
+    "fuel_detected_capped": "De tank zat aan het eind vol. De auto telt maar tot 100 %; wat er daarboven in ging ontbreekt hier — neem de liters van je bonnetje.",
     "fuel_detected_window": "tussen {a} en {b}",
     "fuel_detected_tank": "tank {a}% → {b}%",
     "fuel_detected_confirm": "Bevestigen",

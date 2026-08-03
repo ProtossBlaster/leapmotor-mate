@@ -4,7 +4,9 @@ Everything Mate ever showed in litres was a tank percentage multiplied by a cons
 REEV both 50 L, confirmed", confirmed off a spec sheet and never measured. Signal **3263** is the
 litres the car counts for itself, in millilitres, and it measures the tank as a side effect: dividing
 3263 by 3235 across seven bundles from three owners gives **47.5 L on a C10** and **50.0 L on a B10**,
-each constant to ±0.05 L, and the fullest C10 tank ever logged reads exactly 47 500 mL.
+each constant to ±0.05 L. (The fullest C10 tank ever logged also reads exactly 47 500 mL — but that
+one is no evidence at all, because 47 500 is where the counter STOPS. See the capped-fill tests at
+the bottom: the physical tank holds at least 48.81 L.)
 
 So every litre a C10 owner ever saw was 5.3 % too big — the fuel burned per trip, the L/100 km, the
 "≈ X L" in the tank, the weights behind the blended €/L, and the litres of a detected refuel.
@@ -102,3 +104,39 @@ def test_the_measurement_wins_over_the_percentage(tmp_path, monkeypatch):
     db_reader.scan_fuel_refuels(1)
     (d,) = db_reader.list_fuel_detected(1)
     assert abs(d["liters"] - 14.42) < 1e-6            # 22.97 − 8.55, NOT 25 % × 47.5
+
+
+# ── A fill that tops the gauge out (beta #21, @pdifeo) ───────────────────────────
+# The counter is the percentage scaled by the model constant, so both stop together — 100.0 % and
+# 47 500 mL — while the tank keeps taking fuel. His pump gave 10.51 L into 9.204 L of nominal room.
+# The litres stay as measured; what changes is that the card must call them a floor, not an estimate.
+
+_TOPPED_OUT = [(_t(600), 80.6, 38.296), (_t(660), 80.6, 38.296), (_t(720), 100.0, 47.500),
+               (_t(780), 99.9, 47.480), (_t(840), 99.8, 47.450)]
+
+
+def test_a_fill_that_tops_the_gauge_out_is_flagged_as_a_lower_bound(tmp_path, monkeypatch):
+    _db(tmp_path, monkeypatch, "C10", _TOPPED_OUT)
+    assert db_reader.scan_fuel_refuels(1) == 1
+    (d,) = db_reader.list_fuel_detected(1)
+    assert abs(d["liters"] - 9.2) < 1e-6              # 47.500 − 38.296, exactly what he saw
+    assert d["capped"] is True                        # …and the pump said 10.51
+
+
+def test_an_ordinary_fill_is_not_flagged(tmp_path, monkeypatch):
+    """The guard has to stay off the common case, or "≥" means nothing."""
+    _db(tmp_path, monkeypatch, "C10", _RISE)
+    db_reader.scan_fuel_refuels(1)
+    (d,) = db_reader.list_fuel_detected(1)
+    assert d["capped"] is False
+
+
+def test_the_flag_reads_the_percentage_so_it_works_without_litres(tmp_path, monkeypatch):
+    """A car from before v2.14.1 reports no litres at all. It still knows when it reads full, and
+    that reading is capped for exactly the same reason."""
+    _db(tmp_path, monkeypatch, "C10",
+        [(_t(600), 80.6, None), (_t(660), 80.6, None), (_t(720), 100.0, None),
+         (_t(780), 99.9, None), (_t(840), 99.8, None)])
+    db_reader.scan_fuel_refuels(1)
+    (d,) = db_reader.list_fuel_detected(1)
+    assert d["capped"] is True

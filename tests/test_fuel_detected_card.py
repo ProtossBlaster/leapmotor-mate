@@ -20,7 +20,7 @@ TEMPLATES = ROOT / "web" / "templates"
 LOCALES = sorted((ROOT / "web" / "locales").glob("*.json"))
 
 
-def _render(lang="en"):
+def _render(lang="en", capped=False):
     tr = json.loads(LOCALES[0].read_text())["translations"]
     for p in LOCALES:
         if p.stem == lang:
@@ -29,7 +29,8 @@ def _render(lang="en"):
     env.filters["nice"] = lambda v: f"{v:.1f}"
     return env.get_template("partials/fuel_detected.html").render(
         detected=[{"id": 1, "liters": 9.0, "ts_from_local": "10:00", "ts_local": "10:20",
-                   "fuel_before_pct": 12.0, "fuel_after_pct": 92.0}],
+                   "fuel_before_pct": 12.0, "fuel_after_pct": 100.0 if capped else 92.0,
+                   "capped": capped}],
         t=lambda k: tr.get(k, k),
         currency={"symbol": "€"})
 
@@ -71,6 +72,56 @@ def test_every_language_renders_its_own_hint(lang):
     out = _render(lang)
     tr = json.loads((ROOT / "web" / "locales" / f"{lang}.json").read_text())["translations"]
     assert f">{tr['fuel_liters_hint']}<" in out
+
+
+# ── A fill that topped the gauge out (beta #21, @pdifeo) ─────────────────────────
+# 9.204 L on the card against 10.51 L on the pump, because the car stops counting at 100 %. The
+# number is a FLOOR, so the card has to stop saying "about" and say so in the owner's language.
+
+def test_a_capped_fill_reads_as_at_least_not_about():
+    out = _render(capped=True)
+    assert "≥ 9.0 L" in out
+    assert "≈ 9.0 L" not in out
+
+
+def test_an_ordinary_fill_still_reads_as_an_estimate():
+    """Without this the change is untestable in the direction that matters: "≥" everywhere says
+    nothing at all."""
+    out = _render(capped=False)
+    assert "≈ 9.0 L" in out
+    assert "≥ 9.0 L" not in out
+
+
+def _as_rendered(s):
+    """The sentence as it comes OUT of the template, not as it goes in.
+
+    The card renders with autoescape on, so an apostrophe becomes `&#39;` — the Italian string
+    ("L'auto smette di contare…") is the one that catches this, and a naive substring check fails
+    on Italian alone while passing in six other languages."""
+    from markupsafe import escape
+    return str(escape(s))
+
+
+def test_the_capped_warning_is_visible_text_only_when_capped():
+    tr = json.loads((ROOT / "web" / "locales" / "en.json").read_text())["translations"]
+    warn = _as_rendered(tr["fuel_detected_capped"])
+    assert warn in _render(capped=True)
+    assert warn not in _render(capped=False)
+
+
+def test_the_capped_sentence_exists_in_every_language():
+    """A German owner reading an English warning is how this defect gets ignored twice."""
+    for p in LOCALES:
+        tr = json.loads(p.read_text())["translations"]
+        assert tr.get("fuel_detected_capped"), p.name
+        assert tr["fuel_detected_capped"] != tr.get("fuel_liters_hint"), p.name
+
+
+@pytest.mark.parametrize("lang", [p.stem for p in LOCALES])
+def test_every_language_renders_its_own_capped_sentence(lang):
+    out = _render(lang, capped=True)
+    tr = json.loads((ROOT / "web" / "locales" / f"{lang}.json").read_text())["translations"]
+    assert _as_rendered(tr["fuel_detected_capped"]) in out
 
 
 def test_the_money_fields_are_still_there_and_confirm_is_still_guarded():

@@ -73,3 +73,40 @@ def test_zero_or_negative_rise_charges_are_ignored():
     # A "charge" with no SoC rise can't anchor the mix -> ignored, blend unchanged.
     weird = _pub(80, 80, 0.99)        # end == start
     assert _wac_blend([_home(0, 100, 0.25), weird]) == _wac_blend([_home(0, 100, 0.25)])
+
+
+# ── #218: cost 0 is a PRICE, cost None is the absence of one ──────────────────
+def _free(ss, es):
+    # A charge marked free (#120, solar): cost pinned to 0.0 — never NULL.
+    return {"start_soc": ss, "end_soc": es, "cost": 0.0, "ac_energy_kwh": None,
+            "location_type": "HOME", "energy_added_kwh": es - ss, "is_free": 1}
+
+
+def test_free_charge_lowers_the_blend():
+    # oenukr (#218): free solar energy really is in the pack, and it really cost nothing. Skipping
+    # it left the blend at the last PAID rate, so the trips billed more than the owner ever spent.
+    # 20 points at 0.40 + 60 free points -> (20*0.40 + 60*0) / 80.
+    p = _wac_blend([_pub(20, 80, 0.40, "HPC"), _free(20, 80)])
+    assert abs(p - 0.10) < 1e-9
+
+
+def test_free_and_unconfirmed_are_not_the_same_thing():
+    # The defect in one line: both used to be skipped. Only cost=None may carry forward.
+    base = [_pub(20, 80, 0.40, "HPC")]
+    unconf = {"start_soc": 20, "end_soc": 80, "cost": None, "ac_energy_kwh": None,
+              "location_type": None, "energy_added_kwh": 60}
+    assert _wac_blend(base + [unconf]) == _wac_blend(base)     # unknown price -> unchanged
+    assert _wac_blend(base + [_free(20, 80)]) < _wac_blend(base)   # known zero -> it drops
+
+
+def test_only_free_charges_blend_to_zero():
+    # Charge exclusively from your own roof and the energy in the pack is worth exactly nothing.
+    assert _wac_blend([_free(0, 100), _free(40, 90)]) == 0.0
+
+
+def test_negative_cost_is_still_ignored():
+    # Below zero is not a price anyone paid — nonsense data must not move the mix.
+    bad = {"start_soc": 20, "end_soc": 80, "cost": -5.0, "ac_energy_kwh": None,
+           "location_type": "HOME", "energy_added_kwh": 60}
+    base = [_home(0, 100, 0.25)]
+    assert _wac_blend(base + [bad]) == _wac_blend(base)

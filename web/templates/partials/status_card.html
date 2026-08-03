@@ -26,7 +26,7 @@
 </div>
 
 <!-- SOC bar -->
-<div class="w-full bg-slate-700 rounded-full h-3 {% if battery_price %}mb-1{% else %}mb-5{% endif %}">
+<div class="w-full bg-slate-700 rounded-full h-3 {% if battery_price is not none %}mb-1{% else %}mb-5{% endif %}">
   <div class="soc-bar h-3 rounded-full" style="width:{{ soc }}%; background:{{ color }}"></div>
 </div>
 
@@ -36,8 +36,12 @@
    there it wrapped onto two cramped `leading-none` lines. It is deliberately NOT shortened to just
    “Avg price” — the Charges page already uses that for a different figure, the period average, and
    two different numbers must not share a label. Absent (not “—”) until the first priced charge:
-   there is genuinely no rate yet, and a dash under a battery reads as “free”. #}
-{% if battery_price %}
+   there is genuinely no rate yet, and a dash under a battery reads as “free”.
+
+   `is not none`, not truthiness: that last line is exactly why 0.000 must be PRINTED. For an owner
+   whose charges are all free the pack really is free, and hiding the line leaves him to infer it
+   from an empty space — the reading the comment above calls wrong when it is not true. #}
+{% if battery_price is not none %}
 <div class="mb-5 text-[11px] leading-tight text-right" title="{{ t('blended_price_help') }}">
   <span class="text-slate-400">{{ t('blended_price') }}:</span>
   <span class="font-semibold text-teal-300">{{ battery_price | price3 }}</span>
