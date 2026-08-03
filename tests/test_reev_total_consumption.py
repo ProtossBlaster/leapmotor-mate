@@ -92,7 +92,7 @@ def test_trips_with_no_fuel_reading_at_all_still_contribute_their_kilometres(ree
     assert out["total_fuel_l"] == 4.8
 
 
-def test_it_is_scoped_to_the_current_vehicle(reev, monkeypatch):
+def test_the_derived_total_is_scoped_to_the_current_vehicle(reev, monkeypatch):
     reev._conn.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (2,'W','C10')")
     reev._conn.execute(
         "INSERT INTO trips (vehicle_id, started_at, ended_at, distance_km, start_soc, end_soc)"
@@ -166,7 +166,7 @@ def test_a_total_missing_every_refuel_says_so(reev):
     assert db_reader.reev_actual_spend()["has_fuel_entries"] is True
 
 
-def test_it_is_scoped_to_the_current_vehicle(reev, monkeypatch):
+def test_the_actual_spend_is_scoped_to_the_current_vehicle(reev, monkeypatch):
     reev._conn.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (2,'W','C10')")
     reev._conn.execute(
         "INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, cost)"
