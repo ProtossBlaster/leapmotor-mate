@@ -1492,7 +1492,9 @@ def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] 
             (vehicle_id, started_at, ended_at or started_at, energy_kwh,
              _span_minutes(started_at, ended_at), ct, cost, start_soc, end_soc))
         db.commit()
-        return cur.lastrowid
+        # lastrowid is Optional only for a cursor that last ran something other than an INSERT;
+        # this one just inserted into a table with an INTEGER PRIMARY KEY, so it is the new id.
+        return cur.lastrowid  # type: ignore[return-value]
     finally:
         db.close()
 
@@ -1686,7 +1688,8 @@ def add_fuel_purchase(ts: str, liters: float, price_per_l: Optional[float] = Non
             (vehicle_id, ts, liters, round(ppl, 4), round(tot, 2), fb, note,
              datetime.now(timezone.utc).isoformat()))
         db.commit()
-        return cur.lastrowid
+        # lastrowid: Optional only for a cursor that last ran a non-INSERT — see add_manual_charge.
+        return cur.lastrowid  # type: ignore[return-value]
     finally:
         db.close()
 

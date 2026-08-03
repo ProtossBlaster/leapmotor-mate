@@ -881,7 +881,9 @@ class Database:
              ec_driving_kwh, ec_ac_kwh, ec_other_kwh, ec_status),
         )
         self._conn.commit()
-        return cur.lastrowid
+        # lastrowid is Optional only for a cursor that last ran something other than an INSERT;
+        # this one just inserted into a table with an INTEGER PRIMARY KEY, so it is the new id.
+        return cur.lastrowid  # type: ignore[return-value]
 
     def get_or_create_device_id(self) -> str:
         """One stable device_id for this Mate install, shared by poller and web.
@@ -1218,7 +1220,8 @@ class Database:
         self._conn.commit()
         trip_id = cur.lastrowid
         log.info("Trip #%d started — SOC %.1f%% @ (%.4f, %.4f)", trip_id, data.soc, data.latitude, data.longitude)
-        return trip_id
+        # lastrowid: Optional only for a cursor that last ran a non-INSERT — see insert_energy_snapshot.
+        return trip_id  # type: ignore[return-value]
 
     def create_reconstructed_trip(self, vehicle_id: int, start_soc: float, start_odo: float,
                                   started_at: str, data) -> Optional[int]:
@@ -1277,7 +1280,7 @@ class Database:
         )
         self._conn.commit()
 
-    def finalize_trip(self, trip_id: int, data, regen_kwh: float = 0.0) -> None:
+    def finalize_trip(self, trip_id: int, data, regen_kwh: float = 0.0) -> Optional[float]:
         rows = self._conn.execute(
             "SELECT latitude, longitude FROM trip_positions WHERE trip_id = ? ORDER BY id",
             (trip_id,),
@@ -1349,7 +1352,8 @@ class Database:
         self._conn.commit()
         charge_id = cur.lastrowid
         log.info("Charge #%d started — SOC %.1f%%", charge_id, data.soc)
-        return charge_id
+        # lastrowid: Optional only for a cursor that last ran a non-INSERT — see insert_energy_snapshot.
+        return charge_id  # type: ignore[return-value]
 
     def create_reconstructed_charge(self, vehicle_id: int, start_soc: float,
                                     started_at: str, data) -> Optional[int]:
