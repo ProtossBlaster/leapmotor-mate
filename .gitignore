@@ -13,6 +13,9 @@ venv/
 .claude/
 # scratch drafts (issue replies etc.) — not for distribution
 .drafts/
+# local pyright config — it resolves imports through venv/, which is itself untracked,
+# so it only means anything on this host
+pyrightconfig.json
 # certs/ are bundled in the image — tracked by git intentionally
 
 # App certificate (provided by user at setup — see README / markoceri/leapmotor-certs)
