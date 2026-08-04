@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.6.4"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.6.5"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -393,6 +393,10 @@ def _ctx(**kwargs):
             "auth_unprotected": auth.unprotected(), "auth_env": auth.env_password_wins(),
             "auth_dismissed": db_reader.get_setting("auth_warning_dismissed", "0") == "1",
             "desktop_notice_dismissed": db_reader.get_setting("desktop_notice_dismissed", "0") == "1",
+            # The BetaTester banner is dismissible too (@ebagnoli, beta #13). The BETA badge beside
+            # the version stays regardless — the warning is what you take in once, the build is what
+            # you must be able to tell at a glance.
+            "beta_notice_dismissed": db_reader.get_setting("beta_notice_dismissed", "0") == "1",
             "is_addon": auth.is_addon(),
             "soc_color": _soc_color, "state_label": state_label, "state_color": _state_color, "ago": ago,
             "is_driving": _driving, "fmt_dur": _fmt_dur}
@@ -1960,6 +1964,11 @@ async def settings_page(request: Request):
         timezone_code=db_reader.get_timezone(),
         diag=diagnostics.build_system_info(MATE_VERSION),
         measured_capacity=db_reader.get_battery_health().get("latest_capacity_kwh"),
+        # The capacity actually in use, and the SoH reference. The form used to carry its own
+        # default (67.1) while the code read another (65.0) — two defaults for one value, and
+        # whichever got written first decided the reference for ever (@danielvilhena, #221).
+        capacity_kwh=db_reader.get_battery_capacity_kwh(),
+        capacity_nominal=db_reader.get_setting("battery_capacity_nominal_kwh", ""),
     ))
 
 
@@ -3469,7 +3478,24 @@ async def dismiss_desktop_notice(request: Request):
     not), while this only states how it already behaves. Reloading the whole page to remove a
     strip the browser has already dropped would be a visible stutter for nothing."""
     db_reader.set_setting("desktop_notice_dismissed", "1")
-    return Response(status_code=204)
+    # 200, not 204: htmx performs NO swap on a 204 by design, so hx-swap="delete" never ran and the
+    # strip sat there until the next page load. Measured in a browser — the POST went out, answered
+    # 204, and the bar stayed. An empty 200 lets the delete happen, which is what the paragraph
+    # above wanted: the element goes, the page does not reload.
+    return Response(status_code=200)
+
+
+@app.post("/api/settings/dismiss-beta-notice")
+async def dismiss_beta_notice(request: Request):
+    """Hide the BetaTester banner once the tester has read it.
+
+    On a phone it sat above the open menu and hid its top entries (@ebagnoli, beta #13) — a warning
+    standing between someone and the navigation. Lowering it was the fix; letting it be closed is
+    what stops it being in the way at all. Nothing is lost by closing it: the BETA badge next to the
+    version says which build this is for as long as the install lives, which is the part a tester
+    running two instances side by side actually needs."""
+    db_reader.set_setting("beta_notice_dismissed", "1")
+    return Response(status_code=200)   # 200, not 204 — see dismiss_desktop_notice
 
 
 @app.post("/api/settings/desktop-autostart", response_class=HTMLResponse)
@@ -3969,7 +3995,19 @@ async def capacity_settings(request: Request):
         kwh = max(10.0, min(float(form.get("battery_capacity_kwh", 0)), 200.0))
     except (ValueError, TypeError):
         return HTMLResponse('<span style="color:#ef4444">Invalid value</span>', status_code=400)
-    if not db_reader.get_setting("battery_capacity_nominal_kwh", ""):
+    # The SoH reference is now correctable. It used to be snapshotted once and then frozen for
+    # good, with no way to see or change it — so a reference caught from the wrong number (the two
+    # defaults this form and the code carried, #221) put battery health above 100% for ever, and
+    # the only figure that could explain it was invisible. Sent empty → the old behaviour: keep
+    # what is there, or snapshot the value being replaced.
+    try:
+        _typed = str(form.get("battery_nominal_kwh", "") or "").strip()
+        nominal = max(10.0, min(float(_typed), 200.0)) if _typed else None
+    except (ValueError, TypeError):
+        return HTMLResponse('<span style="color:#ef4444">Invalid value</span>', status_code=400)
+    if nominal is not None:
+        db_reader.set_setting("battery_capacity_nominal_kwh", str(nominal))
+    elif not db_reader.get_setting("battery_capacity_nominal_kwh", ""):
         db_reader.set_setting("battery_capacity_nominal_kwh",
                               db_reader.get_setting("battery_capacity_kwh", str(kwh)))
     db_reader.set_setting("battery_capacity_kwh", str(kwh))
@@ -4054,6 +4092,32 @@ async def cumulative_summary(request: Request, refresh: int = 0):
 _period_cache: dict = {}
 
 
+@app.get("/api/plugin-consumption", response_class=HTMLResponse)
+async def plugin_consumption(request: Request, refresh: int = 0):
+    """The car's OWN two consumptions — kWh/100 km and L/100 km — over ITS OWN window.
+
+    getPlugInLastNweeks100kmEC takes no date range: the request carries the VIN and nothing else,
+    so unlike getEC this cannot be asked for "July". What it answers is the six-week block the
+    official app puts under "last 6 weeks", and the figures match that screen to the decimal
+    (@pdifeo's C10: 11.1 kWh + 1.6 L, ours: 20.0 + 0.0). Confirmed on a range-extender bundle and
+    on our own BEV — same shape on both, fuel simply zero on the electric car.
+
+    Its own window, said out loud on the card, because a number borrowed from another period and
+    printed beside monthly ones is how two right figures start contradicting each other."""
+    import time, asyncio
+    key = "plugin6w"
+    c = _period_cache.get(key)
+    if refresh or not c or time.time() - c["ts"] >= 1800:
+        data = await asyncio.get_event_loop().run_in_executor(
+            None, command_client.get_plugin_consumption)
+        if data is not None:
+            _period_cache[key] = {"data": data, "ts": time.time()}
+        pc = data if data is not None else (c["data"] if c else None)
+    else:
+        pc = c["data"]
+    return templates.TemplateResponse(request, "partials/plugin_consumption.html", _ctx(pc=pc))
+
+
 def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int) -> "dict | None":
     """Add local distance/duration/average-kWh-per-100km to a getEC breakdown, computed from
     trips in the SAME window — mirrors the car's own "since last charge" screen (Distanza/Durata/
@@ -4077,6 +4141,16 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int) -
     eb = {**eb, "distance_km": dist_km, "duration_min": tot.get("duration_min") or 0}
     if dist_km > 0:
         eb["avg_kwh100"] = round(eb["total_kwh"] / dist_km * 100, 1)
+    # The petrol half of the SAME window (@michapr, beta #11). getPlugIn gives both energies
+    # measured by the car but only over its own six weeks; a period the reader picked has to be
+    # answered from the trips. L/100 km over the generator-on distance, not the whole window —
+    # spreading the litres across electric kilometres prints a figure no REEV owner recognises.
+    _f = db_reader.get_fuel_totals_between(begin_ts, end_ts)
+    if _f.get("fuel_l"):
+        eb["fuel_l"] = _f["fuel_l"]
+        eb["fuel_engine_km"] = _f["engine_km"]
+        if _f["engine_km"] > 0:
+            eb["fuel_l_100km"] = round(_f["fuel_l"] / _f["engine_km"] * 100, 1)
     return db_reader.flag_short_cloud_total(eb, tot, dist_km)
 
 

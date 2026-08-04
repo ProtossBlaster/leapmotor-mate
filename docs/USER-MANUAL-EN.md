@@ -164,6 +164,10 @@ Depending on the model:
 
 > The capacity shown is the **usable/net** one (the one that really matters for consumption and
 > costs) and can always be corrected later, from Settings → Battery.
+> Beside it sits the **SoH reference** — the as-new capacity battery health is measured against.
+> Mate captures it the first time you save the capacity and then leaves it alone, so that adopting
+> a measured (already-aged) figure can never reset your health to ~100 % and hide the ageing. If it
+> was captured from the wrong number, health can read above 100 %: correct it in the same place.
 
 ### Step 4 — Connect
 

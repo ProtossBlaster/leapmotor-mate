@@ -321,7 +321,28 @@
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             <input type="number" name="battery_capacity_kwh" min="10" max="200" step="0.1"
-                   value="{{ settings.get('battery_capacity_kwh', '67.1') }}"
+                   {# The value the app ACTUALLY uses, not a literal of this template's own. The
+                      two disagreed — 67.1 here, 65.0 in get_battery_capacity_kwh — so what you
+                      read here was not what your energy was computed with (#221). #}
+                   value="{{ capacity_kwh }}"
+                   class="w-20 px-2 py-1.5 rounded-lg text-sm text-white text-right border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+            <span class="text-slate-400 text-sm">kWh</span>
+          </div>
+        </div>
+        {# The SoH reference, on purpose a SECOND field rather than derived from the one above.
+           Battery health is measured-vs-as-new, so the denominator must stay the car's original
+           spec even after you correct the usable figure — but until now it was snapshotted once,
+           silently, and could never be put right if it caught the wrong number (@danielvilhena,
+           #221: health above 100 %). Pre-filled with the value in force, so leaving it alone is
+           the no-op it looks like. #}
+        <div class="mt-3 flex items-center justify-between gap-2">
+          <div class="flex-1 min-w-0">
+            <div class="text-sm text-white">{{ t('capacity_nominal') }}</div>
+            <div class="text-xs text-slate-400">{{ t('capacity_nominal_desc') }}</div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <input type="number" name="battery_nominal_kwh" min="10" max="200" step="0.1"
+                   value="{{ capacity_nominal or capacity_kwh }}"
                    class="w-20 px-2 py-1.5 rounded-lg text-sm text-white text-right border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
             <span class="text-slate-400 text-sm">kWh</span>
           </div>

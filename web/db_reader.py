@@ -4387,6 +4387,49 @@ def get_last_charge_end() -> Optional[datetime]:
     return _local_dt(row["ended_at"]) if row else None
 
 
+def get_fuel_totals_between(begin_ts: int, end_ts: int) -> dict:
+    """REEV — litres burned and generator-on distance for trips started within [begin_ts, end_ts].
+
+    The counterpart of get_trip_totals_between for the petrol half, so a period card can show BOTH
+    energies over the window the reader chose (@michapr, beta #11). getPlugIn already gives the two
+    figures measured by the car, but on ITS window and no other — the request carries the VIN and
+    nothing else — so a chosen period has to be answered from the trips.
+
+    Not a SQL sum: the litres go through _reev_trip_fuel like everywhere else, which prefers the
+    car's OWN counter (signal 3263) and only falls back to tank-% × assumed capacity on trips
+    recorded before v2.14.1. ⚠️ A long window therefore mixes the two bases — measured litres for
+    recent trips, derived for old ones — and no averaging here can undo that.
+
+    The positions walk that finds the generator-on distance runs ONLY for trips whose tank actually
+    dropped, so a mostly-electric REEV (and every BEV) costs one indexed query and nothing more."""
+    b = datetime.fromtimestamp(begin_ts, tz=timezone.utc).isoformat()
+    e = datetime.fromtimestamp(end_ts, tz=timezone.utc).isoformat()
+    out = {"fuel_l": 0.0, "engine_km": 0.0, "trip_count": 0}
+    db = _get()
+    try:
+        rows = db.execute(
+            "SELECT id, vehicle_id, started_at, ended_at, distance_km, fuel_start_pct, fuel_end_pct,"
+            " fuel_start_l, fuel_end_l FROM trips"
+            " WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL"
+            "   AND merged_into_id IS NULL AND started_at >= ? AND started_at <= ?"
+            "   AND fuel_start_pct IS NOT NULL AND fuel_end_pct IS NOT NULL"
+            "   AND fuel_start_pct - fuel_end_pct > ?",
+            (_current_vehicle_id(), b, e, _REEV_FUEL_MIN_DROP)).fetchall()
+    except sqlite3.Error:
+        return out                      # no fuel columns → a BEV, and nothing to add
+    for r in rows:
+        eng = _reev_engine_on(db, r["vehicle_id"], r["started_at"], r["ended_at"])
+        f = _reev_trip_fuel(r["fuel_start_pct"], r["fuel_end_pct"], r["distance_km"], eng,
+                            r["fuel_start_l"], r["fuel_end_l"])
+        if f["fuel_used_l"]:
+            out["fuel_l"] += f["fuel_used_l"]
+            out["engine_km"] += f["engine_km"] or 0
+            out["trip_count"] += 1
+    out["fuel_l"] = round(out["fuel_l"], 2)
+    out["engine_km"] = round(out["engine_km"], 1)
+    return out
+
+
 def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
     """Distance/duration/count/energy of LOCAL trips started within [begin_ts, end_ts] (epoch
     seconds) — paired by the caller with a live getEC total for the SAME window, to show distance +
@@ -5350,6 +5393,18 @@ def _report_bucket() -> dict:
         # priced-only twins: the €/kWh denominator (an unpriced charge brings kWh but no €)
         "charge_count_priced": 0, "charge_kwh_priced": 0.0,
         "unconfirmed": 0,
+        # REEV — the petrol side of the month, so a range-extender owner gets a report about the
+        # car he drives instead of one about half of it (Silvio's call, beta #11/#22). Litres BURNED
+        # come from the trips; litres and € BOUGHT come from the refuels he entered, because a tank
+        # is filled on one day and burned over the next fortnight — the two are different questions
+        # and summing them would answer neither.
+        "fuel_l_burned": 0.0, "fuel_engine_km": 0.0,
+        # Electric consumption MEASURED by the car (getEC per trip), so a month with generator
+        # driving in it still gets an electric average. avg_efficiency above cannot: on a
+        # range-extender trip Mate blanks efficiency_kwh_100km on purpose, and that average then
+        # covers only the part of the month driven on the battery alone — without saying so.
+        "_ec_kwh": 0.0, "_ec_km": 0.0, "avg_efficiency_measured": None,
+        "refuel_count": 0, "refuel_l": 0.0, "refuel_cost": 0.0,
         "home":   {"count": 0, "kwh": 0.0, "cost": 0.0},
         "public": {"count": 0, "kwh": 0.0, "cost": 0.0},
         "_days": {},   # day-of-month -> {"km": float, "cost": float}
@@ -5379,6 +5434,16 @@ def _collect_monthly_buckets() -> dict:
             b["_eff_wsum"]  += km * eff
             b["_eff_wdist"] += km
         b["_days"].setdefault(dt.day, {"km": 0.0, "cost": 0.0})["km"] += km
+        # engine_km, not km: the L/100 km of a range-extender trip is over the distance the
+        # generator actually drove, not the whole trip — the same basis reev_fuel_summary uses.
+        b["fuel_l_burned"]  += tr.get("fuel_used_l") or 0
+        # Only trips the enrichment has actually answered for: a NULL is "not measured yet", and
+        # counting its kilometres with zero energy would drag the average down for free.
+        _ec = tr.get("ec_driving")
+        if _ec is not None and km > 0:
+            b["_ec_kwh"] += _ec
+            b["_ec_km"]  += km
+        b["fuel_engine_km"] += tr.get("engine_km") or 0
 
     for c in get_charges(limit=1_000_000):
         dt = _local_dt(c.get("started_at"))
@@ -5406,9 +5471,38 @@ def _collect_monthly_buckets() -> dict:
         if cost is not None:
             b["_days"].setdefault(dt.day, {"km": 0.0, "cost": 0.0})["cost"] += cost
 
+    # REEV refuels — what was BOUGHT that month. Own table, own pass: they are typed in by the
+    # owner and exist independently of any trip, so a month can hold a refuel and no engine-on
+    # driving (filled on the 31st) or engine-on driving and no refuel (running down the tank).
+    # Best-effort: the table only exists once a refuel has been entered.
+    try:
+        db = _get()
+        _ensure_fuel_purchases(db)
+        for f in db.execute(
+                "SELECT ts, liters, total_cost FROM fuel_purchases "
+                "WHERE vehicle_id = COALESCE(?, vehicle_id)", (_current_vehicle_id(),)).fetchall():
+            dt = _local_dt(f["ts"])
+            if dt is None:
+                continue
+            b = buckets.setdefault(dt.strftime("%Y-%m"), _report_bucket())
+            b["refuel_count"] += 1
+            b["refuel_l"]     += f["liters"] or 0
+            b["refuel_cost"]  += f["total_cost"] or 0
+            if f["total_cost"]:
+                b["_days"].setdefault(dt.day, {"km": 0.0, "cost": 0.0})["cost"] += f["total_cost"]
+    except sqlite3.Error:
+        pass
+
     for b in buckets.values():
         if b["_eff_wdist"] > 0:
             b["avg_efficiency"] = round(b["_eff_wsum"] / b["_eff_wdist"], 1)
+        # The measured twin, over EVERY trip the cloud answered for — generator ones included.
+        # ⚠️ getEC counts what LEFT THE BATTERY: on a generator trip the push that goes from the
+        # range-extender straight to the wheels never passes through the pack and is invisible
+        # here. That makes this the honest "electricity used" and NOT "what the motor consumed" —
+        # the litres beside it are the other half of that answer.
+        if b["_ec_km"] > 0:
+            b["avg_efficiency_measured"] = round(b["_ec_kwh"] / b["_ec_km"] * 100, 1)
         for k in ("total_km", "total_kwh_used", "regen_kwh", "charge_kwh", "charge_cost",
                   "charge_kwh_priced"):
             b[k] = round(b[k], 2)
@@ -5461,9 +5555,18 @@ def get_monthly_report(month: Optional[str] = None) -> dict:
 
     deltas = None
     if prev and not month_empty:
+        # The arrow beside the consumption tile. That tile shows the car's OWN metered figure for
+        # the month (getEC over the month bounds), while this delta was computed from
+        # efficiency_kwh_100km — a different quantity, so the arrow could disagree with the number
+        # it sits next to. Worse on a range-extender, where that field is deliberately blank on
+        # generator trips and the comparison then ran on the electric part of each month alone.
+        # avg_efficiency_measured is the same metering as the tile, summed per trip, so both months
+        # are weighed on one basis. Falls back when the enrichment has not answered yet.
         eff_d = None
-        if cur["avg_efficiency"] is not None and prev["avg_efficiency"] is not None:
-            eff_d = _delta(cur["avg_efficiency"], prev["avg_efficiency"])
+        _cur_e = cur.get("avg_efficiency_measured") or cur["avg_efficiency"]
+        _prv_e = prev.get("avg_efficiency_measured") or prev["avg_efficiency"]
+        if _cur_e is not None and _prv_e is not None:
+            eff_d = _delta(_cur_e, _prv_e)
         deltas = {
             "km":         _delta(cur["total_km"], prev["total_km"]),
             "kwh_used":   _delta(cur["total_kwh_used"], prev["total_kwh_used"]),

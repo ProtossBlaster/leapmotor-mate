@@ -25,6 +25,16 @@
     A dot, not a number, and never red. Red is reserved for the one case the user MUST act on —
     a Mate release refused because this app is too old to run it. This is optional, and reading
     the two as equally urgent would make the urgent one ordinary. -#}
+{#- BETA marker, beside the version in BOTH sidebars. The purple banner up top can now be dismissed
+    (@ebagnoli, beta #13: on a phone it stood between him and the menu), and once it is gone nothing
+    would say which build this is — a tester comparing two installs has to be able to tell them
+    apart at a glance. So the warning is dismissible and the IDENTIFICATION is permanent, small, and
+    where you already look for the version. Red, because the demo badge next to it is amber and the
+    two must never be mistaken for one another. A macro, not two copies: the note at the top of this
+    file is about exactly the drift that follows. -#}
+{%- macro beta_badge() -%}
+<span title="BetaTester build" class="text-[10px] font-bold text-white bg-red-600 rounded px-1.5 py-0.5 self-center ml-1 tracking-wide">BETA</span>
+{%- endmacro -%}
 {%- macro app_badge(update, t) -%}
 {%- if update and update.newer_app -%}
 <a href="{{ update.url }}" target="_blank" rel="noopener" title="{{ t('app_newer_available') }} · v{{ update.newer_app }}" class="ml-1 text-[10px] font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 rounded-full px-1.5 py-0.5">↑</a>
@@ -251,7 +261,7 @@
       <img src="static/mate-icon.svg" alt="LeapMotor Mate" class="h-6 w-6">
       <span class="text-sm font-medium text-slate-100">LeapMotor <span class="text-brand">Mate</span></span>
       {% if version %}<span title="{{ ("MateDesktop " ~ shell_version) if shell_version else "" }}" class="text-[10px] text-slate-500 font-normal self-end mb-0.5 whitespace-nowrap">v{{ version }}{% if shell_version %}<span class="opacity-50"> · D{{ shell_version }}</span>{{ app_badge(update, t) }}{% endif %}</span>{% endif %}
-      {% if demo %}<span title="Sample data — no real car" class="text-[10px] font-bold text-slate-900 bg-amber-400 rounded px-1.5 py-0.5 self-center ml-1 tracking-wide">DEMO</span>{% endif %}
+      {% if demo %}<span title="Sample data — no real car" class="text-[10px] font-bold text-slate-900 bg-amber-400 rounded px-1.5 py-0.5 self-center ml-1 tracking-wide">DEMO</span>{% endif %}{% if research %}{{ beta_badge() }}{% endif %}
       {{ version_badge(update, t) }}
     </div>
     <div class="flex items-center gap-1">
@@ -281,7 +291,7 @@
         <img src="static/mate-icon.svg" alt="LeapMotor Mate" class="h-6 w-6">
         <span class="text-sm font-medium text-slate-100">LeapMotor <span class="text-brand">Mate</span></span>
         {% if version %}<span title="{{ ("MateDesktop " ~ shell_version) if shell_version else "" }}" class="text-[10px] text-slate-500 font-normal self-end mb-0.5 whitespace-nowrap">v{{ version }}{% if shell_version %}<span class="opacity-50"> · D{{ shell_version }}</span>{{ app_badge(update, t) }}{% endif %}</span>{% endif %}
-      {% if demo %}<span title="Sample data — no real car" class="text-[10px] font-bold text-slate-900 bg-amber-400 rounded px-1.5 py-0.5 self-center ml-1 tracking-wide">DEMO</span>{% endif %}
+      {% if demo %}<span title="Sample data — no real car" class="text-[10px] font-bold text-slate-900 bg-amber-400 rounded px-1.5 py-0.5 self-center ml-1 tracking-wide">DEMO</span>{% endif %}{% if research %}{{ beta_badge() }}{% endif %}
       {{ version_badge(update, t) }}
       </div>
       {% if vehicle %}
@@ -392,7 +402,7 @@
        shown once dismissed. Worth a banner rather than a line in the docs because the stake is
        physical: anything on the network can reach the command endpoints and open the car. #}
     {% if auth_unprotected and not auth_dismissed and not demo %}
-    <div id="auth-bar" style="position:sticky;top:0;z-index:1004;background:#7f1d1d;color:#fee2e2;
+    <div id="auth-bar" style="position:sticky;top:0;z-index:1000;background:#7f1d1d;color:#fee2e2;
          display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;
          padding:8px 14px;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.3)">
       <span>🔓 {{ t('auth_warning_banner') }}</span>
@@ -410,7 +420,7 @@
        bedtime records none of them. Blue, not red: this is how the app works, not a danger.
        Dismissible, and it stays dismissed. #}
     {% if shell_version and not desktop_notice_dismissed and not demo %}
-    <div id="desktop-bar" style="position:sticky;top:0;z-index:1003;background:#1e3a5f;color:#dbeafe;
+    <div id="desktop-bar" style="position:sticky;top:0;z-index:1000;background:#1e3a5f;color:#dbeafe;
          display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;
          padding:8px 14px;font-size:13px;font-weight:500;box-shadow:0 2px 10px rgba(0,0,0,.3)">
       <span>💤 {{ t('desktop_open_notice') }}</span>
@@ -427,7 +437,7 @@
     {% if demo %}
     <!-- Demo banner — sticky at the TOP of the content so it never covers the sidebar nav
          (the old fixed bottom bar hid Settings/Logout). Stays visible while scrolling. -->
-    <div id="demo-bar" style="position:sticky;top:0;z-index:1005;background:#f59e0b;
+    <div id="demo-bar" style="position:sticky;top:0;z-index:1000;background:#f59e0b;
          color:#0f172a;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;
          padding:8px 14px;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.3)">
       <span>🧪 {{ t('demo_banner') }}</span>
@@ -436,15 +446,26 @@
                      font-size:12px;font-weight:700;cursor:pointer">{{ t('demo_exit') }}</button>
     </div>
     {% endif %}
-    {% if research %}
+    {% if research and not beta_notice_dismissed %}
     <!-- BetaTester banner — sticky at the top of EVERY page. Warns that stats/costs/trips can be
          skewed (REEV not integrated yet), and asks for reports of things that look BROKEN — an
          event counted twice, a duplicate row — as opposed to figures that merely look off. -->
-    <div style="position:sticky;top:0;z-index:1006;background:#7c3aed;color:#fff;
+    <!-- z-index BELOW the mobile drawer (1003) and its overlay (1002). Above them, this banner was
+         painted over the open menu on a phone and swallowed its top entries — @ebagnoli, beta #13:
+         "ci sono voci del menù alle quali non puoi accedere". A notice must never outrank the
+         navigation; the same applies to the auth and demo bars above. -->
+    <div id="beta-bar" style="position:sticky;top:0;z-index:1000;background:#7c3aed;color:#fff;
          display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;
          padding:8px 14px;font-size:12.5px;font-weight:600;line-height:1.4;text-align:center;
          box-shadow:0 2px 10px rgba(0,0,0,.3)">
       <span>🔬 {{ t('beta_banner') }}</span>
+      {# Removed by htmx AFTER the server confirms, not by an onclick — same reason as the desktop
+         notice above: detaching the node in the same event drops htmx's request on the floor and
+         the strip comes straight back on the next load. #}
+      <button type="button" hx-post="api/settings/dismiss-beta-notice"
+              hx-target="#beta-bar" hx-swap="delete"
+              style="background:transparent;color:#e9d5ff;border:1px solid #a78bfa;border-radius:8px;
+                     padding:5px 10px;font-size:12px;cursor:pointer">{{ t('btn_close') }}</button>
     </div>
     {% endif %}
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
@@ -521,6 +542,14 @@
         if (document.hidden) return;
         if (Date.now() - lastInteraction < 20000) return;
         if (document.querySelector('.htmx-request')) return;
+        // Thinking is not idling. The guards above protect a field you are typing in, but not a
+        // choice you are part-way through: @pdifeo (beta #22) sat in merge mode weighing which
+        // trips to join, said nothing for twenty seconds, and the reload took the whole view with
+        // it — "se si pensa troppo la pagina fa refresh e bisogna ripensare di nuovo". A mode the
+        // user switched on, or an open dialog, means unfinished business: leave it alone.
+        if (document.querySelector('[data-holds-selection]')) return;
+        const dlg = document.getElementById('merge-modal');
+        if (dlg && getComputedStyle(dlg).display !== 'none') return;
         if (main) sessionStorage.setItem(KEY, String(main.scrollTop));
         location.reload();
       }, secs * 1000);

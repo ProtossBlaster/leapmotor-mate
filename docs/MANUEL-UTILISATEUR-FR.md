@@ -174,6 +174,10 @@ Selon le modèle :
 
 > La capacité indiquée est celle **utile/nette** (celle qui compte vraiment pour les consommations et les
 > coûts) et peut toujours être corrigée par la suite, depuis Paramètres → Batterie.
+> À côté se trouve la **Référence SoH** : la capacité à l'état neuf sur laquelle se mesure la santé
+> batterie. Mate l'enregistre la première fois que tu sauvegardes la capacité puis n'y touche plus,
+> afin qu'adopter une valeur mesurée (déjà vieillie) ne puisse pas ramener la santé à ~100 % et
+> masquer le vieillissement. Si elle a été mal enregistrée, la santé peut dépasser 100 % : corrige-la là.
 
 ### Étape 4 — Connexion
 

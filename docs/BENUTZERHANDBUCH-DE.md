@@ -165,6 +165,10 @@ Je nach Modell:
 
 > Die angegebene Kapazität ist die **nutzbare/netto** (die, die für Verbrauch und Kosten wirklich zählt) und kann
 > später jederzeit unter Einstellungen → Batterie korrigiert werden.
+> Daneben steht die **SoH-Referenz**: die Neukapazität, an der die Batteriegesundheit gemessen wird.
+> Mate erfasst sie beim ersten Speichern der Kapazität und rührt sie danach nicht mehr an — damit ein
+> gemessener (bereits gealterter) Wert die Gesundheit nicht auf ~100 % zurücksetzt und die Alterung
+> verbirgt. Wurde sie falsch erfasst, kann die Gesundheit über 100 % liegen: dort korrigierbar.
 
 ### Schritt 4 — Verbinden
 

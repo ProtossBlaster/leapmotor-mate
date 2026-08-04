@@ -3,6 +3,67 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.6.5] — 2026-08-04
+
+### Fixed
+- **A notice could stand between you and the menu.** Reported by **@ebagnoli** (BetaTester #13),
+  reading Mate on a phone: *"ci sono voci del menù alle quali non puoi accedere"*. The four sticky
+  strips at the top of every page — the BetaTester banner, the demo bar, the auth warning, the
+  MateDesktop notice — all carried a z-index **above** the off-canvas drawer, so opening the menu
+  painted the strip over its top entries. A tie counts too: at equal z-index the later element in
+  the document wins, and every strip comes after the sidebar. All four now sit below it.
+
+- **"Got it" did not put the notice away.** Found while fixing the above. htmx performs **no swap**
+  on a `204 No Content` by design, so `hx-swap="delete"` never ran: the request went out, was
+  answered, and the strip stayed until the next page load. The MateDesktop notice had carried that
+  since it shipped, with a comment claiming the opposite. Both dismissals now answer 200.
+
+- **The page reloaded while you were still choosing.** **@pdifeo** (BetaTester #22) sat in merge
+  mode weighing which trips to join: *"se si pensa troppo la pagina fa refresh resettando la
+  visualizzazione e bisogna ripensare di nuovo"*. Every page refreshes itself every 30 s, and its
+  guards knew about a focused text field but not about an unfinished choice — thinking is not
+  idling. Merge mode and an open dialog now hold the reload off.
+
+- **Battery health could read above 100 %, and the number that explains it was invisible.**
+  Reported by **@danielvilhena** (#221) with the capacity set to 67.1 kWh and health measured
+  against 65. Three things were wrong around one setting: the form carried its own default (67.1)
+  while the code read another (65.0), so what you saw was not what your energy was computed with;
+  the SoH reference — snapshotted once, deliberately, so that adopting an already-aged measurement
+  cannot reset health to ~100 % and hide the ageing — was **frozen for ever** with no way to see or
+  correct it; and it was **absent from the diagnostics**, so a bundle could not answer the question
+  it was sent to answer. One default now, the reference is reported and editable, and the four
+  manuals say what it is.
+
+### Added
+- **The BetaTester banner can be closed, and the build stays identifiable.** A tester runs two
+  installs side by side, so the warning is now dismissible while a small red **BETA** badge sits
+  permanently beside the version, in both sidebars. Red because the DEMO badge next to it is amber
+  and the two must never be read as one.
+
+- **The monthly report stops being electric-only on a range-extender.** It had exactly one REEV
+  branch — it *hid* the regen tile — and added nothing, so an owner who spent half the month on the
+  generator got a report about the other half. Now: litres burned, L/100 km over the generator-on
+  distance, litres refuelled and what they cost. Burned and bought are kept apart on purpose: a
+  tank is filled on one day and burned over the following fortnight, and adding them would answer
+  neither question.
+
+- **Both energies over the period you chose.** Asked for by **@michapr** (BetaTester #11). The
+  period card answered the electric half for any window; the petrol half now comes from the trips
+  in that same window — and the litres are the car's **own** counter (signal 3263) wherever the
+  trip has it, not tank-% × an assumed capacity.
+
+- **A card with the car's own two consumptions.** `getPlugInLastNweeks100kmEC` returns kWh/100 km
+  **and** L/100 km measured by the car, and its figures match the official app's screen to the
+  decimal — confirmed against @pdifeo's C10 bundle (11.1 kWh + 1.6 L) and our own B10 (20.0 + 0.0).
+  It takes no date range, so the card says which window it is showing: leaving that unsaid beside
+  the monthly tiles is how two correct numbers start looking like a contradiction.
+
+### Changed
+- **The consumption arrow now compares what the tile shows.** The monthly report's average comes
+  from the car's own metering over the month; the little vs-previous-month delta beside it was
+  computed from a different quantity, and on a range-extender from the electric part of each month
+  alone. Both months are now weighed on the same measured basis.
+
 ## [3.6.4] — 2026-08-03
 
 ### Added

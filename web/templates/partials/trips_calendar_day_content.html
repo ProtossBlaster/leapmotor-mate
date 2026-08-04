@@ -46,7 +46,10 @@
 {# The slider stays with the pairs and re-asks THIS day. It's also why the ✕ view stays reachable
    on a day with no pairs instead of the button hiding itself: a wider stop can turn nothing into
    two, and hiding it would mean guessing which gap the reader has in mind. #}
-<div class="flex items-center justify-end mb-3">
+{# data-holds-selection: merge mode is a choice in progress, so base.html's auto-refresh must not
+   reload underneath it (beta #22). It lives on the merge block itself, so leaving the mode takes
+   the marker with it — nothing to remember to clear. #}
+<div class="flex items-center justify-end mb-3" data-holds-selection>
   <label class="text-xs text-slate-300 inline-flex items-center gap-2 whitespace-nowrap">
     {{ t('merge_max_gap') }}: <output class="text-yellow-400 font-semibold">{{ gap }}</output> min
     <input type="range" name="gap" min="{{ merge_gap_min }}" max="{{ merge_gap_max }}" step="5" value="{{ gap }}"

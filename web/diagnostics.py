@@ -139,6 +139,11 @@ def build_system_info(version: str) -> dict:
         "year": (vehicle or {}).get("year") or "—",
         "vin_masked": mask_vin((vehicle or {}).get("vin")),
         "battery_kwh": settings.get("battery_capacity_kwh", "—"),
+        # The SoH denominator, snapshotted the first time the capacity is saved. Without it a
+        # bundle cannot answer "why is my battery health above 100%" — the number that decides it
+        # was simply not in the file (@danielvilhena, #221). Absent means never snapshotted, in
+        # which case the health page falls back to the capacity above.
+        "battery_nominal_kwh": settings.get("battery_capacity_nominal_kwh", "— (not set)"),
         "language": settings.get("language", "en"),
         "db_size_mb": round(db_reader.get_db_size_bytes() / 1048576, 1),
         "counts": {"trips": _count("trips"), "charges": _count("charges"),
@@ -411,7 +416,7 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
         out += [
             f"Model / year : {info['model']} / {info['year']}",
             f"VIN          : {info['vin_masked']}",
-            f"Battery kWh  : {info['battery_kwh']}",
+            f"Battery kWh  : {info['battery_kwh']}  (SoH reference: {info['battery_nominal_kwh']})",
             f"Language     : {info['language']}",
             f"DB size (MB) : {info['db_size_mb']}",
             f"Rows         : trips={info['counts']['trips']} "

@@ -51,6 +51,11 @@
    range-extender trip on purpose (a SoC drop stops measuring efficiency once the generator is
    refilling the pack underneath), which leaves the cost question unanswered on exactly the long
    trips that cost the most. From @michapr's proposal; see db_reader.reev_total_consumption. #}
+{# Above the derived pair on purpose: this one is MEASURED by the car, the two below are worked out
+   here from percentages against a nominal pack and a nominal tank. When they disagree, the order
+   says which one to believe. Loaded on its own so a slow cloud never holds up the page. #}
+<div hx-get="api/plugin-consumption" hx-trigger="load" hx-swap="outerHTML"></div>
+
 {% if totals.reev_total or totals.reev_spend %}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
   {# Left: derived from the car's own gauges. Deliberately NOT called a consumption — the

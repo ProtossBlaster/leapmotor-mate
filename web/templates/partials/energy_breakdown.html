@@ -25,6 +25,21 @@
     <div class="text-xs text-slate-400">{{ t('avg_efficiency') }}</div>
     <div class="text-white font-bold mt-1">{% if eb.avg_kwh100 %}{{ eb.avg_kwh100 | eff }}{% else %}—{% endif %}</div>
   </div>
+  {# REEV — the petrol half of the same window (@michapr, beta #11). Only when litres were actually
+     burned: a range-extender week driven on the battery alone must not carry an empty tile, and a
+     BEV never reaches this at all. The L/100 km is over the generator-on distance beside it, not
+     over the whole window. #}
+  {% if is_reev and research and eb.fuel_l %}
+  <div>
+    <div class="text-xs text-slate-400">{{ t('eb_fuel') }}</div>
+    <div class="text-amber-400 font-bold mt-1">{{ eb.fuel_l | nice }}<span class="text-xs font-normal text-slate-400"> L</span></div>
+    {% if eb.fuel_l_100km %}
+    <div class="text-[11px] text-amber-300/80 mt-0.5" title="{{ t('eb_fuel_over_engine_km') }}">
+      {{ eb.fuel_l_100km | nice }} L/100km
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
 {% elif eb.trips_since %}
 <!-- Finestra che inizia PRIMA del primo viaggio registrato da Mate: il totale cloud copre tutta la

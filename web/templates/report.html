@@ -130,6 +130,39 @@
   </div>
 </div>
 
+{# REEV — the petrol side of the month. Until now this report was electric-only: on a
+   range-extender it hid the regen tile and added nothing, so an owner who drove half the month on
+   the generator got a report about the other half. Two questions, kept apart on purpose: litres
+   BURNED come from the trips, litres and € BOUGHT from the refuels he entered — a tank is filled on
+   one day and burned over the following fortnight, and adding them would answer neither.
+   Shown when there is something to show, so a REEV month driven entirely on the battery does not
+   carry four empty tiles. #}
+{% if is_reev and research and (c.fuel_l_burned or c.refuel_count) %}
+<div class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">⛽ {{ t('report_fuel') }}</div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="card">
+    <div class="stat-label">{{ t('report_fuel_burned') }}</div>
+    <div class="stat-value text-xl text-amber-400">{{ c.fuel_l_burned | nice }}<span class="text-sm font-normal text-slate-400"> L</span></div>
+  </div>
+  <div class="card">
+    <div class="stat-label">{{ t('report_fuel_per100') }}</div>
+    {# Over the generator-on distance, not the whole month: spreading the litres across electric
+       kilometres too would print a figure no REEV owner recognises. #}
+    <div class="stat-value text-xl text-amber-400">
+      {% if c.fuel_engine_km and c.fuel_engine_km > 0 %}{{ (c.fuel_l_burned / c.fuel_engine_km * 100) | nice }}{% else %}—{% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="stat-label">{{ t('report_fuel_bought') }}</div>
+    <div class="stat-value text-xl text-white">{{ c.refuel_l | nice }}<span class="text-sm font-normal text-slate-400"> L</span></div>
+  </div>
+  <div class="card">
+    <div class="stat-label">{{ t('report_fuel_spend') }}</div>
+    <div class="stat-value text-xl text-green-400">{% if c.refuel_count %}{{ c.refuel_cost | money }}{% else %}<span class="text-slate-500">—</span>{% endif %}</div>
+  </div>
+</div>
+{% endif %}
+
 <!-- Charging & cost -->
 <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">⚡ {{ t('report_charging') }}</div>
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

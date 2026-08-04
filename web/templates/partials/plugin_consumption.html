@@ -1,0 +1,28 @@
+{# The car's own two consumptions, from getPlugInLastNweeks100kmEC.
+
+   Measured by the car, not derived here: no nominal pack, no nominal tank, no percentages. It is
+   the same pair the official app shows, and it matches that screen to the decimal.
+
+   The window is printed on the card on purpose. This endpoint takes no date range — it answers its
+   own six weeks and nothing else — so leaving the period unsaid beside the monthly tiles is how
+   two correct numbers start looking like a contradiction.
+
+   Renders nothing at all when the cloud has not answered: an empty card would say "zero", which is
+   a different claim from "we have not been told". #}
+{% if pc and (pc.elec_kwh_100km or pc.fuel_l_100km) %}
+<div class="card mb-6">
+  <div class="stat-label">{{ t('plugin_consumption_label') }}</div>
+  <div class="flex items-baseline gap-1 flex-wrap">
+    <span class="stat-value text-sky-400">{{ pc.elec_kwh_100km | nice }}</span>
+    <span class="text-slate-400 text-sm">kWh/100km</span>
+    {# The fuel half only when there is fuel. On a BEV this reads 0.0, and a permanent "0,0 L/100km"
+       on an electric car is noise pretending to be information. #}
+    {% if pc.fuel_l_100km %}
+    <span class="text-slate-600 text-sm mx-0.5">+</span>
+    <span class="stat-value text-amber-400">{{ pc.fuel_l_100km | nice }}</span>
+    <span class="text-slate-400 text-sm">L/100km</span>
+    {% endif %}
+  </div>
+  <div class="text-slate-500 text-xs mt-1">{{ t('plugin_consumption_note') }}</div>
+</div>
+{% endif %}
