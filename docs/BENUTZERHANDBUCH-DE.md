@@ -330,6 +330,13 @@ Anzahl der **Ladesitzungen**, mit den entsprechenden **Trends** (Effizienz und R
 Summen enthalten jetzt auch eine Karte **V2L gesamt** mit der über die gesamte Historie via V2L entnommenen
 kumulierten Energie.
 
+**Was jede Zahl abdeckt 🆕** — *Durchschnittsverbrauch* ist der Mittelwert über die Kilometer, die
+einen Verbrauch **haben**; darunter erscheint „über N km", wenn das weniger als die Gesamtstrecke
+ist. *Verbrauchte Energie* summiert nur die Fahrten, deren Energie Mate kennt: eine Fahrt ohne diesen
+Wert wird **ausgelassen** statt als Null gezählt, und die Kachel sagt, über wie viele Fahrten sie
+spricht. Bei einem Auto, bei dem jede Fahrt ihren Verbrauch trägt — also fast immer — erscheint
+davon nichts.
+
 ### Monatsbericht
 **(Menü: Monatsbericht)** — Eine Zusammenfassung **Monat für Monat**: wie viel Sie gefahren sind, wie viel Energie
 Sie verbraucht und geladen haben, wie viel Sie ausgegeben haben. Praktisch, um die Entwicklung im Auge zu behalten.

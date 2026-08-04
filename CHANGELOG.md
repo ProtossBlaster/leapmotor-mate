@@ -3,6 +3,39 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.6.8] — 2026-08-04
+
+### Fixed
+- 🔴 **A trip Mate had no energy figure for was counted as having used none.** *Energy used* on the
+  Statistics page summed `distance × COALESCE(efficiency, 0)`, and on a range-extender Mate blanks
+  the efficiency of every trip the generator ran — deliberately, because a battery percentage stops
+  measuring how efficiently the pack drove you once an engine is refilling it underneath. So those
+  trips contributed **zero kWh**, not "unknown". **@michapr** (BetaTester #24) read 37.85 kWh where
+  his own `SUM(ec_kwh)` said 41.6 and could not trace the gap to anything on screen.
+
+  Such a trip is now left out of the total rather than counted as nothing, and where the car
+  measured its own energy that figure is used. The tile also says how many trips it speaks for when
+  some are missing — gated on the kilometres actually missing, so a stray zero-kilometre trip never
+  earns the note.
+
+  The trip's own efficiency still comes first, and the car's figure is only the fallback: preferring
+  it would have quietly overruled the *"use the car's energy"* setting — measured on a real
+  full-electric car, the total moved 338.75 → 349.21 kWh for nobody's benefit.
+
+### Added
+- **The average consumption says what it is averaged over.** The same reader saw **13.9 kWh/100km**
+  at the top of Statistics and **9.6** in the card below and could not tell why. Both were right:
+  13.9 covered the 272 of his 434 km that have a consumption figure — the battery-only ones — and
+  9.6 was the car's own measurement over all of them. The tile now carries its kilometres, and the
+  full explanation on hover. On a car where they are the same, nothing is shown.
+
+- **The petrol side of the Trips page** (**@michapr**, BetaTester #11, asked twice). Every trip had
+  its litres and nothing did where those trips are added up: the month strip above the calendar now
+  carries the fuel beside the electric figure, and the page header gains a **litres burned** tile in
+  the slot where a range-extender's regen tile is already hidden. Litres per 100 km over all the
+  kilometres, the same basis the car's own display uses. Silent on a month driven purely on the
+  battery, and absent entirely on a full-electric car.
+
 ## [3.6.7] — 2026-08-04
 
 ### Fixed

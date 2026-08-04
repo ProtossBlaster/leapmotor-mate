@@ -19,7 +19,11 @@
       <span class="stat-value">{{ (totals.total_km or 0) | dist(0) }}</span>
     </div>
   </div>
-  <div class="card">
+  {# Say what it is averaged over. On a range-extender the efficiency is blanked for every trip the
+     generator ran, so this covers the battery-only kilometres — @michapr (beta #24) read 13.9 here
+     and 9.6 in the card below and could not tell why. Both were right: 13.9 over 272 of his 434 km,
+     9.6 over all of them. The note only appears when the two differ, so a BEV never sees it. #}
+  <div class="card" title="{{ t('stats_eff_help') }}">
     <div class="stat-label">{{ t('avg_efficiency') }}</div>
     <div class="flex items-baseline gap-1">
       {% if totals.avg_efficiency %}
@@ -30,6 +34,10 @@
       <span class="stat-value text-slate-500">—</span>
       {% endif %}
     </div>
+    {% if totals.avg_efficiency and totals.avg_efficiency_km and totals.total_km
+          and (totals.total_km - totals.avg_efficiency_km) > 0.5 %}
+    <div class="text-[11px] text-slate-500 mt-0.5">{{ t('stats_eff_over_km').format(km=totals.avg_efficiency_km|nice) }}</div>
+    {% endif %}
   </div>
   <div class="card">
     <div class="stat-label">{{ t('best_efficiency') }}</div>
@@ -125,6 +133,13 @@
       <span class="stat-value">{{ (totals.total_kwh_used or 0) | nice }}</span>
       <span class="text-slate-400 text-sm">kWh</span>
     </div>
+    {# A trip Mate has no energy figure for is now left OUT of this total rather than counted as
+       zero. Saying how many is the other half of that: a number that quietly covers part of your
+       driving is the thing that sent @michapr looking for where 37.85 kWh came from. #}
+    {% if totals.energy_trips and totals.trip_count and totals.energy_km and totals.total_km
+          and (totals.total_km - totals.energy_km) > 0.5 %}
+    <div class="text-[11px] text-slate-500 mt-0.5">{{ t('stats_energy_partial').format(n=totals.energy_trips, tot=totals.trip_count) }}</div>
+    {% endif %}
   </div>
   <div class="card">
     <div class="stat-label">{{ t('v2l_total') }}</div>

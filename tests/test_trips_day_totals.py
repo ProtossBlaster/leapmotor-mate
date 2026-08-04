@@ -40,7 +40,10 @@ def test_trips_without_an_efficiency_do_not_break_the_mean():
 
 def test_empty_day_has_no_efficiency_and_no_error():
     tot = db_reader.trips_totals([])
-    assert tot == {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "avg_eff": None}
+    # Shape assertion on purpose: it caught the fuel keys arriving (beta #11) and would catch the
+    # next addition too. Zero litres, and no L/100 km to divide into nothing.
+    assert tot == {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "avg_eff": None,
+                   "fuel_l": 0.0, "fuel_l_100km": None}
 
 
 def test_missing_fields_are_treated_as_zero():

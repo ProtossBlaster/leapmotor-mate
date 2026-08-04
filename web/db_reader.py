@@ -3467,7 +3467,8 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
 
 
 def _totals_node() -> dict:
-    return {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "_eff_wsum": 0.0, "_eff_wdist": 0.0}
+    return {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "fuel_l": 0.0,
+            "_eff_wsum": 0.0, "_eff_wdist": 0.0}
 
 
 def _totals_add(node: dict, trip: dict) -> None:
@@ -3479,6 +3480,11 @@ def _totals_add(node: dict, trip: dict) -> None:
     node["km"] = round(node["km"] + km, 2)
     node["regen"] = round(node["regen"] + (trip.get("regen_kwh") or 0), 3)
     node["cost"] = round(node["cost"] + (trip.get("cost") or 0), 2)
+    # The petrol half, for a range-extender. Straight off the trip, which get_trips already worked
+    # out through _reev_trip_fuel — the one reader — so the day line, the month line and the drawer
+    # header cannot drift from the trips they are made of (@michapr, BetaTester #11: "missing the
+    # data still here: at the top of calendar and at the top of the trips").
+    node["fuel_l"] = round(node["fuel_l"] + (trip.get("fuel_used_l") or 0), 3)
     if eff and km > 0:
         node["_eff_wsum"] += km * eff
         node["_eff_wdist"] += km
@@ -3487,6 +3493,10 @@ def _totals_add(node: dict, trip: dict) -> None:
 def _totals_seal(node: dict) -> dict:
     """Turn the running weights into avg_eff and drop them. Call once per node."""
     node["avg_eff"] = round(node["_eff_wsum"] / node["_eff_wdist"], 1) if node["_eff_wdist"] > 0 else None
+    # Over ALL the kilometres, like the car's own figure and every other L/100 km in Mate since
+    # BetaTester #23 — not over the ones the generator ran.
+    node["fuel_l_100km"] = (round(node["fuel_l"] / node["km"] * 100, 1)
+                            if node["fuel_l"] > 0 and node["km"] > 0.5 else None)
     del node["_eff_wsum"]
     del node["_eff_wdist"]
     return node
@@ -5409,7 +5419,33 @@ def get_stats_summary() -> dict:
         """SELECT
                COUNT(*)                                                       AS trip_count,
                ROUND(SUM(distance_km), 2)                                    AS total_km,
-               ROUND(SUM(distance_km * COALESCE(efficiency_kwh_100km,0)/100), 2) AS total_kwh_used,
+               -- The trip's own efficiency FIRST — it already reflects the owner's choice about
+               -- whether the car's getEC figure becomes a trip's energy (Settings), and preferring
+               -- ec_kwh over it would silently overrule that setting: measured on a real BEV, the
+               -- total moved 338.75 → 349.21 kWh for nobody's benefit. The car's measurement is the
+               -- FALLBACK, for a trip that has no efficiency at all, and a trip
+               -- with NEITHER contributes nothing — instead of contributing a ZERO, which is what
+               -- COALESCE(efficiency,0) used to do. On a range-extender Mate deliberately blanks the
+               -- efficiency of every trip the generator ran, so those trips were counted as having
+               -- used no electricity at all: @michapr (BetaTester #24) read 37.85 kWh where his own
+               -- SUM(ec_kwh) said 41.6, and could not trace the difference to anything on screen.
+               -- With ec as the fallback those trips contribute what the CAR measured, and a BEV,
+               -- whose trips all carry an efficiency, sees no change at all.
+               ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+                                   THEN distance_km * efficiency_kwh_100km / 100.0
+                              WHEN ec_kwh IS NOT NULL AND ec_stable = 1 THEN ec_kwh END), 2)
+                                                                             AS total_kwh_used,
+               -- …and how much of the driving that figure could speak for, so the page can say so
+               -- rather than leave the reader to wonder.
+               SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+                          OR (ec_kwh IS NOT NULL AND ec_stable = 1) THEN 1 ELSE 0 END) AS energy_trips,
+               -- The DISTANCE behind that count, because the count alone makes a bad gate: two
+               -- stray zero-kilometre trips would put "338 of 340" on every BEV for ever, about
+               -- driving that never happened. The note is worth showing when real kilometres are
+               -- missing from the total, and the count is what it then says.
+               ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+                          OR (ec_kwh IS NOT NULL AND ec_stable = 1) THEN distance_km END), 1)
+                                                                             AS energy_km,
                ROUND(SUM(duration_min), 0)                                   AS total_drive_min,
                -- distance-weighted = total energy / total distance (#42): a simple AVG
                -- over-weights short trips and disagreed with both the Trips-page header
@@ -5417,6 +5453,12 @@ def get_stats_summary() -> dict:
                ROUND(SUM(distance_km * efficiency_kwh_100km) /
                      NULLIF(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
                                      THEN distance_km END), 0), 1)           AS avg_efficiency,
+               -- The kilometres that average actually covers. Not the same as the total on a
+               -- range-extender, where a generator trip has no efficiency to average: 13.9 kWh/100km
+               -- over 272 of 434 km is a different statement from 13.9 over all of them, and the
+               -- card used to make the second one.
+               ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+                              THEN distance_km END), 1)                      AS avg_efficiency_km,
                -- "Best" must come from a real trip, not a 3 km downhill coast or a glitch frame
                -- (#86): a min-distance floor keeps this metric representative of the car.
                ROUND(MIN(CASE WHEN efficiency_kwh_100km > 0 AND distance_km >= 15

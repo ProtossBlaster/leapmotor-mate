@@ -28,6 +28,12 @@
     <span class="text-slate-400">{{ total.count }} {{ t('trip_singular') if total.count == 1 else t('trips_plural') }}</span>
     <span class="text-white font-semibold">{{ total.km | dist(1) }}</span>
     {% if total.avg_eff %}<span class="eff-pill {{ eff_cls(total.avg_eff) }}">{{ total.avg_eff | eff }}</span>{% endif %}
+    {# The petrol half of a range-extender month. Same line, same weight as the electric pill beside
+       it — @michapr (beta #11) had the litres on each trip and nothing at all where the month is
+       summed up. Only when there is fuel to show, so an all-electric month says nothing. #}
+    {% if is_reev and research and total.fuel_l %}
+    <span class="text-amber-400 font-semibold" title="{{ t('trips_fuel_hint') }}">⛽ {{ total.fuel_l | nice }} L{% if total.fuel_l_100km %} · {{ total.fuel_l_100km | nice }} L/100km{% endif %}</span>
+    {% endif %}
     {% if total.cost %}<span class="text-slate-300 font-semibold">{{ total.cost | money }}</span>{% endif %}
   </div>
   {% endif %}

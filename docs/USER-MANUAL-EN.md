@@ -341,6 +341,12 @@ The **Home** price is the one that feeds the cost of home charges and, in turn, 
 with the related **trends** (efficiency and regen over time). The totals also include a **Total V2L**
 card showing the cumulative energy drawn via V2L over all time.
 
+**What each figure covers 🆕** — *Avg consumption* is the mean over the kilometres that **have** a
+consumption figure, and *"over N km"* appears underneath when those are fewer than the total.
+*Energy used* adds up only the trips whose energy Mate knows: a trip without one is **left out**
+rather than counted as zero, and the tile says how many trips it speaks for. On a car where every
+trip carries its own consumption — which is nearly always — none of this shows at all.
+
 ### Monthly Report
 **(menu: Monthly Report)** — A summary **month by month**: how much you drove, how much energy you
 used and charged, how much you spent. Handy for keeping an eye on the trend. It also carries the

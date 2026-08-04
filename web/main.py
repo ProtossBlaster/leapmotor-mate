@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.6.7"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.6.8"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -551,6 +551,10 @@ async def trips_page(request: Request, highlight: int = 0):
     return templates.TemplateResponse(request, "trips.html", _ctx(
         page="trips", vehicle=vehicle,
         total=total, highlight=highlight, summary=summary,
+        # The petrol half of the hero, for a range-extender. reev_fuel_summary() is the one place
+        # litres are totalled — a second sum here would be the third copy of a rule that has already
+        # cost us a release (beta #23).
+        reev_summary=db_reader.reev_fuel_summary(),
         # No merge_gap_* here any more: the slider moved into the day drawer, which gets them
         # from the day route (#204). The page keeps only #merge-modal, which lives outside the
         # swapped calendar area so the drawer's 🔗 preview still has somewhere to open.

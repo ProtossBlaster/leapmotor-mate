@@ -353,6 +353,12 @@ Veicolo"** 🆕 — energia totale, chilometraggio e media kWh/100 km **da conse
 dell'auto, quindi non intaccata dai rari viaggi che il cloud non registra), con una barra
 **Guida / A·C / Altro / Da-fermo**.
 
+**Cosa copre ogni numero 🆕** — *Consumo medio* è la media sui chilometri che **hanno** un consumo, e
+sotto compare *«su N km»* quando quelli sono meno del totale. *Energia consumata* somma solo i viaggi
+di cui Mate conosce l'energia: un viaggio senza quel dato viene **escluso**, non contato come zero,
+e la mattonella dice su quanti viaggi sta parlando. Su un'auto in cui tutti i viaggi hanno il loro
+consumo — cioè quasi sempre — non compare niente di tutto questo.
+
 ### Report mensile
 **(menu: Report mensile)** — Una sintesi **mese per mese**: quanto hai guidato, quanta energia hai
 usato e ricaricato, quanto hai speso. Comodo per tenere d'occhio l'andamento. Include anche le schede

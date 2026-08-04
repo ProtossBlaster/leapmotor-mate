@@ -343,6 +343,13 @@ trajets (calculé sur le prix « moyen » de l'énergie en batterie au moment du
 recharge**, avec les **tendances** correspondantes (efficacité et récupération dans le temps). Les totaux
 incluent désormais une carte **Total V2L** avec l'énergie cumulée soutirée via V2L sur tout l'historique.
 
+**Ce que couvre chaque chiffre 🆕** — *Consommation moyenne* est la moyenne sur les kilomètres qui
+**ont** une consommation, et « sur N km » apparaît en dessous quand ils sont moins nombreux que le
+total. *Énergie consommée* n'additionne que les trajets dont Mate connaît l'énergie : un trajet sans
+cette donnée est **exclu**, et non compté comme zéro, et la tuile indique de combien de trajets elle
+parle. Sur une voiture où chaque trajet porte sa consommation — presque toujours — rien de tout cela
+ne s'affiche.
+
 ### Rapport mensuel
 **(menu : Rapport mensuel)** — Une synthèse **mois par mois** : combien vous avez roulé, combien d'énergie vous
 avez consommée et rechargée, combien vous avez dépensé. Pratique pour suivre l'évolution. Il porte

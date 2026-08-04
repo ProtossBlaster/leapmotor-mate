@@ -53,6 +53,17 @@
       <div class="hero-label">{{ t('avg_efficiency') }}</div>
     </div>
   </div>
+  {# On a range-extender the regen tile is hidden (a SoC delta stops measuring recovery once the
+     generator is refilling the pack), which left an empty slot where the fuel belongs. #}
+  {% if is_reev and research and reev_summary and reev_summary.total_l %}
+  <div class="hero-tile t-regen">
+    <div class="hero-ico">⛽</div>
+    <div>
+      <div class="hero-val" style="color:#fbbf24">{{ reev_summary.total_l|nice }}<span class="u">L</span></div>
+      <div class="hero-label">{{ t('report_fuel_burned') }}{% if reev_summary.avg_l_100km %} · {{ reev_summary.avg_l_100km|nice }} L/100km{% endif %}</div>
+    </div>
+  </div>
+  {% endif %}
   {% if not is_reev %}
   <div class="hero-tile t-regen">
     <div class="hero-ico">♻️</div>
