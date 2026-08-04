@@ -5,6 +5,7 @@ import os
 import pathlib
 import threading
 import time
+from datetime import datetime, timezone
 
 _PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 
@@ -461,6 +462,48 @@ def _maybe_check_ota(db, client):
     db.set_setting("ota_time", str(res.get("time") or ""))
 
 
+_BETA_PREFIX_SUFFIX = "_beta"   # what a colliding BetaTester install renames its prefix to
+
+
+def _handle_mqtt_collision(db, other_id: str, other_is_beta: bool, vin: str):
+    """Another Mate is publishing on our topic prefix. Record it so Settings can say so — and, if we
+    are the BetaTester build, get out of the way by ourselves.
+
+    Only the BetaTester moves, and this is the whole rule (Silvio's call, 04/08). Its entities are
+    the ones nobody has built an automation on yet, and its own description already tells the tester
+    it is the guest here; the official install keeps its prefix, its device and every automation
+    pointing at it. When two OFFICIAL installs collide, neither can claim to be the real one, so
+    nothing moves and the warning is all Mate has to offer.
+
+    Moving is writing the setting: _mqtt_tick notices the changed signature on the next cycle and
+    reconnects on the new prefix. Once only — if we already carry the suffix and are STILL colliding,
+    a second beta is on the same broker and that one needs a human."""
+    prefix = db.get_setting("mqtt_prefix", "leapmotor")
+    moved_to = ""
+    if _research_enabled() and not prefix.endswith(_BETA_PREFIX_SUFFIX):
+        moved_to = prefix + _BETA_PREFIX_SUFFIX
+        db.set_setting("mqtt_prefix", moved_to)
+        log.warning("MQTT: another Mate holds prefix '%s' — this BetaTester build is moving to '%s'. "
+                    "The official install is untouched.", prefix, moved_to)
+    db.set_setting("mqtt_collision", json.dumps({
+        "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "prefix": prefix, "other_beta": bool(other_is_beta), "vin": vin, "moved_to": moved_to,
+    }))
+
+
+def _mqtt_config_sig(db) -> tuple:
+    """Everything the live bridge was BUILT with. The settings page answers "Saved — restart not
+    needed", and for the enable flag that was true; for everything else it was not. The service was
+    created once and never rebuilt, so a changed broker, port, credentials, TLS or topic prefix sat
+    in the database doing nothing until MQTT was switched off and on again — and nothing on screen
+    said so. Told to a beta tester as advice before it was checked (BetaTester #13), which is how it
+    surfaced. Compare this against the live service and reconnect when it moves."""
+    return (db.get_setting("mqtt_broker"), db.get_setting("mqtt_port", "1883"),
+            db.get_setting("mqtt_user") or "", db.get_secret("mqtt_pass") or "",
+            db.get_setting("mqtt_prefix", "leapmotor"), db.get_setting("mqtt_tls"),
+            db.get_setting("mqtt_tls_insecure"), db.get_setting("mqtt_discovery", "1"))
+
+
 def _mqtt_tick(db, client, data, service):
     """Manage the MQTT bridge each poll cycle: (dis)connect on the enable flag,
     then publish the current state. Returns the (possibly new/None) service."""
@@ -468,6 +511,11 @@ def _mqtt_tick(db, client, data, service):
         if service:
             service.disconnect()
         return None
+    sig = _mqtt_config_sig(db)
+    if service is not None and getattr(service, "config_sig", None) != sig:
+        log.info("MQTT: configuration changed — reconnecting (prefix=%s)", sig[4])
+        service.disconnect()
+        service = None
     if service is None:
         service = MqttService(
             broker=db.get_setting("mqtt_broker"),
@@ -485,8 +533,15 @@ def _mqtt_tick(db, client, data, service):
             # The car MODEL gates model-absent entities in discovery (e.g. no heated-seat / heated-
             # steering entities on a T03, which lacks them despite the firmware declaring them — #144).
             car_type=db.get_car_type(),
+            # Who this install is on the broker, and whether it is the BetaTester build — the two
+            # facts the collision check below needs. `mate_device_id` already exists (generated at
+            # first run), so no new identity is minted for this.
+            instance_id=db.get_setting("mate_device_id", ""),
+            is_beta=_research_enabled(),
         )
+        service.config_sig = sig
         service.on_command = lambda vin, cmd, val: _handle_mqtt_command(client, service, db, vin, cmd, val)
+        service.on_collision = lambda other, other_beta, vin: _handle_mqtt_collision(db, other, other_beta, vin)
     try:
         service.publish_status(data)
     except Exception as exc:  # noqa: BLE001

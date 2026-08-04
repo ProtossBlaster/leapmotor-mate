@@ -17,6 +17,13 @@ log = logging.getLogger(__name__)
 
 _DISC = "homeassistant"  # HA discovery prefix
 
+# Sub-topic each install publishes itself on, so two of them sharing a prefix can find out. It costs
+# one small unretained message per poll and answers a question nothing else could: the device id in
+# discovery is built from the prefix and the VIN, so two installs on the same prefix watching the
+# same car are INDISTINGUISHABLE to Home Assistant — one device, and both of them subscribed to the
+# same wildcard command topic. Nobody notices, because the states they publish agree.
+_BEACON = "mate_instance"
+
 # Value template for a topic whose payload is legitimately EMPTY sometimes. Without it Home
 # Assistant hands "" to the device_class parser and logs an error on every poll; with it the entity
 # simply reads `unknown`, which is the honest answer. Only an empty string is falsy in Jinja, so a
@@ -27,7 +34,7 @@ _EMPTY_NONE = "{{ value if value else none }}"
 class MqttService:
     def __init__(self, broker, port, username=None, password=None, topic_prefix="leapmotor",
                  use_tls=False, tls_insecure=False, discovery_enabled=True, get_setting=None,
-                 abilities=None, car_type=""):
+                 abilities=None, car_type="", instance_id="", is_beta=False):
         self.broker = broker
         self.port = int(port) if port else (8883 if use_tls else 1883)
         self.username = username
@@ -41,6 +48,14 @@ class MqttService:
         self.car_type = car_type         # car model → hide model-absent entities (e.g. heated seats on T03, #144)
         self.client = None
         self.on_command = None          # callback(vin, command_or_entity, value)
+        self.on_collision = None        # callback(other_id, other_is_beta, vin) — see _BEACON below
+        # Who WE are on this broker, and what the live bridge was built with. `instance_id` is the
+        # install's own `mate_device_id` (already generated at first run), so no new identity is
+        # invented for this.
+        self.instance_id = instance_id or ""
+        self.is_beta = bool(is_beta)
+        self.config_sig = None
+        self._own_vins = set()          # VINs WE publish for — a command for any other is refused
         self._discovery_sent = False
         self.last_climate_on = None     # latest polled A/C state, for the "A/C Off" toggle guard
         # V2L live state: the idle baseline current (I0) frozen at session start, the running session
@@ -82,6 +97,7 @@ class MqttService:
             log.info("MQTT: connected")
             self.client.subscribe(f"{self.topic_prefix}/+/command")
             self.client.subscribe(f"{self.topic_prefix}/+/+/set")
+            self.client.subscribe(f"{self.topic_prefix}/+/{_BEACON}")
             self._discovery_sent = False  # resend discovery after a reconnect
         else:
             log.error("MQTT: connect refused (code %d)", rc)
@@ -90,9 +106,21 @@ class MqttService:
         try:
             parts = msg.topic.split("/")
             payload = msg.payload.decode()
-            if len(parts) < 3 or not self.on_command:
+            if len(parts) < 3:
                 return
             vin = parts[1]
+            if msg.topic.endswith(f"/{_BEACON}"):
+                self._handle_beacon(vin, payload)
+                return
+            if not self.on_command:
+                return
+            # The command topics are wildcards — `<prefix>/+/command` takes ANY vin — and the vin was
+            # handed straight to the cloud API. Two installs sharing a prefix therefore each executed
+            # the other's commands, and against a car that is not theirs. Only ours, only now.
+            if self._own_vins and vin not in self._own_vins:
+                log.warning("MQTT: ignoring a command for %s — not this instance's car. Another Mate "
+                            "is probably publishing on the same topic prefix (%s).", vin, self.topic_prefix)
+                return
             if msg.topic.endswith("/command"):
                 self.on_command(vin, payload, None)            # button → payload is the command
             elif msg.topic.endswith("/set"):
@@ -147,8 +175,43 @@ class MqttService:
         self._v2l_prev_current = data.charge_current_a
         return False, 0, 0.0
 
+    def _handle_beacon(self, vin, payload):
+        """Another Mate just announced itself on our prefix — or we heard our own echo.
+
+        The beacon is deliberately NOT retained: a message arriving at all means the sender is
+        publishing right now. That is what makes this reliable without a last-will, a timestamp or
+        any clock agreement between two machines — a retained one would keep accusing an instance
+        that was uninstalled months ago."""
+        if not payload or not self.instance_id:
+            return
+        try:
+            other = json.loads(payload)
+        except (ValueError, TypeError):
+            return
+        # Anything at all can publish to this topic, and the consequence of believing it is that a
+        # BetaTester install renames its own prefix. So: a real object, carrying a real id, that is
+        # not ours. An empty `{}` used to read as "somebody else with no name" and was enough to
+        # move it.
+        if not isinstance(other, dict):
+            return
+        other_id = other.get("id")
+        if not isinstance(other_id, str) or not other_id or other_id == self.instance_id:
+            return                               # nameless, or our own beacon coming back to us
+        log.warning("MQTT: another Mate is publishing on prefix '%s' (car %s). Same prefix means one "
+                    "device in Home Assistant and EVERY command executed twice.",
+                    self.topic_prefix, vin)
+        if self.on_collision:
+            self.on_collision(other_id, bool(other.get("beta")), vin)
+
     def _publish_sensors(self, data):
         base = f"{self.topic_prefix}/{data.vin}"
+        self._own_vins.add(data.vin)
+        # Say who we are, every cycle, unretained. Cheap (one small message per poll) and it is the
+        # only way an install can find out it is sharing an identity with another one.
+        if self.instance_id:
+            self.client.publish(f"{base}/{_BEACON}",
+                                json.dumps({"id": self.instance_id, "beta": self.is_beta}),
+                                retain=False)
 
         def pub(sub, val):
             if isinstance(val, bool):

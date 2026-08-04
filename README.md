@@ -69,7 +69,7 @@ LeapMotor Mate is free and open-source, developed in my spare time. If it's usef
 - **V2L (vehicle-to-load)** — while the car powers an external device through the V2L adapter, Mate shows live **net power** and the **energy drawn this session**, tracks the all-time total, and publishes three Home Assistant entities. Read-only. *A first for any Leapmotor tool — found by on-car testing.*
 
 **At home**
-- **Home Assistant via MQTT** — MQTT Discovery publishes the car as **native entities** — sensors, binary sensors, GPS tracker — plus command buttons. *(Optional.)*
+- **Home Assistant via MQTT** — MQTT Discovery publishes the car as **native entities** — sensors, binary sensors, GPS tracker — plus command buttons. Two installs on one broker are noticed: sharing a topic prefix makes them **one device** to Home Assistant and runs **every command twice**, so the BetaTester build steps aside onto a prefix of its own and says so. *(Optional.)*
 - **One lock toggle for dashboards** — an MQTT *lock* entity plus a **Door Lock Toggle** switch for launcher widgets that cannot toggle locks: one tap locks, the next unlocks.
 - **Scheduling** — program the **charge window** (target SoC, start/end, days) and the **climate pre-conditioning**, written to the car and in step with the official app.
 - **Prepare car** — climate, front-seat heating and ventilation, steering wheel and mirrors in **one tap**: now, on a **schedule**, or **by itself the moment the car goes Ready**, optionally only above or below a cabin temperature.
@@ -379,7 +379,7 @@ LeapMotor Mate è gratuito e open-source, sviluppato nel tempo libero. Se ti è 
 - **V2L (vehicle-to-load)** — mentre l'auto alimenta un dispositivo esterno con l'adattatore V2L, Mate mostra la **potenza netta** dal vivo e l'**energia della sessione**, tiene il totale di sempre e pubblica tre entità in Home Assistant. Sola lettura. *Primo strumento Leapmotor a farlo — scoperto provando sull'auto.*
 
 **A casa**
-- **Home Assistant via MQTT** — MQTT Discovery pubblica l'auto come **entità native** — sensori, sensori binari, tracciatore GPS — più i pulsanti di comando. *(Opzionale.)*
+- **Home Assistant via MQTT** — MQTT Discovery pubblica l'auto come **entità native** — sensori, sensori binari, tracciatore GPS — più i pulsanti di comando. Due installazioni sullo stesso broker vengono riconosciute: con lo stesso prefisso topic Home Assistant le vede come **un solo dispositivo** e **ogni comando parte due volte**, quindi la versione BetaTester si sposta su un prefisso suo e lo dice. *(Facoltativo.)*
 - **Un solo interruttore di chiusura per le dashboard** — un'entità *lock* MQTT più un interruttore **Door Lock Toggle** per i widget che non sanno gestire i lock: un tocco chiude, quello dopo apre.
 - **Programmazione** — imposti la **finestra di ricarica** (SoC obiettivo, inizio e fine, giorni) e il **preclima**, scritti sull'auto e allineati con l'app ufficiale.
 - **Prepara l'auto** — clima, riscaldamento e ventilazione dei sedili anteriori, volante e specchietti in **un tocco**: adesso, a **orario**, o **da sola nell'istante in cui l'auto si accende**, volendo solo sopra o sotto una certa temperatura in abitacolo.

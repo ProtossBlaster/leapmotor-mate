@@ -730,6 +730,17 @@
           <div>
             <label class="block text-xs text-slate-400 mb-1">{{ t('mqtt_prefix') }}</label>
             <input type="text" name="mqtt_prefix" value="{{ settings.get('mqtt_prefix', 'leapmotor') }}" class="{{ inp }} font-mono">
+            {# The field carried no explanation at all, and it is the one that separates two Mate
+               installs sharing a broker: same prefix + same car = ONE device in Home Assistant and
+               every command executed twice. @ebagnoli hit exactly that (BetaTester #13) and had no
+               way to know which box mattered. #}
+            <p class="mt-1 text-[11px] leading-snug text-slate-500">{{ t('mqtt_prefix_hint') }}</p>
+            {% if mqtt_collision %}
+            <p class="mt-1.5 text-[11px] leading-snug text-amber-400">
+              ⚠️ {{ t('mqtt_collision_warn').format(prefix=mqtt_collision.prefix) }}
+              {% if mqtt_collision.moved_to %}<br>{{ t('mqtt_collision_moved').format(prefix=mqtt_collision.moved_to) }}{% endif %}
+            </p>
+            {% endif %}
           </div>
           <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300">
             <label class="flex items-center gap-1.5 cursor-pointer">

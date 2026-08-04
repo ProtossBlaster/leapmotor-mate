@@ -606,6 +606,12 @@ Assistant**, with **auto-discovery**. You can also **command** the car from the 
 
 ---
 
+**If you run more than one Mate against the same broker 🆕** — the normal add-on and the BetaTester
+one, say — give each a **different Topic prefix** (*Settings → MQTT*). On the same prefix, watching
+the same car, they are **one device** to Home Assistant: the second appears not to work, and worse,
+**every command is executed twice**. Mate now notices and says so; the BetaTester build moves itself
+to a prefix of its own, the normal one never moves.
+
 ## 9. Demo mode
 
 **Demo** mode lets you try Mate without a car and without an account: it starts with **a month of

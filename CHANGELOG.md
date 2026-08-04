@@ -3,6 +3,56 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.6.7] — 2026-08-04
+
+### Fixed
+- 🔴 **The Charges page and every trip detail could answer with an error.** Introduced by v3.6.6
+  itself: that release added a `gross_kwh` column and five queries that name it, but the migration
+  which creates it lives in the poller, and the web never runs one. Between an update and the
+  poller's next start — and permanently on an install whose poller is not running — those pages
+  raised a database error instead of rendering. Found on a real instance the same evening.
+
+  Two fixes, not one. Every query now asks the schema before naming the column, so it degrades to
+  the previous answer (identical, since a database without the column holds no typed figures). And
+  **the web now brings the schema up itself at startup**, which is the part that stops the next
+  column doing this again: a reader that depends on a schema should guarantee it rather than hope.
+  Only the schema — the poller keeps its eleven data repairs, which belong to the process that owns
+  the data.
+
+- 🔴 **A range-extender's fuel totals still used the old rule.** v3.6.6 corrected the litres of a
+  single trip and left the two aggregates filtering their rows on the coarse tank-percentage signal,
+  so a trip below that floor never reached the corrected reader at all. The trips list was right and
+  every total was not: **@michapr** (BetaTester #23) updated, and his all-time figure stayed at
+  5.9 L against **9.64 measured off his own signals** — 39 % missing. Both totals now admit a trip on
+  either signal, and the summary goes through the same reader as everything else instead of working
+  the litres out a third time.
+
+- **MQTT settings did nothing until the bridge was restarted.** The broker, port, credentials, TLS,
+  discovery and topic prefix were read once, when the bridge was created, and never again — while
+  the page answered *"Saved — restart not needed"* in all seven languages. It now notices a changed
+  configuration and reconnects on the next cycle.
+
+- **A command could be executed for a car that is not yours.** The command topics are wildcards, and
+  the VIN in the topic went straight to the cloud API. Two installs sharing a topic prefix therefore
+  each ran the other's commands. Refused now, with a line in the log saying why.
+
+- **On the Charges page, the AC vs DC card did not add up to the total beside it.** It summed the
+  energy that reached the battery while *Total energy* summed what was billed — 19.4 kWh apart on
+  the test data, and older than everything else here.
+
+### Added
+- **Mate notices a second Mate on the same MQTT topic prefix.** Two installs sharing one prefix are
+  a single device to Home Assistant — the discovery id is built from the prefix and the car — so the
+  second one appears to do nothing at all, while in fact **every command runs twice**, from two
+  accounts, on the same car (@ebagnoli, BetaTester #13). Each install now announces itself on the
+  broker, and when it hears another: the **BetaTester build moves itself** to `<prefix>_beta` and
+  says so in Settings; the official install never moves, because its entities are the ones your
+  automations point at. Two official installs are told, and left alone — neither can claim to be the
+  real one.
+
+- **The topic prefix field says what it is for.** It is the box that separates two installs, and it
+  carried no explanation at all.
+
 ## [3.6.6] — 2026-08-04
 
 ### Fixed

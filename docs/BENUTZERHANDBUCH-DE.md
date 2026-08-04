@@ -600,6 +600,12 @@ Assistant**, mit **Auto-Discovery**. Sie können das Auto auch über die Entitä
 
 ---
 
+**Wenn mehrere Mate denselben Broker nutzen 🆕** — etwa das normale Add-on und das BetaTester-Add-on
+— geben Sie jedem ein **eigenes Topic-Präfix** (*Einstellungen → MQTT*). Bei gleichem Präfix und
+gleichem Auto sind sie für Home Assistant **ein Gerät**: das zweite scheint nicht zu funktionieren,
+und vor allem wird **jeder Befehl zweimal ausgeführt**. Mate erkennt das jetzt und sagt es; die
+BetaTester-Version zieht von selbst um, die normale bleibt immer stehen.
+
 ## 9. Demo-Modus
 
 Der **Demo-Modus** dient dazu, Mate ohne Auto und ohne Konto auszuprobieren: Er startet mit **einem Monat

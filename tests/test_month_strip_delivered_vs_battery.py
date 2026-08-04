@@ -60,11 +60,12 @@ def test_there_is_only_one_rule_for_it():
 
 def test_the_sql_copy_says_the_same_thing():
     """get_charge_stats does it in SQL. Two copies of one rule, and only one of them was updated,
-    is how ENERGIA TOTALE came to disagree with the calendar in the first place."""
+    is how ENERGIA TOTALE came to disagree with the calendar in the first place. The branch is
+    spliced in from one place now, and BOTH sums must take it (see the column guard below)."""
     src = (ROOT / "web" / "db_reader.py").read_text()
     stats = src.split("def get_charge_stats(", 1)[1].split("\ndef ", 1)[0]
-    assert stats.count("WHEN gross_kwh IS NOT NULL AND gross_kwh > 0 THEN gross_kwh") == 2, \
-        "the total and the priced-only sum must use the same three branches"
+    assert "WHEN gross_kwh IS NOT NULL AND gross_kwh > 0 THEN gross_kwh" in stats
+    assert stats.count("{_g}") == 2, "the total and the priced-only sum must use the same branches"
 
 
 # ── the month totals ──────────────────────────────────────────────────────────

@@ -131,8 +131,14 @@ def test_there_is_nothing_to_take_back_when_nothing_was_typed():
 
 # ── the field is only offered where Mate has no meter of its own ─────────────
 
+def test_it_is_not_offered_where_it_could_not_be_stored():
+    """`gross_kwh_ok` is false when the database has no column for it — offering a field that
+    silently swallows what you type is worse than not offering it."""
+    assert "gross_kwh_ok" in CARD
+
+
 def test_it_is_not_offered_on_a_wallbox_charge_or_an_untyped_one():
-    assert "{% if not show_wb and c.location_type %}" in CARD
+    assert "{% if not show_wb and c.location_type and gross_kwh_ok %}" in CARD
     assert '{% with charge=c %}{% include "partials/charge_gross_kwh.html" %}{% endwith %}' in CARD
 
 

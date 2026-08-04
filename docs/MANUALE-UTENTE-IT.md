@@ -633,6 +633,12 @@ ogni campo è opzionale, e quello che ometti resta com'è).
 
 ---
 
+**Se hai più di un Mate sullo stesso broker 🆕** — per esempio l'add-on normale e quello BetaTester —
+dai a ciascuno un **Prefisso topic diverso** (*Impostazioni → MQTT*). Con lo stesso prefisso e la
+stessa auto, per Home Assistant sono **un solo dispositivo**: il secondo sembra non funzionare, e
+soprattutto **ogni comando parte due volte**. Mate ora se ne accorge e lo scrive; la versione
+BetaTester si sposta da sé su un prefisso suo, quella normale non si muove mai.
+
 ## 9. Modalità demo
 
 La **demo** serve a provare Mate senza auto e senza account: parte con **un mese di dati finti ma

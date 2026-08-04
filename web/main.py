@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.6.6"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.6.7"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -64,6 +64,48 @@ def _add_file_log() -> None:
 
 _add_file_log()
 log = logging.getLogger("mate.web")
+
+
+def _ensure_schema() -> None:
+    """Bring the database up to the schema this process is about to read from.
+
+    The tables are the poller's, and until now the web merely hoped its migrations had run. v3.6.6
+    added `charges.gross_kwh`; the web named it in five queries; and every install whose poller had
+    not started yet answered **500 on the Charges page and on every trip detail**. Guarding that one
+    column fixed that one column — this is what stops the next one, because a reader that depends on
+    a schema should guarantee it rather than hope.
+
+    Only the schema: `ensure_schema` was lifted out of Database.__init__ precisely so the eleven data
+    repairs beside it stay with the process that owns the data. Best-effort — a database that cannot
+    be opened is the poller's problem to report, and the pages that need no new column still work.
+    Runs twice per process (uvicorn re-imports this module) and that is fine: every step is
+    `IF NOT EXISTS` or `if column not in …`.
+    """
+    try:
+        import pathlib as _pl
+        import sqlite3 as _sq
+        # `web/` and `poller/` share five module names — main, crypto, geohash, capability_profile,
+        # session_share — so the poller's directory may not simply be added to the path: in front,
+        # uvicorn re-imports poller/main.py and the web does not boot at all (measured); behind, an
+        # import inside the poller would find the web's geohash, which differs by 64 lines. Hence a
+        # module that (a) is named nothing the web has and (b) imports nothing itself, on the path
+        # only for the length of one import.
+        _poller = str(_pl.Path(__file__).resolve().parent.parent / "poller")
+        sys.path.insert(0, _poller)
+        try:
+            import schema as _schema
+        finally:
+            sys.path.remove(_poller)
+        conn = _sq.connect(db_reader.DB_PATH, timeout=15)
+        try:
+            _schema.ensure_schema(conn)
+        finally:
+            conn.close()
+    except Exception as exc:  # noqa: BLE001 — never let this stop the web from starting
+        log.warning("Schema check skipped: %s", exc)
+
+
+_ensure_schema()
 
 
 def _repair_manual_charge_timezones() -> None:
@@ -335,6 +377,12 @@ def _ctx(**kwargs):
             return t("ago_m").format(n=s // 60)
         return t("ago_h").format(n=s // 3600)
 
+    # #222 — offer the charger's-own-kWh pencil only where the column exists to store it into.
+    # _ensure_schema() at startup means it always should; this is the belt to that pair of braces,
+    # for the install whose database could not be altered (read-only mount, a locked file). Offering
+    # a field that silently swallows what you type is a worse failure than not offering it.
+    gross_kwh_ok = db_reader._charges_have_gross(db_reader._get())
+
     wallbox_enabled = db_reader.get_setting("wallbox_enabled", "0") == "1"
     # Active wallbox profile: shown in sidebar + page title + profiles panel.
     # Only resolved when wallbox is on AND a profile has been loaded.
@@ -358,6 +406,7 @@ def _ctx(**kwargs):
     # never declares code 53 = unlock charge cable — #142). None abilities → shown (never on a guess).
     _abilities = capability_profile.parse_abilities((_veh or {}).get("abilities"))
     return {**kwargs, "lang": lang, "t": t, "version": MATE_VERSION, "demo": _IS_DEMO,
+            "gross_kwh_ok": gross_kwh_ok,
             # Inside the Mac/Windows app there are TWO versions that matter: Mate itself, which
             # updates on its own, and the app shell around it, which almost never does. When a
             # user reports "it stopped updating", only the second number distinguishes a shell too
@@ -1969,7 +2018,36 @@ async def settings_page(request: Request):
         # whichever got written first decided the reference for ever (@danielvilhena, #221).
         capacity_kwh=db_reader.get_battery_capacity_kwh(),
         capacity_nominal=db_reader.get_setting("battery_capacity_nominal_kwh", ""),
+        # Written by the poller when it hears another Mate on our own topic prefix (BetaTester #13).
+        # Shown beside the prefix field, which is where the fix lives.
+        mqtt_collision=_mqtt_collision(),
     ))
+
+
+def _mqtt_collision():
+    """What the poller recorded the last time it heard another Mate on our topic prefix, or None.
+
+    Kept as a setting rather than passed in memory because the two live in different processes: the
+    poller is the one holding the broker connection, the web layer is the one with a page to say it
+    on. Stale entries clear themselves — the poller rewrites this only while it is still hearing the
+    other install, and it stops being shown once that install is gone or has moved off."""
+    from datetime import datetime, timezone   # module-scope import: this file has none
+    raw = db_reader.get_setting("mqtt_collision", "")
+    if not raw or db_reader.get_setting("mqtt_enabled", "0") != "1":
+        return None
+    try:
+        out = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    # Only while it is still true: the poller stamps every sighting, and one older than a few poll
+    # cycles means nobody is colliding with us any more.
+    try:
+        seen = datetime.fromisoformat(out.get("at", ""))
+        if (datetime.now(timezone.utc) - seen).total_seconds() > 3600:
+            return None
+    except (ValueError, TypeError):
+        return None
+    return out
 
 
 @app.get("/costs", response_class=HTMLResponse)

@@ -256,6 +256,17 @@ _REEV_FUEL_MIN_DROP = 0.2   # % — the floor for signal 3235, whose own step is
 # 1 mL wobble in the counter does not become a "trip that used fuel".
 _REEV_FUEL_MIN_L = 0.005
 
+# The WHERE clause for "this trip may have burned fuel" — EITHER signal is enough. It exists because
+# v3.6.6 fixed the litres in `_reev_trip_fuel` and left this filter behind in two aggregates, which
+# dropped the row before the fine signal could be read: @michapr's all-time total stayed at 5.9 L
+# against 9.64 measured off his own car, on the very release that was about this. The floors belong
+# to the reader, which knows which signal it is looking at; a query's job is only to avoid loading
+# the trips that cannot possibly qualify.
+_REEV_FUEL_ANY_DROP_SQL = (
+    "((fuel_start_l IS NOT NULL AND fuel_end_l IS NOT NULL AND fuel_start_l > fuel_end_l)"
+    " OR (fuel_start_pct IS NOT NULL AND fuel_end_pct IS NOT NULL"
+    "     AND fuel_start_pct - fuel_end_pct > ?))")
+
 # Tank size, per model — the FALLBACK for turning a percentage into litres. Prefer the car's own
 # litre count (signal 3263, positions.fuel_liters / trips.fuel_start_l|fuel_end_l): where that is
 # present nothing here is used at all.
@@ -1307,7 +1318,10 @@ def update_charge_type(charge_id: int, location_type: str,
     # gross_kwh only joins the UPDATE when it is actually being set: a re-tag must not rewrite a
     # column it is not changing, and the write then never assumes a column a caller's table may not
     # have (the cost-floor tests build a minimal charges table by hand).
-    if gross_kwh is not None:
+    # ...and only where the column exists. The poller owns that migration, so between an update and
+    # its next start a typed figure would hit an UPDATE naming a column that is not there — a 500 on
+    # the form instead of a stored number. Not storing it for those few seconds is the lesser harm.
+    if gross_kwh is not None and _charges_have_gross(db):
         db.execute("UPDATE charges SET location_type=?, cost=?, is_free=?, gross_kwh=? WHERE id=?",
                    (location_type, cost, free, gross_kwh, charge_id))
     else:
@@ -3231,8 +3245,7 @@ def reev_fuel_summary() -> Optional[dict]:
             "SELECT id, vehicle_id, started_at, ended_at, distance_km, fuel_start_pct, fuel_end_pct, "
             "fuel_start_l, fuel_end_l "
             "FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
-            "AND fuel_start_pct IS NOT NULL AND fuel_end_pct IS NOT NULL "
-            "AND fuel_start_pct - fuel_end_pct > ?",
+            "AND " + _REEV_FUEL_ANY_DROP_SQL,
             (_current_vehicle_id(), _REEV_FUEL_MIN_DROP)).fetchall()
     except sqlite3.Error:
         return None
@@ -3240,16 +3253,17 @@ def reev_fuel_summary() -> Optional[dict]:
     total_l, engine_km, engine_l, n = 0.0, 0.0, 0.0, 0
     total_km = 0.0        # ALL the kilometres of the engine-on trips — the L/100 km denominator
     for r in rows:
-        total_km += r["distance_km"] or 0
-        # The car's own litre counter where the trip has it, the tank-% × capacity where it doesn't
-        # (trips from before v2.14.1). Mixing the two across a history is fine — each trip's litres
-        # are simply as exact as that trip's data allows.
-        measured = ((r["fuel_start_l"] - r["fuel_end_l"])
-                    if (r["fuel_start_l"] is not None and r["fuel_end_l"] is not None) else None)
-        drop_l = (measured if measured and measured > 0
-                  else (r["fuel_start_pct"] - r["fuel_end_pct"]) / 100.0 * tank)
-        total_l += drop_l
         eng = _reev_engine_on(db, r["vehicle_id"], r["started_at"], r["ended_at"])
+        # Through _reev_trip_fuel, like the trips list and the period card. It used to work the
+        # litres out again right here — a third copy of a rule that had just been corrected in one
+        # place, which is how this total stayed on the old answer after v3.6.6.
+        f = _reev_trip_fuel(r["fuel_start_pct"], r["fuel_end_pct"], r["distance_km"], eng,
+                            r["fuel_start_l"], r["fuel_end_l"])
+        drop_l = f["fuel_used_l"]
+        if not drop_l:
+            continue                      # under both floors → not a trip that burned anything
+        total_km += r["distance_km"] or 0
+        total_l += drop_l
         if eng:
             engine_km += eng["engine_km"]
             engine_l += eng["engine_fuel_pct"] / 100.0 * tank
@@ -3361,7 +3375,8 @@ def reev_actual_spend() -> Optional[dict]:
     db = _get()
     try:
         charges = [dict(r) for r in db.execute(
-            "SELECT energy_added_kwh, ac_energy_kwh, gross_kwh, location_type, cost FROM charges "
+            "SELECT energy_added_kwh, ac_energy_kwh, location_type, cost"
+            + (", gross_kwh" if _charges_have_gross(db) else "") + " FROM charges "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
             (_current_vehicle_id(),)).fetchall()]
     except sqlite3.Error:
@@ -4013,7 +4028,8 @@ def _trip_stop_charges(db, vehicle_id, raw_ended_at) -> list[dict]:
         "AND merged_into_id IS NULL AND started_at > ?", (vehicle_id, raw_ended_at)).fetchone()
     hi = nxt["s"] if nxt and nxt["s"] else None
     q = ("SELECT id, latitude, longitude, location_name, location_url, charge_type, cost, "
-         "energy_added_kwh, ac_energy_kwh, gross_kwh, location_type, started_at, ended_at FROM charges "
+         "energy_added_kwh, ac_energy_kwh, location_type, started_at, ended_at"
+         + (", gross_kwh" if _charges_have_gross(db) else "") + " FROM charges "
          "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
          "AND latitude IS NOT NULL AND longitude IS NOT NULL AND started_at >= ?")
     params = [vehicle_id, raw_ended_at]
@@ -4476,8 +4492,7 @@ def get_fuel_totals_between(begin_ts: int, end_ts: int) -> dict:
             " fuel_start_l, fuel_end_l FROM trips"
             " WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL"
             "   AND merged_into_id IS NULL AND started_at >= ? AND started_at <= ?"
-            "   AND fuel_start_pct IS NOT NULL AND fuel_end_pct IS NOT NULL"
-            "   AND fuel_start_pct - fuel_end_pct > ?",
+            "   AND " + _REEV_FUEL_ANY_DROP_SQL,
             (_current_vehicle_id(), b, e, _REEV_FUEL_MIN_DROP)).fetchall()
     except sqlite3.Error:
         return out                      # no fuel columns → a BEV, and nothing to add
@@ -5127,6 +5142,22 @@ def _charge_window_display(db, raw_start, raw_end) -> dict:
             "real_end": (_local_iso(re) or "")[11:16]}
 
 
+def _charges_have_gross(db) -> bool:
+    """Whether the charges table carries the #222 column yet.
+
+    The migration lives in the POLLER; the web serves the same database and never alters it. So
+    between an update and the poller's next start — and for good on an install whose poller has not
+    run — the column is simply absent, and a query that names it raises OperationalError, which is a
+    500 on the Charges page. Found on Silvio's own instance hours after v3.6.6 shipped.
+
+    Asked per call, not cached: the poller can add the column while the web is running, and a
+    remembered "no" would keep the page degraded until someone restarted it."""
+    try:
+        return any(r[1] == "gross_kwh" for r in db.execute("PRAGMA table_info(charges)"))
+    except sqlite3.Error:
+        return False
+
+
 def _billed_kwh(c) -> float:
     """The energy figure SHOWN (and billed) for a charge — what came OUT of the charger:
 
@@ -5413,14 +5444,17 @@ def get_stats_summary() -> dict:
 
 def get_charge_stats() -> dict:
     db = _get()
+    # The middle branch only exists where the column does — see _charges_have_gross.
+    _g = ("WHEN gross_kwh IS NOT NULL AND gross_kwh > 0 THEN gross_kwh "
+          if _charges_have_gross(db) else "")
     row = db.execute(
-        """SELECT
+        f"""SELECT
                COUNT(*)                            AS session_count,
                -- billed energy, in _billed_kwh's own order: the wallbox counter, then the
                -- charger's own kWh where the owner typed it (#222), then the battery
                ROUND(SUM(CASE WHEN location_type='HOME' AND ac_energy_kwh IS NOT NULL AND ac_energy_kwh > 0
                               THEN ac_energy_kwh
-                              WHEN gross_kwh IS NOT NULL AND gross_kwh > 0 THEN gross_kwh
+                              {_g}
                               ELSE energy_added_kwh END), 2)  AS total_kwh,
                ROUND(AVG(duration_min / 60.0), 1) AS avg_duration_h,
                ROUND(SUM(cost), 2)                AS total_cost,
@@ -5430,7 +5464,7 @@ def get_charge_stats() -> dict:
                ROUND(SUM(CASE WHEN cost IS NOT NULL THEN
                               CASE WHEN location_type='HOME' AND ac_energy_kwh IS NOT NULL AND ac_energy_kwh > 0
                                    THEN ac_energy_kwh
-                                   WHEN gross_kwh IS NOT NULL AND gross_kwh > 0 THEN gross_kwh
+                                   {_g}
                                    ELSE energy_added_kwh END END), 2) AS priced_kwh,
                ROUND(AVG(end_soc - start_soc), 1) AS avg_soc_delta,
                ROUND(MAX(max_power_kw), 2)        AS peak_power_kw
@@ -5451,8 +5485,8 @@ def get_ac_dc_stats() -> dict:
     set) a measured peak power above 11 kW (AC tops out at ~11 kW; DC is faster)."""
     db = _get()
     rows = db.execute(
-        "SELECT charge_type, max_power_kw, energy_added_kwh, ac_energy_kwh, gross_kwh, "
-        "location_type FROM charges "
+        "SELECT charge_type, max_power_kw, energy_added_kwh, ac_energy_kwh, location_type"
+        + (", gross_kwh" if _charges_have_gross(db) else "") + " FROM charges "
         "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
         (_current_vehicle_id(),)
     ).fetchall()

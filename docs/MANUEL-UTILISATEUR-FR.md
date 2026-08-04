@@ -622,6 +622,12 @@ Home Assistant**, avec **auto-discovery**. Vous pouvez aussi **commander** la vo
 
 ---
 
+**Si vous avez plusieurs Mate sur le même broker 🆕** — l'add-on normal et celui BetaTester, par
+exemple — donnez à chacun un **préfixe de topic différent** (*Paramètres → MQTT*). Avec le même
+préfixe et la même voiture, Home Assistant ne voit qu'**un seul appareil** : le second semble ne pas
+fonctionner, et surtout **chaque commande part deux fois**. Mate le détecte désormais et le signale ;
+la version BetaTester se déplace d'elle-même, la version normale ne bouge jamais.
+
 ## 9. Mode démo
 
 La **démo** sert à essayer Mate sans voiture et sans compte : elle démarre avec **un mois de données fictives
