@@ -250,7 +250,11 @@ PRICE_KEYS = {
 # REEV Phase C — the minimum fuel-% drop over a trip that counts as the engine having run (the 3235
 # signal steps at 0.1% ≈ 50 mL; 0.2% guards the single-tick noise). A real range-extender drive drops
 # several %.
-_REEV_FUEL_MIN_DROP = 0.2
+_REEV_FUEL_MIN_DROP = 0.2   # % — the floor for signal 3235, whose own step is 0.1 %
+# …and the floor for signal 3263, which counts in millilitres. 5 mL is a hundredth of the smallest
+# step the percentage can express, and well under any real generator burn: it exists only so a
+# 1 mL wobble in the counter does not become a "trip that used fuel".
+_REEV_FUEL_MIN_L = 0.005
 
 # Tank size, per model — the FALLBACK for turning a percentage into litres. Prefer the car's own
 # litre count (signal 3263, positions.fuel_liters / trips.fuel_start_l|fuel_end_l): where that is
@@ -362,18 +366,34 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
     if fuel_start_pct is None or fuel_end_pct is None:
         return out
     drop = fuel_start_pct - fuel_end_pct
-    if drop <= _REEV_FUEL_MIN_DROP:
-        return out
     cap = tank_l if tank_l else reev_tank_l()
     measured = (fuel_start_l - fuel_end_l) if (fuel_start_l is not None and fuel_end_l is not None) else None
-    out["fuel_used_l"] = (round(measured, 2) if measured is not None and measured > 0
-                          else round(drop / 100.0 * cap, 2))
+    # The noise floor belongs to whichever signal is actually being read. 3235 (%) moves in steps of
+    # 0.1 — 50 mL of a 50 L tank — so 0.2 % is the right guard for it. 3263 counts in MILLILITRES,
+    # fifty times finer, and gating IT on the percentage threw away every trip that burned under
+    # ~100 mL: on a range-extender, which runs mostly electric with the generator cutting in and
+    # out, those are not the exception but the norm. Measured on two owners' bundles (beta #23
+    # @michapr: 9.64 L by the car's own counter against 5.9 reported — 3.7 L lost in sub-threshold
+    # trips; beta #22 @pdifeo: ~2.1 L over 35 km reported as 0.3). The tank constants were right
+    # all along; the guard was on the wrong signal, and it ran BEFORE the fine one was even read.
+    if measured is not None and measured > _REEV_FUEL_MIN_L:
+        out["fuel_used_l"] = round(measured, 3)
+    elif measured is None and drop > _REEV_FUEL_MIN_DROP:
+        out["fuel_used_l"] = round(drop / 100.0 * cap, 2)
+    else:
+        return out                      # nothing burned, or too little to tell from noise
     out["engine_ran"] = True
+    # engine_km is still measured and still shown — it says how far the generator actually drove —
+    # but it is NO LONGER the denominator. The L/100 km is over the WHOLE distance, which is what
+    # the car itself reports (getPlugIn's oc100km) and therefore what the owner sees in the official
+    # app. Dividing by the generator-on distance answers "how thirsty is the generator"; the app
+    # answers "what did this drive cost in petrol", and two different answers under one label is
+    # how a correct figure gets reported as a bug (@michapr, beta #23 — 15.9 here against the 2.2
+    # his own arithmetic and his app both gave). Silvio's call, and it reverses the basis
+    # reev_fuel_summary was built on.
     if engine and engine.get("engine_km", 0) > 0.5:
         out["engine_km"] = engine["engine_km"]
-        out["fuel_l_100km"] = round((engine["engine_fuel_pct"] / 100.0 * cap)
-                                    / engine["engine_km"] * 100, 1)
-    elif distance_km and distance_km > 0.5:
+    if distance_km and distance_km > 0.5:
         out["fuel_l_100km"] = round(out["fuel_used_l"] / distance_km * 100, 1)
     return out
 
@@ -1241,7 +1261,8 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
 
 
 def update_charge_type(charge_id: int, location_type: str,
-                       manual_cost: Optional[float] = None) -> dict:
+                       manual_cost: Optional[float] = None,
+                       gross_kwh: Optional[float] = None) -> dict:
     """Set location_type and (re)compute the cost from the pricing config in effect now (flat or
     time-of-use). Frozen afterwards (the 'new charges only' rule). HOME charges are billed on the
     wallbox energy the POLLER measured at charge start/stop (charges.ac_energy_kwh = the counter
@@ -1269,15 +1290,51 @@ def update_charge_type(charge_id: int, location_type: str,
         cost = round(manual_cost, 2) if manual_cost is not None else charge.get("cost")
     else:
         meter = charge.get("ac_energy_kwh")
-        billed = meter if (location_type == "HOME" and meter and meter > 0) else None
+        # A public charger has no meter Mate can read, so the owner may type what its display said
+        # (#222 @ghuaywen-ai). It plays exactly the role the wallbox counter plays at home: it
+        # PRICES the charge — you pay for what left the charger, conversion losses included — and
+        # nothing else. It never becomes the energy Mate reports or totals (_billed_kwh is
+        # untouched), because that one is measured and this one is typed.
+        gross = gross_kwh if gross_kwh is not None else (charge["gross_kwh"] if "gross_kwh" in charge.keys() else None)
+        if location_type == "HOME" and meter and meter > 0:
+            billed = meter
+        elif gross and gross > 0:
+            billed = gross
+        else:
+            billed = None
         cost = compute_cost(charge, ac_kwh=billed)   # returns 0.0 when the charge is marked free
 
-    db.execute(
-        "UPDATE charges SET location_type=?, cost=?, is_free=? WHERE id=?",
-        (location_type, cost, free, charge_id)
-    )
+    # gross_kwh only joins the UPDATE when it is actually being set: a re-tag must not rewrite a
+    # column it is not changing, and the write then never assumes a column a caller's table may not
+    # have (the cost-floor tests build a minimal charges table by hand).
+    if gross_kwh is not None:
+        db.execute("UPDATE charges SET location_type=?, cost=?, is_free=?, gross_kwh=? WHERE id=?",
+                   (location_type, cost, free, gross_kwh, charge_id))
+    else:
+        db.execute("UPDATE charges SET location_type=?, cost=?, is_free=? WHERE id=?",
+                   (location_type, cost, free, charge_id))
     db.commit()
     return dict(db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
+
+
+def set_charge_gross_kwh(charge_id: int, gross_kwh: Optional[float]) -> dict:
+    """#222 — store the kWh the charger's own display said it delivered, and NOTHING else about the
+    charge. Its own type is handed back to update_charge_type unchanged, so the cost is recomputed on
+    the same rule as everywhere else; a charge nobody has typed yet is left alone (the field is only
+    offered on a typed charge, and an untyped one must not become typed by a side effect).
+
+    `None` means the box came back empty — read it back and write nothing. That is not politeness:
+    the field opens empty every time, so an accidental open followed by Enter has to be a no-op
+    rather than an erasure. Zero is the deliberate way to take a wrong number back — every reader
+    tests `gross_kwh > 0`, so a stored zero reads as never-typed and the cost falls straight back to
+    the measured basis."""
+    db = _conn_rw()
+    row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
+    if not row or not row["location_type"]:
+        return dict(row) if row else {}
+    if gross_kwh is None:
+        return dict(row)
+    return update_charge_type(charge_id, row["location_type"], gross_kwh=gross_kwh)
 
 
 def set_charge_free(charge_id: int, free: bool) -> dict:
@@ -3181,7 +3238,9 @@ def reev_fuel_summary() -> Optional[dict]:
         return None
     tank = reev_tank_l()
     total_l, engine_km, engine_l, n = 0.0, 0.0, 0.0, 0
+    total_km = 0.0        # ALL the kilometres of the engine-on trips — the L/100 km denominator
     for r in rows:
+        total_km += r["distance_km"] or 0
         # The car's own litre counter where the trip has it, the tank-% × capacity where it doesn't
         # (trips from before v2.14.1). Mixing the two across a history is fine — each trip's litres
         # are simply as exact as that trip's data allows.
@@ -3204,7 +3263,10 @@ def reev_fuel_summary() -> Optional[dict]:
         "engine_trips": n,
         "total_l": round(total_l, 1),
         "engine_km": round(engine_km, 1),
-        "avg_l_100km": round(engine_l / engine_km * 100, 1) if engine_km > 0.5 else None,
+        # Over ALL the kilometres, not the generator-on ones — same basis as the car's own figure
+        # and as every other L/100 km in Mate since beta #23. `engine_km` above still says how far
+        # the generator drove; it is reported, not divided by.
+        "avg_l_100km": round(total_l / total_km * 100, 1) if total_km > 0.5 else None,
     }
 
 
@@ -3299,7 +3361,7 @@ def reev_actual_spend() -> Optional[dict]:
     db = _get()
     try:
         charges = [dict(r) for r in db.execute(
-            "SELECT energy_added_kwh, ac_energy_kwh, location_type, cost FROM charges "
+            "SELECT energy_added_kwh, ac_energy_kwh, gross_kwh, location_type, cost FROM charges "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
             (_current_vehicle_id(),)).fetchall()]
     except sqlite3.Error:
@@ -3704,8 +3766,10 @@ def _wac_blend(charges) -> Optional[float]:
     to LESS than what was spent. A trip consumes what is in the pack, so that is what has to be
     divided into. Only home-with-wallbox charges were ever affected: every other charge already had
     the meter and the battery agreeing, because there is no meter (Silvio's call, 31/07/26).
-    `_billed_kwh` itself is untouched — the per-charge card, the period totals and the €/kWh on the
-    Charges page still show what the METER billed, which is the right answer to a different question.
+    `_billed_kwh` is a different question and keeps its own answer — the per-charge card, the period
+    totals and the €/kWh on the Charges page show what the CHARGER billed (meter, or the figure the
+    owner typed from its display). This one divides by what reached the battery, because that is
+    what a trip consumes.
     """
     p = None
     for c in charges:
@@ -3949,7 +4013,7 @@ def _trip_stop_charges(db, vehicle_id, raw_ended_at) -> list[dict]:
         "AND merged_into_id IS NULL AND started_at > ?", (vehicle_id, raw_ended_at)).fetchone()
     hi = nxt["s"] if nxt and nxt["s"] else None
     q = ("SELECT id, latitude, longitude, location_name, location_url, charge_type, cost, "
-         "energy_added_kwh, ac_energy_kwh, location_type, started_at, ended_at FROM charges "
+         "energy_added_kwh, ac_energy_kwh, gross_kwh, location_type, started_at, ended_at FROM charges "
          "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
          "AND latitude IS NOT NULL AND longitude IS NOT NULL AND started_at >= ?")
     params = [vehicle_id, raw_ended_at]
@@ -5064,14 +5128,31 @@ def _charge_window_display(db, raw_start, raw_end) -> dict:
 
 
 def _billed_kwh(c) -> float:
-    """The energy figure SHOWN (and billed) for a charge: the wallbox-measured AC kWh for
-    HOME charges that have a wallbox reading (what you actually pay for, conversion losses
-    included), else the battery DC (SoC) energy. Single source of truth so the per-charge
-    card, the period totals and get_charge_stats all agree. Mirrors the SQL CASE in
-    get_charge_stats and the card's `show_wb` condition (charges.html)."""
+    """The energy figure SHOWN (and billed) for a charge — what came OUT of the charger:
+
+        wallbox counter (measured)  →  the charger's own kWh (#222, typed)  →  battery kWh
+
+    Single source of truth so the per-charge card, the period totals, get_charge_stats and the
+    Ricariche calendar all agree. Mirrors the SQL CASE in get_charge_stats and the card's `show_wb`
+    condition (charges.html). Same order as update_charge_type prices a charge, deliberately: the
+    thing that billed you is the thing that delivered.
+
+    ⚠️ The third branch is not a gross figure at all; it is the only number that exists for a charge
+    with no meter and nothing typed, and leaving it out would make a month's total drop every time a
+    public charge appeared.
+
+    ⚠️ The middle branch means a TYPED number is now part of the energy Mate reports — it was kept
+    out on purpose when #222 shipped, so a typo could not inflate a total. Silvio's call, 04/08: the
+    Ricariche calendar had started saying "delivered" with the typed figure in it while this one
+    still ignored it, and two totals under two words that mean the same thing is worse than one
+    total that can be mistyped. It stays out of `_wac_blend`, which divides by the energy that
+    actually reached the battery — a trip consumes that, not what the meter saw."""
     ac = c.get("ac_energy_kwh")
     if c.get("location_type") == "HOME" and ac and ac > 0:
         return ac
+    g = c.get("gross_kwh")
+    if g and g > 0:
+        return g
     return c.get("energy_added_kwh") or 0
 
 
@@ -5203,15 +5284,22 @@ def get_charges_calendar_month(year: int, month: int, station: str | None = None
     if station:
         charges = _filter_by_station(charges, station)
     days: dict[int, dict] = {}
-    total = {"count": 0, "kwh": 0.0, "cost": 0.0, "has_cost": False}
+    total = {"count": 0, "kwh": 0.0, "battery_kwh": 0.0, "cost": 0.0, "has_cost": False}
     for c in charges:
         dt = c["_dt"]
         if dt.year != year or dt.month != month:
             continue
-        d = days.setdefault(dt.day, {"count": 0, "kwh": 0.0, "cost": 0.0, "has_cost": False})
+        d = days.setdefault(dt.day, {"count": 0, "kwh": 0.0, "battery_kwh": 0.0,
+                                     "cost": 0.0, "has_cost": False})
+        # `kwh` is the DELIVERED side — the wallbox counter, the charger's own kWh where the owner
+        # typed it, the battery figure where neither exists. The month strip says so in words and
+        # puts the battery total beside it, because the gap between the two IS the conversion loss:
+        # a bare "154.93 kWh" with no label was neither one thing nor the other.
         kwh = _billed_kwh(c)
+        batt = c.get("energy_added_kwh") or 0
         for node in (d, total):
             node["kwh"] = round(node["kwh"] + kwh, 2)
+            node["battery_kwh"] = round(node["battery_kwh"] + batt, 2)
             node["count"] += 1
             if c.get("cost") is not None:
                 node["cost"] = round(node["cost"] + (c["cost"] or 0), 2)
@@ -5328,9 +5416,12 @@ def get_charge_stats() -> dict:
     row = db.execute(
         """SELECT
                COUNT(*)                            AS session_count,
-               -- billed energy: wallbox AC for HOME w/ a reading, else battery DC (mirrors _billed_kwh)
+               -- billed energy, in _billed_kwh's own order: the wallbox counter, then the
+               -- charger's own kWh where the owner typed it (#222), then the battery
                ROUND(SUM(CASE WHEN location_type='HOME' AND ac_energy_kwh IS NOT NULL AND ac_energy_kwh > 0
-                              THEN ac_energy_kwh ELSE energy_added_kwh END), 2)  AS total_kwh,
+                              THEN ac_energy_kwh
+                              WHEN gross_kwh IS NOT NULL AND gross_kwh > 0 THEN gross_kwh
+                              ELSE energy_added_kwh END), 2)  AS total_kwh,
                ROUND(AVG(duration_min / 60.0), 1) AS avg_duration_h,
                ROUND(SUM(cost), 2)                AS total_cost,
                -- the SAME billed energy, but only over the charges that HAVE a cost: the €/kWh
@@ -5338,7 +5429,9 @@ def get_charge_stats() -> dict:
                COUNT(cost)                        AS priced_count,
                ROUND(SUM(CASE WHEN cost IS NOT NULL THEN
                               CASE WHEN location_type='HOME' AND ac_energy_kwh IS NOT NULL AND ac_energy_kwh > 0
-                                   THEN ac_energy_kwh ELSE energy_added_kwh END END), 2) AS priced_kwh,
+                                   THEN ac_energy_kwh
+                                   WHEN gross_kwh IS NOT NULL AND gross_kwh > 0 THEN gross_kwh
+                                   ELSE energy_added_kwh END END), 2) AS priced_kwh,
                ROUND(AVG(end_soc - start_soc), 1) AS avg_soc_delta,
                ROUND(MAX(max_power_kw), 2)        AS peak_power_kw
            FROM charges
@@ -5358,7 +5451,8 @@ def get_ac_dc_stats() -> dict:
     set) a measured peak power above 11 kW (AC tops out at ~11 kW; DC is faster)."""
     db = _get()
     rows = db.execute(
-        "SELECT charge_type, max_power_kw, energy_added_kwh FROM charges "
+        "SELECT charge_type, max_power_kw, energy_added_kwh, ac_energy_kwh, gross_kwh, "
+        "location_type FROM charges "
         "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
         (_current_vehicle_id(),)
     ).fetchall()
@@ -5369,7 +5463,11 @@ def get_ac_dc_stats() -> dict:
         is_dc = ct == "DC" or (ct is None and (r["max_power_kw"] or 0) > 11)
         b = dc if is_dc else ac
         b["count"] += 1
-        b["kwh"] += r["energy_added_kwh"] or 0
+        # _billed_kwh, like everything else on this page. It used to sum the battery energy while
+        # ENERGIA TOTALE right below summed the billed one — two totals on ONE screen that did not
+        # add up, off by the whole conversion loss (19.4 kWh on the test data). Older than today's
+        # change; it just became impossible to miss once the totals beside it agreed.
+        b["kwh"] += _billed_kwh(dict(r))
     ac["kwh"] = round(ac["kwh"], 2)
     dc["kwh"] = round(dc["kwh"], 2)
     return {"ac": ac, "dc": dc, "total": ac["count"] + dc["count"]}

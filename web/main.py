@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.6.5"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.6.6"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -2563,6 +2563,8 @@ async def set_charge_type(request: Request, charge_id: int):
             manual_cost = float(str(form.get("cost", "")).strip().replace(",", "."))
         except (ValueError, TypeError):
             manual_cost = None
+    # The charger's own kWh (#222) is NOT read here: it has its own endpoint below, so re-tagging a
+    # charge can never touch a number the owner typed, and typing that number can never re-tag it.
     charge = db_reader.update_charge_type(charge_id, location_type, manual_cost=manual_cost)
     t = i18n.get_t(db_reader.get_language())
     if location_type == "MANUAL":
@@ -2577,6 +2579,32 @@ async def set_charge_type(request: Request, charge_id: int):
         "t": t,                   # the partial's #120 free toggle (HOME) needs the translator
         "cost_oob": True,         # also refresh the cost cell (it changes with the type/basis)
         "cost_title": cost_title,
+    })
+
+
+@app.post("/api/charges/{charge_id}/gross-kwh", response_class=HTMLResponse)
+async def set_charge_gross_kwh(request: Request, charge_id: int):
+    """#222 @ghuaywen-ai — the kWh the charger's own display said it delivered, typed by the owner.
+
+    The box it comes from opens only on purpose and always opens EMPTY, so this route has to read an
+    empty field as "leave it alone": an accidental open followed by Enter must change nothing. A
+    zero is the deliberate way back — it reads as never-typed everywhere and the cost returns to the
+    measured basis. Anything unparseable is treated as empty rather than as a zero, because a typo
+    must not silently wipe a good figure."""
+    form = await request.form()
+    gross_kwh = None
+    _g = str(form.get("gross_kwh", "")).strip().replace(",", ".")
+    if _g:
+        try:
+            gross_kwh = max(0.0, min(float(_g), 500.0))
+        except (ValueError, TypeError):
+            gross_kwh = None
+    charge = db_reader.set_charge_gross_kwh(charge_id, gross_kwh)
+    t = i18n.get_t(db_reader.get_language())
+    return templates.TemplateResponse(request, "partials/charge_gross_kwh.html", {
+        "charge": charge,
+        "t": t,
+        "cost_oob": True,   # the cost is billed on this figure when there is no meter — refresh it
     })
 
 
@@ -4149,8 +4177,11 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int) -
     if _f.get("fuel_l"):
         eb["fuel_l"] = _f["fuel_l"]
         eb["fuel_engine_km"] = _f["engine_km"]
-        if _f["engine_km"] > 0:
-            eb["fuel_l_100km"] = round(_f["fuel_l"] / _f["engine_km"] * 100, 1)
+        # Over the window's WHOLE distance, the basis the car itself uses (getPlugIn's oc100km) —
+        # the same figure sits a card above, and two different denominators under one label is how
+        # a correct number gets reported as a bug (@michapr, beta #23).
+        if dist_km > 0:
+            eb["fuel_l_100km"] = round(_f["fuel_l"] / dist_km * 100, 1)
     return db_reader.flag_short_cloud_total(eb, tot, dist_km)
 
 

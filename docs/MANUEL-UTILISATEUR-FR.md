@@ -301,6 +301,18 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   trouve la perte en chaleur du chargeur, typiquement 10 à 15 %.
 - **✎ Manuel** : pour les bornes publiques aux tarifs compliqués (abonnements, frais de session…), vous pouvez
   **saisir à la main le total réellement payé** ; cette valeur remplace l'estimation automatique.
+- **Les kWh de la borne 🆕** (#222) — sur une borne publique, Mate **n'a pas de compteur** : il ne lit
+  que ce qui est entré dans la batterie, alors que la borne vous facture ce qui est sorti du sien.
+  Vous pouvez saisir ce chiffre : sur la fiche de la recharge, sous les trois tuiles, il y a un
+  **✎** ; le cadre **ne s'ouvre que si vous l'ouvrez** et la case est **toujours vide** — un clic de
+  trop ne change donc rien, et valider à vide laisse tout en l'état. *Retirer* enlève une valeur
+  erronée. Dès lors, ce nombre **tarife la recharge**, exactement comme le compteur de la wallbox à
+  la maison, et affiche le **rendement** (ce que le chargeur embarqué a transformé en chaleur).
+  L'énergie affichée par Mate reste celle **mesurée à la batterie**.
+- **Le mois dit les deux 🆕** — au-dessus du calendrier : *« 154,93 kWh délivrés · 142,57 dans la
+  batterie »*. Le premier, c'est ce qui est sorti des compteurs (la wallbox, ou les kWh que vous avez
+  saisis) ; le second, ce qui est arrivé dans le pack. Entre les deux, la perte de conversion que
+  vous payez.
 - Même les recharges effectuées pendant que la voiture était éteinte/hors ligne sont **reconstruites** à
   partir du saut de pourcentage de charge.
 - **Votre note 🆕** (#107) — chaque recharge a une **note libre** (juste au-dessus de *Supprimer la

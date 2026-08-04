@@ -27,7 +27,14 @@
   {% if total.count %}
   <div class="flex items-center justify-center gap-4 text-sm mb-4 flex-wrap">
     <span class="text-slate-400">{{ total.count }} {{ t('session_inline_one') if total.count == 1 else t('session_inline_many') }}</span>
-    <span class="text-yellow-400 font-semibold">{{ total.kwh | nice }} kWh</span>
+    {# The month's energy, told as the pair it always was. `total.kwh` is the DELIVERED side — the
+       wallbox counter where there is one, the charger's own kWh where the owner typed it — and it
+       used to be printed bare, as if it were one plain quantity. The battery total goes beside it
+       whenever the two differ, so the conversion loss is read rather than discovered. #}
+    <span class="text-yellow-400 font-semibold" title="{{ t('cal_kwh_delivered_help') }}">{{ total.kwh | nice }} kWh {{ t('cal_kwh_delivered') }}</span>
+    {% if total.battery_kwh and total.battery_kwh != total.kwh %}
+    <span class="text-slate-300" title="{{ t('energy_in_battery_help') }}">{{ total.battery_kwh | nice }} {{ t('cal_kwh_in_battery') }}</span>
+    {% endif %}
     {% if total.has_cost %}<span class="text-green-400 font-semibold">{{ total.cost | money }}</span>{% endif %}
   </div>
   {% endif %}

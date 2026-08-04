@@ -258,8 +258,9 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 {% if not station and stats and stats.session_count %}
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
 
-  {% macro scard(label, value, unit, color='text-white', note='') %}
-  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:12px 14px;text-align:center">
+  {% macro scard(label, value, unit, color='text-white', note='', help='') %}
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:12px 14px;text-align:center"
+       {% if help %}title="{{ help }}"{% endif %}>
     <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">{{ label }}</div>
     <div style="font-size:1.4rem;font-weight:700" class="{{ color }}">
       {{ value }}<span style="font-size:0.8rem;font-weight:400;color:#94a3b8"> {{ unit }}</span>
@@ -277,11 +278,19 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
       '', 'text-green-400') }}
   {# #187: the €/kWh actually paid. Over the PRICED charges alone — so when some charge has no
      cost yet, the note says so: energy and spend above would otherwise divide into a lower
-     number than this one, and the reader has no way to know why. #}
+     number than this one, and the reader has no way to know why.
+
+     And it SAYS what it divided by. This number and the Overview's "average price in battery" are
+     both right and differ by the whole conversion loss — measured on a real instance: 115.63 € over
+     465.4 BILLED kWh = 0.248, over the 427.6 kWh that reached the battery = 0.270, all 37.8 kWh of
+     the gap coming from the 21 home charges that have a wallbox counter. Two right numbers under
+     one word is the defect; the word now carries its basis. #}
   {{ scard(t('report_avg_price'),
       stats.avg_price | price3 if stats.avg_price is not none else '—',
       currency.symbol ~ '/kWh' if stats.avg_price is not none else '', 'text-emerald-400',
-      t('avg_price_partial').format(n=stats.priced_count, tot=stats.total_count) if stats.partial else '') }}
+      t('avg_price_partial').format(n=stats.priced_count, tot=stats.total_count) if stats.partial
+        else (t('avg_price_basis') if stats.avg_price is not none else ''),
+      t('avg_price_basis_help') if stats.avg_price is not none else '') }}
 
 </div>
 {% endif %}

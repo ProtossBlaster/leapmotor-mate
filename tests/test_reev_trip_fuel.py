@@ -53,14 +53,23 @@ def test_engine_on_segments_exclude_ev_and_stationary_charge():
     assert eng == {"engine_km": 10.0, "engine_fuel_pct": 1.0}
 
 
-def test_engine_on_basis_matches_car_not_whole_trip():
-    eng = {"engine_km": 10.0, "engine_fuel_pct": 1.0}       # from the trip above
-    out = db_reader._reev_trip_fuel(96.0, 94.0, 30.0, eng)  # total drop 2.0% over the whole 30 km
+def test_the_l_per_100km_is_over_the_whole_distance_like_the_car():
+    """Reversed on 04/08 (Silvio's call, beta #23 @michapr). This test used to assert the OPPOSITE —
+    litres over the generator-on distance — under the name "matches car", and it never checked
+    against a car: the figures were synthetic and the case for them was an argument, not a
+    measurement. What settled it was the car's own number: getPlugIn's `oc100km` divides by ALL the
+    kilometres (@pdifeo's C10 reports 1.6 L/100 km that way, matching his official app), and
+    @michapr worked out 2.2 by hand where Mate was printing 15.9.
+
+    engine_km is still measured and still shown — how far the generator drove is worth knowing —
+    but it is no longer the denominator."""
+    eng = {"engine_km": 10.0, "engine_fuel_pct": 1.0}
+    out = db_reader._reev_trip_fuel(96.0, 94.0, 30.0, eng)  # 2.0 % of 50 L over the whole 30 km
     assert out["engine_ran"] is True
-    assert out["engine_km"] == 10.0
-    assert out["fuel_used_l"] == 1.0                        # total litres that left the tank (2.0% × 50)
-    assert out["fuel_l_100km"] == 5.0                       # 1.0% × 50 / 10 km — generator-on basis, realistic
-    # the OLD whole-trip method would have shown 1.0 L / 30 km = 3.3 → too low (diluted by the EV km)
+    assert out["engine_km"] == 10.0                         # reported…
+    assert out["fuel_used_l"] == 1.0
+    assert out["fuel_l_100km"] == 3.3                       # …not divided by: 1.0 L / 30 km
+    # with or without the generator trail, the answer is now the same figure
     assert db_reader._reev_trip_fuel(96.0, 94.0, 30.0)["fuel_l_100km"] == 3.3
 
 
@@ -215,3 +224,42 @@ def test_a_bev_group_stays_inert(tmp_path, monkeypatch):
     d = db_reader.get_trip_detail(1)
     assert d["fuel_start_pct"] is None and d["fuel_end_pct"] is None
     assert d["engine_ran"] is False
+
+
+# ── the floor belongs to the signal being read (beta #22 @pdifeo, #23 @michapr) ──
+#
+# 3235 (%) steps by 0.1 — 50 mL of a 50 L tank — so 0.2 % is the right guard for IT. 3263 counts in
+# MILLILITRES, fifty times finer, and gating it on the percentage threw away every trip that burned
+# under ~100 mL. On a range-extender those are the norm, not the exception: two owners reported the
+# same thing on the same day, in the same direction.
+
+def test_a_small_burn_counts_when_the_car_counted_it():
+    """The defect. 0.1 % is under the percentage floor, but the car says 48 mL — and it says it to
+    the millilitre. Before this, the whole trip was discarded, litres and all."""
+    out = db_reader._reev_trip_fuel(80.0, 79.9, 12.0, None, 40.000, 39.952)
+    assert out["engine_ran"] is True
+    assert out["fuel_used_l"] == 0.048
+
+
+def test_michaprs_real_numbers(): 
+    """From his B10 REEV bundle: 75.3 % → 56.1 % with the counter at 37.695 → 28.059 L. He worked
+    out 9.6 L by hand and was right; Mate was reporting 5.9."""
+    out = db_reader._reev_trip_fuel(75.3, 56.1, 434.0, None, 37.695, 28.059)
+    assert out["fuel_used_l"] == 9.636
+
+
+def test_a_counter_wobble_is_not_a_fuel_trip():
+    """1 mL is the counter's own step. Without a floor of its own, noise would invent burns."""
+    assert db_reader._reev_trip_fuel(80.0, 80.0, 12.0, None, 40.000, 39.999)["fuel_used_l"] is None
+
+
+def test_without_the_counter_the_percentage_floor_still_applies():
+    """Old trips (before v2.14.1) and any car that does not report 3263 keep the coarse guard —
+    there the 0.2 % floor is doing real work against a signal that steps by 0.1."""
+    assert db_reader._reev_trip_fuel(80.0, 79.9, 12.0)["fuel_used_l"] is None
+    assert db_reader._reev_trip_fuel(80.0, 79.0, 12.0)["fuel_used_l"] is not None
+
+
+def test_a_refuel_is_still_not_a_burn():
+    """The counter goes UP at a pump. A negative difference must not become fuel used."""
+    assert db_reader._reev_trip_fuel(20.0, 90.0, 5.0, None, 10.000, 45.000)["fuel_used_l"] is None

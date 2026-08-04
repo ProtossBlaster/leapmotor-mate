@@ -1,0 +1,23 @@
+{# The cost cell, defined ONCE. Expects `charge`; `cost_oob` makes it an out-of-band swap and
+   `cost_title` (optional) says which basis it was billed on.
+
+   It was drawn in three places — the card, the type badge's OOB refresh, and now the gross-kWh
+   block — each free to drift from the others.
+
+   ⚠️ The €/kWh line divides by _billed_kwh()'s rule, and by nothing else. Mirror it, do not improve
+   it: that function is the declared single source of truth for the energy SHOWN for a charge, and
+   the period totals, get_charge_stats and the calendar divide by the same thing.
+
+     wallbox counter (HOME) → the charger's own kWh (#222, typed) → the battery kWh
+
+   The typed figure was left out here for a day, while `_billed_kwh` ignored it too. It went back in
+   when Silvio aligned ENERGIA TOTALE on the same rule (04/08) — leaving it out now would print, on
+   this card, a €/kWh divided by something no other page divides by. What a kWh in the BATTERY cost
+   is a different question, asked and answered on the Overview under its own words. #}
+{% set _billed = (charge.ac_energy_kwh if (charge.location_type == 'HOME' and charge.ac_energy_kwh)
+                  else (charge.gross_kwh if charge.gross_kwh else charge.energy_added_kwh)) or 0 %}
+<div id="cost-{{ charge.id }}"{% if cost_oob %} hx-swap-oob="true"{% endif %}
+     style="font-size:16px;font-weight:700"
+     class="{% if charge.cost %}text-green-400{% else %}text-slate-600{% endif %}"
+     {% if cost_title %}title="{{ cost_title }}"{% endif %}>{% if charge.cost %}{{ charge.cost | money }}{% else %}—{% endif %}
+  {% if charge.cost and _billed > 0 %}<div style="font-size:11px;color:#94a3b8;font-weight:400">{{ (charge.cost / _billed) | money }}/kWh</div>{% endif %}</div>

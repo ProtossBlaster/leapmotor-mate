@@ -37,10 +37,15 @@ def test_calendar_month_day_totals(tmp_path, monkeypatch):
 
     cal = db_reader.get_charges_calendar_month(2026, 7)
     assert cal["year"] == 2026 and cal["month"] == 7
-    assert cal["days"][4] == {"count": 2, "kwh": 30.0, "cost": 13.0, "has_cost": True}
-    assert cal["days"][10] == {"count": 1, "kwh": 15.0, "cost": 0.0, "has_cost": False}
+    # `kwh` is the DELIVERED side and `battery_kwh` what reached the battery; these charges carry
+    # no meter reading and no typed figure, so both fall back to the same measured energy.
+    assert cal["days"][4] == {"count": 2, "kwh": 30.0, "battery_kwh": 30.0,
+                             "cost": 13.0, "has_cost": True}
+    assert cal["days"][10] == {"count": 1, "kwh": 15.0, "battery_kwh": 15.0,
+                              "cost": 0.0, "has_cost": False}
     assert 1 not in cal["days"]                                        # August charge excluded
-    assert cal["total"] == {"count": 3, "kwh": 45.0, "cost": 13.0, "has_cost": True}
+    assert cal["total"] == {"count": 3, "kwh": 45.0, "battery_kwh": 45.0,
+                           "cost": 13.0, "has_cost": True}
 
 
 def test_calendar_month_empty(tmp_path, monkeypatch):

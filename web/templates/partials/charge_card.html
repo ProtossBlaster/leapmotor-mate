@@ -182,13 +182,21 @@
     </div>
     <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
       <div class="stat-label" style="font-size:10px">{{ t('cost') }}</div>
-      <div id="cost-{{ c.id }}" style="font-size:16px;font-weight:700" class="{% if c.cost %}text-green-400{% else %}text-slate-600{% endif %}">
-        {% if c.cost %}{{ c.cost | money }}{% else %}—{% endif %}
-        {% set _billed = (c.ac_energy_kwh if (c.location_type == 'HOME' and c.ac_energy_kwh) else c.energy_added_kwh) or 0 %}
-        {% if c.cost and _billed > 0 %}<div style="font-size:11px;color:#94a3b8;font-weight:400">{{ (c.cost / _billed) | money }}/kWh</div>{% endif %}
-      </div>
+      {% with charge=c %}{% include "partials/charge_cost_cell.html" %}{% endwith %}
     </div>
   </div>
+
+  {# #222 — the charger's own kWh, TYPED by the owner, where Mate has no meter to read. The ENERGY
+     tile above stays the battery figure: this one prices the charge, it does not replace what was
+     measured. Read where it is edited — it first lived inside the charge-TYPE menu, which answers a
+     different question and hid it behind a click nobody would make for this — but it opens only on
+     purpose, and never comes pre-filled.
+
+     Under the three tiles rather than inside the ENERGY one: on a phone those tiles stay three
+     columns, so a box in there is ~110 px wide and the panel unrolls into a thirty-line ribbon. #}
+  {% if not show_wb and c.location_type %}
+  {% with charge=c %}{% include "partials/charge_gross_kwh.html" %}{% endwith %}
+  {% endif %}
 
   <!-- User note (#107) — free-text context the raw data can't capture -->
   <div class="mt-3">

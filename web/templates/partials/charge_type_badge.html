@@ -82,11 +82,7 @@
   {% endif %}
 </div>
 {% if cost_oob %}
-<!-- The cost changes with the type (and AC-vs-DC basis), so refresh the cost cell out-of-band.
-     title surfaces whether it was billed on wallbox AC energy or fell back to battery DC. -->
-<div id="cost-{{ charge.id }}" hx-swap-oob="true" style="font-size:16px;font-weight:700"
-     class="{% if charge.cost %}text-green-400{% else %}text-slate-600{% endif %}"
-     {% if cost_title %}title="{{ cost_title }}"{% endif %}>{% if charge.cost %}{{ charge.cost | money }}{% else %}—{% endif %}
-  {% set _billed = (charge.ac_energy_kwh if (charge.location_type == 'HOME' and charge.ac_energy_kwh) else charge.energy_added_kwh) or 0 %}
-  {% if charge.cost and _billed > 0 %}<div style="font-size:11px;color:#94a3b8;font-weight:400">{{ (charge.cost / _billed) | money }}/kWh</div>{% endif %}</div>
+{# The cost changes with the type (and with the basis it is billed on), so refresh the cost cell
+   out-of-band. One definition, shared with the card itself. #}
+{% include "partials/charge_cost_cell.html" %}
 {% endif %}

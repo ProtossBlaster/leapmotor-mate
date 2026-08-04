@@ -1,0 +1,61 @@
+{# #222 @ghuaywen-ai — the kWh the CHARGER's own display said it delivered, typed by the owner where
+   Mate has no meter to read. Expects `charge` and `t`.
+
+   Closed by default, and closed is not "an input you happen not to have clicked": there is no field
+   on screen at all, only what was typed (if anything) and a ✎ to open. It has to be opened on
+   purpose, because a number that silently prices a charge must never be changed by a stray click or
+   a Tab landing in it while scrolling a day of charges.
+
+   And nothing is ever pre-filled — not the previous value, not the measured energy, nothing. The box
+   opens empty: submitting it untouched leaves the stored figure exactly as it was (the route reads
+   an empty field as "leave it alone"), so an accidental open costs nothing. Taking a wrong number
+   back is its own button, which writes a zero — and every reader tests `gross_kwh > 0`, so a zero
+   reads as never-typed and the cost falls back to the measured basis on its own. #}
+{% set _g = charge.gross_kwh or 0 %}
+{% set _lost = _g - (charge.energy_added_kwh or 0) %}
+<div id="gk-{{ charge.id }}"{% if gross_oob %} hx-swap-oob="true"{% endif %} style="margin-top:6px">
+
+  {# ── closed: what was typed, and the way in ─────────────────────────────────────────────── #}
+  <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+    {% if _g > 0 %}
+    <span style="font-size:10px;color:#94a3b8" title="{{ t('gross_kwh_help') }}">🔌 {{ _g|dec(2) }} kWh {{ t('gross_kwh_short') }}{% if charge.energy_added_kwh and _lost > 0 %} · {{ t('efficiency') }} {{ (100 * charge.energy_added_kwh / _g)|dec(0) }}% ({{ t('gross_kwh_lost') }} {{ _lost|dec(1) }} kWh){% endif %}</span>
+    {% endif %}
+    <button type="button" title="{{ t('gross_kwh_help') }}"
+            onclick="var f=document.getElementById('gk-form-{{ charge.id }}');f.classList.toggle('hidden');if(!f.classList.contains('hidden'))document.getElementById('gk-in-{{ charge.id }}').focus()"
+            style="background:transparent;border:1px dashed #33415599;border-radius:6px;color:#64748b;
+                   padding:1px 7px;font-size:10px;cursor:pointer;white-space:nowrap">
+      ✎{% if _g <= 0 %} kWh {{ t('gross_kwh_short') }}{% endif %}
+    </button>
+  </div>
+
+  {# ── open: only after that click ────────────────────────────────────────────────────────── #}
+  <div id="gk-form-{{ charge.id }}" class="hidden"
+       style="margin-top:5px;background:#0b1220;border:1px solid #1e293b;border-radius:7px;padding:6px 7px">
+    <form hx-post="api/charges/{{ charge.id }}/gross-kwh" hx-target="#gk-{{ charge.id }}" hx-swap="outerHTML"
+          style="margin:0;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+      {# deliberately no value= — see the note above #}
+      <input type="number" id="gk-in-{{ charge.id }}" name="gross_kwh" step="0.01" min="0" max="500"
+             placeholder="—" autocomplete="off" inputmode="decimal"
+             style="width:70px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;padding:2px 5px;font-size:11px">
+      <span style="font-size:10px;color:#94a3b8">kWh</span>
+      <button type="submit"
+              style="background:#33415555;color:#cbd5e1;border:1px solid #47556955;border-radius:5px;padding:1px 7px;font-size:10px;cursor:pointer">OK</button>
+      <button type="button"
+              onclick="document.getElementById('gk-form-{{ charge.id }}').classList.add('hidden')"
+              style="background:transparent;color:#64748b;border:none;padding:1px 4px;font-size:10px;cursor:pointer">{{ t('cancel') }}</button>
+      {% if _g > 0 %}
+      {# Its own request, not a second field with the same name: two gross_kwh in one form and the
+         empty box would win the submit. #}
+      <button type="button" hx-post="api/charges/{{ charge.id }}/gross-kwh" hx-vals='{"gross_kwh": "0"}'
+              hx-target="#gk-{{ charge.id }}" hx-swap="outerHTML"
+              style="background:transparent;color:#64748b;border:none;padding:1px 4px;font-size:10px;cursor:pointer;margin-left:auto">{{ t('band_remove') }}</button>
+      {% endif %}
+    </form>
+    <div style="font-size:9px;color:#475569;margin-top:4px;line-height:1.3">{{ t('gross_kwh_help') }}</div>
+  </div>
+</div>
+{% if cost_oob %}
+{# On a charger with no meter this figure IS the billing basis, so the price above changes with it.
+   Same cell as the card's, refreshed out-of-band. #}
+{% include "partials/charge_cost_cell.html" %}
+{% endif %}

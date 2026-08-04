@@ -219,3 +219,67 @@ def test_the_note_exists_in_every_locale():
         s = d["avg_price_partial"]
         assert "{n}" in s and "{tot}" in s, f"{lang} lost a placeholder: {s!r}"
         assert s.format(n=4, tot=5)      # and it survives being filled in
+
+
+# ── and what it divides BY ────────────────────────────────────────────────────
+#
+# Silvio, on his own instance: Overview said 0.271 €/kWh, the Charges page 0.250. Both right.
+# Measured on the data behind them — 27 priced charges, 115.63 € — the two answer different
+# questions and the gap is one thing:
+#
+#     115.63 € ÷ 465.4 kWh BILLED      = 0.248   ← Charges page, Monthly report
+#     115.63 € ÷ 427.6 kWh IN BATTERY  = 0.270   → 0.273 once weighted by SoC (the blend)
+#
+# All 37.8 kWh of the difference came from the 21 home charges that have a wallbox counter: what
+# the on-board charger turned into heat. You pay the first number; a trip consumes the second.
+# The defect was never the arithmetic — it was two right numbers under one word.
+
+def test_both_pages_say_what_the_average_divides_by():
+    """Not a tooltip alone: on a phone there is no hover, so the basis is on screen."""
+    for name in ("charges.html", "report.html"):
+        src = _tpl(name)
+        assert "avg_price_basis" in src, f"{name} does not say what it divided by"
+        assert "avg_price_basis_help" in src, f"{name} has no long explanation to hover"
+
+
+def test_the_coverage_note_still_wins_when_some_charge_is_unpriced():
+    """Two notes in one slot: when charges are missing a price, THAT is the thing to say — the
+    reader is looking at an average over part of the period."""
+    for name in ("charges.html", "report.html"):
+        src = _tpl(name)
+        i, j = src.index("avg_price_partial"), src.index("avg_price_basis")
+        assert i < j, f"{name} shows the basis before the coverage note"
+        assert "partial" in src[i - 200:j], f"{name} lost the partial guard between the two"
+
+
+def test_the_basis_note_exists_in_every_locale():
+    """Locale FILES, not get_t(): the fallback to English would hide a missing translation."""
+    import json
+    import pathlib
+    loc = pathlib.Path(__file__).resolve().parent.parent / "web" / "locales"
+    for f in sorted(loc.glob("*.json")):
+        d = json.loads(f.read_text(encoding="utf-8"))["translations"]
+        for key in ("avg_price_basis", "avg_price_basis_help"):
+            assert d.get(key), f"{f.stem} is missing {key}"
+
+
+def test_the_basis_note_stays_short_enough_for_a_phone():
+    """Same slot as the coverage note, so the same ~136 px."""
+    import json
+    import pathlib
+    loc = pathlib.Path(__file__).resolve().parent.parent / "web" / "locales"
+    for f in sorted(loc.glob("*.json")):
+        s = json.loads(f.read_text(encoding="utf-8"))["translations"]["avg_price_basis"]
+        assert len(s) <= 30, f"{f.stem} basis note is {len(s)} chars: {s!r}"
+
+
+def test_the_long_explanation_names_the_other_figure():
+    """It exists to stop the reader concluding one of the two pages is broken, so it has to
+    mention the other one — the battery figure — not just describe this one."""
+    import json
+    import pathlib
+    loc = pathlib.Path(__file__).resolve().parent.parent / "web" / "locales"
+    d = json.loads((loc / "en.json").read_text(encoding="utf-8"))["translations"]
+    s = d["avg_price_basis_help"].lower()
+    assert "battery" in s and "billed" in s
+    assert "%" in s, "the size of the gap is the part that makes it believable"

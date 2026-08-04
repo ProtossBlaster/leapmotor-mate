@@ -111,9 +111,11 @@ def test_the_block_is_gated_on_a_range_extender_and_on_beta():
     assert "{% if is_reev and research and (c.fuel_l_burned or c.refuel_count) %}" in REPORT_HTML
 
 
-def test_the_l_per_100km_uses_the_generator_on_distance():
-    """Spreading the litres over the electric kilometres too prints a figure no owner recognises."""
-    assert "c.fuel_l_burned / c.fuel_engine_km * 100" in REPORT_HTML
+def test_the_l_per_100km_uses_the_whole_distance():
+    """The basis the car itself uses (getPlugIn's oc100km), so the month agrees with what the owner
+    reads in the official app instead of quietly answering a different question."""
+    assert "c.fuel_l_burned / c.total_km * 100" in REPORT_HTML
+    assert "fuel_engine_km * 100" not in REPORT_HTML
 
 
 @pytest.mark.parametrize("lang", ["en", "it", "fr", "de", "nl", "pl", "pt-PT"])

@@ -302,6 +302,17 @@ label:
 - **✎ Manual**: for public charging points with complicated tariffs (subscriptions, session fees…)
   you can **write in the total you actually paid by hand**; this value overrides the automatic
   estimate.
+- **The charger's own kWh 🆕** (#222) — on a public charger Mate **has no meter**: it reads only what
+  went into the battery, while the charger bills you for what came out of its own. You can type that
+  figure in: on the charge card, under the three tiles, there is a **✎**; the box **opens only if you
+  open it** and is **always empty** — so a stray click changes nothing, and pressing OK on an empty
+  box leaves everything as it was. *Remove* takes a wrong number back. From then on it **prices the
+  charge**, exactly as a wallbox counter does at home, and shows the **efficiency** (how much the
+  on-board charger turned into heat). The energy Mate reports stays the one **measured at the
+  battery**.
+- **The month says both 🆕** — above the calendar: *"154.93 kWh delivered · 142.57 in battery"*. The
+  first is what came out of the meters (the wallbox, or the kWh you typed); the second is what
+  reached the pack. Between them sits the conversion loss you pay for.
 - Charges that happened while the car was off/offline are **reconstructed** too, from the jump in the
   state of charge.
 - **Your note 🆕** (#107) — each charge has a **free-text note** (just above *Delete charge*) for the

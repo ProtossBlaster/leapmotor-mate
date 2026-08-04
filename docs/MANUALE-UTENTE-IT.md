@@ -308,6 +308,17 @@ un'etichetta:
   tipicamente il 10-15%.
 - **✎ Manuale**: per le colonnine pubbliche con tariffe complicate (abbonamenti, costi di sessione…)
   puoi **scrivere a mano il totale realmente pagato**; questo valore scavalca la stima automatica.
+- **I kWh della colonnina 🆕** (#222) — su una colonnina pubblica Mate **non ha un contatore**: legge
+  solo quanto è entrato in batteria, mentre la colonnina ti fattura quanto è uscito dal suo. Puoi
+  scrivere tu quel numero: sulla scheda della ricarica, sotto le tre mattonelle, c'è una **✎**; il
+  riquadro **si apre solo se lo apri tu** e la casella **è sempre vuota** — così un clic di troppo
+  non cambia niente, e premere OK a vuoto lascia tutto com'era. *Rimuovi* toglie un valore
+  sbagliato. Da lì in poi quel numero **prezza la ricarica**, esattamente come fa il contatore della
+  wallbox a casa, e ti mostra l'**efficienza** (quanto ne ha trasformato in calore il caricabatterie
+  di bordo). L'energia che Mate riporta resta quella **misurata in batteria**.
+- **Il mese dice tutte e due le cose 🆕** — sopra il calendario: *«154,93 kWh erogati · 142,57 in
+  batteria»*. Il primo è ciò che è uscito dai contatori (wallbox, o i kWh che hai scritto tu); il
+  secondo è ciò che è arrivato nel pacco. Fra i due c'è la perdita di conversione, che paghi.
 - Anche le ricariche avvenute mentre l'auto era spenta/offline vengono **ricostruite** dal salto di
   percentuale di carica.
 - **La tua nota 🆕** (#107) — ogni ricarica ha una **nota libera** (subito sopra *Elimina ricarica*) per

@@ -3,6 +3,61 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.6.6] — 2026-08-04
+
+### Fixed
+- **REEV: a trip's litres were counted far too low.** Reported the same day by **@michapr**
+  (BetaTester #23) and **@pdifeo** (BetaTester #22), pointing at the same thing from different
+  cars — 9.64 L of a real refuel reported as 5.9, and about 2.1 L over 35 km reported as 0.3.
+  Measured on their own diagnostics bundles: the car sends **two** fuel figures, the tank
+  percentage (signal 3235, one step = 0.1 % = about 50 mL) and its own litre counter (signal 3263,
+  one step = 1 mL). Mate applied a 0.2 % floor to the coarse one and returned **before** ever
+  reading the fine one, so everything a percentage step could not resolve was thrown away. Each
+  signal now gets a floor of its own size, and the litre counter is preferred wherever the trip
+  carries it.
+
+- ⚠️ **REEV: fuel consumption is now measured over the whole trip, like the official app.** It used
+  to divide the litres by the kilometres the generator ran, which answers a different question and
+  gave figures no owner could compare with their car's own display: **a trip that read 15.9 L/100 km
+  reads 2.2 now**. The numbers you have already seen will move — nothing was recorded wrongly, the
+  denominator changed.
+
+- **On the Charges page, two totals on one screen did not add up.** The **AC vs DC** card summed the
+  energy that reached the battery while **Total energy** right beside it summed what was billed —
+  19.4 kWh apart on the test data, and older than everything else in this release. Both now use the
+  same rule.
+
+- **Three internal queries asked for too few columns.** They read the billing rule but did not
+  select the column it needs, so instead of failing they slid quietly to the battery figure: a
+  wrong total that looks perfectly plausible. A test now scans for that shape.
+
+### Added
+- **The charger's own kWh, typed in** — requested by **@ghuaywen-ai** (#222). On a public charger
+  Mate has no meter: it reads what entered the battery, while the charger bills what left its own.
+  You can now type that figure on the charge card. It **opens only on purpose and is always empty** —
+  never pre-filled with the previous value nor with the measured energy — so a stray click cannot
+  change it and pressing OK on an empty box leaves everything as it was, including the price of an
+  old charge. *Remove* takes a wrong number back. From there it prices the charge exactly as a
+  wallbox counter does at home, and shows how much the on-board charger turned into heat.
+
+- **The month above the charge calendar says both sides**, in words: *"154.93 kWh delivered ·
+  142.57 in battery"*. The bare number it replaced was already a mixture — the wallbox counter where
+  there was one, the battery figure everywhere else — with no word to say which.
+
+- **The average price says what it divides by.** On the Charges page and the Monthly report it now
+  carries *"on the billed kWh"*, with the full explanation on hover. Reported by Silvio, who had the
+  Overview showing 0.271 €/kWh and the Charges page 0.250 for the same history: both right, and the
+  whole difference is the conversion loss — one is per kWh you paid for, the other per kWh that
+  reached the battery, which is what a trip consumes.
+
+### Changed
+- ⚠️ **A figure you type is now part of the energy Mate reports.** The charger's own kWh was kept out
+  of the totals when it shipped, so that a typo could not inflate them. It is in now, because the
+  calendar had begun saying "delivered" with it while the totals beside it ignored it, and two
+  totals under two words that mean the same thing are worse than one total that can be mistyped.
+  What the car measured into its battery is never overwritten, and the price a trip is costed at
+  still divides by that measured energy.
+
 ## [3.6.5] — 2026-08-04
 
 ### Fixed

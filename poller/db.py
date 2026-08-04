@@ -209,6 +209,11 @@ CREATE TABLE IF NOT EXISTS charges (
     ac_energy_kwh    REAL,         -- wallbox energy a HOME charge is billed on = sum of the counter's rises
     wallbox_energy_start_kwh REAL, -- last wallbox counter reading seen (running baseline for that sum)
     wb_stuck_kwh     REAL,         -- #215: kWh the CAR reported drawing while the counter never moved
+    gross_kwh        REAL,         -- #222: kWh the CHARGER says it delivered, TYPED BY THE OWNER.
+                                   -- Never measured by Mate and never mixed with the measured
+                                   -- figures: it prices the charge (like a wallbox meter does at
+                                   -- home) and shows the conversion loss. The energy Mate reports
+                                   -- and totals stays the battery (DC) one — see _billed_kwh.
     note             TEXT          -- #107: optional free-text user note (location, shade, weather…)
 );
 
@@ -448,6 +453,9 @@ class Database:
         # migration: #215 — energy the car reported drawing while the wallbox counter stood still
         if "wb_stuck_kwh" not in ccols:
             self._conn.execute("ALTER TABLE charges ADD COLUMN wb_stuck_kwh REAL")
+        # migration: #222 — the charger's own kWh, typed in for a public charge
+        if "gross_kwh" not in ccols:
+            self._conn.execute("ALTER TABLE charges ADD COLUMN gross_kwh REAL")
         # migration: flag charges reconstructed from a SoC jump (car was asleep/offline to the
         # cloud during the charge, so it was never seen live — recorded from the SoC delta instead).
         if "reconstructed" not in ccols:

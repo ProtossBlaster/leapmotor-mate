@@ -146,10 +146,10 @@
   </div>
   <div class="card">
     <div class="stat-label">{{ t('report_fuel_per100') }}</div>
-    {# Over the generator-on distance, not the whole month: spreading the litres across electric
-       kilometres too would print a figure no REEV owner recognises. #}
+    {# Over the month's WHOLE distance — the basis the car itself uses, so this agrees with what the
+       owner reads in the official app instead of quietly answering a different question. #}
     <div class="stat-value text-xl text-amber-400">
-      {% if c.fuel_engine_km and c.fuel_engine_km > 0 %}{{ (c.fuel_l_burned / c.fuel_engine_km * 100) | nice }}{% else %}—{% endif %}
+      {% if c.total_km and c.total_km > 0 %}{{ (c.fuel_l_burned / c.total_km * 100) | nice }}{% else %}—{% endif %}
     </div>
   </div>
   <div class="card">
@@ -188,9 +188,13 @@
     <div class="stat-label">{{ t('report_avg_price') }}</div>
     <div class="stat-value">{% if r.avg_price is not none %}{{ r.avg_price | price3 }}<span class="text-base font-normal text-slate-400"> {{ currency.symbol }}/kWh</span>{% else %}<span class="text-slate-500">—</span>{% endif %}</div>
     {# Say what the average covers: it divides by the PRICED charges only, so the reader who
-       divides the two totals above by hand would otherwise land on a different number. #}
+       divides the two totals above by hand would otherwise land on a different number. And say what
+       it divides BY — same word as the Overview's "average price in battery", different basis, and
+       the whole conversion loss between them. #}
     {% if r.price_cov and r.price_cov.partial %}
     <div class="text-[11px] text-slate-500 mt-0.5">{{ t('avg_price_partial').format(n=r.price_cov.priced_count, tot=r.price_cov.total_count) }}</div>
+    {% elif r.avg_price is not none %}
+    <div class="text-[11px] text-slate-500 mt-0.5" title="{{ t('avg_price_basis_help') }}">{{ t('avg_price_basis') }}</div>
     {% endif %}
   </div>
 </div>

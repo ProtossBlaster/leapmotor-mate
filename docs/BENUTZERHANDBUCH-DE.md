@@ -289,6 +289,17 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   Wärmeverlust des Ladegeräts, typischerweise 10–15 %.
 - **✎ Manuell**: Für öffentliche Ladesäulen mit komplizierten Tarifen (Abonnements, Sitzungskosten…) können Sie
   **den tatsächlich gezahlten Gesamtbetrag von Hand eintragen**; dieser Wert überschreibt die automatische Schätzung.
+- **Die kWh der Ladesäule 🆕** (#222) — an einer öffentlichen Ladesäule hat Mate **keinen Zähler**: es
+  liest nur, was in die Batterie ging, während die Säule abrechnet, was aus ihrem eigenen Zähler kam.
+  Diesen Wert können Sie eintragen: auf der Ladekarte, unter den drei Kacheln, gibt es ein **✎**; das
+  Feld **öffnet sich nur, wenn Sie es öffnen**, und ist **immer leer** — ein versehentlicher Klick
+  ändert also nichts, und ein leeres OK lässt alles wie es war. *Entfernen* nimmt einen falschen Wert
+  zurück. Von da an **bepreist** diese Zahl die Ladung, genau wie der Wallbox-Zähler zu Hause, und
+  zeigt den **Wirkungsgrad** (wie viel das Bordladegerät in Wärme umgewandelt hat). Die Energie, die
+  Mate ausweist, bleibt die **an der Batterie gemessene**.
+- **Der Monat nennt beides 🆕** — über dem Kalender: *„154,93 kWh geliefert · 142,57 in der Batterie"*.
+  Das Erste kam aus den Zählern (Wallbox oder die von Ihnen eingetragenen kWh), das Zweite kam im
+  Akku an. Dazwischen liegt der Umwandlungsverlust, den Sie bezahlen.
 - Auch Ladevorgänge, die stattgefunden haben, während das Auto ausgeschaltet/offline war, werden aus dem Sprung des
   Ladestands **rekonstruiert**.
 - **Ihre Notiz 🆕** (#107) — jeder Ladevorgang hat eine **freie Notiz** (direkt über *Ladevorgang löschen*) für das,

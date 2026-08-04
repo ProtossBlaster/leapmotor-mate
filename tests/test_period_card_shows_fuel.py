@@ -96,9 +96,11 @@ def test_the_card_is_given_the_fuel_for_the_same_window():
         "the fuel must be scoped to the SAME begin/end as the electric half"
 
 
-def test_the_l_per_100km_is_over_the_generator_on_distance():
+def test_the_l_per_100km_is_over_the_windows_whole_distance():
+    """Same denominator as the electric half beside it, and as the car's own figure a card above."""
     body = MAIN.split("def _enrich_eb_with_trip_totals(", 1)[1].split("\ndef ", 1)[0]
-    assert '_f["fuel_l"] / _f["engine_km"] * 100' in body
+    assert '_f["fuel_l"] / dist_km * 100' in body
+    assert '_f["engine_km"] * 100' not in body
 
 
 def test_the_tile_appears_only_with_litres_and_only_on_a_beta_reev():
