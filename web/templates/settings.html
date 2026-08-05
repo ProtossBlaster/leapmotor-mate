@@ -887,7 +887,7 @@
           {% if diag.last_poll_age_min is not none %}{{ diag.last_poll_age_min }} min · SoC {{ diag.last_soc | nice }}% · {{ diag.last_gear }}{% if diag.last_charging %} · ⚡{% endif %}{% else %}{{ t('diag_never') }}{% endif %}
         </div>
         <div>{{ t('diag_integrations') }}:
-          {% for key, on in [('MQTT', diag.features.mqtt), ('Wallbox', diag.features.wallbox), ('ABRP', diag.features.abrp), ('Add-on', diag.features.addon)] %}<span class="{% if on %}text-emerald-400{% else %}text-slate-600{% endif %}">{{ key }} {% if on %}✓{% else %}✗{% endif %}</span>{% if not loop.last %} · {% endif %}{% endfor %}
+          {% for key, on in [('MQTT', diag.features.mqtt), ('Wallbox', diag.features.wallbox), ('HA', diag.features.ha), ('ABRP', diag.features.abrp), ('Add-on', diag.features.addon)] %}<span class="{% if on %}text-emerald-400{% else %}text-slate-600{% endif %}">{{ key }} {% if on %}✓{% else %}✗{% endif %}</span>{% if not loop.last %} · {% endif %}{% endfor %}
         </div>
       </div>
 

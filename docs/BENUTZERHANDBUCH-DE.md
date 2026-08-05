@@ -568,8 +568,9 @@ ist in drei Spalten unterteilt.
   Integrationen), die Möglichkeit, die **Logs anzusehen** (Poller/Web) und vor allem ein **Diagnosepaket
   herunterzuladen**, indem Sie die gewünschten Teile ankreuzen (Info, Poller-Log, Web-Log, **Rohsignale**). Das
   Paket ist **bereits von sensiblen Daten bereinigt**: **GPS entfernt** und VIN/Geheimnisse verschleiert, sodass es
-  sicher anzuhängen ist, wenn Sie um Hilfe bitten. Es gibt auch eine **Suche nach verpassten Ladevorgängen**, während
-  das Auto schlief.
+  sicher anzuhängen ist, wenn Sie um Hilfe bitten. Die Integrationszeile führt den **Wallbox-Schalter** und
+  **Home Assistant** getrennt auf: Ersteres sagt, ob die Funktion aktiviert ist, Letzteres nur, ob Mate HA
+  erreichen kann. Es gibt auch eine **Suche nach verpassten Ladevorgängen**, während das Auto schlief.
 - **⚙️ Erweitert** — Feineinstellungen für erfahrene Benutzer: Mindestschwelle, um einen übersprungenen Ladevorgang zu
   **rekonstruieren**, Schwelle des **Ruhestromverlusts (Vampire Drain)**, kW-Schwelle, um **DC** zu unterscheiden,
   und Mindesttemperatur für die Berechnung des **Batteriezustands**. Es gibt eine Schaltfläche, um die

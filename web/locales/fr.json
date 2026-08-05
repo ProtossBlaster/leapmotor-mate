@@ -83,7 +83,7 @@
     "reev_logbook_ph": "ex. plein à 100% / le moteur thermique s'est lancé pour recharger en roulant",
     "reev_logbook_add": "Ajouter",
     "reev_export": "Exporter le bundle de données chiffré",
-    "reev_export_note": "Le GPS est supprimé et le bundle est chiffré : seul le mainteneur peut l'ouvrir. Joignez-le à une issue bêta.",
+    "reev_export_note": "Contient les signaux, le journal de bord et vos TRAJETS (énergie, réservoir, consommation — aucune coordonnée). Le GPS est supprimé et le bundle est chiffré : seul le mainteneur peut l'ouvrir. Joignez-le à une issue bêta.",
     "consent_title": "Build Mate BetaTester",
     "consent_body": "Ceci est une build pour bêta-testeurs dont le but est de construire le support REEV pour Mate. Elle capture en local tous les signaux bruts de votre véhicule et vous permet d'exporter un bundle chiffré à envoyer pour analyse. Vos données restent sur votre appareil jusqu'à ce que vous choisissiez de les exporter et de les joindre à une issue — le GPS est retiré et le bundle ne peut être ouvert que par le mainteneur. Les pages Statistiques, Coûts et Trajets peuvent être imprécises dans cette build : inutile de signaler un chiffre qui semble simplement faux. En revanche, signalez tout ce qui semble cassé — un événement compté plusieurs fois, une ligne en double, une valeur qui ne peut pas être vraie. En continuant, vous acceptez de participer à cette collecte de données.",
     "consent_accept": "J'ai compris — continuer",

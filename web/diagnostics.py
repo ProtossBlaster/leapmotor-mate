@@ -156,7 +156,13 @@ def build_system_info(version: str) -> dict:
         "positions_span": span,
         "features": {
             "mqtt": settings.get("mqtt_enabled") == "1",
-            "wallbox": bool(settings.get("ha_url") or os.environ.get("SUPERVISOR_TOKEN")),
+            # The wallbox TICK, nothing else. It used to be `ha_url or SUPERVISOR_TOKEN`, which
+            # under the add-on is True whatever the user chose — so a bundle said "wallbox=True"
+            # to someone who had switched it off, and triage contradicted them (#226). The two
+            # facts are now separate: `ha` is reachability, `wallbox` is the switch that decides
+            # whether the meter is read and billed at all.
+            "wallbox": settings.get("wallbox_enabled", "0") == "1",
+            "ha": bool(settings.get("ha_url") or os.environ.get("SUPERVISOR_TOKEN")),
             "abrp": settings.get("abrp_enabled") == "1",
             "addon": bool(os.environ.get("SUPERVISOR_TOKEN")),
         },
@@ -425,7 +431,8 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
             f"Positions    : span {info['positions_span']} · retention {info['retention_days']}d (0=keep all)",
             f"Vampire thr  : min_drop {info['vampire_min_drop_pct']} %/day · "
             f"min_hours {info['vampire_min_hours']} h (chart display thresholds)",
-            f"Features     : mqtt={f['mqtt']} wallbox={f['wallbox']} abrp={f['abrp']} addon={f['addon']}",
+            f"Features     : mqtt={f['mqtt']} wallbox={f['wallbox']} ha={f['ha']} "
+            f"abrp={f['abrp']} addon={f['addon']}",
             # Only present in the Mac/Windows app. Worth its own line because "Mate won't update"
             # has two unrelated causes, and this number is what separates a shell too old to run
             # the newest release from a genuine fault — the first question triage should ask.

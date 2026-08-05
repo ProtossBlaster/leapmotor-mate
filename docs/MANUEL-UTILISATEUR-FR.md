@@ -590,8 +590,9 @@ Elle est divisée en trois colonnes.
   actives), la possibilité de **voir les journaux** (poller/web) et surtout de **télécharger un paquet de
   diagnostic** en cochant les parties voulues (infos, journal poller, journal web, **signaux bruts**). Le
   paquet est **déjà nettoyé** des données sensibles : **GPS retiré** et VIN/secrets masqués, donc il est sûr à
-  joindre quand vous demandez de l'aide. Il y a aussi une **analyse des recharges manquées** pendant que la
-  voiture dormait.
+  joindre quand vous demandez de l'aide. La ligne des intégrations indique séparément l'**interrupteur
+  wallbox** et **Home Assistant** : le premier dit si la fonction est cochée, le second seulement si Mate
+  arrive à joindre HA. Il y a aussi une **analyse des recharges manquées** pendant que la voiture dormait.
 - **⚙️ Avancé** — des paramètres fins pour utilisateurs expérimentés : seuil minimal pour **reconstruire** une
   recharge manquée, seuil de la **décharge à l'arrêt (vampire drain)**, seuil kW pour distinguer le **DC**, et
   température minimale pour le calcul de la **santé batterie**. Il y a un bouton pour **réinitialiser les

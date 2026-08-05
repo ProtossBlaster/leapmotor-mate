@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.8.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.8.2"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1303,11 +1303,34 @@ async def research_logbook_add(request: Request):
     return HTMLResponse(_logbook_list_html())
 
 
+# Which trip columns the research bundle may carry. An allow-list on purpose — see research_export.
+# Grouped by the question each group answers, because that is the only defence against it growing
+# into "everything except the coordinates" one convenient column at a time.
+_RESEARCH_TRIP_FIELDS = (
+    # identity & shape
+    "id", "started_at", "ended_at", "distance_km", "duration_min", "merged_into_id", "reconstructed",
+    # the battery, both ways of measuring it — the whole range-extender argument in four columns
+    "start_soc", "end_soc", "ec_kwh", "ec_driving", "ec_ac", "ec_other", "ec_tried", "ec_stable",
+    "efficiency_kwh_100km", "efficiency_soc", "regen_kwh",
+    # the tank, both ways of measuring it: the car's own millilitre counter and the percentage gauge
+    "fuel_start_pct", "fuel_end_pct", "fuel_start_l", "fuel_end_l",
+    # what Mate MADE of the two above — the numbers actually printed on the trip
+    "engine_ran", "engine_km", "fuel_used_l", "fuel_l_100km",
+    # ⚠️ `fuel_cost` and NOT `cost`: the electric one is added later, by _localized_trips, which the
+    # calendar goes through and this export does not. Allow-listing it would have shipped a column
+    # that is blank on every row — and a blank cost column reads as "this drive cost nothing".
+    "reev_elec_kwh", "reev_elec_kwh_100km", "fuel_cost",
+    # conditions, which is what a consumption that looks wrong usually turns out to be
+    "drive_mode", "one_pedal", "outside_temp_start_c", "outside_temp_end_c",
+    "elevation_gain_m", "elevation_loss_m",
+)
+
+
 @app.get("/api/research/export")
 async def research_export():
-    """BetaTester only: build an ENCRYPTED bundle (redacted raw-signal history + logbook) for the
-    tester to attach to a beta issue. GPS is stripped; the bundle is sealed to our public key so
-    only the maintainer's private key can open it."""
+    """BetaTester only: build an ENCRYPTED bundle (redacted raw-signal history + logbook + trips)
+    for the tester to attach to a beta issue. GPS is stripped; the bundle is sealed to our public
+    key so only the maintainer's private key can open it."""
     if not research.research_enabled():
         return Response(status_code=404)
     import csv, io, json, time, zipfile
@@ -1321,6 +1344,21 @@ async def research_export():
         s = io.StringIO(); w = csv.writer(s)
         w.writerow(["ts_ms", "note"]); w.writerows([(n["ts"], n["note"]) for n in logbook])
         z.writestr("logbook.csv", s.getvalue())
+        # The trips themselves — the one thing this bundle could never answer. Raw signals say what
+        # the car sent; they do not say what Mate MADE of it, and every open range-extender question
+        # is about the second (which trips got a getEC reading at all, whether the tank counter and
+        # the tank percentage agree, whether ΔSoC and getEC tell the same story on a drive the
+        # generator ran through). Without it we were reduced to reasoning from our own BEV.
+        #
+        # An ALLOW-list, not a "drop the coordinates" list: `get_trips` is SELECT *, so a column
+        # added next month would ride out of here on its own. Nothing about WHERE anyone drove
+        # leaves the machine — no coordinates, no geohashes, no addresses — and the columns that do
+        # are the ones an energy question is made of.
+        trips = db_reader.get_trips(limit=1_000_000)
+        s = io.StringIO(); w = csv.DictWriter(s, fieldnames=_RESEARCH_TRIP_FIELDS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(trips)
+        z.writestr("trips.csv", s.getvalue())
         # Cloud consumption probe: UNMAPPED raw responses (getEC 24h/7d + 6-week rank), so a REEV's
         # fuel/L-100km field surfaces even though the BEV mapping ignores it. Best-effort: a cloud
         # hiccup must not fail the export.
@@ -1341,6 +1379,11 @@ async def research_export():
             "signal_rows": len(rows), "logbook_notes": len(logbook),
             "cloud_probes": bool(cloud),
             "redacted_signals": sorted(research.REDACT_SIGNALS),
+            # Said here so the answer to "how much of this history has a getEC reading" is in the
+            # bundle rather than something we work out and then have to be believed about.
+            "trips": len(trips),
+            "trips_with_ec_kwh": sum(1 for t in trips if t.get("ec_kwh") is not None),
+            "trip_fields": list(_RESEARCH_TRIP_FIELDS),
         }, indent=2))
     encrypted = research.encrypt_bundle(buf.getvalue())
     fname = f"mate-beta-bundle-{int(time.time())}.matebeta"

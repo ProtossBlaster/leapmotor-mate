@@ -83,7 +83,7 @@
     "reev_logbook_ph": "bijv. bijgetankt tot 100% / motor sloeg aan om bij te laden tijdens het rijden",
     "reev_logbook_add": "Toevoegen",
     "reev_export": "Versleuteld gegevenspakket exporteren",
-    "reev_export_note": "De gps-gegevens worden verwijderd en het pakket wordt versleuteld, zodat alleen de beheerder het kan openen. Voeg het bij een bèta-issue.",
+    "reev_export_note": "Bevat de signalen, het logboek en je RITTEN (energie, tank, verbruik — geen coördinaten). De gps-gegevens worden verwijderd en het pakket wordt versleuteld, zodat alleen de beheerder het kan openen. Voeg het bij een bèta-issue.",
     "consent_title": "Mate-bètatestversie",
     "consent_body": "Dit is een bètatestversie met als doel REEV-ondersteuning voor Mate te bouwen. Hij legt alle ruwe signalen van je voertuig lokaal vast en laat je een versleuteld pakket exporteren om ter analyse op te sturen. Je gegevens blijven op je eigen apparaat totdat jij ze exporteert en aan een issue toevoegt — gps wordt verwijderd en het pakket kan alleen door de beheerder worden geopend. Let op: Statistieken, Kosten en Ritten kunnen in deze versie onnauwkeurig zijn, een getal dat er alleen maar vreemd uitziet hoef je niet te melden. Meld wel alles wat kapot lijkt — een gebeurtenis die meerdere keren geteld wordt, een dubbele regel, een waarde die niet waar kan zijn. Door verder te gaan stem je in met deelname aan deze gegevensverzameling.",
     "consent_accept": "Ik begrijp het — verder",

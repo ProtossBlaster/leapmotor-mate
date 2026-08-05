@@ -409,17 +409,25 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
     return out
 
 
-def _reev_trip_elec(ec_driving, distance_km, engine_ran) -> dict:
+def _reev_trip_elec(ec_kwh, distance_km, engine_ran) -> dict:
     """REEV Phase D (beta #10 step 2) — the ELECTRIC side of an engine-on trip, from the cloud's METERED
-    getEC (driverEC), NOT from ΔSoC. On a series hybrid the generator recharges the pack mid-drive, so the
-    net SoC change isn't the motor's appetite (that's the diluted ~0.5 the SoC path yields and we suppress);
+    getEC, NOT from ΔSoC. On a series hybrid the generator recharges the pack mid-drive, so the net SoC
+    change isn't the motor's appetite (that's the diluted ~0.5 the SoC path yields and we suppress);
     getEC counts real consumption, generator-proof. Over the FULL distance — the electric motor drives the
     whole trip, so (unlike fuel) there's no generator-on sub-distance to normalise over. Inert on a BEV /
-    pure-electric / not-yet-enriched trip (returns None, None → the UI shows a 'getEC pending' hint)."""
+    pure-electric / not-yet-enriched trip (returns None, None → the UI shows a 'getEC pending' hint).
+
+    ⚠️ `ec_kwh`, the TOTAL that left the battery — not `ec_driving`, the motor's share of it. Silvio's
+    rule, 05/08/26: *«la quota guida non dovremmo mai prenderla in considerazione, sempre l'energia
+    totale, quello che facciamo anche per le EV»*. It used to show the driving share, and that is the
+    number the cost is NOT billed on: `reev_trip_electric_cost` draws down the paid stock by `ec_kwh`.
+    So a trip card said "ELECTRIC USED 1.7 kWh" over a cost worked out on 2.0 (@michapr, beta #11) —
+    two electric figures on one card, and the one on show was not the one paid. A BEV has always been
+    billed on the total; a range-extender now matches it."""
     out = {"reev_elec_kwh": None, "reev_elec_kwh_100km": None}
-    if engine_ran and ec_driving and distance_km and distance_km > 0:
-        out["reev_elec_kwh"] = round(ec_driving, 2)
-        out["reev_elec_kwh_100km"] = round(ec_driving / distance_km * 100, 1)
+    if engine_ran and ec_kwh and distance_km and distance_km > 0:
+        out["reev_elec_kwh"] = round(ec_kwh, 2)
+        out["reev_elec_kwh_100km"] = round(ec_kwh / distance_km * 100, 1)
     return out
 
 
@@ -3240,7 +3248,7 @@ def get_trips(limit: int = 500) -> list[dict]:
         # purpose (finalize_trip), so the ⚡ pill has nothing to print and only the ⛽ line survives —
         # "only one will be shown" (@michapr, beta #11). ec_driving is a stored column, so this
         # costs a dict lookup, not a cloud call.
-        td.update(_reev_trip_elec(td.get("ec_driving"), td.get("distance_km"), td.get("engine_ran")))
+        td.update(_reev_trip_elec(td.get("ec_kwh"), td.get("distance_km"), td.get("engine_ran")))
         out.append(td)
     return out
 
@@ -3586,7 +3594,7 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
 
 def _totals_node() -> dict:
     return {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "fuel_l": 0.0,
-            "_eff_wsum": 0.0, "_eff_wdist": 0.0, "_soc_pct": 0.0}
+            "_eff_wsum": 0.0, "_eff_wdist": 0.0, "_ec_kwh": 0.0, "_ec_km": 0.0}
 
 
 def _totals_add(node: dict, trip: dict) -> None:
@@ -3615,14 +3623,23 @@ def _totals_add(node: dict, trip: dict) -> None:
     # ones the litres above are divided by. `avg_eff` cannot do that job on a range-extender: Mate
     # stores no efficiency for a generator trip, so it covers the battery-driven half alone and the
     # strip printed two "per 100 km" figures on different distances (@michapr, beta #11 and #24).
-    # Summed SIGNED and floored once at the end — the same rule reev_total_consumption applies, so
-    # the strip and the Statistics card cannot disagree. ⚠️ Not "skip the trips that rise": on a
-    # range-extender the generator can hand the pack MORE than the motor took, and a trip that ends
-    # fuller is that energy arriving, already paid for in the litres. Dropping those trips would
-    # count the refill nowhere and the drain in full.
-    _s0, _s1 = trip.get("start_soc"), trip.get("end_soc")
-    if _s0 is not None and _s1 is not None:
-        node["_soc_pct"] += _s0 - _s1
+    # The electric side, from `ec_kwh` — what the car METERED leaving the battery, and what the money
+    # beside it is billed on (reev_trip_electric_cost draws the paid stock down by exactly this).
+    # ⚠️ Not ΔSoC, which is what this used at first: on a series hybrid the generator refills the pack
+    # mid-drive, so the net SoC change is not the motor's appetite, and a consumption pill computed
+    # that way sat next to a cost computed another way — a third basis in one row (@michapr, beta #11:
+    # "3.2 kWh/100km" shown against the 2.71 his own getEC figures give).
+    # ⚠️ And not `ec_driving` either. Silvio's rule, 05/08/26: always the TOTAL energy, exactly as a
+    # BEV is treated. The driving share is never the figure to show.
+    # ⚠️ Its OWN distance, not `node["km"]`. getEC is not on every trip — it arrives with a later poll
+    # and is missing outright on anything Mate recorded before the feature existed. On the real B10
+    # here that is 123 trips of 323, 1016 km of 1824: dividing the kWh we do have by every kilometre
+    # driven would have printed a consumption not far off HALF the truth, and printed it in confident
+    # black and white. A missing signal is not a zero → [[signal-absent-is-not-signal-zero]].
+    _ec = trip.get("ec_kwh")
+    if _ec and km > 0:
+        node["_ec_kwh"] += _ec
+        node["_ec_km"] += km
     if eff and km > 0:
         node["_eff_wsum"] += km * eff
         node["_eff_wdist"] += km
@@ -3635,18 +3652,25 @@ def _totals_seal(node: dict) -> dict:
     # BetaTester #23 — not over the ones the generator ran.
     node["fuel_l_100km"] = (round(node["fuel_l"] / node["km"] * 100, 1)
                             if node["fuel_l"] > 0 and node["km"] > 0.5 else None)
-    # …and the electric side on that SAME distance, from the SoC drop — the basis
-    # reev_total_consumption uses on the Statistics page, so the two cards cannot disagree. Only
-    # produced when something actually came out of the pack; a range-extender day driven entirely on
-    # the generator has no electric figure to show rather than a zero.
-    # ONE guard, not two: `_soc_pct > 0` and a later `_kwh > 0` said the same thing, and a mutation
-    # that removed either survived every test — because there was no behaviour between them to test.
-    _soc = node["_soc_pct"]
-    node["kwh_100km"] = (round(_soc / 100.0 * get_battery_capacity_kwh() / node["km"] * 100, 1)
-                         if _soc > 0 and node["km"] > 0.5 else None)
+    # …and the electric side, over the kilometres getEC actually covers — which is NOT the fuel
+    # denominator above. Litres come off a gauge every trip has; getEC is a reading that can be
+    # absent, so the two figures on this strip are honest about different distances rather than one
+    # of them being quietly diluted. Only produced when something actually came out of the pack; a
+    # range-extender day driven entirely on the generator has no electric figure to show rather than
+    # a zero.
+    # ONE guard, not two: an earlier version had a second `> 0` test saying the same thing, and a
+    # mutation that removed either survived every test — there was no behaviour between them.
+    _ec, _ec_km = node["_ec_kwh"], node["_ec_km"]
+    node["kwh_100km"] = (round(_ec / _ec_km * 100, 1)
+                         if _ec > 0 and _ec_km > 0.5 else None)
+    # How much of the strip's distance that figure speaks for. The template needs it to say so when
+    # the answer is "not all of it" — a consumption over 44% of the kilometres, printed beside a
+    # L/100 km over all of them, is two numbers under one word if nothing marks the difference.
+    node["kwh_100km_km"] = round(_ec_km, 1) if node["kwh_100km"] is not None else None
     del node["_eff_wsum"]
     del node["_eff_wdist"]
-    del node["_soc_pct"]
+    del node["_ec_kwh"]
+    del node["_ec_km"]
     return node
 
 
@@ -4348,7 +4372,7 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     # REEV Phase D — the electric counterpart, from the metered getEC (driverEC) not ΔSoC. Shown
     # research-only next to the fuel so REEV testers can validate it against the car's own dashboard
     # before we ever promote it to the headline efficiency (see _reev_trip_elec).
-    trip_d.update(_reev_trip_elec(_tp.get("ec_driving"), dist, trip_d.get("engine_ran")))
+    trip_d.update(_reev_trip_elec(_tp.get("ec_kwh"), dist, trip_d.get("engine_ran")))
     # REEV — fuel COST of this engine-on trip: litres burned × the tank's BLENDED €/L at the trip's
     # start (fuel WAC, the twin of the battery's blended_price_at / #53). None until the user logs a
     # refuel. It's an allocation of what that fuel cost, not a price measured at the pump.

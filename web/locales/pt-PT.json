@@ -83,7 +83,7 @@
     "reev_logbook_ph": "ex.: abastecido até 100% / motor começou a carregar durante a condução",
     "reev_logbook_add": "Adicionar",
     "reev_export": "Exportar pacote de dados encriptado",
-    "reev_export_note": "O GPS é removido e o pacote é encriptado para que só o responsável do projeto o possa abrir. Anexa-o a uma ocorrência beta.",
+    "reev_export_note": "Contém os sinais, o diário de bordo e as tuas VIAGENS (energia, depósito, consumos — sem coordenadas). O GPS é removido e o pacote é encriptado para que só o responsável do projeto o possa abrir. Anexa-o a uma ocorrência beta.",
     "consent_title": "Versão BetaTester do Mate",
     "consent_body": "Esta é uma versão beta-tester cujo objetivo é desenvolver o suporte REEV no Mate. Capta localmente todos os sinais brutos do teu veículo e permite exportar um pacote encriptado para análise. Os teus dados ficam no teu dispositivo até decidires exportar e anexar a uma ocorrência — o GPS é removido e o pacote só pode ser aberto pelo responsável do projeto. Estatísticas, Custos e Viagens podem estar imprecisos nesta versão: não é preciso comunicar um número que apenas parece errado. Comunica, isso sim, tudo o que parecer avariado — um evento contado várias vezes, uma linha duplicada, um valor que não pode ser verdadeiro. Ao continuar, aceitas participar nesta recolha de dados.",
     "consent_accept": "Compreendo — continuar",

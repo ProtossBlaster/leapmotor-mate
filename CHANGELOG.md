@@ -3,6 +3,48 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.8.2] — 2026-08-05
+
+### Fixed
+- 🔴 **The diagnostics bundle said `wallbox=True` to people who had switched the wallbox off.** That
+  field was never the switch: it read `ha_url or SUPERVISOR_TOKEN`, which under the Home Assistant
+  add-on is true for everybody, ticked or not. @wlighter told us he had turned the feature off
+  months ago; we read the line, believed the name, and told him in public that he had not
+  (discussion #226). He was right, and his case was the field proof of the v3.8.0 defect — the one
+  fact that would have settled it was the only one the bundle did not carry.
+
+  `wallbox=` is now **the tick**, and `ha=` is the reachability the old field actually measured.
+  Both are printed, and the Settings badge row shows them apart.
+
+### Changed
+- **A range-extender trip now shows the TOTAL energy that left the battery, not the driving share.**
+  The card read `ec_driving`, while the money printed beside it is billed on `ec_kwh` — so
+  @michapr's trips showed "1.7 kWh" over a cost worked out on 2.0 (beta #11). Two electric figures
+  on one card, and the one on show was not the one paid. A plain electric car has always been
+  billed on the total; a range-extender now matches it. On @michapr's history the figure goes from
+  3.2 to **2.71 kWh/100 km**.
+
+- 🔴 **The day and month strips divided that energy by kilometres it was never measured over.**
+  getEC is not on every trip: it arrives with a later poll and is simply absent on anything recorded
+  before the feature existed. On the B10 this was measured against, **123 finished trips of 323
+  carry no reading — 1016 km of 1824**. Summing the kWh we have and dividing by every kilometre
+  driven printed a consumption at a fraction of the truth: May 2026 would have read **0.4 kWh/100
+  km** instead of 20.0. The electric figure now divides by the distance it was actually metered
+  over, and the strip carries that distance. The litres keep dividing by everything, because the
+  tank gauge is on every trip — the two denominators differ on purpose.
+
+### Added
+- **The beta bundle now carries the trips** (BetaTester builds only). It held the raw signals and
+  the logbook, which say what the car sent but not what Mate made of it — so every open
+  range-extender question could only be answered by reasoning from our own electric car. `trips.csv`
+  brings the battery's two measurements (`ec_kwh`, `ec_driving`, start/end SoC) and the tank's two
+  (millilitre counter and percentage gauge) side by side, plus what Mate computed from them.
+  `meta.json` says how many trips carry a getEC reading at all.
+
+  What travels is an **allow-list**, not "everything except the coordinates": `get_trips` is
+  `SELECT *`, so a column added next month would otherwise ship on its own. No coordinate, geohash
+  or address leaves the machine, and the bundle stays sealed to the maintainer's key.
+
 ## [3.8.1] — 2026-08-05
 
 ### Fixed

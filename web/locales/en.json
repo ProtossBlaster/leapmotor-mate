@@ -83,7 +83,7 @@
     "reev_logbook_ph": "e.g. refueled to 100% / engine started to charge while driving",
     "reev_logbook_add": "Add",
     "reev_export": "Export encrypted data bundle",
-    "reev_export_note": "GPS is stripped and the bundle is encrypted so only the maintainer can open it. Attach it to a beta issue.",
+    "reev_export_note": "Contains the signals, the logbook and your TRIPS (energy, tank, consumption — no coordinates). GPS is stripped and the bundle is encrypted so only the maintainer can open it. Attach it to a beta issue.",
     "consent_title": "Mate BetaTester build",
     "consent_body": "This is a beta-tester build whose purpose is to build REEV support for Mate. It captures all of your vehicle's raw signals locally and lets you export an encrypted bundle to send for analysis. Your data stays on your device until you choose to export it and attach it to an issue — GPS is removed and the bundle can only be opened by the maintainer. Statistics, Costs and Trips can be inaccurate in this build: no need to report a figure that just looks off. Do report anything that looks broken, though — an event counted more than once, a duplicate row, a value that cannot be true. By continuing you agree to take part in this data collection.",
     "consent_accept": "I understand — continue",

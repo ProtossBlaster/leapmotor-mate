@@ -574,8 +574,10 @@ divided into three columns.
   integrations), the ability to **view the logs** (poller/web) and, above all, to **download a
   diagnostics bundle** by ticking the parts you want (info, poller log, web log, **raw signals**). The
   bundle is **already cleaned** of sensitive data: **GPS removed** and VIN/secrets masked, so it's
-  safe to attach when you ask for support. There's also a **scan for missed charges** that happened
-  while the car was asleep.
+  safe to attach when you ask for support. The integrations line reports the **wallbox switch** and
+  **Home Assistant** separately: the first says whether you have the feature ticked, the second only
+  whether Mate can reach HA. There's also a **scan for missed charges** that happened while the car
+  was asleep.
 - **⚙️ Advanced** — fine parameters for expert users: the minimum threshold to **reconstruct** a
   missed charge, the **vampire-drain** threshold, the kW threshold to distinguish **DC**, and the
   minimum temperature for the **battery-health** calculation. There's a button to **reset to

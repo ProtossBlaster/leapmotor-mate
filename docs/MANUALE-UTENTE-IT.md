@@ -590,8 +590,10 @@ volta. È divisa in tre colonne.
   integrazioni attive), la possibilità di **vedere i log** (poller/web) e soprattutto di **scaricare
   un pacchetto diagnostico** spuntando le parti volute (info, log poller, log web, **segnali grezzi**).
   Il pacchetto è **già ripulito** dai dati sensibili: **GPS rimosso** e VIN/segreti oscurati, quindi
-  è sicuro da allegare quando chiedi assistenza. C'è anche una **scansione delle ricariche perse**
-  mentre l'auto dormiva.
+  è sicuro da allegare quando chiedi assistenza. La riga delle integrazioni riporta separatamente la
+  **spunta della wallbox** e **Home Assistant**: la prima dice se hai la funzione attiva, la seconda
+  solo se Mate riesce a raggiungere HA. C'è anche una **scansione delle ricariche perse** mentre
+  l'auto dormiva.
 - **⚙️ Avanzate** — parametri fini per utenti esperti: soglia minima per **ricostruire** una ricarica
   saltata, soglia del **consumo da fermo (vampire drain)**, soglia kW per distinguere **DC**, e
   temperatura minima per il calcolo della **salute batteria**. C'è un pulsante per **ripristinare i

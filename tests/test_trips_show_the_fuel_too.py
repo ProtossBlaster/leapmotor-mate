@@ -207,47 +207,48 @@ def test_the_month_strip_divides_both_figures_by_the_same_kilometres(reev):
     Here 300 km, 100 of them on the generator: the measured mean covers 200 km, the pair covers 300."""
     _trip(reev, 1, 3, 200.0, p0=50.0, p1=50.0, eff=15.0)
     _trip(reev, 2, 9, 100.0, p0=50.0, p1=40.0, l0=25.0, l1=20.0)
+    reev._conn.execute("UPDATE trips SET ec_kwh = 30.0 WHERE id = 1")   # 200 km on the battery
+    reev._conn.execute("UPDATE trips SET ec_kwh = 6.0 WHERE id = 2")    # 100 km, generator running
+    reev._conn.commit()
     t = db_reader.get_trips_calendar_month(2026, 7)["total"]
     assert t["km"] == 300.0
     assert t["avg_eff"] == 15.0, "the measured mean still covers its 200 km"
     # The VALUE, not just "not None": dividing the same energy by the 200 km that carry an
     # efficiency instead of all 300 is exactly the defect, and it survives a `is not None` check.
-    assert t["kwh_100km"] == pytest.approx(
-        0.20 * db_reader.get_battery_capacity_kwh() / 300 * 100, abs=0.1)
+    # 36 kWh metered over 300 km — `ec_kwh`, the total that left the battery, which is also what the
+    # cost beside it is billed on. It used ΔSoC × capacity for an hour on 05/08, until @michapr
+    # pointed out that made a THIRD basis in one row (beta #11).
+    assert t["kwh_100km"] == pytest.approx(36.0 / 300 * 100, abs=0.1)
     assert t["kwh_100km"] != t["avg_eff"], \
         "if these agreed the fixture could not tell the two denominators apart"
 
 
-def test_a_trip_the_generator_refilled_is_not_dropped(reev):
-    """On a range-extender the generator can hand the pack more than the motor took, so a trip can
-    end FULLER than it started. That energy arrived and was paid for — in the litres. Summed signed
-    and floored once at the end, like reev_total_consumption; skipping those trips would count the
-    refill nowhere and the drain in full, and the strip would disagree with the Statistics card."""
-    reev._conn.execute(
-        "INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, start_soc, end_soc,"
-        " fuel_start_pct, fuel_end_pct) VALUES (1,1,'2026-07-03T08:00:00+00:00',"
-        "'2026-07-03T09:00:00+00:00',100,40,60,50.0,40.0)")          # +20 %: the generator won
-    reev._conn.execute(
-        "INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, start_soc, end_soc)"
-        " VALUES (2,1,'2026-07-09T08:00:00+00:00','2026-07-09T09:00:00+00:00',100,60,40)")
-    reev._conn.commit()
-    t = db_reader.get_trips_calendar_month(2026, 7)["total"]
-    assert t["kwh_100km"] is None, \
-        "−20 % and +20 % cancel: nothing net came out of the pack, so there is nothing to report"
+def test_a_trip_whose_getec_has_not_arrived_yet_adds_nothing(reev):
+    """`ec_kwh` is filled by a background enrichment, so a trip recorded minutes ago has none. It
+    contributes nothing rather than a zero — the pill simply has less behind it until the cloud
+    answers, and saying "0 kWh/100 km" would be a claim nobody measured.
 
-
-def test_a_pack_the_generator_left_fuller_reports_no_electric_figure(reev):
-    """The same thing past zero: over the month the generator handed the pack MORE than the motor
-    drew. A negative consumption is not a number to print — the fortnight was driven on petrol, and
-    the litres beside it say so. Same floor as reev_total_consumption on the Statistics page."""
-    reev._conn.execute(
-        "INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, start_soc, end_soc,"
-        " fuel_start_pct, fuel_end_pct) VALUES (1,1,'2026-07-03T08:00:00+00:00',"
-        "'2026-07-03T09:00:00+00:00',200,30,70,60.0,40.0)")          # +40 %, on petrol
-    reev._conn.commit()
+    ⚠️ This replaces two tests written an hour earlier for the ΔSoC rule (a trip the generator
+    refilled, a pack left fuller). That rule is gone — the figure is the METERED total now — and
+    those two went on passing against a field that no longer exists: green for the wrong reason,
+    which protects nothing."""
+    _trip(reev, 1, 3, 200.0, p0=50.0, p1=50.0, eff=15.0)
     t = db_reader.get_trips_calendar_month(2026, 7)["total"]
     assert t["kwh_100km"] is None
-    assert t["fuel_l"] > 0, "the petrol that did the work is still counted"
+    assert t["avg_eff"] == 15.0, "the measured efficiency is still there for a BEV-style row"
+
+
+def test_the_metered_totals_add_up_straight(reev):
+    """No sign handling, no floor: `ec_kwh` is what left the battery, and on a series hybrid the
+    generator refilling the pack mid-drive does not make it negative — that was the whole reason for
+    preferring it over ΔSoC."""
+    _trip(reev, 1, 3, 100.0, p0=50.0, p1=40.0, l0=25.0, l1=20.0)
+    _trip(reev, 2, 9, 100.0, p0=40.0, p1=30.0, l0=20.0, l1=15.0)
+    reev._conn.execute("UPDATE trips SET ec_kwh = 8.0 WHERE id = 1")
+    reev._conn.execute("UPDATE trips SET ec_kwh = 4.0 WHERE id = 2")
+    reev._conn.commit()
+    t = db_reader.get_trips_calendar_month(2026, 7)["total"]
+    assert t["kwh_100km"] == pytest.approx(12.0 / 200 * 100, abs=0.1)
 
 
 def test_the_all_kilometres_figure_uses_the_same_distance_as_the_litres(reev):
@@ -255,14 +256,13 @@ def test_the_all_kilometres_figure_uses_the_same_distance_as_the_litres(reev):
     _trip(reev, 1, 3, 200.0, p0=50.0, p1=50.0, eff=15.0)
     _trip(reev, 2, 9, 100.0, p0=50.0, p1=40.0, l0=25.0, l1=20.0)
     t = db_reader.get_trips_calendar_month(2026, 7)["total"]
+    reev._conn.execute("UPDATE trips SET ec_kwh = 24.0 WHERE id = 1")
+    reev._conn.execute("UPDATE trips SET ec_kwh = 12.0 WHERE id = 2")
+    reev._conn.commit()
+    t = db_reader.get_trips_calendar_month(2026, 7)["total"]
     assert t["fuel_l"] == pytest.approx(5.0, abs=0.05)
     assert t["fuel_l_100km"] == pytest.approx(5.0 / 300 * 100, abs=0.05)
-    # Derived from the fixture rather than written by hand: `_trip` hard-codes 80 → 70 % on EVERY
-    # trip (the p0/p1 arguments are the TANK), so two trips drop 20 % of whatever pack this model
-    # defaults to. The first version of this line asserted a number I had worked out for a 50 kWh
-    # pack the fixture never sets — and the code was right, my expectation was not.
-    expected = 0.20 * db_reader.get_battery_capacity_kwh() / 300 * 100
-    assert t["kwh_100km"] == pytest.approx(expected, abs=0.1)
+    assert t["kwh_100km"] == pytest.approx(36.0 / 300 * 100, abs=0.1)
     assert t["kwh_100km"] != t["fuel_l_100km"], "two different quantities, one shared distance"
 
 
