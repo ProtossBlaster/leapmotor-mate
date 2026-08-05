@@ -43,7 +43,21 @@
   <div class="hero-tile t-eff">
     <div class="hero-ico">⚡</div>
     <div>
-      {% if summary.avg_eff %}
+      {# On a RANGE-EXTENDER this tile divides by the same kilometres as the fuel tile beside it
+         (@michapr, beta #24). `summary.avg_eff` is the car's measured efficiency, and Mate has no
+         efficiency for a generator trip — so it silently covers only the battery-driven half of the
+         window while the litres next to it cover all of it. Two "per 100 km" figures side by side
+         on different denominators is the defect of the week, and this is the fourth face of it.
+         The measured figure keeps its place on the Statistics page, where it is labelled with the
+         kilometres it covers — his own suggestion, and the right home for a technical value.
+         Neutral colour on purpose: the good/amber/bad thresholds are about how efficiently the
+         BATTERY drove you, which is not what this number answers. A BEV is untouched. #}
+      {% set eff_all = reev_total.kwh_100km if (is_reev and research and reev_total) else None %}
+      {% if eff_all %}
+      <div class="hero-val" style="color:#38bdf8">
+        {{ eff_val(eff_all)|nice }}<span class="u">{{ eff_unit() }}</span>
+      </div>
+      {% elif summary.avg_eff %}
       {# number big + unit small, like the distance tile — the full "16.9 kWh/100km"
          at hero size overflowed the tile on phones #}
       <div class="hero-val" style="color:{{ eff_hex(summary.avg_eff) }}">

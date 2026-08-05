@@ -147,3 +147,47 @@ def test_all_three_places_print_the_same_two_numbers():
     day = (ROOT / "web" / "templates" / "partials" / "trips_calendar_day_content.html").read_text()
     for tpl, var in ((MONTH, "total"), (day, "day_totals")):
         assert f"{var}.fuel_l | nice" in tpl and f"{var}.fuel_l_100km | nice" in tpl
+
+
+# ── and the tile beside it, on the same kilometres (beta #24) ─────────────────
+
+def test_a_range_extender_hero_divides_both_tiles_by_the_same_distance(reev):
+    """@michapr, beta #24: *«For REEV users would be more interesting the kWh usage / 100km because
+    they see also the fuel/100km in next column.»*
+
+    He is describing the defect of the week wearing a fourth face. `summary.avg_eff` is the car's
+    MEASURED efficiency, and Mate stores none for a generator trip — so that tile silently covers
+    only the battery-driven part of the window while the litres beside it cover all of it. Two
+    figures ending in "per 100 km", one screen-inch apart, dividing by different distances.
+
+    Here 300 km are driven, 100 of them on the generator: the measured average covers 200 km, the
+    all-kilometres pair covers 300. Whatever the tile shows, it has to be the second one."""
+    _trip(reev, 1, 3, 200.0, p0=50.0, p1=50.0, eff=15.0)          # battery only: has an efficiency
+    _trip(reev, 2, 9, 100.0, p0=50.0, p1=40.0, l0=25.0, l1=20.0)  # generator: no efficiency at all
+    summary = db_reader.get_trips_summary()
+    total = db_reader.reev_total_consumption()
+    assert summary["avg_eff"] == 15.0, "the measured average still covers 200 km only"
+    assert total["total_km"] == 300.0
+    assert total["kwh_100km"] != summary["avg_eff"], \
+        "if these agreed the fixture could not tell the two denominators apart"
+
+
+def test_the_hero_prefers_the_all_kilometres_figure_on_a_range_extender():
+    """⚠️ Anchored to the Jinja tags, not to the variable names: the first version of this searched
+    for `summary.avg_eff` and found it in the comment that explains the branch, four hundred
+    characters above the code. Third time in one day — a string in a source file is also in its
+    prose (see the `data-holds-selection` test, 04/08)."""
+    hero = TRIPS.split('<div class="hero-ico">⚡</div>', 1)[1].split('<div class="hero-label"', 1)[0]
+    assert ("{% set eff_all = reev_total.kwh_100km "
+            "if (is_reev and research and reev_total) else None %}") in hero
+    assert "{% if eff_all %}" in hero
+    assert "{% elif summary.avg_eff %}" in hero, "a BEV must still get the measured efficiency"
+    assert hero.index("{% if eff_all %}") < hero.index("{% elif summary.avg_eff %}")
+
+
+def test_a_bev_never_reaches_that_branch():
+    """`reev_total` is None for a BEV in the route, and the template gate names is_reev anyway —
+    belt and braces, because this tile is on the page every owner opens first."""
+    body = MAIN.split('@app.get("/trips", response_class=HTMLResponse)', 1)[1].split("\n@app.", 1)[0]
+    assert 'reev_total=(db_reader.reev_total_consumption()' in body
+    assert 'if db_reader.get_setting("is_reev", "0") == "1" else None)' in body

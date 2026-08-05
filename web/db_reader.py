@@ -3406,6 +3406,111 @@ def reev_actual_spend() -> Optional[dict]:
     }
 
 
+def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
+    """What 100 km have COST: every euro spent, divided by every kilometre driven.
+
+    The range-extender version of this card was written by @michapr on his own fork (30/07/26) and
+    never offered as a pull request. His priced the CONSUMPTION — efficiency × the rate paid per
+    kWh — and so did the first version here. Silvio's call, 05/08/26, in one sentence: *«se deve
+    essere un costo deve essere totale non parziale»*, and he is right about what that first version
+    left out. Measured on his own history for #207, only **71.8%** of a bill lands on trips at all.
+    The rest leaves the battery standing still — climate, preconditioning, the on-board charger's
+    own losses — and it was money he paid. A card headed "cost" that quietly answers "cost of the
+    driving" is a partial figure wearing a total's name.
+
+    So nothing is multiplied by a rate here, and that makes the whole meter-versus-battery argument
+    disappear: there is no divisor left to choose. `cost` is what the charge was BILLED — wallbox
+    meter included, exactly as `compute_cost` wrote it — and the euros are added, not divided into
+    anything. It is also why no €/kWh appears on this card: none is computed.
+
+    ⚠️ Which way it can be wrong, and it is always the SAME way — LOW:
+
+      · a charge with no price contributes kilometres to the divisor and nothing to the numerator;
+      · a refuel the owner never entered does the same.
+
+    Both are counted and said out loud, because a floor that admits it is a floor is honest and a
+    floor presented as a total is the defect this card exists to avoid. Never silently completed
+    with a guess: an unpriced charge is unknown, not free.
+
+    `fuel_l_burned` is what distinguishes the two cars. None means a car with no tank, and then the
+    fuel table is not read at all — not even for the stray rows a database keeps from the days its
+    owner had the range-extender variant selected.
+
+    None until something has been driven and at least one euro is known."""
+    db = _get()
+    try:
+        row = db.execute(
+            "SELECT SUM(distance_km), MIN(started_at) FROM trips "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
+            (_current_vehicle_id(),)).fetchone()
+        km, since_trip = (row[0] or 0), row[1]
+    except sqlite3.Error:
+        return None
+    if km < 0.5:
+        return None
+
+    # "Priced" means here what it means everywhere else in Mate — `cost IS NOT NULL`, and a charge
+    # that cost ZERO is priced (#218, free solar). `price_coverage` owns that rule where an AVERAGE
+    # is taken; nothing is averaged here, so only its definition is borrowed, not its arithmetic.
+    elec_cost = 0.0
+    priced_n = total_n = 0
+    since_charge = None
+    try:
+        for c in db.execute(
+                "SELECT cost, ended_at FROM charges "
+                "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
+                (_current_vehicle_id(),)).fetchall():
+            total_n += 1
+            if c["cost"] is None or c["cost"] < 0:   # negative is nonsense, not a discount
+                continue
+            priced_n, elec_cost = priced_n + 1, elec_cost + c["cost"]
+            if since_charge is None or c["ended_at"] < since_charge:
+                since_charge = c["ended_at"]
+    except sqlite3.Error:
+        pass
+
+    fuel_cost, fuel_n, since_fuel = 0.0, 0, None
+    if fuel_l_burned is not None:
+        try:
+            _ensure_fuel_purchases(db)
+            for p in db.execute(
+                    "SELECT total_cost, ts FROM fuel_purchases "
+                    "WHERE vehicle_id = COALESCE(?, vehicle_id)",
+                    (_current_vehicle_id(),)).fetchall():
+                if p["total_cost"] is None or p["total_cost"] < 0:
+                    continue
+                fuel_n, fuel_cost = fuel_n + 1, fuel_cost + p["total_cost"]
+                if since_fuel is None or p["ts"] < since_fuel:
+                    since_fuel = p["ts"]
+        except sqlite3.Error:
+            pass
+
+    if priced_n == 0 and fuel_n == 0:
+        return None
+
+    per100 = 100.0 / km
+    return {
+        "elec_100km": round(elec_cost * per100, 2) if priced_n else None,
+        "fuel_100km": round(fuel_cost * per100, 2) if fuel_n else None,
+        "total_100km": round((elec_cost + fuel_cost) * per100, 2),
+        # Nothing priced at all on a side that was used: the total below is missing that side whole.
+        "elec_missing": total_n > 0 and priced_n == 0,
+        "fuel_missing": bool(fuel_l_burned) and fuel_n == 0,
+        # …and the partial case, where SOME charges carry no price. Same direction, smaller.
+        "partial": priced_n > 0 and priced_n < total_n,
+        "priced_charges": priced_n,
+        "total_charges": total_n,
+        "fuel_entries": fuel_n,
+        "km": round(km, 1),
+        # WHEN this window opens — the earliest row that feeds the figure. Silvio, 05/08: the card
+        # has to say that these are Mate's kilometres since Mate started, not the car's odometer.
+        # Measured on his own B10 the same day: 4803 km on the dashboard, 1877 recorded here, and
+        # the first note read «diviso i 1877 km percorsi» as though the car had done that much.
+        # Compared as ISO strings, which is safe because the DB is UTC everywhere by construction.
+        "since": min([s for s in (since_trip, since_charge, since_fuel) if s], default=None),
+    }
+
+
 def _trip_blended_rate_fn():
     """Blended €/kWh-over-time lookup, built once from ALL priced charges (same basis as
     get_trip_detail's own per-trip rate) — shared by the Trips calendar and search so every
@@ -4491,7 +4596,17 @@ def get_fuel_totals_between(begin_ts: int, end_ts: int) -> dict:
     recent trips, derived for old ones — and no averaging here can undo that.
 
     The positions walk that finds the generator-on distance runs ONLY for trips whose tank actually
-    dropped, so a mostly-electric REEV (and every BEV) costs one indexed query and nothing more."""
+    dropped, so a mostly-electric REEV (and every BEV) costs one indexed query and nothing more.
+
+    ⚠️ MERGED trips are counted, children included, and that is not an oversight — it was one. This
+    was the single fuel total carrying `AND merged_into_id IS NULL`, and joining two trips writes
+    that column and NOTHING else: the child keeps the tank reading it was recorded with. So the
+    filter deleted the child's litres while `get_trip_totals_between` beside it kept the child's
+    kilometres, and the card divided a short numerator by a full denominator. On @michapr's B10
+    (beta #23, 05/08/26) his 07:56 trip on 28 July was merged into the 2 km one before it and
+    carried 3.7 of his 9.6 L — which is precisely the 5.9 the card kept showing him, through four
+    rounds of me looking somewhere else. Parent and child hold DISJOINT tank readings, so summing
+    both is the whole group and double-counts nothing; every other fuel total already did this."""
     b = datetime.fromtimestamp(begin_ts, tz=timezone.utc).isoformat()
     e = datetime.fromtimestamp(end_ts, tz=timezone.utc).isoformat()
     out = {"fuel_l": 0.0, "engine_km": 0.0, "trip_count": 0}
@@ -4501,7 +4616,7 @@ def get_fuel_totals_between(begin_ts: int, end_ts: int) -> dict:
             "SELECT id, vehicle_id, started_at, ended_at, distance_km, fuel_start_pct, fuel_end_pct,"
             " fuel_start_l, fuel_end_l FROM trips"
             " WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL"
-            "   AND merged_into_id IS NULL AND started_at >= ? AND started_at <= ?"
+            "   AND started_at >= ? AND started_at <= ?"
             "   AND " + _REEV_FUEL_ANY_DROP_SQL,
             (_current_vehicle_id(), b, e, _REEV_FUEL_MIN_DROP)).fetchall()
     except sqlite3.Error:
@@ -5464,7 +5579,8 @@ def get_stats_summary() -> dict:
                ROUND(MIN(CASE WHEN efficiency_kwh_100km > 0 AND distance_km >= 15
                               THEN efficiency_kwh_100km END), 1) AS best_efficiency,
                ROUND(SUM(regen_kwh), 2)                                      AS total_regen_kwh,
-               ROUND(AVG(regen_kwh), 2)                                      AS avg_regen_kwh
+               ROUND(AVG(regen_kwh), 2)                                      AS avg_regen_kwh,
+               MIN(started_at)                                               AS _since_trip
            FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL""",
         (_current_vehicle_id(),)
     ).fetchone()
@@ -5472,7 +5588,8 @@ def get_stats_summary() -> dict:
         """SELECT
                COUNT(*)                         AS charge_count,
                ROUND(SUM(energy_added_kwh), 2)  AS total_kwh_charged,
-               ROUND(SUM(cost), 2)              AS total_cost
+               ROUND(SUM(cost), 2)              AS total_cost,
+               MIN(ended_at)                    AS _since_charge
            FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL""",
         (_current_vehicle_id(),)
     ).fetchone()
@@ -5481,7 +5598,14 @@ def get_stats_summary() -> dict:
     total_kwh = t.get("total_kwh_used") or 0
     total_regen = t.get("total_regen_kwh") or 0
     t["regen_pct"] = round(total_regen / total_kwh * 100, 1) if total_kwh > 0 else None
-    return {**t, **c}
+    # When this page's window opens. Every figure on Statistics is Mate's OWN record — not one of
+    # them is the car's lifetime counter, and the page never shows that counter at all. Silvio's
+    # call, 05/08: say it once at the top rather than defending each card from the misreading.
+    # Measured on his B10 the same day: 4803 km on the dashboard against 1877 recorded here.
+    out = {**t, **c}
+    out["since"] = min([s for s in (out.pop("_since_trip", None),
+                                    out.pop("_since_charge", None)) if s], default=None)
+    return out
 
 
 def get_charge_stats() -> dict:

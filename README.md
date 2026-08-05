@@ -79,7 +79,7 @@ LeapMotor Mate is free and open-source, developed in my spare time. If it's usef
 **Making sense of it**
 - **Add it to your phone's home screen** — Mate isn't a phone app and can't be one (it has to poll for years; a phone suspends background work), but *Add to Home Screen* now gives it **its own icon and a full screen**, with no address bar and no toolbar. It stays a shortcut to the server you run.
 - **Monthly report** — distance, efficiency and cost in one page, with the **home vs public** split, the deltas against last month, daily charts and a **map of every trip that month**. Always opens on the **month you are in** — an empty one says so instead of quietly showing the previous month — and when the car's official monthly total is missing drives it never managed to upload, it shows **Mate's own figure** instead and says which is which.
-- **Statistics** — the driving / A·C / other energy split and the consumption trend, from the Leapmotor cloud. Each figure says what it covers: the average carries the kilometres behind it, and the energy total leaves out a trip it has no figure for rather than counting it as zero.
+- **Statistics** — the driving / A·C / other energy split and the consumption trend, from the Leapmotor cloud, plus **cost per 100 km**: every euro spent over every kilometre driven, electricity and — on a range-extender — petrol beside it. The page says up front that its figures are Mate's own record since it was installed, not the car's odometer total.
 - **Export** — **CSV** for trips and charges, **GPX** per trip, and a full **database backup** you can restore.
 
 **Setup and the rest**
@@ -389,7 +389,7 @@ LeapMotor Mate è gratuito e open-source, sviluppato nel tempo libero. Se ti è 
 **Per capirci qualcosa**
 - **Mettilo sulla schermata Home del telefono** — Mate non è un'app da telefono e non può esserlo (deve interrogare il cloud per anni, e un telefono sospende quello che gira in secondo piano), ma «Aggiungi a schermata Home» ora gli dà **la sua icona e tutto lo schermo**, senza barra dell'indirizzo e senza barra degli strumenti. Resta una scorciatoia al server che hai acceso tu.
 - **Report mensile** — distanza, efficienza e costo in una pagina sola, con la divisione **casa/pubblico**, le differenze rispetto al mese prima, i grafici giornalieri e la **mappa di tutti i viaggi del mese**. Si apre sempre sul **mese in cui sei** — se è vuoto te lo dice, invece di mostrarti in silenzio quello prima — e quando al totale ufficiale dell'auto mancano viaggi che non è riuscita a caricare, mostra **il numero di Mate** dicendo qual è quale.
-- **Statistiche** — la ripartizione dell'energia fra guida, clima e altro, e l'andamento dei consumi, dal cloud Leapmotor. Ogni numero dice cosa copre: la media si porta dietro i chilometri su cui è calcolata, e il totale dell'energia esclude un viaggio di cui non conosce il dato invece di contarlo come zero.
+- **Statistiche** — la ripartizione dell'energia fra guida, clima e altro, e l'andamento dei consumi, dal cloud Leapmotor, più il **costo per 100 km**: tutti gli euro spesi su tutti i chilometri percorsi, l'elettrico e — su una versione con range extender — la benzina accanto. La pagina dice subito che i suoi numeri sono quelli registrati da Mate dall'installazione, non il totale del contachilometri.
 - **Esportazione** — **CSV** di viaggi e ricariche, **GPX** per viaggio, e un **backup completo del database** che puoi ripristinare.
 
 **Configurazione e tutto il resto**

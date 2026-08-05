@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.6.9"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.7.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -237,6 +237,7 @@ templates.env.globals.update(
     pressure_unit=units.pressure_unit, eff_unit=units.eff_unit, elev_unit=units.elev_unit,
     dist_val=units.dist_val, speed_val=units.speed_val, temp_val=units.temp_val,
     eff_val=units.eff_val, elev_val=units.elev_val, unit_system=units.get_unit_system,
+    dist100_unit=units.dist100_unit, cost100_val=units.cost100_val,
     eff_cls=_eff_cls,
     # #222 — whether the charger's-own-kWh field can be offered at all. A GLOBAL, not a per-route
     # value: the charge card is rendered by the page AND by two partials that build their context by
@@ -555,6 +556,10 @@ async def trips_page(request: Request, highlight: int = 0):
         # litres are totalled — a second sum here would be the third copy of a rule that has already
         # cost us a release (beta #23).
         reev_summary=db_reader.reev_fuel_summary(),
+        # …and the electric half on the SAME kilometres, so the two tiles standing side by side
+        # divide by the same distance (@michapr, beta #24). A BEV keeps the measured efficiency.
+        reev_total=(db_reader.reev_total_consumption()
+                    if db_reader.get_setting("is_reev", "0") == "1" else None),
         # No merge_gap_* here any more: the slider moved into the day drawer, which gets them
         # from the day route (#204). The page keeps only #merge-modal, which lives outside the
         # swapped calendar area so the drawer's 🔗 preview still has somewhere to open.
@@ -1137,6 +1142,14 @@ async def statistics(request: Request):
     totals["reev_total"] = db_reader.reev_total_consumption() if _reev else None
     # …and beside it what was actually bought, which Mate measures rather than derives.
     totals["reev_spend"] = db_reader.reev_actual_spend() if _reev else None
+    # …and what all of it COST: every euro spent over every kilometre driven (@michapr's card, on
+    # Silvio's basis — a cost is the whole cost, not the driving's share of it). The litres burned
+    # are passed only so a car with no tank never reads the fuel table.
+    if _reev:
+        _rt = totals["reev_total"]
+        totals["cost100"] = db_reader.cost_per_100km(_rt["total_fuel_l"] if _rt else 0.0)
+    else:
+        totals["cost100"] = db_reader.cost_per_100km()
     return templates.TemplateResponse(request, "statistics.html", _ctx(
         page="statistics", vehicle=vehicle,
         grouped=grouped, totals=totals,

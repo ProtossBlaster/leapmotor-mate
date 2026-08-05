@@ -348,6 +348,17 @@ The **Home** price is the one that feeds the cost of home charges and, in turn, 
 with the related **trends** (efficiency and regen over time). The totals also include a **Total V2L**
 card showing the cumulative energy drawn via V2L over all time.
 
+**Cost per 100 km 🆕** — what covering 100 km actually costs: **every euro spent**, divided by
+**every kilometre driven**. No price per kWh and no estimate — the sum of what you paid over the sum
+of what you drove, so it includes the kWh that moved the car nowhere (climate, preconditioning, the
+charger's own losses). On a range-extender the petrol is added beside the electricity. If any charge
+has no price the card says so, because the real figure is then higher. It follows your units: with
+miles it becomes "per 100 mi".
+
+**How far back these numbers go 🆕** — a line at the top of the page is a reminder that **every**
+total on Statistics is what Mate has recorded since it was installed, with the date it starts from,
+and **not** the car's own odometer total.
+
 **What each figure covers 🆕** — *Avg consumption* is the mean over the kilometres that **have** a
 consumption figure, and *"over N km"* appears underneath when those are fewer than the total.
 *Energy used* adds up only the trips whose energy Mate knows: a trip without one is **left out**

@@ -30,12 +30,13 @@ def reev(tmp_path, monkeypatch):
     return pdb
 
 
-def _trip(pdb, tid, day, km, p0, p1, l0=None, l1=None):
+def _trip(pdb, tid, day, km, p0, p1, l0=None, l1=None, merged_into=None, hh=8):
     pdb._conn.execute(
         "INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, start_soc, end_soc,"
-        " fuel_start_pct, fuel_end_pct, fuel_start_l, fuel_end_l) VALUES (?,1,?,?,?,80,70,?,?,?,?)",
-        (tid, f"2026-07-{day:02d}T08:00:00+00:00", f"2026-07-{day:02d}T09:00:00+00:00",
-         km, p0, p1, l0, l1))
+        " fuel_start_pct, fuel_end_pct, fuel_start_l, fuel_end_l, merged_into_id)"
+        " VALUES (?,1,?,?,?,80,70,?,?,?,?,?)",
+        (tid, f"2026-07-{day:02d}T{hh:02d}:00:00+00:00", f"2026-07-{day:02d}T{hh:02d}:50:00+00:00",
+         km, p0, p1, l0, l1, merged_into))
     pdb._conn.commit()
 
 
@@ -141,3 +142,51 @@ def test_no_total_filters_rows_on_the_coarse_signal_alone():
         assert re.search(r"AND\s+fuel_start_pct - fuel_end_pct > \?", body) is None, \
             f"{fn} still filters on the tank percentage alone"
         assert "_REEV_FUEL_ANY_DROP_SQL" in body, f"{fn} does not use the shared condition"
+
+
+# ── the fourth round, and the one that was actually his ───────────────────────
+
+def test_a_merged_trip_keeps_its_petrol(reev):
+    """@michapr's own nine rows, beta #23, 05/08/26 — and his own guess: *«Maybe it related to a
+    merged trip?»*
+
+    Joining two trips only ever writes `merged_into_id`; it rewrites nothing else, which is exactly
+    what makes this bite. The child keeps the fuel drop, the parent keeps its own — and his parent
+    (07:45, 2 km) burned NOTHING while his child (07:56, 57 km) burned 3.7 L. `get_fuel_totals_between`
+    was the one aggregate filtering `merged_into_id IS NULL`, so those 3.7 L vanished while the 57 km
+    stayed in the divisor beside them.
+
+    9.6 L is what every other total says, and what his own SQL says. 5.9 is what the period card on
+    the Statistics page showed him — 9.6 − 3.7, to the decimal. Three of my theories died before
+    this one; his held."""
+    from datetime import datetime, timezone
+    rows = [(10, 16, 11.0, 75.3, 74.9, None, 12), (11, 16, 12.0, 74.9, 74.0, None, 14),
+            (14, 21,  1.0, 74.0, 74.0, None,  7), (15, 21,  6.0, 74.0, 73.3, None,  7),
+            (16, 21,  7.0, 73.3, 72.7, None,  8), (26, 28,  2.0, 72.7, 72.7, None,  7),
+            (27, 28, 57.0, 72.7, 65.3,   26,  9),          # ← merged into 26: 3.7 L lived here
+            (28, 28, 68.0, 65.3, 56.1, None, 11), (29, 28,  2.0, 56.1, 56.1, None, 13)]
+    for tid, day, km, p0, p1, mg, hh in rows:
+        _trip(reev, tid, day, km, p0, p1, merged_into=mg, hh=hh)
+
+    b = int(datetime(2024, 5, 4, tzinfo=timezone.utc).timestamp())
+    e = int(datetime(2026, 8, 4, 23, 59, tzinfo=timezone.utc).timestamp())
+    period = db_reader.get_fuel_totals_between(b, e)["fuel_l"]
+
+    assert db_reader.reev_fuel_summary()["total_l"] == pytest.approx(9.6, abs=0.05)
+    assert period == pytest.approx(9.6, abs=0.05), \
+        f"the period card lost the merged trip's petrol: {period} instead of 9.6"
+
+
+def test_the_kilometres_and_the_litres_of_a_period_come_from_the_same_trips(reev):
+    """The half of the defect that made it visible: distance never filtered merged children, fuel
+    did. So the card divided a short litre total by a full distance and printed an L/100 km that
+    belonged to neither."""
+    from datetime import datetime, timezone
+    _trip(reev, 1, 3, 2.0, 72.7, 72.7, hh=7)
+    _trip(reev, 2, 3, 58.0, 72.7, 65.3, merged_into=1, hh=9)
+    b = int(datetime(2026, 7, 1, tzinfo=timezone.utc).timestamp())
+    e = int(datetime(2026, 7, 31, 23, 59, tzinfo=timezone.utc).timestamp())
+    fuel = db_reader.get_fuel_totals_between(b, e)
+    dist = db_reader.get_trip_totals_between(b, e)["distance_km"]
+    assert dist == 60.0, "distance already counts the merged child"
+    assert fuel["fuel_l"] == pytest.approx(3.7, abs=0.05), "and the litres must come from the same rows"

@@ -336,6 +336,17 @@ Anzahl der **Ladesitzungen**, mit den entsprechenden **Trends** (Effizienz und R
 Summen enthalten jetzt auch eine Karte **V2L gesamt** mit der über die gesamte Historie via V2L entnommenen
 kumulierten Energie.
 
+**Kosten pro 100 km 🆕** — was 100 km wirklich kosten: **jeder ausgegebene Euro**, geteilt durch
+**jeden gefahrenen Kilometer**. Kein Preis pro kWh und keine Schätzung — die Summe des Bezahlten
+über der Summe des Gefahrenen, also einschließlich der kWh, die das Auto nirgendwohin bewegt haben
+(Klima, Vorkonditionierung, Verluste des Ladegeräts). Bei einer Version mit Range Extender kommt der
+Kraftstoff neben dem Strom dazu. Fehlt bei einer Ladung der Preis, sagt die Karte es, denn der echte
+Wert liegt dann höher. Sie folgt Ihren Einheiten: in Meilen wird daraus „pro 100 mi".
+
+**Seit wann diese Zahlen gelten 🆕** — eine Zeile am Seitenanfang erinnert daran, dass **alle**
+Summen der Statistik das sind, was Mate seit der Installation erfasst hat, mit dem Startdatum — und
+**nicht** der Gesamtstand des Fahrzeugtachos.
+
 **Was jede Zahl abdeckt 🆕** — *Durchschnittsverbrauch* ist der Mittelwert über die Kilometer, die
 einen Verbrauch **haben**; darunter erscheint „über N km", wenn das weniger als die Gesamtstrecke
 ist. *Verbrauchte Energie* summiert nur die Fahrten, deren Energie Mate kennt: eine Fahrt ohne diesen

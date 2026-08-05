@@ -5,6 +5,13 @@
 <div class="mb-6">
   <h1 class="text-2xl font-bold text-white">{{ t('statistics_title') }}</h1>
   <p class="text-slate-400 text-sm mt-1">{{ t('all_time') }}</p>
+  {# Said ONCE, for the whole page. Not one figure below is the car's lifetime counter — and this
+     page never shows that counter anywhere — so every card would otherwise have to defend itself
+     from the same misreading. Silvio's call, 05/08, after his own B10 showed 4803 km on the
+     dashboard against 1877 recorded here and a card headed "DISTANZA TOTALE" said 1877. #}
+  {% if totals.since %}
+  <p class="text-slate-500 text-xs mt-1">{{ t('stats_recorded_since').format(da=totals.since|localdate) }}</p>
+  {% endif %}
 </div>
 
 <!-- KPI cards -->
@@ -114,6 +121,50 @@
     </div>
   </div>
   {% endif %}
+</div>
+{% endif %}
+
+{# What 100 km have COST: every euro spent, over every kilometre driven. The range-extender version
+   was written by @michapr on his own fork (30/07/26) and never sent as a pull request; it priced
+   the CONSUMPTION, and so did the first version of this, until Silvio cut it short on 05/08 —
+   «se deve essere un costo deve essere totale non parziale». Only 71.8% of a bill reaches the trips
+   (#207); the rest is climate, preconditioning and charging losses, and it was still paid.
+   Nothing here is multiplied by a €/kWh, so none is shown and none has to be chosen. What CAN be
+   missing — an unpriced charge, a refuel never entered — is named underneath, and it only ever
+   pushes the figure DOWN. The petrol half stays behind the usual REEV+research gate. #}
+{% if totals.cost100 %}
+{% set c100 = totals.cost100 %}
+<div class="card mb-6">
+  <div class="stat-label">{{ t('stats_cost100_label').format(unit=dist100_unit()) }}</div>
+  <div class="flex items-baseline gap-1 flex-wrap">
+    <span class="stat-value text-emerald-400">{{ cost100_val(c100.total_100km) | money }}</span>
+    <span class="text-slate-400 text-sm">/{{ dist100_unit() }}</span>
+    {# The split only when both halves cost something — a "+ 0,00" would be noise, and on a BEV
+       there is no second half to name at all. #}
+    {% if is_reev and research and c100.elec_100km and c100.fuel_100km %}
+    <span class="text-slate-600 text-sm mx-1">=</span>
+    <span class="text-sky-400 text-sm">{{ cost100_val(c100.elec_100km) | money }}</span>
+    <span class="text-slate-500 text-xs">{{ t('stats_cost100_elec') }}</span>
+    <span class="text-slate-600 text-sm mx-0.5">+</span>
+    <span class="text-amber-400 text-sm">{{ cost100_val(c100.fuel_100km) | money }}</span>
+    <span class="text-slate-500 text-xs">{{ t('stats_cost100_fuel') }}</span>
+    {% endif %}
+  </div>
+  <div class="text-slate-500 text-xs mt-1">
+    {# `dist` converts AND labels: a reader in miles must not be told 971 mi when 971 is km. WHEN
+       the window opens, and whose kilometres these are, is said once at the top of the page — this
+       note only has to say what the euros were divided by. #}
+    {{ t('stats_cost100_note').format(km=c100.km|dist(0)) }}
+    {% if c100.elec_missing %}
+    · <span class="text-amber-500">{{ t('stats_cost100_noelec') }}</span>
+    {% endif %}
+    {% if is_reev and research and c100.fuel_missing %}
+    · <span class="text-amber-500">{{ t('stats_cost100_nofuel') }}</span>
+    {% endif %}
+    {% if c100.partial %}
+    · <span class="text-amber-500">{{ t('stats_cost100_partial').format(n=c100.total_charges - c100.priced_charges, tot=c100.total_charges) }}</span>
+    {% endif %}
+  </div>
 </div>
 {% endif %}
 

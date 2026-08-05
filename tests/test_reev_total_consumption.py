@@ -176,12 +176,23 @@ def test_the_actual_spend_is_scoped_to_the_current_vehicle(reev, monkeypatch):
     assert db_reader.reev_actual_spend()["kwh"] == 10.0
 
 
-def test_both_cards_are_gated_on_a_range_extender():
+def test_every_range_extender_card_is_gated_on_a_range_extender():
     """BEV owners must never see a range-extender card — the standing rule for every REEV
-    feature. The gate is in the route, so a BEV never even runs either query."""
+    feature. The gate is in the route, so a BEV never even runs any of those queries.
+
+    This counted the gates and expected exactly two. Adding @michapr's €/100 km card turned it red
+    without anything being ungated: the number was the mechanism, never the point. What has to hold
+    is that not ONE of them is missing its gate — including the next one.
+
+    ⚠️ Matched on lines that ASSIGN a `totals["reev_…"]`, not on lines that merely mention one: the
+    route now READS `totals["reev_total"]` back to feed the cost card, and a substring test called
+    that read an ungated card."""
     main = (pathlib.Path(__file__).resolve().parent.parent / "web" / "main.py").read_text()
     block = main.split('_reev = db_reader.get_setting("is_reev"', 1)[1].split("\n\n", 1)[0]
-    assert block.count("if _reev else None") == 2
+    cards = [ln.strip() for ln in block.splitlines() if ln.strip().startswith('totals["reev_')]
+    assert len(cards) >= 2, "the range-extender cards moved out of this route"
+    for line in cards:
+        assert "if _reev else None" in line, f"ungated REEV card in the statistics route: {line}"
 
 
 def test_the_page_never_calls_either_of_them_a_consumption():

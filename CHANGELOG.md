@@ -3,6 +3,53 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.7.0] — 2026-08-05
+
+### Added
+- **What 100 km actually cost you.** A new card on the Statistics page: **every euro spent, divided
+  by every kilometre driven**. No price per kWh is computed and none is shown — the euros are added
+  up and divided by the distance, so the electricity that moved the car nowhere (climate,
+  preconditioning, the on-board charger's own losses) is in there too. On a range-extender the
+  petrol is added beside the electricity, and the split says which is which.
+
+  It follows your units — with miles it becomes *per 100 mi*, and the number grows, because
+  100 miles are 160.9 km. Anything Mate was not told about is named underneath rather than guessed
+  at: an untagged charge takes kilometres out of nothing and puts euros nowhere, so the figure can
+  only ever come out **low**, and the card says how many are missing.
+
+  **Written by @michapr.** He built the range-extender half on his own fork on 30 July and never
+  offered it as a pull request. His version priced the *consumption*; Silvio's call was that a cost
+  is the whole cost, so this one divides money by distance instead. Then he asked for the same card
+  on a plain BEV, which is why it is one function serving both cars.
+
+- **The Statistics page says how far back it goes.** A line under the title: *data recorded by Mate
+  since &lt;date&gt; — not the car's own total*. Not one figure on that page is the car's lifetime
+  counter, and the page never shows that counter anywhere: on a car reading 4803 km with 1877
+  recorded, a card headed **Total distance** invites exactly the wrong reading. Said once, for the
+  whole page, instead of defending each card from the same misunderstanding.
+
+### Fixed
+- 🔴 **A merged trip's petrol vanished from the period card.** Joining two trips writes
+  `merged_into_id` and **nothing else** — the child keeps the tank readings it was recorded with.
+  `get_fuel_totals_between`, behind *Energy by date range*, was the only fuel total in Mate
+  filtering those children out, while the distance beside it never did. So the litres came up short
+  and the kilometres did not, and the L/100 km divided one by the other.
+
+  On **@michapr**'s B10 (beta #23) his 28 July 07:56 trip was merged into the 2 km hop before it and
+  carried **3.7 of his 9.6 L**: the card read **5.9**, through four rounds of me looking in the
+  wrong place. It is the second half of his #20 — on 31 July I fixed how a merged group *reads* its
+  fuel and left the period query filtering the child away. One rule, two places, one corrected.
+
+- **A range-extender's two "per 100 km" figures divided by different distances.** In the Trips
+  header the consumption tile is the efficiency *measured by the car*, and Mate stores none for a
+  generator trip — so it covered only the battery-driven part of the window while the litres beside
+  it covered all of it. On a range-extender that tile now uses the same kilometres as the fuel tile
+  next to it; a BEV keeps the measured figure, and so does the Statistics page, where it is labelled
+  with the distance it covers. Reported by **@michapr** (beta #24).
+
+  Side effect worth knowing: on a car driven mostly by the generator that tile used to read **—**,
+  because none of those trips has an efficiency to average.
+
 ## [3.6.9] — 2026-08-05
 
 ### Fixed

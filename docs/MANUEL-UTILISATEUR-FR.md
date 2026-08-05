@@ -349,6 +349,18 @@ trajets (calculé sur le prix « moyen » de l'énergie en batterie au moment du
 recharge**, avec les **tendances** correspondantes (efficacité et récupération dans le temps). Les totaux
 incluent désormais une carte **Total V2L** avec l'énergie cumulée soutirée via V2L sur tout l'historique.
 
+**Coût aux 100 km 🆕** — ce que parcourir 100 km coûte réellement : **chaque euro dépensé**, divisé
+par **chaque kilomètre parcouru**. Pas de prix au kWh ni d'estimation — la somme de ce que vous avez
+payé sur la somme de ce que vous avez roulé, donc y compris les kWh qui n'ont fait avancer la
+voiture nulle part (climatisation, préconditionnement, pertes du chargeur). Sur une version à
+prolongateur d'autonomie, le carburant s'ajoute à côté de l'électricité. Si une recharge n'a pas de
+prix, la carte le dit, car le vrai montant est alors plus élevé. Elle suit vos unités : en miles,
+cela devient « aux 100 mi ».
+
+**Depuis quand ces chiffres 🆕** — une ligne en haut de la page rappelle que **tous** les totaux des
+Statistiques sont ceux enregistrés par Mate depuis son installation, avec la date de départ, et
+**non** le total affiché par le compteur de la voiture.
+
 **Ce que couvre chaque chiffre 🆕** — *Consommation moyenne* est la moyenne sur les kilomètres qui
 **ont** une consommation, et « sur N km » apparaît en dessous quand ils sont moins nombreux que le
 total. *Énergie consommée* n'additionne que les trajets dont Mate connaît l'énergie : un trajet sans

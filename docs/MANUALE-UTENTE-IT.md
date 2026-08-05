@@ -359,6 +359,17 @@ Veicolo"** 🆕 — energia totale, chilometraggio e media kWh/100 km **da conse
 dell'auto, quindi non intaccata dai rari viaggi che il cloud non registra), con una barra
 **Guida / A·C / Altro / Da-fermo**.
 
+**Costo per 100 km 🆕** — quanto costa davvero percorrere 100 km: **tutti gli euro spesi** diviso
+**tutti i chilometri percorsi**. Nessun prezzo al kWh e nessuna stima — la somma di ciò che hai
+pagato sopra la somma di ciò che hai guidato, quindi ci sono dentro anche i kWh che non hanno mosso
+l'auto (clima, precondizionamento, perdite del caricatore). Su una versione con range extender la
+benzina si aggiunge accanto all'elettrico. Se qualche ricarica non ha un prezzo la card lo dice,
+perché in quel caso la spesa vera è più alta. Segue le tue unità: con le miglia diventa «per 100 mi».
+
+**Da quando sono questi numeri 🆕** — in cima alla pagina una riga ricorda che **tutti** i totali
+delle Statistiche sono quelli registrati da Mate dalla sua installazione, con la data d'inizio, e
+**non** il totale che segna il contachilometri dell'auto.
+
 **Cosa copre ogni numero 🆕** — *Consumo medio* è la media sui chilometri che **hanno** un consumo, e
 sotto compare *«su N km»* quando quelli sono meno del totale. *Energia consumata* somma solo i viaggi
 di cui Mate conosce l'energia: un viaggio senza quel dato viene **escluso**, non contato come zero,

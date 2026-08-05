@@ -75,12 +75,28 @@ def eff_unit(system=None) -> str:
 def elev_unit(system=None) -> str:
     return "ft" if _imperial(system or get_unit_system()) else "m"
 
+def dist100_unit(system=None) -> str:
+    """The denominator of a running-cost figure: "100 km", or "100 mi" for a reader whose
+    efficiency card already says mi/kWh."""
+    return "100 mi" if _imperial(system or get_unit_system()) else "100 km"
+
 
 # ── converted numbers only (for JS chart data / attributes) ──────────────────
 def dist_val(km, dec=1, system=None):
     if km is None:
         return None
     return round(km * _KM_TO_MI, dec) if _imperial(system or get_unit_system()) else round(km, dec)
+
+def cost100_val(cost_per_100km, system=None):
+    """A cost-per-100km figure in the reader's own distance unit — left to `money` to format, so
+    the currency's own decimals and separators still decide how it is written.
+
+    ⚠️ The number GROWS on imperial, it does not shrink: 100 miles is 160.9 km, so covering them
+    costs more, not less. This is the reciprocal of `dist_val`'s direction and the reason it is a
+    function of its own instead of a distance conversion someone reuses by mistake."""
+    if cost_per_100km is None:
+        return None
+    return cost_per_100km / _KM_TO_MI if _imperial(system or get_unit_system()) else cost_per_100km
 
 def dist_to_km(value, system=None):
     """Inverse of dist_val: a distance the user TYPED in their unit (mi for imperial)
