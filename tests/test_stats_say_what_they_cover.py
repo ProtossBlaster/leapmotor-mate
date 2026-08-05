@@ -135,3 +135,18 @@ def test_every_language_has_the_words(path):
     assert "{n}" in d["stats_energy_partial"] and "{tot}" in d["stats_energy_partial"]
     assert "{km}" in d["stats_eff_over_km"]
     assert d["stats_eff_help"]
+
+
+def test_the_average_says_WHY_on_a_range_extender():
+    """@michapr: "would suggest to write 'over battery-only kilometres' — then we will remember about
+    it, and new users can understand it better". Right on a range-extender, and wrong on a
+    full-electric car, where the missing kilometres are just trips with no figure. So the page picks
+    the wording, rather than one label that would be untrue in one of the two places."""
+    assert "stats_eff_over_km_reev" in STATS
+    assert "if is_reev else t('stats_eff_over_km')" in STATS
+
+
+@pytest.mark.parametrize("path", LOCALES, ids=lambda p: p.stem)
+def test_the_range_extender_wording_exists_everywhere(path):
+    d = json.loads(path.read_text())["translations"]
+    assert "{km}" in d["stats_eff_over_km_reev"]

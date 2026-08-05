@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.6.8"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.6.9"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -238,6 +238,13 @@ templates.env.globals.update(
     dist_val=units.dist_val, speed_val=units.speed_val, temp_val=units.temp_val,
     eff_val=units.eff_val, elev_val=units.elev_val, unit_system=units.get_unit_system,
     eff_cls=_eff_cls,
+    # #222 — whether the charger's-own-kWh field can be offered at all. A GLOBAL, not a per-route
+    # value: the charge card is rendered by the page AND by two partials that build their context by
+    # hand, so a flag passed through _ctx reached the page and silently vanished from the day drawer
+    # and the search results — which is where you actually look at a charge. @ghuaywen-ai, who asked
+    # for the field, watched it disappear between v3.6.6 and v3.6.8. A callable, so it answers per
+    # render: the poller can add the column while the web is running.
+    gross_kwh_ok=lambda: db_reader._charges_have_gross(db_reader._get()),
 )
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
@@ -377,12 +384,6 @@ def _ctx(**kwargs):
             return t("ago_m").format(n=s // 60)
         return t("ago_h").format(n=s // 3600)
 
-    # #222 — offer the charger's-own-kWh pencil only where the column exists to store it into.
-    # _ensure_schema() at startup means it always should; this is the belt to that pair of braces,
-    # for the install whose database could not be altered (read-only mount, a locked file). Offering
-    # a field that silently swallows what you type is a worse failure than not offering it.
-    gross_kwh_ok = db_reader._charges_have_gross(db_reader._get())
-
     wallbox_enabled = db_reader.get_setting("wallbox_enabled", "0") == "1"
     # Active wallbox profile: shown in sidebar + page title + profiles panel.
     # Only resolved when wallbox is on AND a profile has been loaded.
@@ -406,7 +407,6 @@ def _ctx(**kwargs):
     # never declares code 53 = unlock charge cable — #142). None abilities → shown (never on a guess).
     _abilities = capability_profile.parse_abilities((_veh or {}).get("abilities"))
     return {**kwargs, "lang": lang, "t": t, "version": MATE_VERSION, "demo": _IS_DEMO,
-            "gross_kwh_ok": gross_kwh_ok,
             # Inside the Mac/Windows app there are TWO versions that matter: Mate itself, which
             # updates on its own, and the app shell around it, which almost never does. When a
             # user reports "it stopped updating", only the second number distinguishes a shell too

@@ -36,7 +36,11 @@
     </div>
     {% if totals.avg_efficiency and totals.avg_efficiency_km and totals.total_km
           and (totals.total_km - totals.avg_efficiency_km) > 0.5 %}
-    <div class="text-[11px] text-slate-500 mt-0.5">{{ t('stats_eff_over_km').format(km=totals.avg_efficiency_km|nice) }}</div>
+    {# @michapr asked for the words to carry the reason, not just the number: "over battery-only
+       kilometres" is what it means on a range-extender. On a full-electric car the missing
+       kilometres are simply trips with no consumption figure, so the plain wording stays there —
+       one label that is true in both places does not exist. #}
+    <div class="text-[11px] text-slate-500 mt-0.5">{{ (t('stats_eff_over_km_reev') if is_reev else t('stats_eff_over_km')).format(km=totals.avg_efficiency_km|nice) }}</div>
     {% endif %}
   </div>
   <div class="card">

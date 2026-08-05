@@ -677,6 +677,7 @@
     "avg_price_partial": "{n}/{tot} Ladevorgänge",
     "stats_energy_partial": "{n} von {tot} Fahrten",
     "stats_eff_over_km": "über {km} km",
+    "stats_eff_over_km_reev": "über die reinen Batteriekilometer: {km} km",
     "stats_eff_help": "Mittelwert über die Kilometer, die einen Verbrauch HABEN. Bei einem Range-Extender löscht Mate ihn für jede Fahrt, in der der Generator lief — ein Batterieprozentsatz misst die Effizienz nicht mehr, sobald ein Motor darunter nachlädt — also ist dies der elektrische Wert über die reinen Batteriekilometer.",
     "avg_price_basis": "auf die abgerechneten kWh",
     "avg_price_basis_help": "Pro ABGERECHNETER kWh: der Wallbox-Zähler bei Ladungen zu Hause, die einen haben, die kWh der Ladesäule, wo Sie sie eingetragen haben, sonst die Batterieenergie. In der Übersicht steht eine andere Zahl, „Durchschnittspreis in der Batterie“, pro kWh, die tatsächlich in der Batterie ANKAM — höher, weil das Bordladegerät vorher 8–15 % in Wärme umwandelt. Keine von beiden ist falsch: die erste zahlen Sie, die zweite verbraucht eine Fahrt.",

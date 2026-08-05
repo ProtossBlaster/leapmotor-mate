@@ -128,3 +128,22 @@ def test_the_words_exist_in_every_language(path):
     d = json.loads(path.read_text())["translations"]
     for key in ("trips_fuel_hint", "report_fuel_burned"):
         assert d.get(key), f"{path.stem} is missing {key}"
+
+
+# ── and the THIRD place a day's trips are added up ────────────────────────────
+
+def test_the_day_header_shows_it_too():
+    """The month strip and the page header got the fuel; this one was missed, and @michapr reported
+    beta #11 a third time to say so. The totals already carried the litres — they simply were not
+    printed here. All three read the same three helpers, so the only thing that can be missing is
+    the printing."""
+    day = (ROOT / "web" / "templates" / "partials" / "trips_calendar_day_content.html").read_text()
+    assert "day_totals.fuel_l" in day
+    assert "{% if is_reev and research and day_totals.fuel_l %}" in day
+
+
+def test_all_three_places_print_the_same_two_numbers():
+    """One rule, three surfaces, and they sit within a screen of each other."""
+    day = (ROOT / "web" / "templates" / "partials" / "trips_calendar_day_content.html").read_text()
+    for tpl, var in ((MONTH, "total"), (day, "day_totals")):
+        assert f"{var}.fuel_l | nice" in tpl and f"{var}.fuel_l_100km | nice" in tpl

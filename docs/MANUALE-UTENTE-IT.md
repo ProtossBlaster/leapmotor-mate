@@ -188,7 +188,13 @@ L'interfaccia è composta da:
 - **Pulsante Aggiorna ora** — forza una lettura immediata dallo stato dell'auto, senza aspettare il
   ciclo automatico. Utile dopo aver dato un comando.
 
-In fondo al menu trovi **⚙️ Impostazioni** e **🚪 Esci** (logout).
+In fondo al menu trovi **⚙️ Impostazioni**, e **🚪 Esci** *solo se hai impostato una password
+d'accesso* — quello chiude la sessione della password, niente altro. Senza password non c'è, perché
+non c'è niente da chiudere.
+
+**Per sganciare l'account Leapmotor** — che è un'altra cosa — vai su **Impostazioni → Veicolo →
+🔓 Esci dall'account**. Cancella le credenziali salvate e riapre la configurazione guidata; il
+certificato, i viaggi e le ricariche restano.
 
 Molte pagine si **aggiornano da sole** ogni 30 secondi circa, quindi i valori "vivi" (stato,
 ricarica in corso…) restano freschi senza ricaricare la pagina.

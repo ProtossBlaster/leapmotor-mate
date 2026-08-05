@@ -3,6 +3,36 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.6.9] — 2026-08-05
+
+### Fixed
+- 🔴 **The charger's-own-kWh pencil disappeared from the day drawer and the search results.**
+  Introduced in v3.6.7: the flag that decides whether to offer the field was passed through the
+  shared page context, and the charge card is **also** rendered by two partials that build their
+  context by hand. It survived on the Charges page and vanished exactly where you actually look at
+  a charge. **@ghuaywen-ai**, who asked for the field, watched it go between v3.6.6 and v3.6.8.
+
+  It is a template global now, not a route variable — no route can forget it, including one written
+  tomorrow.
+
+- **A range-extender's fuel was missing from the day header on the Trips page.** The month strip and
+  the page header got it in v3.6.8; a day's own line was the third place those trips are added up,
+  and it already carried the litres — they simply were not printed. Reported for the third time by
+  **@michapr** (BetaTester #11), which is twice more than should have been needed.
+
+- **The manuals promised a Log out that is not always there.** All four said the menu holds
+  **⚙️ Settings** and **🚪 Log out**, without saying the second one appears *only when an access
+  password is set* — and that it ends the password session, not your Leapmotor account. Unlinking
+  the account is a different button, in **Settings → Vehicle**. **@JoseRMorales** (#223) went
+  looking for the first and wanted the second. Both are now described, and distinguished.
+
+### Changed
+- **The average consumption says why, not just how much.** On a range-extender the note under it now
+  reads *"over battery-only kilometres: 273 km"* — @michapr's own wording, because a figure that
+  explains itself is remembered. On a full-electric car the missing kilometres are simply trips with
+  no consumption figure, so the plain wording stays there: one label true in both places does not
+  exist.
+
 ## [3.6.8] — 2026-08-04
 
 ### Fixed

@@ -677,6 +677,7 @@
     "avg_price_partial": "{n} van {tot} sessies",
     "stats_energy_partial": "{n} van {tot} ritten",
     "stats_eff_over_km": "over {km} km",
+    "stats_eff_over_km_reev": "over alleen de batterijkilometers: {km} km",
     "stats_eff_help": "Gemiddelde over de kilometers die een verbruik HEBBEN. Bij een range-extender wist Mate dit voor elke rit waarin de generator liep — een batterijpercentage meet geen efficiëntie meer zodra een motor eronder bijlaadt — dus dit is het elektrische cijfer over alleen de batterijkilometers.",
     "avg_price_basis": "op de gefactureerde kWh",
     "avg_price_basis_help": "Per GEFACTUREERDE kWh: de wallbox-meter bij thuisladingen die er een hebben, de kWh van de lader waar je ze hebt ingevuld, anders de batterij-energie. Het Overzicht toont een ander getal, \"Gemiddelde prijs in batterij\", per kWh die de batterij echt BEREIKTE — hoger, omdat de boordlader er vooraf 8–15% van in warmte omzet. Geen van beide is fout: de eerste betaal je, de tweede verbruikt een rit.",

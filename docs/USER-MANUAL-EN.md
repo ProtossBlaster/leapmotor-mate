@@ -188,7 +188,14 @@ The interface is made up of:
 - **Refresh now button** — forces an immediate read of the car's status without waiting for the
   automatic cycle. Handy after sending a command.
 
-At the bottom of the menu you'll find **⚙️ Settings** and **🚪 Log out**.
+At the bottom of the menu you'll find **⚙️ Settings**, and **🚪 Log out** *only if you have set an
+access password* — that one ends the password session, nothing else. It is not there otherwise, and
+there is nothing to end.
+
+**To unlink the Leapmotor account** — a different thing entirely — go to **Settings → Vehicle →
+🔓 Log out**. That clears the saved credentials and reopens the setup wizard; your certificate,
+trips and charges stay (@JoseRMorales, #223, who went looking for the first one and wanted the
+second).
 
 Many pages **refresh themselves** roughly every 30 seconds, so the "live" values (status, charge in
 progress…) stay fresh without reloading the page.

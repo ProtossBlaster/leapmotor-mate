@@ -198,7 +198,13 @@ L'interface se compose de :
 - **Bouton Actualiser** — force une lecture immédiate de l'état de la voiture, sans attendre le cycle
   automatique. Utile après avoir envoyé une commande.
 
-En bas du menu, vous trouvez **⚙️ Paramètres** et **🚪 Déconnexion** (logout).
+En bas du menu, vous trouvez **⚙️ Paramètres**, et **🚪 Déconnexion** *uniquement si vous avez
+défini un mot de passe d'accès* — celle-ci ferme la session du mot de passe, rien d'autre. Sans mot
+de passe, elle n'apparaît pas, car il n'y a rien à fermer.
+
+**Pour délier le compte Leapmotor** — ce qui est autre chose — allez dans **Paramètres → Véhicule →
+🔓 Déconnexion**. Cela efface les identifiants enregistrés et rouvre l'assistant ; le certificat, les
+trajets et les recharges restent.
 
 De nombreuses pages **se mettent à jour toutes seules** environ toutes les 30 secondes ; ainsi les valeurs
 « en direct » (état, recharge en cours…) restent fraîches sans recharger la page.

@@ -34,6 +34,11 @@ def _card(**over):
     env.filters["money"] = lambda v: f"{v:.2f} €"
     env.filters["dec"] = lambda v, n=1: "\u2014" if v is None else f"{float(v):.{n}f}"
     return env.get_template("partials/charge_card.html").render(
+        # `gross_kwh_ok` is a template GLOBAL in the app (templates.env.globals), not a route
+        # variable — that is what stopped the pencil vanishing from the day drawer. A test
+        # environment has to mirror it, or the card renders against a Jinja that does not
+        # have it.
+        gross_kwh_ok=lambda: True,
         c=c, t=lambda k: k, charge_types=db_reader.CHARGE_TYPES,
         fmt_dur=lambda v: "—" if v is None else f"{v:.0f} min")
 

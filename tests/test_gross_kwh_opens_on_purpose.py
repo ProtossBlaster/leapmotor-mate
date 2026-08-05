@@ -132,13 +132,37 @@ def test_there_is_nothing_to_take_back_when_nothing_was_typed():
 # ── the field is only offered where Mate has no meter of its own ─────────────
 
 def test_it_is_not_offered_where_it_could_not_be_stored():
-    """`gross_kwh_ok` is false when the database has no column for it — offering a field that
+    """`gross_kwh_ok()` is false when the database has no column for it — offering a field that
     silently swallows what you type is worse than not offering it."""
-    assert "gross_kwh_ok" in CARD
+    assert "gross_kwh_ok()" in CARD
+
+
+def test_the_flag_is_a_template_GLOBAL_not_a_route_variable():
+    """🔴 v3.6.7 passed it through _ctx, and the card is ALSO rendered by two partials that build
+    their context by hand — the day drawer and the search results, which is where you actually look
+    at a charge. So the field survived on the page and vanished everywhere else. @ghuaywen-ai, who
+    asked for the feature, watched it disappear between v3.6.6 and v3.6.8.
+
+    A global cannot be forgotten by a route that renders the card tomorrow."""
+    assert "gross_kwh_ok=lambda" in MAIN, "must live in templates.env.globals"
+    ctx = MAIN.split("def _ctx(", 1)[1].split("\n@app.", 1)[0]
+    assert "gross_kwh_ok" not in ctx, "two sources for one flag is how they drift"
+
+
+def test_every_route_that_renders_a_charge_card_needs_no_extra_context():
+    """The three templates that include the card, and the routes behind them: none of them should
+    have to remember anything for the pencil to appear."""
+    import re
+    tpl_dir = TEMPLATES
+    users = [p for p in tpl_dir.rglob("*.html") if "charge_card.html" in p.read_text()]
+    assert len(users) >= 3, f"expected the day drawer, the search results and more: {users}"
+    for p in users:
+        assert "gross_kwh_ok" not in p.read_text(), \
+            f"{p.name} should not have to pass the flag — it is a global"
 
 
 def test_it_is_not_offered_on_a_wallbox_charge_or_an_untyped_one():
-    assert "{% if not show_wb and c.location_type and gross_kwh_ok %}" in CARD
+    assert "{% if not show_wb and c.location_type and gross_kwh_ok() %}" in CARD
     assert '{% with charge=c %}{% include "partials/charge_gross_kwh.html" %}{% endwith %}' in CARD
 
 

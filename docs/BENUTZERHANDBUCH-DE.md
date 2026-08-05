@@ -189,7 +189,13 @@ Die Oberfläche besteht aus:
 - **Schaltfläche „Jetzt aktualisieren"** — erzwingt ein sofortiges Auslesen des Fahrzeugzustands, ohne auf den
   automatischen Zyklus zu warten. Nützlich, nachdem Sie einen Befehl gegeben haben.
 
-Am Ende des Menüs finden Sie **⚙️ Einstellungen** und **🚪 Abmelden** (Logout).
+Am Ende des Menüs finden Sie **⚙️ Einstellungen** und **🚪 Abmelden** — Letzteres *nur, wenn Sie ein
+Zugangspasswort gesetzt haben*; es beendet die Passwort-Sitzung und sonst nichts. Ohne Passwort ist
+es nicht da, weil es nichts zu beenden gibt.
+
+**Um das Leapmotor-Konto zu trennen** — etwas ganz anderes — gehen Sie zu **Einstellungen → Fahrzeug
+→ 🔓 Abmelden**. Das löscht die gespeicherten Zugangsdaten und öffnet den Einrichtungsassistenten
+erneut; Zertifikat, Fahrten und Ladevorgänge bleiben.
 
 Viele Seiten **aktualisieren sich von selbst** etwa alle 30 Sekunden, sodass die „lebendigen" Werte (Status,
 laufender Ladevorgang…) frisch bleiben, ohne die Seite neu zu laden.

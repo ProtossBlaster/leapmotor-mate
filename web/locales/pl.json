@@ -677,6 +677,7 @@
     "avg_price_partial": "{n} z {tot} sesji",
     "stats_energy_partial": "{n} z {tot} podróży",
     "stats_eff_over_km": "na {km} km",
+    "stats_eff_over_km_reev": "tylko na kilometrach z baterii: {km} km",
     "stats_eff_help": "Średnia po kilometrach, które MAJĄ zużycie. W wersji z range extenderem Mate kasuje je dla każdej podróży z pracującym generatorem — procent baterii przestaje mierzyć sprawność, gdy pod spodem silnik ją doładowuje — więc to wartość elektryczna wyłącznie na kilometrach z baterii.",
     "avg_price_basis": "na kWh rozliczone",
     "avg_price_basis_help": "Na kWh ROZLICZONĄ: licznik wallboxa przy ładowaniach w domu, które go mają, kWh ładowarki tam, gdzie je wpisałeś, w pozostałych energia z akumulatora. W Przeglądzie jest inna liczba, „Średnia cena w akumulatorze”, na kWh, która naprawdę DOTARŁA do akumulatora — wyższa, bo ładowarka pokładowa zamienia wcześniej 8–15% w ciepło. Żadna nie jest błędna: pierwszą płacisz, drugą zużywa podróż.",

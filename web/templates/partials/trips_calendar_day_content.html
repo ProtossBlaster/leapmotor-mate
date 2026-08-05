@@ -35,6 +35,12 @@
     {% if day_totals.avg_eff %}
     <span class="eff-pill {{ eff_cls(day_totals.avg_eff) }}">{{ day_totals.avg_eff | eff }}</span>
     {% endif %}
+    {# The third place the trips of a day are summed up, and the one missed when the month strip and
+       the page header got theirs (@michapr, beta #11, reporting it a third time). The totals already
+       carried the litres — they simply were not printed here. #}
+    {% if is_reev and research and day_totals.fuel_l %}
+    <span class="text-amber-400 font-medium whitespace-nowrap" title="{{ t('trips_fuel_hint') }}">⛽ {{ day_totals.fuel_l | nice }} L{% if day_totals.fuel_l_100km %} · {{ day_totals.fuel_l_100km | nice }} L/100km{% endif %}</span>
+    {% endif %}
     {% if day_totals.cost %}
     <span class="text-slate-300 whitespace-nowrap" title="{{ t('cost') }}">{{ day_totals.cost | money }}</span>
     {% endif %}

@@ -194,7 +194,7 @@
 
      Under the three tiles rather than inside the ENERGY one: on a phone those tiles stay three
      columns, so a box in there is ~110 px wide and the panel unrolls into a thirty-line ribbon. #}
-  {% if not show_wb and c.location_type and gross_kwh_ok %}
+  {% if not show_wb and c.location_type and gross_kwh_ok() %}
   {% with charge=c %}{% include "partials/charge_gross_kwh.html" %}{% endwith %}
   {% endif %}
 

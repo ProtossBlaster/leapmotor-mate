@@ -677,6 +677,7 @@
     "avg_price_partial": "{n} of {tot} sessions",
     "stats_energy_partial": "{n} of {tot} trips",
     "stats_eff_over_km": "over {km} km",
+    "stats_eff_over_km_reev": "over battery-only kilometres: {km} km",
     "stats_eff_help": "Averaged over the kilometres that HAVE a consumption figure. On a range-extender Mate blanks it for every trip the generator ran — a battery percentage stops measuring how efficiently the pack drove you once an engine is refilling it underneath — so this is the electric figure over the battery-only kilometres, not over all of them.",
     "avg_price_basis": "on the billed kWh",
     "avg_price_basis_help": "Per kWh BILLED: the wallbox counter on a home charge that has one, the charger's own kWh where you typed it, the battery energy everywhere else. The Overview shows a different figure, \"Average price in battery\", per kWh that actually REACHED the battery — higher, because the on-board charger turns 8–15% into heat before it gets there. Neither is wrong: you pay the first, a trip consumes the second.",
