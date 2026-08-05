@@ -13,8 +13,15 @@ mean eventually disagree.
 import db_reader
 
 
-def _t(km, eff=None, regen=None, cost=None):
-    return {"distance_km": km, "efficiency_kwh_100km": eff, "regen_kwh": regen, "cost": cost}
+def _t(km, eff=None, regen=None, cost=None, fuel_cost=None):
+    """Shaped like what `get_trips` really hands over, `cost_total` included. That field is what the
+    totals fold since 05/08 — `cost` alone is the ELECTRIC line, and on a range-extender folding it
+    gave @michapr a day of "129 km · 8.3 L · 0.08 €" (beta #11). A helper that only sets `cost` is
+    describing a trip Mate never produces."""
+    parts = [c for c in (cost, fuel_cost) if c is not None]
+    return {"distance_km": km, "efficiency_kwh_100km": eff, "regen_kwh": regen,
+            "cost": cost, "fuel_cost": fuel_cost,
+            "cost_total": round(sum(parts), 2) if parts else None}
 
 
 def test_sums_distance_regen_and_cost():
@@ -43,7 +50,7 @@ def test_empty_day_has_no_efficiency_and_no_error():
     # Shape assertion on purpose: it caught the fuel keys arriving (beta #11) and would catch the
     # next addition too. Zero litres, and no L/100 km to divide into nothing.
     assert tot == {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "avg_eff": None,
-                   "fuel_l": 0.0, "fuel_l_100km": None}
+                   "fuel_l": 0.0, "fuel_l_100km": None, "kwh_100km": None}
 
 
 def test_missing_fields_are_treated_as_zero():

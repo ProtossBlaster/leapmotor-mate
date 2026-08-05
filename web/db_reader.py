@@ -3205,6 +3205,9 @@ def get_trips(limit: int = 500) -> list[dict]:
            LIMIT ?""",
         (_current_vehicle_id(), limit),
     ).fetchall()
+    # Built ONCE for the whole list — the fuel twin of the electric rate timeline. Per trip it would
+    # replay every refuel from the beginning, which is quadratic down a long list.
+    _fuel_rate_at = _trip_fuel_rate_fn()
     out = []
     for r in rows:
         kids_r = kids.get(r["id"], [])
@@ -3222,6 +3225,16 @@ def get_trips(limit: int = 500) -> list[dict]:
             _eng = _reev_engine_on(db, r["vehicle_id"], _b["s"], _b["e"])
         td.update(_reev_trip_fuel(_fs, _fe, td.get("distance_km"), _eng,
                                   td.get("fuel_start_l"), td.get("fuel_end_l")))
+        # …and what those litres COST, the same allocation the detail page makes: litres × the
+        # tank's blended €/L at the trip's start. Without it the trips reached the day and month
+        # totals carrying petrol nobody could price, and those totals showed the electric half of a
+        # range-extender's bill — 0.08 € on a day that burned 8.3 L (@michapr, beta #11). The rate
+        # timeline is built once per call, not per trip.
+        td["fuel_cost"] = None
+        if td.get("fuel_used_l"):
+            _fp = _fuel_rate_at(r["vehicle_id"], r["started_at"])
+            if _fp and _fp > 0:
+                td["fuel_cost"] = round(td["fuel_used_l"] * _fp, 2)
         # …and the ELECTRIC counterpart, the same call the detail page makes. Without it the list
         # can only ever show one of the two energies: a generator trip has its efficiency blanked on
         # purpose (finalize_trip), so the ⚡ pill has nothing to print and only the ⛽ line survives —
@@ -3573,7 +3586,7 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
 
 def _totals_node() -> dict:
     return {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "fuel_l": 0.0,
-            "_eff_wsum": 0.0, "_eff_wdist": 0.0}
+            "_eff_wsum": 0.0, "_eff_wdist": 0.0, "_soc_pct": 0.0}
 
 
 def _totals_add(node: dict, trip: dict) -> None:
@@ -3584,12 +3597,32 @@ def _totals_add(node: dict, trip: dict) -> None:
     node["count"] += 1
     node["km"] = round(node["km"] + km, 2)
     node["regen"] = round(node["regen"] + (trip.get("regen_kwh") or 0), 3)
-    node["cost"] = round(node["cost"] + (trip.get("cost") or 0), 2)
+    # `cost_total`, not `cost`: the latter is the ELECTRIC line by design (see get_trip_detail — the
+    # petrol is a field of its own so every existing reader keeps the meaning it had). Folding the
+    # electric half alone gave @michapr a 28 July of "129 km · 8.3 L · 0.08 €" and a July strip of
+    # "416 km · 9.6 L · 9.02 €" (beta #11): his generator drives carry no efficiency, so they have no
+    # electric cost at all, and the tank they emptied was in no total. On a BEV `fuel_cost` is None,
+    # so `cost_total` IS `cost` and nothing moves.
+    node["cost"] = round(node["cost"] + (trip.get("cost") or 0)
+                         + (trip.get("fuel_cost") or 0), 2)
     # The petrol half, for a range-extender. Straight off the trip, which get_trips already worked
     # out through _reev_trip_fuel — the one reader — so the day line, the month line and the drawer
     # header cannot drift from the trips they are made of (@michapr, BetaTester #11: "missing the
     # data still here: at the top of calendar and at the top of the trips").
     node["fuel_l"] = round(node["fuel_l"] + (trip.get("fuel_used_l") or 0), 3)
+    # The battery's own drop, kept as PERCENT so the pack capacity is read once per node instead of
+    # once per trip. Seals into kwh_100km — the electric figure over ALL the kilometres, the same
+    # ones the litres above are divided by. `avg_eff` cannot do that job on a range-extender: Mate
+    # stores no efficiency for a generator trip, so it covers the battery-driven half alone and the
+    # strip printed two "per 100 km" figures on different distances (@michapr, beta #11 and #24).
+    # Summed SIGNED and floored once at the end — the same rule reev_total_consumption applies, so
+    # the strip and the Statistics card cannot disagree. ⚠️ Not "skip the trips that rise": on a
+    # range-extender the generator can hand the pack MORE than the motor took, and a trip that ends
+    # fuller is that energy arriving, already paid for in the litres. Dropping those trips would
+    # count the refill nowhere and the drain in full.
+    _s0, _s1 = trip.get("start_soc"), trip.get("end_soc")
+    if _s0 is not None and _s1 is not None:
+        node["_soc_pct"] += _s0 - _s1
     if eff and km > 0:
         node["_eff_wsum"] += km * eff
         node["_eff_wdist"] += km
@@ -3602,8 +3635,18 @@ def _totals_seal(node: dict) -> dict:
     # BetaTester #23 — not over the ones the generator ran.
     node["fuel_l_100km"] = (round(node["fuel_l"] / node["km"] * 100, 1)
                             if node["fuel_l"] > 0 and node["km"] > 0.5 else None)
+    # …and the electric side on that SAME distance, from the SoC drop — the basis
+    # reev_total_consumption uses on the Statistics page, so the two cards cannot disagree. Only
+    # produced when something actually came out of the pack; a range-extender day driven entirely on
+    # the generator has no electric figure to show rather than a zero.
+    # ONE guard, not two: `_soc_pct > 0` and a later `_kwh > 0` said the same thing, and a mutation
+    # that removed either survived every test — because there was no behaviour between them to test.
+    _soc = node["_soc_pct"]
+    node["kwh_100km"] = (round(_soc / 100.0 * get_battery_capacity_kwh() / node["km"] * 100, 1)
+                         if _soc > 0 and node["km"] > 0.5 else None)
     del node["_eff_wsum"]
     del node["_eff_wdist"]
+    del node["_soc_pct"]
     return node
 
 
@@ -4080,6 +4123,43 @@ def _fuel_wac_blend(purchases, tank_l: float = _REEV_TANK_L) -> Optional[float]:
         add_pct = liters / tank_l * 100.0
         p = rate if p is None else (fs * p + add_pct * rate) / (fs + add_pct)
     return p
+
+
+def _trip_fuel_rate_fn():
+    """Blended €/L-over-time lookup, built ONCE from every refuel — the fuel twin of
+    `_trip_blended_rate_fn`, and for the same reason: `fuel_blended_price_at` replays the whole
+    history on each call, which is fine for one trip detail and quadratic down a 500-trip list.
+
+    Exists because the day and month totals were showing the ELECTRIC half of a range-extender's
+    bill: the trips the calendar folds carried `fuel_used_l` and no price to multiply it by, since
+    nobody computed one outside the detail page (@michapr, beta #11 — "8.3 litres ... should be more
+    as 0.05€"). Returns (vehicle_id, ts) → €/L, or None before that car's first logged refuel."""
+    seen: dict = {}
+    time_line: dict = {}
+    db = _get()
+    try:
+        _ensure_fuel_purchases(db)
+        rows = db.execute(
+            "SELECT vehicle_id, ts, fuel_before_pct, liters, price_per_l FROM fuel_purchases "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) ORDER BY vehicle_id, ts, id",
+            (_current_vehicle_id(),)).fetchall()
+    except sqlite3.Error:
+        rows = []
+    tank = reev_tank_l()
+    for p in rows:
+        vid = p["vehicle_id"]
+        seen.setdefault(vid, []).append(dict(p))
+        time_line.setdefault(vid, []).append((p["ts"], _fuel_wac_blend(seen[vid], tank)))
+
+    def rate_at(vehicle_id, ts_utc):
+        best = None
+        for when, price in time_line.get(vehicle_id, ()):      # ascending → last ≤ ts wins
+            if ts_utc and when <= ts_utc:
+                best = price
+            else:
+                break
+        return best
+    return rate_at
 
 
 def fuel_blended_price_at(vehicle_id: int, ts: str) -> Optional[float]:

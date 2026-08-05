@@ -27,7 +27,15 @@
   <div class="flex items-center justify-center gap-4 text-sm mb-4 flex-wrap">
     <span class="text-slate-400">{{ total.count }} {{ t('trip_singular') if total.count == 1 else t('trips_plural') }}</span>
     <span class="text-white font-semibold">{{ total.km | dist(1) }}</span>
-    {% if total.avg_eff %}<span class="eff-pill {{ eff_cls(total.avg_eff) }}">{{ total.avg_eff | eff }}</span>{% endif %}
+    {# On a range-extender: the SAME kilometres the litres beside it are divided by. `avg_eff` is
+       the efficiency the car MEASURED, and Mate stores none for a generator trip — so it covers the
+       battery-driven half of the month while the L/100 km covers all of it. Two figures ending in
+       "per 100 km", one line apart, on different distances (@michapr, beta #11 · same defect as the
+       Trips header, beta #24). Neutral colour: the good/amber/bad thresholds judge how efficiently
+       the BATTERY drove you, which is not what this answers. A BEV keeps the measured pill. #}
+    {% set eff_all = total.kwh_100km if (is_reev and research) else None %}
+    {% if eff_all %}<span class="eff-pill" style="color:#38bdf8">{{ eff_all | eff }}</span>
+    {% elif total.avg_eff %}<span class="eff-pill {{ eff_cls(total.avg_eff) }}">{{ total.avg_eff | eff }}</span>{% endif %}
     {# The petrol half of a range-extender month. Same line, same weight as the electric pill beside
        it — @michapr (beta #11) had the litres on each trip and nothing at all where the month is
        summed up. Only when there is fuel to show, so an all-electric month says nothing. #}

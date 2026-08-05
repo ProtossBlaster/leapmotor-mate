@@ -32,7 +32,12 @@
     {% if day_totals.regen and not is_reev %}
     <span class="text-green-400/90 font-medium whitespace-nowrap" title="{{ t('total_regen') }}">♻️ {{ day_totals.regen | nice }} kWh</span>
     {% endif %}
-    {% if day_totals.avg_eff %}
+    {# Same rule as the month strip above it and the Trips header: on a range-extender this divides
+       by all the day's kilometres, the ones the litres next to it use. See trips_calendar_month. #}
+    {% set eff_all = day_totals.kwh_100km if (is_reev and research) else None %}
+    {% if eff_all %}
+    <span class="eff-pill" style="color:#38bdf8">{{ eff_all | eff }}</span>
+    {% elif day_totals.avg_eff %}
     <span class="eff-pill {{ eff_cls(day_totals.avg_eff) }}">{{ day_totals.avg_eff | eff }}</span>
     {% endif %}
     {# The third place the trips of a day are summed up, and the one missed when the month strip and
