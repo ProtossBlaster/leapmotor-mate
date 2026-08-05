@@ -6,6 +6,11 @@ import db_reader
 
 
 def _settings(monkeypatch, d):
+    # `wallbox_enabled` unless a test says otherwise: since 05/08 `get_live()` honours the switch in
+    # Settings, so a stub that leaves it out is describing a wallbox the owner switched OFF — and the
+    # right answer there is no reading at all. Every test in this file is about a wallbox that is on;
+    # what they check is which SOURCE its max-power figure comes from.
+    d = {"wallbox_enabled": "1", **d}
     monkeypatch.setattr(db_reader, "get_setting", lambda k, default="": d.get(k, default))
 
 

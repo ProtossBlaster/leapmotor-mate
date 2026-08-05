@@ -193,6 +193,11 @@ Am Ende des Menüs finden Sie **⚙️ Einstellungen** und **🚪 Abmelden** —
 Zugangspasswort gesetzt haben*; es beendet die Passwort-Sitzung und sonst nichts. Ohne Passwort ist
 es nicht da, weil es nichts zu beenden gibt.
 
+**Um die PIN des Autos zu ändern 🆕** — wenn Sie sie am Auto ändern, muss nichts getrennt werden:
+unter **Einstellungen → Fahrzeug** finden Sie unter der Kontoadresse die **Bedien-PIN**. Sie wird
+zweimal eingegeben, mit einem Auge zum Nachlesen, und gilt sofort — sowohl für Befehle von der Seite
+als auch für die aus Home Assistant. Gewünscht von **@alextchao** (#225).
+
 **Um das Leapmotor-Konto zu trennen** — etwas ganz anderes — gehen Sie zu **Einstellungen → Fahrzeug
 → 🔓 Abmelden**. Das löscht die gespeicherten Zugangsdaten und öffnet den Einrichtungsassistenten
 erneut; Zertifikat, Fahrten und Ladevorgänge bleiben.

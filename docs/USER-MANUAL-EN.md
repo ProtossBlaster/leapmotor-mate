@@ -192,6 +192,11 @@ At the bottom of the menu you'll find **⚙️ Settings**, and **🚪 Log out** 
 access password* — that one ends the password session, nothing else. It is not there otherwise, and
 there is nothing to end.
 
+**To change the car's PIN 🆕** — if you change it on the car, nothing needs unlinking: go to
+**Settings → Vehicle**, and under the account address you will find **Operation PIN**. It is typed
+twice, with an eye to read it back, and takes effect at once — both for commands from the page and
+for the ones arriving from Home Assistant. Asked for by **@alextchao** (#225).
+
 **To unlink the Leapmotor account** — a different thing entirely — go to **Settings → Vehicle →
 🔓 Log out**. That clears the saved credentials and reopens the setup wizard; your certificate,
 trips and charges stay (@JoseRMorales, #223, who went looking for the first one and wanted the

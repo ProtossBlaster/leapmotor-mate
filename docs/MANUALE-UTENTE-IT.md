@@ -192,6 +192,11 @@ In fondo al menu trovi **⚙️ Impostazioni**, e **🚪 Esci** *solo se hai imp
 d'accesso* — quello chiude la sessione della password, niente altro. Senza password non c'è, perché
 non c'è niente da chiudere.
 
+**Per cambiare il PIN dell'auto 🆕** — se lo cambi sull'auto, non serve sganciare niente: vai su
+**Impostazioni → Veicolo**, sotto l'indirizzo dell'account trovi **PIN operativo**. Si digita due
+volte, con l'occhio per rileggerlo, e vale subito — sia per i comandi dalla pagina sia per quelli
+che arrivano da Home Assistant. Domanda di **@alextchao** (#225).
+
 **Per sganciare l'account Leapmotor** — che è un'altra cosa — vai su **Impostazioni → Veicolo →
 🔓 Esci dall'account**. Cancella le credenziali salvate e riapre la configurazione guidata; il
 certificato, i viaggi e le ricariche restano.

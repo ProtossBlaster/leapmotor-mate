@@ -265,6 +265,40 @@
           <span class="text-slate-400">{{ t('setup_email') }}</span>
           <span class="text-white font-mono text-xs break-all">{{ account_user }}</span>
         </div>
+        {# The car's operation PIN, changeable here (discussion #225). It used to be written only by
+           the setup wizard, so retyping four digits meant unlinking the Leapmotor account and
+           walking the wizard again. Typed twice for the same reason as the access password (#214):
+           a PIN stored with a typo fails at the CAR, later, with an error that names no digit. #}
+        <form hx-post="api/settings/pin" hx-swap="none" class="flex flex-col gap-2 pt-3 mt-2 border-t border-slate-700/60">
+          <span class="text-[11px] text-slate-500 leading-snug">{{ t('account_pin_hint') }}</span>
+          <label class="text-slate-400">{{ t('setup_pin') }}
+            <span class="relative block mt-1">
+              <input type="password" name="pin" required maxlength="4" inputmode="numeric"
+                     autocomplete="off" placeholder="{{ t('setup_pin_ph') }}"
+                     oninput="lmPwMatch(this.form.pin2)"
+                     class="block w-full pl-2 pr-9 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+              <button type="button" onclick="lmPwReveal(this)" title="{{ t('auth_reveal') }}"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+              >{# both icons in the DOM, one hidden: an <svg> inside an attribute breaks it on its
+                  own first quote and silently collapses the card #}
+                <span data-eye="on">{{ ico_eye() }}</span><span data-eye="off" class="hidden">{{ ico_eye_off() }}</span></button>
+            </span>
+          </label>
+          {# NOT `auth_confirm`: that one was written for «la password» and four of the seven
+             languages agree with it — it/nl/pl/pt said «Ripetila», «Herhaal het», «Powtórz je»,
+             «Repete-a» beside a masculine PIN. Reusing a string is free until it carries grammar. #}
+          <label class="text-slate-400">{{ t('account_pin_confirm') }}
+            <span class="relative block mt-1">
+              <input type="password" name="pin2" required maxlength="4" inputmode="numeric"
+                     autocomplete="off" data-mismatch="{{ t('auth_mismatch') }}" oninput="lmPwMatch(this)"
+                     class="block w-full pl-2 pr-9 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+              <button type="button" onclick="lmPwReveal(this)" title="{{ t('auth_reveal') }}"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer">
+                <span data-eye="on">{{ ico_eye() }}</span><span data-eye="off" class="hidden">{{ ico_eye_off() }}</span></button>
+            </span>
+          </label>
+          <button type="submit" class="self-start px-3 py-1.5 rounded-lg text-sm font-medium text-white border border-slate-600 hover:bg-slate-600">{{ t('save') }}</button>
+        </form>
         {% endif %}
       </div>
       {% if not env_login %}

@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.7.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.8.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -3425,6 +3425,35 @@ async def save_ui_state(request: Request):
             db_reader.set_setting(f"ui_{key}_open",
                                   "1" if form.get("open") in ("1", "on", "true") else "0")
     return Response(status_code=204)
+
+
+@app.post("/api/settings/pin")
+async def set_operation_pin(request: Request):
+    """Change the car's operation PIN without unlinking the account (discussion #225, @alextchao).
+
+    Until now this lived in exactly two places: the setup wizard wrote it, and Logout cleared it. So
+    changing four digits on the car meant signing out of the Leapmotor account and walking the whole
+    wizard again — no data was lost (history is keyed by VIN) but nothing about that is obvious to
+    someone who just wants to retype a PIN.
+
+    Typed twice, like the access password (#214 @rop12770): a PIN stored with a typo fails at the
+    car, hours later, with an error that says nothing about which digit was wrong.
+
+    ⚠️ Nothing else has to be poked. The stored secret beats `LEAPMOTOR_PIN` in both readers, the web
+    command session is dropped here so the next command re-authenticates, and the poller already
+    compares (user, pass, PIN) against the ones it started with on every cycle and exits with 42 for
+    run.sh to relaunch it. That watcher was written for the account switch; a PIN change is the same
+    shape and it was already covered."""
+    form = await request.form()
+    pin = ((form.get("pin") or "") if isinstance(form.get("pin"), str) else "").strip()
+    pin2 = ((form.get("pin2") or "") if isinstance(form.get("pin2"), str) else "").strip()
+    if not pin:
+        return Response("empty", status_code=422)
+    if pin2 != pin:
+        return Response("mismatch", status_code=422)
+    db_reader.set_secret("leapmotor_pin", pin)
+    command_client._session._reset()
+    return Response(status_code=204, headers={"HX-Refresh": "true"})
 
 
 @app.post("/api/account/logout")

@@ -202,6 +202,12 @@ En bas du menu, vous trouvez **⚙️ Paramètres**, et **🚪 Déconnexion** *u
 défini un mot de passe d'accès* — celle-ci ferme la session du mot de passe, rien d'autre. Sans mot
 de passe, elle n'apparaît pas, car il n'y a rien à fermer.
 
+**Pour changer le code PIN de la voiture 🆕** — si vous le changez sur la voiture, rien à délier :
+allez dans **Paramètres → Véhicule**, sous l'adresse du compte se trouve **Code PIN d'opération**.
+Il se saisit deux fois, avec un œil pour le relire, et prend effet immédiatement — aussi bien pour
+les commandes depuis la page que pour celles venant de Home Assistant. Demandé par **@alextchao**
+(#225).
+
 **Pour délier le compte Leapmotor** — ce qui est autre chose — allez dans **Paramètres → Véhicule →
 🔓 Déconnexion**. Cela efface les identifiants enregistrés et rouvre l'assistant ; le certificat, les
 trajets et les recharges restent.

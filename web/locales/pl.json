@@ -967,6 +967,8 @@
     "vehicle_section": "Pojazd",
     "account_logout_btn": "Wyloguj",
     "account_logout_hint": "Wyloguj się, żeby powiązać inne konto Leapmotor — Twoje trasy i ładowania zostają.",
+    "account_pin_hint": "Kod PIN do obsługi auta, wymagany przez polecenia. Jeśli zmienisz go w samochodzie, wpisz go tutaj ponownie — nie trzeba odłączać konta.",
+    "account_pin_confirm": "Powtórz go",
     "account_logout_confirm": "Wylogować z Leapmotor? Skonfigurujesz się ponownie z innym kontem. Zapisane trasy, ładowania i pozycje są zachowane (dla tego samego samochodu).",
     "account_reset_hint": "Trwale usuń wszystko i zacznij od nowa — usuwa konto, wszystkie trasy, ładowania, pozycje i ustawienia.",
     "account_reset_btn": "Usuń konto / Resetuj",

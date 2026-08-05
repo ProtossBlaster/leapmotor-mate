@@ -3,6 +3,36 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.8.0] — 2026-08-05
+
+### Added
+- **Change the car's PIN without unlinking the account.** *Settings → Vehicle*, under the account
+  address: **Operation PIN**, typed twice with an eye to read it back. Until now the PIN was written
+  in exactly two places — the setup wizard saved it and Logout cleared it — so four digits changed
+  on the car meant signing out of the Leapmotor account and walking the whole wizard again. Nothing
+  was lost doing that (history is keyed by VIN), but Logout is a frightening button to press for a
+  typo. Asked for by **@alextchao** (#225).
+
+  Typed twice for the same reason as the access password (#214): a PIN stored with a typo does not
+  fail here, it fails **at the car**, later, with an error that names no digit. It takes effect at
+  once for both processes — the web command session is dropped so the next command re-authenticates,
+  and the poller already restarts itself when the stored login changes.
+
+### Fixed
+- 🔴 **Switching the wallbox OFF now switches it off.** The toggle in Settings hid the wallbox page,
+  the session-energy line and the chart overlay — and stopped there. `get_live()` never looked at
+  it, and neither did the poller, whose only gate asks *where* a charge happened, never *whether the
+  feature is on*. So with the toggle off and a mapping still saved, every poll kept reading the
+  meter into `ac_energy_kwh`.
+
+  That is not a display detail: a home charge is **billed** on that column whenever it is set, it
+  becomes the charge's energy everywhere, and the card prints "🔌 wallbox (billed)". An owner who
+  turned the feature off went on being charged at a meter he had switched away from.
+
+  The gate now sits in the one place both processes read through. Off means there is no wallbox
+  data, for anybody — and the saved mapping is left untouched, so switching back on needs no
+  remapping.
+
 ## [3.7.0] — 2026-08-05
 
 ### Added

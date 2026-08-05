@@ -384,6 +384,15 @@ def get_live() -> dict:
     out = {"configured": False, "power_kw": None, "energy_kwh": None, "status": None,
            "max_current_a": None, "charging": False, "speed": None, "speed_unit": "",
            "max_power": None, "max_power_unit": ""}
+    # The switch in Settings, honoured HERE because this is the only door wallbox data comes
+    # through — the web tile calls it, and so does the poller (recorder._read_wallbox_energy).
+    # It used to gate the wallbox PAGE, the session-energy line and the chart overlay, and nothing
+    # else: with the feature off and a mapping still saved, every poll kept reading the meter into
+    # `ac_energy_kwh`, and `poller/db.py` bills a home charge on that column whenever it is set. The
+    # owner went on being billed at a meter he had switched away from. Off means there is no wallbox
+    # data, for anybody. The saved mapping is left alone — off is ignored, not forgotten.
+    if db_reader.get_setting("wallbox_enabled", "0") != "1":
+        return out
     if not is_configured():
         return out
     try:
