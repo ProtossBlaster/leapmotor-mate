@@ -396,7 +396,7 @@
     <!-- Polling cadence -->
     {% call scard('polling', t('polling_section'), card_open.get('polling')) %}
       <div class="text-xs text-slate-400 mb-4">{{ t('polling_desc') }}</div>
-      <form hx-post="api/poll-settings" hx-trigger="change" hx-target="#poll-result" hx-swap="innerHTML" class="space-y-5">
+      <form hx-post="api/poll-settings" hx-target="#poll-result" hx-swap="innerHTML" class="space-y-5">
         <div>
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm text-white">{{ t('poll_parked_label') }}</span>
@@ -420,13 +420,19 @@
           <div class="flex justify-between text-[10px] text-slate-600 mt-1"><span>10s</span><span>60s</span></div>
         </div>
         <div id="poll-result" class="text-xs"></div>
+      
+        <div class="flex items-center justify-end mt-3">
+          <button type="submit" class="bg-brand text-white text-sm font-semibold rounded-lg px-4 py-2 flex-shrink-0">
+            {{ t('retention_save') }}
+          </button>
+        </div>
       </form>
     {% endcall %}
 
     <!-- Charge detection threshold -->
     {% call scard('charge_detect', t('charge_detect_section'), card_open.get('charge_detect')) %}
       <div class="text-xs text-slate-400 mb-4">{{ t('charge_detect_desc') }}</div>
-      <form hx-post="api/settings/charge-detect" hx-trigger="change" hx-target="#cd-result" hx-swap="innerHTML">
+      <form hx-post="api/settings/charge-detect" hx-target="#cd-result" hx-swap="innerHTML">
         <div class="flex items-center justify-between mb-2">
           <span class="text-sm text-white">{{ t('charge_detect_label') }}</span>
           <span class="font-bold text-brand"><span id="cd-val">{{ settings.get('charge_detect_min_a', '2.0') }}</span> A</span>
@@ -437,6 +443,12 @@
                class="w-full accent-brand cursor-pointer">
         <div class="flex justify-between text-[10px] text-slate-600 mt-1"><span>0.5 A</span><span>16 A</span></div>
         <div id="cd-result" class="text-xs mt-2"></div>
+      
+        <div class="flex items-center justify-end mt-3">
+          <button type="submit" class="bg-brand text-white text-sm font-semibold rounded-lg px-4 py-2 flex-shrink-0">
+            {{ t('retention_save') }}
+          </button>
+        </div>
       </form>
     {% endcall %}
 
@@ -609,7 +621,7 @@
         </button>
       </div>
       <div class="mt-3 pt-3 border-t border-slate-700">
-        <form hx-post="api/settings/charger-locator/map-threshold" hx-trigger="change"
+        <form hx-post="api/settings/charger-locator/map-threshold"
               hx-target="#map-threshold-feedback" hx-swap="innerHTML">
           <div class="flex items-center justify-between mb-1">
             <span class="text-sm text-white">{{ t('map_station_threshold_label') }}</span>
@@ -622,7 +634,13 @@
           <div class="flex justify-between text-[10px] text-slate-600 mt-1"><span>1</span><span>10</span></div>
           <div class="text-[11px] text-slate-500 mt-1">{{ t('map_station_threshold_hint') }}</div>
           <div id="map-threshold-feedback" class="text-xs mt-1" style="min-height:16px"></div>
-        </form>
+        
+        <div class="flex items-center justify-end mt-3">
+          <button type="submit" class="bg-brand text-white text-sm font-semibold rounded-lg px-4 py-2 flex-shrink-0">
+            {{ t('retention_save') }}
+          </button>
+        </div>
+      </form>
       </div>
     {% endcall %}
 
@@ -951,7 +969,7 @@
     <!-- Advanced tunables -->
     {% call scard('advanced', '⚙️ ' + t('adv_section'), card_open.get('advanced')) %}
       <div class="text-xs text-slate-400 mb-4">{{ t('adv_desc') }}</div>
-      <form hx-post="api/settings/advanced" hx-trigger="change" hx-target="#adv-result" hx-swap="innerHTML" class="space-y-5">
+      <form hx-post="api/settings/advanced" hx-target="#adv-result" hx-swap="innerHTML" class="space-y-5">
         <div>
           <div class="flex items-center justify-between mb-1">
             <span class="text-sm text-white">{{ t('adv_reconstruct_label') }}</span>
@@ -1024,6 +1042,12 @@
                   hx-on::after-request="if(event.detail.successful)setTimeout(function(){location.reload()},600)"
                   class="text-xs text-slate-400 hover:text-white border border-slate-600 rounded-lg px-3 py-1.5 flex-shrink-0">
             {{ t('adv_reset') }}
+          </button>
+        </div>
+      
+        <div class="flex items-center justify-end mt-3">
+          <button type="submit" class="bg-brand text-white text-sm font-semibold rounded-lg px-4 py-2 flex-shrink-0">
+            {{ t('retention_save') }}
           </button>
         </div>
       </form>

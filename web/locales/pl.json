@@ -36,6 +36,7 @@
     "reev_engine_km_hint": "l/100 km dotyczy tego odcinka, a nie całej podróży",
     "reev_fuel_used": "Zużyte paliwo",
     "reev_dual_energy": "Dwa źródła energii — ta podróż",
+    "reev_trip_detail": "Szczegóły trasy",
     "reev_elec_used": "Zużyta energia",
     "reev_elec_pending": "oczekiwanie na getEC z chmury",
     "reev_elec_drawn": "pobrane z pakietu",

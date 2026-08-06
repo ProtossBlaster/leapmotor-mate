@@ -36,6 +36,7 @@
     "reev_engine_km_hint": "die l/100 km beziehen sich auf diese Strecke, nicht auf die ganze Fahrt",
     "reev_fuel_used": "Kraftstoff verbraucht",
     "reev_dual_energy": "Zwei Energiequellen — diese Fahrt",
+    "reev_trip_detail": "Fahrtdetails",
     "reev_elec_used": "Strom verbraucht",
     "reev_elec_pending": "Cloud-getEC ausstehend",
     "reev_elec_drawn": "aus dem Akku entnommen",

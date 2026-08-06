@@ -99,15 +99,22 @@ def _card():
 # ── the division itself ───────────────────────────────────────────────────────────────────────
 
 def test_it_is_everything_spent_over_everything_driven(reev):
-    """200 km, 5.00 € of electricity and 72.00 € of petrol → 38.50 € per 100 km. Two sums and one
-    division; nothing here is a rate."""
+    """200 km, 5.00 € of electricity, and 40 litres bought at 1.80 of which **10 were burned**
+    → 2.50 + 9.00 = 11.50 € per 100 km.
+
+    ⚠️ This test used to assert **36.00** on the fuel side — the whole 72 € purchase over 200 km —
+    and it was asserting a defect. @michapr saw it as 24.18 €/100km against the Trips page's 3.87
+    for the same petrol (beta #25, 06/08/26): 12 € a litre, because ~50 of the 60 litres he had
+    bought were still in the tank. Money is still divided by kilometres and nothing here is a rate;
+    what changed is WHICH money — the petrol burned, not the petrol bought, priced at the same
+    blended €/L the Trips page uses. `reev_actual_spend` still sums the purchases, and should."""
     _trip(reev)
     _charge(reev, kwh=20.0, cost=5.00)
     _refuel(reev, litres=40.0, total_cost=72.00)
     out = _card()
     assert out["elec_100km"] == 2.50
-    assert out["fuel_100km"] == 36.00
-    assert out["total_100km"] == 38.50
+    assert out["fuel_100km"] == 9.00        # 10 L burned × 1.80 €/L over 200 km
+    assert out["total_100km"] == 11.50      # was 38.50, when the whole tank was billed
     assert out["km"] == 200.0
 
 
@@ -314,7 +321,7 @@ def test_no_charge_priced_at_all_is_named_as_a_whole_missing_side(reev):
     out = _card()
     assert out["elec_100km"] is None
     assert out["elec_missing"] is True
-    assert out["total_100km"] == 36.00
+    assert out["total_100km"] == 9.00       # the petrol BURNED, not the tank bought — beta #25
 
 
 def test_a_database_without_the_gross_kwh_column_still_answers(reev):

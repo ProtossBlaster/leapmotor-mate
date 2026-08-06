@@ -78,6 +78,30 @@ _API_LOCK = threading.Lock()
 _CLIM_MODE_TOKEN = {1: "cold", 3: "hot", 4: "wind"}   # signal 3713 → ac_on mode; auto(0)/unknown → wind
 
 
+def _charge_fields(data) -> str:
+    """The three inputs that decide whether a charge session opens, for the poll log line.
+
+    @adoewa (#230, 06/08/26): his C10 climbed 49.8% → 90.0% over 3¼ hours with the car demonstrably
+    ONLINE — 185 polls, 185 distinct SoC values, frames 2 s old — and Mate opened nothing. The
+    bundle could prove the charge happened and could not say WHY it was not recorded, because the
+    decision's three inputs were nowhere in the log: the cable's state (1149, via `_is_plugged_in`),
+    the decision itself (`_is_charging`), and the pack current (1178). They live in `positions`, one
+    row per poll, and in the bundle as a SINGLE snapshot — taken ten hours after the cable came out.
+
+    ⚠️ Measured before adding, over every bundle we hold (7 bundles, 5 cars, 88 car-days): 35
+    charges taken while parked, 34 seen, **1 lost**. 2.9%, one car. So this is not a fix for
+    something that bites everyone — it is the log carrying enough that the next one is answerable
+    at all, whoever it happens to.
+
+    Three fields and no more: this line is written on every poll of every install, ~2900 times a
+    day per user. `None` prints as `?`/`—` rather than as 0 — an absent signal is not a zero signal,
+    and reading one as the other is a mistake this repo has made before.
+    """
+    plug = "?" if data.plug_connected is None else (1 if data.plug_connected else 0)
+    amps = "—" if data.charge_current_a is None else f"{data.charge_current_a:.1f}"
+    return f"plug={plug} chg={data.charging_status} A={amps}"
+
+
 def _climate_ctx_from_db(db):
     """(mode_token, circle, fan, temp) from the latest stored position — lets an MQTT fan/recirc
     change PRESERVE the rest of the panel. Short-lived connection: this runs on paho's network
@@ -817,9 +841,9 @@ def main():
                          if data.timestamp_ms else "?")
             log.info(
                 "SOC %.1f%% | Range %d km | Speed %.0f km/h | Odo %.0f km | State: %-8s | "
-                "Gear: %s | Frame age: %s | Next poll: %ds%s",
+                "Gear: %s | %s | Frame age: %s | Next poll: %ds%s",
                 data.soc, data.range_km, data.speed_kmh, data.odometer_km,
-                recorder.state.value, data.gear, frame_age, interval,
+                recorder.state.value, data.gear, _charge_fields(data), frame_age, interval,
                 " (boost)" if boosting else "",
             )
             recorder.mark_online()

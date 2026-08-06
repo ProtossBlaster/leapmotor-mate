@@ -363,7 +363,7 @@ card showing the cumulative energy drawn via V2L over all time.
 **Cost per 100 km 🆕** — what covering 100 km actually costs: **every euro spent**, divided by
 **every kilometre driven**. No price per kWh and no estimate — the sum of what you paid over the sum
 of what you drove, so it includes the kWh that moved the car nowhere (climate, preconditioning, the
-charger's own losses). On a range-extender the petrol is added beside the electricity. If any charge
+charger's own losses). On a range-extender the petrol is added beside the electricity — the petrol **burned**, priced at what the tank cost you, not the whole refuel: a tank you have paid for is mostly still in the tank, and charging it to the kilometres it has not driven yet made the figure several times too high 🆕. If any charge
 has no price the card says so, because the real figure is then higher. It follows your units: with
 miles it becomes "per 100 mi".
 
@@ -594,6 +594,19 @@ divided into three columns.
   **Home Assistant** separately: the first says whether you have the feature ticked, the second only
   whether Mate can reach HA. There's also a **scan for missed charges** that happened while the car
   was asleep.
+
+  🆕 **The sliders that change how Mate behaves now need a Save press.** Poll cadence, charge
+  detection, the advanced thresholds: they used to save the instant you let go of the slider, so a
+  finger dragging across one while scrolling a phone changed it without asking. The slider still
+  moves freely; nothing is written until you press Save. **And every such change is recorded** —
+  when, from what, to what — and shown in the bundle, so "it changed by itself" can be checked.
+
+  🆕 The bundle now also carries **the rows themselves** — the charges and the trips of the last
+  fortnight, straight from the database — and a section that lists **every time the battery filled
+  up while parked** together with what Mate could see at that moment: whether the cable declared
+  itself, whether Mate concluded it was charging, the current, and whether the data was arriving
+  fresh or the cloud was repeating an old reading. None of it is new information about you: it is
+  what Mate already recorded, finally written where support can read it. Still no positions.
 - **⚙️ Advanced** — fine parameters for expert users: the minimum threshold to **reconstruct** a
   missed charge, the **vampire-drain** threshold, the kW threshold to distinguish **DC**, and the
   minimum temperature for the **battery-health** calculation. There's a button to **reset to

@@ -376,7 +376,9 @@ dell'auto, quindi non intaccata dai rari viaggi che il cloud non registra), con 
 **tutti i chilometri percorsi**. Nessun prezzo al kWh e nessuna stima — la somma di ciò che hai
 pagato sopra la somma di ciò che hai guidato, quindi ci sono dentro anche i kWh che non hanno mosso
 l'auto (clima, precondizionamento, perdite del caricatore). Su una versione con range extender la
-benzina si aggiunge accanto all'elettrico. Se qualche ricarica non ha un prezzo la card lo dice,
+benzina si aggiunge accanto all'elettrico — la benzina **bruciata**, al prezzo che ti è costato il
+serbatoio, non l'intero rifornimento: un pieno pagato è quasi tutto ancora nel serbatoio, e
+addebitarlo ai chilometri che non ha ancora fatto rendeva il numero parecchie volte più alto 🆕. Se qualche ricarica non ha un prezzo la card lo dice,
 perché in quel caso la spesa vera è più alta. Segue le tue unità: con le miglia diventa «per 100 mi».
 
 Accanto ai soldi la card adesso dice anche **quanti kWh sono serviti per quei 100 km**, con
@@ -611,6 +613,21 @@ volta. È divisa in tre colonne.
   **spunta della wallbox** e **Home Assistant**: la prima dice se hai la funzione attiva, la seconda
   solo se Mate riesce a raggiungere HA. C'è anche una **scansione delle ricariche perse** mentre
   l'auto dormiva.
+
+  🆕 **I cursori che cambiano il comportamento di Mate adesso vogliono un Salva.** Cadenza dei
+  poll, rilevamento della ricarica, le soglie avanzate: prima si salvavano appena lasciavi il
+  pomello, quindi un dito che passava sopra uno scorrendo la pagina lo cambiava senza chiedere. Il
+  cursore si muove ancora liberamente; finché non premi Salva non si scrive niente. **E ogni
+  modifica di questo tipo viene registrata** — quando, da cosa a cosa — e finisce nel pacchetto,
+  così «si è cambiato da solo» si può verificare.
+
+  🆕 Adesso il pacchetto porta anche **le righe stesse** — le ricariche e i viaggi delle ultime due
+  settimane, direttamente dal database — e una sezione che elenca **ogni volta che la batteria si è
+  riempita ad auto ferma** insieme a quello che Mate vedeva in quel momento: se il cavo si era
+  dichiarato, se Mate aveva concluso che stava caricando, la corrente, e se i dati arrivavano
+  freschi o il cloud ripeteva una lettura vecchia. Non è nessuna informazione nuova su di te: è
+  quello che Mate già registrava, finalmente scritto dove l'assistenza può leggerlo. Le posizioni
+  restano fuori.
 - **⚙️ Avanzate** — parametri fini per utenti esperti: soglia minima per **ricostruire** una ricarica
   saltata, soglia del **consumo da fermo (vampire drain)**, soglia kW per distinguere **DC**, e
   temperatura minima per il calcolo della **salute batteria**. C'è un pulsante per **ripristinare i

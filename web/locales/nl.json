@@ -36,6 +36,7 @@
     "reev_engine_km_hint": "de l/100 km geldt over deze afstand, niet over de hele rit",
     "reev_fuel_used": "Brandstof verbruikt",
     "reev_dual_energy": "Dubbele energie — deze rit",
+    "reev_trip_detail": "Ritdetails",
     "reev_elec_used": "Elektrisch verbruikt",
     "reev_elec_pending": "wacht op getEC uit de cloud",
     "reev_elec_drawn": "uit het accupakket gehaald",

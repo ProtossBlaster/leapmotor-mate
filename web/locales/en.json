@@ -36,6 +36,7 @@
     "reev_engine_km_hint": "the L/100 km is over this distance, not the whole trip",
     "reev_fuel_used": "Fuel used",
     "reev_dual_energy": "Dual energy — this trip",
+    "reev_trip_detail": "Trip detail",
     "reev_elec_used": "Electric used",
     "reev_elec_pending": "cloud getEC pending",
     "reev_elec_drawn": "drawn from the pack",

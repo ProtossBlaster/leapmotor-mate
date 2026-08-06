@@ -491,8 +491,59 @@ def get_account_user() -> str:
     return get_setting("leapmotor_user") or os.environ.get("LEAPMOTOR_USER", "")
 
 
+# The settings that silently change how Mate BEHAVES — nine sliders in five forms. #230: @adoewa's
+# `charge_detect_min_a` sat at 14.5 A against a default of 2.0, above the 11-12 A a home AC charge
+# moves the pack at, so no charge was ever recorded; he says he had set 2, and that the poll cadence
+# had moved too. Each was a range slider in a form that saved on `change` — a stray drag while
+# scrolling a phone wrote the value with no confirmation and no trace. The forms now need a Save
+# press; this is the other half, so "it changed by itself" stops being unanswerable.
+#
+# ⚠️ Deliberately NOT everything: language, currency, prices and the rest are visible in the UI and
+# change nothing about what gets recorded. A trail of everything is a trail nobody reads. And never
+# a secret — the values are stored verbatim.
+AUDITED_SETTINGS = (
+    "poll_parked", "poll_driving", "charge_detect_min_a", "charge_reconstruct_min_pct",
+    "vampire_min_drop_pct", "vampire_min_hours", "charge_dc_min_kw", "soh_temp_min_c",
+    "map_station_min_sessions", "positions_retention_days",
+)
+
+
+def _ensure_settings_audit(db) -> None:
+    db.execute("CREATE TABLE IF NOT EXISTS settings_audit ("
+               "id INTEGER PRIMARY KEY AUTOINCREMENT, changed_at TEXT NOT NULL, key TEXT NOT NULL,"
+               " old_value TEXT, new_value TEXT)")
+
+
+def get_settings_audit(limit: int = 40) -> list:
+    """The recent changes to the behaviour settings, newest first."""
+    # ⚠️ Read-only, deliberately: a reader must never open the write connection just to CREATE a
+    # table it might read. The table appears on the first audited write; until then "no such table"
+    # is the honest answer and is caught below. The first version called `_conn_rw()` here and the
+    # suite raised "SQLite objects created in a thread can only be used in that same thread".
+    try:
+        db = _get()
+        return [dict(r) for r in db.execute(
+            "SELECT changed_at, key, old_value, new_value FROM settings_audit"
+            " ORDER BY id DESC LIMIT ?", (limit,)).fetchall()]
+    except sqlite3.Error:
+        return []
+
+
 def set_setting(key: str, value: str) -> None:
     db = _conn_rw()
+    if key in AUDITED_SETTINGS:
+        try:
+            _ensure_settings_audit(db)
+            row = db.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+            old = row[0] if row else None
+            # Saving a form re-writes every field in it, so only real movement is recorded —
+            # otherwise the trail fills with noise and the one line that matters is buried.
+            if str(old) != str(value):
+                db.execute("INSERT INTO settings_audit (changed_at, key, old_value, new_value)"
+                           " VALUES (?,?,?,?)",
+                           (datetime.now(timezone.utc).isoformat(), key, old, str(value)))
+        except sqlite3.Error:
+            pass                  # a trail that fails must never stop the setting being saved
     db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?,?)", (key, str(value)))
     db.commit()
     _lang_memo[0] = None          # cheap and unconditional: any write re-reads the language once
@@ -3321,7 +3372,12 @@ def reev_fuel_summary() -> Optional[dict]:
     except sqlite3.Error:
         return None
     tank = reev_tank_l()
+    # €/L blended over time, built ONCE — the same lookup the trips list and the calendar use, so
+    # the cost card cannot disagree with them (beta #25: the card said 116 €, the Trips page 18.54 €
+    # for the same 9.6 litres, because the card was summing the PURCHASES).
+    _fuel_rate_at = _trip_fuel_rate_fn()
     total_l, engine_km, engine_l, n = 0.0, 0.0, 0.0, 0
+    total_cost = 0.0
     total_km = 0.0        # EVERY kilometre driven — the L/100 km denominator, as the car's own is
     for r in rows:
         eng = _reev_engine_on(db, r["vehicle_id"], r["started_at"], r["ended_at"])
@@ -3338,6 +3394,9 @@ def reev_fuel_summary() -> Optional[dict]:
         if not drop_l:
             continue                      # nothing burned (or under both floors) — but the km count
         total_l += drop_l
+        rate = _fuel_rate_at(r["vehicle_id"], r["started_at"])
+        if rate:
+            total_cost += drop_l * rate
         if eng:
             engine_km += eng["engine_km"]
             engine_l += eng["engine_fuel_pct"] / 100.0 * tank
@@ -3363,6 +3422,12 @@ def reev_fuel_summary() -> Optional[dict]:
         # a NOMINAL tank, while `total_l` comes off the car's own millilitre counter wherever the
         # trip carries it. Measured litres over measured distance, or the pair means nothing.
         "engine_l_100km": round(total_l / engine_km * 100, 1) if engine_km > 0.5 else None,
+        # What that petrol COST — litres burned × the blended €/L of the tank at the time, which is
+        # exactly what the Trips page charges per trip. NOT the sum of the refuels: a tank you paid
+        # for is mostly still in the tank (beta #25 — 60 L bought, 9.6 burned, and the card was
+        # billing all 60 against 479 km, i.e. 12 €/litre). `reev_actual_spend` keeps summing the
+        # purchases and is right to: that card answers "what did you buy".
+        "total_cost": round(total_cost, 2) if total_cost else None,
     }
 
 
@@ -3561,11 +3626,22 @@ def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
                     (_current_vehicle_id(),)).fetchall():
                 if p["total_cost"] is None or p["total_cost"] < 0:
                     continue
-                fuel_n, fuel_cost = fuel_n + 1, fuel_cost + p["total_cost"]
+                # ⚠️ COUNTED, not added into the figure. Summing the purchases charged a full tank
+                # to the kilometres it has not driven yet — beta #25: 60 L bought, 9.6 burned, and
+                # the card read 24.18 €/100km against the Trips page's 3.87 for the same petrol,
+                # i.e. 12 €/litre. The count still drives the "no refuel entered" warning and the
+                # window's start date, both of which are about what Mate was TOLD.
+                fuel_n += 1
                 if since_fuel is None or p["ts"] < since_fuel:
                     since_fuel = p["ts"]
         except sqlite3.Error:
             pass
+
+    # What the petrol BURNED cost — litres × the blended €/L of the tank at the time, the same
+    # figure the Trips page charges per trip. Without a single refuel entered there is no €/L to
+    # multiply by, so it stays 0 and `fuel_missing` says the total is a floor.
+    if fuel_l_burned:
+        fuel_cost = (reev_fuel_summary() or {}).get("total_cost") or 0.0
 
     if priced_n == 0 and fuel_n == 0:
         return None

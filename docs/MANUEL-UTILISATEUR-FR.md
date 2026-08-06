@@ -366,7 +366,9 @@ incluent désormais une carte **Total V2L** avec l'énergie cumulée soutirée v
 par **chaque kilomètre parcouru**. Pas de prix au kWh ni d'estimation — la somme de ce que vous avez
 payé sur la somme de ce que vous avez roulé, donc y compris les kWh qui n'ont fait avancer la
 voiture nulle part (climatisation, préconditionnement, pertes du chargeur). Sur une version à
-prolongateur d'autonomie, le carburant s'ajoute à côté de l'électricité. Si une recharge n'a pas de
+prolongateur d'autonomie, le carburant s'ajoute à côté de l'électricité — le carburant **brûlé**, au
+prix qu'a coûté le réservoir, pas le plein entier : un plein payé est encore en grande partie dans le
+réservoir 🆕. Si une recharge n'a pas de
 prix, la carte le dit, car le vrai montant est alors plus élevé. Elle suit vos unités : en miles,
 cela devient « aux 100 mi ».
 
@@ -608,6 +610,20 @@ Elle est divisée en trois colonnes.
   joindre quand vous demandez de l'aide. La ligne des intégrations indique séparément l'**interrupteur
   wallbox** et **Home Assistant** : le premier dit si la fonction est cochée, le second seulement si Mate
   arrive à joindre HA. Il y a aussi une **analyse des recharges manquées** pendant que la voiture dormait.
+
+  🆕 **Les curseurs qui changent le comportement de Mate demandent maintenant un Enregistrer.**
+  Cadence des relevés, détection de recharge, seuils avancés : ils s'enregistraient dès qu'on
+  lâchait le curseur, donc un doigt passant dessus en faisant défiler la page le modifiait sans
+  rien demander. Le curseur bouge toujours librement ; rien n'est écrit tant que vous n'avez pas
+  validé. **Et chaque modification de ce type est enregistrée** — quand, de quoi à quoi — et
+  apparaît dans le paquet, donc « ça a changé tout seul » devient vérifiable.
+
+  🆕 Le paquet emporte désormais aussi **les lignes elles-mêmes** — les recharges et les trajets des
+  deux dernières semaines, directement depuis la base — et une section qui liste **chaque fois que la
+  batterie s'est remplie à l'arrêt**, avec ce que Mate voyait à ce moment-là : si le câble s'était
+  déclaré, si Mate avait conclu qu'il chargeait, le courant, et si les données arrivaient fraîches ou
+  si le cloud répétait une vieille lecture. Rien de nouveau vous concernant : c'est ce que Mate
+  enregistrait déjà, enfin écrit là où le support peut le lire. Toujours sans positions.
 - **⚙️ Avancé** — des paramètres fins pour utilisateurs expérimentés : seuil minimal pour **reconstruire** une
   recharge manquée, seuil de la **décharge à l'arrêt (vampire drain)**, seuil kW pour distinguer le **DC**, et
   température minimale pour le calcul de la **santé batterie**. Il y a un bouton pour **réinitialiser les

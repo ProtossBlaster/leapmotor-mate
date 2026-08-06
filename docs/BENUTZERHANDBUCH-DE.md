@@ -352,7 +352,8 @@ kumulierten Energie.
 **jeden gefahrenen Kilometer**. Kein Preis pro kWh und keine Schätzung — die Summe des Bezahlten
 über der Summe des Gefahrenen, also einschließlich der kWh, die das Auto nirgendwohin bewegt haben
 (Klima, Vorkonditionierung, Verluste des Ladegeräts). Bei einer Version mit Range Extender kommt der
-Kraftstoff neben dem Strom dazu. Fehlt bei einer Ladung der Preis, sagt die Karte es, denn der echte
+Kraftstoff neben dem Strom dazu — der **verbrauchte** Kraftstoff, zu dem Preis, den der Tank gekostet
+hat, nicht die ganze Tankfüllung: eine bezahlte Tankfüllung steckt größtenteils noch im Tank 🆕. Fehlt bei einer Ladung der Preis, sagt die Karte es, denn der echte
 Wert liegt dann höher. Sie folgt Ihren Einheiten: in Meilen wird daraus „pro 100 mi".
 
 Neben dem Geld zeigt die Karte jetzt auch, **wie viele kWh diese 100 km gekostet haben**, mit dem
@@ -585,6 +586,19 @@ ist in drei Spalten unterteilt.
   sicher anzuhängen ist, wenn Sie um Hilfe bitten. Die Integrationszeile führt den **Wallbox-Schalter** und
   **Home Assistant** getrennt auf: Ersteres sagt, ob die Funktion aktiviert ist, Letzteres nur, ob Mate HA
   erreichen kann. Es gibt auch eine **Suche nach verpassten Ladevorgängen**, während das Auto schlief.
+
+  🆕 **Die Schieberegler, die Mates Verhalten ändern, brauchen jetzt ein Speichern.** Abfragetakt,
+  Ladeerkennung, die erweiterten Schwellen: sie speicherten, sobald man den Regler losließ — ein
+  Finger, der beim Scrollen darüberfuhr, änderte den Wert ungefragt. Der Regler bewegt sich weiterhin
+  frei; geschrieben wird erst beim Speichern. **Und jede solche Änderung wird festgehalten** — wann,
+  von was, auf was — und erscheint im Paket, sodass „es hat sich von selbst geändert" prüfbar wird.
+
+  🆕 Das Paket enthält jetzt auch **die Zeilen selbst** — die Ladevorgänge und Fahrten der letzten
+  zwei Wochen, direkt aus der Datenbank — sowie einen Abschnitt, der **jedes Mal auflistet, wenn sich
+  die Batterie im Stand gefüllt hat**, zusammen mit dem, was Mate in diesem Moment sah: ob sich das
+  Kabel gemeldet hat, ob Mate auf „lädt" geschlossen hat, den Strom, und ob die Daten frisch
+  eintrafen oder die Cloud eine alte Messung wiederholte. Nichts Neues über Sie: es ist das, was Mate
+  ohnehin aufzeichnete, endlich dort notiert, wo der Support es lesen kann. Weiterhin ohne Positionen.
 - **⚙️ Erweitert** — Feineinstellungen für erfahrene Benutzer: Mindestschwelle, um einen übersprungenen Ladevorgang zu
   **rekonstruieren**, Schwelle des **Ruhestromverlusts (Vampire Drain)**, kW-Schwelle, um **DC** zu unterscheiden,
   und Mindesttemperatur für die Berechnung des **Batteriezustands**. Es gibt eine Schaltfläche, um die
