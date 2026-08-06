@@ -330,6 +330,7 @@
     "wb_profile_charging_blocked": "Cannot switch profiles while a charge is active",
     "charge_unconfirmed": "To confirm",
     "charge_free": "Free",
+    "charge_manual": "Manual",
     "charge_free_hint": "Mark this home charge as free — e.g. self-produced solar. It stays under Home, at cost 0. Mate can't measure the solar/grid split, so this is your call.",
     "charges_to_confirm": "charge(s) to confirm",
     "charge_confirm_q": "What type of charge?",

@@ -330,6 +330,7 @@
     "wb_profile_charging_blocked": "Não é possível mudar de perfil enquanto um carregamento está ativo",
     "charge_unconfirmed": "Por confirmar",
     "charge_free": "Gratuito",
+    "charge_manual": "Manual",
     "charge_free_hint": "Marca este carregamento em casa como gratuito — ex.: solar autoproduzido. Mantém-se em Casa, com custo 0. O Mate não consegue medir a divisão solar/rede, por isso é uma escolha tua.",
     "charges_to_confirm": "carregamento(s) por confirmar",
     "charge_confirm_q": "Que tipo de carregamento?",

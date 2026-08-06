@@ -330,6 +330,7 @@
     "wb_profile_charging_blocked": "Kan niet van profiel wisselen terwijl er geladen wordt",
     "charge_unconfirmed": "Te bevestigen",
     "charge_free": "Gratis",
+    "charge_manual": "Handmatig",
     "charge_free_hint": "Markeer deze laadbeurt thuis als gratis — bijvoorbeeld zelf opgewekte zonne-energie. Hij blijft onder Thuis staan, met kosten 0. Mate kan de verdeling zon/net niet meten, dus dit is jouw keuze.",
     "charges_to_confirm": "laadbeurt(en) te bevestigen",
     "charge_confirm_q": "Wat voor soort laadbeurt?",

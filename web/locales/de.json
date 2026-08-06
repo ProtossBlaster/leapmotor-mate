@@ -330,6 +330,7 @@
     "wb_profile_charging_blocked": "Profilwechsel während eines aktiven Ladevorgangs nicht möglich",
     "charge_unconfirmed": "Zu bestätigen",
     "charge_free": "Gratis",
+    "charge_manual": "Manuell",
     "charge_free_hint": "Diese Heimladung als gratis markieren — z. B. selbst erzeugter Solarstrom. Sie bleibt unter Zuhause, mit Kosten 0. Mate kann den Solar-/Netz-Anteil nicht messen — das ist deine Entscheidung.",
     "charges_to_confirm": "zu bestätigende Ladevorgänge",
     "charge_confirm_q": "Welche Art von Ladevorgang?",

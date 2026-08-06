@@ -585,6 +585,21 @@ def _is_charging(sig: dict) -> bool:
 # car in the sea until the next signed poll arrives.
 _coord_sign: dict[str, dict[str, float]] = {}
 
+# #232: "written only by a signed read" is not the same as "written only by a SIGNED read". Signal
+# 2 was believed whenever it was non-zero, with no sanity check, so one frame that arrived carrying
+# the bare magnitude taught the wrong hemisphere — and poller/main.py then persisted it, so the
+# mistake outlived the restart and both readers mirrored the car for good.
+#
+# The physics the guard was missing: a car cannot teleport across the line. Driving to the other
+# side means passing through zero, so a real crossing is always observed NEAR the line; a dropped
+# sign is observed at full magnitude (8.6° W becoming 8.6° E is 1720 km between two polls).
+_MERIDIAN_NEAR_DEG = 1.0          # within ~85 km of the line a crossing is ordinary — believe it
+_SIGN_FLIP_CONFIRMATIONS = 10     # far from it, the flip must be argued: 10 polls in a row
+# Consecutive signed polls, per VIN and axis, asking for the opposite hemisphere. Kept OUT of
+# _coord_sign so get_coord_signs() still returns only the two signs poller/main.py persists — a
+# counter leaking in there would rewrite the setting on every poll.
+_sign_flip_pending: dict[str, dict[str, int]] = {}
+
 
 def _coerce_float(raw) -> float:
     if raw in (None, ""):
@@ -616,12 +631,42 @@ def _resolve_coord(vin: str, axis: str, signed_raw, unsigned_raw) -> float:
     remembered sign; when only the unsigned signal is present, re-apply the remembered sign
     to its magnitude (#43). Returns 0.0 when no usable value exists. With no memory yet (a
     fresh install before any signed poll) the unsigned value is used as-is — unchanged from
-    the pre-#43 behaviour, so east-of-Greenwich cars are never affected."""
+    the pre-#43 behaviour, so east-of-Greenwich cars are never affected.
+
+    A signed read that contradicts a hemisphere we already know is only believed near the line, or
+    after _SIGN_FLIP_CONFIRMATIONS polls in a row say the same thing (#232)."""
     mem = _coord_sign.setdefault(vin, {})
     s = _coerce_float(signed_raw)
     if s != 0.0:
-        mem[axis] = -1.0 if s < 0 else 1.0
-        return s
+        proposed = -1.0 if s < 0 else 1.0
+        known = mem.get(axis)
+        if known is None or known == proposed or s < 0.0 or abs(s) <= _MERIDIAN_NEAR_DEG:
+            # Nothing to protect (fresh install), nothing to argue about, a value that proves its
+            # own sign, or a car genuinely at the line. Any of the four also settles a pending flip.
+            #
+            # 🔑 `s < 0` is why the guard is one-directional: a LOST sign can only ever surface as
+            # a positive number, because the signals it would be confused with are magnitudes and
+            # have no minus to drop. A negative reading is therefore evidence, not noise — doubting
+            # it would strand a car that moved west or south for ten polls and buy nothing.
+            mem[axis] = proposed
+            _sign_flip_pending.get(vin, {}).pop(axis, None)
+            return s
+        seen = _sign_flip_pending.setdefault(vin, {}).get(axis, 0) + 1
+        _sign_flip_pending[vin][axis] = seen
+        if seen >= _SIGN_FLIP_CONFIRMATIONS:
+            # Argued for long enough to be real: a car shipped across the line with its SIM dark
+            # never gets to be seen near it, and refusing forever would strand that owner.
+            log.warning("GPS %s: the opposite hemisphere has now been reported %d polls running — "
+                        "accepting it and re-learning the sign", axis, seen)
+            mem[axis] = proposed
+            _sign_flip_pending[vin].pop(axis, None)
+            return s
+        # NO coordinate in this line: the poller log ships inside the diagnostics bundle, which
+        # strips the GPS signals precisely so it can be attached in public (#232 asked for it).
+        log.warning("GPS %s: cloud reported the opposite hemisphere far from the line (%d/%d) — "
+                    "a car cannot cross it in one poll, keeping the remembered sign",
+                    axis, seen, _SIGN_FLIP_CONFIRMATIONS)
+        return abs(s) * known
     u = _coerce_float(unsigned_raw)
     if u == 0.0:
         return 0.0

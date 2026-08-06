@@ -3,6 +3,83 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.8.6] — 2026-08-07
+
+**A car that kept ending up in the sea, and a charge type that only ever spoke English.**
+
+### Fixed
+
+- 🧭 **GPS: your car stays where it is on the map.** @rop12770 (#232) is in Portugal and his C10 was
+  plotted in the sea west of Sardinia — latitude right, longitude mirrored, and a marker **22
+  seconds old**, so nothing to do with old history.
+
+  That resolver had not changed since **v2.8.8**, so no update moved it. Reading it again found the
+  hole the comment beside it denies:
+
+  > *The memory is only ever written by a signed read, never by the fallback, so it can't be
+  > polluted.*
+
+  True only while the *signed* signal is actually signed. The cloud sends the coordinates twice —
+  once carrying its sign, once as a bare magnitude — and Mate believed the signed slot whenever it
+  was non-zero, with **no sanity check at all**. A single frame arriving there without its minus
+  teaches the wrong hemisphere; the poller then writes that conclusion to the database, so it
+  survives the restart and both readers mirror the car from then on. The guard built to survive a
+  *missing* sign had no defence against a *wrong* one.
+
+  🔑 The physics it was missing: **a car cannot teleport across the line.** Driving to the other
+  side means passing through zero, so a real crossing is always seen near the meridian — while a
+  dropped sign shows up at full magnitude, 8.6° W becoming 8.6° E, 1720 km between two polls.
+
+  So a remembered hemisphere now changes only on evidence: **at once within 1°** of the line, where
+  crossing is ordinary, and otherwise only after **ten consecutive polls** say the same thing. One
+  good frame in between resets the count, so a cloud that flickers never accumulates. A car
+  genuinely shipped across the meridian with its SIM dark re-registers within minutes of coming
+  back; a glitch never gets there.
+
+  🔑 And the guard is **one-directional**, because it has to be: a lost sign can only ever surface
+  as a *positive* number — the signals it gets confused with are magnitudes, with no minus to lose.
+  A negative reading is therefore proof, not suspicion, and passes straight through. Doubting it
+  would have stranded any car moving west or south for ten polls and bought nothing.
+
+  The poller now says so in its own log, **with no coordinate in the line** — that log ships inside
+  the diagnostics bundle, which exists to be attached in public.
+
+  ⚠️ What this does **not** do: repair an install whose remembered sign has already flipped. That
+  one heals on the first properly signed frame the cloud sends. #232 stays open until its bundle
+  arrives — the guard closes the way in, it does not yet prove it was the way used.
+
+- 🌍 **The charge type now reads in your own language.** @konrad300 (#210) opened Mate in Polish
+  and found the Costs page, the charge badge, the type dropdown and the search filter all saying
+  **"Home"** — while the monthly report, on the same screen, called the same thing **"Dom"**.
+
+  The comment sitting above those labels was the part that was wrong:
+
+  > *Labels are intentionally language-neutral (international loanwords + universal electrical
+  > acronyms) so they never need translating across UI languages.*
+
+  **AC, DC and HPC are acronyms and stay.** *Home*, *FREE* and *Manual* are ordinary English words,
+  and the app was not only contradicting its own report — it was contradicting **its own manual**,
+  which has said *Casa*, *Domicile* and *Zuhause* in three languages all along.
+
+  🔑 Two of the three words already existed, translated by native speakers, and are reused rather
+  than duplicated: `report_home` — the monthly report's own *Dom*, the very word that exposed the
+  contradiction — and `charge_free`. Only *Manual* needed adding, in all seven languages.
+
+  ⚠️ **Three copies, in three languages**: a Python dict, a Jinja tuple, and a JavaScript object in
+  the same page. A fix that caught only the one he reported would have been the same defect
+  returning on a different screen. Translated at the source, so the nine routes that hand the types
+  to a template needed no change and cannot drift apart later.
+
+  We answered *"PR very welcome, please go ahead"* and left him the map of the keys to reuse. Six
+  days on it had not arrived, so it is done here — with the thanks it deserves for a report precise
+  enough to be actioned without a single question back.
+
+### Changed
+
+- The four user manuals stopped declaring **v3.6.0**. Their contents have been updated with every
+  release since; only the line at the top saying which version they describe had been left behind —
+  which is the exact defect the rule about shipping documentation was written to prevent.
+
 ## [3.8.5] — 2026-08-06
 
 **A diagnostics release: it changes nothing you look at, and a great deal about what can be

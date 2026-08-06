@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.8.5"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.8.6"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -986,7 +986,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
     return templates.TemplateResponse(request, "charges.html", _ctx(
         page="charges", vehicle=vehicle,
         stats=stats, total=total, highlight=highlight,
-        charge_types=db_reader.CHARGE_TYPES, prices=prices,
+        charge_types=db_reader.charge_types_localised(), prices=prices,
         status=status, ac_dc=db_reader.get_ac_dc_stats(),
         unconfirmed=db_reader.unconfirmed_charges_count(),
         station=station, station_info=station_info,
@@ -1020,7 +1020,7 @@ def _render_charges_calendar(request: Request, year: int, month: int, station: s
         "prev_year": prev_year, "prev_month": prev_month,
         "next_year": next_year, "next_month": next_month,
         "today": today, "station": station,
-        "charge_types": db_reader.CHARGE_TYPES, "fmt_dur": _fmt_dur,
+        "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
     }
     if open_day and open_day in cal["days"]:
         ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
@@ -1101,7 +1101,7 @@ async def charges_calendar_day(request: Request, year: int, month: int, day: int
     charges = db_reader.get_charges_calendar_day(year, month, day, station=station or None)
     from datetime import date
     return templates.TemplateResponse(request, "partials/charges_calendar_day.html", {
-        "t": i18n.get_t(lang), "charge_types": db_reader.CHARGE_TYPES, "fmt_dur": _fmt_dur,
+        "t": i18n.get_t(lang), "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
         "charges": charges, "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
     })
 
@@ -1137,7 +1137,7 @@ async def charges_search(request: Request, q: str = "", type: str = "",
         c["date_label"] = i18n.fmt_day_month_year(lang, dt) if dt else None
     today = db_reader.today_local()
     return templates.TemplateResponse(request, "partials/charges_search_results.html", {
-        "t": i18n.get_t(lang), "charge_types": db_reader.CHARGE_TYPES, "fmt_dur": _fmt_dur,
+        "t": i18n.get_t(lang), "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
         "charges": charges, "station": station,
         "year": year or today.year, "month": month or today.month,
     })
@@ -2073,7 +2073,7 @@ async def settings_page(request: Request):
     return templates.TemplateResponse(request, "settings.html", _ctx(
         page="settings", vehicle=vehicle, settings=settings, card_open=card_open,
         new_sections=new_sections,
-        charge_types=db_reader.CHARGE_TYPES,
+        charge_types=db_reader.charge_types_localised(),
         ha_url=db_reader.get_setting("ha_url", ""),
         ha_has_token=bool(db_reader.get_setting("ha_token", "")),
         ha_supervisor=bool(os.environ.get("SUPERVISOR_TOKEN")),
@@ -2137,7 +2137,7 @@ async def costs_page(request: Request):
     return templates.TemplateResponse(request, "costs.html", _ctx(
         page="costs", vehicle=vehicle,
         settings={**settings, **prices},
-        charge_types=db_reader.CHARGE_TYPES,
+        charge_types=db_reader.charge_types_localised(),
         cost_mode=cfg["mode"], cost_modes=cfg["modes"], tou_method=cfg["method"],
         tou_bands_json=json.dumps(cfg["bands"]), cost_modes_json=json.dumps(cfg["modes"]),
     ))
@@ -2669,7 +2669,7 @@ async def set_charge_type(request: Request, charge_id: int):
         cost_title = t("cost_basis_dc")
     return templates.TemplateResponse(request, "partials/charge_type_badge.html", {
         "charge": charge,
-        "charge_types": db_reader.CHARGE_TYPES,
+        "charge_types": db_reader.charge_types_localised(),
         "t": t,                   # the partial's #120 free toggle (HOME) needs the translator
         "cost_oob": True,         # also refresh the cost cell (it changes with the type/basis)
         "cost_title": cost_title,
@@ -2714,7 +2714,7 @@ async def set_charge_free(request: Request, charge_id: int):
     cost_title = t("cost_basis_ac") if charge.get("ac_energy_kwh") else t("cost_basis_dc")
     return templates.TemplateResponse(request, "partials/charge_type_badge.html", {
         "charge": charge,
-        "charge_types": db_reader.CHARGE_TYPES,
+        "charge_types": db_reader.charge_types_localised(),
         "t": t,                   # the partial's #120 free toggle needs the translator
         "cost_oob": True,         # free flips the cost to 0 → refresh the cost cell too
         "cost_title": cost_title,

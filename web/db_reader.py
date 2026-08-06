@@ -229,8 +229,16 @@ _opt_expiry: float = 0.0
 _OPT_TTL = 30
 
 
-# Labels are intentionally language-neutral (international loanwords + universal
-# electrical acronyms) so they never need translating across UI languages.
+# AC, DC and HPC are acronyms and mean the same in every language Mate speaks — those stay.
+# ⚠️ The comment that used to sit here said ALL of these were "intentionally language-neutral", and
+# that was the wrong half of the rule: **Home, FREE and Manual are ordinary English words**. On a
+# Polish interface the charge badge read "Home" while the monthly report, using its own key, read
+# "Dom" — the app contradicting itself on one screen (@konrad300, #210).
+#
+# 🔑 Two of the three words already existed, translated by native speakers, so they are REUSED:
+# `report_home` is the very key whose "Dom" exposed the mismatch, and `charge_free` was already
+# there. Only "Manual" had to be added.
+_CHARGE_TYPE_LABEL_KEY = {"HOME": "report_home", "FREE": "charge_free", "MANUAL": "charge_manual"}
 CHARGE_TYPES = {
     "HOME": {"label": "Home", "icon": "🏠", "color": "#22c55e"},
     "AC":   {"label": "AC",   "icon": "🔌", "color": "#60a5fa"},
@@ -239,6 +247,25 @@ CHARGE_TYPES = {
     "FREE": {"label": "FREE", "icon": "🆓", "color": "#a3e635"},
     "MANUAL": {"label": "Manual", "icon": "✎", "color": "#94a3b8"},
 }
+
+def charge_types_localised() -> dict:
+    """CHARGE_TYPES with the three English WORDS in the reader's language (#210).
+
+    Translated HERE, at the single source, rather than in the nine routes that inject
+    `charge_types` into a template: a fix applied per-route is a fix one route forgets.
+
+    🔴 Returns a COPY. Writing the label into the module dict would translate it once, for whoever
+    loaded a page first, and leave it that way for every other language on the same process.
+    """
+    from i18n import get_t
+    t = get_t(get_language())
+    out = {}
+    for code, meta in CHARGE_TYPES.items():
+        key = _CHARGE_TYPE_LABEL_KEY.get(code)
+        label = t(key) if key else meta["label"]
+        out[code] = {**meta, "label": label or meta["label"]}
+    return out
+
 
 PRICE_KEYS = {
     "HOME": "price_home_kwh",
@@ -2281,6 +2308,10 @@ def write_optimistic_status(overrides: dict) -> None:
 # setting the poller writes. Unknown sign → magnitude as-is, i.e. exactly today's behaviour.
 _COORD_SIGNALS = {"lat": ("3", ("3725", "2190")), "lon": ("2", ("3724", "2191"))}
 
+# Twin of poller/client._MERIDIAN_NEAR_DEG (#232) — the two processes must not disagree about
+# where the car is, so test_gps_sign_survives_a_bad_poll.py asserts they stay equal.
+_MERIDIAN_NEAR_DEG = 1.0
+
 
 def _coord_from_signals(signals: dict, axis: str) -> float:
     """One GPS axis from a raw signal dict: signed signal first, else magnitude × remembered sign."""
@@ -2293,17 +2324,30 @@ def _coord_from_signals(signals: dict, axis: str) -> float:
             return 0.0
 
     signed_id, unsigned_ids = _COORD_SIGNALS[axis]
-    s = _f(signals.get(signed_id))
-    if s != 0.0:
-        return s                                   # authoritative — carries its own sign
-    u = next((v for v in (_f(signals.get(i)) for i in unsigned_ids) if v != 0.0), 0.0)
-    if u == 0.0:
-        return 0.0
     try:
         sign = float(get_setting(f"gps_{axis}_sign", "0") or 0)
     except (TypeError, ValueError):
         sign = 0.0
-    return abs(u) * (-1.0 if sign < 0 else 1.0)
+    known = -1.0 if sign < 0 else (1.0 if sign > 0 else 0.0)     # 0.0 = never learned one
+
+    s = _f(signals.get(signed_id))
+    if s != 0.0:
+        # Authoritative — it carries its own sign. But a frame that LOST that sign is
+        # indistinguishable from a genuine one (#232), and this copy runs once, on a button: it
+        # cannot count polls the way the poller does, so it never overrules a hemisphere it
+        # already knows unless the car is at the line. The poller stays the only process that
+        # learns; when it does, the setting changes and this follows.
+        # One-directional, like the poller: a dropped sign can only ever arrive POSITIVE, since the
+        # signals it gets confused with are magnitudes and have no minus to lose. So the only
+        # reading worth doubting is a positive one, far from the line, on a car we remember as
+        # west/south — every other combination proves itself and passes straight through.
+        if known == -1.0 and s > _MERIDIAN_NEAR_DEG:
+            return -s
+        return s
+    u = next((v for v in (_f(signals.get(i)) for i in unsigned_ids) if v != 0.0), 0.0)
+    if u == 0.0:
+        return 0.0
+    return abs(u) * (known or 1.0)
 
 
 def save_fresh_signals(signals: dict) -> None:

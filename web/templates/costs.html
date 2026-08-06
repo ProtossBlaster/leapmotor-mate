@@ -4,7 +4,7 @@
 
 {% block content %}
 {% set price_rows = [
-  ('HOME', '🏠', 'Home', 'price_home_kwh', '#22c55e'),
+  ('HOME', '🏠', t('report_home'), 'price_home_kwh', '#22c55e'),
   ('AC',   '🔌', 'AC',  'price_ac_kwh',   '#60a5fa'),
   ('FAST', '⚡', 'DC',  'price_fast_kwh', '#fb923c'),
   ('HPC',  '🚀', 'HPC', 'price_hpc_kwh',  '#e879f9'),
@@ -192,7 +192,7 @@
 <script>
   const TOU_TYPES = ["HOME", "AC", "FAST", "HPC"];
   const TYPE_META = {
-    HOME: { icon: "🏠", label: "Home", color: "#22c55e" },
+    HOME: { icon: "🏠", label: {{ t('report_home')|tojson }}, color: "#22c55e" },
     AC:   { icon: "🔌", label: "AC",   color: "#60a5fa" },
     FAST: { icon: "⚡", label: "DC",   color: "#fb923c" },
     HPC:  { icon: "🚀", label: "HPC",  color: "#e879f9" }

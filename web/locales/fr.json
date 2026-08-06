@@ -330,6 +330,7 @@
     "wb_profile_charging_blocked": "Impossible de changer de profil pendant une charge active",
     "charge_unconfirmed": "À confirmer",
     "charge_free": "Gratuit",
+    "charge_manual": "Manuel",
     "charge_free_hint": "Marquez cette charge à domicile comme gratuite — p. ex. solaire autoproduit. Elle reste sous Domicile, au coût 0. Mate ne peut pas mesurer la part solaire/réseau : c'est votre choix.",
     "charges_to_confirm": "recharges à confirmer",
     "charge_confirm_q": "Quel type de recharge ?",

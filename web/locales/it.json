@@ -330,6 +330,7 @@
     "wb_profile_charging_blocked": "Impossibile cambiare profilo durante una carica attiva",
     "charge_unconfirmed": "Da confermare",
     "charge_free": "Gratis",
+    "charge_manual": "Manuale",
     "charge_free_hint": "Segna questa ricarica di casa come gratuita — es. solare autoprodotto. Resta sotto Casa, a costo 0. Mate non può misurare la quota solare vs rete: è una tua scelta.",
     "charges_to_confirm": "ricariche da confermare",
     "charge_confirm_q": "Che tipo di ricarica?",
