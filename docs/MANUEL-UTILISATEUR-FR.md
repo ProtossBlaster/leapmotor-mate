@@ -323,6 +323,11 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   erronée. Dès lors, ce nombre **tarife la recharge**, exactement comme le compteur de la wallbox à
   la maison, et affiche le **rendement** (ce que le chargeur embarqué a transformé en chaleur).
   L'énergie affichée par Mate reste celle **mesurée à la batterie**.
+- **Ce qui est compté et ce qui ne l'est pas 🆕** — une recharge n'entre dans ces comparaisons que
+  si elle a **les deux** chiffres, celui du compteur et celui de la batterie. Avec un seul des deux,
+  le rapport dépasserait 100 %, ce qu'aucune borne ne peut faire. **Les recharges en cours restent
+  de côté** : une session qui arrive encore n'a pas de total à comparer, et rejoint les totaux
+  quand elle se termine.
 - **Le mois dit les deux 🆕** — au-dessus du calendrier : *« 154,93 kWh délivrés · 142,57 dans la
   batterie »*. Le premier, c'est ce qui est sorti des compteurs (la wallbox, ou les kWh que vous avez
   saisis) ; le second, ce qui est arrivé dans le pack. Entre les deux, la perte de conversion que
@@ -365,12 +370,20 @@ prolongateur d'autonomie, le carburant s'ajoute à côté de l'électricité. Si
 prix, la carte le dit, car le vrai montant est alors plus élevé. Elle suit vos unités : en miles,
 cela devient « aux 100 mi ».
 
+À côté de l'argent, la carte indique désormais aussi **combien de kWh ces 100 km ont demandé**, avec
+la mention *« temps à l'arrêt inclus » 🆕*. C'est un bilan, pas une somme de trajets : l'énergie
+rechargée pendant la période, moins ce qui restait dans la batterie à la fin et n'y était pas au
+début. Cela couvre donc tout ce qui est sorti du pack — conduite, climatisation,
+préconditionnement, pertes du chargeur — et c'est pourquoi ce chiffre est **plus élevé que la
+consommation en haut de la page Trajets**. Si une recharge de la période n'a pas de valeur
+d'énergie, la carte le dit aussi : le nombre est alors un minimum.
+
 **Depuis quand ces chiffres 🆕** — une ligne en haut de la page rappelle que **tous** les totaux des
 Statistiques sont ceux enregistrés par Mate depuis son installation, avec la date de départ, et
 **non** le total affiché par le compteur de la voiture.
 
 **Ce que couvre chaque chiffre 🆕** — *Consommation moyenne* est la moyenne sur les kilomètres qui
-**ont** une consommation, et « sur N km » apparaît en dessous quand ils sont moins nombreux que le
+**ont** une consommation, et « sur 452 km de 509 km » apparaît en dessous quand ils sont moins nombreux que le
 total. *Énergie consommée* n'additionne que les trajets dont Mate connaît l'énergie : un trajet sans
 cette donnée est **exclu**, et non compté comme zéro, et la tuile indique de combien de trajets elle
 parle. Sur une voiture où chaque trajet porte sa consommation — presque toujours — rien de tout cela

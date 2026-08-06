@@ -413,10 +413,15 @@ def test_the_page_says_once_that_none_of_this_is_the_car_s_own_total():
 
 
 def test_what_is_missing_is_said_out_loud_and_in_amber():
+    """The fourth arrived with the energy balance (@michapr, beta #25): an in-window session with
+    no kWh figure makes that number a floor, and it is named the same way the missing prices are.
+    The count is asserted against the LIST, so adding a warning without marking it still fails."""
     card = _card_block()
-    for flag in ("c100.elec_missing", "c100.fuel_missing", "c100.partial"):
+    flags = ("c100.elec_missing", "c100.fuel_missing", "c100.partial", "c100.kwh_missing")
+    for flag in flags:
         assert flag in card
-    assert card.count("text-amber-500") == 3, "each missing-data warning is marked, not whispered"
+    assert card.count("text-amber-500") == len(flags), \
+        "each missing-data warning is marked, not whispered"
 
 
 def test_the_partial_warning_counts_the_UNPRICED_ones():

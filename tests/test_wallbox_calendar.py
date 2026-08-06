@@ -91,7 +91,10 @@ def test_calendar_day_sessions_most_recent_first(tmp_path, monkeypatch):
     sessions = db_reader.get_wallbox_calendar_day(2026, 7, 4)
     assert [s["id"] for s in sessions] == [2, 1]        # most recent (20:00 UTC) first
     assert sessions[0]["time"].count(":") == 1          # "HH:MM", local-tz (host-dependent, not asserted exactly)
-    assert set(sessions[0].keys()) == {"id", "time"}    # no ac/dc/eff yet — main.py adds those lazily
+    # The two energy figures now come WITH the row, from the stored columns (#229). They used to be
+    # added later by main.py, one Home Assistant history fetch per session — which is how the same
+    # page ended up describing one charge twice, differently.
+    assert set(sessions[0].keys()) == {"id", "time", "ac_kwh", "dc_kwh", "eff"}
 
 
 def test_calendar_day_no_sessions_is_empty(tmp_path, monkeypatch):

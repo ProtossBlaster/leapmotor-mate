@@ -3,6 +3,67 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.8.4] — 2026-08-06
+
+### Fixed
+- 🔴 **The Wallbox page showed 141.5 % efficiency — the car taking more than the wall gave.**
+  @Wartopia (#229). The cause was not a bad reading: the page held **two copies** of the same
+  arithmetic and they disagreed on one screen — 141.5 % on the tiles, 92.5 % on the calendar
+  underneath.
+
+  The tiles were written on **3 June**, when `ac_energy_kwh` did not exist and the only way to know
+  the wall's kWh was to integrate the power sensor's Home Assistant history, session by session, on
+  every page load. The column arrived on **9 June** and the poller has written the meter's own kWh
+  onto the row ever since. Nobody moved the tiles onto it.
+
+  All four views — tiles, calendar month, day drawer, sessions tree — now read the stored column
+  through one function. A charge counts **only when it has both figures**: adding a battery kWh
+  while adding no meter kWh is exactly what pushes the ratio over 100 %, and it is not rare —
+  `finalize_charge` deliberately clears the meter figure when the counter ran away (#46) or stood
+  still (#215), and every HOME charge from before the wallbox was configured has none at all. What
+  gets left out is counted and can be said, never silently dropped.
+
+  **Charges still in progress are excluded**: a session that is still arriving has no total to
+  compare. And the page no longer fetches Home Assistant history at all, which is what made it take
+  five to ten seconds to open.
+
+- **A range-extender's L/100 km was divided by the generator trips alone.** @michapr (beta #26).
+  v3.6.9 moved this figure onto the whole distance and the line was changed with it, but the query
+  above it still selected only the trips whose tank had dropped — so the denominator could never see
+  an electric kilometre. On his own history it read **5.85 L/100 km instead of 2.0**, against the
+  **2.9** his car reports for its own window. The denominator had been corrected; the set of rows it
+  summed over had not.
+
+### Added
+- **The Cost per 100 km card now also says how many kWh those 100 km took.** @michapr (beta #25),
+  who worked the method out on his own history and cross-checked it two independent ways.
+
+  It is a **closed-system balance**, not a sum of trips: *energy charged inside the window* minus
+  *the net change in stored energy across it*. Trip-only figures miss every kWh that left the pack
+  standing still, and only **71.8 %** of a bill reaches a trip at all (#207). A charge counts only
+  if its own window sits entirely inside — one that ends before the first trip has already been
+  absorbed into the starting percentage, and counting it would bill it twice.
+
+  The same formula is right on both cars without a branch: what it returns is what left the pack
+  **minus the generator's contribution**, which is the grid-derived half — and on a card that prices
+  fuel separately that is exactly the number wanted. On a plain electric car the generator term is
+  zero. A session with no energy figure makes the number a **floor**, and the card says so; the
+  balance is never reported as `0.0`.
+
+  ⚠️ It is labelled **"including standing time"**, in all seven languages, because the Trips header
+  shows a kWh/100 km that means something different and the two are about 28 % apart.
+
+- **What the generator itself drinks while it runs**, on the Statistics page beside the pair
+  measured by the car. @michapr (beta #26) — *"certainly an interesting technical metric"*. On his
+  history that is **15.2 L/100 km over the 63 km the generator drove**, against 2.0 over all 479.
+  Same unit, same card, seven times apart, so it carries **"while running"** next to the figure.
+  Range-extender and BetaTester only, gated on the data rather than on the markup.
+
+- **The Trips period strip says what its efficiency covers** — *"over 452 km of 509 km"* with an ⓘ,
+  and only when the two differ. @michapr (beta #11), in his wording rather than mine: a figure over
+  452 km tells you nothing on its own about whether that slice is most of the window or a corner
+  of it.
+
 ## [3.8.3] — 2026-08-06
 
 ### Fixed

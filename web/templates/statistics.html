@@ -94,6 +94,18 @@
       {{ t('stats_reev_gauges_note') }} · {{ totals.reev_total.total_km | dist(1) }}
       · {{ totals.reev_total.total_kwh | nice }} kWh + {{ totals.reev_total.total_fuel_l | nice }} L
     </div>
+    {# What the generator itself drinks while it runs (@michapr, beta #26). ⚠️ On his history this
+       is 15.2 L/100km against the 2.0 in the pair above — SEVEN TIMES apart, same unit, same card.
+       Two correct numbers under one word is the defect Silvio named, so it gets its own line, its
+       own muted weight, and a label that says *while running* beside the figure. It answers a
+       different question from everything else here: not what the car costs to drive, but how
+       thirsty the range-extender is when it is the thing doing the driving. #}
+    {% if totals.reev_fuel and totals.reev_fuel.engine_l_100km %}
+    <div class="text-slate-500 text-xs mt-1">
+      <span class="text-amber-400/80">{{ totals.reev_fuel.engine_l_100km | nice }} L/100km</span>
+      {{ t('stats_reev_gauges_engine') }} · {{ totals.reev_fuel.engine_km | dist(1) }}
+    </div>
+    {% endif %}
   </div>
   {% endif %}
   {# Right: measured, not derived — the charges Mate recorded and the refuels the owner entered.
@@ -149,6 +161,18 @@
     <span class="text-amber-400 text-sm">{{ cost100_val(c100.fuel_100km) | money }}</span>
     <span class="text-slate-500 text-xs">{{ t('stats_cost100_fuel') }}</span>
     {% endif %}
+    {# How many kWh those kilometres took, by energy balance (@michapr, beta #25). ⚠️ This is NOT
+       the kWh/100km in the Trips header: that one is trip-only, this one is everything that left
+       the pack — standing time, climate, preconditioning, charger losses. Measured for #207 the
+       two are ~28% apart, so they WILL disagree on screen, and two different numbers under the
+       same unit is the defect Silvio named. The label carries the difference, out loud, right
+       next to the figure — not in a tooltip nobody opens. #}
+    {% if c100.kwh_100km %}
+    <span class="text-slate-600 text-sm mx-1">·</span>
+    <span class="text-sky-400 text-sm">{{ eff_val(c100.kwh_100km)|nice }}</span>
+    <span class="text-slate-400 text-sm">{{ eff_unit() }}</span>
+    <span class="text-slate-500 text-xs">{{ t('stats_cost100_kwh') }}</span>
+    {% endif %}
   </div>
   <div class="text-slate-500 text-xs mt-1">
     {# `dist` converts AND labels: a reader in miles must not be told 971 mi when 971 is km. WHEN
@@ -163,6 +187,11 @@
     {% endif %}
     {% if c100.partial %}
     · <span class="text-amber-500">{{ t('stats_cost100_partial').format(n=c100.total_charges - c100.priced_charges, tot=c100.total_charges) }}</span>
+    {% endif %}
+    {# A session inside the window with no energy figure makes the balance a FLOOR — said out loud
+       for the same reason the missing prices are: absent is not zero. #}
+    {% if c100.kwh_100km and c100.kwh_missing %}
+    · <span class="text-amber-500">{{ t('stats_cost100_nokwh').format(n=c100.kwh_missing, tot=c100.kwh_charges + c100.kwh_missing) }}</span>
     {% endif %}
   </div>
 </div>

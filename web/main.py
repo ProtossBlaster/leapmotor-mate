@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.8.3"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.8.4"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1155,6 +1155,11 @@ async def statistics(request: Request):
     totals["reev_total"] = db_reader.reev_total_consumption() if _reev else None
     # …and beside it what was actually bought, which Mate measures rather than derives.
     totals["reev_spend"] = db_reader.reev_actual_spend() if _reev else None
+    # …and what the GENERATOR itself drinks while it runs (@michapr, beta #26). Gated on the DATA,
+    # not just on the markup: `wallbox_enabled` taught us that hiding a card while the figure is
+    # still computed is not a gate at all. REEV stays capability-gated AND beta-only.
+    totals["reev_fuel"] = (db_reader.reev_fuel_summary()
+                           if (_reev and research.research_enabled()) else None)
     # …and what all of it COST: every euro spent over every kilometre driven (@michapr's card, on
     # Silvio's basis — a cost is the whole cost, not the driving's share of it). The litres burned
     # are passed only so a car with no tank never reads the fuel table.
@@ -2465,106 +2470,44 @@ async def wallbox_live(request: Request):
         wb=wb, b10_plugged=b10_plugged))
 
 
-def _integrate_kwh(points: list) -> float:
-    """Trapezoidal integral of (epoch_seconds, kW) points → kWh. Skips non-positive and
-    >15min gaps so a charger pause / poll miss inside one window is never integrated as a
-    phantom interval — keeps the AC/DC comparison energy (and the HOME cost billed on the AC
-    energy) consistent with compute_cost's split and _charge_energy_below_soc, which both
-    already skip multi-hour gaps."""
-    e = 0.0
-    for i in range(1, len(points)):
-        dt = (points[i][0] - points[i - 1][0]) / 3600.0
-        if dt <= 0 or dt > 0.25:
-            continue
-        e += (points[i][1] + points[i - 1][1]) / 2 * dt
-    return e
-
-
-def _session_energy(curve: dict) -> dict:
-    """Energy comparison for one charge: DC into battery vs AC from the wallbox,
-    both integrated from real power (so AC ≥ DC and efficiency < 100%).
-    
-    For AC, resamples the HA history onto the car curve's timestamps using step-hold
-    (same approach as the overlay chart) to ensure consistency between the visual
-    chart and the calculated energy values."""
-    times = curve.get("times") or []
-    dc = ac = eff = None
-    if times:
-        dc_pts = [(ha_client.epoch(t), p) for t, p in zip(times, curve["power"])
-                  if ha_client.epoch(t) is not None]
-        if len(dc_pts) > 1:
-            dc = round(_integrate_kwh(dc_pts), 2)
-    mapping = ha_client.get_mapping()
-    # Same gating as the overlay: feature flag + configured + a mapped power entity.
-    if (db_reader.get_setting("wallbox_enabled", "0") == "1" and times
-            and ha_client.is_configured() and mapping.get("power")):
-        hist = ha_client.get_history(mapping["power"], times[0], times[-1])
-        if hist:
-            # Resample hist onto car curve's timestamps using step-hold (same as chart overlay)
-            resampled_ac = []
-            j, last = 0, None
-            for t in times:
-                e = ha_client.epoch(t)
-                if e is None:
-                    resampled_ac.append(None)
-                    continue
-                while j < len(hist) and hist[j][0] <= e:
-                    last = hist[j][1]
-                    j += 1
-                resampled_ac.append(last)
-            # Integrate only the resampled points that have values
-            if resampled_ac and any(v is not None for v in resampled_ac):
-                ac_pts = [(ha_client.epoch(t), p) for t, p in zip(times, resampled_ac)
-                          if p is not None and ha_client.epoch(t) is not None]
-                if len(ac_pts) > 1:
-                    ac = round(_integrate_kwh(ac_pts), 2)
-    if ac and ac > 0:
-        # Defensive plausibility guard. AC from the wall must be ≥ DC into the battery, and a real
-        # onboard charger is well above 50% efficient — so AC more than ~2× DC, OR any AC we cannot
-        # validate because DC is zero/missing, is never physical. It means a leaked/over-wide window
-        # OR a mis-mapped wallbox entity (e.g. a cumulative kWh meter mapped as the power sensor:
-        # FB report — 10889 kWh AC, 0.1% efficiency). Keep AC only when a positive DC validates it;
-        # otherwise discard it rather than show an absurd comparison or bill HOME cost on it
-        # (compute_cost then falls back to the DC/SOC energy).
-        if dc and ac <= dc * 2:
-            eff = round(100 * dc / ac, 1)
-        else:
-            ac = None
-    return {"dc_kwh": dc, "ac_kwh": ac, "eff": eff}
-
-
 def _wallbox_sessions_grouped() -> list:
     """Charges-with-power nested year → month → day, each session carrying the
     AC-vs-DC kWh comparison; node totals + efficiency rolled up."""
     from collections import OrderedDict
     lang = db_reader.get_language()
     years: "OrderedDict" = OrderedDict()
-    for r in db_reader.charges_with_power():
+    # ⚠️ `_wallbox_home_charges_raw`, not `charges_with_power`: the latter carries no
+    # `ac_energy_kwh` at all and stops at the newest 30, which made a "history" tree quietly
+    # partial. Same source as the calendar and the tiles, so the whole page speaks with one voice.
+    rows = db_reader._wallbox_home_charges_raw()
+    for r in rows:
         dt = db_reader._local_dt(r["started_at"])
         if dt is None:
             continue
-        e = _session_energy(db_reader.get_charge_power_curve(r["id"]))
-        sess = {"id": r["id"], "time": dt.strftime("%H:%M"), **e}
+        # From the stored columns. This used to be one Home Assistant history fetch per session —
+        # for every session in the whole history, on every open of this list (#229).
+        sess = {"id": r["id"], "time": dt.strftime("%H:%M"),
+                **db_reader.wallbox_session_energy(r)}
         yr, mo, day = dt.strftime("%Y"), i18n.fmt_month_year(lang, dt), i18n.fmt_day_month_year(lang, dt)
-        Y = years.setdefault(yr, {"label": yr, "ac": 0.0, "dc": 0.0, "months": OrderedDict()})
-        M = Y["months"].setdefault(mo, {"label": mo, "ac": 0.0, "dc": 0.0, "days": OrderedDict()})
-        D = M["days"].setdefault(day, {"label": day, "ac": 0.0, "dc": 0.0, "sessions": []})
+        Y = years.setdefault(yr, {"label": yr, "_rows": [], "months": OrderedDict()})
+        M = Y["months"].setdefault(mo, {"label": mo, "_rows": [], "days": OrderedDict()})
+        D = M["days"].setdefault(day, {"label": day, "_rows": [], "sessions": []})
         D["sessions"].append(sess)
         for node in (Y, M, D):
-            if e["ac_kwh"]:
-                node["ac"] = round(node["ac"] + e["ac_kwh"], 2)
-            if e["dc_kwh"]:
-                node["dc"] = round(node["dc"] + e["dc_kwh"], 2)
+            node["_rows"].append(r)
 
-    def _eff(n):
-        return round(100 * n["dc"] / n["ac"], 1) if n["ac"] else None
+    # Rolled up through the SAME helper as everything else, so a charge missing its meter figure is
+    # skipped on both sides of the ratio here too — it used to add its battery kWh alone.
+    def _seal(n):
+        n.update({k: v for k, v in db_reader.wallbox_ac_dc_totals(n.pop("_rows")).items()
+                  if k in ("ac", "dc", "eff")})
     trees = list(years.values())
     for Y in trees:
-        Y["eff"] = _eff(Y)
         for M in Y["months"].values():
-            M["eff"] = _eff(M)
             for D in M["days"].values():
-                D["eff"] = _eff(D)
+                _seal(D)
+            _seal(M)
+        _seal(Y)
     return trees
 
 
@@ -2577,13 +2520,12 @@ async def wallbox_sessions(request: Request):
 
 
 def _wallbox_day_sessions(year: int, month: int, day: int) -> list:
-    """A day's sessions with their precise AC/DC comparison (_session_energy — a live Home
-    Assistant history fetch per session) computed HERE, lazily, only for the one day being
-    opened — never for a whole month/history up front."""
-    sessions = db_reader.get_wallbox_calendar_day(year, month, day)
-    for s in sessions:
-        s.update(_session_energy(db_reader.get_charge_power_curve(s["id"])))
-    return sessions
+    """A day's sessions with their AC/DC comparison — straight off the stored columns.
+
+    It used to fetch Home Assistant's history for each session on every click and integrate the
+    power sensor, while the meter's own kWh sat on the charge row (#229). Same numbers as the tiles
+    and the month strip on the same page now, which they were not before."""
+    return db_reader.get_wallbox_calendar_day(year, month, day)
 
 
 @app.get("/api/wallbox/calendar", response_class=HTMLResponse)
@@ -2658,17 +2600,18 @@ async def wallbox_control(request: Request):
 
 
 def _wallbox_totals() -> dict:
-    """Lifetime AC delivered vs DC into battery across all sessions with data."""
-    ac = dc = 0.0
-    for r in db_reader.charges_with_power():
-        e = _session_energy(db_reader.get_charge_power_curve(r["id"]))
-        if e["ac_kwh"]:
-            ac += e["ac_kwh"]
-        if e["dc_kwh"]:
-            dc += e["dc_kwh"]
-    return {"ac": round(ac, 2) if ac else None,
-            "dc": round(dc, 2) if dc else None,
-            "eff": round(100 * dc / ac, 1) if ac else None}
+    """Lifetime AC delivered vs DC into battery, from the columns the poller stored.
+
+    Until #229 this integrated the wallbox POWER sensor's Home Assistant history for every session
+    on every page load — code from 3 June, when `ac_energy_kwh` did not exist and that was the only
+    way to know the wall's kWh. The column arrived on 9 June and nobody moved these tiles onto it,
+    so from 26 July (when the calendar below was built on the column) the same page answered twice:
+    @Wartopia saw 141.5 % on top and 92.5 % underneath, with seven perfectly sane charges.
+
+    Same helper as the calendar now, so the two cannot disagree again. No cloud call, no HA call —
+    the number was written down when the energy flowed.
+    """
+    return db_reader.wallbox_ac_dc_totals(db_reader._wallbox_home_charges_raw())
 
 
 @app.get("/api/wallbox/summary", response_class=HTMLResponse)

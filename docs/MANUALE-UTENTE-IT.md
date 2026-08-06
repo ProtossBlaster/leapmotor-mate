@@ -330,6 +330,11 @@ un'etichetta:
   sbagliato. Da lì in poi quel numero **prezza la ricarica**, esattamente come fa il contatore della
   wallbox a casa, e ti mostra l'**efficienza** (quanto ne ha trasformato in calore il caricabatterie
   di bordo). L'energia che Mate riporta resta quella **misurata in batteria**.
+- **Cosa entra nel conto e cosa no 🆕** — una ricarica entra in questi confronti solo se ha
+  **tutti e due** i numeri, quello del contatore e quello della batteria. Una con uno solo dei due
+  spingerebbe il rapporto sopra il 100 %, cosa che nessuna colonnina può fare. **Le ricariche in
+  corso restano fuori**: una sessione che sta ancora arrivando non ha un totale da confrontare, e
+  entra nei conti quando finisce.
 - **Il mese dice tutte e due le cose 🆕** — sopra il calendario: *«154,93 kWh erogati · 142,57 in
   batteria»*. Il primo è ciò che è uscito dai contatori (wallbox, o i kWh che hai scritto tu); il
   secondo è ciò che è arrivato nel pacco. Fra i due c'è la perdita di conversione, che paghi.
@@ -374,12 +379,21 @@ l'auto (clima, precondizionamento, perdite del caricatore). Su una versione con 
 benzina si aggiunge accanto all'elettrico. Se qualche ricarica non ha un prezzo la card lo dice,
 perché in quel caso la spesa vera è più alta. Segue le tue unità: con le miglia diventa «per 100 mi».
 
+Accanto ai soldi la card adesso dice anche **quanti kWh sono serviti per quei 100 km**, con
+l'etichetta *«soste comprese» 🆕*. È un bilancio, non una somma di viaggi: l'energia caricata dentro
+il periodo, meno quella che a fine periodo è rimasta in batteria e all'inizio non c'era. Quindi
+comprende tutto quello che è uscito dal pacco — guida, clima, precondizionamento, perdite del
+caricatore — ed è per questo che è **più alto del consumo che vedi in cima ai Viaggi**, e per questo
+l'etichetta lo dice. Se una ricarica di quel periodo non ha il dato di energia la card lo scrive: in
+quel caso il numero è un minimo, non il totale.
+
 **Da quando sono questi numeri 🆕** — in cima alla pagina una riga ricorda che **tutti** i totali
 delle Statistiche sono quelli registrati da Mate dalla sua installazione, con la data d'inizio, e
 **non** il totale che segna il contachilometri dell'auto.
 
 **Cosa copre ogni numero 🆕** — *Consumo medio* è la media sui chilometri che **hanno** un consumo, e
-sotto compare *«su N km»* quando quelli sono meno del totale. *Energia consumata* somma solo i viaggi
+sotto compare *«su 452 km di 509 km»* quando quelli sono meno del totale — dice tutti e due i
+numeri, così vedi subito se il valore copre quasi tutto il periodo o solo un angolo. *Energia consumata* somma solo i viaggi
 di cui Mate conosce l'energia: un viaggio senza quel dato viene **escluso**, non contato come zero,
 e la mattonella dice su quanti viaggi sta parlando. Su un'auto in cui tutti i viaggi hanno il loro
 consumo — cioè quasi sempre — non compare niente di tutto questo.

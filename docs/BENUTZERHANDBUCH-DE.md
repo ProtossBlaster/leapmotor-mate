@@ -311,6 +311,10 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   zurück. Von da an **bepreist** diese Zahl die Ladung, genau wie der Wallbox-Zähler zu Hause, und
   zeigt den **Wirkungsgrad** (wie viel das Bordladegerät in Wärme umgewandelt hat). Die Energie, die
   Mate ausweist, bleibt die **an der Batterie gemessene**.
+- **Was gezählt wird und was nicht 🆕** — eine Ladung erscheint in diesen Vergleichen nur, wenn sie
+  **beide** Werte hat, den des Zählers und den der Batterie. Mit nur einem von beiden käme das
+  Verhältnis über 100 %, was keine Ladestation kann. **Laufende Ladungen bleiben außen vor**: eine
+  Sitzung, die noch ankommt, hat noch keine Summe zum Vergleichen und zählt mit, sobald sie endet.
 - **Der Monat nennt beides 🆕** — über dem Kalender: *„154,93 kWh geliefert · 142,57 in der Batterie"*.
   Das Erste kam aus den Zählern (Wallbox oder die von Ihnen eingetragenen kWh), das Zweite kam im
   Akku an. Dazwischen liegt der Umwandlungsverlust, den Sie bezahlen.
@@ -351,12 +355,19 @@ kumulierten Energie.
 Kraftstoff neben dem Strom dazu. Fehlt bei einer Ladung der Preis, sagt die Karte es, denn der echte
 Wert liegt dann höher. Sie folgt Ihren Einheiten: in Meilen wird daraus „pro 100 mi".
 
+Neben dem Geld zeigt die Karte jetzt auch, **wie viele kWh diese 100 km gekostet haben**, mit dem
+Hinweis *„inkl. Standzeiten" 🆕*. Das ist eine Bilanz und keine Summe von Fahrten: die im Zeitraum
+geladene Energie, abzüglich dessen, was am Ende noch im Akku war und am Anfang nicht. Es umfasst
+also alles, was den Akku verlassen hat — Fahren, Klima, Vorkonditionierung, Verluste des Ladegeräts
+— und liegt deshalb **höher als der Verbrauch oben auf der Seite Fahrten**. Fehlt bei einer Ladung
+in diesem Zeitraum der Energiewert, sagt die Karte auch das: die Zahl ist dann ein Mindestwert.
+
 **Seit wann diese Zahlen gelten 🆕** — eine Zeile am Seitenanfang erinnert daran, dass **alle**
 Summen der Statistik das sind, was Mate seit der Installation erfasst hat, mit dem Startdatum — und
 **nicht** der Gesamtstand des Fahrzeugtachos.
 
 **Was jede Zahl abdeckt 🆕** — *Durchschnittsverbrauch* ist der Mittelwert über die Kilometer, die
-einen Verbrauch **haben**; darunter erscheint „über N km", wenn das weniger als die Gesamtstrecke
+einen Verbrauch **haben**; darunter erscheint „über 452 km von 509 km", wenn das weniger als die Gesamtstrecke
 ist. *Verbrauchte Energie* summiert nur die Fahrten, deren Energie Mate kennt: eine Fahrt ohne diesen
 Wert wird **ausgelassen** statt als Null gezählt, und die Kachel sagt, über wie viele Fahrten sie
 spricht. Bei einem Auto, bei dem jede Fahrt ihren Verbrauch trägt — also fast immer — erscheint

@@ -141,7 +141,16 @@ def test_no_total_filters_rows_on_the_coarse_signal_alone():
         body = src.split(f"def {fn}(", 1)[1].split("\ndef ", 1)[0]
         assert re.search(r"AND\s+fuel_start_pct - fuel_end_pct > \?", body) is None, \
             f"{fn} still filters on the tank percentage alone"
-        assert "_REEV_FUEL_ANY_DROP_SQL" in body, f"{fn} does not use the shared condition"
+        # Either it filters on BOTH signals, or — better — it does not filter on fuel at all and
+        # lets `_reev_trip_fuel` decide per trip. `reev_fuel_summary` took the second road for
+        # beta #26: its L/100 km has to divide by every kilometre driven, so it cannot let the SQL
+        # throw the electric trips away before the denominator ever sees them.
+        # ⚠️ Anchored to the WHERE clause, not to the function body: `fuel_start_pct` also appears
+        # in the SELECT list and in the `_reev_trip_fuel(...)` call, and the loose version of this
+        # assertion failed on correct code. Fifth time this substring trap has bitten on this repo.
+        where = body.split("WHERE", 1)[1].split(",\n", 1)[0] if "WHERE" in body else ""
+        assert "_REEV_FUEL_ANY_DROP_SQL" in body or "fuel_" not in where, \
+            f"{fn} filters the rows on fuel without using the shared condition: {where!r}"
 
 
 # ── the fourth round, and the one that was actually his ───────────────────────

@@ -325,6 +325,10 @@ label:
   charge**, exactly as a wallbox counter does at home, and shows the **efficiency** (how much the
   on-board charger turned into heat). The energy Mate reports stays the one **measured at the
   battery**.
+- **What is counted, and what is not 🆕** — a charge appears in these comparisons only when it has
+  **both** figures, the meter's and the battery's. A session with only one of them would push the
+  ratio above 100 %, which no charger can do. **Charges still in progress are left out**: a session
+  that is still arriving has no total to compare yet, and joins the totals when it ends.
 - **The month says both 🆕** — above the calendar: *"154.93 kWh delivered · 142.57 in battery"*. The
   first is what came out of the meters (the wallbox, or the kWh you typed); the second is what
   reached the pack. Between them sits the conversion loss you pay for.
@@ -363,12 +367,21 @@ charger's own losses). On a range-extender the petrol is added beside the electr
 has no price the card says so, because the real figure is then higher. It follows your units: with
 miles it becomes "per 100 mi".
 
+Beside the money the card now also shows **how many kWh those 100 km took**, labelled *"including
+standing time" 🆕*. It is worked out as a balance, not as a sum of journeys: the energy charged
+inside the window, minus whatever was still in the battery at the end that was not there at the
+start. So it covers everything that left the pack — driving, climate, preconditioning, the
+charger's own losses — which is why it is **higher than the consumption in the Trips header**, and
+why the label says so. If a charge in that window has no energy figure the card says that too: the
+number is then a floor, not the whole story.
+
 **How far back these numbers go 🆕** — a line at the top of the page is a reminder that **every**
 total on Statistics is what Mate has recorded since it was installed, with the date it starts from,
 and **not** the car's own odometer total.
 
 **What each figure covers 🆕** — *Avg consumption* is the mean over the kilometres that **have** a
-consumption figure, and *"over N km"* appears underneath when those are fewer than the total.
+consumption figure, and *"over 452 km of 509 km"* appears underneath when those are fewer than the total — it names both
+numbers, so you can see at a glance whether the figure covers most of the window or a corner of it.
 *Energy used* adds up only the trips whose energy Mate knows: a trip without one is **left out**
 rather than counted as zero, and the tile says how many trips it speaks for. On a car where every
 trip carries its own consumption — which is nearly always — none of this shows at all.

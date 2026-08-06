@@ -3307,17 +3307,22 @@ def reev_fuel_summary() -> Optional[dict]:
     full litres that left the tank. None when the engine never ran (or no fuel data)."""
     db = _get()
     try:
+        # EVERY finished trip, not only the ones whose tank dropped (@michapr, beta #26). The
+        # denominator was moved onto the whole distance in v3.6.9, but this query still filtered the
+        # rows to generator trips first, so `total_km` could never see an electric kilometre: on his
+        # data it read 5.85 L/100 km — litres over the 164 km of his 6 generator trips — where the
+        # true figure over all 479 km is 2.00, and his own car's cloud reports 2.9.
+        # 🔑 The denominator was corrected; the set of rows it sums over was not.
         rows = db.execute(
             "SELECT id, vehicle_id, started_at, ended_at, distance_km, fuel_start_pct, fuel_end_pct, "
             "fuel_start_l, fuel_end_l "
-            "FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
-            "AND " + _REEV_FUEL_ANY_DROP_SQL,
-            (_current_vehicle_id(), _REEV_FUEL_MIN_DROP)).fetchall()
+            "FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
+            (_current_vehicle_id(),)).fetchall()
     except sqlite3.Error:
         return None
     tank = reev_tank_l()
     total_l, engine_km, engine_l, n = 0.0, 0.0, 0.0, 0
-    total_km = 0.0        # ALL the kilometres of the engine-on trips — the L/100 km denominator
+    total_km = 0.0        # EVERY kilometre driven — the L/100 km denominator, as the car's own is
     for r in rows:
         eng = _reev_engine_on(db, r["vehicle_id"], r["started_at"], r["ended_at"])
         # Through _reev_trip_fuel, like the trips list and the period card. It used to work the
@@ -3326,9 +3331,12 @@ def reev_fuel_summary() -> Optional[dict]:
         f = _reev_trip_fuel(r["fuel_start_pct"], r["fuel_end_pct"], r["distance_km"], eng,
                             r["fuel_start_l"], r["fuel_end_l"])
         drop_l = f["fuel_used_l"]
-        if not drop_l:
-            continue                      # under both floors → not a trip that burned anything
+        # ⚠️ The distance is added FIRST and unconditionally: a trip driven on the battery burned no
+        # petrol but was still driven, and it is exactly what the L/100 km has to be spread over.
+        # The `continue` below used to sit above this line, which is the whole defect.
         total_km += r["distance_km"] or 0
+        if not drop_l:
+            continue                      # nothing burned (or under both floors) — but the km count
         total_l += drop_l
         if eng:
             engine_km += eng["engine_km"]
@@ -3347,6 +3355,14 @@ def reev_fuel_summary() -> Optional[dict]:
         # and as every other L/100 km in Mate since beta #23. `engine_km` above still says how far
         # the generator drove; it is reported, not divided by.
         "avg_l_100km": round(total_l / total_km * 100, 1) if total_km > 0.5 else None,
+        # …except HERE, and only here: what the generator itself drinks while it is running
+        # (@michapr, beta #26 — «certainly an interesting technical metric»). On his history that
+        # is 15.2 against the 2.0 above, SEVEN TIMES apart under the same unit on the same page —
+        # so whatever shows it has to say *while running* right next to the number.
+        # 🔑 `total_l`, not the `engine_l` this loop also has: `engine_l` is engine_fuel_pct against
+        # a NOMINAL tank, while `total_l` comes off the car's own millilitre counter wherever the
+        # trip carries it. Measured litres over measured distance, or the pair means nothing.
+        "engine_l_100km": round(total_l / engine_km * 100, 1) if engine_km > 0.5 else None,
     }
 
 
@@ -3554,6 +3570,8 @@ def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
     if priced_n == 0 and fuel_n == 0:
         return None
 
+    kwh_100km, kwh_charges, kwh_missing = _energy_balance_kwh(db, km)
+
     per100 = 100.0 / km
     return {
         "elec_100km": round(elec_cost * per100, 2) if priced_n else None,
@@ -3567,6 +3585,12 @@ def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
         "priced_charges": priced_n,
         "total_charges": total_n,
         "fuel_entries": fuel_n,
+        # How many kWh those kilometres took — see `_energy_balance_kwh`. None when the balance
+        # cannot be trusted, never 0.0. `kwh_missing` counts in-window sessions with no energy
+        # figure: an absent reading makes the balance a FLOOR, it does not make it smaller.
+        "kwh_100km": kwh_100km,
+        "kwh_charges": kwh_charges,
+        "kwh_missing": kwh_missing,
         "km": round(km, 1),
         # WHEN this window opens — the earliest row that feeds the figure. Silvio, 05/08: the card
         # has to say that these are Mate's kilometres since Mate started, not the car's odometer.
@@ -3575,6 +3599,90 @@ def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
         # Compared as ISO strings, which is safe because the DB is UTC everywhere by construction.
         "since": min([s for s in (since_trip, since_charge, since_fuel) if s], default=None),
     }
+
+
+def _energy_balance_kwh(db, km: float) -> tuple:
+    """How many kWh those `km` took, as a closed-system BALANCE — never trip by trip.
+
+    @michapr, BetaTester #25, 06/08/26, worked out on his own history and cross-checked two ways.
+    His own reason for not taking the obvious road, which is also Silvio's rule for this card:
+
+        «`reev_total_consumption()`'s `kwh_100km` looks like the obvious answer, but it's trip-only
+        by construction […] it would still miss every kWh that left the pack outside of a trip.»
+
+    Measured for #207, only 71.8% of a bill lands on a trip at all. So the window is treated as one
+    system and nothing is attributed to a journey:
+
+        consumed = (energy charged INSIDE the window) − (net change in stored energy across it)
+
+    🔑 **The same formula is right on both cars, and that is not a coincidence.** Energy enters the
+    pack from the grid and — on a range-extender — from the generator:
+
+        Δstored = charged + generator − consumed   →   consumed = charged + generator − Δstored
+
+    so `charged − Δstored` is what left the pack MINUS the generator's share: the grid-derived half
+    alone. On a card that prices fuel separately that is precisely the number wanted — the same
+    refusal to bill the tank twice that `reev_total_consumption` documents. On a BEV `generator` is
+    zero and it degenerates to plain consumption. No `is_reev` branch exists here, and none is
+    needed.
+
+    The window is the one this card already sums kilometres over: the first trip's `started_at` to
+    the last trip's `ended_at`. A charge counts only if its OWN window sits entirely inside — one
+    that ends before the first trip, or starts after the last, has already been absorbed into the
+    SoC at that boundary, and counting it would bill it twice. (His July 9 session, ending 17:33
+    before a first trip on the 10th, is exactly that case.)
+
+    ⚠️ The estimate enters only through the SMALL term. `Δstored` is SoC × NOMINAL capacity, and an
+    LFP's SoC is counted rather than measured — drift ±15%. On his window that term is 3.80 kWh
+    against 63.89 charged, 6%, so even a 15% error there moves the answer under 1%. A window that
+    ends much fuller or emptier than it started leans on it harder, and there is no way around that
+    from the cloud.
+
+    Returns `(kwh_100km, counted, missing)`. `kwh_100km` is None — not 0.0 — whenever the balance
+    cannot be trusted: nothing charged inside the window, no SoC at a boundary, or a balance that
+    comes out at or below zero. A car that drove 200 km did not use 0 kWh; printing that would be
+    a wrong number wearing the confidence of a measurement.
+    """
+    vid = _current_vehicle_id()
+    try:
+        first = db.execute(
+            "SELECT started_at, start_soc FROM trips "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
+            "ORDER BY started_at LIMIT 1", (vid,)).fetchone()
+        last = db.execute(
+            "SELECT ended_at, end_soc FROM trips "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
+            "ORDER BY ended_at DESC LIMIT 1", (vid,)).fetchone()
+    except sqlite3.Error:
+        return None, 0, 0
+    if not first or not last:
+        return None, 0, 0
+    if first["start_soc"] is None or last["end_soc"] is None:
+        return None, 0, 0
+
+    # Entirely inside, on both edges. ISO strings compare correctly because the DB is UTC
+    # throughout by construction — the same assumption `since` above already relies on.
+    try:
+        row = db.execute(
+            "SELECT SUM(CASE WHEN energy_added_kwh IS NOT NULL THEN energy_added_kwh END) AS kwh, "
+            "       SUM(CASE WHEN energy_added_kwh IS NOT NULL THEN 1 ELSE 0 END) AS counted, "
+            "       SUM(CASE WHEN energy_added_kwh IS NULL THEN 1 ELSE 0 END) AS missing "
+            "  FROM charges "
+            " WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
+            "   AND started_at >= ? AND ended_at <= ?",
+            (vid, first["started_at"], last["ended_at"])).fetchone()
+    except sqlite3.Error:
+        return None, 0, 0
+
+    counted, missing = int(row["counted"] or 0), int(row["missing"] or 0)
+    if not counted:
+        return None, 0, missing
+
+    net = (last["end_soc"] - first["start_soc"]) / 100.0 * get_battery_capacity_kwh()
+    consumed = (row["kwh"] or 0.0) - net
+    if consumed <= 0:
+        return None, counted, missing
+    return round(consumed * 100.0 / km, 1), counted, missing
 
 
 def _trip_blended_rate_fn():
@@ -4926,8 +5034,14 @@ def _wallbox_home_charges_raw() -> list[dict]:
     calendar's month totals and year-jump need the full history, not just the newest 30)."""
     db = _get()
     rows = db.execute(
+        # ⚠️ COMPLETED charges only (Silvio, 06/08/26). While the energy is still flowing the meter
+        # lags the car — @Wartopia's live 6 August charge read 2.74 kWh from the wall against 4.03
+        # into the battery — so a running session drags every comparison on this page for as long as
+        # the cable is in. Measured: 89.3 % became 93.6 % the moment one joined. Its own guards have
+        # not run yet either: the ceiling and stuck-counter backstops fire at finalize_charge.
         "SELECT c.id, c.started_at, c.energy_added_kwh, c.ac_energy_kwh FROM charges c "
-        "WHERE c.vehicle_id = COALESCE(?, c.vehicle_id) AND c.location_type = 'HOME' AND EXISTS ("
+        "WHERE c.vehicle_id = COALESCE(?, c.vehicle_id) AND c.location_type = 'HOME' "
+        "AND c.ended_at IS NOT NULL AND EXISTS ("
         "  SELECT 1 FROM positions p WHERE p.vehicle_id = c.vehicle_id AND p.charging = 1"
         "  AND p.recorded_at >= c.started_at"
         "  AND (c.ended_at IS NULL OR p.recorded_at <= c.ended_at)"
@@ -4936,28 +5050,83 @@ def _wallbox_home_charges_raw() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def wallbox_session_energy(charge) -> dict:
+    """One charge's AC-vs-DC comparison, from the STORED columns.
+
+    The per-session twin of wallbox_ac_dc_totals, and it exists for the same reason: the day drawer
+    and the sessions tree used to re-derive this by integrating the wallbox power sensor's Home
+    Assistant history, one fetch per session, while the poller had already written the meter's own
+    kWh onto the row (#229). Efficiency only when both figures are there — a battery figure with no
+    meter figure is not a comparison.
+    """
+    get = charge.get if hasattr(charge, "get") else charge.__getitem__
+    try:
+        ac, dc = get("ac_energy_kwh"), get("energy_added_kwh")
+    except (KeyError, IndexError):
+        return {"ac_kwh": None, "dc_kwh": None, "eff": None}
+    ac = ac if (ac and ac > 0) else None
+    dc = dc if (dc and dc > 0) else None
+    return {"ac_kwh": round(ac, 2) if ac else None,
+            "dc_kwh": round(dc, 2) if dc else None,
+            "eff": round(100 * dc / ac, 1) if (ac and dc) else None}
+
+
+def wallbox_ac_dc_totals(charges) -> dict:
+    """AC delivered vs DC into the battery over a set of charges, from the STORED columns.
+
+    The one place that arithmetic lives, because there were two and they disagreed on the same
+    screen (#229 @Wartopia: 141.5 % on the tiles, 92.5 % on the calendar underneath). The tiles were
+    written on 3 June, when `ac_energy_kwh` did not exist yet and the only way to know the wall's
+    kWh was to integrate the power sensor's Home Assistant history for every session, on every page
+    load. The column arrived on 9 June; nobody moved them onto it.
+
+    ⚠️ A charge counts only when it has BOTH figures. Adding its battery kWh while adding no meter
+    kWh is what pushes the ratio above 100 % — the car cannot take more than the wall gave. And it
+    is not a corner case: `finalize_charge` deliberately NULLs `ac_energy_kwh` when the counter ran
+    away (#46) or stood still (#215), and every HOME charge recorded before the wallbox was
+    configured has no meter figure at all.
+
+    `skipped` is returned rather than swallowed: a total built on 3 charges of 10 is a different
+    claim from one built on all 10, and the caller may want to say so.
+    """
+    ac = dc = 0.0
+    counted = skipped = 0
+    for c in charges:
+        a = c.get("ac_energy_kwh") if hasattr(c, "get") else c["ac_energy_kwh"]
+        d = c.get("energy_added_kwh") if hasattr(c, "get") else c["energy_added_kwh"]
+        if not a or not d or a <= 0 or d <= 0:
+            skipped += 1
+            continue
+        ac += a
+        dc += d
+        counted += 1
+    if not counted:
+        return {"ac": None, "dc": None, "eff": None, "counted": 0, "skipped": skipped}
+    return {"ac": round(ac, 2), "dc": round(dc, 2),
+            "eff": round(100 * dc / ac, 1) if ac else None,
+            "counted": counted, "skipped": skipped}
+
+
 def get_wallbox_calendar_month(year: int, month: int) -> dict:
     """Per-day AC(wallbox)/DC(battery) totals for the Wallbox calendar's Month view — uses
     the ALREADY-STORED charge columns (ac_energy_kwh/energy_added_kwh), not the per-session
     HA-history integration main.py's _session_energy does. That stays lazy, computed only
     for the one day the user opens (see get_wallbox_calendar_day) instead of for every
     session up front — each call is a live Home Assistant history fetch."""
-    charges = _wallbox_home_charges_raw()
-    days: dict[int, dict] = {}
-    total = {"count": 0, "ac": 0.0, "dc": 0.0}
-    for c in charges:
+    per_day: dict[int, list] = {}
+    month_rows = []
+    for c in _wallbox_home_charges_raw():
         dt = _local_dt(c["started_at"])
         if dt is None or dt.year != year or dt.month != month:
             continue
-        d = days.setdefault(dt.day, {"count": 0, "ac": 0.0, "dc": 0.0})
-        ac = c.get("ac_energy_kwh") or 0
-        dc = c.get("energy_added_kwh") or 0
-        for node in (d, total):
-            node["count"] += 1
-            node["ac"] = round(node["ac"] + ac, 2)
-            node["dc"] = round(node["dc"] + dc, 2)
-    for node in list(days.values()) + [total]:
-        node["eff"] = round(100 * node["dc"] / node["ac"], 1) if node["ac"] else None
+        per_day.setdefault(dt.day, []).append(c)
+        month_rows.append(c)
+    # Through the SAME helper the lifetime tiles use, so the two figures on this one screen cannot
+    # drift apart again — which is exactly how #229 happened. It also fixes the hole this loop had
+    # of its own: it added a charge's battery kWh even when its meter kWh was missing, so a month
+    # containing a dropped counter (#46/#215) or a pre-wallbox charge read above 100 %.
+    days = {d: {**wallbox_ac_dc_totals(rows), "count": len(rows)} for d, rows in per_day.items()}
+    total = {**wallbox_ac_dc_totals(month_rows), "count": len(month_rows)}
     return {"year": year, "month": month, "days": days, "total": total}
 
 
@@ -4969,7 +5138,11 @@ def get_wallbox_calendar_day(year: int, month: int, day: int) -> list[dict]:
     for c in _wallbox_home_charges_raw():
         dt = _local_dt(c["started_at"])
         if dt and dt.year == year and dt.month == month and dt.day == day:
-            out.append({"id": c["id"], "time": dt.strftime("%H:%M"), "_sort": c["started_at"]})
+            # The two figures come from the row, not from a Home Assistant history fetch per
+            # session (#229). Same numbers as the tiles and the month strip above — one screen,
+            # one answer.
+            out.append({"id": c["id"], "time": dt.strftime("%H:%M"), "_sort": c["started_at"],
+                        **wallbox_session_energy(c)})
     out.sort(key=lambda s: s["_sort"], reverse=True)
     for s in out:
         del s["_sort"]

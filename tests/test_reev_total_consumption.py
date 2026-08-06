@@ -186,13 +186,31 @@ def test_every_range_extender_card_is_gated_on_a_range_extender():
 
     ⚠️ Matched on lines that ASSIGN a `totals["reev_…"]`, not on lines that merely mention one: the
     route now READS `totals["reev_total"]` back to feed the cost card, and a substring test called
-    that read an ungated card."""
+    that read an ungated card.
+
+    ⚠️ And read as whole STATEMENTS, not lines. beta #26's generator card is gated harder than the
+    others — `_reev and research.research_enabled()`, so a range-extender on the official image
+    never computes it either — which needed two lines and turned this red while being MORE strict
+    than what it asks for. Twice now the counting has been the thing that broke; what has to hold is
+    that every card names `_reev`, however it spells the rest."""
     main = (pathlib.Path(__file__).resolve().parent.parent / "web" / "main.py").read_text()
     block = main.split('_reev = db_reader.get_setting("is_reev"', 1)[1].split("\n\n", 1)[0]
-    cards = [ln.strip() for ln in block.splitlines() if ln.strip().startswith('totals["reev_')]
-    assert len(cards) >= 2, "the range-extender cards moved out of this route"
-    for line in cards:
-        assert "if _reev else None" in line, f"ungated REEV card in the statistics route: {line}"
+    cards, current = [], None
+    for line in block.splitlines():
+        stripped = line.strip()
+        if stripped.startswith('totals["reev_'):
+            current = stripped
+            cards.append(current)
+        elif current is not None and stripped and not stripped.startswith("#"):
+            cards[-1] += " " + stripped                      # a continued assignment
+            if stripped.endswith((")", "None")):
+                current = None
+        elif not stripped:
+            current = None
+    assert len(cards) >= 3, "the range-extender cards moved out of this route"
+    for statement in cards:
+        assert "_reev" in statement.split("=", 1)[1], \
+            f"ungated REEV card in the statistics route: {statement}"
 
 
 def test_the_page_never_calls_either_of_them_a_consumption():

@@ -37,6 +37,12 @@
     {% set eff_all = day_totals.kwh_100km if (is_reev and research) else None %}
     {% if eff_all %}
     <span class="eff-pill" style="color:#38bdf8">{{ eff_all | eff }}</span>
+    {# Which kilometres the figure speaks for — same rule and same wording as the month strip above,
+       and for the same reason: the litres next to it divide by all of them. See trips_calendar_month. #}
+    {% if day_totals.kwh_100km_km and day_totals.km and (day_totals.km - day_totals.kwh_100km_km) > 0.5 %}
+    <span class="text-slate-500 text-[11px] whitespace-nowrap" title="{{ t('trips_eff_over_km_hint') }}">
+      {{ t('trips_eff_over_km').format(km=day_totals.kwh_100km_km | dist(0), total=day_totals.km | dist(0)) }} ⓘ</span>
+    {% endif %}
     {% elif day_totals.avg_eff %}
     <span class="eff-pill {{ eff_cls(day_totals.avg_eff) }}">{{ day_totals.avg_eff | eff }}</span>
     {% endif %}

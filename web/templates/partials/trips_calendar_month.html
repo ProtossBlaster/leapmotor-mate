@@ -35,6 +35,18 @@
        the BATTERY drove you, which is not what this answers. A BEV keeps the measured pill. #}
     {% set eff_all = total.kwh_100km if (is_reev and research) else None %}
     {% if eff_all %}<span class="eff-pill" style="color:#38bdf8">{{ eff_all | eff }}</span>
+    {# …and WHICH kilometres it speaks for. getEC is not on every trip, so since v3.8.3 this figure
+       divides by the distance it was measured over — while the litres beside it divide by all of
+       them. Two "per 100 km" one line apart on different distances is exactly the shape of beta #11
+       and #24; saying nothing about it was leaving the same trap set, quieter.
+       ⚠️ BOTH numbers, and that is @michapr's version, not mine (06/08): I had proposed the covered
+       distance alone, and alone it does not tell you whether the slice is large or small.
+       ⚠️ Only when they DIFFER — "over 479 km of 479 km" is noise, and noise is how a caveat stops
+       being read. Half a kilometre of tolerance: the two sums round independently. #}
+    {% if total.kwh_100km_km and total.km and (total.km - total.kwh_100km_km) > 0.5 %}
+    <span class="text-slate-500 text-[11px] whitespace-nowrap" title="{{ t('trips_eff_over_km_hint') }}">
+      {{ t('trips_eff_over_km').format(km=total.kwh_100km_km | dist(0), total=total.km | dist(0)) }} ⓘ</span>
+    {% endif %}
     {% elif total.avg_eff %}<span class="eff-pill {{ eff_cls(total.avg_eff) }}">{{ total.avg_eff | eff }}</span>{% endif %}
     {# The petrol half of a range-extender month. Same line, same weight as the electric pill beside
        it — @michapr (beta #11) had the litres on each trip and nothing at all where the month is
