@@ -674,6 +674,51 @@ def set_secret(key: str, value: str) -> None:
     set_setting(key, crypto.encrypt(value or ""))
 
 
+# The secrets kept encrypted at rest. Mirrors poller/db.py's SECRET_KEYS — the same eight settings
+# seen from the other process.
+SECRET_KEYS = ("leapmotor_pass", "leapmotor_pin", "abrp_token", "mqtt_pass",
+               "geocoder_key", "ha_token", "ocm_key", "tomtom_key")
+
+
+_decryption_reported = False
+
+
+def check_decryption() -> list:
+    """Say — once, at boot, and in words — that the stored secrets belong to a key we no longer
+    have. Returns the names of the unreadable ones.
+
+    The poller has had this since the encryption landed. The web did not, and the web is the screen
+    people are looking at: @Ng-EY (#227) restored a database whose secrets belonged to a
+    `secret.key` a clean Docker restart had replaced, and got **101 identical generic warnings**
+    with no hint of what to do. The instruction he needed already existed — in the other process's
+    log, which he had no reason to open.
+    """
+    lost = []
+    try:
+        for key in SECRET_KEYS:
+            if not crypto.can_decrypt(get_setting(key)):
+                lost.append(key)
+    except sqlite3.Error:
+        return []
+    global _decryption_reported
+    if lost and not _decryption_reported:
+        # Once per PROCESS, not once per call: `uvicorn.run("main:app")` imports web/main.py a
+        # second time in the same process (as `main`, after `__main__`), so every module-level line
+        # in it fires twice — that is riri19's doubled diagnostics. The flag lives HERE because
+        # `db_reader` is cached in sys.modules and is therefore the one object both copies share.
+        _decryption_reported = True
+        # This module has no logger of its own — it is a reader, and every other message it could
+        # want to emit belongs to its caller. One import here beats a module-level logger that
+        # nothing else would ever use.
+        import logging
+        logging.getLogger("mate.web").error(
+            "Cannot decrypt %d stored secret(s) (%s): wrong or missing /data/secret.key. "
+            "Restore the key together with the database, or re-enter these in Settings. "
+            "Trips and charges are not encrypted and are unaffected.",
+            len(lost), ", ".join(lost))
+    return lost
+
+
 def get_or_create_device_id() -> str:
     """One stable device_id for this Mate install, shared by poller and web.
     Must match the poller's value so the whole app is a single Leapmotor device on

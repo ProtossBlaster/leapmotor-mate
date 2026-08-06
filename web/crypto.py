@@ -75,12 +75,42 @@ def encrypt(value: str) -> str:
 
 
 def decrypt(value: str) -> str:
-    """Return plaintext. Total over empty / legacy-plaintext / ciphertext. On a
-    decrypt failure (lost or changed key) returns the raw value rather than raising."""
+    """Return plaintext. Total over empty / legacy-plaintext / ciphertext. On a decrypt failure
+    (lost or changed key) returns EMPTY rather than raising — and rather than the ciphertext.
+
+    It used to hand back the raw value, and #227 (@Ng-EY) showed what that costs: he restored a
+    database whose secrets belonged to a `secret.key` that a clean Docker restart had replaced, so
+    `enc:v1:gAAAA…` went to Leapmotor as his password. It retried until the cloud answered "Password
+    error limit has reached maximum" — we were locking his account for him.
+
+    Returning the raw value is what lets a legacy PLAINTEXT secret through, but that case has
+    already returned above (`not is_encrypted`). Here the value is always ciphertext, and passing it
+    on can only be mistaken for a credential.
+
+    ⚠️ Nothing is erased: the stored setting keeps its ciphertext, so putting the right key back
+    makes every secret readable again. This is a read that fails, not a repair that destroys.
+    """
     if not value or not is_encrypted(value):
         return value
     try:
         return _f().decrypt(value[len(_PREFIX):].encode()).decode()
     except InvalidToken:
         log.warning("A stored secret could not be decrypted (wrong/lost key?)")
-        return value
+        return ""
+
+
+def can_decrypt(value) -> bool:
+    """Is this stored value readable with the CURRENT key? Empty and legacy plaintext count as
+    readable — there is nothing there that could fail.
+
+    Asked directly rather than inferred from what `decrypt` returns: the caller used to detect a
+    failure by testing whether decrypt gave the ciphertext back, and the fix above makes it give
+    back "" instead — which would have silently retired the warning exactly where it matters.
+    """
+    if not value or not is_encrypted(value):
+        return True
+    try:
+        _f().decrypt(value[len(_PREFIX):].encode())
+        return True
+    except InvalidToken:
+        return False

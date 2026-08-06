@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.8.2"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.8.3"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -137,6 +137,19 @@ def _pin_auto_timezone() -> None:
         pass
 
 
+def _check_secret_key() -> None:
+    """Say at boot, once, if the stored secrets belong to a key we no longer have (#227).
+
+    The poller has warned about this for as long as the encryption has existed; the web did not,
+    and the web is the screen. Runs after the schema is ensured and before anything tries to log
+    in, so the explanation sits ABOVE the wall of failures it explains rather than under it."""
+    try:
+        db_reader.check_decryption()
+    except Exception:  # noqa: BLE001 — never block startup over a diagnostic
+        pass
+
+
+_check_secret_key()
 _pin_auto_timezone()
 _repair_manual_charge_timezones()
 

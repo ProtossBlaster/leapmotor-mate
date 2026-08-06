@@ -120,7 +120,9 @@ ci-dessous.
 > données, la clé de chiffrement des secrets (`secret.key`) et le certificat. Si vous faites une sauvegarde,
 > **conservez la base de données avec sa `secret.key`** — sans la clé, les mots de passe et jetons enregistrés
 > ne sont plus lisibles. Depuis la page Paramètres, vous pouvez télécharger une sauvegarde de la base de
-> données à tout moment.
+> données à tout moment. Si vous restaurez une base **sans** sa clé, Mate l'écrit désormais dans le journal
+> en les nommant — quels secrets il ne peut pas lire et quoi faire — au lieu d'échouer plus tard comme une
+> erreur de connexion. Trajets, recharges et coûts ne sont pas chiffrés et reviennent toujours.
 
 ---
 

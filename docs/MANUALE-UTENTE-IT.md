@@ -112,6 +112,9 @@ ed è descritto qui sotto.
 > chiave di cifratura dei segreti (`secret.key`) e il certificato. Se fai un backup, **salva il
 > database insieme alla sua `secret.key`** — senza la chiave, password e token salvati non sono più
 > leggibili. Dalla pagina Impostazioni puoi scaricare un backup del database in qualsiasi momento.
+> Se ripristini un database **senza** la sua chiave, ora Mate lo scrive nel log per nome — quali
+> segreti non riesce a leggere e cosa fare — invece di fallire più tardi come errore di accesso.
+> Viaggi, ricariche e costi non sono cifrati e tornano sempre.
 
 ---
 

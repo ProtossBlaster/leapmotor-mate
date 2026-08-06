@@ -73,10 +73,25 @@
           {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
         </div>
         <div>
+          {# On a range extender this tile shows getEC and NOTHING derived from SoC (@michapr,
+             beta #11). Both of the branches below are SoC arithmetic: `battery_net_kwh` is
+             ΔSoC × capacity outright, and `energy_kwh` is efficiency × distance, where the
+             efficiency itself was computed from ΔSoC when the trip closed (poller/db.py). On a
+             series hybrid the generator refills the pack mid-drive, so neither says what the
+             driving used — and neither is what the money beside them is billed on: a REEV trip is
+             priced by drawing the paid stock down by `ec_kwh` (reev_trip_electric_cost). His words:
+             *"we should only show the getEC value that is actually used for the calculation"*.
+             `is_reev` alone, no research gate — same as the regen tile below, and because a SoC
+             number on a range extender is wrong on every build, not only the beta one. #}
+          {% if is_reev %}
+          <div class="stat-label">{{ t('energy_used') }}</div>
+          {% if trip.ec_kwh %}
+          <div class="stat-value text-amber-400">{{ trip.ec_kwh|dec(1) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
+          {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
           {# When the pack ended fuller than it started there is no consumption to print — the poller
              withholds it on purpose — and the tile used to sit empty (beta #11). Show the NET gain
              instead, under its own label: this is the battery's net change, not what the trip used. #}
-          {% if trip.battery_net_kwh is not none %}
+          {% elif trip.battery_net_kwh is not none %}
           <div class="stat-label">{{ t('battery_net') }}</div>
           <div class="stat-value text-green-400">{{ trip.battery_net_kwh|dec(1) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
           {% else %}

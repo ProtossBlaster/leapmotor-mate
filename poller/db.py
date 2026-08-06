@@ -459,9 +459,11 @@ class Database:
         """Warn loudly if a secret is stored encrypted but can't be decrypted with the
         current key (e.g. a DB restored WITHOUT its /data/secret.key, or a changed
         MATE_SECRET_KEY) — otherwise it only surfaces later as an obscure login failure."""
+        # Asked of crypto directly. This used to test whether `decrypt` handed the ciphertext back,
+        # which stopped being true the moment decrypt started returning "" on failure (#227) — the
+        # warning would have gone quiet with nothing to show for it.
         for key in SECRET_KEYS:
-            raw = self.get_setting(key)
-            if crypto.is_encrypted(raw) and crypto.is_encrypted(crypto.decrypt(raw)):
+            if not crypto.can_decrypt(self.get_setting(key)):
                 log.error("Cannot decrypt stored secret '%s': wrong or missing "
                           "/data/secret.key. Restore the key together with the database, "
                           "or re-run setup to re-enter credentials.", key)

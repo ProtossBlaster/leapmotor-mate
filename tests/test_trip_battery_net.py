@@ -73,12 +73,16 @@ def test_the_tile_renders_the_net_instead_of_the_empty_consumption(tmp_path, mon
     _trip(tmp_path, monkeypatch, start_soc=69.7, end_soc=74.0)
     trip = db_reader.get_trip_detail(1)
     src = (ROOT / "web" / "templates" / "trip_detail.html").read_text()
-    block = src[src.index("{% if trip.battery_net_kwh is not none %}"):]
-    block = block[:block.index("</div>", block.index("{% endif %}"))]
+    # The tile now opens on `{% if is_reev %}` \u2014 the SoC branches moved behind it (beta #11, a
+    # range-extender must show getEC and nothing derived from SoC). Rendered whole, with is_reev
+    # false, so this keeps asserting the plain-electric behaviour it was written for.
+    start = src.index("{% if is_reev %}")
+    block = src[start:src.index("{% endif %}\n        </div>", start) + len("{% endif %}")]
     env = jinja2.Environment()
     env.filters["dec"] = lambda v, n=1: "\u2014" if v is None else f"{float(v):.{n}f}"
-    out = env.from_string(block + "</div>").render(
-        trip=trip, t=lambda k: {"battery_net": "Battery change", "energy_used": "Energy used"}[k])
+    out = env.from_string(block).render(
+        trip=trip, is_reev=False,
+        t=lambda k: {"battery_net": "Battery change", "energy_used": "Energy used"}[k])
     import re
     visible = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", out)).strip()
     assert "Battery change" in visible

@@ -55,5 +55,10 @@ def test_wrong_key_cannot_decrypt(monkeypatch, tmp_path):
     c1 = _fresh_crypto(monkeypatch, tmp_path, passphrase="key-A")
     tok = c1.encrypt("topsecret")
     c2 = _fresh_crypto(monkeypatch, tmp_path, passphrase="key-B")
-    # wrong key -> decrypt fails gracefully, returns the raw ciphertext (still marked)
-    assert c2.is_encrypted(c2.decrypt(tok))
+    # Wrong key -> nothing comes out. This assertion used to require the opposite — that decrypt
+    # handed the raw ciphertext back — and that is what sent `enc:v1:…` to Leapmotor as @Ng-EY's
+    # password until his account locked (#227). The secret is unreadable, and "unreadable" is "".
+    assert c2.decrypt(tok) == ""
+    assert c2.can_decrypt(tok) is False
+    # That the stored ciphertext survives — so the right key still opens it — is asserted in
+    # test_lost_secret_key_fails_loudly.py, which owns that whole scenario.

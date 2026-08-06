@@ -113,6 +113,9 @@ unten beschrieben.
 > Verschlüsselungsschlüssel der Geheimnisse (`secret.key`) und das Zertifikat. Wenn Sie ein Backup erstellen,
 > **sichern Sie die Datenbank zusammen mit ihrer `secret.key`** — ohne den Schlüssel sind gespeicherte Passwörter
 > und Token nicht mehr lesbar. Über die Seite Einstellungen können Sie jederzeit ein Backup der Datenbank herunterladen.
+> Wenn Sie eine Datenbank **ohne** ihren Schlüssel wiederherstellen, schreibt Mate das jetzt namentlich ins Log —
+> welche Geheimnisse es nicht lesen kann und was zu tun ist — statt später als Anmeldefehler zu scheitern.
+> Fahrten, Ladevorgänge und Kosten sind nicht verschlüsselt und kommen immer zurück.
 
 ---
 

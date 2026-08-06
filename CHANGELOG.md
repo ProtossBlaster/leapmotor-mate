@@ -3,6 +3,41 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.8.3] — 2026-08-06
+
+### Fixed
+- 🔴 **A database restored without its `secret.key` sent the ciphertext to Leapmotor as the
+  password — until the account locked.** @Ng-EY (#227) restarted Docker clean, so `/data` was empty
+  and Mate generated a fresh key; he then put his old database back, whose secrets belonged to the
+  key that was gone. From his log, in fourteen minutes: `Generated new secret key`, then
+  `could not be decrypted` **101 times**, then `Incorrect account or password`, then
+  **`Password error limit has reached maximum`**.
+
+  On a decrypt failure `decrypt` returned the **raw value**, so `enc:v1:gAAAA…` went out as a
+  credential and the retries did the rest. Returning the raw value is what lets a legacy
+  **plaintext** secret through, but that case returns earlier — in the failure branch the value is
+  always ciphertext, and passing it on can only be mistaken for a password. It now returns empty.
+
+  ⚠️ **Nothing is erased.** The stored setting keeps its ciphertext: put the right key back and
+  every secret is readable again. Verified end to end — saved, key lost (reads empty), key
+  restored (reads the password again).
+
+- **The web now explains it, the way the poller always has.** `_check_decryption` has warned about
+  exactly this since the encryption landed — in the *poller's* log. He was reading the web's, and
+  got 101 identical generic lines and no instruction. At startup, before anything tries to log in,
+  the web now says which secrets it cannot read, names `/data/secret.key`, and adds that trips and
+  charges are not encrypted and are unaffected. Once per process, not once per import.
+
+### Changed
+- **On a range extender the trip's ENERGY USED tile shows getEC and nothing derived from SoC.**
+  @michapr (beta #11): *"we should only show the getEC value that is actually used for the
+  calculation"*. Both branches it chose between were SoC arithmetic — `battery_net_kwh` is
+  ΔSoC × capacity, and the consumption figure is efficiency × distance where the efficiency itself
+  came from ΔSoC when the trip closed. On a series hybrid the generator refills the pack mid-drive,
+  so neither measures what the driving used, and neither is what the money beside them is billed
+  on. Where getEC has not arrived yet the tile shows a dash rather than falling back. A plain
+  electric car is untouched.
+
 ## [3.8.2] — 2026-08-05
 
 ### Fixed

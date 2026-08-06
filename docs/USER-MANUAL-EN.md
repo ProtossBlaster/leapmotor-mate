@@ -112,6 +112,9 @@ for both and is described below.
 > encryption key for the secrets (`secret.key`) and the certificate. If you make a backup, **save the
 > database together with its `secret.key`** — without the key, saved passwords and tokens can no
 > longer be read. From the Settings page you can download a database backup at any time.
+> If you ever restore a database **without** its key, Mate now says so in the log by name — which
+> secrets it cannot read and what to do — instead of failing later as a login error. Trips,
+> charges and costs are not encrypted and always come back.
 
 ---
 
