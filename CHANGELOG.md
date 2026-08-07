@@ -3,6 +3,43 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.8.7] — 2026-08-07
+
+**A merged drive that only ever counted the first tank.**
+
+### Fixed
+
+- ⛽ **A merged trip now counts every segment's petrol.** Join two drives and the detail page read
+  the fuel percentages from the whole group but the **litres from the first segment alone** — one
+  line apart in the code, and against the comment sitting directly above them. The litres win
+  whenever the car's own millilitre counter is present, so everything the later segments burned was
+  quietly dropped.
+
+  Measured on a 30 + 30 km drive that burned **2.9 L**: the Trips list said **4.8 L/100km** and the
+  trip's own page said **2.5** — one drive, two pages, two answers, and neither number looked wrong
+  on its own. It is beta #20 returning through the millilitre path added in v2.14.1, which the fix
+  of the time never covered; merging writes only the link between the trips, so nothing rewrote the
+  first segment's tank afterwards. Found while checking something else — nobody reported it.
+
+- ⛽ **A number can no longer be torn from its unit.** In that same tile `⛽ 4.6 L · 6.8 L/100km`
+  needs 140px of a 130px cell, so it wrapped **inside** the second figure and left `L/100km`
+  stranded on its own line under a bare `6.8`. Smaller type is not the answer — a big real trip
+  (`⛽ 12.4 L · 15.7 L/100km`) still overflows at 11px. Each figure is now unbreakable, so the line
+  break falls **between** them and both stay whole.
+
+### Added — BetaTester build
+
+- ⚡ **The trip page shows the electric kWh/100 km on a generator drive.** The Trips list has
+  printed it since the range-extender work; the trip's own page showed a dash for the very same
+  drive. @michapr (beta #27): *"I think the 1.2 kWh are right. Because all other energy is coming
+  from generator — counted by fuel usage."* He is right that the pair describes the drive: 1.2 kWh
+  **and** 4.6 L, each over the whole distance.
+
+  It sits beside the litres, marked in blue, and **not** in AVG CONSUMPTION — which keeps its dash.
+  getEC counts what left the battery, and the generator drives the wheels without passing through
+  the pack, so this figure and the consumption of a purely electric drive are not the same quantity
+  and must not share a label. His own suggestion, and it is what the list already does.
+
 ## [3.8.6] — 2026-08-07
 
 **A car that kept ending up in the sea, and a charge type that only ever spoke English.**

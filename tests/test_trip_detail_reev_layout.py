@@ -58,6 +58,28 @@ def test_the_header_still_shows_the_electric_figure():
     assert "trip.ec_kwh" in _header()
 
 
+def test_neither_fuel_figure_can_be_torn_from_its_unit():
+    """🔴 Shipped in v3.8.5 and only spotted on 07/08/26 by opening the page.
+
+    The tile is 130px and "⛽ 4.6 L · 6.8 L/100km" needs 140 at 13px, so it wrapped — and it wrapped
+    INSIDE the second figure, leaving `L/100km` alone on the next line under a bare `6.8`. The same
+    orphaned-unit look as #199, on the line beta #27 had just asked for.
+
+    Measured in the browser: shrinking the type is not a fix — a realistic big trip
+    ("⛽ 12.4 L · 15.7 L/100km") still needs 132px at 11px. The halves are 51 and 86px on their own,
+    so each is made unbreakable and the wrap falls BETWEEN them: two whole figures, always."""
+    head = _header()
+    # ⚠️ From the `{% if %}` that OPENS the fuel line, not from the first figure — slicing at
+    # `trip.fuel_used_l|nice` starts one character past the opening <span> and its nowrap, so the
+    # count came out 1 and the test failed on where it began reading rather than on the markup.
+    fuel = head[head.index("{% if trip.fuel_used_l %}"):]
+    fuel = fuel[:fuel.index("</div>")]
+    assert fuel.count("whitespace-nowrap") == 2, \
+        "the litres and the L/100km are not both unbreakable — one can still lose its unit"
+    assert "leading-none" not in fuel, \
+        "leading-none makes the two lines touch once it wraps"
+
+
 # ── and the block stops repeating them ────────────────────────────────────────
 
 def test_the_block_no_longer_repeats_the_electric_kwh():

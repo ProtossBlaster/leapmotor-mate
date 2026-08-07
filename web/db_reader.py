@@ -4636,12 +4636,22 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     # the generator-on DRIVING distance (across every merged segment), not the whole trip → matches the car.
     # From the GROUP, not from `_tp` (the parent row): on a merged trip the parent is only the first
     # segment, and its tank says nothing about what the later segments burned — see beta #20.
+    # 🔴 The LITRES have to come from the group too, and until 07/08/26 they did not: this call read
+    # the percentages off `trip_d` (the group) and the litres off `_tp` (the parent row), one line
+    # apart, against what the comment above says. `_reev_trip_fuel` PREFERS the measured litres
+    # whenever they are there, so the parent's won and the group's petrol was thrown away — beta #20
+    # coming back through the millilitre path added later in v2.14.1, which the percentage fix of the
+    # time never covered. Measured on a merged 30 + 30 km group burning 2.9 L: the trips list said
+    # 4.8 L/100km (it has always passed the group) and this page said 2.5 — the same trip, two pages,
+    # two answers, exactly the disagreement @michapr opened beta #27 about. Not research-gated, so it
+    # reached every range-extender owner who merges two trips. `_trip_group_stats` had the right
+    # figures in `trip_d` all along.
     _fs, _fe = trip_d.get("fuel_start_pct"), trip_d.get("fuel_end_pct")
     _fbounds = db.execute(f"SELECT MIN(started_at) s, MAX(ended_at) e FROM trips WHERE id IN ({ph})",
                           seg_ids).fetchone()
     _feng = _reev_engine_on(db, trip["vehicle_id"], _fbounds["s"], _fbounds["e"])
     trip_d.update(_reev_trip_fuel(_fs, _fe, dist, _feng,
-                                  _tp.get("fuel_start_l"), _tp.get("fuel_end_l")))
+                                  trip_d.get("fuel_start_l"), trip_d.get("fuel_end_l")))
     # REEV Phase D — the electric counterpart, from the metered getEC (driverEC) not ΔSoC. Shown
     # research-only next to the fuel so REEV testers can validate it against the car's own dashboard
     # before we ever promote it to the headline efficiency (see _reev_trip_elec).

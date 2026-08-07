@@ -88,14 +88,47 @@
           {% if trip.ec_kwh %}
           <div class="stat-value text-amber-400">{{ trip.ec_kwh|dec(1) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
           {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
+          {# …and the rate that completes it. 🔴 The trips LIST has printed this for a generator trip
+             since Phase D (partials/trip_row.html) while THIS page printed a dash in AVG CONSUMPTION
+             for the same trip — one car, one drive, two pages disagreeing (@michapr, beta #27,
+             07/08/26). The value was already in hand: get_trip_detail calls `_reev_trip_elec` and the
+             template simply never used it.
+
+             It stays HERE, beside the litres, and NOT in the AVG CONSUMPTION tile. Over the whole
+             distance this is what left the pack per 100 km — the electric half of what the drive
+             cost, whose other half is the ⛽ line below. It is NOT the car's appetite: the generator
+             feeds the wheels without passing through the pack, so 1.8 here and 13.1 on an electric
+             trip are different quantities, and putting it under the same label would compare them.
+             Marked instead — blue, ⚡, outside the tile — which is his own suggestion: *«in brackets
+             or in other color to show that it is a calculated value only»*.
+
+             The rate alone, never the kWh: that number is the stat-value directly above, and
+             reprinting it is the three-times-in-one-column duplication beta #27 opened with.
+             `research`-gated to match the list exactly — gating one and not the other would only
+             move the disagreement to the other build. #}
+          {% if research and trip.reev_elec_kwh_100km is not none %}
+          <div class="mt-1 text-[13px] font-semibold text-blue-400/90 leading-none">
+            ⚡ {{ trip.reev_elec_kwh_100km|nice }} kWh/100km
+          </div>
+          {% endif %}
           {# The petrol, right here beside the kWh — which is what a car with no tank already does
              with its one energy figure (@michapr, beta #27). It used to live only in the block
              below, framed in amber like a warning, for something a range-extender owner expects
              every day. `fuel_used_l` alone, no research gate: the litres are on the trips list and
              the calendar on every build, and hiding them here would be the odd one out. #}
+          {# ⚠️ Each figure is ATOMIC. This tile is 130px and the pair needs 140 at 13px, so it has
+             always wrapped — and it wrapped mid-figure, leaving "L/100km" alone on the second line
+             under a bare "6.8". Same orphaned-unit look as #199, shipped since v3.8.5.
+             Shrinking the type does not fix it: measured in the browser, a realistic big trip
+             ("⛽ 12.4 L · 15.7 L/100km") still needs 132px at 11px type, and 10px beside the 13px
+             line above reads as a different kind of information. The two halves on their own are
+             51px and 86px (57 and 91 at their widest), so making each unbreakable puts the wrap
+             between them: two whole figures, never a number torn from its unit. Wide enough, and
+             it stays on one line as before — leading-snug rather than leading-none so the two
+             lines do not touch when it does wrap. #}
           {% if trip.fuel_used_l %}
-          <div class="mt-1 text-[13px] font-semibold text-amber-300/90 leading-none">
-            ⛽ {{ trip.fuel_used_l|nice }} L{% if trip.fuel_l_100km is not none %}<span class="font-normal text-slate-400"> · {{ trip.fuel_l_100km|nice }} L/100km</span>{% endif %}
+          <div class="mt-1 text-[13px] font-semibold text-amber-300/90 leading-snug">
+            <span class="whitespace-nowrap">⛽ {{ trip.fuel_used_l|nice }} L</span>{% if trip.fuel_l_100km is not none %} <span class="font-normal text-slate-400 whitespace-nowrap">· {{ trip.fuel_l_100km|nice }} L/100km</span>{% endif %}
           </div>
           {% endif %}
           {# When the pack ended fuller than it started there is no consumption to print — the poller
