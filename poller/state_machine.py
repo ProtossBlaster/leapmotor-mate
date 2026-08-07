@@ -20,7 +20,9 @@ Transitions (all independent of HA and phone):
   PARKED_ACTIVE       → PARKED_SLEEP   no change for SLEEP_AFTER_S (30 min)
   PARKED_ALERT        → DRIVING        speed > 0 or gear D
   PARKED_ALERT        → PARKED_ACTIVE  no drive within ALERT_EXPIRES_S (5 min)
-  DRIVING             → PARKED_ACTIVE  gear P held ~1 min (6 × 10s), OR cable plugged (trip ends now)
+  DRIVING             → PARKED_ACTIVE  gear P held ~1 min (6 × 10s), OR cable plugged (trip ends now),
+                                       OR the cloud has repeated one "D" frame for 30 min (#233 —
+                                       the P readings are never coming, see FROZEN_DRIVE_LIMIT_S)
   ANY_PARKED          → CHARGING       charging_status > 0  (REAL current / 1149==2; NOT the cable alone)
   CHARGING            → PARKED_ACTIVE  no current AND the cable reads gone (1149→0) — a dip with the
                                        cable still connected won't close. NB: a modulating wallbox
@@ -66,6 +68,22 @@ _REEV_SOC_RISE_PCT = 0.3   # total climb from the low-water mark that means "thi
 # gear stays D, never split one drive into many trips.
 PARKED_CONFIRM  = 6      # consecutive gear-P readings to end a trip (~1 min @ 10s)
 
+# …and the escape for when those six readings can never arrive (#233, @riri19). Ending a trip needs
+# the cloud to SAY gear P. When the cloud instead freezes on a frame that says D — it re-serves the
+# last frame it holds, forever — the trip has no way to close: the car is parked in the drive, and
+# Mate reports "Driving" for the rest of the day, with the parked hours swallowed into the trip.
+#
+# Measured on his bundle, 12 days, 40 246 polls: while the car is genuinely moving a fresh frame
+# arrives every 18 s (median), 36 s at the 95th percentile and 9.4 min at the 99th — even on a link
+# as poor as his. And of the 17 frozen stretches longer than 10 minutes, ALL 17 ended with the
+# odometer on the exact value it started at: not one of them was a car still driving.
+#
+# 30 minutes therefore sits three times beyond the worst gap real driving produces, and still
+# catches the eight stretches that left a trip open for one to six hours. Should a car ever really
+# be moving through that long a dead zone, the cost is a drive recorded as two, which Mate can
+# merge — against a trip that stays open all day, which it cannot.
+FROZEN_DRIVE_LIMIT_S = 1800
+
 
 class State(Enum):
     UNKNOWN       = "unknown"
@@ -105,6 +123,13 @@ class StateMachine:
     _error_count: int          = field(default=0,     repr=False)
     _v2l_active: bool          = field(default=False, repr=False)
     _reev_last_soc: Optional[float] = field(default=None, repr=False)   # REEV charge detection
+    # When the frame currently being served first arrived, and which frame it is (#233). Frame
+    # IDENTITY, never age — the same test the recorder uses, so a host clock skewed against the
+    # cloud cannot fool it, and a cloud that back-dates a fresh frame cannot either.
+    _frame_ts: Optional[int]   = field(default=None, repr=False)
+    _frame_first_seen: float   = field(default=0.0,  repr=False)
+    # The frame a trip was given up on, so the very same frame cannot immediately re-open one.
+    _frozen_closed_ts: Optional[int] = field(default=None, repr=False)
 
     def update(self, data: VehicleData) -> list[StateEvent]:
         self._error_count = 0
@@ -164,6 +189,15 @@ class StateMachine:
             self._last_change_ts = now
         self._prev_fp = fp
 
+        # How long the cloud has been serving THIS frame (#233). Tracked here rather than read from
+        # the recorder so the state machine stays self-contained and testable on its own; a frame
+        # with no timestamp at all (very old rows, partial payloads) never freezes the counter,
+        # because a missing id cannot prove the frame is the same one.
+        frame_ts = getattr(data, "timestamp_ms", None) or None
+        if frame_ts is None or frame_ts != self._frame_ts:
+            self._frame_ts, self._frame_first_seen = frame_ts, now
+        frozen_s = now - self._frame_first_seen
+
         # ── UNKNOWN / OFFLINE → first successful poll ─────────────────────
         if self.state in (State.UNKNOWN, State.OFFLINE):
             if is_driving:
@@ -181,6 +215,14 @@ class StateMachine:
 
         # ── Any parked → DRIVING ──────────────────────────────────────────
         if self.state in _PARKED_STATES and is_driving:
+            # …unless this is the very frame we just gave up on. Closing a trip below does not stop
+            # the cloud re-serving that same "gear D" frame, and without this latch the next poll
+            # reads it as a fresh departure: the trip re-opens, is 30 min stale the instant it does,
+            # and closes again — one trip every 10 seconds, for as long as the outage lasts. Found
+            # by replaying @riri19's outage, NOT by the test above, which was asserting the final
+            # state of something that oscillates and so read DRIVING either way.
+            if frame_ts is not None and frame_ts == self._frozen_closed_ts:
+                return events
             self._parked_count = 0
             events.append(self._go(State.DRIVING, data))
             return events
@@ -225,6 +267,17 @@ class StateMachine:
                     self._parked_count = 0
                     self._alert_start_ts = now
                     events.append(self._go(State.PARKED_ACTIVE, data))
+            elif frozen_s >= FROZEN_DRIVE_LIMIT_S:
+                # The cloud has repeated one frame saying "D" for half an hour. That is not a car
+                # driving — a moving car pushes fresh frames — it is a car parked somewhere its link
+                # cannot reach, and the P readings that would close this trip are never coming.
+                # Close it on the evidence we have rather than let it swallow the rest of the day.
+                log.warning("Trip left open on a frame the cloud has repeated for %.0f min — the "
+                            "car cannot report P from where it is; closing the trip", frozen_s / 60)
+                self._parked_count = 0
+                self._alert_start_ts = now
+                self._frozen_closed_ts = frame_ts    # …and don't let this same frame re-open one
+                events.append(self._go(State.PARKED_ACTIVE, data))
             else:
                 self._parked_count = 0
 

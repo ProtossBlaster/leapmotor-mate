@@ -130,8 +130,15 @@
         html: '<div style="background:#14b8a6;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5)"></div>',
         iconSize: [14,14], iconAnchor: [7,7]
       });
+      {# When the CAR last reported this position, not when we last wrote a row. The poller records
+         a row every 30 s while parked even when the cloud is re-serving one frozen frame, so
+         last_seen_s said "22 seconds ago" over a marker that had not moved in sixteen hours —
+         which is exactly what @rop12770 was looking at in #232 while asking why his car was in the
+         sea. data_age_s comes from the frame's own timestamp and is always measured (see
+         _data_age); it is None only for a car that reports no clock at all, and there
+         last_seen_s is the best we have. #}
       L.marker([{{ status.latitude }}, {{ status.longitude }}], {icon}).addTo(map)
-        .bindPopup('{{ vehicle.car_type if vehicle else "Leapmotor" }} — {{ ago(status.last_seen_s) }}').openPopup();
+        .bindPopup('{{ vehicle.car_type if vehicle else "Leapmotor" }} — {{ ago(status.data_age_s if status.data_age_s is not none else status.last_seen_s) }}').openPopup();
     </script>
     {% else %}
     <div class="flex items-center justify-center h-64 text-slate-500">

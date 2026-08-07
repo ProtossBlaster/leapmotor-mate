@@ -150,13 +150,19 @@
   </div>
   <div class="flex justify-between text-slate-400 col-span-2">
     <span>{{ t('last_seen') }}</span>
-    <span class="text-white font-medium">
-      {{ ago(status.last_seen_s) }}{% if status.data_age %}
-      <!-- The car stopped reaching the cloud while it was driving or charging, so the cloud is
-           re-serving an old frame: the row is seconds old, its contents are not (#178). A parked,
-           sleeping car never lands here — see _data_age(). -->
-      <span class="text-amber-400 font-normal" title="{{ t('data_age_hint') }}">· {{ t('data_age').format(age=status.data_age) }}</span>
-      {% endif %}
+    <!-- WHEN THE CAR LAST REPORTED, not when we last wrote a row. The poller records a row every
+         30 s even while the cloud re-serves one frozen frame, so this used to read "22 seconds
+         ago" over data that was hours old (#232) — and a figure that is wrong is worse than one
+         that is missing. data_age_s is always measured from the frame's own timestamp; it is None
+         only for a car that reports no clock, and there the row time is all we have.
+
+         The amber stays a MARK, not a second number: it fires on the case worth flagging — the
+         link died while the car was moving or charging (#178) — and a parked, sleeping car never
+         lands there. Printing the age twice under one label would be two correct numbers saying
+         the same thing, which reads as a defect even when both are right. -->
+    <span class="{{ 'text-amber-400' if status.data_age else 'text-white' }} font-medium"
+          {% if status.data_age %}title="{{ t('data_age_hint') }}"{% endif %}>
+      {{ ago(status.data_age_s if status.data_age_s is not none else status.last_seen_s) }}
     </span>
   </div>
   {% if car_resp %}

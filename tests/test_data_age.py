@@ -20,6 +20,8 @@ duplicate-number defect this project has been shown before. The demo container c
 import sqlite3
 import time
 
+import re
+
 import pytest
 
 import db_reader
@@ -128,7 +130,12 @@ def test_both_places_that_show_a_time_ago_go_through_the_translator():
     root = pathlib.Path(__file__).resolve().parent.parent / "web" / "templates"
     for rel in ("partials/status_card.html", "overview.html"):
         html = (root / rel).read_text(encoding="utf-8")
-        assert "ago(status.last_seen_s)" in html, f"{rel} still renders a raw English string"
+        # ⚠️ This asserted the literal `ago(status.last_seen_s)` until v3.8.8, and went red the day
+        # #232 changed WHICH seconds go in — the frame's age instead of the row's. The rule it
+        # exists for is unchanged and is the one pinned here: the figure goes through the
+        # translator. Pinning the argument as well made it a test of a decision it has no opinion
+        # about. Which seconds are correct is test_last_seen_is_when_the_car_spoke.py's job.
+        assert re.search(r"\bago\(\s*status\.", html), f"{rel} still renders a raw English string"
         assert "status.last_seen }}" not in html, f"{rel} still prints the untranslated last_seen"
 
 

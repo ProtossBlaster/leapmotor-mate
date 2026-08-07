@@ -15,8 +15,17 @@ facts, and the previous parked reading is still in memory when the trip opens, s
 anchored to it. `started_at` is NOT backdated: when the drive began is genuinely unknown — the car
 may have sat parked for hours inside the frozen window. Duration therefore stays as observed, and
 the average speed of such a trip reads high. The efficiency, which is what this app is about,
-comes out right. The start POSITION also stays where the signal returned, because a frozen frame's
-GPS is frequently 0,0 and would plant the trip in the Gulf of Guinea.
+comes out right.
+
+▶ v3.8.8 (#233, @riri19 again). The start POSITION now moves too — when there is a real one to move
+it to. The original rule threw the coordinate away because "a frozen frame's GPS is frequently 0,0
+and would plant the trip in the Gulf of Guinea". That risk is real, but discarding every position
+to avoid it also discards the good ones: his 19 km drive opened **5 km from home**, while the frame
+in Mate's hand still said "parked at home" and was 32 minutes stale. The answer is to CHECK the
+coordinate rather than distrust the whole class of them — the recorder's position baseline simply
+refuses to store a zero, so nothing that reaches `head` can be one. The Gulf of Guinea test below
+is unchanged and still passes: with a zero baseline there is nothing to anchor to, and the trip
+starts where the signal returned, exactly as before.
 """
 from client import VehicleData
 import db as D
@@ -113,17 +122,75 @@ def test_a_zero_odometer_reading_never_anchors_a_trip(tmp_path):
 
 # ── the simplifications, pinned so nobody 'fixes' them by accident ─────────────
 
-def test_the_head_carries_distance_and_energy_and_nothing_else(tmp_path):
-    """The anchor deliberately contains no timestamp and no position: we know the car covered those
-    kilometres, but NOT when it set off (the frozen window may hold hours of parking) nor from
-    where (a frozen frame's GPS is routinely 0,0). Asserting on the trip's `duration_min` could not
-    catch a regression here — every timestamp in this harness is 'now' — so pin the contract at the
-    source instead. Add a key to _offline_head and this goes red."""
+def test_the_head_carries_distance_energy_and_the_place_it_left_from(tmp_path):
+    """The anchor carries no TIMESTAMP, and that is still deliberate: we know the car covered those
+    kilometres but not when it set off, because the frozen window may hold hours of parking.
+    Asserting on the trip's `duration_min` could not catch a regression here — every timestamp in
+    this harness is 'now' — so the contract is pinned at the source instead.
+
+    ⚠️ This test read `== {"odometer_km", "soc"}` until v3.8.8 and said *"add a key to _offline_head
+    and this goes red"*. It did exactly that, on the day the position was deliberately added (#233),
+    which is the only reason the change was noticed rather than silently widening the contract. The
+    key it must still refuse is a timestamp."""
     db, rec = _rec(tmp_path)
-    rec.process(_vd(odo=1000, soc=80.0))
-    rec.process(_vd(odo=1000, soc=80.0))
+    rec.process(_vd(odo=1000, soc=80.0, lat=45.5, lon=9.5))
+    rec.process(_vd(odo=1000, soc=80.0, lat=45.5, lon=9.5))
     head = rec._offline_head(_vd(odo=1003, soc=79.0, gear="D", speed=50.0))
-    assert head == {"odometer_km": 1000, "soc": 80.0}
+    assert head == {"odometer_km": 1000, "soc": 80.0, "latitude": 45.5, "longitude": 9.5}
+
+
+def test_the_trip_starts_where_the_car_set_off_not_where_we_found_it(tmp_path):
+    """@riri19's 19 km drive (#233): parked at home, cloud dark for half an hour, and the trip
+    opened 5 km down the road. The kilometres were already recovered by #130 — this is the other
+    half of the same anchor."""
+    db, rec = _rec(tmp_path)
+    for _ in range(3):
+        rec.process(_vd(odo=1000, soc=80.0, lat=45.5, lon=9.5))      # parked at home
+    rec.process(_vd(odo=1005, soc=79.0, gear="D", speed=70.0, lat=45.6, lon=9.6))   # 5 km away
+    rec.process(_vd(odo=1010, soc=76.0, gear="D", speed=70.0, lat=45.7, lon=9.7))
+    for _ in range(6):
+        rec.process(_vd(odo=1010, soc=76.0, lat=45.7, lon=9.7))
+    t = _trip(db)
+    assert (t["start_lat"], t["start_lon"]) == (45.5, 9.5), "the trip must start at home"
+    assert t["start_odometer_km"] == 1000, "and #130's distance anchor must still hold"
+
+
+def test_a_lost_fix_does_not_erase_the_place_we_already_knew(tmp_path):
+    """Parked in a garage: a good fix, then frames with no GPS at all, then the offline departure.
+
+    ⚠️ This is the only case that separates the two zero guards. Refusing a zero when READING the
+    baseline and refusing to STORE one look interchangeable — a mutation to either alone left every
+    other test green. They are not: storing the zero OVERWRITES the last good position, and the
+    anchor is then lost even though Mate knew perfectly well where the car was five minutes ago.
+
+    Seen red with the store-side guard removed: the trip starts where the signal returned.
+    """
+    db, rec = _rec(tmp_path)
+    rec.process(_vd(odo=1000, soc=80.0, lat=45.5, lon=9.5))       # home, good fix
+    for _ in range(3):
+        rec.process(_vd(odo=1000, soc=80.0, lat=0.0, lon=0.0))    # …then the fix drops out
+    rec.process(_vd(odo=1005, soc=79.0, gear="D", speed=70.0, lat=45.6, lon=9.6))
+    rec.process(_vd(odo=1010, soc=76.0, gear="D", speed=70.0, lat=45.7, lon=9.7))
+    for _ in range(6):
+        rec.process(_vd(odo=1010, soc=76.0, lat=45.7, lon=9.7))
+    t = _trip(db)
+    assert (t["start_lat"], t["start_lon"]) == (45.5, 9.5), \
+        "a frame with no GPS must not erase the last place we knew"
+
+
+def test_a_healthy_link_still_starts_the_trip_where_the_car_is(tmp_path):
+    """The overwhelmingly common case must not move: with no unseen kilometres `_offline_head`
+    returns None, and nothing about the trip's start changes."""
+    db, rec = _rec(tmp_path)
+    for _ in range(3):
+        rec.process(_vd(odo=1000, soc=80.0, lat=45.5, lon=9.5))
+    rec.process(_vd(odo=1000, soc=80.0, gear="D", speed=30.0, lat=45.5, lon=9.5))
+    rec.process(_vd(odo=1004, soc=78.0, gear="D", speed=50.0, lat=45.6, lon=9.6))
+    for _ in range(6):
+        rec.process(_vd(odo=1004, soc=78.0, lat=45.6, lon=9.6))
+    t = _trip(db)
+    assert (t["start_lat"], t["start_lon"]) == (45.5, 9.5)
+    assert t["start_odometer_km"] == 1000
 
 
 def test_the_start_position_stays_where_the_signal_returned(tmp_path):

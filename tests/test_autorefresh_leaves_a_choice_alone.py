@@ -27,11 +27,23 @@ def _refresh_block() -> str:
     return BASE.split("setInterval(() => {", 1)[1].split("}, secs * 1000);", 1)[0]
 
 
-def test_the_trips_page_really_does_auto_refresh():
-    """The premise. If Trips ever opts out, these guards stop being load-bearing and this file
-    should be revisited rather than passing for the wrong reason."""
-    assert "{% block autorefresh %}" not in TRIPS, "Trips now sets its own value — re-check this"
-    assert 'data-autorefresh="{% block autorefresh %}30{% endblock %}"' in BASE
+def test_the_premise_changed_and_this_file_knows_it():
+    """▶ v3.8.8. This asserted that Trips auto-refreshes, and said: *"If Trips ever opts out, these
+    guards stop being load-bearing and this file should be revisited rather than passing for the
+    wrong reason."* Trips has now opted out (#236, @michapr — the month lives in an htmx swap, so a
+    reload always dropped him back on the current one), so here is the revisit rather than a
+    quietly-edited assertion.
+
+    🔑 The guards below are NOT deleted, and they are not dead: they belong to base.html's
+    mechanism, which still runs on every page that has not opted out. What changed is that Trips no
+    longer exercises them — so if this file were ever the only thing keeping them alive, it would
+    now be passing for the wrong reason. It is pinned here instead: the marker and the modal guard
+    must stay in base.html, and the day anyone gives Trips its refresh back they are load-bearing
+    again with no code to rewrite."""
+    assert "{% block autorefresh %}0{% endblock %}" in TRIPS, \
+        "Trips opted out in v3.8.8 — if that is being undone, restore this file's original premise"
+    assert 'data-autorefresh="{% block autorefresh %}30{% endblock %}"' in BASE, \
+        "the 30 s default must survive for every page that did not opt out"
 
 
 def test_an_unfinished_selection_stops_the_reload():

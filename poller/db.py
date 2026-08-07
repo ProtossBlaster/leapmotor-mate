@@ -32,6 +32,17 @@ _WB_MAX_KW = 22.0
 _WB_MARGIN = 1.5
 _WB_FLOOR_KWH = 1.0
 
+# GPS hemisphere re-derived from the car's own history — see dominant_coord_signs (#232).
+# The sample is in PLACES, not rows: 400 distinct coordinates is several days of real driving for
+# any car, and small enough that a house move is followed within a week rather than outvoted by a
+# year of the old address. 20 places is the floor below which a fresh install has nothing to say —
+# it must stay well above 1, or a single stuck frame would count as "the history".
+# The majority is deliberately lopsided: a car does not straddle the meridian, so anything short of
+# near-unanimity means the sample is mixed and the honest answer is to keep quiet.
+_SIGN_SAMPLE = 400
+_SIGN_MIN_PLACES = 20
+_SIGN_MAJORITY = 0.9
+
 # The OTHER way a counter lies: it stops. @riri19 (#215) traced a session where his Tuya energy
 # sensor froze for 2h18 while the car went on charging at 6.9 kW — 16.9 kWh that the meter never
 # counted, so the charge was billed on 22.1 kWh instead of 38.9. A rise that is too SMALL always
@@ -835,6 +846,47 @@ class Database:
             "ORDER BY id DESC LIMIT 1", (vehicle_id,)).fetchone()
         return int(row["frame_ts"]) if row and row["frame_ts"] else None
 
+    def dominant_coord_signs(self, vehicle_id: int, sample: int = _SIGN_SAMPLE) -> dict:
+        """Which hemisphere this car's OWN history says it lives in, per axis (#232).
+
+        The remembered sign used to be a single setting, and a single frame that arrived with its
+        minus dropped overwrote it — after which every reader mirrored the car for good. rop12770's
+        bundle is the proof: eighteen trip starts logged at longitude -7.2 between 1 and 5 August,
+        and a `gps_lon_sign` of +1. Two weeks of evidence, beaten by one bad frame.
+
+        So the sign is re-derived here from what is already on disk. A car cannot be in both
+        hemispheres, and it cannot have driven a fortnight's worth of kilometres in a place it has
+        never been: the history outvotes any one frame by construction.
+
+        🔑 DISTINCT positions, not rows. When the car sleeps, the cloud re-serves one frozen frame
+        and save_position() still records it every 30 s while parked (only DRIVING skips repeats) —
+        rop12770 banked ~1900 identical rows over sixteen hours. Counted as rows, one stuck frame
+        outvotes real driving; counted as places, it is worth exactly one vote, which is what it is.
+
+        Zeros are excluded, not counted as east/north: (0, 0) is the no-GPS marker, not a position
+        off the coast of Africa. Returns only the axes with a clear majority — an axis that is
+        genuinely split (a car that really did move across the line) is left for the caller to
+        decide, never guessed at."""
+        signs: dict[str, float] = {}
+        rows = self._conn.execute(
+            "SELECT latitude, longitude FROM ("
+            "  SELECT DISTINCT latitude, longitude, MAX(id) AS last_id FROM positions"
+            "   WHERE vehicle_id = ? AND latitude IS NOT NULL AND longitude IS NOT NULL"
+            "     AND latitude != 0 AND longitude != 0"
+            "   GROUP BY latitude, longitude"
+            "   ORDER BY last_id DESC LIMIT ?"
+            ")", (vehicle_id, sample)).fetchall()
+        for axis, col in (("lat", "latitude"), ("lon", "longitude")):
+            neg = sum(1 for r in rows if r[col] < 0)
+            pos = sum(1 for r in rows if r[col] > 0)
+            if neg + pos < _SIGN_MIN_PLACES:
+                continue          # too little history to outvote anything — say nothing
+            if neg >= (neg + pos) * _SIGN_MAJORITY:
+                signs[axis] = -1.0
+            elif pos >= (neg + pos) * _SIGN_MAJORITY:
+                signs[axis] = 1.0
+        return signs
+
     # ── Trip ─────────────────────────────────────────────────────────────────
 
     def _default_trip_tags(self) -> tuple:
@@ -849,31 +901,42 @@ class Database:
         return drive_mode, one_pedal
 
     def create_trip(self, vehicle_id: int, data, head=None) -> int:
-        """`head` (optional) is {"odometer_km", "soc"} from the last poll before the trip opened,
-        supplied only when the car demonstrably drove while we couldn't see it — see
-        Recorder._offline_head (#130). It moves the trip's START anchors back over those unseen
-        kilometres so the distance and the energy include them. Position and started_at are NOT
-        moved: the frozen frame's GPS is routinely 0,0, and when the drive began is unknown."""
+        """`head` (optional) is {"odometer_km", "soc"} — and since v3.8.8 also "latitude"/"longitude"
+        when a usable one was held — from the last poll before the trip opened, supplied only when
+        the car demonstrably drove while we couldn't see it (Recorder._offline_head, #130/#233). It
+        moves the trip's START anchors back over those unseen kilometres, so the distance, the
+        energy AND the place it set off from all include them. started_at is still NOT moved: the
+        frozen window may hold hours of parking, so when the drive began is genuinely unknown."""
         drive_mode, one_pedal = self._default_trip_tags()
+        # Where the trip STARTED, which is not where we first saw it. On a healthy link `head` is
+        # None and this is the live fix, exactly as before; when the cloud was dark at departure the
+        # live fix is wherever the car had got to by the time it started talking — 5 km down the
+        # road, in @riri19's case (#233) — and the last parked position is the honest anchor.
+        # _offline_head never puts a zero in there, so no (0,0) can arrive by this path.
+        start_lat = (head or {}).get("latitude") or data.latitude
+        start_lon = (head or {}).get("longitude") or data.longitude
         # start_geohash feeds the similar-trips comparator's candidate pre-filter
         # (web/db_reader.py get_similar_trips) — NULL on a missing/zero fix, same guard
         # add_trip_position uses, so a (0,0) glitch never becomes a bogus "near the
         # Gulf of Guinea" bucket.
-        start_gh = geohash.encode(data.latitude, data.longitude) if data.latitude and data.longitude else None
+        start_gh = geohash.encode(start_lat, start_lon) if start_lat and start_lon else None
         start_soc = head["soc"] if head else data.soc
         start_odo = head["odometer_km"] if head else data.odometer_km
         cur = self._conn.execute(
             """INSERT INTO trips (vehicle_id, started_at, start_lat, start_lon, start_geohash,
                start_soc, start_odometer_km, drive_mode, one_pedal, fuel_start_pct, fuel_start_l)
                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-            (vehicle_id, _now_iso(), data.latitude, data.longitude, start_gh,
+            (vehicle_id, _now_iso(), start_lat, start_lon, start_gh,
              start_soc, start_odo, drive_mode, one_pedal,
              getattr(data, "fuel_level_pct", None),   # REEV Phase C — fuel % at trip start (NULL on BEV)
              getattr(data, "fuel_liters", None)),     # …and the car's own litre count (3263)
         )
         self._conn.commit()
         trip_id = cur.lastrowid
-        log.info("Trip #%d started — SOC %.1f%% @ (%.4f, %.4f)", trip_id, data.soc, data.latitude, data.longitude)
+        log.info("Trip #%d started — SOC %.1f%% @ (%.4f, %.4f)%s", trip_id, start_soc or data.soc,
+                 start_lat or 0.0, start_lon or 0.0,
+                 " (anchored to where it set off, not where we found it)"
+                 if (head or {}).get("latitude") else "")
         # lastrowid: Optional only for a cursor that last ran a non-INSERT — see insert_energy_snapshot.
         return trip_id  # type: ignore[return-value]
 

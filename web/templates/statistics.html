@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{# 0 = no idle reload — same reason as trips.html (#236, @michapr). The period you picked is held in
+   the page, not the address, so a reload silently threw it away and put you back on the default
+   while you were reading the numbers. Nothing here is live; the header's refresh button covers it. #}
+{% block autorefresh %}0{% endblock %}
 {% block title %}Statistics — LeapMotor Mate{% endblock %}
 
 {% block content %}

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v3.8.7 · **Langue :** Français
+> **Version de Mate :** v3.8.8 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 

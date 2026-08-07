@@ -612,6 +612,50 @@ def _research_enabled() -> bool:
     return os.environ.get("MATE_RESEARCH", "") not in ("", "0", "false", "False", "no")
 
 
+def reconcile_coord_signs(db, vehicle_id: int, vin: str) -> None:
+    """Prime the GPS sign memory, letting the car's OWN HISTORY overrule the stored setting (#232).
+
+    Called once at poller startup. The setting is a single value; before the v3.8.6 guard, one frame
+    that arrived with its minus dropped overwrote it, and every restart then primed from the poisoned
+    copy — so the car stayed mirrored for good. The position history cannot be poisoned that way, and
+    it is already on disk: this repairs such an install with nothing to press and nothing to ask.
+
+    ⚠️ The setting is REWRITTEN when it loses, not merely ignored — the web reads that setting and
+    has no history of its own, so leaving it wrong would fix the poller and leave the map at sea.
+    """
+    stored: dict[str, float] = {}
+    for axis in ("lat", "lon"):
+        try:
+            stored[axis] = float(db.get_setting(f"gps_{axis}_sign", "0") or 0)
+        except (TypeError, ValueError):
+            stored[axis] = 0.0
+    try:
+        history = db.dominant_coord_signs(vehicle_id)
+    except Exception:  # noqa: BLE001 — a sign we cannot re-derive must never stop the poller
+        log.warning("GPS sign: could not read the position history, keeping the stored sign",
+                    exc_info=True)
+        history = {}
+
+    for axis, was in stored.items():
+        now = history.get(axis)
+        if now is None or now == was:
+            continue
+        if was:
+            # A stored sign we are overruling — the only case worth a warning, and the line the next
+            # #232 gets answered from. NO coordinate in it: the poller log ships inside the bundle.
+            log.warning("GPS %s: the stored sign (%+g) disagrees with this car's own history (%+g) "
+                        "— trusting the history and correcting it", axis, was, now)
+        else:
+            # 0 means "never learned one". Adopting the history here is an ANSWER, not a correction,
+            # and it is the ordinary state of every install that predates this code — warning about
+            # it would put an alarm in the log of every user who has nothing wrong with them.
+            log.info("GPS %s: no sign on record, taking %+g from this car's own history", axis, now)
+        db.set_setting(f"gps_{axis}_sign", str(now))
+        stored[axis] = now
+
+    seed_coord_signs(vin, stored["lat"], stored["lon"])
+
+
 def main():
     db_path = os.environ.get("DB_PATH", "leapmotor_mate.db")
     log.info("Starting LeapMotor Mate poller")
@@ -716,12 +760,19 @@ def main():
     # GPS sign memory (#43): prime from the last authoritative sign we persisted, so a
     # restart (e.g. an HA add-on update) doesn't briefly plot west/south cars in the sea
     # while waiting for the next poll that carries the signed coordinate pair.
-    try:
-        seed_coord_signs(v.vin,
-                         float(db.get_setting("gps_lat_sign", "0") or 0),
-                         float(db.get_setting("gps_lon_sign", "0") or 0))
-    except (TypeError, ValueError):
-        pass
+    #
+    # #232: the setting alone is not trustworthy enough to prime from. It is ONE value, and until
+    # the v3.8.6 guard a single frame that arrived with its minus dropped overwrote it — after which
+    # every reader mirrored the car, restart after restart, because the poisoned value was also what
+    # we primed from. rop12770's install is stuck exactly there: eighteen trip starts logged at
+    # longitude -7.2, and a gps_lon_sign of +1 written by one bad frame after the last of them.
+    #
+    # So the car's own position history gets the casting vote. It cannot be poisoned by one frame —
+    # you cannot drive a fortnight of kilometres somewhere you have never been — and it is already on
+    # disk, which is why this repairs a poisoned install with no button to press and nothing to ask
+    # the owner. The guard stops NEW installs being poisoned; this un-poisons the ones that already
+    # were. Installing the fix means restarting, and the restart IS the repair.
+    reconcile_coord_signs(db, vehicle_id, v.vin)
     _persisted_signs = get_coord_signs(v.vin)
 
     last_relogin = 0.0   # rate-limit guard for session recovery

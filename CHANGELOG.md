@@ -3,6 +3,89 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.8.8] — 2026-08-07
+
+**The car in the sea puts itself back, and a trip stops waiting on a cloud that went quiet.**
+
+### Fixed
+
+- 🗺 **A car plotted in the wrong hemisphere now corrects itself at startup.** The remembered
+  north/south and east/west sign was a **single stored value**, and before v3.8.6 one frame that
+  arrived with its minus dropped overwrote it. From that moment every restart primed from the
+  poisoned copy, so the car stayed mirrored for good — the guard added in v3.8.6 stops the sign
+  being *learned* wrongly, but it cannot un-learn one already stored.
+
+  Mate now re-derives that sign from **the car's own position history** instead of trusting the
+  stored value blindly. You cannot have driven a fortnight of kilometres somewhere you have never
+  been, so the history outvotes any single frame by construction — and it is already on disk, which
+  is why this needs no button and asks you nothing. **Restarting Mate is the repair.**
+
+  Measured on @rop12770's install (#232): eighteen trip starts logged at longitude **−7.2** between
+  1 and 5 August, against a stored sign of **+1** written by one bad frame after the last of them.
+  That is why his trips read correctly while only the marker sat out at sea — the poller had the
+  right positions on disk and the web was applying the wrong sign over the top of them.
+
+  🔑 The history is counted in **places, not rows**. While the car sleeps the cloud re-serves one
+  frozen frame and Mate still records it every 30 seconds: he banked ~1900 identical rows over
+  sixteen hours. Counted as rows, one stuck frame would outvote real driving 60:1 and confirm the
+  very bug this undoes. A sign is only adopted on a near-unanimous majority, so a car that genuinely
+  moved across the line is left alone rather than guessed at.
+
+- 🚗 **A trip no longer stays open because the cloud stopped talking.** Ending a trip needs the
+  cloud to *say* gear P, six times running. When it instead freezes on a frame that says D — it
+  re-serves the last frame it holds, indefinitely — those readings never come: the car is parked in
+  the drive and Mate reports **Driving** for the rest of the day, with the parked hours swallowed
+  into the trip. Reported by @riri19 (#233): *"stuck in Drive mode for hours, sometimes all day."*
+
+  After half an hour of one repeated frame, the trip is now given up on and closed.
+
+  🔑 The threshold was measured, not chosen. On his 40 246 polls: while the car is genuinely moving
+  a fresh frame arrives every **18 seconds** (median), 36 s at the 95th percentile and **9.4 min at
+  the 99th** — even on a link as poor as his — and of the **17** frozen stretches longer than ten
+  minutes, **all 17** ended with the odometer on the exact value it started at. Not one was a car
+  still driving. Replaying his twelve days through the fix: the longest trip falls from **11 hours
+  24 minutes to 61 minutes**, the three multi-hour trips disappear, and the total distance moves by
+  1 km out of 793.
+
+- 📍 **A trip that opened late now starts where the car set off, not where the signal came back.**
+  v1.16.5 already moved the distance and the energy back over kilometres driven while the cloud was
+  dark (#130). The start POSITION was deliberately left behind, on the grounds that a frozen frame's
+  GPS is often 0,0 and would plant the trip in the Gulf of Guinea. That threw away the good
+  coordinates along with the bad: @riri19's 19 km drive opened **5 km from home** while the frame in
+  Mate's hand still said *parked at home* and was 32 minutes stale. Mate now anchors to the last
+  position it actually held — and simply never stores a zero as one, so the Gulf of Guinea case is
+  unchanged.
+
+- 🕰 **"Last seen" now says when the CAR reported, not when Mate wrote a row.** The poller records a
+  position every 30 seconds while parked, and it keeps recording them while the cloud re-serves one
+  frozen frame — so the row is always seconds old, whatever is in it. The Overview map popup and the
+  status card both showed that row time: **"22 seconds ago"** over a marker that had not moved in
+  sixteen hours. It is the figure @rop12770 was looking at in #232 while asking why his car was in
+  the sea, and on a link like @riri19's (#233) the true age is **78 minutes at the median**.
+
+  Nothing new is computed — the honest age was already measured from the frame's own clock on every
+  poll, and simply never reached the page. The amber mark that flags a link lost mid-drive stays,
+  now as a colour on that one figure rather than a second number beside it.
+
+- 🔁 **The Trips and Statistics pages no longer reload themselves out from under you.** Pick last
+  month, read for half a minute, and the idle auto-refresh put you back on the current one — with
+  the statistics period reset too. Reported by @michapr (#236).
+
+  The month and the period are held in the page, not in the address, so `location.reload()` could
+  never restore them. The idle guards added for @pdifeo in beta #22 could not help either: they
+  protect a field being typed in or a mode switched on, and a choice already made and now being
+  *read* looks exactly like an idle page. Both pages show history, so there is nothing live for a
+  reload to fetch and the refresh button is in the header. Every other page keeps its 30 seconds.
+
+### Changed
+
+- 🩺 **The diagnostics bundle now shows the *sign* of each GPS signal, not just that it arrived.**
+  The line tested only for "not empty", so a signal that arrives as **zero** — the axis saying
+  nothing — was listed as present alongside real ones. It reads `2:−, 3:+, 3724:+` now, with `zero`
+  called out by name. One character per axis: it narrows the car to a quadrant, which the remembered
+  sign printed directly beneath it already did, and no magnitude ever appears. Chasing #232 through
+  the old line cost two hours and produced a diagnosis that was wrong.
+
 ## [3.8.7] — 2026-08-07
 
 **A merged drive that only ever counted the first tank.**

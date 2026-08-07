@@ -242,9 +242,30 @@ def _gps_shape_line(signals: dict) -> str:
     bundle could not say whether its signed pair (2/3) even arrives. Presence flags plus the
     remembered sign answer that without leaking a position — the sign narrows it to a quadrant of
     the planet, which the bundle's own language field already gives away."""
-    present = sorted(i for i in _GPS_SIGNAL_IDS if signals.get(i) not in (None, ""))
-    return (f"signals present : {', '.join(present) or 'none'} "
-            f"(2/3 = signed · 3724/3725 + 2190/2191 = unsigned magnitudes)\n"
+    def _shape(raw) -> str:
+        """+ / − / zero for one signal. The SIGN is the whole question this section exists to
+        answer, and presence alone could not answer it: `not in (None, "")` calls a signal that
+        arrives as 0 "present", so the line read `2, 3, …` on rop12770's bundle and I spent two
+        hours concluding the signed pair was arriving when it may have been arriving empty. A zero
+        is not a coordinate — it is the axis saying nothing — and it must not look like one.
+
+        One character per axis leaks nothing the next line does not: a sign narrows the car to a
+        quadrant, which the remembered sign and the bundle's own language field already give away.
+        The magnitude, which is what would actually locate someone, never appears."""
+        if raw in (None, ""):
+            return "absent"
+        try:
+            v = float(raw)
+        except (TypeError, ValueError):
+            return "unreadable"
+        return "zero" if v == 0 else ("−" if v < 0 else "+")
+
+    shapes = ", ".join(f"{i}:{_shape(signals.get(i))}"
+                       for i in sorted(_GPS_SIGNAL_IDS, key=int)
+                       if signals.get(i) not in (None, ""))
+    return (f"signals present : {shapes or 'none'} "
+            f"(2/3 = signed · 3724/3725 + 2190/2191 = unsigned magnitudes · "
+            f"zero = arrives but says nothing)\n"
             f"remembered sign : lat={db_reader.get_setting('gps_lat_sign') or 'unknown'} "
             f"lon={db_reader.get_setting('gps_lon_sign') or 'unknown'} "
             f"(learned from a signed poll; unknown = never seen one)")
