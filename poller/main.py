@@ -670,6 +670,44 @@ def reconcile_coord_signs(db, vehicle_id: int, vin: str) -> None:
     seed_coord_signs(vin, stored["lat"], stored["lon"])
 
 
+class VehicleContext:
+    """Everything the poll loop knows about ONE car.
+
+    Until now this state lived as local variables of `main()` — a recorder, the GPS signs it had
+    persisted, two error counters, the last value of every raw signal. That is exactly right for one
+    car and silently wrong for two: a single `empty_status_count` means a sleeping car backs off the
+    one that is being driven, and a single `_research_last_sig` makes each car's signals look changed
+    because the other one wrote them last.
+
+    So the state moves here first, before any second car exists, and nothing else changes. With one
+    car this object holds precisely what the locals held and the loop behaves identically — which is
+    what makes the step safe to take on its own, provable by the suite that already exists.
+
+    `next_due` is the one genuinely new field: a monotonic deadline per car, so a car being driven
+    (10 s) and one parked (30 s) keep their own cadence instead of the whole round running at the
+    speed of the fastest — which would over-poll the parked one for nothing.
+    """
+
+    __slots__ = ("vehicle", "vehicle_id", "vin", "recorder", "persisted_signs",
+                 "empty_status_count", "poll_error_count", "research_last_sig",
+                 "interval", "next_due")
+
+    def __init__(self, db, vehicle, vehicle_id: int):
+        self.vehicle = vehicle
+        self.vehicle_id = vehicle_id
+        self.vin = vehicle.vin
+        # Crash/restart recovery for open trips/charges happens on the first poll inside
+        # Recorder._resume_or_close(), which RESUMES a still-ongoing session (avoiding
+        # fragmentation) and only closes it if the activity has actually ended.
+        self.recorder = Recorder(db, vehicle_id)
+        self.persisted_signs: dict = {}
+        self.empty_status_count = 0   # consecutive "no live signals" responses (car asleep)
+        self.poll_error_count = 0     # consecutive hard API errors (cloud unreachable)
+        self.research_last_sig: dict = {}   # beta build: last value per signal id, for delta logging
+        self.interval = 30.0
+        self.next_due = 0.0           # monotonic; 0 = due now, so the first round polls every car
+
+
 def main():
     db_path = os.environ.get("DB_PATH", "leapmotor_mate.db")
     log.info("Starting LeapMotor Mate poller")
@@ -764,10 +802,7 @@ def main():
             v.car_type, capacity,
         )
 
-    # Crash/restart recovery for open trips/charges happens on the first poll inside
-    # Recorder._resume_or_close(), which RESUMES a still-ongoing session (avoiding
-    # fragmentation) and only closes it if the activity has actually ended.
-    recorder = Recorder(db, vehicle_id)
+    ctx = VehicleContext(db, v, vehicle_id)
 
     log.info("Polling VIN %s (vehicle_id=%d)", v.vin, vehicle_id)
 
@@ -787,13 +822,14 @@ def main():
     # the owner. The guard stops NEW installs being poisoned; this un-poisons the ones that already
     # were. Installing the fix means restarting, and the restart IS the repair.
     reconcile_coord_signs(db, vehicle_id, v.vin)
-    _persisted_signs = get_coord_signs(v.vin)
+    ctx.persisted_signs = get_coord_signs(v.vin)
 
+    # Account-level, and staying that way: one login heals every car at once, and the broker
+    # connection is the account's, not a car's. ⚠️ What the MQTT bridge PUBLISHES is per-car
+    # (abilities and model are read single-car at construction) — that is its own piece of work,
+    # not this one.
     last_relogin = 0.0   # rate-limit guard for session recovery
     mqtt_service = None   # optional MQTT → HA bridge, created lazily when enabled
-    empty_status_count = 0  # consecutive "no live signals" responses (car asleep)
-    poll_error_count   = 0  # consecutive hard API errors (cloud unreachable) — for quiet logging
-    _research_last_sig: dict = {}   # research/beta mode: last value per signal id, for delta logging
 
     while True:
         try:
@@ -810,18 +846,18 @@ def main():
 
             # Apply user-tunable poll cadence + charge-detection floor (Settings) live, each cycle
             try:
-                recorder.set_poll_intervals(
+                ctx.recorder.set_poll_intervals(
                     int(db.get_setting("poll_parked", "30") or 30),
                     int(db.get_setting("poll_driving", "10") or 10),
                 )
                 set_charge_current_min(float(db.get_setting("charge_detect_min_a", "2.0") or 2.0))
-                recorder.set_reconstruct_min_pct(
+                ctx.recorder.set_reconstruct_min_pct(
                     float(db.get_setting("charge_reconstruct_min_pct", "2.0") or 2.0))
             except (TypeError, ValueError):
                 pass
             with _API_LOCK:
                 data = client.get_status()
-            recorder.process(data)
+            ctx.recorder.process(data)
             _write_comfort_state(db, data)
 
             # A range-extender reports a fuel tank (signal 3235) → flag it once. On the BetaTester
@@ -843,22 +879,22 @@ def main():
             # can later correlate with the tester's logbook to map REEV signals. No-op otherwise.
             if _research_enabled() and data.raw_signals:
                 changed = {k: v for k, v in data.raw_signals.items()
-                           if str(v) != _research_last_sig.get(k)}
+                           if str(v) != ctx.research_last_sig.get(k)}
                 if changed:
                     db.insert_raw_signal_changes(
-                        vehicle_id, data.timestamp_ms or int(time.time() * 1000), changed)
-                    _research_last_sig.update({k: str(v) for k, v in changed.items()})
+                        ctx.vehicle_id, data.timestamp_ms or int(time.time() * 1000), changed)
+                    ctx.research_last_sig.update({k: str(v) for k, v in changed.items()})
 
             # Persist the authoritative GPS sign the moment a signed poll refreshes it (#43),
             # so the next restart starts on dry land. Only writes when it actually changes
             # (essentially once), so there's no per-poll DB churn.
-            signs = get_coord_signs(v.vin)
-            if signs != _persisted_signs:
+            signs = get_coord_signs(ctx.vin)
+            if signs != ctx.persisted_signs:
                 if signs.get("lat"):
                     db.set_setting("gps_lat_sign", str(signs["lat"]))
                 if signs.get("lon"):
                     db.set_setting("gps_lon_sign", str(signs["lon"]))
-                _persisted_signs = signs
+                ctx.persisted_signs = signs
 
             # Persist the car's configured charge limit (the SoC it will stop at) whenever it
             # changes, so the Overview hero can label the charge ETA with the real % read cheaply
@@ -874,7 +910,7 @@ def main():
 
             # Daily ledger of the official lifetime energy/mileage counters + getEC split
             # (silent phase-1 collector) — throttled to 24h, best-effort.
-            energy_snapshots.maybe_sample(db, client, v.vin, api_lock=_API_LOCK)
+            energy_snapshots.maybe_sample(db, client, ctx.vin, api_lock=_API_LOCK)
 
             # Ready-triggered "prepare now" automation — fires once per Ready OFF→ON edge,
             # gated on the interior-temperature condition if configured. Best-effort.
@@ -887,7 +923,7 @@ def main():
             # MQTT → Home Assistant bridge (opt-in, off by default)
             mqtt_service = _mqtt_tick(db, client, data, mqtt_service)
 
-            interval = recorder.poll_interval
+            interval = ctx.recorder.poll_interval
             # Boost window (set via POST /api/boost, e.g. an iPhone BT shortcut relayed
             # by HA when you get in the car): poll fast so we catch the trip start that
             # deep sleep would otherwise miss. Only matters while still parked — once
@@ -908,12 +944,12 @@ def main():
                 "SOC %.1f%% | Range %d km | Speed %.0f km/h | Odo %.0f km | State: %-8s | "
                 "Gear: %s | %s | Frame age: %s | Next poll: %ds%s",
                 data.soc, data.range_km, data.speed_kmh, data.odometer_km,
-                recorder.state.value, data.gear, _charge_fields(data), frame_age, interval,
+                ctx.recorder.state.value, data.gear, _charge_fields(data), frame_age, interval,
                 " (boost)" if boosting else "",
             )
-            recorder.mark_online()
-            empty_status_count = 0
-            poll_error_count = 0
+            ctx.recorder.mark_online()
+            ctx.empty_status_count = 0
+            ctx.poll_error_count = 0
         except KeyboardInterrupt:
             log.info("Stopped by user")
             break
@@ -925,27 +961,27 @@ def main():
             # 'signal'" KeyError.) We log the back-off WARNING only once, not every
             # cycle: a parked car can stay asleep for hours and an ever-climbing
             # "after N tries" warning reads like an escalating failure when it isn't.
-            empty_status_count += 1
-            if empty_status_count >= 3:
-                recorder.mark_offline()
-            interval = recorder.poll_interval
-            if empty_status_count < 3:
+            ctx.empty_status_count += 1
+            if ctx.empty_status_count >= 3:
+                ctx.recorder.mark_offline()
+            interval = ctx.recorder.poll_interval
+            if ctx.empty_status_count < 3:
                 log.info("Vehicle returned no live data (asleep or briefly unavailable) — "
-                         "retry %d/3", empty_status_count)
-            elif empty_status_count == 3:
+                         "retry %d/3", ctx.empty_status_count)
+            elif ctx.empty_status_count == 3:
                 log.warning("Vehicle not reporting live data (car asleep or unavailable) — "
                             "backing off to %ds polling; recovers automatically when the car "
                             "reports again.", interval)
             # already backed off (count > 3): stay quiet so a sleeping car can't spam the log
         except Exception as exc:
-            poll_error_count += 1
-            recorder.mark_offline()
-            interval = recorder.poll_interval
+            ctx.poll_error_count += 1
+            ctx.recorder.mark_offline()
+            interval = ctx.recorder.poll_interval
             # With no long offline backoff we keep polling at the user's cadence, so log the first
             # few errors in full then go quiet — a prolonged cloud outage must not spam the log.
-            if poll_error_count <= 3:
+            if ctx.poll_error_count <= 3:
                 log.error("Poll error: %s", exc)
-            elif poll_error_count == 4:
+            elif ctx.poll_error_count == 4:
                 log.warning("Cloud still unreachable — still polling every %ds, quiet from here; "
                             "recovers automatically when it responds.", interval)
             # Self-heal: a vanished /tmp account-cert file (or an auth/token/connection
