@@ -210,6 +210,19 @@ Il se saisit deux fois, avec un œil pour le relire, et prend effet immédiateme
 les commandes depuis la page que pour celles venant de Home Assistant. Demandé par **@alextchao**
 (#225).
 
+**Si deux Leapmotor partagent votre compte 🆕** — un **sélecteur de voiture** apparaît dans l'en-tête,
+à côté du badge du modèle. Il n'est là qu'à partir de la deuxième voiture : avec une seule Leapmotor,
+rien ne change. Choisissez une voiture et tout la suit — l'Aperçu, les Statistiques, les trajets, les
+recharges, le rapport mensuel, les commandes que cette voiture autorise et ses entités Home
+Assistant. Votre choix est mémorisé.
+
+Les réglages restent partagés, car ils diffèrent rarement sous un même toit : tarifs, devise, fuseau
+horaire, position du domicile. Ce qui appartient à la voiture reste à la voiture — la capacité de sa
+batterie, son **code PIN d'utilisation**, son **jeton A Better Route Planner**, si c'est une prolongateur d'autonomie, ce qu'on peut lui
+commander et les capteurs dont elle dispose réellement. Les deux voitures sont suivies par **un seul
+Mate** : un collecteur, une base de données, une session vers le cloud Leapmotor, au lieu de deux
+installations qui se déconnectent mutuellement.
+
 **Pour délier le compte Leapmotor** — ce qui est autre chose — allez dans **Paramètres → Véhicule →
 🔓 Déconnexion**. Cela efface les identifiants enregistrés et rouvre l'assistant ; le certificat, les
 trajets et les recharges restent.

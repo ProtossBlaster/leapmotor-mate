@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.9.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.10.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -3070,8 +3070,16 @@ async def save_abrp(request: Request):
     form = await request.form()
     db_reader.set_setting("abrp_enabled", "1" if form.get("abrp_enabled") in ("1", "on", "true") else "0")
     tok = (form.get("abrp_token") or "").strip()
+    vin = ((form.get("vin") or "") if isinstance(form.get("vin"), str) else "").strip()
     if tok:  # masked field: only overwrite on a non-empty submit (keep existing otherwise)
-        db_reader.set_secret("abrp_token", tok)
+        # ABRP is one token per VEHICLE on ABRP's side too, so with two cars each wants its own
+        # (#186): one token for both fed a single ABRP vehicle two cars' positions and SoCs.
+        if vin:
+            if not any(v.get("vin") == vin for v in db_reader.get_vehicles()):
+                return HTMLResponse("unknown vin", status_code=422)
+            db_reader.set_secret(f"abrp_token_{vin.lower()}", tok)
+        else:
+            db_reader.set_secret("abrp_token", tok)
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("abrp_saved")}</span>')
 
@@ -3783,10 +3791,10 @@ def _charge_window() -> str:
     Both times must be present and differ: a 00:00–00:00 window is the cloud's way of saying
     "nothing set", and showing it would be worse than showing nothing."""
     try:
-        if db_reader.get_setting("charge_sched_enabled", "0") != "1":
+        w = db_reader.get_charge_schedule_window()   # the SELECTED car's plan (#186)
+        if not w["enabled"]:
             return ""
-        start = (db_reader.get_setting("charge_sched_start", "") or "").strip()
-        end = (db_reader.get_setting("charge_sched_end", "") or "").strip()
+        start, end = w["start"], w["end"]
     except Exception:  # noqa: BLE001 — a decoration must never take the page down
         return ""
     if not start or not end or start == end:
@@ -4059,7 +4067,7 @@ async def set_climate_temp_api(request: Request):
         None, lambda: command_client.set_climate_temp(temp, inside))
     if ok:
         import time
-        db_reader.set_setting("boost_until", str(time.time() + 60))   # re-poll the car within seconds, not 30s
+        db_reader.boost_selected_car(60)   # re-poll THIS car within seconds, not 30s
         return HTMLResponse(f'<span style="color:#22c55e">✓ {max(18, min(temp, 32))}°C</span>')
     return HTMLResponse(_cmd_error_html(msg))
 
@@ -4077,7 +4085,7 @@ async def set_fan_level_api(request: Request):
         None, lambda: command_client.set_fan_level(level))
     if ok:
         import time
-        db_reader.set_setting("boost_until", str(time.time() + 60))   # re-poll the car within seconds, not 30s
+        db_reader.boost_selected_car(60)   # re-poll THIS car within seconds, not 30s
         return HTMLResponse(f'<span style="color:#22c55e">✓ {level}/7</span>')
     return HTMLResponse(_cmd_error_html(msg))
 
@@ -4093,7 +4101,7 @@ async def set_recirc_api(request: Request):
         None, lambda: command_client.set_recirc(on))
     if ok:
         import time
-        db_reader.set_setting("boost_until", str(time.time() + 60))   # re-poll the car within seconds, not 30s
+        db_reader.boost_selected_car(60)   # re-poll THIS car within seconds, not 30s
         return HTMLResponse(f'<span style="color:#22c55e">✓</span>')
     return HTMLResponse(_cmd_error_html(msg))
 

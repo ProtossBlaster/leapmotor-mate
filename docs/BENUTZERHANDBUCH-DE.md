@@ -201,6 +201,18 @@ unter **Einstellungen → Fahrzeug** finden Sie unter der Kontoadresse die **Bed
 zweimal eingegeben, mit einem Auge zum Nachlesen, und gilt sofort — sowohl für Befehle von der Seite
 als auch für die aus Home Assistant. Gewünscht von **@alextchao** (#225).
 
+**Wenn zwei Leapmotor dasselbe Konto teilen 🆕** — in der Kopfzeile erscheint eine **Fahrzeugauswahl**,
+neben dem Modell-Abzeichen. Sie ist erst ab dem zweiten Auto da: mit einem Leapmotor ändert sich gar
+nichts. Wähle ein Auto, und alles folgt ihm — Übersicht, Statistiken, Fahrten, Ladevorgänge,
+Monatsbericht, die Befehle, die dieses Auto zulässt, und seine Home-Assistant-Entitäten. Deine Wahl
+bleibt gespeichert.
+
+Die Einstellungen bleiben gemeinsam, weil sie unter einem Dach selten abweichen: Preise, Währung,
+Zeitzone, Zuhause-Position. Was dem Auto gehört, bleibt beim Auto — seine Akkukapazität, seine
+**Bedien-PIN**, sein **A-Better-Route-Planner-Token**, ob es ein Range-Extender ist, was man ihm befehlen kann und welche Sensoren es
+wirklich hat. Beide Autos betreut **ein einziges Mate**: ein Poller, eine Datenbank, eine Sitzung zur
+Leapmotor-Cloud, statt zweier Installationen, die sich gegenseitig abmelden.
+
 **Um das Leapmotor-Konto zu trennen** — etwas ganz anderes — gehen Sie zu **Einstellungen → Fahrzeug
 → 🔓 Abmelden**. Das löscht die gespeicherten Zugangsdaten und öffnet den Einrichtungsassistenten
 erneut; Zertifikat, Fahrten und Ladevorgänge bleiben.

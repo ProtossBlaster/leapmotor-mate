@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import sqlite3
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -483,6 +484,80 @@ class Database:
     def set_secret(self, key: str, value: str) -> None:
         """Write a secret setting encrypted at rest."""
         self.set_setting(key, crypto.encrypt(value or ""))
+
+    def get_abrp_token(self, vin: str = "") -> str:
+        """The ABRP token for THIS car (#186). ABRP's own model is one token per vehicle.
+
+        🔴 It used to be one token for the install, sent from inside the per-car poll loop: two cars
+        would have pushed position, SoC and speed into the SAME ABRP vehicle, interleaved. Not "it
+        doesn't work" — it quietly corrupts the record with two cars pretending to be one.
+
+        ⚠️ Falls back to the install-wide token, never to the OTHER car's: a car with no token of its
+        own and nothing shared sends **nothing**, because guessing here recreates the very mixing
+        this exists to stop. → [[signal-absent-is-not-signal-zero]]"""
+        if vin:
+            own = self.get_secret(f"abrp_token_{str(vin).lower()}", "")
+            if own:
+                return own
+        return self.get_secret("abrp_token", "")
+
+    def set_abrp_token(self, token: str, vin: str) -> None:
+        self.set_secret(f"abrp_token_{str(vin).lower()}", token or "")
+
+    def get_charge_limit_percent(self, vin: str = "") -> str:
+        """The charge ceiling this car last REPORTED. Per car because it is read from the car, and
+        because an MQTT charge-schedule with no target SoC falls back to it — so one shared value
+        would set car A's plan to car B's ceiling, a number its owner never typed anywhere."""
+        if vin:
+            own = self.get_setting(f"charge_limit_percent_{str(vin).lower()}", "")
+            if own:
+                return own
+        return self.get_setting("charge_limit_percent", "")
+
+    def set_charge_limit_percent(self, pct, vin: str) -> None:
+        self.set_setting(f"charge_limit_percent_{str(vin).lower()}", str(pct))
+
+    def set_boost(self, vin: str, until: float) -> None:
+        """Poll this car fast for a minute after a command, so its state syncs quickly.
+
+        Per car: shared, a command sent to the car in the garage would also wake the one on the
+        motorway — small in itself, but it spends the other car's cloud budget and muddles what the
+        log says was happening to which car."""
+        self.set_setting(f"boost_until_{str(vin).lower()}", str(until))
+
+    def boosting(self, vin: str) -> bool:
+        try:
+            return time.time() < float(self.get_setting(f"boost_until_{str(vin).lower()}", "0") or 0)
+        except (TypeError, ValueError):
+            return False
+
+    def set_charge_schedule(self, vin: str, enabled: bool, start: str, end: str = "") -> None:
+        """This car's charging plan, as read from the cloud. Per car (#186): one key meant the car
+        polled last overwrote the other, and the Scheduling page then showed one plan under both."""
+        v = str(vin).lower()
+        self.set_setting(f"charge_sched_enabled_{v}", "1" if enabled else "0")
+        self.set_setting(f"charge_sched_start_{v}", start or "")
+        self.set_setting(f"charge_sched_end_{v}", end or "")
+
+    def set_gps_signs(self, vin: str, lat: str, lon: str) -> None:
+        """The hemisphere this car's coordinates are in, learned from its own history.
+
+        🔴 Per car, and this is the defect that has come back FIVE times — a car plotted in the sea
+        because the sign was guessed. It is a firmware quirk, so two cars on one account can
+        genuinely differ: one shared key means the second car's learning overwrites the first's, and
+        that car goes back into the Gulf of Guinea. → [[car-plotted-in-the-sea-longitude-sign]]"""
+        v = str(vin).lower()
+        self.set_setting(f"gps_lat_sign_{v}", lat)
+        self.set_setting(f"gps_lon_sign_{v}", lon)
+
+    def get_gps_signs(self, vin: str = "") -> dict:
+        """This car's remembered signs, falling back to the shared ones — which is what every
+        install alive today has, and they must keep working or a single-car map moves on update."""
+        out = {}
+        for axis in ("lat", "lon"):
+            own = self.get_setting(f"gps_{axis}_sign_{str(vin).lower()}", "") if vin else ""
+            out[axis] = own or self.get_setting(f"gps_{axis}_sign", "unknown")
+        return out
 
     def get_operate_pin(self, vin: str = "") -> str:
         """The PIN that authorises a command ON THIS CAR — its own, else the install-wide one (#186).

@@ -3,6 +3,122 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.10.0] — 2026-08-08
+
+**Two Leapmotors, one Mate — and the T03 can finally switch its air conditioning off.**
+
+### Added
+
+- 🚗 **Two cars on one account, in a single install.** Mate has been one car, one instance since the
+  beginning, and that was the last big limitation left. If two Leapmotors share your Leapmotor
+  account, they now share one Mate: **one poller, one database, one session against the cloud**
+  instead of two installs quietly kicking each other off it.
+
+  The cars are polled one after the other, each on its own cadence — a car asleep in the garage
+  doesn't slow down the one that's driving — and a failure on one is contained so it can't stop the
+  other.
+
+  A **car picker** appears in the header, and only **from the second car onwards**: if you have one
+  Leapmotor you will not see a single thing change, which was a hard requirement rather than a nice
+  goal. Everything follows that one choice — the Overview, Statistics, trips, charges, the monthly
+  report, the commands the model is allowed, and the Home Assistant entities. Your choice sticks;
+  if a car ever disappears from the account, Mate falls back to the first one rather than showing
+  you an empty interface.
+
+  Settings — prices, currency, time zone, home location — stay shared, because they genuinely don't
+  differ between two cars in one household. What moved onto the car is only what is a property of
+  the car: its battery capacity, its PIN, whether it's a range-extender, what it can be commanded to
+  do, and which sensors it actually has.
+
+  Designed with **@cookingeek** (#186), who has been running two instances by hand and answered the
+  three questions I couldn't answer alone.
+
+  ⚠️ **Only ever tested on a synthetic two-car setup so far.** Nobody has yet run this with two real
+  cars on one real account over days — the tester's second Leapmotor arrives shortly. Single-car
+  installs are unaffected by design and by test.
+
+- 🔑 **The operation PIN belongs to the car.** Two Leapmotors can want different four digits, and
+  until now Mate stored one PIN for the whole install. Every command to the second car would have
+  failed — and **only the commands**, because reads carry no PIN, so the pages would have looked
+  perfectly healthy while the buttons quietly did nothing.
+
+  Each car can now have its own, set from **Settings → Vehicle** (the field gains a car picker from
+  the second car onwards). Leave it on "all cars" and nothing changes: a car without its own PIN
+  falls back to the install-wide one, which is what every install alive today has.
+
+  Found by **@cookingeek** reading the design, before his second car had even arrived.
+
+### Fixed
+
+- 🚗 **Eleven places where the second car would have shown, or written, the first car's data.**
+  Switching car has to mean *everything* switches, so every read and write that touches a car was
+  gone through one at a time rather than sampled — 104 in the web, 40 in the poller.
+
+  What it turned up, and what each would have looked like:
+
+  - **A Better Route Planner received both cars as one.** The token was one per install, sent from
+    inside the per-car loop, so two cars pushed position, SoC and speed into the same ABRP vehicle,
+    interleaved. Each car now has its own token (ABRP works that way too); a car with none sends
+    nothing rather than borrowing the other's.
+  - **A charge typed by hand, a fuel purchase, and a change of battery capacity all landed on the
+    first car** whatever car was on screen — the capacity one being an ~80% error on everything
+    derived from a percentage.
+  - **The research signals** — count, latest values and export — read both cars at once, so the
+    newest row won and the dashboard could show the fuel level of the car you were *not* looking at.
+  - **Two trips of two different cars could be merged into one**, putting one car's kilometres and
+    energy inside a trip that never made them.
+  - **The charging plan and the remembered GPS hemisphere** are learned from each car; kept in one
+    key, the car polled last overwrote the other. The second of those is the defect that has come
+    back five times — a car drawn out at sea.
+  - **A command sent to one car sped up polling for both.**
+
+  Verified on a two-car install as well as by test: two cars seeded differently in every measurable
+  way, fifteen pages compared in both directions, no trace of one car on the other's pages.
+
+  ⚠️ Everything above falls back to the shared value when a car has none of its own, so a single-car
+  install — every install today — behaves exactly as it did.
+
+
+
+- 🚗 **Three defects that had nothing to do with two cars, and were found by building for them:**
+  - **Pre-heating warmed the wrong car.** The ready automation sent its command to the *first*
+    vehicle whatever car the data belonged to, and its "already fired" state was a single value
+    shared between them.
+  - **Battery capacity ignored which car you were looking at.** The per-car figure has been in the
+    database since v2.2.0, but only the *writes* used it — so a T03's 36 kWh pack could be reasoned
+    about as 65. That is **+80% on everything derived from a battery percentage**: trip energy,
+    charge energy, costs, efficiency.
+  - **The poller's main loop had no test at all** — two hundred lines that record every trip and
+    every charge of every install, and the whole suite could go green with them broken.
+  Also: the range-extender flag was one flag for the account rather than one per car (on a mixed
+  household that put the REEV pages on the electric car and withheld the battery-derived figures
+  from the car they are correct for), and the second car's Home Assistant entities never appeared.
+
+- 🌡 **"A/C off" now actually switches the air conditioning off on the T03** (#67). On every other
+  model Mate sends a bare `operate=off`, which works and is untouched. The T03 ignores that form —
+  and ignores `operate=close` too, which is what Mate had been sending it. What the car honours is
+  `operate=off` **inside the full climate payload**, with all seven fields present. On the T03 it is
+  the *shape* of the command that decides, not the value.
+
+  This had been open for months, and not only here: every integration in the ecosystem sent one of
+  the two forms the T03 ignores (kerniger/leapmotor-ha#28, markoceri/leapmotor-api#9). It was
+  genuinely hard to see, because the cloud answers "accepted" to all three — so no log, on anybody's
+  machine, could tell a command that worked from one the car threw away. The only instrument that
+  ever worked was somebody watching their own car.
+
+  **Found and verified on-car by [@derekzoli](https://github.com/derekzoli)**, who tested the
+  candidates on his own T03 on 6-7 August, confirmed the winner by re-reading the vehicle state a few
+  seconds later and watching the A/C actually stop — and then brought the answer back to the report
+  we had opened at markoceri/leapmotor-api#9, rather than keeping it. He also built his own app,
+  [MyLeapCar](https://github.com/derekzoli/myleapcar), on the way there. Mate's own hunt (seven
+  candidate payloads, offered to T03 owners since v2.1.6) had searched the same grid in the wrong
+  direction and missed it; that page is now retired, along with its buttons.
+
+  Owners of a B10, C10 or B05: nothing changes for you. This is the T03 only.
+
+  ⛔ Still unsolved, and honest about it: **air direction** on the T03. He reports every attempt to
+  set it ignored, and Mate has never offered the control.
+
 ## [3.9.1] — 2026-08-08
 
 **A temperature the car never sends is absent, not zero degrees — and its Home Assistant entity goes

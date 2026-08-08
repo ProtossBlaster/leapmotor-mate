@@ -200,6 +200,17 @@ there is nothing to end.
 twice, with an eye to read it back, and takes effect at once — both for commands from the page and
 for the ones arriving from Home Assistant. Asked for by **@alextchao** (#225).
 
+**If two Leapmotors share your account 🆕** — a **car picker** appears in the header, next to the
+model badge. It is there only from the second car onwards: with one Leapmotor nothing changes at
+all. Pick a car and everything follows it — the Overview, Statistics, trips, charges, the monthly
+report, the commands that car allows and its Home Assistant entities. Your choice is remembered.
+
+Settings stay shared, because they rarely differ under one roof: prices, currency, time zone, home
+location. What belongs to the car stays with the car — its battery capacity, its **operation PIN**, its **A Better Route Planner token**,
+whether it is a range-extender, what it can be commanded to do and which sensors it actually has.
+Both cars are handled by **one Mate**: one poller, one database, one session against the Leapmotor
+cloud, instead of two installs signing each other out.
+
 **To unlink the Leapmotor account** — a different thing entirely — go to **Settings → Vehicle →
 🔓 Log out**. That clears the saved credentials and reopens the setup wizard; your certificate,
 trips and charges stay (@JoseRMorales, #223, who went looking for the first one and wanted the

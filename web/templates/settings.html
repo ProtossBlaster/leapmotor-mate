@@ -513,6 +513,22 @@
                  {% if settings.get('abrp_enabled') == '1' %}checked{% endif %}
                  class="w-5 h-5 accent-brand cursor-pointer flex-shrink-0">
         </label>
+        {# ABRP is one token per VEHICLE on ABRP's side too, so two cars want two tokens (#186):
+           one token for both would feed a single ABRP vehicle two cars' positions and SoCs,
+           interleaved. Only from the second car on; a single-car install sees the field it always
+           saw. Leave it on «all cars» to keep one shared token. #}
+        {% if vehicles and vehicles|length > 1 %}
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">{{ t('account_pin_which_car') }}</label>
+          <select name="vin"
+                  class="block w-full px-2 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+            <option value="">{{ t('account_pin_all_cars') }}</option>
+            {% for v in vehicles %}
+            <option value="{{ v.vin }}">{{ v.car_type or v.vin[-6:] }} · {{ v.vin[-6:] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
         <div>
           <label class="block text-xs text-slate-400 mb-1">{{ t('abrp_token_label') }}</label>
           <input type="password" name="abrp_token"

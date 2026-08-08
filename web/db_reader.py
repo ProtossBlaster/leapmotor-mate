@@ -598,6 +598,45 @@ def never_reported_temps() -> set:
     return {k for k in _OPTIONAL_TEMPS if not int(row[k] or 0)}
 
 
+def get_charge_schedule_window() -> dict:
+    """The charging plan of the car ON SCREEN (#186). The poller reads each car's own plan from the
+    cloud; one shared key meant the car polled last overwrote the other, and the Scheduling page
+    showed one plan under both. Falls back to the shared keys, which is what installs have today."""
+    vin = ""
+    try:
+        row = _get().execute("SELECT vin FROM vehicles WHERE id = COALESCE(?, id) ORDER BY id "
+                             "LIMIT 1", (_current_vehicle_id(),)).fetchone()
+        vin = (row["vin"] if row and row["vin"] else "").lower()
+    except sqlite3.Error:
+        pass
+
+    def _one(name, default=""):
+        own = get_setting(f"charge_sched_{name}_{vin}", "") if vin else ""
+        return own or get_setting(f"charge_sched_{name}", default)
+
+    return {"enabled": _one("enabled", "0") == "1",
+            "start": (_one("start") or "").strip(),
+            "end": (_one("end") or "").strip()}
+
+
+def _selected_or_first(db) -> Optional[int]:
+    """The car a WRITE belongs to: the one on screen, else the only/first one (#186).
+
+    🔴 Three writes used `SELECT id FROM vehicles ORDER BY id LIMIT 1` — the FIRST car, always. On
+    two cars that meant a hand-typed charge, a fuel purchase and a battery-capacity change all
+    landing on the car you were not looking at. `set_vehicle_capacity_current` even said so in its
+    own docstring — *"the multi-car step will resolve 'current' to the selected vehicle instead of
+    the first"* — a note to a future that had arrived.
+
+    The fallback is not decoration: `_current_vehicle_id()` is None on a database with no vehicles
+    yet, and a manual charge typed during setup must still land somewhere."""
+    vid = _current_vehicle_id()
+    if vid is not None:
+        return vid
+    row = db.execute("SELECT id FROM vehicles ORDER BY id LIMIT 1").fetchone()
+    return row["id"] if row else None
+
+
 def _conn_rw() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
@@ -695,14 +734,15 @@ def set_vehicle_capacity_current(kwh: float, nominal: float = None) -> None:
     """Mirror a capacity override onto the CURRENT vehicle's own row (vehicles.capacity_kwh), so the
     poller's per-vehicle energy math honours it — the poller reads the vehicle column, not the global
     setting, so writing only the global would leave the override ignored. Single-car today = the only
-    row; the multi-car step will resolve 'current' to the selected vehicle instead of the first."""
+    row. Multi-car: 'current' IS the selected vehicle — writing the first car's capacity while
+    looking at the second was an ~80% error on everything derived from a percentage (#186)."""
     db = _conn_rw()
-    row = db.execute("SELECT id FROM vehicles ORDER BY id LIMIT 1").fetchone()
-    if not row:
+    vid = _selected_or_first(db)
+    if vid is None:
         return
-    db.execute("UPDATE vehicles SET capacity_kwh = ? WHERE id = ?", (float(kwh), row["id"]))
+    db.execute("UPDATE vehicles SET capacity_kwh = ? WHERE id = ?", (float(kwh), vid))
     if nominal is not None:
-        db.execute("UPDATE vehicles SET capacity_nominal_kwh = ? WHERE id = ?", (float(nominal), row["id"]))
+        db.execute("UPDATE vehicles SET capacity_nominal_kwh = ? WHERE id = ?", (float(nominal), vid))
     db.commit()
 
 
@@ -732,7 +772,9 @@ def get_logbook(limit: int = 200):
 def count_raw_signals() -> int:
     """How many raw-signal rows have been captured (shown in the beta UI)."""
     try:
-        return _get().execute("SELECT COUNT(*) c FROM raw_signals_log").fetchone()["c"]
+        return _get().execute(
+            "SELECT COUNT(*) c FROM raw_signals_log WHERE vehicle_id = COALESCE(?, vehicle_id)",
+            (_current_vehicle_id(),)).fetchone()["c"]
     except Exception:  # noqa: BLE001
         return 0
 
@@ -743,8 +785,10 @@ def latest_raw_signals() -> dict:
     tester bundle, or a transient hiccup). Empty when nothing was captured (the normal build)."""
     try:
         rows = _get().execute(
-            "SELECT sig_key, value FROM raw_signals_log "
-            "WHERE id IN (SELECT MAX(id) FROM raw_signals_log GROUP BY sig_key)").fetchall()
+            "SELECT sig_key, value FROM raw_signals_log WHERE id IN ("
+            "  SELECT MAX(id) FROM raw_signals_log"
+            "   WHERE vehicle_id = COALESCE(?, vehicle_id) GROUP BY sig_key)",
+            (_current_vehicle_id(),)).fetchall()
         return {r["sig_key"]: r["value"] for r in rows}
     except Exception:  # noqa: BLE001
         return {}
@@ -754,7 +798,9 @@ def get_raw_signal_rows():
     """All captured raw-signal rows (ts, sig_key, value), oldest first — for the export."""
     try:
         rows = _get().execute(
-            "SELECT ts, sig_key, value FROM raw_signals_log ORDER BY ts ASC").fetchall()
+            "SELECT ts, sig_key, value FROM raw_signals_log "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) ORDER BY ts ASC",
+            (_current_vehicle_id(),)).fetchall()
         return [(r["ts"], r["sig_key"], r["value"]) for r in rows]
     except Exception:  # noqa: BLE001
         return []
@@ -904,6 +950,25 @@ def get_operate_pin(vin: str = "") -> str:
 def set_operate_pin(pin: str, vin: str) -> None:
     """Give one car its own PIN — or clear it, which returns that car to the install-wide one."""
     set_secret(_pin_key(vin), pin or "")
+
+
+def boost_selected_car(seconds: float = 60.0) -> None:
+    """Poll the car you are LOOKING AT quickly for a while, after a command from the page (#186).
+
+    Per car, like everything else the poller schedules: one shared flag meant a command sent to the
+    car in the garage also woke the one on the motorway — small, but it spends that car's cloud
+    budget on a state nobody asked about. With no car registered yet it falls back to the shared key,
+    which is what a fresh install has."""
+    import time as _t
+    vin = ""
+    try:
+        row = _get().execute("SELECT vin FROM vehicles WHERE id = COALESCE(?, id) ORDER BY id "
+                             "LIMIT 1", (_current_vehicle_id(),)).fetchone()
+        vin = (row["vin"] if row and row["vin"] else "")
+    except sqlite3.Error:
+        pass
+    key = f"boost_until_{vin.lower()}" if vin else "boost_until"
+    set_setting(key, str(_t.time() + seconds))
 
 
 def per_car_pin_keys() -> list:
@@ -1901,8 +1966,7 @@ def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] 
     cost basis a user picks on a real charge."""
     db = _conn_rw()
     try:
-        vrow = db.execute("SELECT id FROM vehicles ORDER BY id LIMIT 1").fetchone()
-        vehicle_id = vrow["id"] if vrow else None
+        vehicle_id = _selected_or_first(db)
         ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
         # #237 — the odometer only joins the INSERT where the column exists: the migration lives in
         # the poller and the web never alters the database (see `_charges_have_odometer`). Zero is
@@ -2127,8 +2191,7 @@ def add_fuel_purchase(ts: str, liters: float, price_per_l: Optional[float] = Non
     db = _conn_rw()
     try:
         _ensure_fuel_purchases(db)
-        vrow = db.execute("SELECT id FROM vehicles ORDER BY id LIMIT 1").fetchone()
-        vehicle_id = vrow["id"] if vrow else None
+        vehicle_id = _selected_or_first(db)
         fb = fuel_before_pct if fuel_before_pct is not None else _fuel_before_pct(db, vehicle_id, ts)
         cur = db.execute(
             "INSERT INTO fuel_purchases (vehicle_id, ts, liters, price_per_l, total_cost, "
@@ -3507,6 +3570,11 @@ def merge_trips(parent_id: int, child_id: int, gap_min: int = TRIP_MERGE_GAP_DEF
     b = db.execute("SELECT * FROM trips WHERE id=? AND merged_into_id IS NULL", (child_id,)).fetchone()
     if not a or not b:
         return {"ok": False, "error": "not_found_or_already_merged"}
+    # Two ids, and nothing checked they were the same CAR (#186): merging one car's drive into the
+    # other's puts kilometres and energy inside a trip that never made them — and a merge writes
+    # only the marker, so it looks perfectly tidy. → [[merged-trip-child-keeps-its-own-data]]
+    if a["vehicle_id"] != b["vehicle_id"]:
+        return {"ok": False, "error": "different_car"}
     a, b = dict(a), dict(b)
     if (a.get("started_at") or "") > (b.get("started_at") or ""):
         a, b = b, a                                   # parent = earlier trip

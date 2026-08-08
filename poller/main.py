@@ -191,7 +191,7 @@ def _apply_charge_schedule(api, db, vin: str, payload: dict):
 
     soc = payload.get("soc")
     if soc is None:
-        soc = db.get_setting("charge_limit_percent", "")
+        soc = db.get_charge_limit_percent(vin)
     try:
         soc = int(float(soc))
     except (TypeError, ValueError):
@@ -235,7 +235,7 @@ def _apply_charge_schedule(api, db, vin: str, payload: dict):
     # re-read is 30 minutes away, and a chip still showing the old times right after an automation
     # moved them looks like a fault rather than like a cache.
     _store_charge_schedule(db, {"chargeEnable": 1 if enabled else 0,
-                                "starttime": start_time, "endtime": end_time})
+                                "starttime": start_time, "endtime": end_time}, vin)
     log.info("MQTT: charge schedule → %s", applied)
     return applied
 
@@ -397,8 +397,10 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
         import sqlite3
         c = sqlite3.connect(db._path, timeout=5.0)
         try:
+            # Per CAR (#186): a command to the car in the garage must not also wake the one on
+            # the motorway — it spends that car's cloud budget for a state it was not asked about.
             c.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
-                      ("boost_until", str(time.time() + _MQTT_BOOST_S)))
+                      (f"boost_until_{str(vin).lower()}", str(time.time() + _MQTT_BOOST_S)))
             c.commit()
         finally:
             c.close()
@@ -454,18 +456,17 @@ def _maybe_refresh_charge_schedule(db, client):
     _last_schedule_refresh = now   # before the call, so a slow endpoint can't be hammered
     with _API_LOCK:
         sched = client.get_charge_schedule()
-    _store_charge_schedule(db, sched)
+    _store_charge_schedule(db, sched, getattr(getattr(client, "_vehicle", None), "vin", "") or "")
 
 
-def _store_charge_schedule(db, sched) -> None:
-    """Write a fetched schedule into settings. A failed read leaves the previous value alone rather
-    than blanking the chip on one bad call."""
+def _store_charge_schedule(db, sched, vin: str = "") -> None:
+    """Write a fetched schedule into settings, under the CAR it belongs to (#186). A failed read
+    leaves the previous value alone rather than blanking the chip on one bad call."""
     if not sched:
         return
     try:
-        db.set_setting("charge_sched_enabled", "1" if int(sched.get("chargeEnable", 0) or 0) else "0")
-        db.set_setting("charge_sched_start", str(sched.get("starttime") or ""))
-        db.set_setting("charge_sched_end", str(sched.get("endtime") or ""))
+        db.set_charge_schedule(vin, bool(int(sched.get("chargeEnable", 0) or 0)),
+                               str(sched.get("starttime") or ""), str(sched.get("endtime") or ""))
     except Exception as e:  # noqa: BLE001
         log.debug("Could not store the charge schedule: %s", e)
 
@@ -815,10 +816,10 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         # (essentially once), so there's no per-poll DB churn.
         signs = get_coord_signs(ctx.vin)
         if signs != ctx.persisted_signs:
-            if signs.get("lat"):
-                db.set_setting("gps_lat_sign", str(signs["lat"]))
-            if signs.get("lon"):
-                db.set_setting("gps_lon_sign", str(signs["lon"]))
+            # Per CAR (#186): the sign is learned from THIS car's own history and it is a firmware
+            # quirk, so two cars on one account can differ. One shared key meant the second car's
+            # learning overwrote the first's — and that car goes back into the sea.
+            db.set_gps_signs(ctx.vehicle.vin, str(signs.get("lat") or ""), str(signs.get("lon") or ""))
             ctx.persisted_signs = signs
 
         # Persist the car's configured charge limit (the SoC it will stop at) whenever it
@@ -826,8 +827,8 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         # from settings — works even when the limit is changed from the official app. Write
         # only on change, like the GPS sign above → no per-poll churn.
         if data.charge_limit_percent is not None and \
-                str(data.charge_limit_percent) != db.get_setting("charge_limit_percent", ""):
-            db.set_setting("charge_limit_percent", str(data.charge_limit_percent))
+                str(data.charge_limit_percent) != db.get_charge_limit_percent(data.vin):
+            db.set_charge_limit_percent(data.charge_limit_percent, data.vin)
 
         _maybe_refresh_charge_schedule(db, client)
 
@@ -843,7 +844,11 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
 
         # ABRP live telemetry (opt-in, off by default)
         if db.get_setting("abrp_enabled") == "1":
-            abrp.send(db.get_secret("abrp_token"), data)
+            # THIS car's token (#186). One token for two cars pushed both of them into the same ABRP
+            # vehicle — two positions, two SoCs, interleaved. A car with no token sends nothing.
+            _tok = db.get_abrp_token(data.vin)
+            if _tok:
+                abrp.send(_tok, data)
 
         # MQTT → Home Assistant bridge (opt-in, off by default)
         acct.mqtt_service = _mqtt_tick(db, client, data, acct.mqtt_service, ctx.vehicle,
@@ -854,11 +859,7 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         # by HA when you get in the car): poll fast so we catch the trip start that
         # deep sleep would otherwise miss. Only matters while still parked — once
         # DRIVING the state machine already polls at 10s.
-        try:
-            boost_until = float(db.get_setting("boost_until", "0") or 0)
-        except (TypeError, ValueError):
-            boost_until = 0.0
-        boosting = time.time() < boost_until and ctx.interval > 10
+        boosting = db.boosting(ctx.vehicle.vin) and ctx.interval > 10
         if boosting:
             ctx.interval = 10
         # Frame age = wall-clock − the cloud frame's own timestamp (sig sts/1). Fresh ≈ a few
@@ -1139,12 +1140,8 @@ def main():
             if remaining <= 0:
                 break
             time.sleep(min(5.0, remaining))
-            if interval > 10:
-                try:
-                    if float(db.get_setting("boost_until", "0") or 0) > time.time():
-                        break   # boost just requested → poll now
-                except (TypeError, ValueError):
-                    pass
+            if interval > 10 and any(db.boosting(c.vehicle.vin) for c in contexts):
+                break   # a command just landed on one of the cars → go round now
 
     client.close()
     db.close()

@@ -200,6 +200,17 @@ non c'è niente da chiudere.
 volte, con l'occhio per rileggerlo, e vale subito — sia per i comandi dalla pagina sia per quelli
 che arrivano da Home Assistant. Domanda di **@alextchao** (#225).
 
+**Se due Leapmotor condividono il tuo account 🆕** — in testata compare un **selettore auto**,
+accanto al badge del modello. C'è solo dalla seconda auto in poi: con una Leapmotor non cambia
+assolutamente nulla. Scegli un'auto e tutto la segue — Panoramica, Statistiche, viaggi, ricariche,
+report mensile, i comandi che quell'auto permette e le sue entità Home Assistant. La scelta resta.
+
+Le impostazioni restano condivise, perché sotto lo stesso tetto raramente cambiano: prezzi, valuta,
+fuso orario, posizione di casa. Ciò che è dell'auto resta all'auto — la capacità della batteria, il
+suo **PIN operativo**, il suo **token A Better Route Planner**, se è una range-extender, cosa le si può comandare e quali sensori ha davvero.
+Le due auto sono seguite da **un solo Mate**: un poller, un database, una sessione verso il cloud
+Leapmotor, invece di due installazioni che si sganciano a vicenda.
+
 **Per sganciare l'account Leapmotor** — che è un'altra cosa — vai su **Impostazioni → Veicolo →
 🔓 Esci dall'account**. Cancella le credenziali salvate e riapre la configurazione guidata; il
 certificato, i viaggi e le ricariche restano.
