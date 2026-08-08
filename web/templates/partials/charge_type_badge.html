@@ -36,7 +36,8 @@
         <input type="hidden" name="location_type" value="MANUAL">
         <div style="display:flex;align-items:center;gap:6px;padding:5px 10px">
           <span style="color:{{ info.color }};font-size:13px">{{ info.icon }}</span>
-          <input type="number" name="cost" step="0.01" min="0" placeholder="€"
+          {# Same box, second copy — a reader in złoty was being told to type euros. #}
+          <input type="number" name="cost" step="0.01" min="0" placeholder="{{ currency.symbol }}"
                  value="{% if charge.location_type == 'MANUAL' and charge.cost %}{{ '%.2f'|format(charge.cost) }}{% endif %}"
                  onclick="event.stopPropagation()"
                  style="width:72px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#fff;padding:4px 6px;font-size:13px">

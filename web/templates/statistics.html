@@ -182,7 +182,11 @@
     {# `dist` converts AND labels: a reader in miles must not be told 971 mi when 971 is km. WHEN
        the window opens, and whose kilometres these are, is said once at the top of the page — this
        note only has to say what the euros were divided by. #}
-    {{ t('stats_cost100_note').format(km=c100.km|dist(0)) }}
+    {# #237 — WHOSE kilometres. On the odometer basis these are the car's own, between the first and
+       the last charge that carries a reading, and they are usually MORE than Mate recorded (4.4%
+       more over ten weeks on a real B10). Saying "recorded" over them would be the same quiet lie
+       the note above the page was written to stop. #}
+    {{ t('stats_cost100_note_odo' if c100.basis == 'odometer' else 'stats_cost100_note').format(km=c100.km|dist(0)) }}
     {% if c100.elec_missing %}
     · <span class="text-amber-500">{{ t('stats_cost100_noelec') }}</span>
     {% endif %}

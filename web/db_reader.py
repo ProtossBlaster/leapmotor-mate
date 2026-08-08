@@ -498,6 +498,15 @@ def _conn_rw() -> sqlite3.Connection:
     return conn
 
 
+# How close a CSV line has to be to a charge already in the database to be the SAME session rather
+# than a new one (#237, `import_charge_row`). A file that came out of Mate's own export matches to
+# the microsecond; one typed by hand from a receipt does not, and a minute is well inside the gap
+# between two real charging sessions. The energy has to agree too — either test alone is a
+# coincidence waiting to happen, both together are not.
+_IMPORT_MATCH_DAYS = 60.0 / 86400.0      # one minute, in the days julianday() speaks
+_IMPORT_MATCH_KWH = 0.05
+
+
 def get_setting(key: str, default: str = "") -> str:
     db = _get()
     row = db.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
@@ -1671,9 +1680,61 @@ def update_charge_price(key: str, value: float) -> None:
     set_setting(key, str(value))
 
 
+def import_charge_row(row: dict) -> str:
+    """One CSV line into the database — FILLING IN the session it matches, or adding it (#237).
+
+    Until now the importer only ever inserted. Re-importing a file therefore doubled the archive
+    silently: 152 charges became 304, and the money with them. Nobody had reported it because
+    nobody had a reason to import twice — until the odometer column gave them one. Someone who has
+    already typed in a year of history must be able to add the kilometres to it without deleting
+    anything first; asking them to wipe 152 rows by hand, in the right order, to repair a defect of
+    ours was never a serious answer.
+
+    A match is the same instant (within a minute — a file that came out of Mate's own export
+    round-trips exactly, one typed by hand may not) AND the same energy to within 0.05 kWh. Both,
+    because either alone is a coincidence waiting to happen.
+
+    ⚠️ Declared, and deliberately narrow: **a matched row updates the odometer and nothing else.**
+    Not the cost, not the type, not the SoC. Mate may have computed those from a real charging
+    curve, and a re-import that quietly overwrote them would be a fresh way to lose data — the very
+    thing this function exists to avoid. Correcting a price is what the charge's own edit form is
+    for.
+
+    Returns 'filled', 'added' or 'unchanged'.
+    """
+    started_at, energy = row.get("started_at"), row.get("energy_kwh")
+    odo = row.get("odometer_km")
+    db = _conn_rw()
+    try:
+        try:
+            match = db.execute(
+                "SELECT id FROM charges "
+                " WHERE vehicle_id = COALESCE(?, vehicle_id) "
+                "   AND ABS(julianday(started_at) - julianday(?)) <= ? "
+                "   AND energy_added_kwh IS NOT NULL AND ABS(energy_added_kwh - ?) <= ? "
+                " ORDER BY ABS(julianday(started_at) - julianday(?)) LIMIT 1",
+                (_current_vehicle_id(), started_at, _IMPORT_MATCH_DAYS,
+                 energy, _IMPORT_MATCH_KWH, started_at)).fetchone()
+        except sqlite3.Error:
+            match = None
+        if match is not None:
+            if odo is None or not _charges_have_odometer(db):
+                return "unchanged"
+            db.execute("UPDATE charges SET odometer_km = ? WHERE id = ?", (odo, match["id"]))
+            db.commit()
+            return "filled"
+    finally:
+        db.close()
+    add_manual_charge(started_at, energy, row.get("cost"), row.get("charge_type", "AC"),
+                      ended_at=row.get("ended_at"), start_soc=row.get("start_soc"),
+                      end_soc=row.get("end_soc"), odometer_km=odo)
+    return "added"
+
+
 def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] = None,
                       charge_type: str = "AC", ended_at: Optional[str] = None,
-                      start_soc: Optional[float] = None, end_soc: Optional[float] = None) -> int:
+                      start_soc: Optional[float] = None, end_soc: Optional[float] = None,
+                      odometer_km: Optional[float] = None) -> int:
     """Insert a user-entered historical charge — e.g. sessions from before Mate was installed —
     so the lifetime totals / monthly report reflect them (#87). Date + energy are the essentials;
     cost, AC/DC and — optionally — start/end SoC can be given (the latter drives the card's SoC-gain
@@ -1687,6 +1748,21 @@ def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] 
         vrow = db.execute("SELECT id FROM vehicles ORDER BY id LIMIT 1").fetchone()
         vehicle_id = vrow["id"] if vrow else None
         ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
+        # #237 — the odometer only joins the INSERT where the column exists: the migration lives in
+        # the poller and the web never alters the database (see `_charges_have_odometer`). Zero is
+        # not stored, for the same reason the poller refuses it: an odometer of 0 would place the
+        # session at the factory gate rather than say nothing.
+        odo = float(odometer_km) if odometer_km else None
+        if odo is not None and _charges_have_odometer(db):
+            cur = db.execute(
+                "INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, "
+                "duration_min, charge_type, location_type, cost, start_soc, end_soc, "
+                "odometer_km, reconstructed, manual_entry) "
+                "VALUES (?, ?, ?, ?, ?, ?, 'MANUAL', ?, ?, ?, ?, 0, 1)",
+                (vehicle_id, started_at, ended_at or started_at, energy_kwh,
+                 _span_minutes(started_at, ended_at), ct, cost, start_soc, end_soc, odo))
+            db.commit()
+            return cur.lastrowid  # type: ignore[return-value]
         cur = db.execute(
             "INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, duration_min, "
             "charge_type, location_type, cost, start_soc, end_soc, reconstructed, manual_entry) "
@@ -1719,7 +1795,8 @@ def _span_minutes(started_at: Optional[str], ended_at: Optional[str]) -> Optiona
 def update_manual_charge(charge_id: int, started_at: str, energy_kwh: float,
                          cost: Optional[float] = None, charge_type: str = "AC",
                          ended_at: Optional[str] = None, start_soc: Optional[float] = None,
-                         end_soc: Optional[float] = None) -> bool:
+                         end_soc: Optional[float] = None,
+                         odometer_km: Optional[float] = None) -> bool:
     """Rewrite a charge the user typed in (#188) — @adoewa imported his whole history from a
     spreadsheet and could then change only its note, its AC/DC tag and its cost, while the times and
     the SoC (which the add form never even asked for) were frozen for good.
@@ -1730,6 +1807,19 @@ def update_manual_charge(charge_id: int, started_at: str, energy_kwh: float,
     db = _conn_rw()
     try:
         ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
+        # #237 — the odometer is written only where the column exists, and clearing it is a real
+        # answer: someone who realises they typed the wrong reading must be able to take it back
+        # out, not be stuck with a wrong kilometre for ever.
+        if _charges_have_odometer(db):
+            cur = db.execute(
+                "UPDATE charges SET started_at=?, ended_at=?, energy_added_kwh=?, duration_min=?, "
+                "charge_type=?, cost=?, start_soc=?, end_soc=?, odometer_km=? "
+                "WHERE id=? AND manual_entry=1",
+                (started_at, ended_at or started_at, energy_kwh,
+                 _span_minutes(started_at, ended_at), ct, cost, start_soc, end_soc,
+                 (float(odometer_km) if odometer_km else None), charge_id))
+            db.commit()
+            return cur.rowcount > 0
         cur = db.execute(
             "UPDATE charges SET started_at=?, ended_at=?, energy_added_kwh=?, duration_min=?, "
             "charge_type=?, cost=?, start_soc=?, end_soc=? "
@@ -3597,6 +3687,121 @@ def reev_actual_spend() -> Optional[dict]:
     }
 
 
+def _priced_euros(db, vid, where: str = "", params: tuple = ()) -> float:
+    """The euros of the closed, PRICED charges matching `where`. Same definition of "priced" as
+    everywhere else — `cost IS NOT NULL`, and zero is a price (#218)."""
+    try:
+        r = db.execute(
+            "SELECT COALESCE(SUM(cost), 0) AS e FROM charges "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
+            "AND cost IS NOT NULL AND cost >= 0" + where, (vid, *params)).fetchone()
+        return float(r["e"] or 0.0)
+    except sqlite3.Error:
+        return 0.0
+
+
+def _km_basis(db, allow_odometer: bool = True) -> Optional[dict]:
+    """WHICH kilometres the cost card divides by, and WHICH euros belong to them (#237).
+
+    The rule this whole function exists to enforce, in one line:
+
+        🔑 **the numerator and the denominator must come out of the same stretch of time.**
+
+    Before it, they did not. The euros were summed over the entire archive while the kilometres
+    came from the recorded trips alone, so @nico89612 — who typed in 152 charges from before he
+    installed Mate — read **4838.43 €/100 km**: months of spending over the 46 km of a single
+    afternoon. Nothing about that number was a rounding error; the two halves described different
+    years. The same card's OTHER half, the kWh/100 km, was already windowed correctly, which is how
+    the split was found: his 19.2 kWh/100 km reproduces to the decimal.
+
+    Two bases, and the one that prices MORE of what he actually spent wins:
+
+    · **trips** — Mate's own reconstructed distance, with the euros starting where the kilometres
+      start. A charge that ended before the first recorded trip has no kilometres to be divided by
+      and contributes nothing. The RIGHT edge is deliberately left open: a charge made after the
+      last trip will get its kilometres tomorrow, and excluding it would make the figure jitter
+      day to day for everyone — the same "a full tank raises it until you drive it" property
+      Silvio already accepted on the petrol side.
+
+    · **odometer** — the car's own counter, between the first and the last charge carrying one
+      (`charges.odometer_km`, stamped by the poller, typed on a manual charge, back-filled once
+      from `positions`). Brim-to-brim, exactly as a driver measures fuel: the euros of every charge
+      from the first stamped one up to — but NOT including — the last, because the energy of the
+      closing charge is still in the battery. Measured on a real B10 the two agree: 6.19 against
+      6.20 €/100 km. It is not a redefinition, it is the same answer from the car's own numbers.
+
+    Why "prices more of the spending" rather than a coverage threshold: a threshold is a number
+    somebody invented, and every install would sit near it differently. This comparison is a fact
+    about the data — and it makes the change INERT for anyone with an ordinary history. On Silvio's
+    B10 the trips price 119.74 € of 119.74 and the odometer 104.27, so the trips win and the card
+    does not move at all. It only flips for the person the trips cannot speak for: someone whose
+    charges reach back further than Mate's kilometres do, which is exactly #237.
+
+    ⚠️ Declared simplification: on a range-extender the odometer basis is not offered. The petrol
+    half of this card is measured per TRIP (litres burned × the blended €/L), so re-basing the
+    electricity on the odometer would put the two halves back on two windows — the very defect
+    being fixed. `allow_odometer` carries that.
+
+    None when nothing can be divided at all.
+    """
+    vid = _current_vehicle_id()
+    total_eur = _priced_euros(db, vid)
+
+    best = None
+    try:
+        first = db.execute(
+            "SELECT started_at, start_soc FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND ended_at IS NOT NULL ORDER BY started_at LIMIT 1", (vid,)).fetchone()
+        last = db.execute(
+            "SELECT ended_at, end_soc FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND ended_at IS NOT NULL ORDER BY ended_at DESC LIMIT 1", (vid,)).fetchone()
+        km = (db.execute(
+            "SELECT SUM(distance_km) AS k FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND ended_at IS NOT NULL", (vid,)).fetchone()["k"]) or 0.0
+    except sqlite3.Error:
+        first = last = None
+        km = 0.0
+    if first and last and km >= 0.5:
+        where, params = " AND ended_at >= ?", (first["started_at"],)
+        best = {
+            "basis": "trips", "km": float(km), "since": first["started_at"],
+            "where": where, "params": params,
+            "covers": _priced_euros(db, vid, where, params),
+            # The energy balance keeps its OWN, stricter window: it is arithmetic on the SoC at both
+            # ends, so a charge must sit entirely inside or it would be billed to kilometres that
+            # are not in the divisor (beta #25 documents this at length).
+            "bal": (first["started_at"], last["ended_at"], first["start_soc"], last["end_soc"]),
+        }
+
+    if allow_odometer and _charges_have_odometer(db):
+        try:
+            stamped = db.execute(
+                "SELECT started_at, odometer_km, start_soc FROM charges "
+                "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
+                "AND odometer_km IS NOT NULL AND odometer_km > 0 ORDER BY started_at", (vid,)
+            ).fetchall()
+        except sqlite3.Error:
+            stamped = []
+        if len(stamped) >= 2:
+            a, b = stamped[0], stamped[-1]
+            span = float(b["odometer_km"]) - float(a["odometer_km"])
+            # A span that does not move forward is not a measurement: an odometer typed in wrong,
+            # or two charges at the same reading with no driving in between. Refused, not absorbed.
+            if span >= 0.5:
+                where = " AND started_at >= ? AND started_at < ?"
+                params = (a["started_at"], b["started_at"])
+                cand = {
+                    "basis": "odometer", "km": span, "since": a["started_at"],
+                    "where": where, "params": params,
+                    "covers": _priced_euros(db, vid, where, params),
+                    "bal": (a["started_at"], b["started_at"], a["start_soc"], b["start_soc"]),
+                }
+                # Strictly more, so a tie leaves an existing install exactly where it was.
+                if best is None or cand["covers"] > best["covers"]:
+                    best = cand
+    return best
+
+
 def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
     """What 100 km have COST: every euro spent, divided by every kilometre driven.
 
@@ -3629,28 +3834,28 @@ def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
 
     None until something has been driven and at least one euro is known."""
     db = _get()
-    try:
-        row = db.execute(
-            "SELECT SUM(distance_km), MIN(started_at) FROM trips "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
-            (_current_vehicle_id(),)).fetchone()
-        km, since_trip = (row[0] or 0), row[1]
-    except sqlite3.Error:
+    basis = _km_basis(db, allow_odometer=not fuel_l_burned)
+    if basis is None or basis["km"] < 0.5:
         return None
-    if km < 0.5:
-        return None
+    km, since_trip = basis["km"], basis["since"]
 
     # "Priced" means here what it means everywhere else in Mate — `cost IS NOT NULL`, and a charge
     # that cost ZERO is priced (#218, free solar). `price_coverage` owns that rule where an AVERAGE
     # is taken; nothing is averaged here, so only its definition is borrowed, not its arithmetic.
+    #
+    # 🔑 …and it is counted over the window the KILOMETRES cover, which is the whole of #237. The
+    # money used to be summed over the entire archive while the divisor came from the trips alone:
+    # @nico89612 typed in 152 charges from before Mate was installed and read 4838.43 €/100 km —
+    # months of euros over 46 km of one afternoon. `_km_basis` owns the window; here it is only
+    # obeyed.
     elec_cost = 0.0
     priced_n = total_n = 0
     since_charge = None
     try:
         for c in db.execute(
                 "SELECT cost, ended_at FROM charges "
-                "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
-                (_current_vehicle_id(),)).fetchall():
+                "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL"
+                + basis["where"], (_current_vehicle_id(), *basis["params"])).fetchall():
             total_n += 1
             if c["cost"] is None or c["cost"] < 0:   # negative is nonsense, not a discount
                 continue
@@ -3690,7 +3895,7 @@ def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
     if priced_n == 0 and fuel_n == 0:
         return None
 
-    kwh_100km, kwh_charges, kwh_missing = _energy_balance_kwh(db, km)
+    kwh_100km, kwh_charges, kwh_missing = _energy_balance_kwh(db, km, basis)
 
     per100 = 100.0 / km
     return {
@@ -3712,16 +3917,27 @@ def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
         "kwh_charges": kwh_charges,
         "kwh_missing": kwh_missing,
         "km": round(km, 1),
+        # WHOSE kilometres those are. "trips" = what Mate reconstructed while it was watching;
+        # "odometer" = the car's own counter, between the first and the last charge that carries
+        # one. The page says it out loud rather than leaving the reader to assume, because the two
+        # answer different questions and on a real B10 they are 4.4% apart (1725 km on the dial
+        # against 1650 recorded over the same ten weeks).
+        "basis": basis["basis"],
         # WHEN this window opens — the earliest row that feeds the figure. Silvio, 05/08: the card
         # has to say that these are Mate's kilometres since Mate started, not the car's odometer.
         # Measured on his own B10 the same day: 4803 km on the dashboard, 1877 recorded here, and
         # the first note read «diviso i 1877 km percorsi» as though the car had done that much.
         # Compared as ISO strings, which is safe because the DB is UTC everywhere by construction.
+        #
+        # ⚠️ It can no longer reach back BEFORE the kilometres, which is the visible half of #237:
+        # a charge outside the window contributes no euros, so it cannot open a window it does not
+        # pay into. `since_charge` is now already inside by construction — it is kept in the min()
+        # because on the odometer basis the first charge IS the opening row.
         "since": min([s for s in (since_trip, since_charge, since_fuel) if s], default=None),
     }
 
 
-def _energy_balance_kwh(db, km: float) -> tuple:
+def _energy_balance_kwh(db, km: float, basis: dict) -> tuple:
     """How many kWh those `km` took, as a closed-system BALANCE — never trip by trip.
 
     @michapr, BetaTester #25, 06/08/26, worked out on his own history and cross-checked two ways.
@@ -3746,11 +3962,13 @@ def _energy_balance_kwh(db, km: float) -> tuple:
     zero and it degenerates to plain consumption. No `is_reev` branch exists here, and none is
     needed.
 
-    The window is the one this card already sums kilometres over: the first trip's `started_at` to
-    the last trip's `ended_at`. A charge counts only if its OWN window sits entirely inside — one
-    that ends before the first trip, or starts after the last, has already been absorbed into the
-    SoC at that boundary, and counting it would bill it twice. (His July 9 session, ending 17:33
-    before a first trip on the 10th, is exactly that case.)
+    The window is the one this card sums kilometres over — handed in by `_km_basis`, so the cost
+    and the kWh can never again describe two different stretches of time (#237). On the trip basis
+    that is the first trip's `started_at` to the last trip's `ended_at`, exactly as before; on the
+    odometer basis it is the first stamped charge to the last. A charge counts only if its OWN
+    window sits entirely inside — one that ends before the start, or starts after the end, has
+    already been absorbed into the SoC at that boundary, and counting it would bill it twice.
+    (@michapr's July 9 session, ending 17:33 before a first trip on the 10th, is exactly that case.)
 
     ⚠️ The estimate enters only through the SMALL term. `Δstored` is SoC × NOMINAL capacity, and an
     LFP's SoC is counted rather than measured — drift ±15%. On his window that term is 3.80 kWh
@@ -3764,20 +3982,12 @@ def _energy_balance_kwh(db, km: float) -> tuple:
     a wrong number wearing the confidence of a measurement.
     """
     vid = _current_vehicle_id()
-    try:
-        first = db.execute(
-            "SELECT started_at, start_soc FROM trips "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
-            "ORDER BY started_at LIMIT 1", (vid,)).fetchone()
-        last = db.execute(
-            "SELECT ended_at, end_soc FROM trips "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
-            "ORDER BY ended_at DESC LIMIT 1", (vid,)).fetchone()
-    except sqlite3.Error:
-        return None, 0, 0
-    if not first or not last:
-        return None, 0, 0
-    if first["start_soc"] is None or last["end_soc"] is None:
+    # The window comes from whoever owns the divisor (#237). Before that it was derived from the
+    # trips here, independently — which was right while the euros were the only thing out of step,
+    # and would have become a second bug the moment the divisor could be the odometer instead: the
+    # cost over one stretch and the kWh over another, side by side under one heading.
+    from_ts, to_ts, soc_from, soc_to = basis["bal"]
+    if not from_ts or not to_ts or soc_from is None or soc_to is None:
         return None, 0, 0
 
     # Entirely inside, on both edges. ISO strings compare correctly because the DB is UTC
@@ -3790,7 +4000,7 @@ def _energy_balance_kwh(db, km: float) -> tuple:
             "  FROM charges "
             " WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
             "   AND started_at >= ? AND ended_at <= ?",
-            (vid, first["started_at"], last["ended_at"])).fetchone()
+            (vid, from_ts, to_ts)).fetchone()
     except sqlite3.Error:
         return None, 0, 0
 
@@ -3798,7 +4008,7 @@ def _energy_balance_kwh(db, km: float) -> tuple:
     if not counted:
         return None, 0, missing
 
-    net = (last["end_soc"] - first["start_soc"]) / 100.0 * get_battery_capacity_kwh()
+    net = (soc_to - soc_from) / 100.0 * get_battery_capacity_kwh()
     consumed = (row["kwh"] or 0.0) - net
     if consumed <= 0:
         return None, counted, missing
@@ -5735,6 +5945,23 @@ def _charges_have_gross(db) -> bool:
         return False
 
 
+def charges_have_odometer() -> bool:
+    """The same question, asked by a route so a template can hide a field it cannot store."""
+    return _charges_have_odometer(_get())
+
+
+def _charges_have_odometer(db) -> bool:
+    """Whether the charges table carries the #237 odometer column yet. Same reasoning, same
+    migration-lives-in-the-poller rule, and the same per-call question as `_charges_have_gross` —
+    including the consequence Silvio's own instance taught us in v3.6.6: where the column cannot be
+    stored, the field is not OFFERED either, so nobody types a number into a form that will drop
+    it."""
+    try:
+        return any(r[1] == "odometer_km" for r in db.execute("PRAGMA table_info(charges)"))
+    except sqlite3.Error:
+        return False
+
+
 def _billed_kwh(c) -> float:
     """The energy figure SHOWN (and billed) for a charge — what came OUT of the charger:
 
@@ -5804,6 +6031,42 @@ def get_charge_years(station: str | None = None) -> list[int]:
     return sorted(years, reverse=True)
 
 
+def _km_since_previous_map() -> dict:
+    """{charge id → kilometres since the charge before it} (#237).
+
+    Silvio's own idea, and it falls out of the odometer column for nothing: two consecutive
+    readings, subtracted. It is the distance a battery actually covered — the one figure on the
+    page a driver can check against their own memory of the week.
+
+    Only where BOTH charges carry a reading, and only forwards. Measured on a real B10 over ten
+    weeks: 26 stamped charges, gaps of 0 to 272 km, median 26, **not one negative**. The zeros are
+    real and stay silent — ten of them the same afternoon, a car plugged in twice with no driving
+    in between. A negative means a mistyped reading, and "-300 km since the last charge" would be
+    worse than nothing at all.
+
+    🔴 Computed over the WHOLE history and handed back keyed by id, never over the list being
+    rendered. The Charges page shows one day at a time, and search shows whatever matched; pairing
+    inside either of those would subtract two charges that are not neighbours and print a
+    confident wrong number — the gap across a filtered-out session, called "since the previous
+    charge".
+    """
+    out: dict = {}
+    try:
+        rows = _get().execute(
+            "SELECT id, odometer_km FROM charges "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
+            "AND odometer_km IS NOT NULL AND odometer_km > 0 ORDER BY started_at",
+            (_current_vehicle_id(),)).fetchall()
+    except sqlite3.Error:
+        return out
+    prev = None
+    for r in rows:
+        if prev is not None and r["odometer_km"] >= prev:
+            out[r["id"]] = round(r["odometer_km"] - prev, 1)
+        prev = r["odometer_km"]
+    return out
+
+
 def get_charges_grouped(station: str | None = None) -> list[dict]:
     """Return charges nested as year → month → day. `station`, when given, is a
     "lat,lon" key from get_charging_stations() (same rounding) — narrows the tree to
@@ -5865,8 +6128,16 @@ def _localized_charges(charges: list[dict]) -> list[dict]:
     times + the real-charging-window display, same convention get_charges_grouped applies
     inline — so charge_card.html renders identically wherever it's included. Adds a private
     `_dt` (aware, local-tz datetime) for the caller's OWN day/date bucketing or filtering;
-    never rendered, so its presence in the dict is harmless to charge_card.html."""
+    never rendered, so its presence in the dict is harmless to charge_card.html.
+
+    🔴 This is where the kilometres-since-the-last-charge land, and finding that out cost a
+    round trip through a running container: the figure was first attached in
+    `get_charges_grouped`, which reads plausibly enough — and which the Charges page does not
+    call. Every card the user actually sees comes through HERE, from the calendar or from search.
+    The test was green against a function nobody renders.
+    → [[feedback-gate-a-feature-find-every-copy]]"""
     db = _get()
+    gaps = _km_since_previous_map()
     out = []
     for c in charges:
         if not c.get("started_at"):
@@ -5878,6 +6149,8 @@ def _localized_charges(charges: list[dict]) -> list[dict]:
         c["started_at"] = dt.isoformat()
         c["ended_at"] = _local_iso(c.get("ended_at"))
         c["_dt"] = dt
+        if c.get("id") in gaps:
+            c["km_since_prev"] = gaps[c["id"]]
         out.append(c)
     return out
 

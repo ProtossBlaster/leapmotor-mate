@@ -323,6 +323,26 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
 - **Ihre Notiz 🆕** (#107) — jeder Ladevorgang hat eine **freie Notiz** (direkt über *Ladevorgang löschen*) für das,
   was die Zahlen nicht erfassen: wo die Ladesäule stand, Schatten/Unterstand, ihre Zuverlässigkeit, die
   Parkbedingungen, das Wetter, jede persönliche Anmerkung.
+- **Der Kilometerstand des Ladevorgangs 🆕** (#237) — jede Sitzung trägt jetzt **den Kilometerstand
+  zum Zeitpunkt ihres Beginns**. Mate schreibt ihn selbst auf alles, was es sieht, und hat ihn einmal
+  aus den bereits gespeicherten Ladevorgängen zurückgeholt. Bei einem Ladevorgang, den **Sie**
+  eintragen, gibt es ein Feld *Kilometerstand*: es ist der einzige Weg, einer Sitzung von vor der
+  Mate-Installation überhaupt Kilometer zu geben — aus jenen Tagen kann sie nichts liefern.
+  Eingetragen in **Ihrer** Einheit (km oder Meilen).
+- **Wie weit das Auto zwischen zwei Ladevorgängen gefahren ist 🆕** (#237) — unter dem Ladevorgang:
+  „🛣 122 km seit dem vorherigen Ladevorgang", laut Kilometerzähler des Autos. Erscheint nur, wenn
+  **beide** Ladevorgänge ihren Wert tragen, und nur wenn das Auto sich wirklich bewegt hat: zwei
+  Sitzungen am selben Nachmittag schreiben nichts, statt eine Null zu drucken.
+- **Ladevorgänge aus einer Tabelle importieren (CSV)** — *Ladevorgänge aus CSV importieren* gibt
+  Ihnen eine **kommentierte Vorlage**; Sie füllen sie in Excel oder Numbers aus und laden sie wieder
+  hoch. Nur zwei Spalten sind Pflicht, Datum und Energie; der Rest — Kosten, AC/DC, Lade-Prozente,
+  Endzeit und der **Kilometerstand 🆕** — ist optional. Der **Export** der Ladevorgänge lässt sich so
+  wie er ist wieder importieren. **Dieselbe Datei erneut zu importieren erzeugt keine Duplikate mehr
+  🆕** (#237): eine Zeile, die zu einer bereits gespeicherten Sitzung passt, **ergänzt** sie (trägt
+  den Kilometerstand ein), statt eine zweite hinzuzufügen, und Mate sagt Ihnen, wie viele
+  hinzugefügt und wie viele ergänzt wurden. Vorher verdoppelte sich alles lautlos. ⚠️ Bei einer
+  bereits gespeicherten Sitzung wird **nur** der Kilometerstand geschrieben: Kosten, die Mate aus
+  einer echten Ladekurve errechnet hat, werden nie überschrieben.
 
 ### Ladepreise
 **(Menü: Ladepreise)** — Hier legen Sie fest, **was Sie für die Energie zahlen**, damit Mate die Kosten berechnen
@@ -341,17 +361,35 @@ auf dem „durchschnittlichen" Energiepreis in der Batterie zum Zeitpunkt der Fa
 > in dem sie begonnen hat).
 
 ### Statistik
-**(Menü: Statistik)** — Ihre Durchschnitte und Summen über die Zeit: **Gesamtstrecke** und Anzahl der Fahrten,
+**(Menü: Statistik)** — Ihre Durchschnitte und Summen über die Zeit: **Strecke der erfassten
+Fahrten** 🆕 (früher *Gesamtstrecke*, war aber immer schon die Summe der abgeschlossenen Fahrten —
+nicht der Kilometerzähler des Autos) und Anzahl der Fahrten,
 **durchschnittliche Strecke pro Fahrt**, **Fahrzeit**, **durchschnittlicher Verbrauch** (gewichtet nach der
 Strecke) und **bester**, **verbrauchte und geladene Energie**, **Rekuperation** insgesamt und im Durchschnitt,
 Anzahl der **Ladesitzungen**, mit den entsprechenden **Trends** (Effizienz und Rekuperation über die Zeit). Die
 Summen enthalten jetzt auch eine Karte **V2L gesamt** mit der über die gesamte Historie via V2L entnommenen
 kumulierten Energie.
 
-**Kosten pro 100 km 🆕** — was 100 km wirklich kosten: **jeder ausgegebene Euro**, geteilt durch
-**jeden gefahrenen Kilometer**. Kein Preis pro kWh und keine Schätzung — die Summe des Bezahlten
-über der Summe des Gefahrenen, also einschließlich der kWh, die das Auto nirgendwohin bewegt haben
-(Klima, Vorkonditionierung, Verluste des Ladegeräts). Bei einer Version mit Range Extender kommt der
+**Kosten pro 100 km 🆕** — was 100 km wirklich kosten: **die ausgegebenen Euro**, geteilt durch **die
+gefahrenen Kilometer**. Kein Preis pro kWh und keine Schätzung — die Summe des Bezahlten über der
+Summe des Gefahrenen, also einschließlich der kWh, die das Auto nirgendwohin bewegt haben (Klima,
+Vorkonditionierung, Verluste des Ladegeräts).
+
+**Die Euro und die Kilometer stammen aus demselben Zeitraum 🆕** (#237) — ein Ladevorgang, der
+**vor** der ersten aufgezeichneten Fahrt endete, hat keine eigenen Kilometer, durch die er geteilt
+werden könnte, und geht nicht in die Zahl ein. Wer ein Jahr alter Ladevorgänge von Hand eingetragen
+hatte, sah Monate an Ausgaben durch die Kilometer eines einzigen Nachmittags geteilt: die Zahl fiel
+zehnfach zu hoch aus. Ein Ladevorgang **nach** der letzten Fahrt behält sein Geld dagegen — diese
+Kilometer kommen morgen.
+
+**Und es kann durch den Kilometerzähler des Autos teilen 🆕** (#237) — tragen Ihre Ladevorgänge einen
+Kilometerstand (siehe *Ladevorgänge*), misst Mate die Strecke zwischen dem ersten und dem letzten
+mit dem Zähler des Autos statt mit den rekonstruierten Fahrten: von voll zu voll, wie Kraftstoff
+schon immer gemessen wurde. **Das funktioniert auch ganz ohne aufgezeichnete Fahrten**, also genau
+für den, der alles in ein Heft geschrieben hat und Mate Monate später installiert. Mate wählt
+selbst die Grundlage, die **mehr von dem bepreist, was Sie tatsächlich ausgegeben haben**, und sagt
+unter der Zahl, welche — „über die 18422 km laut Kilometerzähler" statt „über die erfassten km".
+Bei einer gewöhnlichen Historie gewinnen die Fahrten und es ändert sich nichts. Bei einer Version mit Range Extender kommt der
 Kraftstoff neben dem Strom dazu — der **verbrauchte** Kraftstoff, zu dem Preis, den der Tank gekostet
 hat, nicht die ganze Tankfüllung: eine bezahlte Tankfüllung steckt größtenteils noch im Tank 🆕. Fehlt bei einer Ladung der Preis, sagt die Karte es, denn der echte
 Wert liegt dann höher. Sie folgt Ihren Einheiten: in Meilen wird daraus „pro 100 mi".

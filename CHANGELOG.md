@@ -3,6 +3,63 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.9.0] — 2026-08-08
+
+**Charges can carry kilometres, and the cost per 100 km stops mixing two different periods.**
+
+### Fixed
+
+- 💶 **Cost per 100 km divided money from months by kilometres from one afternoon.** @nico89612
+  (#237) typed 152 charging sessions into Mate from before he installed it and the Statistics page
+  read **4838.43 €/100 km**. Nothing was rounded wrong: the euros were summed over the *entire*
+  archive while the divisor came from the recorded trips alone, so the two halves of one figure
+  described different years. The same card's kWh/100 km half was already windowed correctly, which
+  is how the split was found — his 19.2 reproduces to the decimal.
+
+  The euros are now counted over the window the **kilometres** cover. A charge that ended before
+  the first recorded trip has no kilometres of its own to be divided by and contributes nothing;
+  a charge made *after* the last trip keeps its money, because those kilometres arrive tomorrow.
+  Measured on a real B10 with ten weeks of history: **6.20 → 6.20 €/100 km, not one charge out of
+  window.** It only moves for someone whose charges reach back further than Mate's kilometres do.
+
+- 💱 **The price box was labelled in euros for everybody.** Mate offers fourteen currencies. The
+  "add a past charge" form printed the currency's whole metadata record instead of its symbol
+  (on screen: `{'name': 'I`) — there since that form was written — and the two type-and-price
+  boxes had `€` written into them by hand. All three now read in your own money.
+
+### Added
+
+- 🛣 **A charge remembers the odometer it started at.** Written by the poller from the same frame
+  that opens the session, back-filled once from the positions already on disk (**26 of 28 recovered
+  on a real car, to the second**, because both rows come from one poll), and — the part nothing
+  else could give you — **typable by hand** on the manual form and as the last column of the CSV.
+
+  That last piece is the only way a session from before Mate existed can carry kilometres at all:
+  no poll of it was ever made, and nothing in the database can invent them. Fill the column in and
+  the cost per 100 km is measured against the car's own counter, over exactly the period the
+  charges cover — brim to brim, the way a driver measures fuel. It works even with **no recorded
+  trips at all**, which is the case for anyone who kept a notebook and installs Mate months later.
+
+  Mate picks whichever basis prices **more of what you actually spent**, and says which one it used
+  under the figure. On an ordinary history the trips win and nothing changes.
+
+- 🛣 **How far the car went between one charge and the next**, on the Charges page, from the car's
+  own odometer. Shown only where both readings exist and only where it actually moved: two sessions
+  the same afternoon say nothing rather than print a zero.
+
+### Changed
+
+- 📥 **Re-importing a CSV fills in the sessions already there instead of adding them again.** It
+  used to insert every clean line unconditionally, so importing the same file twice doubled the
+  archive — and the money with it — without a word. A line matching a session already recorded
+  (same moment, same energy) now completes it. Deliberately narrow: it writes the odometer and
+  **nothing else**, so a cost Mate computed from a real charging curve is never overwritten.
+
+- 📏 **"Total distance" is now "Distance of recorded trips"**, on Statistics, Trips and the monthly
+  report. It has always been the sum of the finished trips and nothing else, but the word *total*
+  read as the car's lifetime counter — the more so now that the cost card can divide by exactly
+  that.
+
 ## [3.8.8] — 2026-08-07
 
 **The car in the sea puts itself back, and a trip stops waiting on a cloud that went quiet.**

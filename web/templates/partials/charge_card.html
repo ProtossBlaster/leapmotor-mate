@@ -37,6 +37,14 @@
           · <span style="color:{% if is_dc %}#fb923c{% else %}#38bdf8{% endif %};font-weight:700">{% if is_dc %}DC{% else %}AC{% endif %}</span>
         </div>
         <div class="mt-0.5">{% with charge=c %}{% include "partials/charge_location.html" %}{% endwith %}</div>
+        {# #237 — the distance covered since the previous charge, from the car's own odometer. Only
+           where both readings exist and only where the car actually moved: two sessions the same
+           afternoon give 0, and a zero here says nothing worth a line. #}
+        {% if c.km_since_prev %}
+        <div class="text-[11px] text-slate-500 mt-0.5" title="{{ t('charge_km_since_prev_hint') }}">
+          🛣 {{ c.km_since_prev|dist(0) }} {{ t('charge_km_since_prev') }}
+        </div>
+        {% endif %}
         {% if c.reconstructed %}
         <div class="text-[11px] text-amber-400/90 mt-0.5" title="{{ t('charge_reconstructed_hint') }}">
           ✨ {{ t('charge_reconstructed') }}
@@ -81,7 +89,8 @@
             <input type="hidden" name="location_type" value="MANUAL">
             <div style="display:flex;align-items:center;gap:6px;padding:5px 10px">
               <span style="color:{{ info.color }};font-size:13px">{{ info.icon }}</span>
-              <input type="number" name="cost" step="0.01" min="0" placeholder="€"
+              {# Mate offers fourteen currencies and only one of them is the euro. #}
+              <input type="number" name="cost" step="0.01" min="0" placeholder="{{ currency.symbol }}"
                      value="{% if c.location_type == 'MANUAL' and c.cost %}{{ '%.2f'|format(c.cost) }}{% endif %}"
                      onclick="event.stopPropagation()"
                      style="width:72px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#fff;padding:4px 6px;font-size:13px">
@@ -292,6 +301,16 @@
           <option value="DC" {% if c.charge_type == 'DC' %}selected{% endif %}>DC</option>
         </select>
       </label>
+      {# #237 — correcting a mistyped odometer has to be possible, or the wrong kilometre is in the
+         divisor for ever. Blank clears it, which is the honest answer for "I don't actually know".
+         Shown in the reader's own unit and converted back on the way in. #}
+      {% if c.odometer_km is defined %}
+      <label class="text-xs text-slate-400">{{ t('manual_charge_odometer') }}
+        <input type="number" name="odometer" min="0" step="1" placeholder="{{ dist_unit() }}"
+               value="{{ dist_val(c.odometer_km, 0) if c.odometer_km }}"
+               class="block mt-1 w-24 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+      </label>
+      {% endif %}
       <button type="submit" class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:opacity-90 active:scale-95 transition">{{ t('note_save') }}</button>
       <span id="cedit-msg-{{ c.id }}" class="text-sm font-medium"></span>
     </form>

@@ -25,10 +25,12 @@ def test_valid_rows_with_header_comments_and_blanks():
     assert errors == []
     assert len(rows) == 2
     assert rows[0] == {"started_at": "2025-11-03T21:30:00+00:00", "ended_at": None, "energy_kwh": 42.5,
-                       "cost": 8.1, "charge_type": "AC", "start_soc": None, "end_soc": None}
+                       "cost": 8.1, "charge_type": "AC", "start_soc": None, "end_soc": None,
+                       "odometer_km": None}
     # no time given → noon default (no day-shift), DC preserved
     assert rows[1] == {"started_at": "2026-01-15T12:00:00+00:00", "ended_at": None, "energy_kwh": 18.0,
-                       "cost": 9.5, "charge_type": "DC", "start_soc": None, "end_soc": None}
+                       "cost": 9.5, "charge_type": "DC", "start_soc": None, "end_soc": None,
+                       "odometer_km": None}
 
 
 def test_optional_fields_blank():
@@ -47,7 +49,8 @@ def test_european_semicolon_csv_with_comma_decimals():
     )
     assert errors == []
     assert rows[0] == {"started_at": "2025-05-01T08:00:00+00:00", "ended_at": None, "energy_kwh": 30.5,
-                       "cost": 8.1, "charge_type": "AC", "start_soc": None, "end_soc": None}
+                       "cost": 8.1, "charge_type": "AC", "start_soc": None, "end_soc": None,
+                       "odometer_km": None}
     assert rows[1]["energy_kwh"] == 12.0 and rows[1]["cost"] is None and rows[1]["charge_type"] == "DC"
 
 

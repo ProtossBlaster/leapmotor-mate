@@ -62,17 +62,28 @@ def _trip(db, km=200.0, soc=(80.0, 40.0), fuel=(50.0, 30.0), day=1):
     db._conn.execute(
         "INSERT INTO trips (vehicle_id, started_at, ended_at, distance_km, start_soc, end_soc,"
         " fuel_start_pct, fuel_end_pct) VALUES (1,?,?,?,?,?,?,?)",
-        (f"2026-07-{day:02d}T08:00:00+00:00", f"2026-07-{day:02d}T09:00:00+00:00",
+        (f"2026-07-{day:02d}T08:00:00+00:00", f"2026-07-{day:02d}T18:00:00+00:00",
          km, soc[0], soc[1], fuel[0] if fuel else None, fuel[1] if fuel else None))
     db._conn.commit()
 
 
-def _charge(db, kwh, cost, *, meter=None, home=False, day=1):
+def _charge(db, kwh, cost, *, meter=None, home=False, day=1, odo=None):
+    """A charge on the SAME day as the trip of that number, in the middle of it.
+
+    🔴 It used to land in JUNE while every trip landed in July — a month of euros with no
+    kilometres under them, which is precisely the shape of #237 (@nico89612: 152 charges typed in
+    from before Mate was installed, 46 km recorded, 4838.43 €/100 km on screen). Seventeen tests in
+    this file passed on that fixture and would have gone on passing after the money was correctly
+    windowed, because they asserted the total the defect produced. The fixture now models a car
+    that was charged during the period it was driven, which is what every one of these tests is
+    actually about. → [[feedback-a-green-test-can-assert-the-bug]]
+    """
     db._conn.execute(
         "INSERT INTO charges (vehicle_id, started_at, ended_at, start_soc, end_soc,"
-        " energy_added_kwh, cost, ac_energy_kwh, location_type) VALUES (1,?,?,20,60,?,?,?,?)",
-        (f"2026-06-{day:02d}T08:00:00+00:00", f"2026-06-{day:02d}T09:00:00+00:00",
-         kwh, cost, meter, "HOME" if home else None))
+        " energy_added_kwh, cost, ac_energy_kwh, location_type, odometer_km)"
+        " VALUES (1,?,?,20,60,?,?,?,?,?)",
+        (f"2026-07-{day:02d}T10:00:00+00:00", f"2026-07-{day:02d}T11:00:00+00:00",
+         kwh, cost, meter, "HOME" if home else None, odo))
     db._conn.commit()
 
 
@@ -213,12 +224,17 @@ def test_it_says_when_its_own_window_opens(bev):
     car's odometer. Measured on his own B10 the same day — 4803 km on the dashboard, 1877 recorded
     here — and the note read «diviso i 1877 km percorsi», which sounds like the car has done 1877.
 
-    The window opens at the earliest row that feeds the figure, whichever kind it is: a charge that
-    predates every trip is money already in the numerator, so the date has to reach back to it."""
+    🔴 The window used to open at the earliest row of ANY kind, on the reasoning that a charge
+    predating every trip is "money already in the numerator". That reasoning was the defect: money
+    with no kilometres under it was in the numerator, and #237 is what it produced —
+    @nico89612 typed in 152 charges from before he installed Mate and the card read 4838.43 €/100
+    km. The window now opens where the KILOMETRES open, and the euros follow it."""
     _trip(bev, fuel=None, day=9)
-    _charge(bev, kwh=20.0, cost=5.00, day=3)          # June, before the July trip
+    _charge(bev, kwh=20.0, cost=5.00, day=3)          # before the trip: no kilometres of its own
     _charge(bev, kwh=20.0, cost=5.00, day=20)         # …and a later one, so "first" ≠ "any"
-    assert db_reader.cost_per_100km()["since"].startswith("2026-06-03")
+    out = db_reader.cost_per_100km()
+    assert out["since"].startswith("2026-07-09"), "the first trip, not the first receipt"
+    assert out["total_100km"] == 2.50, "the day-3 charge pays for kilometres nobody recorded"
 
 
 def test_the_window_opens_at_the_first_trip_when_that_came_first(bev):
@@ -232,11 +248,15 @@ def test_the_window_opens_at_the_first_trip_when_that_came_first(bev):
 
 def test_an_unpriced_charge_does_not_open_the_window_early(bev):
     """It contributes nothing to the numerator, so claiming the figure covers a period reaching
-    back to it would overstate what the card actually knows."""
+    back to it would overstate what the card actually knows. Since #237 nothing before the first
+    trip opens the window anyway — priced or not — and this keeps the older rule nailed down for
+    the charge that IS in the window."""
     _trip(bev, fuel=None, day=9)
-    _charge(bev, kwh=20.0, cost=None, day=1)          # earliest row, but no money in it
-    _charge(bev, kwh=20.0, cost=5.00, day=5)
-    assert db_reader.cost_per_100km()["since"].startswith("2026-06-05")
+    _charge(bev, kwh=20.0, cost=None, day=10)         # in the window, but no money in it
+    _charge(bev, kwh=20.0, cost=5.00, day=11)
+    out = db_reader.cost_per_100km()
+    assert out["since"].startswith("2026-07-09")
+    assert out["partial"] is True and out["priced_charges"] == 1 and out["total_charges"] == 2
 
 
 def test_the_page_dates_itself_from_the_oldest_thing_it_shows(bev):
@@ -245,7 +265,7 @@ def test_the_page_dates_itself_from_the_oldest_thing_it_shows(bev):
     counts here: the page shows it (ENERGIA CARICATA, the charge count) even with no euros on it."""
     _trip(bev, fuel=None, day=9)
     _charge(bev, kwh=20.0, cost=None, day=2)          # no price, but the page still counts it
-    assert db_reader.get_stats_summary()["since"].startswith("2026-06-02")
+    assert db_reader.get_stats_summary()["since"].startswith("2026-07-02")
 
 
 def test_the_page_has_no_date_before_anything_happened(bev):

@@ -151,12 +151,31 @@ def test_a_charge_still_running_is_not_counted(car):
 # ── when it must say nothing rather than say zero ─────────────────────────────
 
 def test_nothing_charged_inside_the_window_says_nothing(car):
-    """The € side still works — this is one key going None, not the card."""
+    """The € side still works — this is one key going None, not the card.
+
+    ⚠️ The in-window charge carries a price but no ENERGY figure, which is the only way left to
+    reach this branch. It used to be reached with a charge sitting BEFORE the window, back when the
+    euros were summed over the whole archive regardless; since #237 such a charge contributes no
+    money either, so that fixture proved the card returns nothing at all — a different statement.
+    Its own case is now `test_a_charge_before_the_kilometres_pays_for_nothing`."""
     _window(car, km=200.0, soc=(80.0, 60.0))
-    _charge(car, start="2026-07-09T08:00:00+00:00", end="2026-07-09T10:00:00+00:00", kwh=30.0)
+    _charge(car, start="2026-07-15T08:00:00+00:00", end="2026-07-15T10:00:00+00:00",
+            kwh=None, cost=4.00)
     card = db_reader.cost_per_100km()
     assert card["kwh_100km"] is None
-    assert card["total_100km"] is not None
+    assert card["total_100km"] == 2.00
+
+
+def test_a_charge_before_the_kilometres_pays_for_nothing(car):
+    """#237, in its smallest form: a charge that ended before the first recorded trip has no
+    kilometres of its own to be divided by. Summing it anyway is what turned @nico89612's 152
+    typed-in sessions into 4838.43 €/100 km over the 46 km Mate had actually seen."""
+    _window(car, km=200.0, soc=(80.0, 60.0))          # trips on the 10th and the 20th
+    _charge(car, start="2026-07-09T08:00:00+00:00", end="2026-07-09T10:00:00+00:00", kwh=30.0)
+    assert db_reader.cost_per_100km() is None, "no money belongs to those kilometres"
+    _charge(car, start="2026-07-15T08:00:00+00:00", end="2026-07-15T10:00:00+00:00",
+            kwh=30.0, cost=6.00)
+    assert db_reader.cost_per_100km()["total_100km"] == 3.00, "and the in-window one is all of it"
 
 
 def test_a_balance_that_cancels_out_says_nothing_not_zero(car):

@@ -158,7 +158,11 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
                class="block mt-1 w-24 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
       </label>
       <label class="text-xs text-slate-400">{{ t('manual_charge_cost') }}
-        <input type="number" name="cost" min="0" step="0.01" placeholder="{{ currency }}"
+        {# `currency` is the metadata DICT, not a symbol: printed bare it rendered
+           `{'name': 'Euro', 'symbol': '€', …}`, clipped by the input to `{'name': 'I`. There since
+           this form was written (#87, v1.30.0) and never seen, because nothing renders a template
+           in the suite unless a test asks it to. #}
+        <input type="number" name="cost" min="0" step="0.01" placeholder="{{ currency.symbol }}"
                class="block mt-1 w-24 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
       </label>
       <label class="text-xs text-slate-400">{{ t('manual_charge_type') }}
@@ -167,6 +171,16 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
           <option value="DC">DC</option>
         </select>
       </label>
+      {# #237 — the car's total distance at that charge. It is offered ONLY where the poller has
+         already added the column, for the same reason the gross-kWh field is (v3.6.6, found on
+         Silvio's own instance): a field that silently drops what you type into it is worse than no
+         field. Typed in the reader's own unit; main.py converts to km before storing. #}
+      {% if charges_have_odometer %}
+      <label class="text-xs text-slate-400">{{ t('manual_charge_odometer') }}
+        <input type="number" name="odometer" min="0" step="1" placeholder="{{ dist_unit() }}"
+               class="block mt-1 w-24 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+      </label>
+      {% endif %}
       <button type="submit" class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:opacity-90 active:scale-95 transition">{{ t('manual_charge_add') }}</button>
       <span id="mc-spin" class="htmx-indicator text-brand text-xs">⏳</span>
       <span id="mc-result" class="text-sm font-medium"></span>

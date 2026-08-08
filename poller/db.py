@@ -39,6 +39,11 @@ _WB_FLOOR_KWH = 1.0
 # it must stay well above 1, or a single stuck frame would count as "the history".
 # The majority is deliberately lopsided: a car does not straddle the meridian, so anything short of
 # near-unanimity means the sample is mixed and the honest answer is to keep quiet.
+# #237 — how far either side of a charge's start the one-off odometer back-fill will look for the
+# position row that carries it. Kept tight on purpose: the right match is written by the SAME poll,
+# so a wider window buys no real coverage and only risks stamping the wrong afternoon's kilometres.
+_ODO_BACKFILL_WINDOW_MIN = 5
+
 _SIGN_SAMPLE = 400
 _SIGN_MIN_PLACES = 20
 _SIGN_MAJORITY = 0.9
@@ -122,6 +127,18 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _odo_or_none(data) -> Optional[float]:
+    """The odometer to stamp on a charge, or None when the car did not send one (#237).
+
+    `client` reads signal 1318 as `float(sig.get("1318") or 0)`, so an ABSENT odometer arrives as
+    0.0 — and a charge stamped 0 would later read as "this session happened at kilometre zero",
+    which is a wrong number rather than a missing one. A real odometer is never 0 on a car that has
+    been driven off the lot, so zero is treated as silence.
+    """
+    odo = getattr(data, "odometer_km", None)
+    return float(odo) if odo else None
+
+
 def default_capacity_for(car_type: str) -> float:
     return BATTERY_CAPACITY_DEFAULTS.get(car_type.upper(), BATTERY_CAPACITY_FALLBACK)
 
@@ -193,6 +210,7 @@ class Database:
         self._backfill_vehicle_capacity()
         self._backfill_null_vehicle_id()
         self._backfill_trip_geohashes()
+        self._backfill_charge_odometer()
         self._repair_odometer_trips()
         self._repair_quantized_trip_distance()
         self._repair_snap_to_full_charges()
@@ -694,6 +712,57 @@ class Database:
         if rows:
             self._conn.commit()
 
+    def _backfill_charge_odometer(self) -> None:
+        """Stamp `charges.odometer_km` on sessions recorded before the column existed (#237).
+
+        The odometer is not looked up — it is COPIED, once, out of the position row the same poll
+        wrote. Measured on a real B10: 26 of 28 charges matched with a worst-case offset of 0.0
+        minutes, because `create_charge` and `save_position` both run off one frame. The two that
+        did not match are older than the positions archive, and nothing can recover those.
+
+        ⚠️ The window is deliberately TIGHT (±5 min). A generous one would look like better
+        coverage while quietly stamping a charge with the odometer of a different afternoon; the
+        measurement says the right matches are all within seconds, so anything further away is not
+        a match that was nearly missed, it is a wrong answer. Charges typed in by hand match
+        nothing at all and stay NULL — correctly: no poll of them was ever made.
+
+        Idempotent and guarded by a one-shot setting, like every other repair here: `positions`
+        can hold hundreds of thousands of rows and this must not re-scan them at every start.
+        """
+        if self.get_setting("charges_odometer_backfill_v1") == "1":
+            return
+        try:
+            rows = self._conn.execute(
+                "SELECT id, vehicle_id, started_at FROM charges "
+                "WHERE odometer_km IS NULL AND started_at IS NOT NULL").fetchall()
+        except sqlite3.Error:
+            return
+        filled = 0
+        for r in rows:
+            try:
+                ts = datetime.fromisoformat(r["started_at"])
+            except (TypeError, ValueError):
+                continue
+            lo = (ts - timedelta(minutes=_ODO_BACKFILL_WINDOW_MIN)).isoformat()
+            hi = (ts + timedelta(minutes=_ODO_BACKFILL_WINDOW_MIN)).isoformat()
+            # Indexed range on (vehicle_id, recorded_at). Both columns are written by _now_iso(),
+            # i.e. UTC with a +00:00 offset, so the strings order the same way the instants do.
+            p = self._conn.execute(
+                "SELECT odometer_km FROM positions "
+                " WHERE vehicle_id = ? AND recorded_at BETWEEN ? AND ? "
+                "   AND odometer_km IS NOT NULL AND odometer_km > 0 "
+                " ORDER BY ABS(julianday(recorded_at) - julianday(?)) LIMIT 1",
+                (r["vehicle_id"], lo, hi, r["started_at"])).fetchone()
+            if p:
+                self._conn.execute("UPDATE charges SET odometer_km = ? WHERE id = ?",
+                                   (p["odometer_km"], r["id"]))
+                filled += 1
+        self._conn.commit()
+        self.set_setting("charges_odometer_backfill_v1", "1")
+        if rows:
+            log.info("Charge odometer back-fill: %d of %d recovered from positions "
+                     "(the rest predate the archive or were typed in)", filled, len(rows))
+
     def is_setup_complete(self) -> bool:
         return self.get_setting("setup_complete") == "1"
 
@@ -1062,9 +1131,11 @@ class Database:
 
     def create_charge(self, vehicle_id: int, data) -> int:
         cur = self._conn.execute(
-            """INSERT INTO charges (vehicle_id, started_at, start_soc, latitude, longitude)
-               VALUES (?,?,?,?,?)""",
-            (vehicle_id, _now_iso(), data.soc, data.latitude, data.longitude),
+            """INSERT INTO charges (vehicle_id, started_at, start_soc, latitude, longitude,
+                                    odometer_km)
+               VALUES (?,?,?,?,?,?)""",
+            (vehicle_id, _now_iso(), data.soc, data.latitude, data.longitude,
+             _odo_or_none(data)),
         )
         self._conn.commit()
         charge_id = cur.lastrowid
@@ -1105,10 +1176,10 @@ class Database:
         cur = self._conn.execute(
             """INSERT INTO charges
                (vehicle_id, started_at, ended_at, start_soc, end_soc, energy_added_kwh,
-                duration_min, latitude, longitude, charge_type, reconstructed)
-               VALUES (?,?,?,?,?,?,?,?,?,?,1)""",
+                duration_min, latitude, longitude, charge_type, odometer_km, reconstructed)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,1)""",
             (vehicle_id, started_at, ended_at, start_soc, data.soc, round(energy_added, 3),
-             duration_min, data.latitude, data.longitude, "AC"),
+             duration_min, data.latitude, data.longitude, "AC", _odo_or_none(data)),
         )
         self._conn.commit()
         charge_id = cur.lastrowid

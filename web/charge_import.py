@@ -11,7 +11,7 @@ import io
 
 # The template columns, in order. `date` + `energy_kwh` are required; the rest are optional. New optional
 # columns go at the END so existing files/positions never shift.
-COLUMNS = ("date", "energy_kwh", "cost", "type", "start_soc", "end_soc", "end")
+COLUMNS = ("date", "energy_kwh", "cost", "type", "start_soc", "end_soc", "end", "odometer_km")
 
 # Every header spelling we accept per column. The template hands out the left-hand names; the right-hand
 # ones are what Mate's OWN charges export writes (#182). That export is a raw DB dump whose first column
@@ -27,9 +27,15 @@ _ALIASES = {
     "start_soc":  {"start_soc"},
     "end_soc":    {"end_soc"},
     "end":        {"end", "ended_at"},
+    # #237 — the car's odometer when the charge started. The right-hand spellings are what people
+    # actually write in a spreadsheet they have been keeping by hand for months.
+    "odometer_km": {"odometer_km", "odometer", "odo", "km", "mileage", "kilometraggio"},
 }
 _HEADER_ALIASES = _ALIASES["date"]     # first-cell values that mean "header row"
 MAX_KWH = 250.0            # a single session above this is almost certainly a typo (biggest pack here ~100 kWh)
+# An odometer above this is a typo, not a car — the same role MAX_KWH plays, and set well clear of
+# any real vehicle so it never rejects somebody's genuinely enormous mileage.
+MAX_ODO_KM = 3_000_000.0
 
 
 def _header_map(cells):
@@ -56,11 +62,17 @@ TEMPLATE = (
     "# start_soc  (optional) : battery % at start, e.g. 23       - 0-100, blank if unknown\n"
     "# end_soc    (optional) : battery % at end, e.g. 80         - 0-100, blank if unknown\n"
     "# end        (optional) : end date/time, YYYY-MM-DD HH:MM   - for the duration; blank = no duration\n"
+    "# odometer_km(optional) : the car's total KM at that charge  - always km, never miles\n"
+    "#                         Fill this in and Mate can work out the cost per 100 km of charges\n"
+    "#                         made before it was installed - it has no other way to know them.\n"
+    "#\n"
+    "# Re-importing a charge Mate already has does NOT create a second one: same date and same\n"
+    "# energy_kwh means the same session, and the row is filled in rather than added again.\n"
     "#\n"
     "# Example (delete these two lines before importing):\n"
-    "# 2025-11-03 21:30,42.5,8.10,AC,23,80,2025-11-04 01:37\n"
-    "# 2026-01-15,18,9.5,DC,,,\n"
-    "date,energy_kwh,cost,type,start_soc,end_soc,end\n"
+    "# 2025-11-03 21:30,42.5,8.10,AC,23,80,2025-11-04 01:37,18450\n"
+    "# 2026-01-15,18,9.5,DC,,,,19102\n"
+    "date,energy_kwh,cost,type,start_soc,end_soc,end,odometer_km\n"
 )
 
 _DATE_FORMATS = ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d")
@@ -226,6 +238,23 @@ def parse_charge_csv(text: str, *, tz, today=None):
                 continue
             ended_at = end_utc.isoformat()
 
+        # Optional odometer (#237). This is the only route by which a charge from BEFORE Mate was
+        # installed can carry kilometres at all: no poll of it was ever made, so nothing in the
+        # database can supply them. Zero is refused rather than stored — an odometer reading of 0
+        # would place the session at the factory gate, which is a wrong number, not a missing one.
+        odo = None
+        odo_s = cell(cells, "odometer_km")
+        if odo_s:
+            try:
+                odo = _num(odo_s)
+            except ValueError:
+                errors.append(f"line {i}: odometer_km '{odo_s}' is not a number")
+                continue
+            if not (0 < odo <= MAX_ODO_KM):
+                errors.append(f"line {i}: odometer_km must be greater than 0 "
+                              f"and at most {MAX_ODO_KM:.0f}")
+                continue
+
         rows.append({
             "started_at": start_utc.isoformat(),
             "ended_at": ended_at,
@@ -234,5 +263,6 @@ def parse_charge_csv(text: str, *, tz, today=None):
             "charge_type": ctype,
             "start_soc": round(start_soc, 1) if start_soc is not None else None,
             "end_soc": round(end_soc, 1) if end_soc is not None else None,
+            "odometer_km": round(odo, 1) if odo is not None else None,
         })
     return rows, errors

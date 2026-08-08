@@ -337,6 +337,25 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
 - **Votre note 🆕** (#107) — chaque recharge a une **note libre** (juste au-dessus de *Supprimer la
   recharge*) pour ce que les chiffres ne capturent pas : l'emplacement de la borne, ombre/abri, sa
   fiabilité, les conditions de stationnement, la météo, toute remarque personnelle.
+- **Le compteur de la recharge 🆕** (#237) — chaque session emporte désormais **ce qu'affichait le
+  compteur au moment où elle a commencé**. Mate l'inscrit tout seul sur tout ce qu'il voit, et l'a
+  récupéré une fois sur les recharges déjà enregistrées. Sur une recharge que **vous saisissez**, une
+  case *Compteur* : c'est le seul moyen de donner des kilomètres à une session antérieure à
+  l'installation de Mate — rien de ces jours-là ne peut les fournir. Saisi dans **votre** unité (km
+  ou miles).
+- **Combien de km entre deux recharges 🆕** (#237) — sous la recharge : *« 🛣 122 km depuis la
+  recharge précédente »*, d'après le compteur de la voiture. N'apparaît que si les **deux** recharges
+  portent leur relevé et seulement si la voiture a réellement roulé : deux sessions le même
+  après-midi n'écrivent rien plutôt qu'un zéro.
+- **Importer les recharges depuis un tableur (CSV)** — *Importer des recharges depuis un CSV* vous
+  donne un **modèle commenté** ; vous le remplissez dans Excel ou Numbers et vous le renvoyez. Deux
+  colonnes seulement sont obligatoires, la date et l'énergie ; les autres — coût, AC/DC, pourcentages
+  de charge, heure de fin et le **compteur 🆕** — sont facultatives. L'**export** des recharges se
+  réimporte tel quel. **Réimporter le même fichier ne crée plus de doublons 🆕** (#237) : une ligne
+  correspondant à une session déjà enregistrée la **complète** (elle y écrit le compteur) au lieu
+  d'en ajouter une seconde, et Mate vous dit combien il en a ajoutées et combien complétées. Avant,
+  tout doublait en silence. ⚠️ Sur une session déjà enregistrée, **seul** le compteur est écrit : un
+  coût que Mate a calculé à partir d'une vraie courbe de charge n'est jamais écrasé.
 
 ### Prix de recharge
 **(menu : Prix de recharge)** — Ici, vous définissez **combien vous payez l'énergie**, afin que Mate puisse
@@ -356,16 +375,34 @@ trajets (calculé sur le prix « moyen » de l'énergie en batterie au moment du
 > où elle a démarré).
 
 ### Statistiques
-**(menu : Statistiques)** — Vos moyennes et totaux dans le temps : **distance totale** et nombre de trajets,
+**(menu : Statistiques)** — Vos moyennes et totaux dans le temps : **distance des trajets
+enregistrés** 🆕 (elle s'appelait *distance totale*, mais c'était toujours la somme des trajets
+terminés — pas le compteur de la voiture) et nombre de trajets,
 **distance moyenne par trajet**, **temps de conduite**, **consommation moyenne** (pondérée sur la distance) et
 **meilleure**, **énergie consommée et rechargée**, **récupération** totale et moyenne, nombre de **sessions de
 recharge**, avec les **tendances** correspondantes (efficacité et récupération dans le temps). Les totaux
 incluent désormais une carte **Total V2L** avec l'énergie cumulée soutirée via V2L sur tout l'historique.
 
-**Coût aux 100 km 🆕** — ce que parcourir 100 km coûte réellement : **chaque euro dépensé**, divisé
-par **chaque kilomètre parcouru**. Pas de prix au kWh ni d'estimation — la somme de ce que vous avez
+**Coût aux 100 km 🆕** — ce que parcourir 100 km coûte réellement : **les euros dépensés**, divisés
+par **les kilomètres parcourus**. Pas de prix au kWh ni d'estimation — la somme de ce que vous avez
 payé sur la somme de ce que vous avez roulé, donc y compris les kWh qui n'ont fait avancer la
-voiture nulle part (climatisation, préconditionnement, pertes du chargeur). Sur une version à
+voiture nulle part (climatisation, préconditionnement, pertes du chargeur).
+
+**Les euros et les kilomètres portent sur la même période 🆕** (#237) — une recharge terminée
+**avant** le premier trajet enregistré n'a pas de kilomètres à elle pour être divisée, et n'entre
+donc pas dans le calcul. Ceux qui avaient saisi une année de vieilles recharges voyaient des mois de
+dépenses divisés par les kilomètres d'un seul après-midi : le chiffre sortait des dizaines de fois
+trop élevé. Une recharge faite **après** le dernier trajet, elle, garde son argent — ces kilomètres
+arriveront demain.
+
+**Et il peut diviser par le compteur de la voiture 🆕** (#237) — si vos recharges portent un compteur
+(voir *Recharges*), Mate mesure la distance entre la première et la dernière avec le compteur de la
+voiture plutôt qu'avec les trajets reconstruits : de plein à plein, comme on a toujours mesuré le
+carburant. **Cela fonctionne même sans aucun trajet enregistré**, ce qui est le cas de celui qui a
+tout noté sur un carnet et installe Mate des mois plus tard. Mate choisit la base qui valorise **le
+plus de ce que vous avez réellement dépensé** et le dit sous le chiffre — *« sur les 18422 km du
+compteur »* plutôt que *« sur les km enregistrés »*. Sur un historique ordinaire, les trajets
+l'emportent et rien ne change. Sur une version à
 prolongateur d'autonomie, le carburant s'ajoute à côté de l'électricité — le carburant **brûlé**, au
 prix qu'a coûté le réservoir, pas le plein entier : un plein payé est encore en grande partie dans le
 réservoir 🆕. Si une recharge n'a pas de

@@ -337,6 +337,24 @@ label:
 - **Your note 🆕** (#107) — each charge has a **free-text note** (just above *Delete charge*) for the
   things the numbers don't capture: where the station was, shade/shelter, how reliable it is, parking
   conditions, weather, any personal remark.
+- **The odometer of the charge 🆕** (#237) — every session now carries **what the odometer read when
+  it started**. Mate writes it on everything it sees, and recovered it once from the charges already
+  in the archive. On a charge **you type in** there is an *Odometer* box: it is the only way a
+  session from before Mate existed can carry kilometres at all — nothing from those days can supply
+  them. Typed in **your** unit (km or miles).
+- **How far the car went between two charges 🆕** (#237) — under the charge: *"🛣 122 km since the
+  previous charge"*, from the car's own odometer. It appears only where **both** charges carry a
+  reading and only where the car actually moved: two sessions the same afternoon say nothing rather
+  than print a zero.
+- **Import charges from a spreadsheet (CSV)** — *Import charges from CSV* hands you a
+  **self-documenting template**; fill it in with Excel or Numbers and upload it back. Only two
+  columns are required, the date and the energy; the rest — cost, AC/DC, start/end percentages, end
+  time and the **odometer 🆕** — are optional. The charges **export** can be re-imported as it
+  stands. **Re-importing the same file no longer creates duplicates 🆕** (#237): a line matching a
+  session already recorded **completes** it (writing the odometer) instead of adding a second copy,
+  and Mate tells you how many it added and how many it completed. It used to double everything in
+  silence. ⚠️ On a session already recorded **only** the odometer is written: a cost Mate worked out
+  from a real charging curve is never overwritten.
 
 ### Charge Prices
 **(menu: Charge Prices)** — Here you set **how much you pay for energy**, so Mate can calculate the
@@ -354,16 +372,32 @@ The **Home** price is the one that feeds the cost of home charges and, in turn, 
 > (on the real power curve) or *By start time* (the whole session at the band it started in).
 
 ### Statistics
-**(menu: Statistics)** — Your averages and totals over time: **total distance** and number of trips,
+**(menu: Statistics)** — Your averages and totals over time: **distance of recorded trips** 🆕 (it
+used to read *total distance*, but it has always been the sum of the finished trips — not the car's
+odometer) and number of trips,
 **average distance per trip**, **drive time**, **average consumption** (weighted by distance) and
 **best**, **energy used and charged**, total and average **regen**, number of **charge sessions**,
 with the related **trends** (efficiency and regen over time). The totals also include a **Total V2L**
 card showing the cumulative energy drawn via V2L over all time.
 
-**Cost per 100 km 🆕** — what covering 100 km actually costs: **every euro spent**, divided by
-**every kilometre driven**. No price per kWh and no estimate — the sum of what you paid over the sum
-of what you drove, so it includes the kWh that moved the car nowhere (climate, preconditioning, the
-charger's own losses). On a range-extender the petrol is added beside the electricity — the petrol **burned**, priced at what the tank cost you, not the whole refuel: a tank you have paid for is mostly still in the tank, and charging it to the kilometres it has not driven yet made the figure several times too high 🆕. If any charge
+**Cost per 100 km 🆕** — what covering 100 km actually costs: **the euros spent**, divided by **the
+kilometres driven**. No price per kWh and no estimate — the sum of what you paid over the sum of
+what you drove, so it includes the kWh that moved the car nowhere (climate, preconditioning, the
+charger's own losses).
+
+**The euros and the kilometres are from the same period 🆕** (#237) — a charge that ended **before**
+the first recorded trip has no kilometres of its own to be divided by, and does not enter the
+figure. Anyone who had typed in a year of old charges was seeing months of spending divided by one
+afternoon's kilometres: the number came out tens of times too high. A charge made **after** the last
+trip does keep its money — those kilometres arrive tomorrow.
+
+**And it can divide by the car's own odometer 🆕** (#237) — if your charges carry an odometer (see
+*Charges*), Mate measures the distance between the first and the last with the car's own counter
+instead of the reconstructed trips: brim to brim, the way fuel has always been measured. **It works
+even with no recorded trips at all**, which is the case for anyone who kept a notebook and installs
+Mate months later. Mate picks whichever basis prices **more of what you actually spent** and says
+which one under the figure — *"over the 18422 km on the car's odometer"* rather than *"over the km
+recorded"*. On an ordinary history the trips win and nothing changes. On a range-extender the petrol is added beside the electricity — the petrol **burned**, priced at what the tank cost you, not the whole refuel: a tank you have paid for is mostly still in the tank, and charging it to the kilometres it has not driven yet made the figure several times too high 🆕. If any charge
 has no price the card says so, because the real figure is then higher. It follows your units: with
 miles it becomes "per 100 mi".
 

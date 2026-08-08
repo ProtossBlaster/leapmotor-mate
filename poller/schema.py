@@ -349,6 +349,18 @@ def ensure_schema(conn) -> None:
             "WHERE location_type = 'MANUAL' AND COALESCE(reconstructed, 0) = 0 "
             "AND latitude IS NULL AND longitude IS NULL "
             "AND duration_min IS NULL AND max_power_kw IS NULL AND ac_energy_kwh IS NULL")
+    # migration: #237 — the car's own odometer at the moment the charge started. Written by the
+    # poller from the same frame that opens the charge, TYPED by the owner on a charge they add by
+    # hand, and back-filled once from `positions` for sessions already in the DB (see
+    # Database._backfill_charge_odometer — measured 26 of 28 recoverable on a real B10, to the
+    # second, because both rows come from the SAME poll).
+    #
+    # 🔑 Why a stored column rather than a lookup: `positions` is prunable
+    # (positions_retention_days), so deriving it on the fly would quietly lose the odometer of
+    # every older charge on any install that prunes. And it is the ONLY way a charge from before
+    # Mate existed can carry kilometres at all — no poll of it was ever made.
+    if "odometer_km" not in ccols:
+        conn.execute("ALTER TABLE charges ADD COLUMN odometer_km REAL")
     # migration: manual trip-merge link — a child trip points to the parent it was merged into
     tcols = {r[1] for r in conn.execute("PRAGMA table_info(trips)").fetchall()}
     if "merged_into_id" not in tcols:

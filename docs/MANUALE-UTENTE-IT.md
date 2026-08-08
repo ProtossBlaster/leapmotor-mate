@@ -343,6 +343,25 @@ un'etichetta:
 - **La tua nota 🆕** (#107) — ogni ricarica ha una **nota libera** (subito sopra *Elimina ricarica*) per
   ciò che i numeri non catturano: dov'era la colonnina, ombra/riparo, quanto è affidabile, le condizioni
   del parcheggio, il meteo, qualsiasi appunto personale.
+- **Il contachilometri della ricarica 🆕** (#237) — ogni ricarica si porta dietro **quanto segnava il
+  contachilometri quando è cominciata**. Mate lo scrive da solo su tutto ciò che vede, e lo ha
+  recuperato una volta sola anche dalle ricariche già in archivio. Sulle ricariche che **scrivi tu**
+  c'è una casella *Contachilometri*: è l'unico modo per dare dei chilometri a una sessione di prima
+  che Mate esistesse — di quei giorni non c'è nessun dato da cui ricavarli. Si scrive nella **tua**
+  unità (km o miglia).
+- **Quanti km fra una ricarica e l'altra 🆕** (#237) — sotto la ricarica compare *«🛣 122 km dalla
+  ricarica precedente»*, preso dal contachilometri dell'auto. Appare solo quando **tutte e due** le
+  ricariche hanno il loro numero e solo se l'auto si è mossa davvero: due sessioni lo stesso
+  pomeriggio non scrivono niente invece di scrivere zero.
+- **Importa le ricariche da un foglio (CSV)** — *Importa ricariche da CSV* scarica un **modello già
+  commentato**, lo riempi con Excel o Numbers e lo ricarichi. Le colonne obbligatorie sono solo due,
+  data ed energia; le altre — costo, AC/DC, percentuali di carica, ora di fine e **contachilometri
+  🆕** — sono facoltative. Anche l'**esportazione** delle ricariche si può reimportare così com'è.
+  **Reimportare lo stesso file non crea doppioni 🆕** (#237): una riga che corrisponde a una
+  sessione già in archivio la **completa** (le scrive il contachilometri) invece di aggiungerne una
+  seconda, e Mate ti dice quante ne ha aggiunte e quante ne ha completate. Prima raddoppiava tutto
+  in silenzio. ⚠️ Di una ricarica già registrata viene toccato **solo** il contachilometri: un costo
+  che Mate ha calcolato da una curva di ricarica vera non viene mai sovrascritto.
 
 ### Prezzi di ricarica
 **(menu: Prezzi di ricarica)** — Qui imposti **quanto paghi l'energia**, così Mate può calcolare i
@@ -362,7 +381,9 @@ costo dei viaggi (calcolato sul prezzo "medio" dell'energia in batteria al momen
 > fascia in cui è partita).
 
 ### Statistiche
-**(menu: Statistiche)** — Le tue medie e i totali nel tempo: **distanza totale** e numero di viaggi,
+**(menu: Statistiche)** — Le tue medie e i totali nel tempo: **distanza dei viaggi registrati** 🆕
+(si chiamava *distanza totale*, ma è sempre stata la somma dei viaggi conclusi — non il
+contachilometri dell'auto) e numero di viaggi,
 **distanza media per viaggio**, **tempo di guida**, **consumo medio** (pesato sulla distanza) e
 **migliore**, **energia usata e ricaricata**, **recupero** totale e medio, numero di **sessioni di
 ricarica**, con le relative **tendenze** (efficienza e recupero nel tempo). Tra i totali c'è anche una
@@ -372,10 +393,25 @@ Veicolo"** 🆕 — energia totale, chilometraggio e media kWh/100 km **da conse
 dell'auto, quindi non intaccata dai rari viaggi che il cloud non registra), con una barra
 **Guida / A·C / Altro / Da-fermo**.
 
-**Costo per 100 km 🆕** — quanto costa davvero percorrere 100 km: **tutti gli euro spesi** diviso
-**tutti i chilometri percorsi**. Nessun prezzo al kWh e nessuna stima — la somma di ciò che hai
-pagato sopra la somma di ciò che hai guidato, quindi ci sono dentro anche i kWh che non hanno mosso
-l'auto (clima, precondizionamento, perdite del caricatore). Su una versione con range extender la
+**Costo per 100 km 🆕** — quanto costa davvero percorrere 100 km: **gli euro spesi** diviso **i
+chilometri percorsi**. Nessun prezzo al kWh e nessuna stima — la somma di ciò che hai pagato sopra
+la somma di ciò che hai guidato, quindi ci sono dentro anche i kWh che non hanno mosso l'auto
+(clima, precondizionamento, perdite del caricatore).
+
+**Gli euro e i chilometri sono dello stesso periodo 🆕** (#237) — una ricarica finita **prima** del
+primo viaggio registrato non ha chilometri suoi da farsi dividere, e quindi non entra nel conto. Chi
+aveva inserito a mano un anno di ricariche vecchie vedeva mesi di spesa divisi per i chilometri di
+un pomeriggio: il numero era decine di volte più alto del vero. Una ricarica fatta **dopo**
+l'ultimo viaggio invece i suoi soldi se li tiene — quei chilometri arrivano domani.
+
+**E può dividere per il contachilometri dell'auto 🆕** (#237) — se le tue ricariche hanno il
+contachilometri (vedi *Ricariche*), Mate misura la distanza fra la prima e l'ultima con il contatore
+dell'auto invece che con i viaggi ricostruiti: da pieno a pieno, come si è sempre misurata la
+benzina. **Funziona anche se non c'è nemmeno un viaggio registrato**, che è il caso di chi si è
+segnato tutto su un quaderno e installa Mate mesi dopo. Mate sceglie da solo la base che prezza **di
+più di quello che hai davvero speso** e lo scrive sotto la cifra — *«sui 18422 km del
+contachilometri»* invece di *«sui km registrati»*. Su una storia normale vincono i viaggi e non
+cambia niente. Su una versione con range extender la
 benzina si aggiunge accanto all'elettrico — la benzina **bruciata**, al prezzo che ti è costato il
 serbatoio, non l'intero rifornimento: un pieno pagato è quasi tutto ancora nel serbatoio, e
 addebitarlo ai chilometri che non ha ancora fatto rendeva il numero parecchie volte più alto 🆕. Se qualche ricarica non ha un prezzo la card lo dice,

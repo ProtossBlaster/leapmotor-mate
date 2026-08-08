@@ -173,6 +173,9 @@ def _card(**over):
         # environment has to mirror it, or the card renders against a Jinja that does not
         # have it.
         gross_kwh_ok=lambda: True,
+        # The price box is labelled in the reader's own money, so every context that
+        # renders this card carries the currency — including the four routes that did not.
+        currency=db_reader.CURRENCIES["EUR"],
         c=c, t=lambda k: k, charge_types=db_reader.CHARGE_TYPES,
         fmt_dur=lambda v: "—" if v is None else f"{v:.0f} min")
 

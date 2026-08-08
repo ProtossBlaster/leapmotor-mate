@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.8.8"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.9.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -992,6 +992,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
         station=station, station_info=station_info,
         cal_year=cal_year, cal_month=cal_month, cal_open_day=cal_open_day,
         cal_years=db_reader.get_charge_years(station or None),
+        charges_have_odometer=db_reader.charges_have_odometer(),
     ))
 
 
@@ -1103,6 +1104,7 @@ async def charges_calendar_day(request: Request, year: int, month: int, day: int
     return templates.TemplateResponse(request, "partials/charges_calendar_day.html", {
         "t": i18n.get_t(lang), "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
         "charges": charges, "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
+        "currency": db_reader.get_currency(),   # the price box is labelled in the reader's money
     })
 
 
@@ -1139,6 +1141,9 @@ async def charges_search(request: Request, q: str = "", type: str = "",
     return templates.TemplateResponse(request, "partials/charges_search_results.html", {
         "t": i18n.get_t(lang), "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
         "charges": charges, "station": station,
+        # charge_card.html labels its price box in the reader's own money, and this partial is
+        # rendered on its own — it inherits nothing from _ctx. Three routes were missing it.
+        "currency": db_reader.get_currency(),
         "year": year or today.year, "month": month or today.month,
     })
 
@@ -2670,6 +2675,7 @@ async def set_charge_type(request: Request, charge_id: int):
     return templates.TemplateResponse(request, "partials/charge_type_badge.html", {
         "charge": charge,
         "charge_types": db_reader.charge_types_localised(),
+        "currency": db_reader.get_currency(),   # the price box is labelled in the reader's money
         "t": t,                   # the partial's #120 free toggle (HOME) needs the translator
         "cost_oob": True,         # also refresh the cost cell (it changes with the type/basis)
         "cost_title": cost_title,
@@ -2715,6 +2721,7 @@ async def set_charge_free(request: Request, charge_id: int):
     return templates.TemplateResponse(request, "partials/charge_type_badge.html", {
         "charge": charge,
         "charge_types": db_reader.charge_types_localised(),
+        "currency": db_reader.get_currency(),   # the price box is labelled in the reader's money
         "t": t,                   # the partial's #120 free toggle needs the translator
         "cost_oob": True,         # free flips the cost to 0 → refresh the cost cell too
         "cost_title": cost_title,
@@ -2868,6 +2875,10 @@ def _typed_charge_payload(form) -> tuple[dict | None, bool]:
     # that would come back as a negative duration everywhere it's summed.
     if ended_at and ended_at <= started_at:
         ended_at = None
+    # #237 — the car's total distance at that charge, typed in the reader's OWN unit and stored in
+    # km like every distance in the database. It is the only way kilometres can ever reach a charge
+    # from before Mate was installed: no poll of it was ever made, and nothing here can invent them.
+    odo = _num("odometer")
     return {
         "started_at": started_at,
         "ended_at": ended_at,
@@ -2876,6 +2887,7 @@ def _typed_charge_payload(form) -> tuple[dict | None, bool]:
         "charge_type": (form.get("charge_type") or "AC").strip().upper(),
         "start_soc": _soc("start_soc"),
         "end_soc": _soc("end_soc"),
+        "odometer_km": units.dist_to_km(odo) if odo and odo > 0 else None,
     }, True
 
 
@@ -2942,21 +2954,34 @@ async def charges_import_api(request: Request):
     if isinstance(raw, bytes):
         raw = raw.decode("utf-8-sig", "replace")        # utf-8-sig drops the BOM Excel prepends
     rows, errors = charge_import.parse_charge_csv(raw, tz=db_reader._local_tz())
+    # #237 — a line that matches a session already here FILLS IT IN (the odometer) instead of adding
+    # a second copy. Re-importing used to double the archive in silence; it now says which lines were
+    # new and which were completed, because "152 imported" reads identically in both worlds.
+    added = filled = 0
     for r in rows:
-        db_reader.add_manual_charge(r["started_at"], r["energy_kwh"], r["cost"], r["charge_type"],
-                                    ended_at=r.get("ended_at"),
-                                    start_soc=r.get("start_soc"), end_soc=r.get("end_soc"))
+        outcome = db_reader.import_charge_row(r)
+        added += outcome == "added"
+        filled += outcome == "filled"
     parts = []
-    if rows:
-        parts.append(f'<span style="color:#22c55e">✓ {_esc(t("import_done").format(n=len(rows)))}</span>')
+    if added:
+        parts.append(f'<span style="color:#22c55e">✓ {_esc(t("import_done").format(n=added))}</span>')
+    if filled:
+        parts.append(f'<span style="color:#22c55e">{" · " if added else "✓ "}'
+                     f'{_esc(t("import_filled").format(n=filled))}</span>')
     if errors:
         shown = "".join(f"<li>{_esc(e)}</li>" for e in errors[:50])
         more = f'<li>… (+{len(errors) - 50})</li>' if len(errors) > 50 else ""
         parts.append(f'<div style="color:#f59e0b;margin-top:6px">⚠ {_esc(t("import_skipped").format(n=len(errors)))}'
                      f'<ul style="margin:4px 0 0 18px;list-style:disc;font-size:12px">{shown}{more}</ul></div>')
+    # Every line already present and carrying nothing new: not an error, and emphatically not
+    # "imported 152". Silence would be worse — the user would re-upload, and before #237 that is
+    # exactly how an archive doubled.
+    if rows and not added and not filled and not errors:
+        parts.append(f'<span style="color:#94a3b8">{_esc(t("import_all_known").format(n=len(rows)))}</span>')
     if not rows and not errors:
         parts.append(f'<span style="color:#94a3b8">{_esc(t("import_none"))}</span>')
-    return HTMLResponse("".join(parts), headers={"HX-Trigger": "chargeAdded"} if rows else {})
+    return HTMLResponse("".join(parts),
+                        headers={"HX-Trigger": "chargeAdded"} if (added or filled) else {})
 
 
 @app.get("/api/charge/{charge_id}/power-chart", response_class=HTMLResponse)
