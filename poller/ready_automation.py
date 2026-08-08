@@ -35,9 +35,16 @@ READY_DEBOUNCE_S = 60   # same job and same number as db_reader._READY_BLIP_S: h
 _VALID_PRESETS = {"cool", "heat", "vent", "defrost", "none"}
 _VALID_SEAT_MODES = {"off", "heat", "vent"}
 
-_last_ready: bool | None = None   # None = unknown (startup/restart) | True | False
-_fired = False                    # already actuated for the CURRENT on-session
-_off_since: float | None = None   # monotonic ts of the first continuous ready=0 poll
+# The edge detector's memory, PER CAR: was Ready on last time, has this on-session already fired,
+# and since when has Ready been continuously off.
+#
+# 🔴 One set for the module was the single most damaging piece of shared state in the poller. Two
+# cars would have shared one `_fired`, so getting into the second car after the first would find the
+# automation already spent and preheat nothing; and they would have shared `_last_ready`, so car B
+# reporting Ready would read as a rising edge on car A and preheat the car nobody was in.
+_last_ready: dict = {}     # vin → bool (absent = unknown: startup/restart)
+_fired: dict = {}          # vin → already actuated for the CURRENT on-session
+_off_since: dict = {}      # vin → monotonic ts of the first continuous ready=0 poll
 
 
 def _load_config(db) -> dict:
@@ -136,32 +143,37 @@ def _windows_native(pct: int, car_type: str) -> str:
     return str(round(max(0, min(pct, 100)) / 100 * full))      # table gets corrected per-model
 
 
-def maybe_trigger(db, client, data, api_lock, now: float = None) -> bool:
+def maybe_trigger(db, client, data, api_lock, now: float = None, vehicle=None) -> bool:
     """Per-poll hook: fire the automation on a Ready OFF→ON edge if enabled and the optional
     temperature condition is met. Best-effort — never raises, a failure can't disturb the poll.
-    Returns True when a command was actually sent."""
-    global _last_ready, _fired, _off_since
+    Returns True when a command was actually sent.
+
+    `vehicle` is the car this frame came from. It decides both whose edge is being watched and
+    WHICH CAR gets preheated — the commands used to go to `client._vehicle`, the first car on the
+    account, so with two cars a Ready edge on the second would have warmed up the first."""
+    vehicle = vehicle or client._vehicle
+    vin = getattr(vehicle, "vin", "") or ""
     now = time.monotonic() if now is None else now
     ready = bool(getattr(data, "ready", False))
     try:
-        if _last_ready is None:
-            _last_ready = ready       # first poll after (re)start: seed only, never fire
+        if vin not in _last_ready:
+            _last_ready[vin] = ready  # first poll after (re)start: seed only, never fire
             return False
 
         if not ready:
-            if _off_since is None:
-                _off_since = now
-            if now - _off_since >= READY_DEBOUNCE_S:
-                _fired = False        # confirmed off long enough — re-arm for the next session
-            _last_ready = False
+            if _off_since.get(vin) is None:
+                _off_since[vin] = now
+            if now - _off_since[vin] >= READY_DEBOUNCE_S:
+                _fired[vin] = False   # confirmed off long enough — re-arm for the next session
+            _last_ready[vin] = False
             return False
-        _off_since = None             # any ready=1 poll clears a pending debounce window
+        _off_since[vin] = None        # any ready=1 poll clears a pending debounce window
 
-        rising_edge = not _last_ready
-        _last_ready = True
-        if not rising_edge or _fired:
+        rising_edge = not _last_ready[vin]
+        _last_ready[vin] = True
+        if not rising_edge or _fired.get(vin):
             return False
-        _fired = True                 # a real Ready-on happened — never re-evaluate mid-session,
+        _fired[vin] = True            # a real Ready-on happened — never re-evaluate mid-session,
                                        # even if the temperature crosses the threshold later on
 
         cfg = _load_config(db)
@@ -172,15 +184,16 @@ def maybe_trigger(db, client, data, api_lock, now: float = None) -> bool:
         sent = False
         with api_lock:
             if bundle:
-                client._api.prepare_car(client._vehicle.vin, params=bundle)
+                client._api.prepare_car(vin, params=bundle)
                 sent = True
             if cfg["windows_pct"] is not None:
-                client._api.windows(client._vehicle.vin,
-                                    value=_windows_native(cfg["windows_pct"], client._vehicle.car_type))
+                client._api.windows(vin, value=_windows_native(
+                    cfg["windows_pct"], getattr(vehicle, "car_type", "")))
                 sent = True
         if sent:
-            log.info("Ready automation fired: bundle=%s windows_pct=%s (inside_temp=%.1f)",
-                     list(bundle.keys()), cfg["windows_pct"], getattr(data, "inside_temp", None))
+            log.info("Ready automation fired on %s: bundle=%s windows_pct=%s (inside_temp=%.1f)",
+                     vin[-4:] or "?", list(bundle.keys()), cfg["windows_pct"],
+                     getattr(data, "inside_temp", None))
         return sent
     except Exception as e:  # noqa: BLE001
         log.warning("Ready automation failed: %s", e)

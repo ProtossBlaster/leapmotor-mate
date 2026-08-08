@@ -69,9 +69,13 @@ ENABLED_NO_TEMP = {"enabled": True, "temp_enabled": False, "ac_preset": "cool",
 
 @pytest.fixture(autouse=True)
 def _reset_module_state():
-    ra._last_ready, ra._fired, ra._off_since = None, False, None
+    """⚠️ The edge detector's memory is PER VIN now, not three scalars. One car's `_fired` shared
+    with another meant getting into the second car after the first found the automation already
+    spent, and one `_last_ready` meant car B going Ready read as a rising edge on car A — the
+    automation would have preheated the car nobody was in."""
+    ra._last_ready.clear(); ra._fired.clear(); ra._off_since.clear()
     yield
-    ra._last_ready, ra._fired, ra._off_since = None, False, None
+    ra._last_ready.clear(); ra._fired.clear(); ra._off_since.clear()
 
 
 def _run(client, db, ready, temp=20.0, now=0.0):
@@ -227,3 +231,50 @@ def test_command_exception_is_swallowed(monkeypatch):
     client._api.prepare_car = boom
     _run(client, db, ready=False, now=0.0)
     assert _run(client, db, ready=True, now=1.0) is False   # never raises out of maybe_trigger
+
+
+# ── two cars ──────────────────────────────────────────────────────────────────
+
+class _Car:
+    def __init__(self, vin, car_type="B10"):
+        self.vin, self.car_type = vin, car_type
+
+
+def _run_on(client, db, car, ready, temp=20.0, now=0.0):
+    return ra.maybe_trigger(db, client, Data(ready, temp), FakeLock(), now=now, vehicle=car)
+
+
+def test_the_second_car_gets_its_own_rising_edge(monkeypatch):
+    """🔴 One `_fired` for the module meant this: preheat car A in the morning, get into car B in
+    the afternoon, and the automation is already spent — nothing happens, and nothing says why."""
+    client, db = FakeClient(), FakeDB(ENABLED_NO_TEMP)
+    a, b = _Car("VIN_A"), _Car("VIN_B", "T03")
+    _run_on(client, db, a, ready=False)                 # seed each car separately
+    _run_on(client, db, b, ready=False)
+    assert _run_on(client, db, a, ready=True) is True
+    assert _run_on(client, db, b, ready=True) is True, "car B has its own edge to fire on"
+    assert {v for v, _ in client._api.prepare_calls} == {"VIN_A", "VIN_B"}
+
+
+def test_one_car_going_ready_is_not_an_edge_on_the_other(monkeypatch):
+    """🔴 And one `_last_ready` meant the opposite failure: car B reporting Ready read as a rising
+    edge on car A, and Mate preheated the car nobody was getting into."""
+    client, db = FakeClient(), FakeDB(ENABLED_NO_TEMP)
+    a, b = _Car("VIN_A"), _Car("VIN_B", "T03")
+    _run_on(client, db, a, ready=False)
+    _run_on(client, db, b, ready=False)
+    _run_on(client, db, b, ready=True)                  # only B is switched on
+    assert [v for v, _ in client._api.prepare_calls] == ["VIN_B"], "A was never touched"
+
+
+def test_the_command_goes_to_the_car_that_went_ready(monkeypatch):
+    """The commands used to target `client._vehicle` — the FIRST car on the account — whatever car
+    the frame had come from."""
+    client, db = FakeClient(), FakeDB(ENABLED_NO_TEMP)
+    b = _Car("VIN_B", "T03")
+    _run_on(client, db, b, ready=False)
+    assert _run_on(client, db, b, ready=True) is True
+    assert client._api.prepare_calls[0][0] == "VIN_B"
+    assert client._api.windows_calls[0][0] == "VIN_B"
+    # …and in the T03's own native window scale, not the B10's
+    assert client._api.windows_calls[0][1] == "30"

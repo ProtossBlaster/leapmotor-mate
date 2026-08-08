@@ -343,7 +343,7 @@ class LeapmotorMateClient:
             log.debug("Charge schedule fetch failed: %s", e)
             return None
 
-    def get_energy_counters(self) -> dict | None:
+    def get_energy_counters(self, vehicle=None) -> dict | None:
         """The car's official lifetime counters from `mileage/energy/detail`: total consumed
         energy INCLUDING parked/standby (integer kWh — the finest the cloud serves, param-probed
         02/07) and total mileage (read from the 0.1-mile field ×1.609344, ~160 m resolution —
@@ -355,7 +355,7 @@ class LeapmotorMateClient:
         from urllib.parse import quote
         try:
             from leapmotor_api.crypto import build_signed_headers
-            api, vin = self._api, self._vehicle.vin
+            api, vin = self._api, (vehicle or self._vehicle).vin
             now_ms = int(_time.time() * 1000)
             b_ms = now_ms - 7 * 86400 * 1000
             h = build_signed_headers(
@@ -380,7 +380,7 @@ class LeapmotorMateClient:
             log.debug("Energy counters fetch failed: %s", e)
             return None
 
-    def get_ec_range(self, begin_ts: int, end_ts: int) -> tuple:
+    def get_ec_range(self, begin_ts: int, end_ts: int, vehicle=None) -> tuple:
         """Official driving-energy split (getEC) over [begin_ts, end_ts] epoch seconds.
         Returns ('ok', {driving,ac,other kWh}) | ('empty', None) — the cloud's genuine
         'no driving in this window' | ('miss', None) — auth/transport/odd payload; a miss is
@@ -389,7 +389,7 @@ class LeapmotorMateClient:
         from urllib.parse import quote
         try:
             from leapmotor_api.crypto import build_consumption_last_week_headers
-            api, vin = self._api, self._vehicle.vin
+            api, vin = self._api, (vehicle or self._vehicle).vin
             h = build_consumption_last_week_headers(
                 sign_key=api.sign_key, device_id=api.device_id, carvin=vin,
                 begintime=str(begin_ts), endtime=str(end_ts), language=api.language,

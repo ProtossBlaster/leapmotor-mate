@@ -25,15 +25,18 @@ log = logging.getLogger("leapmotor.energy_snapshots")
 
 SNAPSHOT_INTERVAL_S = 24 * 3600
 RETRY_AFTER_S = 1800          # a failed attempt retries in 30 min, not on every 30s poll
-_failed_at = 0.0
+# When the last attempt failed, PER CAR. One value for the module meant one car's failing snapshot
+# put every other car on the same 30-minute cooldown — and a car that is simply asleep fails here
+# routinely, so the healthy one would have gone a day at a time without a ledger entry for reasons
+# entirely to do with a different vehicle.
+_failed_at: dict = {}
 _NULL_LOCK = threading.Lock()
 
 
-def maybe_sample(db, client, vin: str, api_lock=None, now: float = None) -> bool:
+def maybe_sample(db, client, vin: str, api_lock=None, now: float = None, vehicle=None) -> bool:
     """Opportunistic per-poll hook: take today's snapshot if the last one is ≥24h old (or none
     exists). Best-effort — never raises, a failure can't disturb the poll. Returns True when a
     row was written."""
-    global _failed_at
     lock = api_lock if api_lock is not None else _NULL_LOCK
     now = time.time() if now is None else now
     try:
@@ -46,13 +49,13 @@ def maybe_sample(db, client, vin: str, api_lock=None, now: float = None) -> bool
                 prev_ts = None
         if prev_ts is not None and now - prev_ts < SNAPSHOT_INTERVAL_S:
             return False
-        if now - _failed_at < RETRY_AFTER_S:
+        if now - _failed_at.get(vin, 0.0) < RETRY_AFTER_S:
             return False
 
         with lock:
-            counters = client.get_energy_counters()
+            counters = client.get_energy_counters(vehicle)
         if not counters:
-            _failed_at = now
+            _failed_at[vin] = now
             log.debug("Energy snapshot: counters unavailable — retry in %ds", RETRY_AFTER_S)
             return False
 
@@ -61,7 +64,7 @@ def maybe_sample(db, client, vin: str, api_lock=None, now: float = None) -> bool
         ec_status, ec = "first", None
         if prev_ts is not None:
             with lock:
-                ec_status, ec = client.get_ec_range(int(prev_ts), int(now))
+                ec_status, ec = client.get_ec_range(int(prev_ts), int(now), vehicle)
 
         taken_at = datetime.fromtimestamp(now, tz=timezone.utc).isoformat()
         db.insert_energy_snapshot(
@@ -78,6 +81,6 @@ def maybe_sample(db, client, vin: str, api_lock=None, now: float = None) -> bool
                  ec, ec_status)
         return True
     except Exception as e:  # noqa: BLE001
-        _failed_at = now
+        _failed_at[vin] = now
         log.warning("Energy snapshot failed: %s", e)
         return False
