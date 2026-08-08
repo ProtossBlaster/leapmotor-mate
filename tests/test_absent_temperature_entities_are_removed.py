@@ -181,6 +181,27 @@ def test_a_database_without_the_table_says_nothing(database):
     assert database.never_reported_temps() == set()
 
 
+def test_two_cars_do_not_share_one_answer(bridge):
+    """🔴 The multi-car trap. One set for the whole bridge would judge both cars by whichever was
+    polled last: a T03 with no cabin sensor beside a C10 that has one would have taken the C10's
+    entity away — or kept the T03's alive — on poll order alone.
+    → [[mqtt-two-instances-share-one-identity]]"""
+    t03, c10 = Frame("LFZT03AAAAAAAAA1"), Frame("LFZC10BBBBBBBBB2")
+    bridge.publish_status(t03, absent_temps={"inside_temp"})
+    bridge.publish_status(c10, absent_temps=set())
+
+    def cfgs(vin, key):
+        want = f"/{PREFIX_ID(vin)}/{key}/config"
+        return [p for t, p in bridge.client.sent if t.endswith(want)]
+
+    assert cfgs(t03.vin, "inside_temp")[-1] == "", "the T03's entity is removed"
+    assert cfgs(c10.vin, "inside_temp")[-1] != "", "…and the C10's is untouched"
+
+
+def PREFIX_ID(vin):
+    return f"leapmotor_mate_{vin.lower()}"
+
+
 def test_the_poll_loop_actually_hands_the_measurement_to_the_bridge(database, monkeypatch):
     """🔑 The wiring, which is the one line no other test here touches: `db.never_reported_temps()`
     measured and `publish_status` gated are both correct and still do nothing if the loop never
@@ -201,9 +222,12 @@ def test_the_poll_loop_actually_hands_the_measurement_to_the_bridge(database, mo
     # ⚠️ Without the matching signature the tick REBUILDS the service, and the assertion below then
     # watches an object the loop threw away — green code, wrong subject.
     service.config_sig = pmain._mqtt_config_sig(database)
+    # ⚠️ `**kw`, not a fixed signature: the loop also passes abilities/car_type, and the poll loop
+    # SWALLOWS a TypeError here into a "MQTT: publish failed" log line — a stub that did not accept
+    # them failed for the wrong reason and would have hidden a real signature change.
     monkeypatch.setattr(service, "publish_status",
-                        lambda data, absent_temps=None: seen.update(got=absent_temps))
-    pmain._mqtt_tick(database, None, Frame(), service)
+                        lambda data, absent_temps=None, **kw: seen.update(got=absent_temps))
+    pmain._mqtt_tick(database, None, Frame(), service, None, 1)
     assert seen.get("got") == {"inside_temp", "ac_target_temp"}
 
 

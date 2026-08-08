@@ -175,3 +175,45 @@ def test_the_battery_capacity_is_the_chosen_cars(tmp_path, monkeypatch):
     assert db_reader.get_battery_capacity_kwh() == 65.0
     db_reader.set_active_vehicle("VIN_TWO")
     assert db_reader.get_battery_capacity_kwh() == 36.0
+
+
+# ── the range-extender flag is a fact about a CAR ─────────────────────────────
+
+def test_a_range_extender_does_not_make_the_other_car_one(tmp_path, monkeypatch):
+    """🔴 It was one flag for the install, written the first time ANY car reported a fuel tank.
+    A range-extender and a plain electric car on the same account would have put the REEV pages on
+    both — and on the official build, which withholds battery-derived figures where a generator
+    makes them meaningless, it would have withheld them from the very car they are correct for."""
+    _db(tmp_path, monkeypatch, ("VIN_BEV", "B10"), ("VIN_REEV", "C10"))
+    db_reader.set_setting("is_reev_vin_reev", "1")
+    db_reader.set_setting("is_reev_vin_bev", "0")
+    db_reader.set_setting("is_reev", "1")          # the account flag, written by the older poller
+    assert db_reader.is_reev_car() is False, "the selected car is the BEV"
+    db_reader.set_active_vehicle("VIN_REEV")
+    assert db_reader.is_reev_car() is True
+
+
+def test_a_car_the_poller_has_not_reached_keeps_the_old_answer(tmp_path, monkeypatch):
+    """⚠️ Absence is not "no". A car with no per-car key yet — a half-updated install, the poller
+    not having come round — falls back to the account flag, which is exactly what it read before.
+    Reading absence as BEV would hide a real range-extender's pages on update."""
+    _db(tmp_path, monkeypatch, ("VIN_OLD", "C10"))
+    db_reader.set_setting("is_reev", "1")
+    assert db_reader.is_reev_car() is True
+    db_reader.set_setting("is_reev_vin_old", "0")  # …and the poller's own answer then wins
+    assert db_reader.is_reev_car() is False
+
+
+def test_no_page_reads_the_account_flag_directly():
+    """Eleven call sites went through one function so this could be asserted in one place. A new
+    one spelled the old way would gate on the install instead of on the car — silently, and only
+    for the two people who have two cars. → [[feedback-gate-a-feature-find-every-copy]]"""
+    import pathlib
+    root = pathlib.Path(__file__).parents[1] / "web"
+    offenders = []
+    for f in (root / "main.py", root / "db_reader.py"):
+        for i, line in enumerate(f.read_text().splitlines(), start=1):
+            if 'get_setting("is_reev"' in line and "is_reev_car" not in line:
+                offenders.append(f"{f.name}:{i}")
+    # exactly one: the fallback inside is_reev_car itself
+    assert len(offenders) == 1, f"the account flag is read directly at {offenders}"

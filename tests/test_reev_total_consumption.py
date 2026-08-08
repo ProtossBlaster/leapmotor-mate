@@ -194,7 +194,7 @@ def test_every_range_extender_card_is_gated_on_a_range_extender():
     than what it asks for. Twice now the counting has been the thing that broke; what has to hold is
     that every card names `_reev`, however it spells the rest."""
     main = (pathlib.Path(__file__).resolve().parent.parent / "web" / "main.py").read_text()
-    block = main.split('_reev = db_reader.get_setting("is_reev"', 1)[1].split("\n\n", 1)[0]
+    block = main.split('_reev = db_reader.is_reev_car()', 1)[1].split("\n\n", 1)[0]
     cards, current = [], None
     for line in block.splitlines():
         stripped = line.strip()

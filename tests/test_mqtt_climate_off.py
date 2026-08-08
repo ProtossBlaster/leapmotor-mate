@@ -45,9 +45,13 @@ def _setup(tmp_path, last_climate_on):
     api = _api()
     client = types.SimpleNamespace(_api=api)
     pubs = []
+    # ⚠️ Per car. Skipping "A/C Off" on ANOTHER car's state is how a real off gets swallowed.
+    state = {"VIN1": last_climate_on}
     service = types.SimpleNamespace(
-        last_climate_on=last_climate_on,
+        climate_on_for=lambda vin: state.get(vin),
+        set_climate_on=lambda vin, v: state.__setitem__(vin, v),
         publish_state=lambda vin, k, v: pubs.append((vin, k, v)))
+    service._state = state
     db = D.Database(str(tmp_path / "t.db"))
     return pm, api, client, service, db, pubs
 
@@ -57,7 +61,7 @@ def test_quick_cool_syncs_last_climate_on_true(tmp_path):
     pm._handle_mqtt_command(client, service, db, "VIN1", "climate_cool", None)
     assert ("quick_cool", "VIN1") in api.calls
     assert pubs == []                               # no optimistic publish — HA shows only the real polled state
-    assert service.last_climate_on is True          # the #67 fix: in-memory guard reference still synced
+    assert service._state["VIN1"] is True          # the #67 fix: in-memory guard reference still synced
 
 
 def test_ac_off_after_quick_cool_actually_fires(tmp_path):
@@ -67,7 +71,7 @@ def test_ac_off_after_quick_cool_actually_fires(tmp_path):
     pm._handle_mqtt_command(client, service, db, "VIN1", "climate_off", None)    # then OFF
     assert any(c[0] == "ac_switch" and c[2] == {"operate": "off"} for c in api.calls)
     assert pubs == []                                # no optimistic publish
-    assert service.last_climate_on is False          # A/C Off resets the in-memory guard reference
+    assert service._state["VIN1"] is False          # A/C Off resets the in-memory guard reference
 
 
 def test_ac_off_when_genuinely_off_is_still_a_noop(tmp_path):

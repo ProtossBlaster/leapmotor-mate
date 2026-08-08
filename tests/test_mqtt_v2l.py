@@ -27,8 +27,12 @@ def _service(prefix="leapmotor"):
     return svc
 
 
-def D(acmode, i, v=400.0):
-    return types.SimpleNamespace(ac_port_mode=acmode, charge_current_a=i, charge_voltage_v=v)
+def D(acmode, i, v=400.0, vin="VINTEST"):
+    """⚠️ Carries a vin now: the V2L accumulators are per CAR. One set for the bridge meant two
+    cars sharing a running total — a parked car's idle current subtracted from the load of the car
+    actually powering something, and one session's energy credited to whichever was polled last."""
+    return types.SimpleNamespace(ac_port_mode=acmode, charge_current_a=i, charge_voltage_v=v,
+                                 vin=vin)
 
 
 # ── discovery ──────────────────────────────────────────────────────────────────
@@ -104,3 +108,61 @@ def test_publish_sensors_emits_v2l_net_power():
     pub = svc.client.published
     assert pub["leapmotor/VIN/v2l_active"] == "ON"
     assert float(pub["leapmotor/VIN/v2l_power"]) == round((4.1 - 0.7) * 422.7)   # 1437 W net (gross 1733)
+
+
+# ── two cars ──────────────────────────────────────────────────────────────────
+
+def test_two_cars_do_not_share_one_v2l_session():
+    """🔴 One set of accumulators for the bridge meant exactly this: car A powering a fridge while
+    car B sits parked would have had B's idle current frozen as A's baseline, and A's session
+    energy handed to whichever car was polled last."""
+    svc = _service()
+    svc._v2l_live(D(0, 0.5, 400, vin="CAR_A"))          # A idles at 0.5 A
+    svc._v2l_live(D(0, 9.0, 400, vin="CAR_B"))          # B idles far higher
+    active_a, watt_a, _ = svc._v2l_live(D(2, 3.0, 400, vin="CAR_A"))
+    assert active_a is True
+    assert watt_a == round((3.0 - 0.5) * 400), "A's baseline is A's own, not B's 9.0 A"
+    # …and B is still not in V2L at all
+    active_b, watt_b, wh_b = svc._v2l_live(D(0, 9.0, 400, vin="CAR_B"))
+    assert (active_b, watt_b, wh_b) == (False, 0, 0.0)
+
+
+def test_one_cars_energy_is_not_credited_to_the_other():
+    svc = _service()
+    svc._v2l_live(D(0, 0.0, 400, vin="CAR_A"))
+    svc._v2l_live(D(2, 5.0, 400, vin="CAR_A"))          # A's session opens
+    svc._v2l_live(D(0, 0.0, 400, vin="CAR_B"))
+    _, _, wh_b = svc._v2l_live(D(2, 5.0, 400, vin="CAR_B"))
+    assert wh_b == 0.0, "B's session starts at zero, whatever A has accrued"
+
+
+def test_discovery_is_published_for_each_car():
+    """🔴 One flag for the bridge meant the second car's entities never appeared in Home Assistant
+    at all: discovery had "already been sent". Discovery and the sensor publish are stubbed — what
+    is under test is which cars get one, not what is in it."""
+    svc = _service()
+    svc.client.is_connected = lambda: True
+    seen = []
+    svc.publish_discovery = lambda data: seen.append(data.vin)
+    svc._publish_sensors = lambda data: None
+    svc.publish_status(types.SimpleNamespace(vin="CAR_A", climate_on=False))
+    svc.publish_status(types.SimpleNamespace(vin="CAR_B", climate_on=False))
+    svc.publish_status(types.SimpleNamespace(vin="CAR_A", climate_on=False))   # again
+    assert seen == ["CAR_A", "CAR_B"], "each car once, and only once"
+    assert svc._discovery_sent == {"CAR_A", "CAR_B"}
+
+
+def test_each_car_is_gated_on_its_own_model():
+    """The bridge took ONE model at construction. Two cars are two Home Assistant devices, and
+    gating both on one car's model puts heated-seat entities on the car that has none."""
+    svc = _service()
+    svc.client.is_connected = lambda: True
+    svc.publish_discovery = lambda data: None
+    svc._publish_sensors = lambda data: None
+    svc.publish_status(types.SimpleNamespace(vin="CAR_A", climate_on=False),
+                       abilities=[1, 53], car_type="B10")
+    svc.publish_status(types.SimpleNamespace(vin="CAR_B", climate_on=False),
+                       abilities=[1], car_type="T03")
+    assert svc._facts("CAR_A") == ([1, 53], "B10")
+    assert svc._facts("CAR_B") == ([1], "T03")
+    assert svc._facts("CAR_UNSEEN") == (None, ""), "a car never published falls back to the defaults"

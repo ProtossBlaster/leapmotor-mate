@@ -44,8 +44,18 @@ class MqttService:
         self.tls_insecure = tls_insecure
         self.discovery_enabled = discovery_enabled
         self.get_setting = get_setting   # db.get_setting — for per-VIN capability gating
-        self.abilities = abilities       # car's declared ability codes → ability-gated command buttons (#142)
-        self.car_type = car_type         # car model → hide model-absent entities (e.g. heated seats on T03, #144)
+        # What each CAR declares and is: the ability codes that gate command buttons (#142) and the
+        # model that hides entities it does not have (#144). The constructor's values are the
+        # defaults an install with one car has always had; `publish_status` records the real ones
+        # per VIN as it goes.
+        #
+        # 🔴 They were one value each for the whole bridge. Discovery is already keyed by VIN and
+        # every gate already takes the vin — so a B10 and a T03 on one broker would have been
+        # published as two devices gated on ONE car's model: heated-seat entities on the car that
+        # has no heated seats, and no "unlock charge cable" button on the car that can.
+        self._default_abilities = abilities
+        self._default_car_type = car_type
+        self._car_facts: dict = {}       # vin → (abilities, car_type)
         self.client = None
         self.on_command = None          # callback(vin, command_or_entity, value)
         self.on_collision = None        # callback(other_id, other_is_beta, vin) — see _BEACON below
@@ -56,21 +66,39 @@ class MqttService:
         self.is_beta = bool(is_beta)
         self.config_sig = None
         self._own_vins = set()          # VINs WE publish for — a command for any other is refused
-        self._discovery_sent = False
-        # #144 — temperature topic keys this car has never reported, and what we last told HA about
-        # them. `None` (not an empty set) for the second one: "nothing published yet" has to be
-        # distinguishable from "published, and nothing was absent", or the first discovery is skipped.
-        self.absent_temps: set = set()
-        self._temps_published = None
-        self.last_climate_on = None     # latest polled A/C state, for the "A/C Off" toggle guard
-        # V2L live state: the idle baseline current (I0) frozen at session start, the running session
-        # energy, and the previous-poll idle current that seeds I0. Mirrors the net-power math that
-        # db_reader.get_v2l_sessions rebuilds from the positions log for history.
-        self._v2l_active = False
-        self._v2l_i0_a = 0.0
-        self._v2l_prev_current = 0.0
-        self._v2l_energy_wh = 0.0
-        self._v2l_last_mono = None
+        self._discovery_sent: set = set()   # VINs whose discovery has been published
+        # #144 — temperature topic keys a car has never reported, and what we last told HA about
+        # them, both PER VIN. 🔴 One set for the bridge would have judged both cars by whichever was
+        # polled last: a T03 with no cabin sensor next to a C10 that has one would have taken the
+        # C10's entity away, or kept the T03's alive, depending only on poll order.
+        #
+        # The second dict has no entry (rather than an empty set) for a car nothing has been published
+        # about yet: "never told HA anything" has to be distinguishable from "told it, and nothing was
+        # absent", or the first discovery for that car is skipped.
+        self.absent_temps: dict = {}        # vin → set of absent topic keys
+        self._temps_published: dict = {}    # vin → what HA was last told
+        self._climate_on: dict = {}     # vin → latest polled A/C state, for the "A/C Off" guard
+        # V2L live state PER CAR: the idle baseline current (I0) frozen at session start, the running
+        # session energy, and the previous-poll idle current that seeds I0. Mirrors the net-power
+        # math that db_reader.get_v2l_sessions rebuilds from the positions log for history.
+        #
+        # 🔴 One set of accumulators for the bridge meant two cars sharing one running total: car A
+        # powering a fridge and car B parked would have had B's idle current subtracted from A's
+        # load, and the energy of one session credited to whichever car was polled last.
+        self._v2l: dict = {}            # vin → {active, i0_a, prev_current, energy_wh, last_mono}
+
+    def _facts(self, vin):
+        """(abilities, car_type) for one car — its own if `publish_status` has seen it, else the
+        install-wide defaults, which is what a single-car install has always used."""
+        return self._car_facts.get(vin, (self._default_abilities, self._default_car_type))
+
+    def climate_on_for(self, vin):
+        """The last A/C state polled for this car. The 'A/C Off' command skips when it is already
+        off, and skipping on ANOTHER car's state is how a real off gets silently swallowed."""
+        return self._climate_on.get(vin)
+
+    def set_climate_on(self, vin, value) -> None:
+        self._climate_on[vin] = value
 
     def connect(self) -> bool:
         log.info("MQTT: connecting to %s:%d (TLS=%s, discovery=%s, prefix=%s)",
@@ -103,7 +131,7 @@ class MqttService:
             self.client.subscribe(f"{self.topic_prefix}/+/command")
             self.client.subscribe(f"{self.topic_prefix}/+/+/set")
             self.client.subscribe(f"{self.topic_prefix}/+/{_BEACON}")
-            self._discovery_sent = False  # resend discovery after a reconnect
+            self._discovery_sent.clear()   # resend discovery for every car after a reconnect
         else:
             log.error("MQTT: connect refused (code %d)", rc)
 
@@ -144,29 +172,38 @@ class MqttService:
 
     # ── Publishing ────────────────────────────────────────────────────────────
 
-    def publish_status(self, data, absent_temps=None):
-        """One poll's state. `absent_temps` is the set of temperature TOPIC keys this car has never
-        reported (#144) — measured by the caller from the log, so the bridge stays free of DB access.
+    def publish_status(self, data, abilities=None, car_type=None, absent_temps=None):
+        """One car's state. `abilities` and `car_type` describe THIS car — with two on the account
+        they differ, and everything the bridge gates is gated on them.
 
-        None is "no new measurement", NOT "nothing is absent": the previous answer stands, and before
-        the first one that is the empty set, so a caller that never measures shows every entity. An
-        absent answer must never delete an entity. → [[signal-absent-is-not-signal-zero]]"""
-        self.last_climate_on = data.climate_on  # track for the "A/C Off" command guard
+        `absent_temps` is the set of temperature TOPIC keys THIS car has never reported (#144) —
+        measured by the caller from the log, so the bridge stays free of DB access. None is "no new
+        measurement", NOT "nothing is absent": that car's previous answer stands, and before the first
+        one it is the empty set, so a caller that never measures shows every entity. An absent answer
+        must never delete an entity. → [[signal-absent-is-not-signal-zero]]"""
+        if abilities is not None or car_type is not None:
+            self._car_facts[data.vin] = (abilities, car_type)
+        self._climate_on[data.vin] = data.climate_on   # for the "A/C Off" command guard
         if absent_temps is not None:
-            self.absent_temps = set(absent_temps)
+            self.absent_temps[data.vin] = set(absent_temps)
         if not self.client:
             if not self.connect():
                 return
         if not self.client.is_connected():
             return  # still (re)connecting — try again next cycle
-        if self.discovery_enabled and not self._discovery_sent:
+        # Discovery per CAR: each one is its own Home Assistant device, and the second car's
+        # entities never appear if one flag says "already sent" for the whole bridge.
+        if self.discovery_enabled and data.vin not in self._discovery_sent:
             self.publish_discovery(data)
-            self._discovery_sent = True
-        elif self.discovery_enabled and self.absent_temps != self._temps_published:
-            # ⚠️ Discovery runs ONCE per connection, and this answer CHANGES: it needs 50 polls of
-            # evidence before it says anything, so the first pass after a fresh install always shows
-            # all three and the removal is due ~25 minutes later. Without this the entity would only
-            # go away at the next reconnect — and a sensor that starts working would never come back.
+            self._discovery_sent.add(data.vin)
+        elif (self.discovery_enabled
+              and self.absent_temps.get(data.vin, set()) != self._temps_published.get(data.vin)):
+            # ⚠️ Discovery runs ONCE per car per connection, and this answer CHANGES: it needs 50
+            # polls of evidence before it says anything, so the first pass after a fresh install
+            # always shows all three and the removal is due ~25 minutes later. Without this the
+            # entity would only go away at the next reconnect — and a sensor that starts working
+            # would never come back. Compared PER CAR, so one car's answer cannot re-publish the
+            # other's entities on every poll.
             self._publish_temp_entities(data)
         self._publish_sensors(data)
 
@@ -181,16 +218,17 @@ class MqttService:
         is how HA is told to drop an entity — the same mechanism the seat entities use (v2.6.1)."""
         vin = data.vin
         device_id = f"{self.topic_prefix}_mate_{vin.lower()}"
+        absent = self.absent_temps.get(vin, set())     # THIS car's answer, never the bridge's
         for key, name in self._TEMP_ENTITIES:
             topic = f"{_DISC}/sensor/{device_id}/{key}/config"
-            if key in self.absent_temps:
+            if key in absent:
                 self.client.publish(topic, "", retain=True)
                 continue
             self.client.publish(topic, json.dumps(
                 {"name": name, "state_topic": f"{self.topic_prefix}/{vin}/{key}",
                  "unit_of_measurement": "°C", "device_class": "temperature",
                  "unique_id": f"{device_id}_{key}", "device": self._device(vin)}), retain=True)
-        self._temps_published = set(self.absent_temps)
+        self._temps_published[vin] = set(absent)
 
     def _v2l_live(self, data):
         """Live V2L numbers for MQTT: NET discharge power (gross minus the idle baseline I0 frozen at
@@ -198,22 +236,27 @@ class MqttService:
         accumulated this session. Returns (active, power_w, energy_wh). The net-power gate also means
         a latched 47==2 with the load off reads 0 W and stops accruing energy."""
         now = time.monotonic()
+        # This car's own accumulators. Sharing one set between cars would subtract a parked car's
+        # idle current from the load of the car actually powering something, and credit one
+        # session's energy to whichever car happened to be polled last.
+        st = self._v2l.setdefault(data.vin, {"active": False, "i0_a": 0.0, "prev_current": 0.0,
+                                             "energy_wh": 0.0, "last_mono": None})
         if data.ac_port_mode == 2:
-            if not self._v2l_active:                       # session just started → freeze the baseline
-                self._v2l_i0_a = max(0.0, self._v2l_prev_current)
-                self._v2l_energy_wh = 0.0
-                self._v2l_last_mono = now
-                self._v2l_active = True
-            net_w = max(0.0, data.charge_current_a - self._v2l_i0_a) * data.charge_voltage_v
-            if self._v2l_last_mono is not None:
-                dt_h = (now - self._v2l_last_mono) / 3600.0
+            if not st["active"]:                           # session just started → freeze the baseline
+                st["i0_a"] = max(0.0, st["prev_current"])
+                st["energy_wh"] = 0.0
+                st["last_mono"] = now
+                st["active"] = True
+            net_w = max(0.0, data.charge_current_a - st["i0_a"]) * data.charge_voltage_v
+            if st["last_mono"] is not None:
+                dt_h = (now - st["last_mono"]) / 3600.0
                 if 0 < dt_h <= 5 / 60:                     # ignore sleep/offline gaps > 5 min
-                    self._v2l_energy_wh += net_w * dt_h
-            self._v2l_last_mono = now
-            return True, round(net_w), round(self._v2l_energy_wh, 1)
+                    st["energy_wh"] += net_w * dt_h
+            st["last_mono"] = now
+            return True, round(net_w), round(st["energy_wh"], 1)
         # not in V2L → remember this idle current to seed the next session's baseline; reset live values
-        self._v2l_active = False
-        self._v2l_prev_current = data.charge_current_a
+        st["active"] = False
+        st["prev_current"] = data.charge_current_a
         return False, 0, 0.0
 
     def _handle_beacon(self, vin, payload):
@@ -438,7 +481,7 @@ class MqttService:
             ("mirror_heat_left",    "Mirror Heating Left",       "mirror_heat",   "mdi:car-side"),
             ("mirror_heat_right",   "Mirror Heating Right",      "mirror_heat",   "mdi:car-side"),
         ]:
-            if capability_profile.is_shown(vin, feat, self.get_setting, car_type=self.car_type):
+            if capability_profile.is_shown(vin, feat, self.get_setting, car_type=self._facts(vin)[1]):
                 cfg("sensor", key, {"name": name, "state_topic": f"{prefix}/{vin}/{key}", "icon": icon})
             else:
                 self.client.publish(f"{_DISC}/sensor/{device_id}/{key}/config", "", retain=True)
@@ -591,7 +634,9 @@ class MqttService:
             # Model-aware: hide command buttons confirmed broken on THIS car (e.g. A/C Off on
             # the B10). Clearing the retained config makes HA drop a button that was published
             # before it was classified as broken. Unknown/working commands are always shown.
-            if capability_profile.command_shown(vin, key, self.get_setting, abilities=self.abilities, car_type=self.car_type):
+            _ab, _ct = self._facts(vin)
+            if capability_profile.command_shown(vin, key, self.get_setting,
+                                                abilities=_ab, car_type=_ct):
                 cfg("button", key, {"name": name, "command_topic": f"{prefix}/{vin}/command",
                                     "payload_press": key, "icon": icon})
             else:

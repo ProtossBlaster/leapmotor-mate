@@ -455,7 +455,7 @@ def _ctx(**kwargs):
             # them is how this template has broken before.
             "sched_window": _charge_window(),
             "wallbox_enabled": wallbox_enabled,
-            "is_reev": db_reader.get_setting("is_reev", "0") == "1",
+            "is_reev": db_reader.is_reev_car(),
             "research": research.research_enabled(),
             "ec_periods": db_reader.get_setting("ec_periods_enabled", "1") == "1",
             "wb_active_profile_name": wb_active_profile_name,
@@ -582,7 +582,7 @@ async def trips_page(request: Request, highlight: int = 0):
         # …and the electric half on the SAME kilometres, so the two tiles standing side by side
         # divide by the same distance (@michapr, beta #24). A BEV keeps the measured efficiency.
         reev_total=(db_reader.reev_total_consumption()
-                    if db_reader.get_setting("is_reev", "0") == "1" else None),
+                    if db_reader.is_reev_car() else None),
         # No merge_gap_* here any more: the slider moved into the day drawer, which gets them
         # from the day route (#204). The page keeps only #merge-modal, which lives outside the
         # swapped calendar area so the drawer's 🔗 preview still has somewhere to open.
@@ -617,7 +617,7 @@ def _render_trips_calendar(request: Request, year: int, month: int, open_day: in
         "prev_year": prev_year, "prev_month": prev_month,
         "next_year": next_year, "next_month": next_month,
         "today": today, "fmt_dur": _fmt_dur,
-        "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
+        "is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),
     }
     if open_day and open_day in cal["days"]:
         ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
@@ -653,7 +653,7 @@ async def trips_calendar_day(request: Request, year: int, month: int, day: int,
     day_trips = db_reader.get_trips_calendar_day(year, month, day)
     return templates.TemplateResponse(request, "partials/trips_calendar_day.html", {
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
-        "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
+        "is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),
         "trips": day_trips,
         "day_totals": db_reader.trips_totals(day_trips),
         "day_label": i18n.fmt_day_month_year(lang, d),
@@ -703,7 +703,7 @@ async def trips_search(request: Request, q: str = "", drive_mode: str = "",
     today = db_reader.today_local()
     return templates.TemplateResponse(request, "partials/trips_search_results.html", {
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
-        "is_reev": db_reader.get_setting("is_reev", "0") == "1", "research": research.research_enabled(),
+        "is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),
         "trips": trips, "year": year or today.year, "month": month or today.month,
     })
 
@@ -1166,7 +1166,7 @@ async def statistics(request: Request):
     totals["v2l_total_kwh"] = db_reader.get_v2l_total_kwh()
     # REEV only — what the driving cost, counting every trip including the ones where the
     # efficiency figure above deliberately goes blank because the generator was running.
-    _reev = db_reader.get_setting("is_reev", "0") == "1"
+    _reev = db_reader.is_reev_car()
     totals["reev_total"] = db_reader.reev_total_consumption() if _reev else None
     # …and beside it what was actually bought, which Mate measures rather than derives.
     totals["reev_spend"] = db_reader.reev_actual_spend() if _reev else None
@@ -1239,7 +1239,7 @@ async def reev_page(request: Request):
     # REEV is capability-gated (is_reev) AND beta-only (research): a BEV owner must NEVER reach any REEV
     # surface, on any build, and the official build exposes none of it. Redirect anyone who isn't a REEV
     # car on a research build — the sole exception is the ?demo layout preview (research-only, no car).
-    is_reev_car = db_reader.get_setting("is_reev", "0") == "1"
+    is_reev_car = db_reader.is_reev_car()
     demo = bool(is_research and request.query_params.get("demo"))
     if not (is_reev_car and is_research) and not demo:
         return RedirectResponse(request.headers.get("x-ingress-path", "") + "/")
@@ -1408,7 +1408,7 @@ async def research_export():
         z.writestr("meta.json", json.dumps({
             "mate_version": MATE_VERSION,
             "car_type": (db_reader.get_vehicle()[0] or {}).get("car_type"),
-            "is_reev": db_reader.get_setting("is_reev", "0"),
+            "is_reev": "1" if db_reader.is_reev_car() else "0",
             "signal_rows": len(rows), "logbook_notes": len(logbook),
             "cloud_probes": bool(cloud),
             "redacted_signals": sorted(research.REDACT_SIGNALS),
@@ -1442,7 +1442,7 @@ async def research_consent_accept(request: Request):
 def _fuel_blocked() -> bool:
     """REEV+research gate, mirroring reev_page: a BEV / non-research visitor must never reach fuel data,
     on any build. Applied to the page AND the write endpoints."""
-    return not (db_reader.get_setting("is_reev", "0") == "1" and research.research_enabled())
+    return not (db_reader.is_reev_car() and research.research_enabled())
 
 
 def _fuel_local_to_utc(ts_str: str) -> str:

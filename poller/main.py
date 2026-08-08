@@ -328,7 +328,7 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                     log.info("A/C-off (MQTT, T03) → cmd 170 full body, operate=off [@derekzoli]")
                     api._remote_control(vin=vin, action="ac_on", cmd_content=T03_AC_OFF_BODY)
                 else:
-                    if getattr(service, "last_climate_on", None) is False:
+                    if service.climate_on_for(vin) is False:
                         return
                     api.ac_switch(vin, params={"operate": "off"})
                 optimistic = ("climate_on", False)
@@ -380,7 +380,7 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
         # it's otherwise only written by a POLL, so right after a Quick Cool/Heat (before the next poll)
         # it held the old "off" value and the following "A/C Off" was silently skipped (#67).
         if optimistic[0] == "climate_on":
-            service.last_climate_on = optimistic[1]
+            service.set_climate_on(vin, optimistic[1])
     try:
         # Write from a short-lived dedicated connection: this runs on paho's network
         # thread and the poller's shared db connection isn't safe to use cross-thread.
@@ -539,7 +539,7 @@ def _mqtt_config_sig(db) -> tuple:
             db.get_setting("mqtt_tls_insecure"), db.get_setting("mqtt_discovery", "1"))
 
 
-def _mqtt_tick(db, client, data, service):
+def _mqtt_tick(db, client, data, service, vehicle=None, vehicle_id=None):
     """Manage the MQTT bridge each poll cycle: (dis)connect on the enable flag,
     then publish the current state. Returns the (possibly new/None) service."""
     if db.get_setting("mqtt_enabled") != "1" or not db.get_setting("mqtt_broker"):
@@ -578,10 +578,22 @@ def _mqtt_tick(db, client, data, service):
         service.on_command = lambda vin, cmd, val: _handle_mqtt_command(client, service, db, vin, cmd, val)
         service.on_collision = lambda other, other_beta, vin: _handle_mqtt_collision(db, other, other_beta, vin)
     try:
-        # #144 — which temperature sensors this car has never reported, so the bridge can drop the
-        # entities instead of leaving them at `unknown` for ever. Measured here, where the log is:
-        # the bridge takes no DB handle, and a query per poll is nothing beside a cloud round-trip.
-        service.publish_status(data, absent_temps=db.never_reported_temps())
+        # This CAR's model and declared abilities, not the install's. Discovery is keyed by VIN, so
+        # two cars are two Home Assistant devices — gating both on one car's model would put
+        # heated-seat entities on the car that has none and hide the charge-cable button from the
+        # car that can use it.
+        #
+        # `absent_temps` is the same idea measured rather than declared (#144): which temperature
+        # sensors THIS car has never reported, so the bridge can drop those entities instead of
+        # leaving them at `unknown` for ever. Scoped to `vehicle_id` — a T03 with no cabin sensor
+        # beside a C10 that has one must not take the C10's entity away. Measured here, where the log
+        # is: the bridge takes no DB handle, and a query per poll is nothing beside a cloud call.
+        service.publish_status(
+            data,
+            abilities=getattr(vehicle, "abilities", None) if vehicle is not None else None,
+            car_type=getattr(vehicle, "car_type", None) if vehicle is not None else None,
+            absent_temps=db.never_reported_temps(vehicle_id),
+        )
     except Exception as exc:  # noqa: BLE001
         log.error("MQTT: publish failed: %s", exc)
     return service
@@ -750,11 +762,24 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         ctx.recorder.process(data)
         _write_comfort_state(db, data)
 
-        # A range-extender reports a fuel tank (signal 3235) → flag it once. On the BetaTester
-        # build this is what makes the dedicated page/nav appear, even for a car onboarded before
-        # the variant existed (no re-setup needed). The flag is written on BOTH builds because
-        # the official one needs it too — not to show anything, but to withhold the figures a
-        # generator makes meaningless. Write-once guard → no per-poll DB churn.
+        # A range-extender reports a fuel tank (signal 3235) → flag it. On the BetaTester build
+        # this is what makes the dedicated page/nav appear, even for a car onboarded before the
+        # variant existed (no re-setup needed). The flag is written on BOTH builds because the
+        # official one needs it too — not to show anything, but to withhold the figures a generator
+        # makes meaningless.
+        #
+        # 🔑 PER CAR, and the write-once guard is what makes that affordable. It used to be one flag
+        # for the install: a range-extender and a plain electric car on the same account would have
+        # put the REEV pages on both, and withheld the battery-derived figures from the very car
+        # they are correct for. The flag says something about a CAR, so it is stored against one.
+        # Written explicitly as "0" as well, so an absent key means "never polled" rather than "not
+        # a range-extender" — the difference the legacy fallback below turns on.
+        _reev_key = f"is_reev_{ctx.vin.lower()}"
+        _reev_now = "1" if data.is_reev else "0"
+        if db.get_setting(_reev_key, "") != _reev_now:
+            db.set_setting(_reev_key, _reev_now)
+        # …and the account-level flag stays written, for a web layer that predates the per-car key
+        # (they ship together, but a container can be restarted half-updated).
         if data.is_reev and db.get_setting("is_reev", "0") != "1":
             db.set_setting("is_reev", "1")
             # Wording follows the build: the official Mate offers no REEV support, so its log must
@@ -811,7 +836,8 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
             abrp.send(db.get_secret("abrp_token"), data)
 
         # MQTT → Home Assistant bridge (opt-in, off by default)
-        acct.mqtt_service = _mqtt_tick(db, client, data, acct.mqtt_service)
+        acct.mqtt_service = _mqtt_tick(db, client, data, acct.mqtt_service, ctx.vehicle,
+                                                 ctx.vehicle_id)
 
         ctx.interval = ctx.recorder.poll_interval
         # Boost window (set via POST /api/boost, e.g. an iPhone BT shortcut relayed

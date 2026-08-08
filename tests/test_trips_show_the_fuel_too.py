@@ -190,7 +190,7 @@ def test_a_bev_never_reaches_that_branch():
     belt and braces, because this tile is on the page every owner opens first."""
     body = MAIN.split('@app.get("/trips", response_class=HTMLResponse)', 1)[1].split("\n@app.", 1)[0]
     assert 'reev_total=(db_reader.reev_total_consumption()' in body
-    assert 'if db_reader.get_setting("is_reev", "0") == "1" else None)' in body
+    assert 'if db_reader.is_reev_car() else None)' in body
 
 
 # ── the same denominator, in the OTHER two places (beta #11, 05/08) ───────────

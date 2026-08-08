@@ -514,6 +514,31 @@ def get_vehicles() -> list[dict]:
         return []
 
 
+def is_reev_car() -> bool:
+    """Whether the SELECTED car is a range-extender.
+
+    It was one flag for the install, written the first time any car reported a fuel tank. With a
+    range-extender and a plain electric car on one account that put the REEV pages on both — and,
+    worse on the official build, withheld the battery-derived figures from the very car they are
+    correct for.
+
+    The per-car key wins when it exists. Absence is not "no": a car the poller has not reached
+    since the update has no key yet, and falls back to the account flag — which is exactly what it
+    read before, so a half-updated install behaves as it used to rather than flipping to BEV and
+    hiding a real range-extender's pages.
+    """
+    try:
+        row = _get().execute("SELECT vin FROM vehicles WHERE id = COALESCE(?, id) ORDER BY id "
+                             "LIMIT 1", (_current_vehicle_id(),)).fetchone()
+    except sqlite3.Error:
+        row = None
+    if row and row["vin"]:
+        per_car = get_setting(f"is_reev_{str(row['vin']).lower()}", "")
+        if per_car != "":
+            return per_car == "1"
+    return get_setting("is_reev", "0") == "1"
+
+
 def set_active_vehicle(vin: str) -> bool:
     """Point every scoped read at `vin`. A VIN we do not have is refused rather than stored, so a
     stale bookmark or a hand-made request cannot blank the interface. Returns whether it changed."""
@@ -2699,7 +2724,7 @@ def get_latest_status() -> Optional[dict]:
     # charge in PROGRESS, not a finished one (see the note beside this file's constants). The raw
     # value is kept under another name so a diagnostics bundle still shows what the car said.
     # Pure EVs are untouched.
-    if get_setting("is_reev", "0") == "1":
+    if is_reev_car():
         d["charge_completed_raw"] = 1 if d.get("charge_completed") else 0
         d["charge_completed"] = 0
     # How long ago
@@ -4648,7 +4673,7 @@ def reev_trip_electric_cost(vehicle_id: int, trip_id: int) -> Optional[dict]:
     Recomputed from history on each call, no stored counter — same reason as `blended_price_at`:
     correct a charge's price months later and every trip after it re-derives itself.
     """
-    if get_setting("is_reev", "0") != "1":
+    if not is_reev_car():
         return None
     cap = get_battery_capacity_kwh()
     db = _get()
