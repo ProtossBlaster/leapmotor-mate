@@ -115,7 +115,11 @@ class VehicleData:
         return (
             self.is_locked,
             round(self.soc),           # 1% granularity avoids noise
-            round(self.inside_temp),   # 1°C granularity
+            # ⚠️ None-tolerant since #144: a car that never sends the cabin temperature now stores
+            # None rather than a fabricated 0.0, and `round(None)` raised — from inside the activity
+            # fingerprint, which every poll computes. The tests caught it; a T03 would have caught
+            # it in production, by not polling at all.
+            None if self.inside_temp is None else round(self.inside_temp),   # 1°C granularity
             self.any_door_open,
             self.charging_status,
             self.plug_connected,
@@ -522,6 +526,23 @@ def _is_plugged_in(sig: dict) -> bool:
     return _si(sig, "47") == 1                   # legacy fallback when 1149 is missing
 
 
+def _temp_or_none(raw):
+    """A temperature reading, or None when the car did not send one (#144).
+
+    Deliberately NOT `float(raw or 0)`: that is what turned a signal the car never emits into a
+    perfectly plausible 0 °C, on a T03 whose owner saw it all summer. And a real 0.0 is kept — a
+    battery pack genuinely at zero is a fact, not an absence, so only `None` and an unparseable
+    value become None. → [[signal-absent-is-not-signal-zero]]
+    """
+    # ⚠️ No `if raw is None` branch: `float(None)` raises TypeError, which the guard below already
+    # turns into None. It was there and a mutation proved no test could tell the difference — a line
+    # nothing can distinguish is a line that is not doing anything.
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None
+
+
 def _is_charging(sig: dict) -> bool:
     """Whether the car is actually charging. Charging only happens while PARKED, so the
     car must be stationary (gear P, speed ~0); plus the cable plugged in (1149) AND a
@@ -711,9 +732,18 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         latitude=_resolve_coord(vin, "lat", sig.get("3"), sig.get("3725") or sig.get("2190")),
         longitude=_resolve_coord(vin, "lon", sig.get("2"), sig.get("3724") or sig.get("2191")),
         outside_temp=None,   # no ambient-temp signal exists (2101 = driverSeatVentilation)
-        inside_temp=float(sig.get("1349") or 0),
-        climate_target_temp=float(sig.get("2183") or 0),
-        battery_min_temp=float(sig.get("1182") or 0),
+        # 🔴 A temperature the car did not send is ABSENT, not zero. `or 0` turned silence into
+        # 0.0 — a value that looks like a reading, and in August, at forty degrees outside, an
+        # absurd one that Mate showed with a straight face (#144, @staffhotel-beep's European T03:
+        # both of these permanently empty, and nothing in his bundle able to say why).
+        #
+        # A plausible-looking wrong number is worse than a hole: the hole says "unknown" and the
+        # number says 0 °C to the pages, to A Better Route Planner, and to the ready-automation
+        # gate that fires "only pre-heat below 5 °C". `climate_mode` two lines below has always
+        # done this correctly. → [[signal-absent-is-not-signal-zero]]
+        inside_temp=_temp_or_none(sig.get("1349")),
+        climate_target_temp=_temp_or_none(sig.get("2183")),
+        battery_min_temp=_temp_or_none(sig.get("1182")),
         is_locked=int(sig.get("1298") or 0) == 1,
         climate_on=int(sig.get("1938") or 0) == 1,
         climate_cooling=int(sig.get("2669") or 0) == 2,

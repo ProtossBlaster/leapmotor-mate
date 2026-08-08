@@ -104,27 +104,50 @@
 </div>
 
 <!-- Details row -->
+{# #144 — a sensor this car has NEVER reported is not shown at all. A row that reads "—" for ever is
+   still a row promising a number that will never come; @staffhotel-beep watched two of them all
+   summer. `absent_temps` is measured, not guessed: it only names a sensor after 50 polls with
+   nothing in it, so a fresh install shows every row until there is evidence. And where the sensor
+   DOES exist but this poll missed it, the row stays and says "—" — the old `(x or 0)` printed 0 °C,
+   which in August is not ambiguous, it is absurd.
+
+   Called ONCE and held: it is a query over the recent polls, the three gates below would each run
+   it, and this card re-renders on every htmx tick. #}
+{% set absent = absent_temps() %}
 <div class="grid grid-cols-2 gap-3 text-sm">
-  <div class="flex justify-between text-slate-400">
+  {# These are half-width cells, so an ODD number of them leaves a hole in the last row — and the
+     odometer alone in a 130px column wraps its own value onto a second line. Odd total ⟺ an even
+     number of temperatures survive, so the odometer takes the full width exactly then, and the
+     grid closes flush whether three rows are hidden or none. #}
+  <div class="flex justify-between text-slate-400{{ ' col-span-2' if absent|length is odd else '' }}">
     <span>{{ t('odometer') }}</span>
     <span class="text-white font-medium">{{ (status.odometer_km or 0) | dist(0) }}</span>
   </div>
+  {% if 'inside_temp' not in absent %}
   <div class="flex justify-between text-slate-400">
     <span>{{ t('inside_temp') }}</span>
-    <span class="text-white font-medium">{{ (status.inside_temp or 0) | temp(0) }}</span>
+    <span class="text-white font-medium">{{ status.inside_temp | temp(0) if status.inside_temp is not none else '—' }}</span>
   </div>
+  {% endif %}
+  {% if 'ac_target' not in absent %}
   <div class="flex justify-between text-slate-400">
     <span>{{ t('ac_target') }}</span>
     <span class="text-white font-medium">
-      {% if status.climate_target_temp %}{{ status.climate_target_temp | temp(0) }}{% else %}—{% endif %}
+      {% if status.climate_target_temp is not none %}{{ status.climate_target_temp | temp(0) }}{% else %}—{% endif %}
     </span>
   </div>
+  {% endif %}
+  {% if 'battery_temp' not in absent %}
   <div class="flex justify-between text-slate-400">
     <span>{{ t('battery_temp') }}</span>
     <span class="text-white font-medium">
-      {% if status.battery_min_temp %}{{ status.battery_min_temp | temp(0) }}{% else %}—{% endif %}
+      {# `is not none`, not truthiness: these two rows dropped a genuine 0 °C. #144 is that absence
+         must not read as zero; the mirror of it is that zero must not read as absence, and a pack
+         at exactly 0.0 in a northern winter is the one reading its owner is watching for. #}
+      {% if status.battery_min_temp is not none %}{{ status.battery_min_temp | temp(0) }}{% else %}—{% endif %}
     </span>
   </div>
+  {% endif %}
   <div class="flex justify-between text-slate-400 col-span-2">
     <span>🔒 {{ t('security_label') }}</span>
     <span class="font-semibold {% if status.security_active %}text-emerald-400{% else %}text-slate-500{% endif %}">

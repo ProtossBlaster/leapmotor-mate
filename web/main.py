@@ -259,6 +259,12 @@ templates.env.globals.update(
     # for the field, watched it disappear between v3.6.6 and v3.6.8. A callable, so it answers per
     # render: the poller can add the column while the web is running.
     gross_kwh_ok=lambda: db_reader._charges_have_gross(db_reader._get()),
+    # #144 — the temperature sensors this car has never once reported, so the status card can leave
+    # them out instead of promising a number that will never arrive. A GLOBAL for exactly the reason
+    # above: `status_card.html` is rendered by the Overview AND by partials that build their own
+    # context, and a value threaded through `_ctx` would reach the page and vanish from the rest.
+    # A callable, so a sensor that starts working un-hides itself without a restart.
+    absent_temps=db_reader.never_reported_temps,
 )
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 

@@ -281,6 +281,46 @@ def _signals_section(signals: dict | None, vin: str | None) -> str:
     return _redact(json.dumps(clean, indent=2, sort_keys=True), vin)
 
 
+def _temperature_line() -> str:
+    """How often each temperature actually arrives, and its last value (#144).
+
+    The two are `core` sensors — the capability system can never hide them — so when an owner sees
+    a dash all summer the only question is whether the car sends the signal at all. Nothing in the
+    bundle could answer it: 77 000 lines, four mentions of "temp", not one a reading. A count of
+    non-NULL over the retained polls answers it in one line, and `0 of N` is a finding rather than
+    an absence of information.
+    """
+    try:
+        db = db_reader._get()
+        vid = db_reader._current_vehicle_id()
+        r = db.execute(
+            "SELECT COUNT(*) n, "
+            "       SUM(inside_temp IS NOT NULL) cab, SUM(battery_min_temp IS NOT NULL) bat, "
+            "       SUM(climate_target_temp IS NOT NULL) tgt "
+            "  FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id)", (vid,)).fetchone()
+        last = db.execute(
+            "SELECT inside_temp, battery_min_temp, climate_target_temp FROM positions "
+            " WHERE vehicle_id = COALESCE(?, vehicle_id) ORDER BY id DESC LIMIT 1",
+            (vid,)).fetchone()
+    except Exception:  # noqa: BLE001
+        return "Temperatures : (unavailable)"
+    n = int((r["n"] if r else 0) or 0)
+    if not n:
+        return "Temperatures : (no polls retained)"
+
+    def _one(label, got, val):
+        got = int(got or 0)
+        seen = f"{got} of {n}"
+        if got == 0:
+            return f"{label} NEVER ({seen}) — the car does not send this signal"
+        return f"{label} {seen}, last {'—' if val is None else f'{val:.1f}'}"
+
+    return ("Temperatures : "
+            + " · ".join((_one("cabin", r["cab"], last and last["inside_temp"]),
+                          _one("battery", r["bat"], last and last["battery_min_temp"]),
+                          _one("A/C target", r["tgt"], last and last["climate_target_temp"]))))
+
+
 def _vampire_section() -> str:
     """What get_vampire_drain() actually computes — so an 'empty/missing battery-drain chart'
     report (e.g. #63) shows the real count/windows, not just the user's screenshot. Uses BOTH the
@@ -765,6 +805,11 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
               if os.environ.get("MATE_DESKTOP_VERSION") else []),
             f"Last poll    : {info['last_poll_iso']} (age {info['last_poll_age_min']} min) "
             f"soc={info['last_soc']} gear={info['last_gear']} charging={info['last_charging']}",
+            # #144 — @staffhotel-beep's European T03 reports neither temperature, and his bundle
+            # could not say so: it carried no temperature at all. He was asked for the one artefact
+            # that could not answer the question. So: how many of the retained polls carried each,
+            # and the last value. A car that has NEVER sent one reads 0 of N, which is the answer.
+            _temperature_line(),
         ]
         out += ["", "----- battery standby / vampire-drain (computed) -----", _vampire_section()]
         out += ["", "----- SoC by day (last 14d · hi→lo · km driven) -----", _soc_daily_section()]

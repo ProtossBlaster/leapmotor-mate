@@ -86,9 +86,21 @@ def _load_config(db) -> dict:
     }
 
 
-def _condition_met(cfg: dict, inside_temp: float) -> bool:
+def _condition_met(cfg: dict, inside_temp) -> bool:
+    """Whether the optional interior-temperature condition holds.
+
+    ⚠️ An UNKNOWN temperature is not a cold one. Since #144 a car that never reports the cabin
+    sends None here instead of a fabricated 0.0 — and 0.0 satisfied "only pre-heat below 5 °C" on
+    every single poll, so the automation fired every time the car was switched on, all year. It is
+    refused explicitly, and said out loud: "the condition could not be evaluated" is a different
+    fact from "the condition is false", and a silent TypeError swallowed by the caller's guard would
+    have looked like the latter."""
     if not cfg["temp_enabled"]:
         return True
+    if inside_temp is None:
+        log.info("Ready automation: the car reports no interior temperature, so the temperature "
+                 "condition cannot be evaluated — not firing")
+        return False
     if cfg["temp_comparator"] == ">":
         return inside_temp > cfg["temp_value"]
     return inside_temp < cfg["temp_value"]
@@ -153,7 +165,7 @@ def maybe_trigger(db, client, data, api_lock, now: float = None) -> bool:
                                        # even if the temperature crosses the threshold later on
 
         cfg = _load_config(db)
-        if not cfg["enabled"] or not _condition_met(cfg, getattr(data, "inside_temp", 0.0)):
+        if not cfg["enabled"] or not _condition_met(cfg, getattr(data, "inside_temp", None)):
             return False
 
         bundle = _build_bundle(cfg)

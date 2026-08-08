@@ -492,6 +492,53 @@ def _current_vehicle_id():
     return row["id"] if row else None
 
 
+# How many polls a car has to have answered before "it has never sent this" is a statement about
+# the CAR rather than about how recently Mate was installed. 50 polls ≈ 25 minutes parked — cheap,
+# and it means a fresh install shows every row until there is enough evidence to hide one.
+_ABSENT_SENSOR_MIN_POLLS = 50
+_ABSENT_SENSOR_WINDOW = 500      # how many recent polls the question is asked over
+
+# The temperature sensors that can legitimately not exist on a car, and the column each lives in.
+_OPTIONAL_TEMPS = {"inside_temp": "inside_temp",
+                   "battery_temp": "battery_min_temp",
+                   "ac_target": "climate_target_temp"}
+
+
+def never_reported_temps() -> set:
+    """Which temperature sensors THIS car has never once reported (#144).
+
+    Silvio, 08/08: *«se non è presente un sensore per la T03 dobbiamo nasconderlo, e non farlo più
+    vedere»*. A row that reads "—" for ever is still a row promising a number that will never come.
+
+    🔑 Hidden on the DATA, not on the model. "This car has never sent it in 88 000 polls" is a
+    measurement; "T03s don't have it" would be a guess about every T03 from one owner's car, and
+    these two are marked `core` precisely so no model list can silence them.
+    → [[a-feature-switch-must-gate-the-data]]
+
+    ⚠️ The poll floor is the whole safety of it: with three polls behind a fresh install, "never
+    seen" means nothing at all, and hiding on it would blank rows that were about to work.
+
+    ⚠️ Bounded to the most recent polls, and that is a performance decision with a correctness
+    consequence worth stating: this runs on every render of the status card, and a full scan of
+    `positions` means 100 000 rows per page on a month-old install. These signals arrive on every
+    poll or on none — nothing sends a cabin temperature once a week — so the recent window answers
+    the same question at a fixed cost, and a car whose sensor STARTS working is un-hidden within a
+    few hours instead of never.
+    """
+    try:
+        cols = ", ".join(f"SUM({c} IS NOT NULL) AS {k}" for k, c in _OPTIONAL_TEMPS.items())
+        row = _get().execute(
+            f"SELECT COUNT(*) AS n, {cols} FROM (SELECT {', '.join(_OPTIONAL_TEMPS.values())} "
+            "  FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "  ORDER BY id DESC LIMIT ?)",
+            (_current_vehicle_id(), _ABSENT_SENSOR_WINDOW)).fetchone()
+    except sqlite3.Error:
+        return set()
+    if not row or int(row["n"] or 0) < _ABSENT_SENSOR_MIN_POLLS:
+        return set()
+    return {k for k in _OPTIONAL_TEMPS if not int(row[k] or 0)}
+
+
 def _conn_rw() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
