@@ -981,6 +981,8 @@
     "account_logout_btn": "Uitloggen",
     "account_logout_hint": "Log uit om een ander Leapmotor-account te koppelen — je ritten en laadbeurten blijven bewaard.",
     "account_pin_hint": "De bedienings-pincode van de auto, die de commando's nodig hebben. Wijzig je hem in de auto, typ hem hier opnieuw — het account hoeft niet losgekoppeld te worden.",
+    "account_pin_which_car": "Voor welke auto",
+    "account_pin_all_cars": "Alle auto's (één pincode)",
     "account_pin_confirm": "Herhaal hem",
     "account_logout_confirm": "Uitloggen bij Leapmotor? Je stelt daarna opnieuw in met een ander account. Je opgeslagen ritten, laadbeurten en posities blijven bewaard (voor dezelfde auto).",
     "account_reset_hint": "Wis alles definitief en begin opnieuw — verwijdert het account, alle ritten, laadbeurten, posities en instellingen.",

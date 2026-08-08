@@ -981,6 +981,8 @@
     "account_logout_btn": "Log out",
     "account_logout_hint": "Sign out to link a different Leapmotor account — your trips and charges stay.",
     "account_pin_hint": "The car's operation PIN, the one commands need. If you change it on the car, retype it here — no need to unlink the account.",
+    "account_pin_which_car": "Which car",
+    "account_pin_all_cars": "All cars (one PIN)",
     "account_pin_confirm": "Repeat it",
     "account_logout_confirm": "Log out of Leapmotor? You'll set up again with another account. Your saved trips, charges and positions are kept (for the same car).",
     "account_reset_hint": "Permanently erase everything and start over — wipes the account, all trips, charges, positions and settings.",

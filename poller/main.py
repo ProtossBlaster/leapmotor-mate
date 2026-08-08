@@ -248,6 +248,16 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
     is why it looked stale/out of sync. B10 commands the cloud accepts-but-ignores
     (e.g. full A/C off) stay best-effort."""
     api = client._api
+    # Authorise with the PIN of the car this command NAMES (#186, @cookingeek). MQTT is not scoped
+    # to a picked car — the topic carries the VIN — so on two cars with different PINs, using the
+    # session's own would authenticate one car's command with the other's four digits: a failure
+    # that happens only sometimes and never says why. No per-car PIN → the install-wide one.
+    try:
+        _pin = db.get_operate_pin(vin)
+        if _pin:
+            api.operation_password = _pin
+    except Exception:  # noqa: BLE001 — a PIN lookup must never stop a command from being tried
+        pass
     optimistic = _MQTT_OPTIMISTIC.get(cmd)
     try:
         with _API_LOCK:  # serialize against the poll loop's get_status (shared HTTP session)

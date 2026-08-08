@@ -2,6 +2,7 @@
 import json
 import logging
 import math
+import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
@@ -482,6 +483,19 @@ class Database:
     def set_secret(self, key: str, value: str) -> None:
         """Write a secret setting encrypted at rest."""
         self.set_setting(key, crypto.encrypt(value or ""))
+
+    def get_operate_pin(self, vin: str = "") -> str:
+        """The PIN that authorises a command ON THIS CAR — its own, else the install-wide one (#186).
+
+        The twin of web/db_reader.get_operate_pin; a test holds the two to the same answers. It
+        matters here more than there: MQTT is not scoped to a picked car, the topic names the VIN,
+        and a command can arrive for either — so authorising with the wrong car's four digits fails
+        only sometimes, and never says why."""
+        if vin:
+            own = self.get_secret(f"leapmotor_pin_{str(vin).lower()}", "")
+            if own:
+                return own
+        return self.get_secret("leapmotor_pin", "") or os.environ.get("LEAPMOTOR_PIN", "")
 
     def migrate_secrets(self) -> None:
         """One-time, idempotent: encrypt any plaintext secret in place. Runs every

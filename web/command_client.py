@@ -198,6 +198,22 @@ class LeapmotorSession:
         self._vehicle = None
         self._lock = threading.Lock()
 
+    def _use_pin_of(self, vin):
+        """Authorise this command with the PIN of the car it is going to (#186).
+
+        Set per command rather than once at login: the session is built once and the user can change
+        the selected car under it, so a PIN frozen at connection time would send car A's four digits
+        with car B's command. Silent by design when there is nothing per-car stored — the reader
+        falls back to the install-wide PIN, which is what every install has today.
+        """
+        try:
+            import db_reader as _dr
+            pin = _dr.get_operate_pin(vin)
+        except Exception:                     # noqa: BLE001 — never let this break a command
+            return
+        if pin:
+            self._api.operation_password = pin
+
     def _connect(self):
         if self._api is not None:
             # Already authenticated — just make sure the account TLS cert is still on disk (it can be
@@ -271,6 +287,7 @@ class LeapmotorSession:
             for attempt in range(3):
                 try:
                     self._connect()
+                    self._use_pin_of(self._vehicle.vin)
                     action_fn(self._api, self._vehicle.vin)
                     return True, "OK"
                 except Exception as e:

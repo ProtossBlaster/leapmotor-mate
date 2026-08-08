@@ -981,6 +981,8 @@
     "account_logout_btn": "Se déconnecter",
     "account_logout_hint": "Déconnectez-vous pour lier un autre compte Leapmotor — vos trajets et recharges sont conservés.",
     "account_pin_hint": "Le code PIN d'utilisation de la voiture, celui qu'exigent les commandes. Si vous le changez sur la voiture, ressaisissez-le ici : inutile de dissocier le compte.",
+    "account_pin_which_car": "Pour quelle voiture",
+    "account_pin_all_cars": "Toutes les voitures (un seul code)",
     "account_pin_confirm": "Répétez-le",
     "account_logout_confirm": "Se déconnecter de Leapmotor ? Vous referez la configuration avec un autre compte. Vos trajets, recharges et positions enregistrés sont conservés (pour la même voiture).",
     "account_reset_hint": "Tout effacer définitivement et repartir de zéro — supprime le compte, tous les trajets, recharges, positions et réglages.",

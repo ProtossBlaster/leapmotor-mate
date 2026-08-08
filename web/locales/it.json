@@ -981,6 +981,8 @@
     "account_logout_btn": "Disconnetti",
     "account_logout_hint": "Esci per collegare un altro account Leapmotor — viaggi e ricariche restano.",
     "account_pin_hint": "Il PIN operativo dell'auto, quello che serve per i comandi. Se lo cambi sull'auto, riscrivilo qui: non serve scollegare l'account.",
+    "account_pin_which_car": "Per quale auto",
+    "account_pin_all_cars": "Tutte le auto (un solo PIN)",
     "account_pin_confirm": "Ripetilo",
     "account_logout_confirm": "Disconnettere l'account Leapmotor? Rifarai la configurazione con un altro account. Viaggi, ricariche e posizioni salvati restano (per la stessa auto).",
     "account_reset_hint": "Cancella tutto in modo permanente e riparti da zero — azzera l'account, tutti i viaggi, le ricariche, le posizioni e le impostazioni.",

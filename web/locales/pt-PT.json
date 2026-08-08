@@ -981,6 +981,8 @@
     "account_logout_btn": "Terminar sessão",
     "account_logout_hint": "Termina sessão para associar outra conta Leapmotor — as tuas viagens e carregamentos mantêm-se.",
     "account_pin_hint": "O PIN de operação do carro, o que os comandos exigem. Se o alterar no carro, volte a escrevê-lo aqui — não é preciso desassociar a conta.",
+    "account_pin_which_car": "Para que carro",
+    "account_pin_all_cars": "Todos os carros (um só PIN)",
     "account_pin_confirm": "Repete-o",
     "account_logout_confirm": "Terminar sessão Leapmotor? Vais configurar de novo com outra conta. As viagens, carregamentos e posições guardados mantêm-se (para o mesmo carro).",
     "account_reset_hint": "Apaga tudo permanentemente e recomeça — remove conta, viagens, carregamentos, posições e definições.",

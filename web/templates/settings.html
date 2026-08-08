@@ -269,8 +269,23 @@
            the setup wizard, so retyping four digits meant unlinking the Leapmotor account and
            walking the wizard again. Typed twice for the same reason as the access password (#214):
            a PIN stored with a typo fails at the CAR, later, with an error that names no digit. #}
+        {# With TWO cars the PIN stops being a property of the install: they can differ, and only the
+           commands would ever notice — reads carry no PIN, so the pages look healthy while the
+           buttons quietly fail (#186, @cookingeek). The form gains a car picker from the second car
+           on; leave it on «all cars» and it writes the install-wide PIN, exactly as before. #}
         <form hx-post="api/settings/pin" hx-swap="none" class="flex flex-col gap-2 pt-3 mt-2 border-t border-slate-700/60">
           <span class="text-[11px] text-slate-500 leading-snug">{{ t('account_pin_hint') }}</span>
+          {% if vehicles and vehicles|length > 1 %}
+          <label class="text-slate-400">{{ t('account_pin_which_car') }}
+            <select name="vin"
+                    class="block w-full mt-1 px-2 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
+              <option value="">{{ t('account_pin_all_cars') }}</option>
+              {% for v in vehicles %}
+              <option value="{{ v.vin }}">{{ v.car_type or v.vin[-6:] }} · {{ v.vin[-6:] }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          {% endif %}
           <label class="text-slate-400">{{ t('setup_pin') }}
             <span class="relative block mt-1">
               <input type="password" name="pin" required maxlength="4" inputmode="numeric"

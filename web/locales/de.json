@@ -981,6 +981,8 @@
     "account_logout_btn": "Abmelden",
     "account_logout_hint": "Abmelden, um ein anderes Leapmotor-Konto zu verbinden — Fahrten und Ladevorgänge bleiben erhalten.",
     "account_pin_hint": "Die Bedien-PIN des Autos, die für Befehle nötig ist. Wenn du sie am Auto änderst, trage sie hier neu ein — das Konto muss nicht getrennt werden.",
+    "account_pin_which_car": "Für welches Auto",
+    "account_pin_all_cars": "Alle Autos (eine PIN)",
     "account_pin_confirm": "Wiederholen",
     "account_logout_confirm": "Vom Leapmotor-Konto abmelden? Sie richten erneut mit einem anderen Konto ein. Gespeicherte Fahrten, Ladevorgänge und Positionen bleiben erhalten (für dasselbe Auto).",
     "account_reset_hint": "Alles dauerhaft löschen und neu beginnen — entfernt das Konto, alle Fahrten, Ladevorgänge, Positionen und Einstellungen.",

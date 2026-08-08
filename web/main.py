@@ -3446,10 +3446,20 @@ async def set_operation_pin(request: Request):
     form = await request.form()
     pin = ((form.get("pin") or "") if isinstance(form.get("pin"), str) else "").strip()
     pin2 = ((form.get("pin2") or "") if isinstance(form.get("pin2"), str) else "").strip()
+    vin = ((form.get("vin") or "") if isinstance(form.get("vin"), str) else "").strip()
     if not pin:
         return Response("empty", status_code=422)
     if pin2 != pin:
         return Response("mismatch", status_code=422)
+    # A `vin` means "this car's own PIN" (#186, @cookingeek): two Leapmotors on one account can want
+    # different four digits, and the commands are the only thing that would notice. A VIN we do not
+    # have is refused rather than stored, so a stale form cannot mint a secret for a phantom car.
+    if vin:
+        if not any(v.get("vin") == vin for v in db_reader.get_vehicles()):
+            return Response("unknown vin", status_code=422)
+        db_reader.set_operate_pin(pin, vin)
+        command_client._session._reset()
+        return Response(status_code=204, headers={"HX-Refresh": "true"})
     db_reader.set_secret("leapmotor_pin", pin)
     command_client._session._reset()
     return Response(status_code=204, headers={"HX-Refresh": "true"})
