@@ -145,8 +145,8 @@ to name the half that had been missed.
   1 km out of 793.
 
 - 📍 **A trip that opened late now starts where the car set off, not where the signal came back.**
-  v1.16.5 already moved the distance and the energy back over kilometres driven while the cloud was
-  dark (#130). The start POSITION was deliberately left behind, on the grounds that a frozen frame's
+  v2.3.0 already moved the distance and the energy back over kilometres driven while the cloud was
+  dark (#118). The start POSITION was deliberately left behind, on the grounds that a frozen frame's
   GPS is often 0,0 and would plant the trip in the Gulf of Guinea. That threw away the good
   coordinates along with the bad: @riri19's 19 km drive opened **5 km from home** while the frame in
   Mate's hand still said *parked at home* and was 32 minutes stale. Mate now anchors to the last
