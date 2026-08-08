@@ -69,6 +69,13 @@ _SEAT_MQTT = {
 }
 _MQTT_BOOST_S = 60   # after a command, poll fast for a minute so the state syncs quickly
 
+# The T03's A/C full-off (#67) — see the comment at the climate_off branch below, and the twin in
+# web/command_client.py. A named constant on BOTH sides so a test can compare the two VALUES: the two
+# trees cannot import each other, and a text search for the literal misses the moment either file
+# wraps it across two lines, which is exactly what happened while this was being written.
+T03_AC_OFF_BODY = ('{"circle":"out","mode":"wind","operate":"off","position":"all",'
+                   '"temperature":"26","windlevel":"3","wshld":"0"}')
+
 # The MQTT command handler runs on paho's network thread while the poll loop runs on the
 # main thread; both use the same Leapmotor API client (one HTTP session). Serialize API
 # access between them so requests can't interleave/corrupt each other.
@@ -310,12 +317,16 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
             elif cmd == "climate_off":
                 # A/C full-OFF. ONLY the T03 diverges (#67): its climate_on signal (1938) stays false
                 # even with the A/C on, so the "already-off" guard would block every off, and it ignores
-                # ac_switch operate=off — it switches off via the dedicated api.ac_off() (operate=close,
-                # as markoceri's own T03 app does; not a toggle, so sending it when already off is safe).
+                # BOTH forms that work elsewhere — bare `operate=off` (the B10's) and `operate=close`
+                # (what api.ac_off sends, which is what Mate used to send here). What it honours is
+                # operate=off inside the FULL seven-field body: verified on-car by @derekzoli
+                # (markoceri/leapmotor-api#9), who watched acSwitch go false rather than trusting the
+                # code:0 the cloud returns for every one of them. Same literal as
+                # web/command_client.T03_AC_OFF_BODY — a test holds the two byte-identical.
                 # B10/C10/B05 keep the EXACT original path below (guard + ac_switch operate=off), untouched.
                 if (getattr(getattr(client, "_vehicle", None), "car_type", "") or "").upper() == "T03":
-                    log.info("A/C-off (MQTT, T03) → api.ac_off() [operate=close]")
-                    api.ac_off(vin)
+                    log.info("A/C-off (MQTT, T03) → cmd 170 full body, operate=off [@derekzoli]")
+                    api._remote_control(vin=vin, action="ac_on", cmd_content=T03_AC_OFF_BODY)
                 else:
                     if getattr(service, "last_climate_on", None) is False:
                         return

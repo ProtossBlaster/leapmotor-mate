@@ -858,7 +858,6 @@
     "climate_on_state": "● On",
     "clim_on_confirm": "Note: once on, Mate can't fully turn the climate off — you'll need the Leapmotor app, or do it in the car. Turn it on?",
     "climate_off_state": "○ Off",
-    "clim_off_note": "Heads-up: turning a function off returns the climate to its base mode — it does not fully power off the A/C. To switch the climate off completely, use the Leapmotor app or do it manually in the car.",
     "btn_ac_on": "❄️ A/C On",
     "btn_cool": "🧊 Cool",
     "btn_heat": "🔥 Heat",

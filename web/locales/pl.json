@@ -858,7 +858,6 @@
     "climate_on_state": "● Wł.",
     "clim_on_confirm": "Uwaga: po włączeniu Mate nie może w pełni wyłączyć klimy — będziesz potrzebować aplikacji Leapmotor lub zrobić to w samochodzie. Włączyć?",
     "climate_off_state": "○ Wył.",
-    "clim_off_note": "Uwaga: wyłączenie funkcji przywraca klimę do trybu bazowego — nie wyłącza całkowicie klimatyzacji. Żeby całkowicie wyłączyć klimę, użyj aplikacji Leapmotor lub zrób to ręcznie w samochodzie.",
     "btn_ac_on": "❄️ Klimatyzacja wł.",
     "btn_cool": "🧊 Chłodź",
     "btn_heat": "🔥 Grzej",

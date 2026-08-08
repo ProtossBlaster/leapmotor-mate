@@ -858,7 +858,6 @@
     "climate_on_state": "● Ligado",
     "clim_on_confirm": "Nota: depois de ligado, o Mate não consegue desligar totalmente a climatização — terás de usar a app Leapmotor ou fazê-lo no carro. Ligar?",
     "climate_off_state": "○ Desligado",
-    "clim_off_note": "Atenção: desligar uma função devolve a climatização ao modo base — não desliga totalmente o A/C. Para desligar completamente, usa a app Leapmotor ou faz manualmente no carro.",
     "btn_ac_on": "❄️ Ligar A/C",
     "btn_cool": "🧊 Arrefecer",
     "btn_heat": "🔥 Aquecer",

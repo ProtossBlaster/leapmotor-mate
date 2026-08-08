@@ -951,21 +951,6 @@
       </div>
     {% endcall %}
 
-    {% if (vehicle.car_type or '')|upper == 'T03' %}
-    <!-- TEMPORARY (#67): T03-only entry to the A/C-off command hunt. Remove with web/t03_offtest.py
-         once the working command is found. Rendered only for a T03 → inert for every other model. -->
-    {% call scard('t03offtest', '🧪 Test spegnimento A/C (T03)', card_open.get('t03offtest')) %}
-      <p class="text-xs text-slate-400 mb-3 leading-relaxed">
-        Pagina sperimentale per trovare il comando che spegne l'A/C sul T03 (#67 — nessuno l'ha ancora
-        trovato). Apri la pagina, prova i pulsanti a clima acceso e guarda se l'auto si spegne.
-      </p>
-      <a href="t03-offtest"
-         class="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold rounded-lg px-4 py-2 hover:opacity-90">
-        🧪 Apri il test spegnimento A/C
-      </a>
-    {% endcall %}
-    {% endif %}
-
     <!-- Advanced tunables -->
     {% call scard('advanced', '⚙️ ' + t('adv_section'), card_open.get('advanced')) %}
       <div class="text-xs text-slate-400 mb-4">{{ t('adv_desc') }}</div>

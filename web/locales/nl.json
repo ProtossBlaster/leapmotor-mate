@@ -858,7 +858,6 @@
     "climate_on_state": "● Aan",
     "clim_on_confirm": "Let op: eenmaal aan kan Mate het klimaat niet volledig uitzetten — daarvoor heb je de Leapmotor-app nodig, of je doet het in de auto zelf. Toch aanzetten?",
     "climate_off_state": "○ Uit",
-    "clim_off_note": "Ter info: een functie uitzetten brengt het klimaat terug naar de basismodus — de airco gaat er niet volledig mee uit. Om het klimaat helemaal uit te schakelen gebruik je de Leapmotor-app of doe je het met de hand in de auto.",
     "btn_ac_on": "❄️ Airco aan",
     "btn_cool": "🧊 Koelen",
     "btn_heat": "🔥 Verwarmen",

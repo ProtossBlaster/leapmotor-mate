@@ -858,7 +858,6 @@
     "climate_on_state": "● Activée",
     "clim_on_confirm": "Note : une fois activée, Mate ne peut pas éteindre complètement la climatisation — vous devrez utiliser l'application Leapmotor ou le faire dans la voiture. Activer ?",
     "climate_off_state": "○ Désactivée",
-    "clim_off_note": "À noter : désactiver une fonction ramène la climatisation au mode de base — cela n'éteint pas complètement la clim. Pour couper totalement la climatisation, utilisez l'application Leapmotor ou faites-le manuellement dans la voiture.",
     "btn_ac_on": "❄️ Clim activée",
     "btn_cool": "🧊 Refroidir",
     "btn_heat": "🔥 Chauffer",

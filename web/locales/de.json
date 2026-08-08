@@ -858,7 +858,6 @@
     "climate_on_state": "● An",
     "clim_on_confirm": "Hinweis: Einmal eingeschaltet, kann Mate die Klimaanlage nicht mehr vollständig ausschalten — dazu brauchst du die Leapmotor-App oder das Fahrzeug. Einschalten?",
     "climate_off_state": "○ Aus",
-    "clim_off_note": "Hinweis: Das Ausschalten einer Funktion setzt die Klimaanlage in den Basismodus zurück — sie wird dabei nicht vollständig ausgeschaltet. Um die Klimaanlage komplett auszuschalten, nutze die Leapmotor-App oder schalte sie manuell im Fahrzeug aus.",
     "btn_ac_on": "❄️ Klima an",
     "btn_cool": "🧊 Kühlen",
     "btn_heat": "🔥 Heizen",

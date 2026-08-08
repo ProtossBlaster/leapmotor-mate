@@ -1145,19 +1145,33 @@ def ac_on():
 #  • B10/C10: ac_switch with operate=off — drives acSwitch signal 1938→0, confirmed on-car
 #    2026-06-06. The B10 IGNORES operate=close (tested live: it applies the setpoint and stays on),
 #    so ac_switch operate=off is its only real full-off. Left exactly as-is.
-#  • T03: api.ac_off(), which sends RemoteActionCtlClimate(operate=close) (leapmotor-api mappings.py,
-#    REMOTE_CTL_AC_OFF). The T03 ACCEPTS but IGNORES ac_switch operate=off (#67, Gr1m214: A/C turns on
-#    but won't turn off) — the opposite of the B10 — and operate=close is what markoceri's own T03 app
-#    (leapconnect) uses to switch it off. NOT verified on-car by us (we have no T03); it mirrors what a
-#    T03 owner's app does. (Our old report markoceri/leapmotor-api#3 was about the B10 ignoring close.)
+#  • T03: operate=off inside the FULL seven-field body. Solved and verified on-car by **@derekzoli**
+#    (06-07/08/2026, markoceri/leapmotor-api#9 — the report we opened): *"on the T03 it's not the
+#    value of operate that matters, it's the shape of the payload: it needs off, but only with the
+#    other fields present"*. He confirmed it the only way that counts — re-reading the vehicle status
+#    ~8 s later and watching acSwitch go false with the A/C actually stopping, not an ACK: the cloud
+#    answers code:0 to every one of these, which is why nobody could tell them apart from a log.
+#    He measured the two near-misses too: `operate=close` in the same full body (what
+#    REMOTE_CTL_AC_OFF / api.ac_off sends, i.e. what Mate used to send here) and bare
+#    `{"operate":"off"}` (the B10's form) are both accepted and ignored. This closes a defect open
+#    across the whole ecosystem — kerniger/leapmotor-ha#28, markoceri/leapmotor-api#9 — and our own
+#    seven candidates (the retired web/t03_offtest.py) all missed it: we varied mode, fan, recirc and
+#    invented keys while holding operate at close/manual. He held the body still and moved operate.
 #  • B05: stays on the B10/C10 path (no data either way — don't change what we can't verify).
+#
+# ⚠️ poller/main.py sends this same body for the Home Assistant button. The two literals are held
+# character-for-character identical by a test, because the page and HA must not come to disagree
+# about the same car in silence.
+T03_AC_OFF_BODY = ('{"circle":"out","mode":"wind","operate":"off","position":"all",'
+                   '"temperature":"26","windlevel":"3","wshld":"0"}')
+
+
 def ac_off():
     def _do(api, vin):
-        # ONLY the T03 diverges (logged for #67 validation). B10/C10/B05 keep the EXACT original
-        # behaviour below — not even a log line added to their path.
+        # ONLY the T03 diverges. B10/C10/B05 keep the EXACT original behaviour below.
         if _session_car_type() == "T03":
-            log.info("A/C-off (web, T03) → api.ac_off() [RemoteActionCtlClimate operate=close]")
-            return api.ac_off(vin)
+            log.info("A/C-off (web, T03) → cmd 170 full body, operate=off [@derekzoli, #67]")
+            return api._remote_control(vin=vin, action="ac_on", cmd_content=T03_AC_OFF_BODY)
         return api.ac_switch(vin, params={"operate": "off"})
     return _session.execute(_do)
 def quick_cool():        return _session.execute(lambda api, vin: api.quick_cool(vin))

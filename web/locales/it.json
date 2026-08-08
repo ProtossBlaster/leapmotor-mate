@@ -858,7 +858,6 @@
     "climate_on_state": "● Acceso",
     "clim_on_confirm": "Nota: una volta acceso, da Mate non puoi spegnere del tutto il clima — dovrai usare l'app Leapmotor o disattivarlo in auto. Accendere?",
     "climate_off_state": "○ Spento",
-    "clim_off_note": "Nota bene: spegnere una funzione riporta il climatizzatore alla modalità base — non spegne del tutto l'A/C. Per spegnere completamente il clima, usa l'app Leapmotor o disattivalo manualmente in auto.",
     "btn_ac_on": "❄️ A/C Acceso",
     "btn_cool": "🧊 Raffredda",
     "btn_heat": "🔥 Riscalda",

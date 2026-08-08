@@ -2287,41 +2287,6 @@ async def save_wallbox_keywords(request: Request):
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("wallbox_saved")}</span>')
 
 
-# ── TEMPORARY (#67): T03-only A/C-off command hunt — remove with web/t03_offtest.py once cracked ──
-def _is_t03() -> bool:
-    vehicle, _ = db_reader.get_vehicle()
-    return (vehicle or {}).get("car_type", "").upper() == "T03"
-
-
-@app.get("/t03-offtest", response_class=HTMLResponse)
-async def t03_offtest_page(request: Request):
-    """Unlinked, T03-only page to fire candidate A/C-off payloads at a real T03 (#67). Reached from a
-    car-type-gated card in Settings; inert (redirect) for every other model."""
-    if not _is_t03():
-        return RedirectResponse(request.headers.get("x-ingress-path", "") + "/")
-    import t03_offtest
-    return templates.TemplateResponse(request, "t03_offtest.html",
-                                      _ctx(page="t03_offtest", sections=t03_offtest.SECTIONS))
-
-
-@app.post("/api/t03-offtest", response_class=HTMLResponse)
-async def t03_offtest_fire(request: Request):
-    if not _is_t03():
-        return HTMLResponse("", status_code=403)
-    import t03_offtest
-    form = await request.form()
-    try:
-        cid = int(form.get("id", ""))
-    except (TypeError, ValueError):
-        return HTMLResponse("bad id", status_code=400)
-    ok, msg = t03_offtest.fire(cid)
-    if ok:
-        return HTMLResponse(
-            f'<span style="color:#22c55e">✓ #{cid} inviato — <b>guarda l\'auto</b>: si è spenta? '
-            f'Se sì è il <b>#{cid}</b>, scrivicelo su GitHub!</span>')
-    return HTMLResponse(f'<span style="color:#ef4444">✗ #{cid} non inviato ({msg})</span>')
-
-
 @app.post("/api/settings/wallbox-auto-home", response_class=HTMLResponse)
 async def save_wallbox_auto_home(request: Request):
     """Opt-in: auto-assign HOME to charges the wallbox measured (idea: @hubcasale, PR #47).
