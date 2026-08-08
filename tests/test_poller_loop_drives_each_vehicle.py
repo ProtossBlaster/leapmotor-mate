@@ -74,11 +74,15 @@ class _Vehicle:
 class _Client:
     """A cloud that answers, counts, and can be told to misbehave."""
 
-    def __init__(self, frames):
-        self._frames = list(frames)
+    def __init__(self, frames, vehicles=None):
+        # `frames` is either a list (one car) or {vin: list} (several).
+        self._vehicles = list(vehicles or [_Vehicle()])
+        self._vehicle = self._vehicles[0]
+        self._frames = ({v: list(f) for v, f in frames.items()} if isinstance(frames, dict)
+                        else {self._vehicle.vin: list(frames)})
         self.calls = 0
-        self.budget = 10**6      # rounds the test allows before it stops the loop
-        self._vehicle = _Vehicle()
+        self.per_vin: dict = {}   # vin → how many times THIS car was polled
+        self.budget = 10**6       # polls the test allows before it stops the loop
         self.closed = False
 
     def login(self):
@@ -87,12 +91,15 @@ class _Client:
     def relogin(self):
         pass
 
-    def get_status(self):
+    def get_status(self, vehicle=None):
         # Stop BEFORE the poll that would exceed the budget, so the rounds that did run are whole.
         if self.calls >= self.budget:
             raise _Stop
+        vin = (vehicle or self._vehicle).vin
         self.calls += 1
-        f = self._frames.pop(0) if self._frames else _frame()
+        self.per_vin[vin] = self.per_vin.get(vin, 0) + 1
+        queue = self._frames.get(vin) or []
+        f = queue.pop(0) if queue else _frame()
         if isinstance(f, Exception):
             raise f
         return f
@@ -107,8 +114,8 @@ def loop(tmp_path, monkeypatch):
     path = str(tmp_path / "loop.db")
     monkeypatch.setenv("DB_PATH", path)
 
-    def run(frames, rounds=2):
-        client = _Client(frames)
+    def run(frames, rounds=2, vehicles=None):
+        client = _Client(frames, vehicles)
         client.budget = rounds
         monkeypatch.setattr(PM, "LeapmotorMateClient", lambda **kw: client)
 
@@ -189,6 +196,60 @@ def test_a_cloud_error_does_not_stop_the_loop(loop):
     client, db = loop([RuntimeError("cloud down"), _frame(), _frame()], rounds=3)
     assert client.calls >= 3
     assert float(db.get_setting("last_loop_ts", "0")) > 0
+
+
+# ── two cars ──────────────────────────────────────────────────────────────────
+
+def _two():
+    return [_Vehicle("VIN_A", "B10"), _Vehicle("VIN_B", "T03")]
+
+
+def test_both_cars_are_registered_and_both_are_polled(loop):
+    """The point of the whole exercise. Before this the client kept `vehicles[0]` and the second
+    car simply did not exist — no rows, no trips, no charges, and nothing saying so."""
+    client, db = loop({"VIN_A": [_frame()], "VIN_B": [_frame(odo=5000.0)]},
+                      rounds=4, vehicles=_two())
+    vins = {r["vin"] for r in db._conn.execute("SELECT vin FROM vehicles").fetchall()}
+    assert vins == {"VIN_A", "VIN_B"}
+    assert client.per_vin.get("VIN_A", 0) >= 1 and client.per_vin.get("VIN_B", 0) >= 1
+    rows = db._conn.execute(
+        "SELECT vehicle_id, COUNT(*) n FROM positions GROUP BY vehicle_id").fetchall()
+    assert len(rows) == 2, "each car wrote its own positions"
+
+
+def test_a_car_in_a_tunnel_does_not_take_the_other_off_the_road(loop):
+    """🔑 The reason every failure is caught inside `_poll_vehicle`. One car erroring used to end
+    the whole cycle; with two, that would mean a car with no signal silently stops recording the
+    trip the other one is making."""
+    client, db = loop({"VIN_A": [RuntimeError("no signal")] * 4, "VIN_B": [_frame()] * 4},
+                      rounds=6, vehicles=_two())
+    assert client.per_vin.get("VIN_A", 0) >= 2, "the failing car kept being tried"
+    assert client.per_vin.get("VIN_B", 0) >= 2, "and the healthy one kept being polled"
+    good = db._conn.execute(
+        "SELECT COUNT(*) n FROM positions WHERE vehicle_id = "
+        "(SELECT id FROM vehicles WHERE vin='VIN_B')").fetchone()["n"]
+    assert good >= 2, "the healthy car recorded through the other one's failure"
+
+
+def test_each_car_keeps_its_own_cadence(loop):
+    """A car being driven polls at 10 s and a parked one at 30 s. Running the round at the fastest
+    car's interval — the naive way — would poll the parked car three times as often for nothing,
+    against the very session v2.13.2 stopped us exhausting."""
+    driving = [_frame(gear="D", speed=50.0, odo=1000.0 + i) for i in range(40)]
+    parked = [_frame() for _ in range(40)]
+    client, _ = loop({"VIN_A": driving, "VIN_B": parked}, rounds=24, vehicles=_two())
+    a, b = client.per_vin.get("VIN_A", 0), client.per_vin.get("VIN_B", 0)
+    assert a > b, f"the driven car must be polled more often than the parked one (got {a} vs {b})"
+    assert b >= 2, "and the parked one is still polled"
+
+
+def test_the_round_waits_for_the_earliest_car(loop):
+    """The sleep is until the NEXT car is due, not this car's interval — otherwise the parked car's
+    30 s would make the car being driven miss two polls out of every three."""
+    src = pathlib.Path(__file__).parents[1] / "poller" / "main.py"
+    body = src.read_text()
+    assert "min((c.next_due for c in contexts)" in body
+    assert "for ctx in contexts:" in body and "ctx.next_due = time.time() + ctx.interval" in body
 
 
 def test_the_context_holds_what_the_locals_held():

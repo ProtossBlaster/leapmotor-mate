@@ -708,6 +708,188 @@ class VehicleContext:
         self.next_due = 0.0           # monotonic; 0 = due now, so the first round polls every car
 
 
+class AccountState:
+    """What belongs to the ACCOUNT rather than to any one car.
+
+    One login heals every car at once, so re-login is rate-limited here and not per vehicle — two
+    cars failing together must not double the attempts against the very limiter that rate-limit
+    exists to respect. The broker connection is the account's too.
+
+    ⚠️ What the MQTT bridge PUBLISHES is per-car — it takes the abilities and the model at
+    construction, read single-car. Splitting that is its own piece of work, not this one.
+    """
+
+    __slots__ = ("last_relogin", "mqtt_service")
+
+    def __init__(self):
+        self.last_relogin = 0.0
+        self.mqtt_service = None
+
+
+def _poll_vehicle(db, client, ctx, acct) -> None:
+    """One car, once. Sets `ctx.interval` — how long before this car is due again.
+
+    🔑 Every failure stops HERE. With one car it made no difference whether an exception ended the
+    cycle or the car; with two it decides whether a car in a tunnel takes the other one off the
+    road with it. Nothing in this function may raise.
+    """
+    try:
+        # Apply user-tunable poll cadence + charge-detection floor (Settings) live, each cycle
+        try:
+            ctx.recorder.set_poll_intervals(
+                int(db.get_setting("poll_parked", "30") or 30),
+                int(db.get_setting("poll_driving", "10") or 10),
+            )
+            set_charge_current_min(float(db.get_setting("charge_detect_min_a", "2.0") or 2.0))
+            ctx.recorder.set_reconstruct_min_pct(
+                float(db.get_setting("charge_reconstruct_min_pct", "2.0") or 2.0))
+        except (TypeError, ValueError):
+            pass
+        with _API_LOCK:
+            data = client.get_status(ctx.vehicle)
+        ctx.recorder.process(data)
+        _write_comfort_state(db, data)
+
+        # A range-extender reports a fuel tank (signal 3235) → flag it once. On the BetaTester
+        # build this is what makes the dedicated page/nav appear, even for a car onboarded before
+        # the variant existed (no re-setup needed). The flag is written on BOTH builds because
+        # the official one needs it too — not to show anything, but to withhold the figures a
+        # generator makes meaningless. Write-once guard → no per-poll DB churn.
+        if data.is_reev and db.get_setting("is_reev", "0") != "1":
+            db.set_setting("is_reev", "1")
+            # Wording follows the build: the official Mate offers no REEV support, so its log must
+            # not name the feature — let alone announce a "REEV view" that will never appear (#141).
+            log.info("REEV detected (fuel signal 3235 present) — enabling REEV view"
+                     if _research_enabled() else
+                     "Fuel signal present — battery-derived figures will be withheld where a "
+                     "range-extender makes them meaningless")
+
+        # Research / BetaTester full-signal capture (MateBetaTesterOnly build only). Logs every
+        # raw signal that CHANGED value since the last poll → a complete, timestamped history we
+        # can later correlate with the tester's logbook to map REEV signals. No-op otherwise.
+        if _research_enabled() and data.raw_signals:
+            changed = {k: v for k, v in data.raw_signals.items()
+                       if str(v) != ctx.research_last_sig.get(k)}
+            if changed:
+                db.insert_raw_signal_changes(
+                    ctx.vehicle_id, data.timestamp_ms or int(time.time() * 1000), changed)
+                ctx.research_last_sig.update({k: str(v) for k, v in changed.items()})
+
+        # Persist the authoritative GPS sign the moment a signed poll refreshes it (#43),
+        # so the next restart starts on dry land. Only writes when it actually changes
+        # (essentially once), so there's no per-poll DB churn.
+        signs = get_coord_signs(ctx.vin)
+        if signs != ctx.persisted_signs:
+            if signs.get("lat"):
+                db.set_setting("gps_lat_sign", str(signs["lat"]))
+            if signs.get("lon"):
+                db.set_setting("gps_lon_sign", str(signs["lon"]))
+            ctx.persisted_signs = signs
+
+        # Persist the car's configured charge limit (the SoC it will stop at) whenever it
+        # changes, so the Overview hero can label the charge ETA with the real % read cheaply
+        # from settings — works even when the limit is changed from the official app. Write
+        # only on change, like the GPS sign above → no per-poll churn.
+        if data.charge_limit_percent is not None and \
+                str(data.charge_limit_percent) != db.get_setting("charge_limit_percent", ""):
+            db.set_setting("charge_limit_percent", str(data.charge_limit_percent))
+
+        _maybe_refresh_charge_schedule(db, client)
+
+        # Daily ledger of the official lifetime energy/mileage counters + getEC split
+        # (silent phase-1 collector) — throttled to 24h, best-effort.
+        energy_snapshots.maybe_sample(db, client, ctx.vin, api_lock=_API_LOCK)
+
+        # Ready-triggered "prepare now" automation — fires once per Ready OFF→ON edge,
+        # gated on the interior-temperature condition if configured. Best-effort.
+        ready_automation.maybe_trigger(db, client, data, api_lock=_API_LOCK)
+
+        # ABRP live telemetry (opt-in, off by default)
+        if db.get_setting("abrp_enabled") == "1":
+            abrp.send(db.get_secret("abrp_token"), data)
+
+        # MQTT → Home Assistant bridge (opt-in, off by default)
+        acct.mqtt_service = _mqtt_tick(db, client, data, acct.mqtt_service)
+
+        ctx.interval = ctx.recorder.poll_interval
+        # Boost window (set via POST /api/boost, e.g. an iPhone BT shortcut relayed
+        # by HA when you get in the car): poll fast so we catch the trip start that
+        # deep sleep would otherwise miss. Only matters while still parked — once
+        # DRIVING the state machine already polls at 10s.
+        try:
+            boost_until = float(db.get_setting("boost_until", "0") or 0)
+        except (TypeError, ValueError):
+            boost_until = 0.0
+        boosting = time.time() < boost_until and ctx.interval > 10
+        if boosting:
+            ctx.interval = 10
+        # Frame age = wall-clock − the cloud frame's own timestamp (sig sts/1). Fresh ≈ a few
+        # seconds; if the cloud re-serves a stale frame (car in a 4G dead zone) it climbs without
+        # bound — the one signal that tells "stale re-serve" from "genuinely stopped here".
+        frame_age = (f"{(int(time.time() * 1000) - data.timestamp_ms) / 1000:.0f}s"
+                     if data.timestamp_ms else "?")
+        log.info(
+            "SOC %.1f%% | Range %d km | Speed %.0f km/h | Odo %.0f km | State: %-8s | "
+            "Gear: %s | %s | Frame age: %s | Next poll: %ds%s",
+            data.soc, data.range_km, data.speed_kmh, data.odometer_km,
+            ctx.recorder.state.value, data.gear, _charge_fields(data), frame_age, ctx.interval,
+            " (boost)" if boosting else "",
+        )
+        ctx.recorder.mark_online()
+        ctx.empty_status_count = 0
+        ctx.poll_error_count = 0
+    except EmptyStatusError:
+        # Car asleep / not reporting live data (or a brief cloud hiccup) — NOT a
+        # real failure. Retry at the normal cadence a couple of times in case it's
+        # transient, then back off like any offline state. Recovers on its own once
+        # the car reports again. (This used to surface as a scary "Poll error:
+        # 'signal'" KeyError.) We log the back-off WARNING only once, not every
+        # cycle: a parked car can stay asleep for hours and an ever-climbing
+        # "after N tries" warning reads like an escalating failure when it isn't.
+        ctx.empty_status_count += 1
+        if ctx.empty_status_count >= 3:
+            ctx.recorder.mark_offline()
+        ctx.interval = ctx.recorder.poll_interval
+        if ctx.empty_status_count < 3:
+            log.info("Vehicle returned no live data (asleep or briefly unavailable) — "
+                     "retry %d/3", ctx.empty_status_count)
+        elif ctx.empty_status_count == 3:
+            log.warning("Vehicle not reporting live data (car asleep or unavailable) — "
+                        "backing off to %ds polling; recovers automatically when the car "
+                        "reports again.", ctx.interval)
+        # already backed off (count > 3): stay quiet so a sleeping car can't spam the log
+    except Exception as exc:
+        ctx.poll_error_count += 1
+        ctx.recorder.mark_offline()
+        ctx.interval = ctx.recorder.poll_interval
+        # With no long offline backoff we keep polling at the user's cadence, so log the first
+        # few errors in full then go quiet — a prolonged cloud outage must not spam the log.
+        if ctx.poll_error_count <= 3:
+            log.error("Poll error: %s", exc)
+        elif ctx.poll_error_count == 4:
+            log.warning("Cloud still unreachable — still polling every %ds, quiet from here; "
+                        "recovers automatically when it responds.", ctx.interval)
+        # Self-heal: a vanished /tmp account-cert file (or an auth/token/connection
+        # drop) makes every poll fail forever — the poller used to just keep erroring.
+        # Force a fresh login to re-create the cert. Guarded to ~once/min so a rapid
+        # double login can't trip Leapmotor's rate limiter.
+        msg = str(exc).lower()
+        recoverable = any(s in msg for s in (
+            "certificate", "cert", "unauthorized", "token", "login",
+            "verification", "connection", "timed out", "timeout", "ssl",
+        ))
+        if recoverable and time.time() - acct.last_relogin > 60:
+            acct.last_relogin = time.time()
+            try:
+                log.info("Attempting session recovery (re-login)…")
+                client.relogin()
+                log.info("Session recovered after re-login")
+            except Exception as e2:  # noqa: BLE001
+                log.warning("Re-login failed, will retry next cycle: %s", e2)
+
+
+
+
 def main():
     db_path = os.environ.get("DB_PATH", "leapmotor_mate.db")
     log.info("Starting LeapMotor Mate poller")
@@ -784,14 +966,26 @@ def main():
                     os._exit(42)
             _login_backoff = min(_login_backoff * 2, 300.0)
 
-    # Vehicle is known after login; register it in the DB
+    # Every car on the account is registered and gets its own context. `ensure_vehicle` is keyed by
+    # VIN, so a car that has been here before keeps its id and its whole history.
     from leapmotor_api import LeapmotorApiClient
     v = client._vehicle
-    vehicle_id = db.ensure_vehicle(v.vin, v.car_type, getattr(v, "year", None),
-                                   abilities=getattr(v, "abilities", None))
+    contexts = []
+    for veh in (client._vehicles or [v]):
+        vid = db.ensure_vehicle(veh.vin, veh.car_type, getattr(veh, "year", None),
+                                abilities=getattr(veh, "abilities", None))
+        contexts.append(VehicleContext(db, veh, vid))
+    ctx = contexts[0]
+    vehicle_id = ctx.vehicle_id
 
     # First run: set battery capacity from per-model default
     # (will be overridable via setup wizard / settings UI)
+    #
+    # ⚠️ The GLOBAL capacity setting still follows the first car — it is the legacy single-car
+    # value. Per-car capacity has lived on `vehicles.capacity_kwh` since v2.2.0 and `ensure_vehicle`
+    # seeds each additional car from its own model default, which is the number that matters: it is
+    # what the written trip and charge energies are computed from. A B10's 65 kWh applied to a T03's
+    # 36 would inflate every figure by 80%, permanently, in the rows themselves.
     if not db.is_setup_complete():
         from db import default_capacity_for
         capacity = default_capacity_for(v.car_type)
@@ -802,9 +996,9 @@ def main():
             v.car_type, capacity,
         )
 
-    ctx = VehicleContext(db, v, vehicle_id)
-
-    log.info("Polling VIN %s (vehicle_id=%d)", v.vin, vehicle_id)
+    for c in contexts:
+        log.info("Polling VIN %s (vehicle_id=%d, model %s)", c.vin, c.vehicle_id,
+                 getattr(c.vehicle, "car_type", "?"))
 
     # GPS sign memory (#43): prime from the last authoritative sign we persisted, so a
     # restart (e.g. an HA add-on update) doesn't briefly plot west/south cars in the sea
@@ -821,8 +1015,9 @@ def main():
     # disk, which is why this repairs a poisoned install with no button to press and nothing to ask
     # the owner. The guard stops NEW installs being poisoned; this un-poisons the ones that already
     # were. Installing the fix means restarting, and the restart IS the repair.
-    reconcile_coord_signs(db, vehicle_id, v.vin)
-    ctx.persisted_signs = get_coord_signs(v.vin)
+    for c in contexts:
+        reconcile_coord_signs(db, c.vehicle_id, c.vin)
+        c.persisted_signs = get_coord_signs(c.vin)
 
     # Account-level, and staying that way: one login heals every car at once, and the broker
     # connection is the account's, not a car's. ⚠️ What the MQTT bridge PUBLISHES is per-car
@@ -830,6 +1025,8 @@ def main():
     # not this one.
     last_relogin = 0.0   # rate-limit guard for session recovery
     mqtt_service = None   # optional MQTT → HA bridge, created lazily when enabled
+
+    acct = AccountState()
 
     while True:
         try:
@@ -844,163 +1041,31 @@ def main():
                     log.info("Leapmotor account changed in Settings — restarting poller to re-authenticate")
                     os._exit(42)
 
-            # Apply user-tunable poll cadence + charge-detection floor (Settings) live, each cycle
-            try:
-                ctx.recorder.set_poll_intervals(
-                    int(db.get_setting("poll_parked", "30") or 30),
-                    int(db.get_setting("poll_driving", "10") or 10),
-                )
-                set_charge_current_min(float(db.get_setting("charge_detect_min_a", "2.0") or 2.0))
-                ctx.recorder.set_reconstruct_min_pct(
-                    float(db.get_setting("charge_reconstruct_min_pct", "2.0") or 2.0))
-            except (TypeError, ValueError):
-                pass
-            with _API_LOCK:
-                data = client.get_status()
-            ctx.recorder.process(data)
-            _write_comfort_state(db, data)
-
-            # A range-extender reports a fuel tank (signal 3235) → flag it once. On the BetaTester
-            # build this is what makes the dedicated page/nav appear, even for a car onboarded before
-            # the variant existed (no re-setup needed). The flag is written on BOTH builds because
-            # the official one needs it too — not to show anything, but to withhold the figures a
-            # generator makes meaningless. Write-once guard → no per-poll DB churn.
-            if data.is_reev and db.get_setting("is_reev", "0") != "1":
-                db.set_setting("is_reev", "1")
-                # Wording follows the build: the official Mate offers no REEV support, so its log must
-                # not name the feature — let alone announce a "REEV view" that will never appear (#141).
-                log.info("REEV detected (fuel signal 3235 present) — enabling REEV view"
-                         if _research_enabled() else
-                         "Fuel signal present — battery-derived figures will be withheld where a "
-                         "range-extender makes them meaningless")
-
-            # Research / BetaTester full-signal capture (MateBetaTesterOnly build only). Logs every
-            # raw signal that CHANGED value since the last poll → a complete, timestamped history we
-            # can later correlate with the tester's logbook to map REEV signals. No-op otherwise.
-            if _research_enabled() and data.raw_signals:
-                changed = {k: v for k, v in data.raw_signals.items()
-                           if str(v) != ctx.research_last_sig.get(k)}
-                if changed:
-                    db.insert_raw_signal_changes(
-                        ctx.vehicle_id, data.timestamp_ms or int(time.time() * 1000), changed)
-                    ctx.research_last_sig.update({k: str(v) for k, v in changed.items()})
-
-            # Persist the authoritative GPS sign the moment a signed poll refreshes it (#43),
-            # so the next restart starts on dry land. Only writes when it actually changes
-            # (essentially once), so there's no per-poll DB churn.
-            signs = get_coord_signs(ctx.vin)
-            if signs != ctx.persisted_signs:
-                if signs.get("lat"):
-                    db.set_setting("gps_lat_sign", str(signs["lat"]))
-                if signs.get("lon"):
-                    db.set_setting("gps_lon_sign", str(signs["lon"]))
-                ctx.persisted_signs = signs
-
-            # Persist the car's configured charge limit (the SoC it will stop at) whenever it
-            # changes, so the Overview hero can label the charge ETA with the real % read cheaply
-            # from settings — works even when the limit is changed from the official app. Write
-            # only on change, like the GPS sign above → no per-poll churn.
-            if data.charge_limit_percent is not None and \
-                    str(data.charge_limit_percent) != db.get_setting("charge_limit_percent", ""):
-                db.set_setting("charge_limit_percent", str(data.charge_limit_percent))
-
-            # OTA / software-update check (scans the account inbox) — throttled, best-effort.
-            _maybe_check_ota(db, client)
-            _maybe_refresh_charge_schedule(db, client)
-
-            # Daily ledger of the official lifetime energy/mileage counters + getEC split
-            # (silent phase-1 collector) — throttled to 24h, best-effort.
-            energy_snapshots.maybe_sample(db, client, ctx.vin, api_lock=_API_LOCK)
-
-            # Ready-triggered "prepare now" automation — fires once per Ready OFF→ON edge,
-            # gated on the interior-temperature condition if configured. Best-effort.
-            ready_automation.maybe_trigger(db, client, data, api_lock=_API_LOCK)
-
-            # ABRP live telemetry (opt-in, off by default)
-            if db.get_setting("abrp_enabled") == "1":
-                abrp.send(db.get_secret("abrp_token"), data)
-
-            # MQTT → Home Assistant bridge (opt-in, off by default)
-            mqtt_service = _mqtt_tick(db, client, data, mqtt_service)
-
-            interval = ctx.recorder.poll_interval
-            # Boost window (set via POST /api/boost, e.g. an iPhone BT shortcut relayed
-            # by HA when you get in the car): poll fast so we catch the trip start that
-            # deep sleep would otherwise miss. Only matters while still parked — once
-            # DRIVING the state machine already polls at 10s.
-            try:
-                boost_until = float(db.get_setting("boost_until", "0") or 0)
-            except (TypeError, ValueError):
-                boost_until = 0.0
-            boosting = time.time() < boost_until and interval > 10
-            if boosting:
-                interval = 10
-            # Frame age = wall-clock − the cloud frame's own timestamp (sig sts/1). Fresh ≈ a few
-            # seconds; if the cloud re-serves a stale frame (car in a 4G dead zone) it climbs without
-            # bound — the one signal that tells "stale re-serve" from "genuinely stopped here".
-            frame_age = (f"{(int(time.time() * 1000) - data.timestamp_ms) / 1000:.0f}s"
-                         if data.timestamp_ms else "?")
-            log.info(
-                "SOC %.1f%% | Range %d km | Speed %.0f km/h | Odo %.0f km | State: %-8s | "
-                "Gear: %s | %s | Frame age: %s | Next poll: %ds%s",
-                data.soc, data.range_km, data.speed_kmh, data.odometer_km,
-                ctx.recorder.state.value, data.gear, _charge_fields(data), frame_age, interval,
-                " (boost)" if boosting else "",
-            )
-            ctx.recorder.mark_online()
-            ctx.empty_status_count = 0
-            ctx.poll_error_count = 0
+            # Sequential, deliberately: one writer is what keeps SQLite behaving exactly as it does
+            # today. Two poller processes would be two writers and SQLITE_BUSY; two threads here
+            # would be a race over the same recorder state. Polling car after car costs about a
+            # second each and buys the whole problem away.
+            #
+            # And each car on its OWN clock. Running the round at the fastest car's cadence would
+            # poll a parked car every ten seconds because another one is being driven — harmless
+            # (reading the cloud does not wake the car) but pointless load on the very session
+            # v2.13.2 stopped us exhausting.
+            now = time.time()
+            for ctx in contexts:
+                if ctx.next_due > now:
+                    continue
+                _poll_vehicle(db, client, ctx, acct)
+                ctx.next_due = time.time() + ctx.interval
         except KeyboardInterrupt:
             log.info("Stopped by user")
             break
-        except EmptyStatusError:
-            # Car asleep / not reporting live data (or a brief cloud hiccup) — NOT a
-            # real failure. Retry at the normal cadence a couple of times in case it's
-            # transient, then back off like any offline state. Recovers on its own once
-            # the car reports again. (This used to surface as a scary "Poll error:
-            # 'signal'" KeyError.) We log the back-off WARNING only once, not every
-            # cycle: a parked car can stay asleep for hours and an ever-climbing
-            # "after N tries" warning reads like an escalating failure when it isn't.
-            ctx.empty_status_count += 1
-            if ctx.empty_status_count >= 3:
-                ctx.recorder.mark_offline()
-            interval = ctx.recorder.poll_interval
-            if ctx.empty_status_count < 3:
-                log.info("Vehicle returned no live data (asleep or briefly unavailable) — "
-                         "retry %d/3", ctx.empty_status_count)
-            elif ctx.empty_status_count == 3:
-                log.warning("Vehicle not reporting live data (car asleep or unavailable) — "
-                            "backing off to %ds polling; recovers automatically when the car "
-                            "reports again.", interval)
-            # already backed off (count > 3): stay quiet so a sleeping car can't spam the log
-        except Exception as exc:
-            ctx.poll_error_count += 1
-            ctx.recorder.mark_offline()
-            interval = ctx.recorder.poll_interval
-            # With no long offline backoff we keep polling at the user's cadence, so log the first
-            # few errors in full then go quiet — a prolonged cloud outage must not spam the log.
-            if ctx.poll_error_count <= 3:
-                log.error("Poll error: %s", exc)
-            elif ctx.poll_error_count == 4:
-                log.warning("Cloud still unreachable — still polling every %ds, quiet from here; "
-                            "recovers automatically when it responds.", interval)
-            # Self-heal: a vanished /tmp account-cert file (or an auth/token/connection
-            # drop) makes every poll fail forever — the poller used to just keep erroring.
-            # Force a fresh login to re-create the cert. Guarded to ~once/min so a rapid
-            # double login can't trip Leapmotor's rate limiter.
-            msg = str(exc).lower()
-            recoverable = any(s in msg for s in (
-                "certificate", "cert", "unauthorized", "token", "login",
-                "verification", "connection", "timed out", "timeout", "ssl",
-            ))
-            if recoverable and time.time() - last_relogin > 60:
-                last_relogin = time.time()
-                try:
-                    log.info("Attempting session recovery (re-login)…")
-                    client.relogin()
-                    log.info("Session recovered after re-login")
-                except Exception as e2:  # noqa: BLE001
-                    log.warning("Re-login failed, will retry next cycle: %s", e2)
+
+        # OTA / software-update check (scans the account INBOX, not a car) — throttled,
+        # best-effort, and once a round however many cars there are.
+        try:
+            _maybe_check_ota(db, client)
+        except Exception as exc:  # noqa: BLE001
+            log.debug("OTA check skipped: %s", exc)
 
         # Heartbeat for /healthz: proves the poll loop is alive (written every cycle,
         # even during offline/asleep backoff) regardless of whether the car reported.
@@ -1025,7 +1090,12 @@ def main():
 
         # Interruptible sleep: while parked we may be sleeping for minutes, so check the
         # boost flag every few seconds and wake immediately if one is requested.
-        deadline = time.time() + interval
+        #
+        # Until the EARLIEST car is due, not this car's interval — with a car being driven at 10 s
+        # and one parked at 30 s, waiting the parked one's interval would make the driven one miss
+        # two polls out of three.
+        deadline = min((c.next_due for c in contexts), default=time.time() + 30.0)
+        interval = max(0.0, deadline - time.time())
         while True:
             remaining = deadline - time.time()
             if remaining <= 0:

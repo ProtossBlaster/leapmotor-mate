@@ -44,8 +44,11 @@ def _client(car_type, serves):
     c = C.LeapmotorMateClient.__new__(C.LeapmotorMateClient)     # no login, no cloud
     c._api = _Api(serves)
     c._vehicle = _Vehicle(car_type=car_type)
-    c._status_car_type = None
-    c._status_fallback_tried = False
+    # ⚠️ Per VIN, not one value for the client (multi-car): they describe a MODEL, and an account
+    # can hold two. A B10 that answers on its own path and a model that only answers on the
+    # B-family one would otherwise teach each other the wrong address, poll after poll.
+    c._status_car_type = {}
+    c._status_fallback_tried = set()
     return c
 
 
@@ -61,7 +64,7 @@ def test_a_model_that_works_is_never_retried():
     c = _client("T03", serves={"t03"})
     c._raw_status()
     assert c._api.asked == ["T03"]
-    assert c._status_car_type is None
+    assert c._status_car_type.get(c._vehicle.vin) is None
 
 
 def test_the_working_path_is_remembered_so_the_extra_call_happens_once():

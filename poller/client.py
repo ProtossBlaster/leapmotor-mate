@@ -159,19 +159,31 @@ class LeapmotorMateClient:
         import session_share
         session_share.install(self._api)   # share ONE token with the web (avoid mutual eviction)
         self._vehicle = None
+        self._vehicles: list = []          # every car on the account, in the order the cloud lists them
         self._named_mode_logged = False    # log the T03/EU named-field path once
-        self._status_car_type = None       # set once the fallback status path is proven (see _raw_status)
-        self._status_fallback_tried = False
+        # Which status path a model reads on, and whether the fallback has been tried — BOTH per VIN.
+        # They describe a MODEL, and an account can hold two: a B10 that answers on its own path and
+        # a model that only answers on the B-family one would otherwise teach each other the wrong
+        # address, one poll after the other.
+        self._status_car_type: dict = {}   # vin → proven status path (see _raw_status)
+        self._status_fallback_tried: set = set()
 
     def login(self):
         self._api.login()
         vehicles = self._api.get_vehicle_list()
         if not vehicles:
             raise RuntimeError("No vehicles found on this account")
+        # Every car on the account, and the first one as the default target. `_vehicle` stays what
+        # it has always been so nothing that reads it has to change; `_vehicles` is what lets the
+        # poller give each car its own recorder instead of only ever seeing the first.
+        self._vehicles = list(vehicles)
         self._vehicle = vehicles[0]
         log.info("Authenticated — VIN: %s  model: %s  shared: %s",
                  self._vehicle.vin, self._vehicle.car_type,
                  getattr(self._vehicle, "is_shared", False))
+        for extra in vehicles[1:]:
+            log.info("Also on this account — VIN: %s  model: %s  shared: %s",
+                     extra.vin, extra.car_type, getattr(extra, "is_shared", False))
 
     def relogin(self):
         """Force a fresh login to self-heal a broken session. The account TLS cert
@@ -202,36 +214,39 @@ class LeapmotorMateClient:
     # already getting nothing.
     _STATUS_PATH_FALLBACK = "c10"
 
-    def _raw_status(self):
-        if self._status_car_type is not None:
-            return self._api.get_vehicle_raw_status(self._vehicle_as(self._status_car_type))
+    def _raw_status(self, vehicle=None):
+        vehicle = vehicle or self._vehicle
+        proven = self._status_car_type.get(vehicle.vin)
+        if proven is not None:
+            return self._api.get_vehicle_raw_status(self._vehicle_as(proven, vehicle))
         try:
-            return self._api.get_vehicle_raw_status(self._vehicle)
+            return self._api.get_vehicle_raw_status(vehicle)
         except Exception as first:                                  # noqa: BLE001
-            own = (getattr(self._vehicle, "car_type", "") or "").lower()
-            if self._status_fallback_tried or own == self._STATUS_PATH_FALLBACK:
+            own = (getattr(vehicle, "car_type", "") or "").lower()
+            if vehicle.vin in self._status_fallback_tried or own == self._STATUS_PATH_FALLBACK:
                 raise
-            self._status_fallback_tried = True
+            self._status_fallback_tried.add(vehicle.vin)
             log.warning("Status call failed for model %s (%s) — retrying once on the %s path",
                         own or "?", first, self._STATUS_PATH_FALLBACK)
             try:
-                raw = self._api.get_vehicle_raw_status(self._vehicle_as(self._STATUS_PATH_FALLBACK))
+                raw = self._api.get_vehicle_raw_status(
+                    self._vehicle_as(self._STATUS_PATH_FALLBACK, vehicle))
             except Exception:                                       # noqa: BLE001
                 raise first from None                               # report the REAL failure, not ours
-            self._status_car_type = self._STATUS_PATH_FALLBACK
+            self._status_car_type[vehicle.vin] = self._STATUS_PATH_FALLBACK
             log.warning("Model %s reads its status on the %s path — using it from now on. "
                         "Please report this model so it can be mapped properly.",
                         own or "?", self._STATUS_PATH_FALLBACK)
             return raw
 
-    def _vehicle_as(self, car_type: str):
+    def _vehicle_as(self, car_type: str, vehicle=None):
         """A copy of the vehicle with a different car_type, so ONLY the status path changes. The real
         vehicle is left alone: its car_type is read elsewhere for the pack size, the window scale and
         the command paths, and those are already right."""
         import dataclasses
-        return dataclasses.replace(self._vehicle, car_type=car_type)
+        return dataclasses.replace(vehicle or self._vehicle, car_type=car_type)
 
-    def get_status(self) -> VehicleData:
+    def get_status(self, vehicle=None) -> VehicleData:
         # Make sure the per-login account TLS cert still exists before calling the cloud — if it was
         # cleaned up mid-session, re-create it from the saved bytes instead of failing with "Could
         # not find the TLS certificate file" and forcing an unnecessary re-login (#64).
@@ -240,7 +255,8 @@ class LeapmotorMateClient:
             session_share.ensure_account_cert(self._api)
         except Exception:  # noqa: BLE001
             pass
-        raw = self._raw_status()
+        vehicle = vehicle or self._vehicle
+        raw = self._raw_status(vehicle)
         data = (raw or {}).get("data") or {}
         sig = data.get("signal")
         if not sig:
@@ -267,7 +283,7 @@ class LeapmotorMateClient:
             _soc_raw = sig.get("1204")
         if _soc_raw is None or (float(_soc_raw or 0) == 0 and float(sig.get("3260") or 0) > 5):
             raise EmptyStatusError("vehicle status carries no usable SoC (partial/glitch read)")
-        vd = _parse_signal(self._vehicle.vin, sig)
+        vd = _parse_signal(vehicle.vin, sig)
         vd.raw_signals = sig   # full dict for research-mode full-PID logging (ignored in normal builds)
         # The configured charge limit (max-charge SoC) lives in the config block of this SAME raw
         # status — not in the signal dict — so capture it here, free of any extra cloud call, for
