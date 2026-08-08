@@ -296,7 +296,24 @@
       </div>
       {% if vehicle %}
       <div class="mt-3 flex items-center justify-between gap-2">
+        {% if vehicles and vehicles|length > 1 %}
+        {# Two cars or more: the model badge becomes the picker. With one car the plain badge below
+           renders instead, byte-identical to what every install has always shown. Choosing reloads
+           the page because the choice moves every scoped read at once, not one panel. #}
+        <select title="{{ t('switch_vehicle') }}" aria-label="{{ t('switch_vehicle') }}"
+                name="vin" hx-post="api/select-vehicle" hx-trigger="change" hx-swap="none"
+                class="text-xs text-slate-300 bg-slate-700/60 border border-slate-600 rounded-md
+                       px-2 py-1 max-w-[9.5rem] truncate hover:border-brand focus:border-brand
+                       focus:outline-none">
+          {% for v in vehicles %}
+          <option value="{{ v.vin }}" {% if v.id == vehicle.id %}selected{% endif %}>
+            {{ v.car_type }} {{ v.year or '' }}
+          </option>
+          {% endfor %}
+        </select>
+        {% else %}
         <span class="text-xs text-slate-400">{{ vehicle.car_type }} {{ vehicle.year or '' }}</span>
+        {% endif %}
         <button type="button" title="{{ t('refresh_help') }}"
                 class="inline-flex items-center gap-1 rounded-md border border-slate-600 px-2 py-1 text-[11px] font-medium text-slate-300 hover:border-brand hover:text-white disabled:opacity-50"
                 hx-post="api/refresh" hx-swap="none" hx-disabled-elt="this">

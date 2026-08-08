@@ -426,7 +426,11 @@ def _ctx(**kwargs):
     # Ability-gated command buttons: hide those the car doesn't declare it can do (e.g. the T03
     # never declares code 53 = unlock charge cable — #142). None abilities → shown (never on a guess).
     _abilities = capability_profile.parse_abilities((_veh or {}).get("abilities"))
+    # The sidebar car picker. One car — everyone, today — means a list of one, and base.html then
+    # renders exactly the badge it has always rendered; the picker only exists from the second car.
+    _vehicles = db_reader.get_vehicles()
     return {**kwargs, "lang": lang, "t": t, "version": MATE_VERSION, "demo": _IS_DEMO,
+            "vehicles": _vehicles,
             # Inside the Mac/Windows app there are TWO versions that matter: Mate itself, which
             # updates on its own, and the app shell around it, which almost never does. When a
             # user reports "it stopped updating", only the second number distinguishes a shell too
@@ -3577,6 +3581,21 @@ async def set_timezone(request: Request):
     UTC — so a page reload (HX-Refresh) re-renders every timestamp in the chosen zone (#145)."""
     form = await request.form()
     db_reader.set_timezone(form.get("timezone", ""))
+    return Response(status_code=204, headers={"HX-Refresh": "true"})
+
+
+@app.post("/api/select-vehicle")
+async def select_vehicle(request: Request):
+    """Switch which car the whole interface is showing.
+
+    Every scoped read resolves through `_current_vehicle_id()`, so ONE setting moves the trips, the
+    charges, the map, the statistics, the model badge and the ability-gated buttons together —
+    which is why this reloads the page rather than swapping a panel. A VIN we do not have is
+    refused (204 with no refresh) instead of blanking the interface.
+    """
+    form = await request.form()
+    if not db_reader.set_active_vehicle(str(form.get("vin", "") or "")):
+        return Response(status_code=204)
     return Response(status_code=204, headers={"HX-Refresh": "true"})
 
 

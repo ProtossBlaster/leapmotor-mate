@@ -789,6 +789,7 @@
     "merge_btn": "Samenvoegen",
     "merge_join": "Deze samenvoegen",
     "refresh_now": "Vernieuwen",
+    "switch_vehicle": "Actieve auto",
     "refresh_help": "Haal de huidige toestand van de auto nu op in plaats van te wachten op de volgende uitlezing over ~30 s. Mate leest passief mee — een slapende auto wordt er niet door gewekt.",
     "merge_none": "Geen samen te voegen ritten bij deze tussenpoos.",
     "merge_existing": "Samengevoegde ritten",

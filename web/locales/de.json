@@ -789,6 +789,7 @@
     "merge_btn": "Zusammenführen",
     "merge_join": "Verbinden",
     "refresh_now": "Aktualisieren",
+    "switch_vehicle": "Aktives Fahrzeug",
     "refresh_help": "Holt den aktuellen Fahrzeugzustand sofort, statt auf das nächste Update (~30s) zu warten. Mate liest passiv – es weckt kein schlafendes Fahrzeug.",
     "merge_none": "Keine zusammenführbaren Fahrten bei dieser Pause.",
     "merge_existing": "Zusammengeführte Fahrten",

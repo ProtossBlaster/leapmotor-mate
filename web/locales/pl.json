@@ -789,6 +789,7 @@
     "merge_btn": "Połącz",
     "merge_join": "Połącz te",
     "refresh_now": "Odśwież",
+    "switch_vehicle": "Aktywny samochód",
     "refresh_help": "Pobierz bieżący stan samochodu teraz zamiast czekać na następną aktualizację (~30s). Mate odczytuje pasywnie — nie wybudzi śpiącego samochodu.",
     "merge_none": "Brak tras do połączenia przy tej przerwie.",
     "merge_existing": "Połączone trasy",

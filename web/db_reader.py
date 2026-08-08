@@ -479,17 +479,51 @@ def _get():
     return _conn(DB_PATH)
 
 
+ACTIVE_VEHICLE_SETTING = "active_vehicle_vin"
+
+
 def _current_vehicle_id():
-    """The vehicle every read is scoped to (multi-car prep). Single-car = the only/first vehicle;
-    the multi-car step swaps this for the user-selected VIN. Returns None only before the first
-    vehicle is registered — the `vehicle_id = COALESCE(?, vehicle_id)` scope then no-ops (matches
-    every row), so a fresh/vehicle-less DB behaves exactly as before. On a single car, filtering by
-    its one id is a no-op too, so this whole pass is invisible until a second car exists."""
+    """The vehicle every read is scoped to: the one picked in the sidebar, else the first.
+
+    🔑 One statement does both jobs, and that matters because it runs around sixty times per page
+    render. `vin <> <chosen>` scores 0 for the picked car and 1 for every other, so the choice
+    sorts first; ties — nobody has chosen, or the choice names a car that is no longer on the
+    account — fall through to `id`, which is exactly the old first-vehicle behaviour. So the picker
+    cannot strand the interface on a car that is not there, and an install with one car is
+    untouched: filtering by its single id matches every row it has.
+
+    Returns None only before the first vehicle is registered; `vehicle_id = COALESCE(?, vehicle_id)`
+    then matches everything, so a fresh or minimal database behaves as it always did.
+    """
     try:
-        row = _get().execute("SELECT id FROM vehicles ORDER BY id LIMIT 1").fetchone()
+        row = _get().execute(
+            "SELECT id FROM vehicles ORDER BY vin <> COALESCE("
+            "  (SELECT value FROM settings WHERE key = ?), ''), id LIMIT 1",
+            (ACTIVE_VEHICLE_SETTING,)).fetchone()
     except sqlite3.OperationalError:      # a partial/minimal DB with no vehicles table → don't scope
         return None
     return row["id"] if row else None
+
+
+def get_vehicles() -> list[dict]:
+    """Every registered car, oldest first — what the picker lists. Empty before setup."""
+    try:
+        return [dict(r) for r in _get().execute(
+            "SELECT * FROM vehicles ORDER BY id").fetchall()]
+    except sqlite3.OperationalError:
+        return []
+
+
+def set_active_vehicle(vin: str) -> bool:
+    """Point every scoped read at `vin`. A VIN we do not have is refused rather than stored, so a
+    stale bookmark or a hand-made request cannot blank the interface. Returns whether it changed."""
+    try:
+        if not _get().execute("SELECT 1 FROM vehicles WHERE vin = ?", (vin,)).fetchone():
+            return False
+    except sqlite3.OperationalError:
+        return False
+    set_setting(ACTIVE_VEHICLE_SETTING, vin)
+    return True
 
 
 # How many polls a car has to have answered before "it has never sent this" is a statement about
@@ -6672,8 +6706,27 @@ def get_monthly_report(month: Optional[str] = None) -> dict:
 # ── Battery health (SoH) ───────────────────────────────────────────────────────
 
 def get_battery_capacity_kwh() -> float:
-    """Configured (nominal) usable battery capacity, set per-model at first run and
-    overridable in Settings. Used as the 100%-SoC reference for the health estimate."""
+    """Configured (nominal) usable battery capacity of the SELECTED car, set per-model at first run
+    and overridable in Settings. The 100%-SoC reference for the health estimate, the energy balance
+    and everything else that turns a percentage into kilowatt-hours.
+
+    🔴 The per-car column has existed since v2.2.0, but only the WRITE side used it: the poller
+    computed each car's energies from its own `vehicles.capacity_kwh` while this read — every
+    display, every balance — went on returning the one global setting. Single-car that is the same
+    number twice. With the picker it is not: choosing a T03 would have shown its 36 kWh pack
+    reasoned about as a B10's 65, an 80% overstatement on every figure derived from a percentage.
+    Found by a test written for the picker, not by anybody looking at this function.
+
+    The global setting stays the fallback — it is what a database written before v2.2.0 has, and
+    what a minimal/schema-less one falls back to."""
+    try:
+        row = _get().execute(
+            "SELECT capacity_kwh FROM vehicles WHERE id = COALESCE(?, id) ORDER BY id LIMIT 1",
+            (_current_vehicle_id(),)).fetchone()
+        if row and row["capacity_kwh"]:
+            return float(row["capacity_kwh"])
+    except sqlite3.Error:
+        pass
     try:
         return float(get_setting("battery_capacity_kwh", "65.0"))
     except (TypeError, ValueError):

@@ -789,6 +789,7 @@
     "merge_btn": "Unisci",
     "merge_join": "Unisci questi",
     "refresh_now": "Aggiorna",
+    "switch_vehicle": "Auto attiva",
     "refresh_help": "Recupera ora lo stato attuale dell'auto invece di aspettare il prossimo aggiornamento (~30s). Mate legge passivamente: non sveglia un'auto addormentata.",
     "merge_none": "Nessun viaggio unibile con questo gap.",
     "merge_existing": "Viaggi uniti",
