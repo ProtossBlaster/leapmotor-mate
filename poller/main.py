@@ -567,7 +567,10 @@ def _mqtt_tick(db, client, data, service):
         service.on_command = lambda vin, cmd, val: _handle_mqtt_command(client, service, db, vin, cmd, val)
         service.on_collision = lambda other, other_beta, vin: _handle_mqtt_collision(db, other, other_beta, vin)
     try:
-        service.publish_status(data)
+        # #144 — which temperature sensors this car has never reported, so the bridge can drop the
+        # entities instead of leaving them at `unknown` for ever. Measured here, where the log is:
+        # the bridge takes no DB handle, and a query per poll is nothing beside a cloud round-trip.
+        service.publish_status(data, absent_temps=db.never_reported_temps())
     except Exception as exc:  # noqa: BLE001
         log.error("MQTT: publish failed: %s", exc)
     return service

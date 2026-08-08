@@ -57,6 +57,11 @@ class MqttService:
         self.config_sig = None
         self._own_vins = set()          # VINs WE publish for — a command for any other is refused
         self._discovery_sent = False
+        # #144 — temperature topic keys this car has never reported, and what we last told HA about
+        # them. `None` (not an empty set) for the second one: "nothing published yet" has to be
+        # distinguishable from "published, and nothing was absent", or the first discovery is skipped.
+        self.absent_temps: set = set()
+        self._temps_published = None
         self.last_climate_on = None     # latest polled A/C state, for the "A/C Off" toggle guard
         # V2L live state: the idle baseline current (I0) frozen at session start, the running session
         # energy, and the previous-poll idle current that seeds I0. Mirrors the net-power math that
@@ -139,8 +144,16 @@ class MqttService:
 
     # ── Publishing ────────────────────────────────────────────────────────────
 
-    def publish_status(self, data):
+    def publish_status(self, data, absent_temps=None):
+        """One poll's state. `absent_temps` is the set of temperature TOPIC keys this car has never
+        reported (#144) — measured by the caller from the log, so the bridge stays free of DB access.
+
+        None is "no new measurement", NOT "nothing is absent": the previous answer stands, and before
+        the first one that is the empty set, so a caller that never measures shows every entity. An
+        absent answer must never delete an entity. → [[signal-absent-is-not-signal-zero]]"""
         self.last_climate_on = data.climate_on  # track for the "A/C Off" command guard
+        if absent_temps is not None:
+            self.absent_temps = set(absent_temps)
         if not self.client:
             if not self.connect():
                 return
@@ -149,7 +162,35 @@ class MqttService:
         if self.discovery_enabled and not self._discovery_sent:
             self.publish_discovery(data)
             self._discovery_sent = True
+        elif self.discovery_enabled and self.absent_temps != self._temps_published:
+            # ⚠️ Discovery runs ONCE per connection, and this answer CHANGES: it needs 50 polls of
+            # evidence before it says anything, so the first pass after a fresh install always shows
+            # all three and the removal is due ~25 minutes later. Without this the entity would only
+            # go away at the next reconnect — and a sensor that starts working would never come back.
+            self._publish_temp_entities(data)
         self._publish_sensors(data)
+
+    # The three temperature entities and their HA config, shared by discovery and the re-check above
+    # so one list cannot describe them differently in two places.
+    _TEMP_ENTITIES = (("inside_temp", "Inside Temp"),
+                      ("ac_target_temp", "AC Target"),
+                      ("battery_temp", "Battery Temp"))
+
+    def _publish_temp_entities(self, data):
+        """(Re)publish or clear the three temperature configs for this car. A retained EMPTY config
+        is how HA is told to drop an entity — the same mechanism the seat entities use (v2.6.1)."""
+        vin = data.vin
+        device_id = f"{self.topic_prefix}_mate_{vin.lower()}"
+        for key, name in self._TEMP_ENTITIES:
+            topic = f"{_DISC}/sensor/{device_id}/{key}/config"
+            if key in self.absent_temps:
+                self.client.publish(topic, "", retain=True)
+                continue
+            self.client.publish(topic, json.dumps(
+                {"name": name, "state_topic": f"{self.topic_prefix}/{vin}/{key}",
+                 "unit_of_measurement": "°C", "device_class": "temperature",
+                 "unique_id": f"{device_id}_{key}", "device": self._device(vin)}), retain=True)
+        self._temps_published = set(self.absent_temps)
 
     def _v2l_live(self, data):
         """Live V2L numbers for MQTT: NET discharge power (gross minus the idle baseline I0 frozen at
@@ -315,20 +356,26 @@ class MqttService:
             v = "" if value is None else str(value)
         self.client.publish(f"{self.topic_prefix}/{vin}/{key}", v, retain=True)
 
+    def _device(self, vin):
+        """The HA device this car's entities hang off. Extracted so the temperature re-check can
+        rebuild the identical descriptor — a second copy that drifted would create a second device.
+
+        Scoped to the topic prefix, so a second instance on a different prefix (e.g. a test poller
+        alongside the production add-on, same car/VIN) creates a SEPARATE device instead of fighting
+        over the same discovery configs and entities. The default prefix "leapmotor" yields the exact
+        same id as before → existing installs are completely unaffected."""
+        device_id = f"{self.topic_prefix}_mate_{vin.lower()}"
+        name = f"Leapmotor Mate {vin[-6:]}"
+        if self.topic_prefix != "leapmotor":
+            name += f" ({self.topic_prefix})"
+        return {"identifiers": [device_id], "name": name,
+                "manufacturer": "Leapmotor", "model": "Vehicle", "sw_version": "Mate"}
+
     def publish_discovery(self, data):
         vin = data.vin
         prefix = self.topic_prefix
-        # Scope the HA device to the topic prefix, so a second instance on a different
-        # prefix (e.g. a test poller alongside the production add-on, same car/VIN)
-        # creates a SEPARATE device instead of fighting over the same discovery configs
-        # and entities. The default prefix "leapmotor" yields the exact same id as
-        # before → existing installs are completely unaffected.
         device_id = f"{prefix}_mate_{vin.lower()}"
-        name = f"Leapmotor Mate {vin[-6:]}"
-        if prefix != "leapmotor":
-            name += f" ({prefix})"
-        device = {"identifiers": [device_id], "name": name,
-                  "manufacturer": "Leapmotor", "model": "Vehicle", "sw_version": "Mate"}
+        device = self._device(vin)
 
         def cfg(component, key, conf):
             conf.update({"unique_id": f"{device_id}_{key}", "device": device})
@@ -340,9 +387,6 @@ class MqttService:
             ("range", "Range", {"unit": "km", "icon": "mdi:map-marker-distance"}),
             ("odometer", "Odometer", {"dc": "distance", "unit": "km", "icon": "mdi:counter"}),
             ("speed", "Speed", {"dc": "speed", "unit": "km/h"}),
-            ("inside_temp", "Inside Temp", {"dc": "temperature", "unit": "°C"}),
-            ("ac_target_temp", "AC Target", {"dc": "temperature", "unit": "°C"}),
-            ("battery_temp", "Battery Temp", {"dc": "temperature", "unit": "°C"}),
             ("charge_power", "Charge Power", {"dc": "power", "unit": "kW"}),
             ("charge_voltage", "Charge Voltage", {"dc": "voltage", "unit": "V"}),
             ("charge_current", "Charge Current", {"dc": "current", "unit": "A"}),
@@ -371,6 +415,11 @@ class MqttService:
             if "icon" in extra: c["icon"] = extra["icon"]
             if "tpl" in extra: c["value_template"] = extra["tpl"]
             cfg("sensor", key, c)
+
+        # The three temperatures live in their own pass because they are the only entities gated on a
+        # MEASUREMENT that keeps changing (#144): a car that has never once sent one does not get the
+        # entity, and publish_status re-runs this the moment that answer moves.
+        self._publish_temp_entities(data)
 
         # Comfort STATE sensors — read-only, shown only where they work on THIS car (the B10
         # reports these even though the matching remote commands are broken). A confirmed-broken

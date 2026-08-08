@@ -48,6 +48,16 @@ _SIGN_SAMPLE = 400
 _SIGN_MIN_PLACES = 20
 _SIGN_MAJORITY = 0.9
 
+# #144 — the temperature sensors a car can legitimately not have, MQTT topic key → positions column.
+# Keyed by TOPIC because these names are the HA entity ids that already exist on people's installs.
+# web/db_reader.py holds the same three columns under the WEB's key names; a test ties the two
+# together, because two copies of a rule are how the page and Home Assistant come to disagree.
+ABSENT_TEMP_COLUMNS = {"inside_temp": "inside_temp",
+                       "battery_temp": "battery_min_temp",
+                       "ac_target_temp": "climate_target_temp"}
+ABSENT_TEMP_MIN_POLLS = 50    # below this, "never seen" describes the install's age, not the car
+ABSENT_TEMP_WINDOW = 500      # how many recent polls the question is asked over
+
 # The OTHER way a counter lies: it stops. @riri19 (#215) traced a session where his Tuya energy
 # sensor froze for 2h18 while the car went on charging at 6.9 kW — 16.9 kWh that the meter never
 # counted, so the charge was billed on 22.1 kWh instead of 38.9. A rise that is too SMALL always
@@ -619,6 +629,39 @@ class Database:
                if vehicle_id is not None else
                self._conn.execute("SELECT car_type FROM vehicles ORDER BY id LIMIT 1").fetchone())
         return (row["car_type"] if row and row["car_type"] else "")
+
+    def never_reported_temps(self, vehicle_id: Optional[int] = None) -> set:
+        """Which temperature sensors THIS car has never once reported — keyed by MQTT TOPIC (#144).
+
+        The same measurement the status card hides its rows on, asked here because @staffhotel-beep's
+        discussion is titled *"Unsupported entities for T03 model"*: the complaint is about the Home
+        Assistant entities, and hiding a row in the web UI while leaving an entity that reads
+        `unknown` for ever answers half of it. The seat entities went the same way in v2.6.1 — a
+        retained empty config, and HA drops them.
+
+        🔑 On the DATA, not on the model: `car_type` gates the seats because the CAR declares those
+        abilities, but nothing declares a temperature sensor. "Never in the last 500 polls" is a
+        measurement about this car; "T03s have no cabin sensor" would be a guess about every T03
+        from one owner's. → [[a-feature-switch-must-gate-the-data]]
+
+        ⚠️ Keys are the MQTT topic names, which differ from the web's (`ac_target_temp` here,
+        `ac_target` there) because they are the entity ids HA already has. The two are held to the
+        same three COLUMNS by a test — that is the only thing stopping them from drifting apart.
+        """
+        cols = ", ".join(f"SUM({c} IS NOT NULL) AS {k}" for k, c in ABSENT_TEMP_COLUMNS.items())
+        try:
+            row = self._conn.execute(
+                f"SELECT COUNT(*) AS n, {cols} FROM ("
+                f"  SELECT {', '.join(ABSENT_TEMP_COLUMNS.values())} FROM positions"
+                "   WHERE vehicle_id = COALESCE(?, vehicle_id) ORDER BY id DESC LIMIT ?)",
+                (vehicle_id, ABSENT_TEMP_WINDOW)).fetchone()
+        except sqlite3.Error:
+            return set()
+        # Below the floor the answer is about how new the install is, not about the car. Returning
+        # an empty set there is what keeps a fresh install from removing entities that work.
+        if not row or int(row["n"] or 0) < ABSENT_TEMP_MIN_POLLS:
+            return set()
+        return {k for k in ABSENT_TEMP_COLUMNS if not int(row[k] or 0)}
 
     def set_battery_capacity(self, kwh: float) -> None:
         self.set_setting("battery_capacity_kwh", str(kwh))
