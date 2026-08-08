@@ -247,6 +247,27 @@ Weiter unten finden Sie Ministatistiken und einen **Indikator für die „Fahrze
 🟢/🟡/🔴, ⚪ wenn keine Daten vorliegen): Er fasst zusammen, wie zuverlässig das Auto auf die zuletzt gesendeten
 Befehle reagiert hat.
 
+#### Die drei Temperaturen: Innenraum, A/C-Ziel, Batterie
+Nicht jeder Leapmotor sendet alle drei. Mate unterscheidet **drei verschiedene Situationen**, denn sie
+zu verwechseln erzeugt absurde Werte:
+
+- **der Sensor ist vorhanden, dieses Update hat ihn aber nicht mitgebracht** → die Zeile bleibt und
+  zeigt **„—"**;
+- **die Null ist ein echter Messwert** (ein Batteriepaket tatsächlich bei 0 °C, im Winter) → Mate zeigt
+  **0 °C**, denn das ist der Messwert, auf den es am meisten ankommt;
+- **das Auto sendet diesen Sensor nie** → die Zeile wird **gar nicht angezeigt**, und die zugehörige
+  Home-Assistant-Entität wird **entfernt**.
+
+Der letzte Fall ist **gemessen, nicht aus dem Modell abgeleitet**: Mate sagt es erst nach etwa einer
+halben Stunde Updates, in denen dieser Wert nie eingetroffen ist — eine frische Installation zeigt also
+alle Zeilen, und wenn ein Sensor zu antworten beginnt, **kommt die Zeile (und die Entität) von selbst**
+innerhalb weniger Stunden zurück.
+
+Wenn Sie die Temperaturbedingung in **Fahrzeug vorbereiten** nutzen („nur über 25 °C vorkühlen"), löst
+eine **unbekannte** Temperatur die Vorbereitung nicht aus und schreibt das ins Protokoll. Früher galt sie
+als 0 °C, sodass bei einem Auto ohne Innenraumsensor die Bedingung „unter 5 °C" bei **jedem Update, das
+ganze Jahr über** erfüllt war.
+
 ### Fahrten
 **(Menü: Fahrten)** — Die Liste Ihrer Fahrten, eine pro Fahrt. Für jede Fahrt sehen Sie **Strecke, Dauer,
 Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschätzten **Kosten**.
@@ -680,6 +701,12 @@ Sendet die Telemetrie des Autos an ABRP für die Routenplanung in Echtzeit.
 ### MQTT → Home Assistant
 Veröffentlicht den Zustand des Autos (Ladung, Reichweite, Position, Türen, Ladezustand…) als **Entitäten in Home
 Assistant**, mit **Auto-Discovery**. Sie können das Auto auch über die Entitäten von HA **steuern** — einschließlich eines beschreibbaren **Ladelimits** (`number`) zum Einstellen des Ziel-SoC und einer beschreibbaren **Ladeplan**-`text`-Entität, die einen JSON-Plan für Automationen entgegennimmt (`{"start":"23:00","soc":90}` — jedes Feld ist optional, und was Sie weglassen, bleibt unverändert). Zum Klima kommen die **beschreibbare Lüfterstufe** (`number`, 1–7), der **beschreibbare Umluft-Schalter** (Frischluft ↔ Umluft) und ein **Klimamodus**-Sensor (AUTO / Kühlen / Heizen / Lüften) hinzu. Außerdem gibt es drei **schreibgeschützte** V2L-Entitäten: **`V2L Active`** (Binärsensor), **`V2L Power`** (W) und **`V2L Session Energy`** (Wh) sowie einen Binärsensor **`Ready`**, der angeht, sobald das Auto eingeschaltet ist — noch bevor es losfährt, also solange eine Automatisierung überhaupt noch handeln kann.
+
+Entitäten, die **Ihr** Auto nicht unterstützt, bleiben Ihnen nicht: Was das Modell nicht hat (Sitzheizung,
+Lenkrad…), wird gar nicht erst erzeugt, und eine **Temperatur-Entität**, deren Sensor das Auto nie gemeldet
+hat, wird **entfernt** — nicht für immer auf `unknown` stehen gelassen. Die Entfernung kommt, wenn die
+Belege kommen (etwa eine halbe Stunde Updates), ohne Neustart, und wenn der Sensor zu antworten beginnt,
+**kehrt die Entität zurück**.
 
 1. Bereiten Sie einen **MQTT-Broker** vor (üblicherweise das *Mosquitto*-Add-on in Home Assistant).
 2. Aktivieren Sie unter *Einstellungen → MQTT* die Option **MQTT aktivieren** und füllen Sie aus:

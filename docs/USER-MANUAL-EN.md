@@ -246,6 +246,25 @@ resolution — a tiny ~10 W load stays invisible).
 Further down you'll find mini-statistics and a **"Car responsiveness" indicator** (a 🟢/🟡/🔴 dot, ⚪
 if there's no data): it summarizes how well the car has responded to the latest commands sent.
 
+#### The three temperatures: cabin, A/C target, battery
+Not every Leapmotor sends all three. Mate tells **three different situations** apart, because
+confusing them produces absurd numbers:
+
+- **the sensor exists but this update didn't carry it** → the row stays and shows **"—"**;
+- **zero is a real reading** (a battery pack genuinely at 0 °C, in winter) → Mate prints **0 °C**,
+  because that is the reading that matters most;
+- **the car never sends that sensor at all** → the row is **not shown**, and the matching Home
+  Assistant entity is **removed**.
+
+The last case is **measured, not inferred from the model**: Mate only says it after roughly half an
+hour of updates in which that value never once arrived — so a fresh install shows every row, and if a
+sensor starts answering the row (and the entity) **comes back on its own** within a few hours.
+
+If you use the temperature condition in **Prepare vehicle** ("only pre-cool above 25 °C"), an
+**unknown** temperature does not fire the preparation, and says so in the log. It used to count as
+0 °C, so on a car without a cabin sensor the "below 5 °C" condition was satisfied on **every update,
+all year round**.
+
 ### Trips
 **(menu: Trips)** — The list of your drives, one per drive. For each trip you see **distance,
 duration, consumption (kWh/100 km), energy recovered** in braking and the estimated **cost**.
@@ -684,6 +703,11 @@ Sends the car's telemetry to ABRP for real-time trip planning.
 ### MQTT → Home Assistant
 Publishes the car's status (charge, range, position, doors, charge status…) as **entities in Home
 Assistant**, with **auto-discovery**. You can also **command** the car from the HA entities — including a writable **Charge Limit** number to set the target SoC, a writable **Charge Schedule** text entity that takes a JSON plan for automations (`{"start":"23:00","soc":90}` — every key optional, and anything you omit keeps its current value), a writable **Fan Level** number (1–7) and a writable **Recirculation** switch, plus a **Climate Mode** sensor (AUTO / Cool / Heat / Vent). The published entities also include three read-only V2L ones: **`V2L Active`** (binary sensor), **`V2L Power`** (W) and **`V2L Session Energy`** (Wh), and a **`Ready`** binary sensor that turns on the moment the car is powered up — before it moves, which is when an automation still has time to act.
+
+Entities **your** car doesn't support aren't left on your hands: the ones the model lacks (heated seats,
+steering wheel…) are never created, and a **temperature entity** whose sensor the car has never reported
+is **removed** — not left on `unknown` for ever. The removal arrives when the evidence does (about half
+an hour of updates), with no restart needed, and if the sensor starts answering the entity **comes back**.
 
 1. Get an **MQTT broker** ready (usually the *Mosquitto* add-on in Home Assistant).
 2. In *Settings → MQTT*, turn on **Enabled** and fill in:

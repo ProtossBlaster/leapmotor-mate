@@ -3,6 +3,46 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.9.1] — 2026-08-08
+
+**A temperature the car never sends is absent, not zero degrees — and its Home Assistant entity goes
+with it.**
+
+### Fixed
+
+- 🌡️ **A sensor the car does not have read 0 °C.** @staffhotel-beep (#144) on a European T03: the
+  cabin and battery temperatures had been empty all summer. Mate read the three temperature signals
+  as *"the value, or zero"*, so a signal the car never sends became **0.0** — and in a week at 40 °C
+  that number is not ambiguous, it is absurd. It did not stay on the page either: it went to **A
+  Better Route Planner** as a real cabin reading, and to the **Prepare vehicle** temperature
+  condition, where *"only pre-heat below 5 °C"* was therefore satisfied on **every poll, all year
+  round**, on any car without that sensor. Silence is now silence; an unknown temperature does not
+  fire the automation and says so in the log.
+- 🌡️ **A real 0 °C was thrown away.** The mirror of the same defect: the A/C-target and battery rows
+  decided by truthiness, so a battery pack genuinely at **0.0 °C** — the one reading its owner is
+  watching for in winter — printed "—". All three rows now tell absent from zero.
+- 🙈 **A row that says "—" for ever still promises a number.** A temperature sensor this car has
+  **never once reported** is no longer shown at all. Measured, not guessed from the model: it takes
+  50 polls with nothing in them before Mate says anything, asked over the recent window — so a fresh
+  install shows every row, and a sensor that starts answering is back within hours. With rows hidden
+  the half-width grid was left open, so the odometer sat alone in a narrow column with its value
+  wrapped onto two lines; it now takes the full width exactly when the count would be odd.
+- 🏠 **…and the Home Assistant entity is removed too.** The discussion is titled *"Unsupported
+  entities for T03 model"* — the complaint was about the entities, and hiding a row in the web UI
+  while leaving a sensor stuck on `unknown` answered the other half. A temperature entity whose
+  sensor the car never reports is now dropped by the same mechanism the model-absent comfort entities
+  have used since v2.6.1 (a retained empty discovery config). Re-checked on every poll rather than
+  only at discovery, because the answer needs 50 polls of evidence and discovery runs once per
+  connection: the removal lands when the evidence does, without a restart, and the entity returns if
+  the readings do.
+- 🔍 **The diagnostics bundle can answer this next time.** It now counts each temperature over the
+  retained polls and prints `cabin NEVER (0 of 88000) — the car does not send this signal`. The
+  bundle @staffhotel-beep was asked for could not answer the question it was asked for: 77 000 lines,
+  four mentions of "temp", not one of them a reading.
+
+Thanks to **@staffhotel-beep** for the report, the bundle, and the discussion title that turned out
+to name the half that had been missed.
+
 ## [3.9.0] — 2026-08-08
 
 **Charges can carry kilometres, and the cost per 100 km stops mixing two different periods.**

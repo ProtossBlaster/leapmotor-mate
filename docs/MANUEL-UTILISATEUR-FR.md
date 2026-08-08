@@ -257,6 +257,25 @@ avec une barre 0–3500 W — et l'**énergie soutirée durant la session** ; il
 sur P + un appareil branché), pas depuis Mate. Il est précis à partir d'environ **42 W** (la résolution du
 capteur de courant de la voiture — une petite charge de ~10 W reste invisible).
 
+#### Les trois températures : habitacle, cible A/C, batterie
+Toutes les Leapmotor n'envoient pas les trois. Mate distingue **trois situations différentes**, car les
+confondre produit des valeurs absurdes :
+
+- **le capteur existe mais cette mise à jour ne l'a pas apporté** → la ligne reste et affiche **« — »** ;
+- **le zéro est une vraie mesure** (une batterie réellement à 0 °C, en hiver) → Mate affiche **0 °C**, car
+  c'est la mesure qui compte le plus ;
+- **la voiture n'envoie jamais ce capteur** → la ligne **n'est pas affichée du tout**, et l'entité
+  correspondante dans Home Assistant est **supprimée**.
+
+Le dernier cas est **mesuré, pas déduit du modèle** : Mate ne l'affirme qu'après environ une demi-heure de
+mises à jour où cette valeur n'est jamais arrivée — une installation neuve affiche donc toutes les lignes,
+et si un capteur se met à répondre, la ligne (et l'entité) **revient d'elle-même** en quelques heures.
+
+Si vous utilisez la condition de température dans **Préparer le véhicule** (« pré-refroidir uniquement
+au-dessus de 25 °C »), une température **inconnue** ne déclenche pas la préparation et l'écrit dans le
+journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habitacle, la condition
+« en dessous de 5 °C » était donc satisfaite à **chaque mise à jour, toute l'année**.
+
 ### Trajets
 **(menu : Trajets)** — La liste de vos déplacements, un par conduite. Pour chaque trajet, vous voyez
 **distance, durée, consommation (kWh/100 km), énergie récupérée** au freinage et le **coût** estimé.
@@ -706,6 +725,12 @@ Envoie la télémétrie de la voiture à ABRP pour la planification d'itinérair
 ### MQTT → Home Assistant
 Publie l'état de la voiture (charge, autonomie, position, portes, état de charge…) sous forme d'**entités dans
 Home Assistant**, avec **auto-discovery**. Vous pouvez aussi **commander** la voiture depuis les entités de HA — y compris une **limite de charge** (`number` modifiable) pour régler le SoC cible et une entité **Programmation de charge** (`text` modifiable) qui accepte un plan JSON pensé pour les automatisations (`{"start":"23:00","soc":90}` — chaque champ est optionnel, et ce que vous omettez reste inchangé). Les réglages de climatisation sont également exposés : **Vitesse de ventilation** (`number` modifiable, 1–7), **Recyclage** (`switch` modifiable) et **Mode climatisation** (capteur : AUTO / Refroidissement / Chauffage / Ventilation). Trois entités V2L en lecture seule sont aussi publiées : **`V2L Active`** (binary sensor), **`V2L Power`** (W) et **`V2L Session Energy`** (Wh), ainsi qu'un binary sensor **`Ready`** qui s'allume dès que la voiture est sous tension — avant qu'elle ne roule, c'est-à-dire tant qu'une automatisation a encore le temps d'agir.
+
+Les entités que **votre** voiture ne prend pas en charge ne vous restent pas sur les bras : celles que le
+modèle n'a pas (sièges chauffants, volant…) ne sont jamais créées, et une **entité de température** dont le
+capteur n'a jamais été rapporté par la voiture est **supprimée** — pas laissée sur `unknown` pour toujours.
+La suppression arrive quand arrivent les preuves (environ une demi-heure de mises à jour), sans redémarrage,
+et si le capteur se met à répondre l'entité **revient**.
 
 1. Préparez un **broker MQTT** (généralement le module complémentaire *Mosquitto* dans Home Assistant).
 2. Dans *Paramètres → MQTT*, activez **Activé** et renseignez :

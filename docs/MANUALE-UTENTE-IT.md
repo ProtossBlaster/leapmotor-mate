@@ -245,6 +245,25 @@ dall'auto (cambio in P + un dispositivo collegato), non da Mate. È accurato da 
 Più in basso trovi mini-statistiche e un **indicatore di "reattività auto"** (un pallino
 🟢/🟡/🔴, ⚪ se non ci sono dati): riassume quanto l'auto ha risposto agli ultimi comandi inviati.
 
+#### Le tre temperature: abitacolo, target A/C, batteria
+Non tutte le Leapmotor mandano tutte e tre. Mate distingue **tre situazioni diverse**, perché
+confonderle porta a numeri assurdi:
+
+- **il sensore c'è ma questo aggiornamento non l'ha portato** → la riga resta e mostra **«—»**;
+- **lo zero è un dato vero** (un pacco batteria davvero a 0 °C, in inverno) → Mate stampa **0 °C**,
+  perché è la lettura che conta di più;
+- **l'auto non manda quel sensore, mai** → la riga **non viene mostrata affatto**, e la relativa
+  entità in Home Assistant viene **rimossa**.
+
+L'ultimo caso è **misurato, non dedotto dal modello**: Mate lo dichiara solo dopo circa mezz'ora di
+aggiornamenti in cui quel valore non è mai arrivato — così un'installazione appena fatta mostra tutte
+le righe, e se un sensore ricomincia a rispondere la riga (e l'entità) **torna da sola** in poche ore.
+
+Se usi la condizione di temperatura in **Preparazione veicolo** ("pre-raffresca solo sopra i 25 °C"),
+una temperatura **sconosciuta** non fa scattare la preparazione e lo scrive nel registro. Prima
+valeva come 0 °C, quindi su un'auto senza sensore abitacolo la condizione "sotto i 5 °C" era
+soddisfatta **a ogni aggiornamento, tutto l'anno**.
+
 ### Viaggi
 **(menu: Viaggi)** — L'elenco dei tuoi spostamenti, uno per guidata. Per ogni viaggio vedi
 **distanza, durata, consumo (kWh/100 km), energia recuperata** in frenata e il **costo** stimato.
@@ -717,6 +736,12 @@ Ventilazione). Puoi anche **comandare** l'auto dalle entità di HA — incluso u
 (`number` scrivibile) per impostare il SoC target e una **Programmazione ricarica** (`text`
 scrivibile) che accetta un piano in JSON pensato per le automazioni (`{"start":"23:00","soc":90}` —
 ogni campo è opzionale, e quello che ometti resta com'è).
+
+Le entità che la **tua** auto non supporta non ti vengono lasciate addosso: quelle che il modello non
+ha (sedili riscaldati, volante…) non vengono create, e un'**entità di temperatura** il cui sensore
+l'auto non ha mai riportato viene **rimossa** — non lasciata su `unknown` per sempre. La rimozione
+arriva quando arrivano le prove (circa mezz'ora di aggiornamenti), non serve riavviare, e se il
+sensore ricomincia a rispondere l'entità **torna**.
 
 1. Prepara un **broker MQTT** (di solito l'add-on *Mosquitto* in Home Assistant).
 2. In *Impostazioni → MQTT*, attiva **Abilita MQTT** e compila:
