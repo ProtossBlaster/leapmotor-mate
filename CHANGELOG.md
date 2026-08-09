@@ -3,6 +3,36 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.10.3] — 2026-08-09
+
+**BetaTester, range-extender only — one number that answers "plug in here, or just burn petrol?"**
+
+### Added
+
+- ⚖️ **Break-even price per kWh**, on the Statistics page. Asked for by **@ebagnoli**
+  (BetaTester #13): *"the €/kWh cost of electricity at the charger should appear somewhere, so that
+  charging works out cheaper than the range-extender's petrol"*. He charges at home off solar
+  surplus, so his own answer is "always" — the number he needs is for standing in front of a public
+  column with fuel in the tank.
+
+      break-even €/kWh = (€/L × L/100 km with the generator) ÷ (kWh/100 km driving electric)
+
+  On his own history: 15.0 kWh/100 km electric, 5.5 L/100 km on the generator, his own blended pump
+  price of 1.75 €/L → **0.643 €/kWh**. Below that, charge; above it, the petrol is cheaper.
+
+  🔴 **Each rate is measured on its OWN kilometres**, and that is the whole difficulty. Mate already
+  publishes a kWh/100 km and an L/100 km side by side — both divided by the *whole* distance, which
+  is exactly right for "what did the driving cost me" and exactly wrong here. Reusing them would
+  have dragged the petrol figure down by every electric kilometre and answered a different question
+  under numbers that look like the right ones.
+
+  The price is the blend of **his own refuels**, never a pump price we invented, and the card says
+  nothing at all when a half is missing — no generator kilometres, no refuel, no electric trips.
+  When a side rests on less than 100 km it still answers, and **says so**: on his history the petrol
+  half is 46 km, one trip, and a bare number would have carried none of that.
+
+  In all seven languages, verified on the served page rather than in the files.
+
 ## [3.10.2] — 2026-08-09
 
 **A quiet stretch in the car's reporting made the battery look older than it is — and a parked

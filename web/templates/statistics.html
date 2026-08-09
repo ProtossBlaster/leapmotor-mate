@@ -140,6 +140,36 @@
 </div>
 {% endif %}
 
+{# REEV only — the one number that answers "should I plug in here, or just burn petrol?"
+   (@ebagnoli, beta #13). Both rates are measured on their OWN kilometres — see
+   db_reader.reev_breakeven_kwh_price, and do NOT be tempted to reuse the pair above: those are
+   divided by the whole distance, which answers a different question. #}
+{% if totals.reev_breakeven %}
+<div class="card mb-6">
+  <div class="stat-label">{{ t('stats_breakeven_label') }}</div>
+  <div class="flex items-baseline gap-1 flex-wrap">
+    <span class="stat-value text-emerald-400">{{ totals.reev_breakeven.breakeven_kwh | dec(3) }}</span>
+    <span class="text-slate-400 text-sm">{{ currency.symbol }}/kWh</span>
+  </div>
+  <div class="text-slate-500 text-xs mt-1">
+    <span class="text-sky-400/80">{{ totals.reev_breakeven.elec_kwh_100km | nice }} kWh/100km</span>
+    {{ t('stats_breakeven_electric') }}
+    · <span class="text-amber-400/80">{{ totals.reev_breakeven.fuel_l_100km | nice }} L/100km</span>
+    {{ t('stats_breakeven_generator') }}
+    · {{ totals.reev_breakeven.fuel_price_l | dec(3) }} {{ currency.symbol }}/L
+  </div>
+  {# What each half stands on. @ebagnoli's petrol side is 46 km — one trip — and a bare number
+     would carry none of that. → [[feedback-verified-vs-inferred]] #}
+  <div class="text-slate-600 text-xs mt-1">
+    {{ totals.reev_breakeven.elec_km | dist(0) }} {{ t('stats_breakeven_electric') }}
+    · {{ totals.reev_breakeven.fuel_km | dist(0) }} {{ t('stats_breakeven_generator') }}
+    {% if totals.reev_breakeven.thin %}
+    · <span class="text-amber-500">{{ t('stats_breakeven_thin') }}</span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 {# What 100 km have COST: every euro spent, over every kilometre driven. The range-extender version
    was written by @michapr on his own fork (30/07/26) and never sent as a pull request; it priced
    the CONSUMPTION, and so did the first version of this, until Silvio cut it short on 05/08 —

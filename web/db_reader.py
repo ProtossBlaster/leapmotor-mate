@@ -3852,6 +3852,87 @@ def reev_total_consumption() -> Optional[dict]:
     }
 
 
+_BREAKEVEN_THIN_KM = 100.0   # a side resting on less than this is shown, but declared as thin
+
+
+def reev_breakeven_kwh_price() -> Optional[dict]:
+    """REEV — above which €/kWh does charging stop being cheaper than the generator?
+
+    @ebagnoli's question (beta #13): *«dovrebbe apparire da qualche parte il costo al KWh in Euro
+    dell'elettricità alla colonnina affinché la ricarica elettrica risulti conveniente rispetto alla
+    benzina»*. He charges at home off solar surplus, so his own answer is "always" — the number he
+    wants is for standing in front of a public column with a tank in the car.
+
+        break-even €/kWh = (€/L × L/100km WITH THE GENERATOR) ÷ (kWh/100km DRIVING ELECTRIC)
+
+    🔴 The two rates are each measured on their OWN kilometres, and that is the whole difficulty.
+    `reev_total_consumption` already publishes a kWh/100km and an L/100km — both divided by the
+    WHOLE distance, which is exactly right for "what did the driving cost me" and exactly wrong
+    here. Reusing them would drag the petrol rate down by every electric kilometre and answer a
+    question nobody asked, under numbers that look like the right ones.
+    → [[feedback-two-numbers-one-word]]
+
+    The electric side comes from trips the generator sat out: on a generator trip the pack is being
+    refilled underneath, so `ec_kwh` there is not a description of electric driving
+    → [[reev-getec-is-battery-not-traction]]. The petrol side is `reev_fuel_summary`'s engine-on
+    figure, already measured over the distance the generator actually drove (@michapr, beta #26).
+    The price is the blend of HIS OWN refuels — never a pump price we made up.
+
+    Returns None rather than a guess when a half is missing: no generator kilometres, no refuel, no
+    electric trips. And when a side rests on less than `_BREAKEVEN_THIN_KM`, the answer still comes
+    but carries `thin` — on @ebagnoli's own history the petrol half is **46 km, one trip**, and a
+    bare number would hide that. → [[feedback-verified-vs-inferred]]
+    """
+    if not is_reev_car():
+        return None
+    fuel = reev_fuel_summary()
+    if not fuel or not fuel.get("engine_l_100km") or not fuel.get("engine_km"):
+        return None                                  # the generator has never driven: nothing to compare
+
+    db = _get()
+    rows = db.execute(
+        "SELECT id, started_at, distance_km, ec_kwh, fuel_start_l, fuel_end_l,"
+        "       fuel_start_pct, fuel_end_pct FROM trips "
+        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
+        "AND merged_into_id IS NULL AND ec_kwh IS NOT NULL AND distance_km > 0",
+        (_current_vehicle_id(),)).fetchall()
+    km = kwh = 0.0
+    trips = 0
+    for r in rows:
+        # Engine-on is read off the TANK, the same test _reev_engine_on applies: a level that fell
+        # during the trip means the generator ran, whichever column carries it.
+        burned = ((r["fuel_start_l"] or 0) - (r["fuel_end_l"] or 0)) if r["fuel_start_l"] is not None else \
+                 ((r["fuel_start_pct"] or 0) - (r["fuel_end_pct"] or 0))
+        if burned > 0:
+            continue                                 # generator trip → its kWh is not electric driving
+        km += r["distance_km"] or 0
+        kwh += r["ec_kwh"] or 0
+        trips += 1
+    if km <= 0.5 or kwh <= 0:
+        return None
+
+    price = fuel_blended_price_at(_current_vehicle_id() or 1, datetime.now(timezone.utc).isoformat())
+    if not price:
+        return None                                  # no refuel of his own → no euro to divide
+
+    elec_100 = kwh / km * 100
+    fuel_100 = fuel["engine_l_100km"]
+    thin = ("fuel" if fuel["engine_km"] < _BREAKEVEN_THIN_KM
+            else "elec" if km < _BREAKEVEN_THIN_KM else None)
+    return {
+        "breakeven_kwh": round(price * fuel_100 / elec_100, 3),
+        "elec_kwh_100km": round(elec_100, 1),
+        "elec_km": round(km, 1),
+        "elec_trips": trips,
+        "fuel_l_100km": round(fuel_100, 1),
+        "fuel_km": fuel["engine_km"],
+        "fuel_price_l": round(price, 3),
+        "petrol_100km": round(price * fuel_100, 2),   # what those 100 km cost on petrol
+        "thin": thin,
+        "thin_km": _BREAKEVEN_THIN_KM,
+    }
+
+
 def reev_actual_spend() -> Optional[dict]:
     """REEV — what was actually BOUGHT, beside the figure derived from the car's own gauges.
 

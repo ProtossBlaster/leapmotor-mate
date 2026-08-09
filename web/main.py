@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.10.2"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.10.3"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1229,6 +1229,11 @@ async def statistics(request: Request):
     # still computed is not a gate at all. REEV stays capability-gated AND beta-only.
     totals["reev_fuel"] = (db_reader.reev_fuel_summary()
                            if (_reev and research.research_enabled()) else None)
+    # …and the one number that answers "plug in here, or just burn petrol?" (@ebagnoli, beta #13).
+    # Same gate as the card above — REEV capability AND the BetaTester build — and gated on the
+    # DATA, not the markup: computing it for a car that must not see it is not a gate.
+    totals["reev_breakeven"] = (db_reader.reev_breakeven_kwh_price()
+                                if (_reev and research.research_enabled()) else None)
     # …and what all of it COST: every euro spent over every kilometre driven (@michapr's card, on
     # Silvio's basis — a cost is the whole cost, not the driving's share of it). The litres burned
     # are passed only so a car with no tank never reads the fuel table.
