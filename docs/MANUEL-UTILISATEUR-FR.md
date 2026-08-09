@@ -256,7 +256,9 @@ et l'état en direct :
 - quand la voiture est **en charge**, une **animation** montre le flux d'énergie ainsi qu'une étiquette avec
   l'estimation du temps « jusqu'à X % » (X = la limite de charge que vous avez définie dans la voiture) ;
 - une étiquette **« Câble branché / Charge terminée »** quand le câble est inséré mais qu'aucune charge active
-  n'est en cours.
+  n'est en cours. À côté, si vous avez défini une **charge programmée**, la plage horaire de la
+  voiture s'affiche (par exemple **« Charge 01:50 – 12:00 »**) : c'est la réponse à « le câble est
+  branché, pourquoi ça ne charge pas ? ».
 
 Plus bas, vous trouvez des mini-statistiques et un **indicateur de « réactivité voiture »** (une pastille
 🟢/🟡/🔴, ⚪ s'il n'y a pas de données) : il résume à quel point la voiture a répondu aux dernières commandes

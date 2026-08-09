@@ -74,7 +74,10 @@ class Recorder:
         restart, crash). If the activity is STILL ongoing, RESUME the open session
         instead of closing it — this avoids fragmenting one physical charge/trip into
         multiple DB records. If it's no longer ongoing, close it (crash recovery)."""
-        is_charging = data.charging_status > 0 or data.plug_connected
+        # Same guard as the state machine: a charge postponed to its programmed window (1149 == 4)
+        # reads as plugged, and must not RESUME a session left open by the previous run — the car
+        # is holding the cable, not charging (#243).
+        is_charging = data.charging_status > 0 or (data.plug_connected and not data.charge_deferred)
         is_driving  = data.gear in ("D", "R", "N") or data.speed_kmh > 1
 
         open_charge = self._db.get_open_charge(self._vehicle_id)

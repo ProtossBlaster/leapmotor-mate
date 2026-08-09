@@ -15,11 +15,15 @@ import types
 from state_machine import StateMachine, State
 
 
-def _data(soc, *, is_reev, plugged=True, gear="P", speed=0.0, charging_status=0):
-    """Minimal VehicleData stand-in — the state machine only reads these fields."""
+def _data(soc, *, is_reev, plugged=True, gear="P", speed=0.0, charging_status=0,
+          deferred=False):
+    """Minimal VehicleData stand-in — the state machine only reads these fields.
+
+    `deferred` mirrors the real field (1149 == 4, cable in with the charge postponed to its
+    programmed window): the state machine consults it before keeping a session open."""
     return types.SimpleNamespace(
         soc=soc, is_reev=is_reev, plug_connected=plugged, gear=gear, speed_kmh=speed,
-        charging_status=charging_status, ac_port_mode=0,
+        charging_status=charging_status, ac_port_mode=0, charge_deferred=deferred,
         fingerprint=lambda: (soc, gear, speed, plugged),
     )
 

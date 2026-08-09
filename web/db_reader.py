@@ -2686,7 +2686,9 @@ def save_fresh_signals(signals: dict) -> None:
         except (TypeError, ValueError):
             pass
         # 0 = unplugged, 5 = the drive-time cable code the REEVs emit while moving (never a
-        # connection). Kept identical to the poller's _is_charging so both readers of 1149 agree.
+        # connection). 4 (charge postponed to the programmed window) is deliberately NOT here: see
+        # the poller's _is_charging — excluding it would drop a scheduled charge whole if the car
+        # keeps reporting 4 once its window opens. Kept identical so both readers of 1149 agree.
         if int(signals.get("1149") or 0) in (0, 5):
             return False
         cur = signals.get("1178"); volt = signals.get("1177"); rem = signals.get("1200")
@@ -2735,7 +2737,10 @@ def save_fresh_signals(signals: dict) -> None:
             # reopened the session on every flicker and shredded one slow AC charge into empty
             # fragments (beta #12/#13) — but this copy never got it and still disagreed with
             # poller/client._is_plugged_in. 5 stays out: that one is the drive-time cable code.
-            return int(conn) in (1, 2, 3)
+            # 4 is the cable connected with the charge DEFERRED to its programmed window — the
+            # state that blanked the cable on the Overview (#243), since it fell into "unplugged"
+            # by exclusion. Charging is judged separately, above: 4 is plugged and NOT charging.
+            return int(conn) in (1, 2, 3, 4)
         except (TypeError, ValueError):
             return False
     plug_connected = _is_plugged()

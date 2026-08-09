@@ -3,6 +3,42 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.10.4] — 2026-08-09
+
+**The charge cable went missing whenever the charge was waiting for its programmed window — and it took the window with it.**
+
+### Fixed
+
+- 🔌 **The Overview drew no cable while the car was plugged in and waiting.** Reported by
+  **@rop12770** (#243, C10): the official Leapmotor app showed the car plugged into a wallbox, Mate
+  showed it standing alone.
+
+  The cause is one number. Mate reads the cable from signal **1149**, and accepted **1, 2 and 3** as
+  connected while rejecting 0 and 5. The car also emits **4** — cable in, charge deliberately
+  postponed to its programmed window — and 4 was in neither list, so it fell into "unplugged" by
+  exclusion.
+
+  Measured on a second car the same evening: enabling the schedule mid-charge stopped the charge and
+  switched the code from 2 to **4**, cable untouched. The frame the cloud then repeated for three and
+  a half hours carried `47 = 1` (AC input present), `1178 = 0.1 A` and a schedule of `01:50–12:00` —
+  and the official app, reading **that same frame**, drew the cable. The information had been in our
+  hands all along.
+
+  🔑 **One cause, two symptoms.** The Overview's charge-window chip — *"Charge 01:50 – 12:00"*, built
+  for **@rop12770** himself back in **#173** — lives inside the "cable connected" branch, so the same
+  unread code had been hiding the very answer he asked us for: *why isn't it charging?*
+
+  ⚠️ **Plugged is not charging.** The cable is what keeps a session OPEN, so counting 4 as connected
+  without more would have left the session that ended at 19:10 running until the window opened at
+  01:50. A charge postponed to its window is now flagged as such, and the two places that turn "the
+  cable is in" into "a charge is running" — the state machine, and the resume-or-close on restart —
+  skip it. Entering a charge was already gated on the charging status, so 4 alone never opens one.
+
+  ⚠️ And 4 is **not** treated as "never charging": that was tried and reverted before shipping. It
+  has only ever been measured at rest, and nobody has watched a car whose window OPENS while the code
+  stays at 4 — assuming it relabels itself would have dropped an entire scheduled charge in silence.
+  The current decides, as it does for every other code.
+
 ## [3.10.3] — 2026-08-09
 
 **BetaTester, range-extender only — one number that answers "plug in here, or just burn petrol?"**

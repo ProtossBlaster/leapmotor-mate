@@ -177,7 +177,14 @@ class StateMachine:
         # are merged — reversible, and it never recomputes a cost.
         #
         # The cable also ends the trip immediately on plug-in (DRIVING branch), before any current flows.
-        is_charging = charge_active or data.plug_connected
+        #
+        # ⚠️ The OR-term is what KEEPS a session open, so a cable that reads connected while the
+        # car is deliberately idle would keep it open for ever. That is exactly 1149 == 4: the
+        # charge postponed to its programmed window. Measured on Silvio's B10 (#243, 09/08/26) —
+        # he enabled the schedule at 19:10 during a charge, the car stopped and switched to 4, and
+        # without this guard the session he ended would have stayed open until the window at 01:50.
+        # Plugged is not charging.
+        is_charging = charge_active or (data.plug_connected and not data.charge_deferred)
         # V2L (bidirectional discharge) is parked activity that changes with the load → poll fast.
         self._v2l_active = getattr(data, "ac_port_mode", 0) == 2
         fp          = data.fingerprint()

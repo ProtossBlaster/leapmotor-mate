@@ -99,6 +99,11 @@ class VehicleData:
     recirculation: bool = False
     climate_mode: int | None = None
 
+    # Cable inserted AND the charge deliberately postponed to the programmed window (1149 == 4).
+    # Kept apart from plug_connected because the two answer different questions: the Overview and
+    # the MQTT sensor want "is the cable in", the session machinery wants "is a charge running".
+    charge_deferred: bool = False
+
     @property
     def v2l_active(self) -> bool:
         """True when the AC port is in V2L / bidirectional-discharge mode (powering an external
@@ -538,8 +543,23 @@ def _is_plugged_in(sig: dict) -> bool:
         # then dropped as a phantom (beta #12/#13). Keep the session whole across the flicker; the
         # motion gate above still bars anything that could read 3 while driving. (5 = the drive-time
         # cable code, deliberately NOT here.)
-        return conn in (1, 2, 3)
+        # 4 = connected, but the charge is DEFERRED to the programmed window: the cable is in and
+        # the car is deliberately not drawing. Measured on Silvio's B10 on 09/08/26 (#243) — he
+        # enabled the schedule mid-charge and the code went 2 → 4 with the cable untouched, while
+        # the official app, reading that same frame, kept drawing the cable. It used to fall into
+        # "unplugged" by exclusion, which is what blanked the cable on the Overview. See
+        # `_is_deferred_charge`: 4 must never be read as charging.
+        return conn in (1, 2, 3, 4)
     return _si(sig, "47") == 1                   # legacy fallback when 1149 is missing
+
+
+def _is_deferred_charge(sig: dict) -> bool:
+    """Cable connected but the charge is waiting for its programmed window (1149 == 4).
+
+    Plugged and charging are two different questions, and this is the state where they part
+    company: every consumer that turns "the cable is in" into "a charge is running" has to skip
+    it, or the session the car just ended stays open until the window opens hours later."""
+    return _si(sig, "1149") == 4
 
 
 def _temp_or_none(raw):
@@ -575,6 +595,11 @@ def _is_charging(sig: dict) -> bool:
     # it: on ebagnoli's C10 (beta #13) 1149 read 5 at 08:30 on 23/07 while the speed frame was
     # still the previous evening's 0 km/h, which opened a 0-minute session — harmless only because
     # it delivered nothing and the phantom guard dropped it.
+    # ⚠️ 4 (charge postponed to the programmed window) is deliberately NOT excluded here, though it
+    # is a "not drawing" code. We have measured 4 only at rest (0.1 A); nobody has watched a car
+    # whose window OPENS while the code stays at 4. Excluding it would then drop the entire
+    # scheduled charge, silently — the worse failure by far. Let the current decide, as it does for
+    # every other code: parked with a real charge current IS a charge, whatever the cable says.
     if _si(sig, "1149") in (None, 0, 5):   # cable not connected → cannot be charging
         return False
     current   = _sf(sig, "1178")
@@ -776,6 +801,7 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
             for k in ("1277", "1278", "1279", "1280", "1281")
         ),
         plug_connected=_is_plugged_in(sig),
+        charge_deferred=_is_deferred_charge(sig),
         remaining_charge_min=int(sig.get("1200") or 0),
         charge_voltage_v=float(sig.get("1177") or 0),
         charge_current_a=float(sig.get("1178") or 0),
