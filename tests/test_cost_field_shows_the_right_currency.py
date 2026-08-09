@@ -124,28 +124,107 @@ def test_every_route_that_renders_one_of_these_hands_it_the_currency():
 
     So the check is not "the three I found": it is every TemplateResponse in main.py naming a
     template that reaches one of them, forever. → [[feedback-gate-a-feature-find-every-copy]]
+
+    🔴 09/08 — this test was written with TWO blind spots, and a real 500 walked through both.
+    The Charges calendar renders the day drawer INLINE when the request carries `open_day`
+    (base.html adds it by itself from the remembered day), so the chain is
+
+        charges_calendar_month.html → charges_calendar_day_content.html → charge_card.html
+
+    · **two levels of include, not one.** The old closure followed exactly one, and its own
+      comment claimed that was "as deep as this tree goes". It wasn't.
+    · **the context was a variable.** `_render_charges_calendar` builds `ctx = {...}` and passes
+      the NAME, so a regex looking for a dict literal inside the call never saw it.
+
+    Hence: closure to a fixed point, and the context read with `ast` — dict literal, `_ctx(...)`
+    call, or a local name assembled above (including `ctx["k"] = …` and `.update({...})`).
+    A shape this cannot read is a FAILURE, not a pass: silence is how the last one got through.
     """
-    import re
-    main = (pathlib.Path(__file__).resolve().parent.parent / "web" / "main.py").read_text()
+    import ast
+    main_py = pathlib.Path(__file__).resolve().parent.parent / "web" / "main.py"
+    tree = ast.parse(main_py.read_text())
 
-    # which templates end up rendering a cost box — following `include` one level, which is as
-    # deep as this tree goes
+    # every template that reaches a cost box, following `include` to a FIXED POINT
     wants = {p.name for p in TEMPLATES.rglob("*.html") if "currency." in p.read_text()}
-    for p in TEMPLATES.rglob("*.html"):
-        body = p.read_text()
-        if any(f'"partials/{w}"' in body or f"'partials/{w}'" in body for w in set(wants)):
-            wants.add(p.name)
+    bodies = {p.name: p.read_text() for p in TEMPLATES.rglob("*.html")}
+    while True:
+        grown = {n for n, b in bodies.items()
+                 if any(f'"partials/{w}"' in b or f"'partials/{w}'" in b for w in wants)}
+        if grown <= wants:
+            break
+        wants |= grown
     assert "charge_card.html" in wants and "charge_type_badge.html" in wants
+    assert "charges_calendar_month.html" in wants, \
+        "the closure stopped short: the calendar reaches charge_card through the day drawer"
 
-    missing = []
-    for m in re.finditer(r"TemplateResponse\((.{0,1600}?)\n(\s*)\}\)", main, re.S):
-        block = m.group(1)
-        name = re.search(r'"((?:partials/)?[\w./-]+\.html)"', block)
-        if not name or pathlib.Path(name.group(1)).name not in wants:
-            continue
-        if '"currency"' not in block:
-            missing.append(name.group(1))
+    def dict_keys(node):
+        return {k.value for k in node.keys if isinstance(k, ast.Constant) and isinstance(k.value, str)}
+
+    defs = {n.name: n for n in ast.walk(tree)
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+
+    def keys_of(ctx, func, depth=0):
+        """What the context handed to TemplateResponse can carry. None = shape not understood."""
+        if isinstance(ctx, ast.Dict):
+            return dict_keys(ctx)
+        if isinstance(ctx, ast.Call):
+            named = getattr(ctx.func, "id", None) or getattr(ctx.func, "attr", None)
+            if named == "_ctx":                            # _ctx(**shared) adds the chrome itself
+                return {"currency"} | {kw.arg for kw in ctx.keywords if kw.arg}
+            # a helper that BUILDS the context (_fuel_ctx) — read what it hands back
+            if named in defs and depth < 3:
+                out, seen = set(), False
+                for n in ast.walk(defs[named]):
+                    if isinstance(n, ast.Return) and n.value is not None:
+                        sub = keys_of(n.value, defs[named], depth + 1)
+                        if sub is None:
+                            return None
+                        out |= sub
+                        seen = True
+                return out if seen else None
+            return None
+        if isinstance(ctx, ast.Name):                      # ctx = {...}; ctx["k"] = …; ctx.update({…})
+            found, seen = set(), False
+            for n in ast.walk(func):
+                if isinstance(n, ast.Assign):
+                    for t in n.targets:
+                        if isinstance(t, ast.Name) and t.id == ctx.id and isinstance(n.value, ast.Dict):
+                            found |= dict_keys(n.value)
+                            seen = True
+                        if (isinstance(t, ast.Subscript) and isinstance(t.value, ast.Name)
+                                and t.value.id == ctx.id and isinstance(t.slice, ast.Constant)):
+                            found.add(t.slice.value)
+                if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                        and n.func.attr == "update" and isinstance(n.func.value, ast.Name)
+                        and n.func.value.id == ctx.id and n.args and isinstance(n.args[0], ast.Dict)):
+                    found |= dict_keys(n.args[0])
+            return found if seen else None
+        return None
+
+    missing, unreadable = [], []
+    for func in [n for n in ast.walk(tree)
+                 if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
+        for call in ast.walk(func):
+            if not (isinstance(call, ast.Call)
+                    and getattr(call.func, "attr", None) == "TemplateResponse"):
+                continue
+            # the template name, and the context is whatever comes RIGHT AFTER it — taking the
+            # first Name in the call would pick up `request`, which is the signature's own first
+            # argument and carries nothing.
+            at = next((i for i, a in enumerate(call.args)
+                       if isinstance(a, ast.Constant) and str(a.value).endswith(".html")), None)
+            if at is None or pathlib.Path(str(call.args[at].value)).name not in wants:  # type: ignore[attr-defined]
+                continue
+            ctx = call.args[at + 1] if len(call.args) > at + 1 else next(
+                (kw.value for kw in call.keywords if kw.arg == "context"), None)
+            named = [str(call.args[at].value)]  # type: ignore[attr-defined]
+            keys = keys_of(ctx, func) if ctx is not None else None
+            if keys is None:
+                unreadable.append(f"{named[0]} in {func.name}()")
+            elif "currency" not in keys:
+                missing.append(f"{named[0]} in {func.name}()")
     assert not missing, f"rendered without a currency: {sorted(set(missing))}"
+    assert not unreadable, f"context shape not understood, extend keys_of(): {sorted(set(unreadable))}"
 
 
 def test_every_currency_can_label_it():

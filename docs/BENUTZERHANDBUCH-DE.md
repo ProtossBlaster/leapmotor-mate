@@ -326,6 +326,13 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
 **(Menü: Ladevorgänge)** — Die Liste der Ladevorgänge. Für jede: **hinzugefügte Energie (kWh)**, **Spitzenleistung**,
 **Typ** und **Kosten**, mit dem **tatsächlichen €/kWh** gut sichtbar. Der Typ ist mit einem Etikett klassifiziert:
 
+
+- **Das Banner „zu bestätigen" bringt Sie hin 🆕** (#240) — wenn ein Ladevorgang ohne Typ endet,
+  erscheint oben auf der Seite ein Streifen. **Klicken Sie darauf**: er öffnet den Ladevorgang an
+  seinem Tag im Kalender und hebt ihn hervor, statt Sie den Tag suchen zu lassen.
+- **Wenn ein Teil der Seite nicht lädt 🆕** — mehrere Blöcke in Mate füllen sich erst kurz nach dem
+  Öffnen der Seite. Scheitert einer davon, **sagt er es jetzt darunter**, mit dem Fehler und einem
+  **Erneut versuchen**, statt eine leere Fläche ohne Erklärung zu hinterlassen.
 - **Zuhause** (Ihre Wallbox **oder eine Haushaltssteckdose**), **AC** (öffentlicher Wechselstrom),
   **Schnell/FAST** (DC), **HPC** (Ultraschnellladung) und **✎ Manuell**.
 - **Zuhause bedeutet nicht Wallbox.** *Zuhause* sagt, **wo** Sie geladen haben, nicht woraus — auch

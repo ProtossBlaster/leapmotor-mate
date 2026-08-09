@@ -337,6 +337,13 @@ making the map disappear), and with it:
 **type** and **cost**, with the **effective €/kWh** clearly visible. The type is classified with a
 label:
 
+
+- **The "to confirm" banner takes you there 🆕** (#240) — when a charge has ended without a type,
+  a strip appears at the top of the page. **Click it**: it opens the charge on its own day of the
+  calendar and marks it, instead of leaving you to work out which day it is on.
+- **When a part of the page can't load 🆕** — several blocks in Mate fill themselves in a moment
+  after the page opens. If one of them fails, it now **says so under itself**, with the error and a
+  **Try again**, rather than leaving an empty space with no explanation.
 - **Home** (your wallbox **or a domestic socket**), **AC** (public alternating current), **Fast/DC**,
   **HPC** (ultra-fast charging) and **✎ Manual**.
 - **Home does not mean wallbox.** *Home* is where you charged, not what you charged from — a

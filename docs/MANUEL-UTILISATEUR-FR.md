@@ -337,6 +337,13 @@ valide** au lieu de faire disparaître la carte), et avec elle :
 maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidence. Le type est classé par une
 étiquette :
 
+
+- **Le bandeau « à confirmer » vous y emmène 🆕** (#240) — quand une recharge s'est terminée sans
+  type, un bandeau apparaît en haut de la page. **Cliquez dessus** : il ouvre la recharge sur son
+  jour du calendrier et la met en évidence, au lieu de vous laisser deviner quel jour c'était.
+- **Quand une partie de la page ne se charge pas 🆕** — plusieurs blocs de Mate se remplissent un
+  instant après l'ouverture de la page. Si l'un d'eux échoue, il **le dit désormais en dessous**,
+  avec l'erreur et un **Réessayer**, au lieu de laisser un vide sans explication.
 - **Domicile** (votre wallbox **ou une prise domestique**), **AC** (courant alternatif public),
   **Rapide/FAST** (DC), **HPC** (recharge ultra-rapide) et **✎ Manuel**.
 - **Domicile ne veut pas dire wallbox.** *Domicile* désigne **où** vous avez rechargé, pas à partir

@@ -58,7 +58,8 @@
 <div class="card" id="wallbox-calendar-month-wrap"
      hx-get="api/wallbox/calendar?year={{ cal_year }}&month={{ cal_month }}"
      hx-trigger="load" hx-swap="innerHTML">
-  <div class="text-center text-slate-500 py-10">…</div>
+  {# Server-rendered first paint — see charges.html and #240. #}
+  {{ calendar_html|safe }}
 </div>
 {% endif %}
 {% endblock %}

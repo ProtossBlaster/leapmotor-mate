@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.10.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.10.1"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -588,11 +588,13 @@ async def trips_page(request: Request, highlight: int = 0):
         # swapped calendar area so the drawer's 🔗 preview still has somewhere to open.
         cal_year=cal_year, cal_month=cal_month, cal_open_day=cal_open_day,
         cal_years=db_reader.get_trip_years(),
+        calendar_html=_trips_calendar_html(cal_year, cal_month, cal_open_day),   # drawn, not fetched
     ))
 
 
-def _render_trips_calendar(request: Request, year: int, month: int, open_day: int = 0):
-    """Shared by /api/trips/calendar and the search endpoint's empty-filters fallback."""
+def _trips_calendar_ctx(year: int, month: int, open_day: int = 0) -> dict:
+    """The Viaggi calendar's context, without a Response around it — so the page can draw the grid
+    itself on first paint. Same split as _charges_calendar_ctx, for the same reason (#240)."""
     import calendar as calmod
     from datetime import date
     today = db_reader.today_local()
@@ -627,7 +629,18 @@ def _render_trips_calendar(request: Request, year: int, month: int, open_day: in
         # (month view opening straight onto a day), and a header that only appears down one of the
         # two paths is the classic way this template has broken before.
         ctx["open_day_totals"] = db_reader.trips_totals(ctx["open_day_trips"])
-    return templates.TemplateResponse(request, "partials/trips_calendar_month.html", ctx)
+    return ctx
+
+
+def _trips_calendar_html(year: int, month: int, open_day: int = 0) -> str:
+    return templates.get_template("partials/trips_calendar_month.html").render(
+        _trips_calendar_ctx(year, month, open_day))
+
+
+def _render_trips_calendar(request: Request, year: int, month: int, open_day: int = 0):
+    """Shared by /api/trips/calendar and the search endpoint's empty-filters fallback."""
+    return templates.TemplateResponse(request, "partials/trips_calendar_month.html",
+                                      _trips_calendar_ctx(year, month, open_day))
 
 
 @app.get("/api/trips/calendar", response_class=HTMLResponse)
@@ -999,15 +1012,27 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
         charge_types=db_reader.charge_types_localised(), prices=prices,
         status=status, ac_dc=db_reader.get_ac_dc_stats(),
         unconfirmed=db_reader.unconfirmed_charges_count(),
+        unconfirmed_id=db_reader.newest_unconfirmed_charge_id(),   # the banner links to it
         station=station, station_info=station_info,
         cal_year=cal_year, cal_month=cal_month, cal_open_day=cal_open_day,
         cal_years=db_reader.get_charge_years(station or None),
         charges_have_odometer=db_reader.charges_have_odometer(),
+        # Drawn here, not fetched: see _charges_calendar_ctx. The htmx load-trigger still runs on
+        # top of this — it is what re-opens the remembered day and what the ?highlight= scroll
+        # hangs off — but the history no longer DEPENDS on it coming back.
+        calendar_html=_charges_calendar_html(cal_year, cal_month, station, cal_open_day),
     ))
 
 
-def _render_charges_calendar(request: Request, year: int, month: int, station: str, open_day: int = 0):
-    """Shared by /api/charges/calendar and the search endpoint's empty-filters fallback."""
+def _charges_calendar_ctx(year: int, month: int, station: str, open_day: int = 0) -> dict:
+    """The Ricariche calendar's context, WITHOUT a Response around it.
+
+    Split out so the Charges page can draw the grid itself on first paint instead of shipping an
+    empty box and an htmx request. That box was the whole of #240: htmx swaps nothing when a
+    request fails, so one 500 left a "…" on screen with no error, no retry and no way back —
+    above a banner announcing a charge to confirm. Drawn server-side there is always a calendar,
+    whatever happens to the request afterwards. → _render_charges_calendar for the htmx side.
+    """
     import calendar as calmod
     from datetime import date
     today = db_reader.today_local()
@@ -1032,19 +1057,38 @@ def _render_charges_calendar(request: Request, year: int, month: int, station: s
         "next_year": next_year, "next_month": next_month,
         "today": today, "station": station,
         "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
+        # 🔴 Not optional, and not only for the drawer below: with `open_day` this response
+        # renders charge_card.html INLINE (grid + day together, see the open_day branch), and
+        # that card prints `currency.symbol`. Without this the whole calendar was a 500 — and
+        # htmx swaps nothing on a 500, so the page kept its "…" placeholder and never came back.
+        # base.html re-adds open_day from the remembered day on every request for that month, so
+        # it stayed broken across reloads. (#240, found by Silvio pressing Refresh.)
+        "currency": db_reader.get_currency(),
     }
     if open_day and open_day in cal["days"]:
         ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
         ctx["open_day_charges"] = db_reader.get_charges_calendar_day(year, month, open_day, station=station or None)
         ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
-    return templates.TemplateResponse(request, "partials/charges_calendar_month.html", ctx)
+    return ctx
 
 
-def _render_fuel_calendar(request: Request, year: int, month: int, open_day: int = 0):
-    """The Rifornimenti Month view (beta #14 @gm27271). Same shape as _render_charges_calendar above
-    — same week grid, same prev/next/today nav, same lazily-loaded day drawer — because it IS the
-    same view over a different table, and a second way of laying out a month would drift from the
-    first."""
+def _charges_calendar_html(year: int, month: int, station: str, open_day: int = 0) -> str:
+    """The same grid as a string, for the page to embed on first paint."""
+    return templates.get_template("partials/charges_calendar_month.html").render(
+        _charges_calendar_ctx(year, month, station, open_day))
+
+
+def _render_charges_calendar(request: Request, year: int, month: int, station: str, open_day: int = 0):
+    """Shared by /api/charges/calendar and the search endpoint's empty-filters fallback."""
+    return templates.TemplateResponse(request, "partials/charges_calendar_month.html",
+                                      _charges_calendar_ctx(year, month, station, open_day))
+
+
+def _fuel_calendar_ctx(year: int, month: int, open_day: int = 0) -> dict:
+    """The Rifornimenti Month view (beta #14 @gm27271). Same shape as the Charges one above — same
+    week grid, same prev/next/today nav, same day drawer — because it IS the same view over a
+    different table, and a second way of laying out a month would drift from the first. Split from
+    its Response for the same reason as _charges_calendar_ctx (#240)."""
     import calendar as calmod
     from datetime import date
     today = db_reader.today_local()
@@ -1070,7 +1114,17 @@ def _render_fuel_calendar(request: Request, year: int, month: int, open_day: int
         ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
         ctx["open_day_fuel"] = db_reader.get_fuel_calendar_day(year, month, open_day)
         ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
-    return templates.TemplateResponse(request, "partials/fuel_calendar_month.html", ctx)
+    return ctx
+
+
+def _fuel_calendar_html(year: int, month: int, open_day: int = 0) -> str:
+    return templates.get_template("partials/fuel_calendar_month.html").render(
+        _fuel_calendar_ctx(year, month, open_day))
+
+
+def _render_fuel_calendar(request: Request, year: int, month: int, open_day: int = 0):
+    return templates.TemplateResponse(request, "partials/fuel_calendar_month.html",
+                                      _fuel_calendar_ctx(year, month, open_day))
 
 
 @app.get("/api/fuel/calendar", response_class=HTMLResponse)
@@ -1490,8 +1544,12 @@ def _fuel_ctx(request: Request):
             "eur_per_l": round(blend, 3) if blend else None,
             "value": round(liters * blend, 2) if (liters and blend) else None}
     now_local = datetime.now(timezone.utc).astimezone(db_reader._local_tz()).strftime("%Y-%m-%dT%H:%M")
+    today = db_reader.today_local()
     return _ctx(page="fuel", vehicle=vehicle, purchases=purchases, tank=tank, now_local=now_local,
-                detected=detected)
+                detected=detected,
+                # drawn, not fetched — see _charges_calendar_ctx (#240). The wrapper still listens
+                # for `fuelChanged`, which is what refreshes it after an entry is added or deleted.
+                calendar_html=_fuel_calendar_html(today.year, today.month))
 
 
 @app.get("/fuel", response_class=HTMLResponse)
@@ -2171,6 +2229,7 @@ async def wallbox_page(request: Request):
         configured=ha_client.is_configured() and bool(ha_client.get_mapping()),
         cal_year=today.year, cal_month=today.month,
         cal_years=db_reader.get_wallbox_years(),
+        calendar_html=_wallbox_calendar_html(today.year, today.month),   # drawn, not fetched
     ))
 
 
@@ -2508,12 +2567,12 @@ def _wallbox_day_sessions(year: int, month: int, day: int) -> list:
     return db_reader.get_wallbox_calendar_day(year, month, day)
 
 
-@app.get("/api/wallbox/calendar", response_class=HTMLResponse)
-async def wallbox_calendar(request: Request, year: int = 0, month: int = 0, open_day: int = 0):
-    """Wallbox 'calendar' Month view (HTMX partial, day totals from the ALREADY-STORED
-    charge columns) — the day drawer computes each session's precise AC/DC comparison
-    lazily on click (see wallbox_calendar_day below), so opening the page never fires a
-    Home Assistant history request per session like the old full accordion did."""
+def _wallbox_calendar_ctx(year: int, month: int, open_day: int = 0) -> dict:
+    """Wallbox 'calendar' Month view — day totals from the ALREADY-STORED charge columns; the day
+    drawer computes each session's precise AC/DC comparison lazily on click (see
+    wallbox_calendar_day below), so opening the page never fires a Home Assistant history request
+    per session like the old full accordion did. Split from its Response so the page can draw the
+    grid on first paint (#240)."""
     import calendar as calmod
     from datetime import date
     today = db_reader.today_local()
@@ -2542,7 +2601,19 @@ async def wallbox_calendar(request: Request, year: int = 0, month: int = 0, open
         ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
         ctx["open_day_sessions"] = _wallbox_day_sessions(year, month, open_day)
         ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
-    return templates.TemplateResponse(request, "partials/wallbox_calendar_month.html", ctx)
+    return ctx
+
+
+def _wallbox_calendar_html(year: int, month: int, open_day: int = 0) -> str:
+    return templates.get_template("partials/wallbox_calendar_month.html").render(
+        _wallbox_calendar_ctx(year, month, open_day))
+
+
+@app.get("/api/wallbox/calendar", response_class=HTMLResponse)
+async def wallbox_calendar(request: Request, year: int = 0, month: int = 0, open_day: int = 0):
+    """The HTMX side of the grid above."""
+    return templates.TemplateResponse(request, "partials/wallbox_calendar_month.html",
+                                      _wallbox_calendar_ctx(year, month, open_day))
 
 
 @app.get("/api/wallbox/calendar/day", response_class=HTMLResponse)

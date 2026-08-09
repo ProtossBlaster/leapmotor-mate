@@ -5741,6 +5741,27 @@ def unconfirmed_charges_count() -> int:
     return row["n"] if row else 0
 
 
+def newest_unconfirmed_charge_id() -> int:
+    """The charge the "N to confirm" banner should take the reader to, or 0.
+
+    The banner used to be a dead end: it said a charge needed a type and gave no way to reach it
+    — you had to guess which day of the calendar it fell on and click that. That is #240's actual
+    complaint, underneath the 500: *"the charging page shows the 1 charge to confirm on top but
+    not showing at bottom"*.
+
+    The NEWEST one on purpose: the banner appears right after a charge ends, and the charge the
+    reader is looking for is the one they just did. Older ones surface as that one gets typed.
+    """
+    db = _get()
+    row = db.execute(
+        "SELECT id FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "AND location_type IS NULL AND ended_at IS NOT NULL "
+        "ORDER BY started_at DESC LIMIT 1",
+        (_current_vehicle_id(),)
+    ).fetchone()
+    return row["id"] if row else 0
+
+
 def latest_home_charge_cost():
     """Cost of the most recent home charge (= the wallbox) — from Mate's own charge
     records, so the Wallbox page reuses it instead of a separate HA cost sensor."""

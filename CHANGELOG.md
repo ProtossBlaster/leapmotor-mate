@@ -3,6 +3,64 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.10.1] — 2026-08-09
+
+**The Charges page could go blank and stay blank. It can't any more — and the "to confirm" banner
+now takes you to the charge.**
+
+### Fixed
+
+- ⚡ **The charge history disappearing, and never coming back** ([#240](https://github.com/ProtossBlaster/leapmotor-mate/issues/240),
+  reported by **@Ng-EY**). The Charges page showed the banner — *"1 charge to confirm"* — above an
+  empty space where the calendar should be. Reloading didn't help. Typing a date into the search
+  brought the charge straight back, which made it look like the data was fine and only the page was
+  wrong. It was.
+
+  Clicking a day on the calendar is **remembered**, so a reload puts you back where you were. From
+  that moment every request for that month asked for the day as well — and a request that carries a
+  day renders the day's cards **inside the same response**. Those cards print a price, in your
+  currency, and the calendar was the one place that never passed the currency along. The result was
+  a **500**: the browser asks for the history, the server fails, and htmx — correctly — swaps
+  nothing in. So the placeholder stayed, with no error and nothing to click. And because the
+  remembered day was re-sent every time, it stayed broken across reloads.
+
+  On an install where the remembered day sat in an **earlier** month, the current month drew fine
+  and only paging back was dead — the same defect wearing a different face.
+
+- 🩹 **A block that fails to load now says so.** Sixteen parts of Mate, across eight pages, fill
+  themselves from a separate request after the page opens. htmx deliberately changes nothing when
+  such a request fails, which is right — but it left those blocks silent, showing whatever they had.
+  Any of them that now fails puts a short line under itself with the status code and a **Try again**
+  button, instead of an empty space. It never replaces what you are reading: a failed month-flip
+  won't wipe the month already on screen.
+
+- 📅 **All four calendars are drawn by the server** — charges, trips, refuels and wallbox. Each
+  month grid is in the page as it arrives, rather than depending on a second request nobody could
+  see fail. The request still runs — it is what re-opens the day you had open, and what a
+  `?highlight=` link scrolls to — but the page no longer *needs* it to come back.
+
+### Changed
+
+- ❓ **The "to confirm" banner is now a link.** It used to announce a charge without a type and
+  leave you to work out which day of the calendar it was hiding on. It now takes you straight to
+  the charge, opened on its own day and marked. This was the reporter's actual complaint, underneath
+  the 500.
+- 🔤 **One charge is no longer announced in the plural** — *"1 charge to confirm"* rather than
+  *"1 charge(s)"*, and each of the seven languages says it its own way instead of borrowing an
+  English bracket-s.
+
+### Internal
+
+- The test that guards the currency across every page followed `include` **one level** and read
+  contexts only where they were written as a literal. The defect above went through both gaps. It
+  now closes the include chain to a fixed point and reads the context with `ast` — dict, helper
+  call, or a name assembled above — and a context shape it cannot read is a failure, not a pass.
+- **All four calendars are now tested with a day open**, not just the one that broke: charges,
+  trips, refuels and wallbox each render their day drawer through the real route against a seeded
+  database, and each check compares the response *with* the day open against the one without — a
+  test that only asked "did it render" was green on a wallbox drawer that never opened at all. The
+  list of calendars is read off the templates, so a fifth one cannot be added without a test.
+
 ## [3.10.0] — 2026-08-08
 
 **Two Leapmotors, one Mate — and the T03 can finally switch its air conditioning off.**

@@ -21,11 +21,15 @@
 </div>
 
 {% if unconfirmed %}
-<div class="mb-6 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-     style="background:#f59e0b14;border:1px solid #f59e0b44;color:#fbbf24">
+{# The banner takes you TO the charge. It used to only announce it, leaving the reader to guess
+   which day of the calendar to click — which is what #240 was actually about. #}
+<a href="charges{% if unconfirmed_id %}?highlight={{ unconfirmed_id }}{% endif %}"
+   class="mb-6 flex items-center gap-2 rounded-xl px-4 py-3 text-sm hover:brightness-125 transition-all"
+   style="background:#f59e0b14;border:1px solid #f59e0b44;color:#fbbf24">
   <span>❓</span>
-  <span><b>{{ unconfirmed }}</b> {{ t('charges_to_confirm') }}</span>
-</div>
+  <span><b>{{ unconfirmed }}</b> {{ t('charge_to_confirm_one') if unconfirmed == 1 else t('charges_to_confirm') }}</span>
+  {% if unconfirmed_id %}<span class="ml-auto text-xs">→</span>{% endif %}
+</a>
 {% endif %}
 
 {% if station %}
@@ -369,7 +373,10 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 <div class="card mb-6" id="charges-calendar-month-wrap"
      hx-get="api/charges/calendar?year={{ cal_year }}&month={{ cal_month }}{% if station %}&station={{ station }}{% endif %}{% if cal_open_day %}&open_day={{ cal_open_day }}{% endif %}"
      hx-trigger="load" hx-swap="innerHTML">
-  <div class="text-center text-slate-500 py-10">…</div>
+  {# Server-rendered, so the history is on the page BEFORE any extra request happens. The htmx
+     load above then replaces it with the same grid plus the remembered day's drawer — and if
+     that request ever fails, this is what stays on screen instead of a silent empty box (#240). #}
+  {{ calendar_html|safe }}
 </div>
 
 {% else %}
@@ -383,20 +390,33 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 <script>
 const HIGHLIGHT = {{ highlight }};
 
-// A charge reached via ?highlight=<id> (e.g. a map popup) lands on the right month/day
-// server-side (charges_page resolves it and passes cal_open_day) — once that first HTMX
-// load renders the day's cards, find it, style it and scroll it into view.
+// A charge reached via ?highlight=<id> — a map popup, or the "to confirm" banner above — lands on
+// the right month and day server-side (charges_page resolves it into cal_open_day). Mark it and
+// scroll to it.
+//
+// 🔴 Not on htmx:afterSwap ALONE. The grid is now drawn into the page, so the card is already
+// there before any request runs, and the htmx load then REPLACES it with a fresh unstyled node.
+// Marking once, on either path, would leave the ring on a node that no longer exists — measured:
+// the card was found and the highlight was invisible. So: mark now, and mark again after each
+// swap of that block, until it sticks.
 if (HIGHLIGHT) {
-  document.body.addEventListener('htmx:afterSwap', function onSwap(e) {
-    if (!e.target || e.target.id !== 'charges-calendar-month-wrap') return;
+  let scrolled = false;
+  const mark = () => {
     const card = document.querySelector(`[data-charge-id="${HIGHLIGHT}"]`);
-    if (card) {
-      card.style.border    = '1px solid #fbbf2455';
-      card.style.boxShadow = 'inset 3px 0 0 #fbbf24';
+    if (!card) return;
+    // Re-applied every time, never guarded by a flag on the node: the swap hands back a NEW
+    // element, and a flag would only prove that some earlier, discarded one was marked.
+    card.style.border    = '1px solid #fbbf2455';
+    card.style.boxShadow = 'inset 3px 0 0 #fbbf24';
+    if (!scrolled) {
+      scrolled = true;
       requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-      document.body.removeEventListener('htmx:afterSwap', onSwap);
     }
-  });
+  };
+  const onBlock = (e) => { if (e.target && e.target.id === 'charges-calendar-month-wrap') mark(); };
+  mark();                                               // the grid the server drew
+  document.body.addEventListener('htmx:afterSwap', onBlock);
+  document.body.addEventListener('htmx:afterSettle', onBlock);   // after htmx finishes with it
 }
 
 // Auto-refresh the history when a charge completes. The live panel (#charging-live-panel) polls

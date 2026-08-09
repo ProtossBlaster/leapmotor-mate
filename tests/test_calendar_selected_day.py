@@ -68,8 +68,13 @@ MAIN = (pathlib.Path(__file__).resolve().parent.parent / "web" / "main.py").read
 # The four month views, by the function that builds each one's context. Wallbox is the odd one out:
 # it renders inside its route instead of a _render_* helper, which is exactly why this list names
 # them explicitly rather than pattern-matching on "_render_".
-RENDERERS = ("_render_trips_calendar", "_render_charges_calendar",
-             "_render_fuel_calendar", "async def wallbox_calendar")
+#
+# 🔴 v3.10.1: these are the CONTEXT BUILDERS, not the renderers. The four were split in two — a
+# builder and a thin `_render_*` around it — so the page can draw its own grid instead of shipping
+# an empty box and one more request (#240). The open-day wiring went with the context, so that is
+# where it has to be checked; pointed at the renderers this test found only the two-line wrapper.
+RENDERERS = ("_trips_calendar_ctx", "_charges_calendar_ctx",
+             "_fuel_calendar_ctx", "_wallbox_calendar_ctx")
 
 
 def test_every_calendar_renderer_passes_the_open_day_to_its_grid():

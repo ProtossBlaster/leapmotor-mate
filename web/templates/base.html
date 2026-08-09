@@ -787,5 +787,55 @@
   })();
   </script>
 
+  <script>
+  // A request that fails must SAY SO. htmx swaps nothing on a non-2xx, by design — so a block
+  // that fills itself from an htmx request (there are sixteen of them, across eight pages) just
+  // keeps whatever it had. On the Charges calendar that was a "…" placeholder, and #240 sat on
+  // it: an empty box under a banner announcing a charge to confirm, with no error, no retry and
+  // nothing in the log the reader could see.
+  //
+  // Deliberately ADDITIVE: it never replaces the target's contents, because a failed month-nav
+  // must not wipe the month you are already reading. One strip, under the block that failed.
+  (function () {
+    function failed(e) {
+      var d = e.detail || {};
+      var tgt = d.target || d.elt;
+      if (!tgt || !tgt.parentElement || tgt === document.body) return;
+      var host = tgt.parentElement;
+      var old = host.querySelector(':scope > .lm-load-error');
+      if (old) old.remove();
+      var box = document.createElement('div');
+      box.className = 'lm-load-error mt-2 flex items-center gap-3 rounded-lg px-3 py-2 text-xs';
+      box.style.cssText = 'background:#f8717114;border:1px solid #f8717144;color:#fca5a5';
+      var msg = document.createElement('span');
+      var code = d.xhr && d.xhr.status ? ' (' + d.xhr.status + ')' : '';
+      msg.textContent = {{ t('load_failed') | tojson }} + code;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = {{ t('load_retry') | tojson }};
+      btn.className = 'font-medium underline underline-offset-2 hover:text-white';
+      btn.addEventListener('click', function () {
+        box.remove();
+        var rc = d.requestConfig;
+        if (!rc) { location.reload(); return; }
+        htmx.ajax(rc.verb, rc.path, {
+          source: d.elt, target: tgt, swap: tgt.getAttribute('hx-swap') || 'innerHTML'
+        });
+      });
+      box.appendChild(msg);
+      box.appendChild(btn);
+      host.insertBefore(box, tgt.nextSibling);
+    }
+    document.body.addEventListener('htmx:responseError', failed);   // the server answered, badly
+    document.body.addEventListener('htmx:sendError', failed);       // it never got there
+    // A later success on the same block clears the strip: no stale complaint left behind.
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      var host = e.target && e.target.parentElement;
+      var old = host && host.querySelector(':scope > .lm-load-error');
+      if (old) old.remove();
+    });
+  })();
+  </script>
+
 </body>
 </html>

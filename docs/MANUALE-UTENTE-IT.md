@@ -342,6 +342,13 @@ valida** invece di far sparire la mappa), e insieme:
 massima**, **tipo** e **costo**, con il **€/kWh effettivo** ben in vista. Il tipo è classificato con
 un'etichetta:
 
+
+- **La banda «da confermare» ti ci porta 🆕** (#240) — quando una ricarica è finita senza un tipo,
+  in cima alla pagina compare una striscia. **Cliccala**: apre la ricarica sul suo giorno del
+  calendario e la evidenzia, invece di lasciarti indovinare su quale giorno sia.
+- **Quando una parte della pagina non si carica 🆕** — diversi riquadri di Mate si riempiono un
+  istante dopo l'apertura della pagina. Se uno non ci riesce, adesso **lo dice sotto di sé**, con
+  l'errore e un **Riprova**, invece di lasciare uno spazio vuoto senza spiegazione.
 - **Casa** (la tua wallbox **o una presa domestica**), **AC** (corrente alternata pubblica),
   **Veloce/FAST** (DC), **HPC** (ricarica ultraveloce) e **✎ Manuale**.
 - **Casa non vuol dire wallbox.** *Casa* è **dove** hai caricato, non da cosa: anche una presa

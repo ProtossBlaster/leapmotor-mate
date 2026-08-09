@@ -167,7 +167,9 @@
 <div class="card mb-6" id="trips-calendar-month-wrap"
      hx-get="api/trips/calendar?year={{ cal_year }}&month={{ cal_month }}{% if cal_open_day %}&open_day={{ cal_open_day }}{% endif %}"
      hx-trigger="load" hx-swap="innerHTML">
-  <div class="text-center text-slate-500 py-10">…</div>
+  {# Server-rendered first paint — see charges.html and #240: htmx swaps nothing when its request
+     fails, so a block that only had a placeholder stayed empty and silent for ever. #}
+  {{ calendar_html|safe }}
 </div>
 
 {% else %}
