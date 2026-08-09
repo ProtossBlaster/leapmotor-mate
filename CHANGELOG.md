@@ -3,6 +3,59 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.10.2] — 2026-08-09
+
+**A quiet stretch in the car's reporting made the battery look older than it is — and a parked
+stop that produced no bar now says why.**
+
+Both reported by **@riri19** ([#241](https://github.com/ProtossBlaster/leapmotor-mate/issues/241)),
+who attached the diagnostics bundle with the report.
+
+### Fixed
+
+- 🔋 **Battery health read low when the car went quiet mid-charge.** Capacity is estimated as
+  *energy ÷ SoC risen*. The energy is integrated over the readings the car sent and — rightly —
+  **skips any gap longer than 15 minutes**: nobody knows what the charger did while the car was
+  silent, and integrating across it would invent kilowatt-hours. But the SoC side counted the
+  **whole** rise, gap included. Two halves of the same fraction measured over different windows, so
+  every quiet minute pushed the estimate down.
+
+  Measured on one identical charge — 32 kWh into a 67.1 kWh pack — with a single hole in the middle:
+
+  | hole | before | after |
+  |---|---|---|
+  | none | 100.4 % | 100.4 % |
+  | 30 min | 91.0 % | 100.5 % |
+  | 60 min | 81.6 % | 100.4 % |
+  | 120 min | **62.8 %** | 100.7 % |
+
+  The SoC rise is now accumulated **only across the intervals whose energy was counted**, so a gap
+  shrinks both halves together. The 15-minute guard is unchanged — no energy is invented inside a
+  gap; it simply stops being charged to the denominator.
+
+  ⚠️ **Nothing moves on a healthy connection.** Checked against a real database before shipping:
+  thirteen points before, thirteen after, identical to a tenth. Where your car reports normally you
+  will see no change at all; where it went quiet, past points will read higher — which is the point.
+
+### Added
+
+- 🅿️ **The diagnostics bundle now lists the parked stops that produced NO bar, and why.** It could
+  only ever show the ones that had been accepted, so "the chart stops on the 5th" had no follow-up
+  question: a stop the car reported flat and a stop that never happened looked identical from the
+  outside. Each rejection now carries its reason — **short** (under your own minimum-hours
+  setting), **flat** (the SoC never moved in the readings), **below_noise_floor** (it moved less
+  than 0.2 %), or **woke_driving**.
+
+  That last one is what #241's second half turned out to be. A sleeping car reports a **frozen**
+  SoC; the real drain only shows on the first fresh reading. When that reading arrives with the car
+  **already moving**, the stop is closed on the odometer and its drop is discarded — correctly,
+  because it now contains driving consumption and counting it as standby would overstate the drain.
+  The refusal was right; the silence was not. On a car whose cloud only refreshes once it is
+  driving, this is every stop, and the chart simply stops.
+
+  Read on a real database: the charted bars are **unchanged** (38 before, 38 after), and 135
+  previously invisible stops are now named.
+
 ## [3.10.1] — 2026-08-09
 
 **The Charges page could go blank and stay blank. It can't any more — and the "to confirm" banner

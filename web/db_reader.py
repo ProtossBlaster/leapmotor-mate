@@ -7025,7 +7025,7 @@ def _charge_energy_below_soc(db, start: str, end: str | None, cap_soc: float):
             "SELECT recorded_at, soc, charge_voltage_v, charge_current_a FROM positions "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? "
             "ORDER BY recorded_at", (_current_vehicle_id(), start)).fetchall()
-    energy, prev_t, prev_p, reached = 0.0, None, 0.0, None
+    energy, prev_t, prev_p, prev_soc, reached, covered = 0.0, None, 0.0, None, None, 0.0
     for r in rows:
         if r["soc"] is not None and r["soc"] > cap_soc:
             break
@@ -7038,13 +7038,23 @@ def _charge_energy_below_soc(db, start: str, end: str | None, cap_soc: float):
             dt_h = (t - prev_t).total_seconds() / 3600.0
             if 0 < dt_h <= 0.25:                      # same gap guard as the full integral
                 energy += (p + prev_p) / 2.0 * dt_h
+                # 🔴 …and the SoC that rose across THAT interval, so the two halves of
+                # energy ÷ ΔSoC span the same window. They did not: the integral skipped every
+                # gap over 15 minutes while the SoC side counted the whole rise, gap included, so
+                # each quiet minute pushed the estimate down and the pack read as aged — 67.4 kWh
+                # became 54.7 with one hour of silence, with nothing on the page to say why
+                # (#241, @riri19). Only rises: a dip is BMS jitter, never negative capacity.
+                if r["soc"] is not None and prev_soc is not None and r["soc"] > prev_soc:
+                    covered += r["soc"] - prev_soc
         prev_t, prev_p = t, p
         if r["soc"] is not None:
             reached = r["soc"]
+            prev_soc = r["soc"]
     # `reached` stays None when not one sample carried a SoC (a partial frame, an older database).
     # The caller then falls back to the charge's own delta: we cannot truncate what we cannot see,
-    # and an estimate with a known bias beats making the whole page disappear.
-    return (energy, reached) if rows else None
+    # and an estimate with a known bias beats making the whole page disappear. `covered` is 0 in
+    # that same case, and the caller treats it the same way.
+    return (energy, reached, covered) if rows else None
 
 
 _AC_CHARGE_TYPES = ('AC', 'HOME', 'FREE')   # types where DC fast-rate is impossible
@@ -7169,8 +7179,12 @@ def get_battery_health(min_soc_delta: float = 12.0, temp_min_c: float | None = N
         below = _charge_energy_below_soc(db, r["started_at"], r["ended_at"], _SOH_TOP_CUTOFF_SOC)
         if not below:
             continue
-        energy, reached = below
-        used = delta if reached is None else reached - (r["start_soc"] or 0)
+        energy, reached, covered = below
+        # The SoC that rose across the intervals whose energy was counted — the denominator that
+        # matches this numerator. Falls back to the old whole-charge delta only when no sample
+        # carried a SoC at all, which is also when `reached` is None (#241).
+        used = covered if covered > 0 else (delta if reached is None
+                                            else reached - (r["start_soc"] or 0))
         if used < min_soc_delta:                       # nothing left once the top is set aside
             continue
         if energy <= 0.1:                              # no usable telemetry (pruned / AC-only meter)
@@ -7274,6 +7288,9 @@ _VAMPIRE_NOISE_FLOOR = 0.2
 
 
 _VAMPIRE_ACTIVE_USE_RATE = 15.0  # %/day above this is active use (A/C, meeting, etc.), not standby
+# A parked stretch this long that produced NO bar is worth naming in the diagnostics bundle. Below
+# it, a car reports dozens of short stops a day and listing them would bury the one that matters.
+_VAMPIRE_REJECT_MIN_HOURS = 1.0
 
 
 def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
@@ -7305,9 +7322,15 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
     ).fetchall()
 
     windows = []
+    # 🔴 The parks that produced NO bar, and why. Without this the page and the bundle could only
+    # say "nothing after the 5th", and there was no way to tell a stop that never happened from one
+    # the car reported flat — #241, where a 19.5-hour park left no trace anywhere and two separate
+    # theories about it turned out to be wrong. A rejection is a fact about the data; it belongs
+    # next to the acceptances. → [[signal-absent-is-not-signal-zero]]
+    rejected = []
     agg = {"drop": 0.0, "hours": 0.0}
 
-    def _flush(w, ongoing=False, close=None):
+    def _flush(w, ongoing=False, close=None, woke_driving=False):
         if not w:
             return
         soc_end, t_end = w["soc_last"], w["t_last"]
@@ -7339,6 +7362,27 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
         # Compare the rounded drop: raw float drops sit a hair off the threshold
         # (56.8 − 56.4 = 0.3999…), so identical physical drops would randomly pass/fail.
         drop_r = round(drop, 1)
+        if not (hours >= min_hours and drop_r >= floor - 1e-9) and hours >= _VAMPIRE_REJECT_MIN_HOURS:
+            # Named, not swallowed. A flat park is the one that used to leave nothing at all:
+            # the counters only ever saw windows that already cleared the noise floor, so
+            # "the car reported the same SoC for nineteen hours" and "the car was never parked"
+            # arrived on screen as the same blank.
+            rejected.append({
+                "start": t0.isoformat(), "end": t1.isoformat(), "hours": round(hours, 1),
+                "soc_start": round(w["soc0"], 1), "soc_end": round(soc_end, 1),
+                "drop_pct": drop_r,
+                # 🔴 `woke_driving` first, and it is not a nicety. The park is closed by the
+                # odometer guard below WITHOUT the wake-close, on purpose: the car had already
+                # covered ground when it reported again, so its SoC now carries driving
+                # consumption and calling that standby would inflate the drain. The refusal is
+                # right — reading "flat" for it was not. On a car whose cloud freezes the SoC
+                # while parked and only refreshes once it is moving, this is EVERY park, which is
+                # why riri19's chart simply stopped (#241).
+                "why": ("woke_driving" if woke_driving else
+                        "short" if hours < min_hours else
+                        "flat" if drop_r <= 0 else "below_noise_floor"),
+                "ongoing": ongoing,
+            })
         if hours >= min_hours and drop_r >= floor - 1e-9:
             err = _DROP_ERR / hours * 24
             windows.append({
@@ -7384,7 +7428,7 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
         # samples were missed) → the park ended there.
         if (cur is not None and odo is not None and cur["odo_last"] is not None
                 and odo - cur["odo_last"] > 0.5):
-            _flush(cur)
+            _flush(cur, woke_driving=True)
             cur = None
         if not idle:                        # driving / charging / V2L now → park ended
             # Close at the wake's fresh SoC only on a DRIVING transition (the odometer-rise guard
@@ -7420,11 +7464,16 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
     # count) so the headline survives a raised display threshold; None while nothing clears the
     # noise floor, so young installs keep the no-data state.
     typical = round(agg["drop"] / agg["hours"] * 24, 1) if measurable and agg["hours"] else None
+    # The rejections are capped like the windows, and the cap is REPORTED: a silent truncation
+    # reads as "these are all of them" when it is not. → [[feedback-a-search-needs-an-upper-bound]]
+    rejected_total = len(rejected)
     return {"windows": charted, "count": len(charted),
             "measurable_count": measurable, "below_threshold": measurable - len(charted),
             "active_use_count": active_use_count,
             "min_drop_pct": round(min_drop_pct, 1),
-            "typical_pct_per_day": typical, "lookback_days": lookback_days}
+            "typical_pct_per_day": typical, "lookback_days": lookback_days,
+            "rejected": rejected[-limit:], "rejected_total": rejected_total,
+            "reject_min_hours": _VAMPIRE_REJECT_MIN_HOURS}
 
 
 # ── V2L (vehicle-to-load) discharge sessions ───────────────────────────────────

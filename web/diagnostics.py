@@ -342,6 +342,24 @@ def _vampire_section() -> str:
         out.append(f"  {str(w['start'])[:16]} → {str(w['end'])[:16]}  {w['drop_pct']}% / {w['hours']}h "
                    f"= {w['pct_per_day']} %/day  reliable={w['reliable']}"
                    + ("  ongoing" if w.get("ongoing") else ""))
+    # 🔴 And the parks that produced NOTHING, with the reason. Until #241 the bundle could only
+    # show what had been accepted, so "the chart stops on the 5th" had no follow-up question: a
+    # park the car reported FLAT (same SoC for nineteen hours, the cloud repeating one frame) and
+    # a park that never happened looked identical from here. Reading `why` answers it without
+    # anyone digging in the database.
+    rej = v.get("rejected") or []
+    total = v.get("rejected_total", len(rej))
+    out.append(f"  parks that produced NO bar: {total}"
+               + (f" (showing the last {len(rej)})" if total > len(rej) else "")
+               + f" · listed from {v.get('reject_min_hours')}h up"
+               + "  ·  why: short=under your min_hours · flat=SoC never moved in the samples"
+               " · below_noise_floor=moved less than 0.2%"
+               " · woke_driving=the car had already covered ground when it reported again, so its"
+               " drop is not standby alone")
+    for w in rej[-15:]:
+        out.append(f"    {str(w['start'])[:16]} → {str(w['end'])[:16]}  {w['hours']}h  "
+                   f"SoC {w['soc_start']}→{w['soc_end']}  drop {w['drop_pct']}%  ⛔ {w['why']}"
+                   + ("  ongoing" if w.get("ongoing") else ""))
     return "\n".join(out)
 
 

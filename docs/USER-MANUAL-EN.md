@@ -484,6 +484,15 @@ mileage, your choice — is what ageing looks like.
 
 Three things about how it is worked out, because they change what the number means.
 
+
+- **A quiet stretch no longer ages the battery 🆕** (#241) — capacity is measured as energy against
+  the SoC that rose. Where the car stops reporting for more than a quarter of an hour, that energy
+  is deliberately not counted (nobody knows what the charger did meanwhile), and **the SoC of the
+  same stretch is now left out too**. Before, a charge with an hour of silence in it could read
+  81 % where the pack was at 100 %.
+- **Nothing changes on a normal connection.** Where your car reports as usual the figures are
+  identical to a tenth; only charges that had real gaps in them move — upwards, to where they
+  belonged.
 - **It stops at 95 %.** On an LFP pack the voltage barely changes across the middle of the range, so
   the BMS **counts** charge instead of reading it, and drifts; near the top the curve finally rises
   and the BMS **re-anchors** — adding percentage points that no energy paid for. Counting those

@@ -494,6 +494,15 @@ les kilomètres, au choix — c'est le vieillissement.
 
 Trois points sur la façon dont c'est calculé, car ils changent le sens du chiffre.
 
+
+- **Un silence de la voiture ne vieillit plus la batterie 🆕** (#241) — la capacité se mesure comme
+  l'énergie rapportée au SoC qui est monté. Là où la voiture cesse de communiquer plus d'un quart
+  d'heure, cette énergie n'est délibérément pas comptée (personne ne sait ce qu'a fait le chargeur
+  entre-temps), et **le SoC de ce même passage n'est désormais plus compté non plus**. Avant, une
+  recharge avec une heure de silence pouvait afficher 81 % alors que la batterie était à 100 %.
+- **Rien ne change sur une connexion normale.** Là où la voiture communique comme d'habitude les
+  chiffres sont identiques au dixième ; seules bougent les recharges qui avaient de vrais trous —
+  vers le haut, là où elles devaient être.
 - **Le calcul s'arrête à 95 %.** Sur un pack LFP la tension varie très peu au milieu de la plage : le BMS
   **compte** la charge au lieu de la lire, et il dérive ; près du haut la courbe remonte enfin et le BMS
   **se recale**, ajoutant des points de pourcentage qu'aucune énergie n'a payés. Les compter ferait paraître

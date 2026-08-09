@@ -500,6 +500,15 @@ nel tempo — o sui chilometri, come preferisci — è l'invecchiamento.
 
 Tre cose su come viene calcolata, perché cambiano il significato del numero.
 
+
+- **Un silenzio dell'auto non invecchia più la batteria 🆕** (#241) — la capacità si misura come
+  energia rispetto al SoC salito. Dove l'auto smette di riportare per più di un quarto d'ora quella
+  energia non viene contata di proposito (nessuno sa cosa abbia fatto il caricatore nel frattempo),
+  e adesso **non viene contato nemmeno il SoC di quello stesso pezzo**. Prima una ricarica con
+  un'ora di silenzio dentro poteva leggere 81% con la batteria al 100%.
+- **Su un collegamento normale non cambia niente.** Dove l'auto riporta come sempre i numeri sono
+  identici al decimo; si spostano solo le ricariche che avevano buchi veri — verso l'alto, dove
+  dovevano stare.
 - **Si ferma al 95 %.** Su un pacco LFP la tensione cambia pochissimo in mezzo alla scala, quindi il
   BMS **conta** la carica invece di leggerla, e deriva; vicino al massimo la curva finalmente sale e il
   BMS **si riancora**, aggiungendo punti percentuali che nessuna energia ha pagato. Contarli farebbe

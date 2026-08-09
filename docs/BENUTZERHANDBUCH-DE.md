@@ -479,6 +479,15 @@ Verlauf über die Zeit — oder über die Kilometer, ganz wie Sie wollen — ist
 
 Drei Dinge zur Berechnung, denn sie ändern die Bedeutung der Zahl.
 
+
+- **Eine Funkstille lässt die Batterie nicht mehr altern 🆕** (#241) — die Kapazität wird als
+  Energie im Verhältnis zum gestiegenen SoC gemessen. Wo das Auto länger als eine Viertelstunde
+  nichts meldet, wird diese Energie bewusst nicht gezählt (niemand weiß, was das Ladegerät
+  inzwischen tat) — und **jetzt wird auch der SoC dieses Abschnitts nicht mehr gezählt**. Zuvor
+  konnte ein Ladevorgang mit einer Stunde Stille 81 % anzeigen, obwohl der Akku bei 100 % lag.
+- **Bei normaler Verbindung ändert sich nichts.** Wo das Auto wie gewohnt meldet, sind die Werte
+  auf ein Zehntel identisch; nur Ladevorgänge mit echten Lücken verschieben sich — nach oben,
+  dorthin, wo sie hingehörten.
 - **Die Rechnung endet bei 95 %.** Bei einem LFP-Akku ändert sich die Spannung in der Mitte des Bereichs kaum,
   daher **zählt** das BMS die Ladung, statt sie zu lesen, und driftet; nahe am oberen Ende steigt die Kurve
   endlich an und das BMS **richtet sich neu aus** — es fügt Prozentpunkte hinzu, für die keine Energie bezahlt
