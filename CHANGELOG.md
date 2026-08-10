@@ -3,6 +3,61 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.10.6] — 2026-08-11
+
+**Kilometres driven while the car was out of contact now belong to no trip — they are measured, declared, and left out of every figure.**
+
+### Changed
+
+- 🚗 **A trip no longer absorbs the stretch nobody watched.** Traced end to end on **#244**
+  (**@adoewa**): his car went quiet at 16:15, he drove 74 km home, parked overnight, and drove 2 km
+  to the supermarket the next morning — and those 74 km were welded onto the front of the
+  supermarket run. Because a trip's start time is the moment the link returned, they were also
+  counted on the wrong **day**: missing from the 9th, added to the 10th.
+
+  Put the car in D after a silent stretch and the trip was born carrying 50 km, the charge that went
+  with them and a start point 50 km away, before the car had moved a metre.
+
+  Those kilometres may belong to the drive that is starting, to the drive that ended hours ago, or
+  to two drives with a night's parking in between — and **nothing in the data says which**. Three
+  discriminants were measured against real logs and all three failed: **time** (a correct 4 km
+  recovery after 383 minutes of silence), **absolute distance** (a legitimate 22 km anchor), and
+  **the gear before the silence** (parked in the good case and the bad one alike).
+
+  So nothing is guessed. The trip starts where the signal returned, and the unattributed stretch is
+  recorded on its own.
+
+### Added
+
+- 📋 **Two places now say what was left out.** On **Statistics**, the running total; above the
+  **Viaggi** calendar, the month you are looking at — inside the calendar itself, so it follows the
+  month buttons instead of standing still while the grid moves. Each states the kilometres, the
+  charge, the energy and, when Mate has an average price, the cost:
+
+  > *measured, but not attributable to a specific trip — therefore excluded from distances,
+  > consumption and costs*
+
+  ⚠️ The charge always travels **with** the kilometres. Holding out one without the other would
+  divide whole energy by partial distance — the shape of the SoH defect (v3.10.2) and of #237.
+
+  ⚠️ The euro is omitted, not shown as zero, when no charge carries a price: Mate's average divides
+  over priced charges alone, and a 0.00 there would invent a free kilometre.
+
+  ⚠️ **Mate's total will now sit below the car's odometer**, permanently, by exactly that figure.
+  That is the point: the difference is stated rather than quietly folded into a trip.
+
+### Removed
+
+- ⛔ **The start anchor (#130, v3.8.x, and #233, v3.8.8) is gone**, and both were built for
+  **@riri19**. They moved a late-opening trip's distance, energy and start position back over the
+  unseen kilometres, so his 19 km drive was drawn as leaving from home rather than 5 km down the
+  road. That is exactly the guess above, and it cannot be told apart from @adoewa's case. His
+  kilometres are not lost — they are on the new card — but his trips start where the signal returned
+  again. Silvio's call, taken with the measurements in hand.
+
+  🔑 It also takes the sting out of an arbitrary constant: the 30-minute frozen-drive limit still
+  closes an abandoned trip, but it no longer decides which trip a day's kilometres land on.
+
 ## [3.10.5] — 2026-08-10
 
 **A drive recovered after a blackout was stamped at the moment the cloud caught up, and a chart that had nothing to draw looked broken.**

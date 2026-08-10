@@ -291,6 +291,15 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
 - Sie können zwei versehentlich getrennte Fahrten **zusammenführen** (Zusammenführen 🔗) oder sie wieder
   **trennen** und eine Fahrt **löschen**.
 - Kurze Pausen (Ampeln, Staus) **trennen** eine Fahrt **nicht**: Eine Fahrt bleibt eine einzige Zeile.
+- **Kilometer ohne Verbindung landen in gar keiner Fahrt.** Wenn die Verbindung zur Cloud abreißt,
+  fährt das Auto weiter, Mate sieht es aber nicht; kehrt die Verbindung zurück, findet es nur einen
+  weitergelaufenen Kilometerstand vor. In diesem Sprung können das Ende einer Fahrt, eine Pause und
+  der Beginn einer weiteren stecken, und **nichts sagt, wie es sich aufteilt** — also ordnet Mate
+  ihn niemandem zu. Eine Zeile über dem Kalender nennt Kilometer, Ladung und Kosten dieses Monats,
+  die Seite **Statistiken** die Gesamtsumme: *gemessen, aber keiner bestimmten Fahrt zuzuordnen —
+  deshalb aus Strecken, Verbrauch und Kosten herausgehalten.*
+  ⚠️ Darum kann Mates eigene Summe unter dem Kilometerstand des Autos liegen: die Differenz ist
+  genau diese Zeile.
 - **Offizieller Verbrauch aus der Cloud 🆕** — sofern vorhanden, stammen **Verbrauch, Effizienz und
   Kosten** einer Fahrt aus der **offiziellen Leapmotor-Angabe** (der echten Aufteilung **Fahren / Klima /
   Sonstiges**) statt nur aus der Batterie-%-Schätzung. Direkt nach einer Fahrt sehen Sie die Schätzung mit

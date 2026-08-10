@@ -187,6 +187,25 @@ CREATE TABLE IF NOT EXISTS energy_counter_snapshots (
     ec_status         TEXT               -- 'first' | 'ok' | 'empty' (no driving) | 'miss' (cloud gap)
 );
 CREATE INDEX IF NOT EXISTS idx_energy_snap_vin_taken ON energy_counter_snapshots(vin, taken_at);
+
+-- Kilometres the car covered while the cloud had nothing new to say. They belong to no trip: the
+-- silence may hold the tail of one drive, a night's parking and the start of another, and nothing
+-- in the data says how it divides. So they are recorded HERE rather than welded onto whichever
+-- trip opens next, and stay out of distances, consumption and costs — both halves of the fraction
+-- together, or the consumption figures get worse instead of better.
+CREATE TABLE IF NOT EXISTS offline_gaps (
+    id             INTEGER PRIMARY KEY,
+    vehicle_id     INTEGER NOT NULL,
+    started_at     TEXT NOT NULL,     -- UTC ISO: when the cloud last had NEWS (not the last poll)
+    ended_at       TEXT NOT NULL,     -- UTC ISO: when it spoke again
+    odometer_start REAL,
+    odometer_end   REAL,
+    distance_km    REAL NOT NULL,
+    soc_start      REAL,
+    soc_end        REAL,
+    energy_kwh     REAL               -- ΔSoC × the capacity in force then; 0 when the SoC rose
+);
+CREATE INDEX IF NOT EXISTS idx_offline_gaps_vehicle ON offline_gaps(vehicle_id, started_at);
 """
 
 

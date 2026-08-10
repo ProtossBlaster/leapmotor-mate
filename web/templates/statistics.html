@@ -144,6 +144,35 @@
    (@ebagnoli, beta #13). Both rates are measured on their OWN kilometres — see
    db_reader.reev_breakeven_kwh_price, and do NOT be tempted to reuse the pair above: those are
    divided by the whole distance, which answers a different question. #}
+{# Kilometres the car covered while the cloud was quiet. They are in NO figure on this page — the
+   distance and the charge that went with it are both held out, because attributing them to a trip
+   would be a guess and holding out only one of the two would divide whole energy by partial
+   distance (the SoH defect of v3.10.2, and #237). Shown only when there is something to declare. #}
+{% if totals.offline_gaps and totals.offline_gaps.count %}
+<div class="card mb-6">
+  <div class="stat-label">{{ t('stats_offline_label') }}</div>
+  <div class="flex items-baseline gap-1 flex-wrap">
+    <span class="stat-value text-amber-400">{{ totals.offline_gaps.total_km | dist(1) }}</span>
+  </div>
+  <div class="text-slate-500 text-xs mt-1">
+    <span class="text-sky-400/80">{{ totals.offline_gaps.total_soc | nice }}%</span>
+    {{ t('stats_offline_soc') }}
+    · <span class="text-sky-400/80">{{ totals.offline_gaps.total_kwh | nice }} kWh</span>
+    {# The money only when Mate HAS an average price: it divides over priced charges alone, and a
+       0,00 € here would invent a free kilometre. #}
+    {% if totals.offline_gaps.cost is not none %}
+    · <span class="text-amber-400/80">{{ totals.offline_gaps.cost | money }}</span>
+    {{ t('stats_offline_cost_note').format(price=totals.offline_gaps.avg_price | dec(3),
+                                           cur=currency.symbol) }}
+    {% endif %}
+  </div>
+  <div class="text-slate-600 text-xs mt-1">
+    {{ t('stats_offline_windows').format(n=totals.offline_gaps.count) }}
+  </div>
+  <div class="text-slate-500 text-xs mt-2 leading-relaxed">{{ t('stats_offline_help') }}</div>
+</div>
+{% endif %}
+
 {% if totals.reev_breakeven %}
 <div class="card mb-6">
   <div class="stat-label">{{ t('stats_breakeven_label') }}</div>

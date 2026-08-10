@@ -114,6 +114,9 @@ def _reev_extender_ran(fuel_start, fuel_end) -> bool:
 # plausible average speed — a gap padded with parked/offline time, or a glitch, gets a NULL duration so
 # it never skews the duration/avg-speed stats (distance + energy + efficiency still count).
 _RECONSTRUCT_MAX_TRIP_KM = 1500.0
+# The odometer reads in whole kilometres: below one, a jump cannot be told from its own
+# quantisation. Same floor the trip reconstruction uses, and the reason is the same.
+_OFFLINE_GAP_MIN_KM = 1.0
 _RECONSTRUCT_TRIP_MIN_KMH = 8.0
 _RECONSTRUCT_TRIP_MAX_KMH = 160.0
 
@@ -1100,6 +1103,37 @@ class Database:
         op = self.get_setting("default_one_pedal", "").strip()
         one_pedal = int(op) if op in ("0", "1") else None
         return drive_mode, one_pedal
+
+    def record_offline_gap(self, vehicle_id: int, *, started_at: str, ended_at: str,
+                           odo_start: float, odo_end: float,
+                           soc_start: float, soc_end: float) -> Optional[int]:
+        """Kilometres that appeared while the cloud was quiet, kept apart from every trip.
+
+        They cannot be attributed: the silence may hold the end of one drive, hours of parking and
+        the beginning of another. Welding them onto the trip that opens next (what `_offline_head`
+        did until v3.10.6) put them on the wrong trip AND the wrong day — a drive from yesterday
+        counted under today, because the trip's start time is the moment the link returned.
+
+        ⚠️ The SoC drop travels WITH the distance. Recording the kilometres and leaving the energy
+        inside the trip would divide whole energy by partial distance, which is the SoH defect of
+        v3.10.2 and #237 all over again. A RISE means a charge happened in the silence, so the
+        energy is floored at zero rather than counted as consumption run backwards."""
+        distance_km = round((odo_end or 0) - (odo_start or 0), 1)
+        if distance_km < _OFFLINE_GAP_MIN_KM or (odo_start or 0) <= 0 or (odo_end or 0) <= 0:
+            return None
+        energy_kwh = max(((soc_start or 0) - (soc_end or 0)) / 100.0
+                         * self.get_battery_capacity(vehicle_id), 0.0)
+        cur = self._conn.execute(
+            """INSERT INTO offline_gaps
+               (vehicle_id, started_at, ended_at, odometer_start, odometer_end,
+                distance_km, soc_start, soc_end, energy_kwh)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (vehicle_id, started_at, ended_at, odo_start, odo_end,
+             distance_km, soc_start, soc_end, round(energy_kwh, 3)))
+        self._conn.commit()
+        log.info("Offline stretch recorded — %.1f km / %.1f%% SoC between %s and %s, attributed to "
+                 "no trip", distance_km, (soc_start or 0) - (soc_end or 0), started_at, ended_at)
+        return cur.lastrowid
 
     def create_trip(self, vehicle_id: int, data, head=None) -> int:
         """`head` (optional) is {"odometer_km", "soc"} — and since v3.8.8 also "latitude"/"longitude"

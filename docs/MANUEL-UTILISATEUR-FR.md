@@ -300,6 +300,15 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
 - Vous pouvez **fusionner** deux trajets coupés par erreur (Fusionner 🔗) ou les **séparer** à nouveau, et
   **supprimer** un trajet.
 - Les arrêts brefs (feux, embouteillages) **ne** coupent **pas** un trajet : une conduite reste une seule
+- **Les kilomètres parcourus hors contact n'entrent dans aucun trajet.** Quand la liaison avec le
+  cloud tombe, la voiture continue de rouler mais Mate ne la voit pas ; au retour, il ne trouve
+  qu'un odomètre plus avancé. Ce saut peut contenir la fin d'un trajet, un arrêt et le début d'un
+  autre, et **rien ne dit comment cela se répartit** — Mate ne l'attribue donc à personne. Une ligne
+  au-dessus du calendrier indique les kilomètres, la charge et le coût de ce mois-là, et la page
+  **Statistiques** le cumul : *mesurés, mais non attribuables à un trajet précis — donc exclus des
+  distances, des consommations et des coûts.*
+  ⚠️ C'est pourquoi le total de Mate peut rester en dessous de l'odomètre de la voiture : la
+  différence, c'est cette ligne.
   ligne.
 - **Consommation officielle depuis le cloud 🆕** — lorsqu'elles sont disponibles, la **consommation,
   l'efficacité et le coût** d'un trajet proviennent de la **donnée officielle** Leapmotor (la vraie

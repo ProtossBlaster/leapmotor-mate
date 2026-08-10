@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.10.5"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.10.6"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -620,6 +620,9 @@ def _trips_calendar_ctx(year: int, month: int, open_day: int = 0) -> dict:
         "next_year": next_year, "next_month": next_month,
         "today": today, "fmt_dur": _fmt_dur,
         "is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),
+        # What this month's totals deliberately leave out. Computed here, inside the calendar's own
+        # context, so it is swapped together with the grid when the month buttons are used.
+        "offline": db_reader.offline_gaps_summary(year, month),
     }
     if open_day and open_day in cal["days"]:
         ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
@@ -1242,6 +1245,10 @@ async def statistics(request: Request):
         totals["cost100"] = db_reader.cost_per_100km(_rt["total_fuel_l"] if _rt else 0.0)
     else:
         totals["cost100"] = db_reader.cost_per_100km()
+    # …and what Mate measured but refuses to attribute: the kilometres the car covered while the
+    # cloud had nothing new to say. They are kept out of every figure above — both the distance and
+    # the charge that went with it — so this is the only place they are ever stated.
+    totals["offline_gaps"] = db_reader.offline_gaps_summary()
     return templates.TemplateResponse(request, "statistics.html", _ctx(
         page="statistics", vehicle=vehicle,
         grouped=grouped, totals=totals,
