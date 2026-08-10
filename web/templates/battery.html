@@ -188,6 +188,26 @@
 <div class="card mb-3">
   <div id="vampire-chart" style="height:300px"></div>
 </div>
+{# Why the chart has not grown. `get_vampire_drain` has named every rejected park since v3.10.2 —
+   this page already received them and printed none, so a chart that had simply had nothing to draw
+   read as broken (#241 @riri19: "the data seems frozen since 05/08"; it was not, his car had just
+   stopped losing enough to measure). Shown ONLY when the most recent stop is one of the rejected
+   ones: when the newest bar IS the newest stop there is nothing to explain, and a note that is
+   always present stops being read. #}
+{% set _last_bar = vampire.windows[-1].start if vampire.windows else '' %}
+{% set _rej = vampire.rejected[-1] if vampire.rejected else None %}
+{% if _rej and _rej.start > _last_bar %}
+{# Every figure goes through `nice`, like the rest of this card: Italian writes 13,5 and the
+   headline above already does, so a raw 13.5 here would be the same page disagreeing with itself. #}
+{% set _why = t('battery_vampire_why_noise').format(drop=_rej.drop_pct|nice, thr=vampire.min_drop_pct|nice)
+              if _rej.why == 'below_noise_floor'
+         else t('battery_vampire_why_flat') if _rej.why == 'flat'
+         else t('battery_vampire_why_short').format(mh=vampire.min_hours|nice) if _rej.why == 'short'
+         else t('battery_vampire_why_woke') %}
+<p id="vampire-why-none" class="text-xs text-slate-400 mb-3">
+  {{ t('battery_vampire_why_none').format(hours=_rej.hours|nice, why=_why) }}
+</p>
+{% endif %}
 <p class="text-xs text-slate-500 leading-relaxed">{{ t('battery_vampire_help') }}</p>
 
 <script>

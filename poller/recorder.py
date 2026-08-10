@@ -41,6 +41,12 @@ class Recorder:
         # moves, so any jump while parked = a drive we missed offline. Whole-km signal → 1 km floor.
         self._last_odometer: Optional[float] = None
         self._reconstruct_min_km: float = 1.0
+        # When the cloud last told us something NEW — our own clock, stamped only on a fresh frame.
+        # Deliberately NOT the SoC baseline above, which moves on every poll: while the link is dark
+        # the car still looks online, so that one collapses a whole drive into one polling interval
+        # (#244). None until the first frame arrives, and on a car that sends no frame clock it stays
+        # None for ever → the reconstruction falls back to the old baseline, unchanged.
+        self._last_fresh_ts: Optional[str] = None
         # Where the car was on the poll before this one (#233). Only ever read by _offline_head, to
         # anchor a trip that opened late to the place it actually left from instead of the point,
         # kilometres down the road, where the cloud finally started talking again.
@@ -131,6 +137,10 @@ class Recorder:
         stale = bool(data.timestamp_ms) and data.timestamp_ms == self._last_frame_ts
         if data.timestamp_ms:
             self._last_frame_ts = data.timestamp_ms
+        # The moment BEFORE this poll that the cloud last had news. Read now, advanced at the end of
+        # the cycle, so the reconstruction below still sees where the silence began rather than where
+        # it ended. A car with no frame clock never sets it → `None` → old behaviour.
+        fresh_ts_before = self._last_fresh_ts
 
         # NB: the state machine below must still see every frame, repeats included. If the last real
         # frame said gear P (car parked, then the modem dropped), the SM needs its PARKED_CONFIRM
@@ -173,8 +183,15 @@ class Recorder:
 
         # Order matters: trip reconstruction reads the SoC baseline (for the energy delta) BEFORE the
         # charge reconstruction advances it. Trip advances its OWN odometer baseline.
-        self._maybe_reconstruct_trip(data)
+        self._maybe_reconstruct_trip(data, fresh_ts_before)
         self._maybe_reconstruct_charge(data)
+        # Last, so everything above still saw the previous one. No `and data.timestamp_ms` guard:
+        # a frame with no clock is never `stale`, so it advances anyway — and it should. Not
+        # advancing on it would freeze the baseline on a car that reports fine but timestamps only
+        # some frames, stretching a window that was never dark. (Written with the guard first; a
+        # mutation survived because the two branches are identical, which is what proved it dead.)
+        if not stale:
+            self._last_fresh_ts = _now_iso()
 
     def _offline_head(self, data: Optional[VehicleData]):
         """The odometer and SoC of the poll BEFORE this trip opened, when they show the car already
@@ -225,7 +242,8 @@ class Recorder:
                  " (no usable position to anchor to)")
         return head
 
-    def _maybe_reconstruct_trip(self, data: VehicleData) -> None:
+    def _maybe_reconstruct_trip(self, data: VehicleData,
+                                fresh_ts_before: Optional[str] = None) -> None:
         """Catch a DRIVE that was never seen live — the trip twin of _maybe_reconstruct_charge (#118).
         While the car is offline to the cloud the poller gets no live signals (or only stale ones), so a
         whole trip can happen without a single DRIVING poll: the live state machine never opens a trip and
@@ -252,7 +270,12 @@ class Recorder:
             return                                              # sub-1 km blip, not a trip
         if data.soc - prev_soc > 0.5:
             return                                              # SoC rose → a charge, not a pure drive
-        trip_id = self._db.create_reconstructed_trip(self._vehicle_id, prev_soc, prev_odo, prev_ts, data)
+        # Start where the news stopped, not where the last poll happened. The two are the same on a
+        # healthy link and hours apart behind a frozen frame — and it is the second case that
+        # produced 4 km "in 30 seconds", an implied 480 km/h, and a trip with no duration at all.
+        started_at = fresh_ts_before or prev_ts
+        trip_id = self._db.create_reconstructed_trip(self._vehicle_id, prev_soc, prev_odo,
+                                                    started_at, data)
         if trip_id is not None:
             self._auto_note_trip(trip_id)
 

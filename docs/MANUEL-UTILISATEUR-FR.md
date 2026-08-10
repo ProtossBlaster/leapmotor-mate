@@ -835,6 +835,10 @@ relevé au-dessus des baisses réelles de votre voiture, le graphique ne dessine
 (ou appuyez sur **Réinitialiser**) et les fenêtres réapparaissent. Depuis la **v1.22.4**, la page vous le dit
 explicitement — elle affiche tout de même la valeur typique et un avis « sous votre seuil » au lieu de sembler
 vide.
+Depuis la **v3.10.5**, le graphique est aussi suivi du **dernier arrêt écarté**, avec sa durée, sa baisse et le
+motif : un graphique qui n'avance plus depuis des jours ne ressemble donc plus à une panne. Le plus souvent, le
+motif est que la voiture a perdu **0,1 %**, soit un seul cran de son capteur de charge : en dessous, une baisse
+ne se distingue pas du bruit, et Mate préfère ne rien dessiner plutôt qu'un chiffre inventé.
 
 **J'ai une Leapmotor REEV (hybride avec prolongateur d'autonomie).**
 Elle n'est pas prise en charge : les calculs d'énergie utiliseraient la capacité de batterie BEV et seraient

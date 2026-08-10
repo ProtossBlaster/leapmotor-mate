@@ -806,6 +806,10 @@ Another frequent cause is the **vampire-drain threshold** in *Settings → Advan
 above your car's real drops, the chart draws nothing. Bring it back toward **0.2** (or press
 **Reset**) and the windows reappear. From **v1.22.4** the page tells you so explicitly — it still
 shows the typical value and a "below your threshold" notice instead of looking empty.
+From **v3.10.5** the chart is also followed by **the most recent discarded stop**, with its length,
+its drop and the reason — so a chart that has not grown for days no longer reads as broken. Most
+often the reason is that the car lost **0.1%**, one single step of its charge sensor: below that a
+drop cannot be told apart from noise, and Mate would rather draw nothing than a number it invented.
 
 **I have a Leapmotor REEV (hybrid with a range extender).**
 It's not supported: the energy calculations would use the BEV battery capacity and come out wrong.

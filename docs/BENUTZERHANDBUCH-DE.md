@@ -810,6 +810,10 @@ Sie sie über die realen Rückgänge Ihres Autos angehoben haben, zeichnet das D
 auf etwa **0,2** (oder drücken Sie **Reset**) und die Fenster erscheinen wieder. Seit **v1.22.4** sagt die Seite es
 Ihnen ausdrücklich — sie zeigt trotzdem den typischen Wert und einen Hinweis „unter Ihrer Schwelle", statt leer zu
 wirken.
+Seit **v3.10.5** folgt auf das Diagramm zusätzlich **die zuletzt verworfene Standphase** mit ihrer Dauer, ihrem
+Rückgang und dem Grund — ein Diagramm, das seit Tagen nicht wächst, wirkt damit nicht mehr defekt. Meist lautet der
+Grund, dass das Auto **0,1 %** verloren hat, also einen einzigen Schritt seines Ladesensors: darunter lässt sich ein
+Rückgang nicht vom Rauschen unterscheiden, und Mate zeichnet lieber nichts als eine erfundene Zahl.
 
 **Ich habe eine Leapmotor REEV (Hybrid mit Range-Extender).**
 Sie wird nicht unterstützt: Die Energieberechnungen würden die Kapazität der BEV-Batterie verwenden und wären

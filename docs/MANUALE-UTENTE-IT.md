@@ -843,6 +843,11 @@ Un'altra causa frequente è la **soglia del consumo da fermo** in *Impostazioni 
 alzata sopra i cali reali della tua auto, il grafico non disegna nulla. Riportala verso **0,2** (o
 premi **Reset**) e le finestre ricompaiono. Dalla **v1.22.4** la pagina te lo dice esplicitamente —
 mostra comunque il valore tipico e un avviso "sotto la tua soglia" invece di sembrare vuota.
+Dalla **v3.10.5** sotto il grafico compare anche **l'ultima sosta scartata**, con la sua durata, il
+suo calo e il motivo: così un grafico che non cresce da giorni non sembra più rotto. Spesso il
+motivo è che l'auto ha perso **0,1%**, cioè un solo scalino del sensore — sotto quel valore un calo
+non si distingue dal rumore, e Mate preferisce non disegnare niente piuttosto che un numero
+inventato.
 
 **Ho una Leapmotor REEV (ibrida con range extender).**
 Non è supportata: i calcoli di energia userebbero la capacità della batteria BEV e risulterebbero

@@ -7557,6 +7557,10 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
             "measurable_count": measurable, "below_threshold": measurable - len(charted),
             "active_use_count": active_use_count,
             "min_drop_pct": round(min_drop_pct, 1),
+            # The user's own minimum park length, so the page can name it when that is what
+            # rejected the most recent stop. `reject_min_hours` below is a different number:
+            # the floor under which a park is not even worth listing as rejected.
+            "min_hours": round(min_hours, 1),
             "typical_pct_per_day": typical, "lookback_days": lookback_days,
             "rejected": rejected[-limit:], "rejected_total": rejected_total,
             "reject_min_hours": _VAMPIRE_REJECT_MIN_HOURS}

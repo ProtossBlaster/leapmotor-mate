@@ -3,6 +3,51 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.10.5] — 2026-08-10
+
+**A drive recovered after a blackout was stamped at the moment the cloud caught up, and a chart that had nothing to draw looked broken.**
+
+### Fixed
+
+- 🕐 **A trip rebuilt from an odometer jump now starts when the car last spoke, not one poll ago.**
+  Measured on **@riri19**'s own database while triaging **#244**:
+
+      2026-08-09T21:37 → 21:37   4.0 km   SoC 70.2→69.9   —min   reconstructed
+
+  Start and end on the same instant and no duration at all. The kilometres were right — the
+  odometer really did move — but the trip landed at the moment the link returned rather than when
+  the car drove, which is why these read as "random trip entries" (**@wlighter**, #242) instead of
+  the recovered drives they are.
+
+  The baseline the reconstruction started from was re-stamped on **every poll**. Behind a frozen
+  frame the car still looks online: Mate asks every 30 s, gets the same odometer back, and moves the
+  baseline forward each time — so when the fresh frame finally arrives the whole drive is squeezed
+  into the last polling interval. 4 km in 30 s is 480 km/h, and the plausibility guard threw the
+  duration away. The guard was right; what reached it was wrong.
+
+  Mate already knows a repeated frame when it sees one. A second baseline now moves only on a
+  **fresh** frame, and the gap spans the real blackout — so the guard can finally do its job:
+  40 km across a 45-minute dark window keeps its 45 minutes, while 4 km discovered after four hours
+  of silence still refuses to guess. Simulated in a container against the released code, same
+  frames: `18:45:00 → 18:45:30, duration discarded` became `18:00:00 → 18:45:30, 45.5 min`.
+
+  ⚠️ A car whose frames carry no clock cannot be judged this way and is untouched.
+
+- 🦇 **The standby-drain chart now says why it has no new bar.** **@riri19** again (#241):
+  *"the data seems stuck since 05/08"*. It was not stuck. Every stop since had lost **0.1%** — one
+  step of the car's charge sensor — and a drop that small cannot be told apart from noise, so
+  nothing was drawn. His bundle answered it in a minute; his screen could not, because the page said
+  nothing at all about the stops it discarded.
+
+  The rejected stops, with their reason, have been in the data since v3.10.2 — the page received
+  them and printed none. It now names the most recent one under the chart: how long it lasted, what
+  it lost, and why it was not charted. In all seven languages, with each language's own decimal mark.
+
+- 📏 **The noise floor was labelled "%/day" in seven languages and in the diagnostics bundle.** It is
+  not a rate: it is compared against the raw drop in SoC points, so a 12-hour stop and a three-day
+  one face the same 0.2. The wrong unit invites exactly the wrong fix — raising the threshold to
+  catch a slow drain. The Settings label was always right; the battery page and the bundle were not.
+
 ## [3.10.4] — 2026-08-09
 
 **The charge cable went missing whenever the charge was waiting for its programmed window — and it took the window with it.**
@@ -25,8 +70,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   hands all along.
 
   🔑 **One cause, two symptoms.** The Overview's charge-window chip — *"Charge 01:50 – 12:00"*, built
-  for **@rop12770** himself back in **#173** — lives inside the "cable connected" branch, so the same
-  unread code had been hiding the very answer he asked us for: *why isn't it charging?*
+  for **@rop12770** himself back in
+  [discussion #173](https://github.com/ProtossBlaster/leapmotor-mate/discussions/173) — lives inside
+  the "cable connected" branch, so the same unread code had been hiding the very answer he asked us
+  for: *why isn't it charging?*
 
   ⚠️ **Plugged is not charging.** The cable is what keeps a session OPEN, so counting 4 as connected
   without more would have left the session that ended at 19:10 running until the window opened at

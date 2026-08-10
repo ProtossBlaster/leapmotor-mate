@@ -336,7 +336,10 @@ def _vampire_section() -> str:
     except Exception as e:  # noqa: BLE001
         return f"(vampire calc failed: {e})"
     out = [f"count={v.get('count')}  measurable={v.get('measurable_count')}  "
-           f"below_threshold={v.get('below_threshold')}  min_drop_pct={v.get('min_drop_pct')} %/day  "
+           # ⚠️ min_drop is a DROP in SoC points, not a rate: get_vampire_drain compares it against
+           # `soc0 - soc_end` as-is, so a 12-hour stop and a three-day one face the same number.
+           # It read "%/day" here for a long time — the one place we ourselves read during triage.
+           f"below_threshold={v.get('below_threshold')}  min_drop_pct={v.get('min_drop_pct')} % SoC  "
            f"typical={v.get('typical_pct_per_day')} %/day  lookback={v.get('lookback_days')}d"]
     for w in (v.get("windows") or [])[-15:]:
         out.append(f"  {str(w['start'])[:16]} → {str(w['end'])[:16]}  {w['drop_pct']}% / {w['hours']}h "
@@ -812,7 +815,7 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
             f"(default 2.0 — above ~11 A a home charge is never seen) · "
             f"reconstruct ≥{info['charge_reconstruct_min_pct']} %",
             f"Positions    : span {info['positions_span']} · retention {info['retention_days']}d (0=keep all)",
-            f"Vampire thr  : min_drop {info['vampire_min_drop_pct']} %/day · "
+            f"Vampire thr  : min_drop {info['vampire_min_drop_pct']} % SoC · "
             f"min_hours {info['vampire_min_hours']} h (chart display thresholds)",
             f"Features     : mqtt={f['mqtt']} wallbox={f['wallbox']} ha={f['ha']} "
             f"abrp={f['abrp']} addon={f['addon']}",
