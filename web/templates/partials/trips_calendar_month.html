@@ -58,6 +58,25 @@
   </div>
   {% endif %}
 
+  {# What this month's totals do NOT contain. It lives INSIDE the calendar fragment on purpose: the
+     month buttons swap this whole block, so the figure follows the month you are looking at. Put
+     in the page body instead it would keep showing August while the grid showed July — two numbers
+     under one month. No day breakdown: a gap spans hours and cannot be pinned to a date. #}
+  {% if offline and offline.count %}
+  <div id="trips-offline-month"
+       class="mb-4 rounded-lg border border-amber-500/30 bg-amber-400/5 px-3 py-2 text-xs">
+    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span class="text-amber-400 font-semibold">{{ offline.total_km | dist(1) }}</span>
+      <span class="text-slate-400">{{ t('stats_offline_label') }}</span>
+      <span class="text-slate-500">· {{ offline.total_soc | nice }}% {{ t('stats_offline_soc') }}
+        · {{ offline.total_kwh | nice }} kWh{% if offline.cost is not none %}
+        · {{ offline.cost | money }}{% endif %}</span>
+    </div>
+    <div class="text-slate-500 mt-1">{{ t('stats_offline_windows').format(n=offline.count) }}
+      — {{ t('stats_offline_short') }}</div>
+  </div>
+  {% endif %}
+
   <div class="grid grid-cols-7 gap-1 sm:gap-1.5 lg:gap-2 text-center text-[10px] sm:text-xs lg:text-sm text-slate-500 mb-1">
     {% for wd in weekday_abbrs %}<div>{{ wd }}</div>{% endfor %}
   </div>

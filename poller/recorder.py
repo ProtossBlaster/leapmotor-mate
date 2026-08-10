@@ -47,11 +47,6 @@ class Recorder:
         # (#244). None until the first frame arrives, and on a car that sends no frame clock it stays
         # None for ever → the reconstruction falls back to the old baseline, unchanged.
         self._last_fresh_ts: Optional[str] = None
-        # Where the car was on the poll before this one (#233). Only ever read by _offline_head, to
-        # anchor a trip that opened late to the place it actually left from instead of the point,
-        # kilometres down the road, where the cloud finally started talking again.
-        self._last_lat: Optional[float] = None
-        self._last_lon: Optional[float] = None
         # Timestamp of the last cloud frame (#128) — see process() for what a repeat means.
         self._last_frame_ts: Optional[int] = None
 
@@ -193,54 +188,33 @@ class Recorder:
         if not stale:
             self._last_fresh_ts = _now_iso()
 
-    def _offline_head(self, data: Optional[VehicleData]):
-        """The odometer and SoC of the poll BEFORE this trip opened, when they show the car already
-        drove while we couldn't see it — the kilometres @riri19 lost off the front of a trip (#130).
+    def _record_offline_gap(self, data: Optional[VehicleData]) -> None:
+        """Kilometres that appeared while the cloud was quiet get a row of their own — never the
+        trip that happens to open next.
 
-        A trip opens on the first FRESH frame. While the car is out of touch the cloud re-serves the
-        last frame it holds — gear P, speed 0 — so the state machine stays parked through the
-        opening kilometres and the trip is then created with the odometer read AFTER them.
-        _maybe_reconstruct_trip cannot rescue those either: it advances its own baseline and only
-        then bows out to the live trip, so the jump is consumed and discarded in that same poll.
+        ⛔ THIS REPLACES THE ANCHOR (#130, #233). Until v3.10.6 the same reading was used to move
+        the opening trip's start odometer, SoC and position BACK over those kilometres, so that a
+        drive whose first minutes went unseen still measured right. It works when the silence really
+        does sit at the front of THIS drive — and it is wrong every other time, which the data
+        cannot distinguish: put the car in D after a silent stretch and the trip is born carrying
+        50 km, the SoC that went with them and a start point 50 km away, before the car has moved.
+        Worse, the trip's start time is NOW, so kilometres driven yesterday are counted under today.
 
-        The previous reading is still in memory right here — both baselines are advanced later in
-        the same process() cycle — so hand it to create_trip as the trip's start anchor. A parked
-        car's odometer never moves, so any advance at all is a drive; the floor is the same
-        whole-kilometre resolution _maybe_reconstruct_trip uses, because below it the signal cannot
-        tell a drive from its own quantisation.
+        The kilometres are not lost. They are declared, apart, as what they are: measured, and
+        attributable to no trip. → poller/db.record_offline_gap
 
-        DISTANCE, ENERGY and the start POSITION. started_at is still not moved (the frozen window
-        may hold hours of parking, so when the car set off is unknown — duration stays as observed,
-        which does make the average speed of such a trip read high).
-
-        ⚠️ The position was excluded until v3.8.8 on the grounds that "a frozen frame's GPS is
-        routinely 0,0", which would plant the trip in the Gulf of Guinea. That risk is real but it
-        is not a reason to throw the coordinate away — it is a reason to CHECK it, which is what
-        _last_lat/_last_lon do by refusing to store a zero in the first place. When they hold a real
-        fix, it is the place the car left from, and it beats the point kilometres down the road
-        where the cloud started talking again: @riri19's 19 km drive (#233) opened 5 km from home,
-        with the frame that said "parked at home" still 32 minutes stale in Mate's hand.
-
-        Returns None in every ordinary case, which is all of them for a car whose cloud link is
-        healthy.
+        Runs at trip OPEN, where both baselines still hold the last poll's values, and where
+        `_last_fresh_ts` still holds the moment the cloud last had news — which is where the
+        silence began, and is not the same as the last poll.
         """
         prev_odo, prev_soc = self._last_odometer, self._last_soc
         if data is None or prev_odo is None or prev_soc is None:
-            return None
-        if not (prev_odo > 0 and (data.odometer_km or 0) > 0):
-            return None                       # a 0 from a partial frame would hand us the lifetime
-        gap_km = data.odometer_km - prev_odo
-        if gap_km < self._reconstruct_min_km:
-            return None
-        head = {"odometer_km": prev_odo, "soc": prev_soc}
-        if self._last_lat and self._last_lon:
-            head["latitude"], head["longitude"] = self._last_lat, self._last_lon
-        # NO coordinate in this line: the poller log ships inside the shareable bundle (#232).
-        log.info("Trip opened %.1f km after it really started (car was out of touch) — anchoring "
-                 "to the last seen odometer %.0f km / SoC %.1f%%%s", gap_km, prev_odo, prev_soc,
-                 " and the place it left from" if "latitude" in head else
-                 " (no usable position to anchor to)")
-        return head
+            return
+        self._db.record_offline_gap(
+            self._vehicle_id,
+            started_at=self._last_fresh_ts or _now_iso(), ended_at=_now_iso(),
+            odo_start=prev_odo, odo_end=data.odometer_km or 0,
+            soc_start=prev_soc, soc_end=data.soc)
 
     def _maybe_reconstruct_trip(self, data: VehicleData,
                                 fresh_ts_before: Optional[str] = None) -> None:
@@ -256,10 +230,6 @@ class Recorder:
         guard), and the SoC did NOT rise (a rise means a charge, which _maybe_reconstruct_charge owns)."""
         prev_odo, prev_soc, prev_ts = self._last_odometer, self._last_soc, self._last_soc_ts
         self._last_odometer = data.odometer_km                  # advance the odometer baseline every poll
-        # …and the position baseline with it. Zeros are not stored: (0,0) is the no-GPS marker, and
-        # planting a trip's start there is the Gulf of Guinea trap the charge markers already hit.
-        if data.latitude and data.longitude:
-            self._last_lat, self._last_lon = data.latitude, data.longitude
         if prev_odo is None or prev_soc is None or prev_ts is None:
             return
         if self._sm.state not in _PARKED_STATES or self._active_trip_id is not None:
@@ -451,8 +421,11 @@ class Recorder:
             if self._active_charge_id:
                 self._close_charge_driven_away(data)
             self._regen_kwh = 0.0
-            self._active_trip_id = self._db.create_trip(
-                self._vehicle_id, data, head=self._offline_head(data))
+            # Before the trip is created, so both baselines still hold the last poll's reading:
+            # anything the odometer gained while the cloud was quiet is declared on its own instead
+            # of becoming the front of this trip.
+            self._record_offline_gap(data)
+            self._active_trip_id = self._db.create_trip(self._vehicle_id, data)
 
         elif frm == State.DRIVING and to in _PARKED_STATES:
             if self._active_trip_id and data:

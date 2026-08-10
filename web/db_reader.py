@@ -6702,6 +6702,69 @@ def get_charge_stats() -> dict:
     return d
 
 
+_OFFLINE_GAPS_SHOWN = 20
+
+
+def offline_gaps_summary(year: Optional[int] = None, month: Optional[int] = None) -> dict:
+    """Kilometres the car covered while the cloud had nothing new to say — measured, and belonging
+    to no trip.
+
+    With `year`/`month`, only that month — the Viaggi calendar wants the month it is showing, while
+    Statistics wants the running total (that page has no period at all, and its neighbours are all
+    since-the-beginning). ⚠️ The month is the one on the clock AT HOME: the timestamps here are UTC
+    like every other in the database, and 23:30 UTC on 31 July is already August in Rome. Filtering
+    on UTC would put a figure under a calendar grid that disagrees with it.
+
+    They used to be welded onto whichever trip opened next, which put them on the wrong trip and,
+    because a trip's start time is the moment the link returned, on the wrong DAY. The silence can
+    hold the tail of one drive, a night's parking and the start of another; nothing in the data says
+    how it divides, so nothing here guesses. The four figures are what IS known.
+
+    ⚠️ The euro is `None` when Mate has no average price — that average divides over PRICED charges
+    alone (`price_coverage`), so an install that never typed a tariff has none. Printing 0,00 € there
+    would invent a free kilometre; the caller shows the other three and leaves the money out.
+
+    The window list is capped and the cap is REPORTED: a silent truncation reads as "these are all
+    of them" when it is not."""
+    empty = {"count": 0, "total_km": 0.0, "total_soc": 0.0, "total_kwh": 0.0,
+             "cost": None, "avg_price": None, "windows": [], "shown": 0}
+    try:
+        rows = _get().execute(
+            "SELECT started_at, ended_at, distance_km, soc_start, soc_end, energy_kwh"
+            "  FROM offline_gaps WHERE vehicle_id = COALESCE(?, vehicle_id)"
+            " ORDER BY started_at", (_current_vehicle_id(),)).fetchall()
+    except sqlite3.Error:
+        return empty                      # a card must never take the page down
+    if year and month:
+        def _in_month(r):
+            d = _local_dt(r["started_at"])
+            return d is not None and d.year == year and d.month == month
+        rows = [r for r in rows if _in_month(r)]
+    if not rows:
+        return empty
+
+    total_km = round(sum(r["distance_km"] or 0 for r in rows), 1)
+    # SoC that only ever went DOWN: a rise inside a window is a charge, and counting it as a
+    # negative loss would quietly refund energy the car never spent on the road.
+    total_soc = round(sum(max((r["soc_start"] or 0) - (r["soc_end"] or 0), 0.0) for r in rows), 1)
+    total_kwh = round(sum(r["energy_kwh"] or 0 for r in rows), 2)
+
+    avg_price = None
+    try:
+        avg_price = get_charge_stats().get("avg_price")
+    except Exception:  # noqa: BLE001 — the money is a decoration on top of the measurement
+        pass
+    cost = round(total_kwh * avg_price, 2) if (avg_price and total_kwh) else None
+
+    windows = [{"start": r["started_at"], "end": r["ended_at"],
+                "km": r["distance_km"], "soc": round(max((r["soc_start"] or 0)
+                                                         - (r["soc_end"] or 0), 0.0), 1),
+                "kwh": r["energy_kwh"]} for r in rows][-_OFFLINE_GAPS_SHOWN:]
+    return {"count": len(rows), "total_km": total_km, "total_soc": total_soc,
+            "total_kwh": total_kwh, "cost": cost, "avg_price": avg_price,
+            "windows": windows, "shown": len(windows)}
+
+
 def get_ac_dc_stats() -> dict:
     """Count + energy of AC vs DC charge sessions. DC = charge_type 'DC', or (when not
     set) a measured peak power above 11 kW (AC tops out at ~11 kW; DC is faster)."""

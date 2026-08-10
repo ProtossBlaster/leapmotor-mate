@@ -292,6 +292,15 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   vedi l'anteprima del percorso combinato prima di confermare, ed è **reversibile** quando vuoi
   (Separa). Puoi anche **cancellare** un viaggio.
 - Soste brevi (semafori, code) **non** spezzano un viaggio: una guidata resta una sola riga.
+- **I chilometri fatti mentre l'auto non comunicava non finiscono in nessun viaggio.** Quando il
+  collegamento col cloud si interrompe, l'auto continua a girare ma Mate non lo vede; al ritorno
+  trova solo un contachilometri più avanti. Quel salto può contenere la fine di una guidata, una
+  sosta e l'inizio di un'altra, e **non c'è modo di sapere come si divide** — quindi Mate non lo
+  attribuisce a nessuno. Sopra il calendario compare una riga con i chilometri, la carica e il
+  costo di quel mese, e sulla pagina **Statistiche** il totale di sempre: *misurati, ma non
+  attribuibili a un viaggio preciso — perciò esclusi da distanze, consumi e costi.*
+  ⚠️ Per questo il totale di Mate può restare sotto al contachilometri dell'auto: la differenza è
+  esattamente quella riga.
 - **Altimetria e temperatura esterna.** Il cloud Leapmotor non riporta né l'una né l'altra, quindi
   qualche minuto dopo la fine di un viaggio Mate cerca il suo tracciato GPS su
   [Open-Meteo](https://open-meteo.com) (gratuito, senza chiave e senza account). Nel dettaglio
