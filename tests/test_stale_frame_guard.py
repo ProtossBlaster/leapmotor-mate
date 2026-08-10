@@ -43,9 +43,14 @@ class _SpyDB:
     def save_position(self, vid, data):
         self.positions += 1
 
-    def finalize_trip(self, trip_id, data, regen_kwh=0.0):
+    def finalize_trip(self, trip_id, data, regen_kwh=0.0, end_at_override=None):
         self.finalized.append(trip_id)
         return 17.0        # a real distance, so the short-hop discard stays out of the way
+
+    def trip_end_from_last_seen(self, trip_id):
+        """Mirrors the real one's contract: a trip ends when the car was last HEARD. None here —
+        this spy keeps no positions, and the recorder then falls back to now, as it must."""
+        return None
 
     def add_trip_position(self, trip_id, data):
         self.trip_points += 1

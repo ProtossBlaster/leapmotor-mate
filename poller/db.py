@@ -1232,7 +1232,43 @@ class Database:
         )
         self._conn.commit()
 
-    def finalize_trip(self, trip_id: int, data, regen_kwh: float = 0.0) -> Optional[float]:
+    def trip_end_from_last_seen(self, trip_id: int) -> Optional[str]:
+        """When the car was last actually HEARD inside this trip — the twin of
+        `charge_end_from_last_charging` (#208), which trips never had.
+
+        A trip abandoned on a frozen "gear D" frame is closed by the 30-minute guard (#233), and it
+        used to be stamped with the moment the guard fired. That put up to half an hour of pure
+        silence inside the trip: the duration grew, the average speed fell, and the car had been
+        parked in the drive the whole time.
+
+        🔑 Nothing new has to be recorded to know this. While DRIVING the recorder does not save a
+        position for a repeated frame (#128), so the LAST `positions` row of such a trip already is
+        the last thing the car said.
+
+        The car's own clock (`frame_ts`) is preferred over ours, for the same reason the charge
+        prefers it — it is the measurement's own time, not the time we happened to poll. ⚠️ And it
+        is CHECKED the same way: a frame timestamp from before the trip opened (host skew, or a
+        partial frame carrying someone else's clock) would end the trip before it began, so it is
+        only taken when it lands inside the trip."""
+        trip = self._conn.execute(
+            "SELECT vehicle_id, started_at FROM trips WHERE id=?", (trip_id,)).fetchone()
+        if trip is None or not trip["started_at"]:
+            return None
+        row = self._conn.execute(
+            "SELECT recorded_at, frame_ts FROM positions"
+            " WHERE vehicle_id=? AND recorded_at>=? ORDER BY recorded_at DESC LIMIT 1",
+            (trip["vehicle_id"], trip["started_at"])).fetchone()
+        if row is None:
+            return None
+        ended_at = row["recorded_at"]
+        if row["frame_ts"]:
+            frame_iso = datetime.fromtimestamp(int(row["frame_ts"]) / 1000, timezone.utc).isoformat()
+            if frame_iso > trip["started_at"]:
+                ended_at = frame_iso
+        return ended_at
+
+    def finalize_trip(self, trip_id: int, data, regen_kwh: float = 0.0,
+                      end_at_override: Optional[str] = None) -> Optional[float]:
         rows = self._conn.execute(
             "SELECT latitude, longitude FROM trip_positions WHERE trip_id = ? ORDER BY id",
             (trip_id,),
@@ -1257,8 +1293,12 @@ class Database:
         if _reev_extender_ran(trip["fuel_start_pct"], getattr(data, "fuel_level_pct", None)):
             efficiency = None
 
+        # ONE end moment, used for both the stamp and the length. They were two — `_now_iso()` for
+        # `ended_at` and `datetime.now()` for the duration — which agree in production and diverge
+        # the instant the end is anything other than now. It is about to be.
+        ended_at = end_at_override or _now_iso()
         started_at = datetime.fromisoformat(trip["started_at"])
-        duration_min = (datetime.now(timezone.utc) - started_at).total_seconds() / 60
+        duration_min = (datetime.fromisoformat(ended_at) - started_at).total_seconds() / 60
 
         end_gh = geohash.encode(data.latitude, data.longitude) if data.latitude and data.longitude else None
         self._conn.execute(
@@ -1266,7 +1306,7 @@ class Database:
                end_odometer_km=?, distance_km=?, duration_min=?,
                efficiency_kwh_100km=?, regen_kwh=?, fuel_end_pct=?, fuel_end_l=?
                WHERE id=?""",
-            (_now_iso(), data.latitude, data.longitude, end_gh, data.soc,
+            (ended_at, data.latitude, data.longitude, end_gh, data.soc,
              data.odometer_km, round(distance_km, 2) if distance_km is not None else None,
              round(duration_min, 1),
              round(efficiency, 2) if efficiency else None, round(regen_kwh, 3),

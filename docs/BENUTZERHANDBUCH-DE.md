@@ -291,6 +291,10 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
 - Sie können zwei versehentlich getrennte Fahrten **zusammenführen** (Zusammenführen 🔗) oder sie wieder
   **trennen** und eine Fahrt **löschen**.
 - Kurze Pausen (Ampeln, Staus) **trennen** eine Fahrt **nicht**: Eine Fahrt bleibt eine einzige Zeile.
+- **Eine von der Cloud verlassene Fahrt endet, als das Auto zuletzt gesprochen hat.** Bricht die
+  Verbindung während der Fahrt ab, schließt Mate die Fahrt nach einer halben Stunde selbst — datiert
+  sie aber auf die **letzte echte Nachricht**, nicht auf den Moment, in dem es das bemerkt hat. So
+  enthält die Dauer keine halbe Stunde Stille und die Durchschnittsgeschwindigkeit bleibt ehrlich.
 - **Kilometer ohne Verbindung landen in gar keiner Fahrt.** Wenn die Verbindung zur Cloud abreißt,
   fährt das Auto weiter, Mate sieht es aber nicht; kehrt die Verbindung zurück, findet es nur einen
   weitergelaufenen Kilometerstand vor. In diesem Sprung können das Ende einer Fahrt, eine Pause und

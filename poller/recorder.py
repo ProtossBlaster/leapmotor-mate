@@ -278,7 +278,12 @@ class Recorder:
     _MIN_TRIP_KM = 0.5
 
     def _finalize_trip(self, data: VehicleData) -> None:
-        distance_km = self._db.finalize_trip(self._active_trip_id, data, self._regen_kwh)
+        # End the trip when the car was last HEARD, not when we noticed. On a healthy link the two
+        # are the same poll, so nothing moves; behind a frozen frame the difference is everything
+        # the 30-minute guard used to fold into the trip. Same shape as the charge close (#208).
+        distance_km = self._db.finalize_trip(
+            self._active_trip_id, data, self._regen_kwh,
+            end_at_override=self._db.trip_end_from_last_seen(self._active_trip_id))
         if distance_km is not None and distance_km < self._MIN_TRIP_KM:
             self._db.delete_trip(self._active_trip_id)
             log.info("Trip #%d discarded — short hop %.2f km (< %.1f km)",

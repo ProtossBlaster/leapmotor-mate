@@ -300,6 +300,11 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
 - Vous pouvez **fusionner** deux trajets coupés par erreur (Fusionner 🔗) ou les **séparer** à nouveau, et
   **supprimer** un trajet.
 - Les arrêts brefs (feux, embouteillages) **ne** coupent **pas** un trajet : une conduite reste une seule
+- **Un trajet abandonné par le cloud se termine quand la voiture a parlé pour la dernière fois.**
+  Si la liaison tombe pendant que vous roulez, Mate ferme le trajet de lui-même au bout d'une
+  demi-heure — mais il le date de la **dernière vraie nouvelle**, pas du moment où il s'en est
+  aperçu. La durée ne contient donc pas une demi-heure de silence, et la vitesse moyenne reste
+  juste.
 - **Les kilomètres parcourus hors contact n'entrent dans aucun trajet.** Quand la liaison avec le
   cloud tombe, la voiture continue de rouler mais Mate ne la voit pas ; au retour, il ne trouve
   qu'un odomètre plus avancé. Ce saut peut contenir la fin d'un trajet, un arrêt et le début d'un

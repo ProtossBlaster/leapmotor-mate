@@ -3,6 +3,40 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.10.7] — 2026-08-11
+
+**A trip abandoned by the cloud now ends when the car last spoke, not half an hour later.**
+
+### Fixed
+
+- 🕐 **The other end of the same silence.** v3.10.6 stopped a trip from *absorbing* kilometres nobody
+  watched. This is its closing half: a trip left open on a frozen "gear D" frame is shut by the
+  30-minute guard (#233), and it was stamped with the moment the guard fired — so it carried up to
+  half an hour in which, by definition, nothing was observed. The duration grew, the average speed
+  fell, and the car had been parked in the drive the whole time.
+
+  The distance was never wrong: the frozen frame **is** the last real measurement, so the odometer
+  was already right. Only the time lied.
+
+  **The pattern already existed, one table over.** Since #208 a charge the car drove away from is
+  closed on the last reading taken *while charging*, dated with the car's own clock (`frame_ts`)
+  rather than with the poll that noticed — on @mikeeeeekoo's overnight charge, the difference
+  between 06:10 and 09:36. Trips had no equivalent. They do now.
+
+  🔑 Nothing new had to be recorded to know this: while DRIVING the recorder already skips saving a
+  position for a repeated frame (#128), so the last stored position of such a trip **is** the last
+  thing the car said. It was on disk the whole time.
+
+  ⚠️ The car's clock is preferred but checked, exactly as the charge checks it: a frame timestamp
+  from before the trip opened — host skew, or a partial frame carrying someone else's clock — would
+  end the trip before it began, so it is only taken when it lands inside the trip.
+
+  ⚠️ And the two halves of the ending now move together. `ended_at` came from one clock and
+  `duration_min` from another; they agree in production and diverge the instant the end is anything
+  other than now. It is now one moment, used for both.
+
+  On a healthy link nothing moves: the last thing the car said is also this instant.
+
 ## [3.10.6] — 2026-08-11
 
 **Kilometres driven while the car was out of contact now belong to no trip — they are measured, declared, and left out of every figure.**

@@ -292,6 +292,10 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   vedi l'anteprima del percorso combinato prima di confermare, ed è **reversibile** quando vuoi
   (Separa). Puoi anche **cancellare** un viaggio.
 - Soste brevi (semafori, code) **non** spezzano un viaggio: una guidata resta una sola riga.
+- **Un viaggio abbandonato dal cloud finisce quando l'auto ha parlato l'ultima volta.** Se il
+  collegamento cade mentre guidi, dopo mezz'ora Mate chiude il viaggio da solo — ma lo data
+  all'**ultima notizia vera**, non al momento in cui se n'è accorto. Così la durata non contiene
+  mezz'ora di silenzio e la velocità media resta quella giusta.
 - **I chilometri fatti mentre l'auto non comunicava non finiscono in nessun viaggio.** Quando il
   collegamento col cloud si interrompe, l'auto continua a girare ma Mate non lo vede; al ritorno
   trova solo un contachilometri più avanti. Quel salto può contenere la fine di una guidata, una

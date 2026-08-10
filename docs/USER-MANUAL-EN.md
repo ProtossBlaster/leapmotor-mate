@@ -291,6 +291,10 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   pairs: a slider widens what counts as one stop, you preview the combined route before committing,
   and it is **reversible** at any time (Unmerge). You can also **delete** a trip.
 - Short stops (traffic lights, queues) do **not** split a trip: one drive stays a single row.
+- **A trip abandoned by the cloud ends when the car last spoke.** If the link drops while you are
+  driving, Mate closes the trip by itself after half an hour — but dates it at the **last real
+  news**, not at the moment it noticed. So the duration holds no half hour of silence and the
+  average speed stays honest.
 - **Kilometres covered while the car was out of contact go into no trip at all.** When the link to
   the cloud drops, the car keeps moving but Mate cannot see it; when the link returns, all it finds
   is an odometer further along. That jump can hold the end of one drive, a stop, and the beginning
