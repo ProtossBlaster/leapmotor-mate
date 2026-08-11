@@ -3,6 +3,46 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.11.1] — 2026-08-11
+
+**The range-extender's distance was counted on the coarse signal, and lost 42 % of it.**
+
+### Fixed
+
+- ⛽ **How far the generator drove, measured against the car's own dashboard.** @pdifeo (beta #28)
+  sent five drives with the thing we almost never get: **photographs of his C10's own screen**,
+  which states the petrol distance per drive. Mate stated much less — 35.0 km where the car said
+  60.2, and one 3 km drive where it said the generator had run and then showed no distance at all.
+
+  **The litres were never wrong.** 3.591 L against 3.591 L on the car's own counter, and over the
+  long window — since his 03/08 refuel — 14.248 L against the 14.37 his dashboard works out from
+  "239.5 km · 6 L/100 km". Eight tenths of a percent apart. Only the DISTANCE was short.
+
+  🔑 **The cause was a unit.** The walk asks, row by row, "did the odometer rise AND the fuel fall
+  in this SAME row?" — and it asked the tank in **percent**, which moves in steps of 0.1: about
+  47.5 mL, some 600 m of generator driving. Every row where the car had moved but the coarse gauge
+  had not yet ticked was thrown away. The car reports the same tank in **millilitres** as well, and
+  those were **already in the same database row** (`positions.fuel_liters`, written since v2.14.1).
+  Reading them takes the same five drives from 35.0 km to **54.0 km** against the car's 60.2.
+
+  ⚠️ Second time this file has made this mistake: `_reev_trip_fuel` had its noise floor on the
+  percentage while reading the millilitres (beta #22/#23). Same disease, one function up.
+
+  A car that does not send the millilitres, and every trip recorded before v2.14.1, keep the
+  percentage walk — worse, but it is what those rows have, and it must not become nothing.
+
+### Internal
+
+- 🧪 **Two dead ends recorded in the code, so nobody walks them twice.** There is **no "generator
+  running" signal** in the cloud: 1277 looks exactly like one — 0 across a pure-electric drive, 1
+  across a petrol one — and across all 13 days of the bundle it fires in one-minute bursts at the
+  start and end of drives, with 0.001 L burned inside them against 24.9 L outside. And an
+  "anchor on the last fuel change" rule scores −2 % if you rebuild the trail from the raw signal
+  log and **+54 %** on the real one, because it hands the generator the whole electric middle of a
+  drive: the raw log records a signal only when it CHANGES, so rebuilding from it gives a timeline
+  3× sparser than the poll grid the code actually walks. A rule tuned on that is tuned on an
+  artefact.
+
 ## [3.11.0] — 2026-08-11
 
 **Mate speaks Spanish.** Eighth language, complete: 1 178 strings, the setup wizard, the sign-in

@@ -362,26 +362,59 @@ def _reev_engine_on(db, vehicle_id, started_at, ended_at) -> Optional[dict]:
         must NOT be blamed on the driving distance (it inflates the figure ~3× if counted).
     So {engine_km, engine_fuel_pct} describe fuel-while-driving over distance-while-driving — the number
     the car itself shows. Returns None when the trail lacks odometer/fuel (old, pruned trips) so the
-    caller can fall back to the whole-trip distance."""
+    caller can fall back to the whole-trip distance.
+
+    🔑 **Which fuel column decides is a question of UNITS, and it changes the answer by a third.**
+    The test is per-sample — odometer up AND fuel down in the SAME row — so the resolution of the
+    fuel signal sets how many rows survive. The car reports its tank twice: 3235 as a percentage
+    moving in steps of 0.1, and 3263 in MILLILITRES, fifty times finer. Read on the percentage, a
+    row where the car drove but the coarse gauge had not yet ticked is dropped, and there are a lot
+    of them. Measured on @pdifeo's beta #28 bundle against photographs of his own dashboard, which
+    states the petrol distance per drive:
+
+        the car said   60.2 km      on the percentage   35.0 km  (−42 %)
+                                    on the millilitres  54.0 km  (−10 %)
+
+    The millilitres were in the same row the whole time: `positions.fuel_liters`, written since
+    v2.14.1. ⚠️ Second time this file has made this mistake — `_reev_trip_fuel` had its noise floor
+    on the percentage while reading the millilitres (beta #22/#23).
+
+    ⛔ One column for the whole walk, never a mix: half the kilometres counted on a 47.5 mL grid and
+    half on a 1 mL one is a total that means nothing.
+
+    ⛔ **The rule that looks better and is not.** "Anchor on the last fuel CHANGE and credit every
+    kilometre since" scores −2 % if you reconstruct the trail from the raw signal log — and +54 % on
+    the real one, because it hands the generator the whole electric middle of a drive that burned a
+    little at each end. The raw log records a signal only WHEN IT CHANGES, so rebuilding from it
+    gives a timeline 3× sparser than `positions`, which gets a row every poll (~11 s while driving).
+    Any rule tuned on that reconstruction is tuned on an artefact. Model the poll grid, not the
+    signal log.
+
+    ⛔ And there is **no "generator running" signal** in the cloud. 1277 looks exactly like one — 0
+    across a pure-electric drive, 1 across a petrol one — and across all 13 days of the bundle it
+    turns out to fire in one-minute bursts at the start and end of drives, with 0.001 L burned
+    inside them against 24.9 L outside."""
     if not (vehicle_id and started_at and ended_at):
         return None
     try:
         rows = db.execute(
-            "SELECT odometer_km, fuel_level_pct FROM positions "
+            "SELECT odometer_km, fuel_level_pct, fuel_liters FROM positions "
             "WHERE vehicle_id = ? AND recorded_at BETWEEN ? AND ? ORDER BY recorded_at, id",
             (vehicle_id, started_at, ended_at)).fetchall()
     except sqlite3.Error:
         return None
-    pts = [(r["odometer_km"], r["fuel_level_pct"]) for r in rows
+    pts = [(r["odometer_km"], r["fuel_level_pct"], r["fuel_liters"]) for r in rows
            if r["odometer_km"] is not None and r["fuel_level_pct"] is not None]
     if len(pts) < 2:
         return None
+    fine = all(p[2] is not None for p in pts)     # the whole trail carries the car's own millilitres
     engine_km = engine_fuel_pct = 0.0
-    for (o0, f0), (o1, f1) in zip(pts, pts[1:]):
-        dkm, dfuel = o1 - o0, f0 - f1
-        if dkm > 0 and dfuel > 0:            # moving AND burning → generator driving the car
+    for a, b in zip(pts, pts[1:]):
+        dkm = b[0] - a[0]
+        drop = (a[2] - b[2]) if fine else (a[1] - b[1])
+        if dkm > 0 and drop > 0:             # moving AND burning → generator driving the car
             engine_km += dkm
-            engine_fuel_pct += dfuel
+            engine_fuel_pct += a[1] - b[1]   # always the percentage: reev_fuel_summary reads it
     if engine_km <= 0.5:
         return None
     return {"engine_km": round(engine_km, 1), "engine_fuel_pct": round(engine_fuel_pct, 2)}

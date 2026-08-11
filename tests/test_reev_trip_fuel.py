@@ -11,14 +11,21 @@ import db_reader
 
 
 def _pos_db(rows):
-    """In-memory positions table with (recorded_at, odometer_km, fuel_level_pct) for vehicle 1 —
-    the only columns _reev_engine_on reads. No ambient DB (CI-safe)."""
+    """In-memory positions table with (recorded_at, odometer_km, fuel_level_pct, fuel_liters) for
+    vehicle 1 — the columns _reev_engine_on reads. No ambient DB (CI-safe).
+
+    `fuel_liters` is left NULL here on purpose: these cases are about the PERCENTAGE path, which is
+    what a trip recorded before v2.14.1 still has. The millilitre path — the one a live car takes,
+    and the one that stopped losing 42 % of the generator's distance — has its own file,
+    `test_generator_km_read_the_millilitres.py`. The column itself must exist: `schema.py` adds it
+    to every database, and leaving it out of the fixture made this file assert against a table no
+    installation has."""
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     conn.execute("CREATE TABLE positions (id INTEGER PRIMARY KEY, vehicle_id INT, "
-                 "recorded_at TEXT, odometer_km REAL, fuel_level_pct REAL)")
+                 "recorded_at TEXT, odometer_km REAL, fuel_level_pct REAL, fuel_liters REAL)")
     for i, (ts, odo, fuel) in enumerate(rows):
-        conn.execute("INSERT INTO positions VALUES (?,?,?,?,?)", (i, 1, ts, odo, fuel))
+        conn.execute("INSERT INTO positions VALUES (?,?,?,?,?,NULL)", (i, 1, ts, odo, fuel))
     return conn
 
 
