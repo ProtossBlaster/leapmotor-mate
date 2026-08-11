@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.8.8 · **Language:** English
+> **Mate version:** v3.11.0 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -221,8 +221,8 @@ progress…) stay fresh without reloading the page.
 
 **Language, currency and units** are changed from *Settings → 🌍 Language & Currency*:
 
-- **Language:** English, Italiano, Français, Deutsch, Polski, Nederlands, Português.
-  *(A written manual like this one exists in English, Italian, French and German.)*
+- **Language:** English, Italiano, Français, Deutsch, Polski, Nederlands, Português, Español.
+  *(A written manual like this one exists in English, Italian, French, German and Spanish.)*
 - **Currency:** for costs (€, £, …).
 - **Units:** metric (km, °C) or imperial UK/US (miles, °F). The data is always stored in km/°C; only
   the way it's **displayed** changes.
@@ -859,7 +859,7 @@ its `secret.key`**.
 
 ---
 
-> 📌 **Manual maintenance note.** This document describes version **v1.27.0**. When something visible
+> 📌 **Manual maintenance note.** This document describes version **v3.11.0**. When something visible
 > to the user changes (a new page, an option, a flow), update the corresponding section and the
 > version line at the top. It's meant as a base for the translations (EN/FR/DE): the structure is
 > deliberately the same as the interface.

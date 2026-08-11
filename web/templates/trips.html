@@ -6,7 +6,7 @@
    ended. The idle guards in base.html were never going to cover this: they protect a field you are
    typing in or a mode you switched on, not a choice you have already made and are now reading. #}
 {% block autorefresh %}0{% endblock %}
-{% block title %}Trips — LeapMotor Mate{% endblock %}
+{% block title %}{{ t('nav_trips') }} — LeapMotor Mate{% endblock %}
 
 {# eff_cls is now a global Jinja function (main.py's _eff_cls) — shared with trip_row.html.
    eff_hex (below) stays template-local: only the hero tile above needs a raw colour value. #}

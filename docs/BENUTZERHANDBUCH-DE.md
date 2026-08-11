@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.8.8 · **Sprache:** Deutsch
+> **Mate-Version:** v3.11.0 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -222,8 +222,8 @@ laufender Ladevorgang…) frisch bleiben, ohne die Seite neu zu laden.
 
 **Sprache, Währung und Einheiten** ändern Sie unter *Einstellungen → 🌍 Sprache & Währung*:
 
-- **Sprache:** Italiano, English, Français, Deutsch, Polski, Nederlands, Português.
-  *(Ein geschriebenes Handbuch wie dieses gibt es auf Deutsch, Englisch, Italienisch und Französisch.)*
+- **Sprache:** Italiano, English, Français, Deutsch, Polski, Nederlands, Português, Español.
+  *(Ein geschriebenes Handbuch wie dieses gibt es auf Deutsch, Englisch, Italienisch, Französisch und Spanisch.)*
 - **Währung:** für die Kosten (€, £, …).
 - **Einheiten:** metrisch (km, °C) oder imperial UK/US (Meilen, °F). Die Daten bleiben immer in km/°C gespeichert;
   es ändert sich nur, wie sie **angezeigt** werden.
@@ -866,7 +866,7 @@ Unter *Einstellungen → Export/Backup* laden Sie die Datenbank (und die CSVs) h
 
 ---
 
-> 📌 **Hinweis zur Pflege des Handbuchs.** Dieses Dokument beschreibt die Version **v1.28.0**. Wenn sich etwas für
+> 📌 **Hinweis zur Pflege des Handbuchs.** Dieses Dokument beschreibt die Version **v3.11.0**. Wenn sich etwas für
 > den Benutzer Sichtbares ändert (eine neue Seite, eine Option, ein Ablauf), aktualisieren Sie den entsprechenden
 > Abschnitt und die Versionszeile oben. Es ist als Grundlage für die Übersetzungen (EN/FR/DE) gedacht: Die Struktur
 > ist bewusst dieselbe wie die der Oberfläche.

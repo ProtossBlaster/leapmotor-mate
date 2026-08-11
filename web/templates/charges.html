@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% import 'partials/_icons.html' as ico %}
 {% block autorefresh %}0{% endblock %}{# own reload-on-charge-end + live panel poll #}
-{% block title %}Charges — LeapMotor Mate{% endblock %}
+{% block title %}{{ t('nav_charges') }} — LeapMotor Mate{% endblock %}
 
 {% block content %}
 <div class="mb-6 flex items-start justify-between gap-4">

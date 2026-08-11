@@ -28,7 +28,7 @@ import pytest
 
 WEB = pathlib.Path(__file__).resolve().parent.parent / "web"
 LOCALES = WEB / "locales"
-LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl")
+LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es")
 
 
 def _flat(d, prefix=""):
@@ -93,6 +93,39 @@ def test_the_account_warning_is_in_every_wizard_language():
     and the history fills with holes that nothing explains."""
     for lang, keys in _wizard_blocks().items():
         assert "acctWarn" in keys, f"the {lang} wizard would print 'undefined' instead of the warning"
+
+
+@pytest.mark.parametrize("lang", [l for l in LANGS if l != "en"])
+def test_the_maintenance_page_has_every_string_too(lang):
+    """A THIRD copy, found while adding Spanish: `maintenance.py` keeps its own per-language dicts
+    and falls back to English key by key, so a gap there is silent in exactly the same way — the
+    Maintenance page half in your language and half in English, and nothing failing anywhere."""
+    import maintenance
+    for name in ("_LABELS", "_CATS", "_CHROME", "_P"):
+        d = getattr(maintenance, name)
+        if name == "_P":                       # {lang: {fragment: text}}, not {key: {lang: text}}
+            assert lang in d, f"maintenance._P has no {lang} block"
+            missing = sorted(k for k in d["en"] if k not in d[lang])
+        else:                                  # {key: {lang: text}}
+            missing = sorted(k for k, v in d.items() if not v.get(lang))
+        assert not missing, f"maintenance.{name} is missing {len(missing)} for {lang}: {missing[:8]}"
+
+
+def test_no_page_title_is_hardcoded_english():
+    """The browser tab is a surface too, and it was the last one still in English.
+
+    Found by reading the SERVED pages of a Spanish install rather than the templates: Trips,
+    Charges, Statistics, Commands and Settings printed their English title in all seven
+    languages, and had done since those pages existed. Nothing failed — a hard-coded string
+    is not a missing key, so no completeness check could ever see it."""
+    allowed = {"LeapMotor Mate", "Wallbox"}          # the product name and a word that is the same everywhere
+    for tpl in sorted((WEB / "templates").glob("*.html")):
+        for block in re.findall(r"\{%\s*block title\s*%\}(.*?)\{%\s*endblock", tpl.read_text()):
+            words = re.sub(r"\{\{.*?\}\}", "", block)     # drop what Jinja will fill in
+            for token in allowed:
+                words = words.replace(token, "")
+            assert not re.search(r"[A-Za-z]{2}", words), \
+                f"{tpl.name} hardcodes {block.strip()!r} in its <title> — every language reads it"
 
 
 def test_the_allowed_language_list_agrees_with_itself_and_with_disk():

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v3.8.8 · **Langue :** Français
+> **Version de Mate :** v3.11.0 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 
@@ -232,8 +232,8 @@ De nombreuses pages **se mettent à jour toutes seules** environ toutes les 30 s
 
 **La langue, la devise et les unités** se changent depuis *Paramètres → 🌍 Langue et Devise* :
 
-- **Langue :** Italiano, English, Français, Deutsch, Polski, Nederlands, Português.
-  *(Un manuel écrit comme celui-ci existe en français, anglais, italien et allemand.)*
+- **Langue :** Italiano, English, Français, Deutsch, Polski, Nederlands, Português, Español.
+  *(Un manuel écrit comme celui-ci existe en français, anglais, italien, allemand et espagnol.)*
 - **Devise :** pour les coûts (€, £, …).
 - **Unités :** métriques (km, °C) ou impériales UK/US (miles, °F). Les données restent toujours enregistrées
   en km/°C ; seule change la façon dont elles sont **affichées**.
@@ -890,7 +890,7 @@ données **avec sa `secret.key`**.
 
 ---
 
-> 📌 **Note de maintenance du manuel.** Ce document décrit la version **v1.28.0**. Quand quelque chose de
+> 📌 **Note de maintenance du manuel.** Ce document décrit la version **v3.11.0**. Quand quelque chose de
 > visible par l'utilisateur change (une nouvelle page, une option, un flux), mettez à jour la section
 > correspondante et la ligne de version en haut. Il est conçu comme base pour les traductions (EN/FR/DE) : la
 > structure est volontairement la même que celle de l'interface.

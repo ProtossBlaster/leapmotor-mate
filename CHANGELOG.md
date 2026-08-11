@@ -3,6 +3,52 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.11.0] — 2026-08-11
+
+**Mate speaks Spanish.** Eighth language, complete: 1 178 strings, the setup wizard, the sign-in
+page, the maintenance schedule and the calendar.
+
+### Added
+
+- 🇪🇸 **Español.** Asked for on Facebook by **Francisco Ruiz**, a Spanish owner running Mate today.
+  Every surface, not just the locale file: `es.json` (1 178 keys), the setup wizard's own separate
+  dictionary inside `setup.html`, and the four dictionaries in `maintenance.py` — 62 service items,
+  categories and page chrome, plus the phrase fragments that build *«Primera revisión: dentro de
+  11 meses»*. The language selector, the wizard's flag buttons, the browser-language detection and
+  both allow-lists in `main.py` know about it.
+
+  **European Spanish (es-ES), terminology checked rather than invented.** *Autonomía*, *maletero*,
+  *cuentakilómetros*, *estado de carga*, *estado de salud*, *frenada regenerativa*, *punto de
+  recarga*, *pastillas de freno*, *latiguillos*, *desempañado*. Vampire drain is **descarga
+  pasiva**, the term the field actually uses — not a literal *vampiro*. The Mexican manual portal
+  was deliberately not used: it would have given *odómetro*, *cajuela*, *llanta*.
+
+- 📖 **A written manual in Spanish** — [`docs/MANUAL-DE-USUARIO-ES.md`](docs/MANUAL-DE-USUARIO-ES.md),
+  the fifth alongside English, Italian, French and German: the whole of it, from the requirements and
+  the wizard through every page, the integrations, the troubleshooting and the glossary. All four
+  existing manuals, the README (both halves), FEATURES and the Docker Hub page now say **eight
+  languages** and list the fifth manual. The manuals' own version lines had drifted apart — one
+  header said v3.8.8 while its own footer said v1.27.0 — and all five now agree on the release they
+  describe.
+
+### Fixed
+
+- 🏷️ **Five page titles, the mobile menu and the READY row were hard-coded English — in every
+  language.** Found by reading the SERVED pages of a Spanish install instead of the templates:
+  Trips, Charges, Statistics, Commands and Settings printed their English title in the browser tab
+  for all seven existing languages, and had done since those pages existed. Nothing failed —
+  a hard-coded string is not a missing key, so no completeness check could ever see it. Now they
+  read from the same `nav_*` keys the other pages already used, and `menu_label` /
+  `ready_state_on` / `ready_state_off` are translated in all eight languages.
+
+### Internal
+
+- 🧪 **The completeness test now counts the surfaces it was not counting.** It already guarded the
+  locale files and the wizard; it now also guards `maintenance.py` (a third copy that falls back to
+  English key by key, so a gap there shows a page half in your language) and refuses any
+  `{% block title %}` with a hard-coded English word. Adding a language turns them red until every
+  copy carries it, which is the point.
+
 ## [3.10.7] — 2026-08-11
 
 **A trip abandoned by the cloud now ends when the car last spoke, not half an hour later.**

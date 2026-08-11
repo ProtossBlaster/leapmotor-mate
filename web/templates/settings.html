@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block autorefresh %}0{% endblock %}{# forms — never auto-reload (would wipe input) #}
-{% block title %}Settings — LeapMotor Mate{% endblock %}
+{% block title %}{{ t('nav_settings') }} — LeapMotor Mate{% endblock %}
 
 {# Collapsible settings card — same accordion pattern as the old Advanced card, now applied to
    EVERY section so the page stays compact (only the card you open is expanded). Open/collapsed
@@ -63,6 +63,7 @@
               <option value="pl" {% if lang == 'pl' %}selected{% endif %}>🇵🇱 {{ t('lang_pl') }}</option>
               <option value="pt-PT" {% if lang == 'pt-PT' %}selected{% endif %}>🇵🇹 {{ t('lang_pt-PT') }}</option>
               <option value="nl" {% if lang == 'nl' %}selected{% endif %}>🇳🇱 {{ t('lang_nl') }}</option>
+              <option value="es" {% if lang == 'es' %}selected{% endif %}>🇪🇸 {{ t('lang_es') }}</option>
             </select>
           </form>
         </div>

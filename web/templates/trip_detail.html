@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Trip {{ trip.id }} — LeapMotor Mate{% endblock %}
+{% block title %}{{ t('trip_singular')|capitalize }} {{ trip.id }} — LeapMotor Mate{% endblock %}
 
 {% block content %}
 {# flex-wrap + nowrap title: on phones the buttons drop to a second row instead of

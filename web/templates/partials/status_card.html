@@ -157,7 +157,7 @@
   <div class="flex justify-between text-slate-400 col-span-2">
     <span>READY</span>
     <span class="font-semibold {% if status.ready %}text-emerald-400{% else %}text-slate-500{% endif %}">
-      {% if status.ready %}Ready{% else %}Not Ready{% endif %}
+      {% if status.ready %}{{ t('ready_state_on') }}{% else %}{{ t('ready_state_off') }}{% endif %}
     </span>
   </div>
   <div class="flex justify-between items-center text-slate-400 col-span-2 gap-2">
