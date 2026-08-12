@@ -3,6 +3,33 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.12.0] — 2026-08-13
+
+**A charge the car reported in pieces can be joined back into one, and split again.**
+
+### Added
+
+- 🔗 **Joining two charges.** The car declares the cable GONE the instant the current stops, on
+  fresh frames, so a single plug-in can be recorded as several charges: @michapr (beta #29) was
+  split by one 30-second frame, and a load-balancing wallbox turned one night into six rows. A
+  grace window in the poller would have to guess how long a real pause lasts, and a closed charge
+  is never recomputed — the guess would be silent and permanent. So the rows stay as the car
+  reported them and you join them yourself, on the Charges page, the way trips are already joined.
+  Joining writes one marker and nothing else, so splitting brings the original rows back exactly.
+- The join is offered only where a close-enough charge sits before this one, and refused when the
+  two belong to different cars, when either is still running, when another charge sits between
+  them, or when the car drove in the gap — a trip overlapping it, or a SoC that fell.
+
+### Changed
+
+- **A joined charge counts as one everywhere, not just on the page.** The session tally, the
+  €/kWh denominator, the averages, the confirm banner, the AC/DC split, the wallbox calendar, a
+  trip's charge markers and the kilometres-since-the-previous-charge all read the whole session
+  now. The state of health matters most: a split session handed it a fraction of the energy over a
+  fraction of the SoC delta.
+- Totals do not move. Energy, money and peak power are the same before and after a join — only
+  the counts change.
+
 ## [3.11.2] — 2026-08-12
 
 **The C10's battery figure was the gross one, and a merged trip's summary stopped at the midpoint.**

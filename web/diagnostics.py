@@ -518,7 +518,7 @@ def _charges_section() -> str:
         rows = db.execute(
             "SELECT started_at, ended_at, start_soc, end_soc, energy_added_kwh, ac_energy_kwh,"
             "       gross_kwh, cost, charge_type, location_type, max_power_kw, duration_min,"
-            "       reconstructed, wb_stuck_kwh, manual_entry, is_free"
+            "       reconstructed, wb_stuck_kwh, manual_entry, is_free, id, merged_into_id"
             "  FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id)"
             " ORDER BY started_at DESC LIMIT ?",
             (db_reader._current_vehicle_id(), max(_CHARGES_FLOOR, 400))).fetchall()
@@ -539,7 +539,11 @@ def _charges_section() -> str:
             f"cost={_n(r['cost'])}  {(r['charge_type'] or '-'):4}/{(r['location_type'] or '-'):6} "
             f"max={_n(r['max_power_kw'], 1)}kW {str(r['duration_min'] or '—'):>4}min  "
             f"recon={r['reconstructed'] or 0} stuck={_n(r['wb_stuck_kwh'])} "
-            f"manual={r['manual_entry'] or 0} free={r['is_free'] or 0}")
+            f"manual={r['manual_entry'] or 0} free={r['is_free'] or 0} "
+            # The bundle shows the PIECES, never the composed group: it exists to
+            # investigate, and the rows the car reported are the evidence. The marker says
+            # which session they were joined into, so a split is legible from here.
+            f"#{r['id']} merged={r['merged_into_id'] or '—'}")
     return "\n".join(out)
 
 

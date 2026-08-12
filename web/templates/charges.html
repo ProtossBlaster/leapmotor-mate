@@ -437,4 +437,10 @@ if (HIGHLIGHT) {
   });
 })();
 </script>
+
+<!-- Charge merge preview modal (filled by the 🔗 button on a card) -->
+<div id="charge-merge-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(2,6,23,.72);align-items:center;justify-content:center;padding:16px"
+     onclick="if(event.target===this)this.style.display='none'">
+  <div id="charge-merge-modal-body" style="max-width:440px;width:100%"></div>
+</div>
 {% endblock %}

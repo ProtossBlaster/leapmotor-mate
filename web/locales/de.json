@@ -1,5 +1,14 @@
 {
   "translations": {
+    "charge_merge_btn": "Mit vorherigem zusammenführen",
+    "charge_merge_help": "Das Auto meldet das Kabel als abgezogen, sobald der Strom stoppt — ein einziger Ladevorgang kann so als mehrere aufgezeichnet werden. Das Zusammenführen stellt die Sitzung wieder her, und Sie können sie jederzeit wieder trennen.",
+    "charge_merge_preview_title": "Der daraus entstehende Ladevorgang",
+    "charge_merge_confirm": "Zusammenführen",
+    "charge_merge_failed": "Diese beiden Ladevorgänge lassen sich nicht zusammenführen — prüfen Sie, ob dazwischen etwas passiert ist.",
+    "charge_unmerge_btn": "Trennen",
+    "charge_unmerge_confirm": "Wieder in die vom Auto gemeldeten Ladevorgänge trennen?",
+    "charge_merge_segments": "Segmente",
+    "charge_merge_pause": "Pause",
     "demo_banner": "Demo-Modus — Beispieldaten, kein echtes Auto.",
     "demo_exit": "Demo verlassen & mein Auto einrichten",
     "demo_exiting": "Demo wird beendet…",

@@ -1,5 +1,14 @@
 {
   "translations": {
+    "charge_merge_btn": "Unir con la anterior",
+    "charge_merge_help": "El coche declara el cable desconectado en cuanto la corriente se detiene, así que una sola conexión puede registrarse como varias recargas. Al unirlas la sesión vuelve a estar completa, y puedes separarla cuando quieras.",
+    "charge_merge_preview_title": "La recarga que saldría",
+    "charge_merge_confirm": "Unir",
+    "charge_merge_failed": "Estas dos recargas no se pueden unir — comprueba que no haya pasado nada entre ellas.",
+    "charge_unmerge_btn": "Separar",
+    "charge_unmerge_confirm": "¿Volver a las recargas que registró el coche?",
+    "charge_merge_segments": "tramos",
+    "charge_merge_pause": "pausa",
     "demo_banner": "Modo demostración — datos de ejemplo, sin coche real.",
     "demo_exit": "Salir de la demostración y configurar mi coche",
     "demo_exiting": "Saliendo de la demostración…",

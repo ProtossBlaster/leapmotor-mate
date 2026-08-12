@@ -127,7 +127,14 @@ CREATE TABLE IF NOT EXISTS charges (
                                    -- figures: it prices the charge (like a wallbox meter does at
                                    -- home) and shows the conversion loss. The energy Mate reports
                                    -- and totals stays the battery (DC) one — see _billed_kwh.
-    note             TEXT          -- #107: optional free-text user note (location, shade, weather…)
+    note             TEXT,         -- #107: optional free-text user note (location, shade, weather…)
+    merged_into_id   INTEGER DEFAULT NULL  -- user merge: a child charge points at its parent. The
+                                   -- car declares the CABLE GONE the instant the current stops, so
+                                   -- one plug-in comes back as several rows (beta #29: a single
+                                   -- 30-second frame; a load-balancing wallbox: six rows from one
+                                   -- night). A grace window would have to guess how long a real
+                                   -- pause lasts, and a closed charge is never recomputed — so the
+                                   -- user joins the rows instead, and can split them again.
 );
 
 CREATE TABLE IF NOT EXISTS maintenance_logs (
@@ -380,6 +387,11 @@ def ensure_schema(conn) -> None:
     # Mate existed can carry kilometres at all — no poll of it was ever made.
     if "odometer_km" not in ccols:
         conn.execute("ALTER TABLE charges ADD COLUMN odometer_km REAL")
+    # migration: manual charge-merge link — twin of the trips one below. A child charge points at
+    # the parent it was merged into; the merge writes ONLY this column, so unmerging restores the
+    # original rows exactly. See the CREATE TABLE above for why the rows arrive split.
+    if "merged_into_id" not in ccols:
+        conn.execute("ALTER TABLE charges ADD COLUMN merged_into_id INTEGER DEFAULT NULL")
     # migration: manual trip-merge link — a child trip points to the parent it was merged into
     tcols = {r[1] for r in conn.execute("PRAGMA table_info(trips)").fetchall()}
     if "merged_into_id" not in tcols:

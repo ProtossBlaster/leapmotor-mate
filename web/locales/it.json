@@ -1,5 +1,14 @@
 {
   "translations": {
+    "charge_merge_btn": "Unisci alla precedente",
+    "charge_merge_help": "L'auto dichiara il cavo staccato appena la corrente si ferma, quindi un solo attacco può essere registrato come più ricariche. Unendole la sessione torna intera — e puoi separarla quando vuoi.",
+    "charge_merge_preview_title": "La ricarica che verrebbe fuori",
+    "charge_merge_confirm": "Unisci",
+    "charge_merge_failed": "Queste due ricariche non si possono unire — controlla che in mezzo non sia successo niente.",
+    "charge_unmerge_btn": "Separa",
+    "charge_unmerge_confirm": "Riportarla alle ricariche che l'auto ha registrato?",
+    "charge_merge_segments": "pezzi",
+    "charge_merge_pause": "pausa",
     "demo_banner": "Modalità demo — dati di esempio, nessuna auto reale.",
     "demo_exit": "Esci dalla demo e configura la mia auto",
     "demo_exiting": "Uscita dalla demo…",

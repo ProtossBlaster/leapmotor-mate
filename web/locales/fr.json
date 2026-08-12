@@ -1,5 +1,14 @@
 {
   "translations": {
+    "charge_merge_btn": "Fusionner avec la précédente",
+    "charge_merge_help": "La voiture signale le câble comme débranché dès que le courant s'arrête : une seule prise peut donc être enregistrée comme plusieurs recharges. Les fusionner reconstitue la session — et vous pouvez les séparer à tout moment.",
+    "charge_merge_preview_title": "La recharge obtenue",
+    "charge_merge_confirm": "Fusionner",
+    "charge_merge_failed": "Ces deux recharges ne peuvent pas être fusionnées — vérifiez qu'il ne s'est rien passé entre les deux.",
+    "charge_unmerge_btn": "Séparer",
+    "charge_unmerge_confirm": "Revenir aux recharges enregistrées par la voiture ?",
+    "charge_merge_segments": "segments",
+    "charge_merge_pause": "pause",
     "demo_banner": "Mode démo — données d'exemple, aucune voiture réelle.",
     "demo_exit": "Quitter la démo et configurer ma voiture",
     "demo_exiting": "Sortie de la démo…",

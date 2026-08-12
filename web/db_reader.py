@@ -3460,6 +3460,74 @@ def _children_by_parent(db) -> dict:
     return out
 
 
+def _charges_have_merge(db) -> bool:
+    """Whether the charges table carries the merge column yet.
+
+    Same rule as _charges_have_gross, and the same reason: the migration lives in the POLLER, the
+    web serves the same file and never alters it, so between an update and the poller's next start
+    the column is simply absent — and a query naming it is a 500 on the Charges page, not a missing
+    figure. Asked per call, never cached: the poller can add it while the web is running."""
+    try:
+        return any(r[1] == "merged_into_id" for r in db.execute("PRAGMA table_info(charges)"))
+    except sqlite3.Error:
+        return False
+
+
+def _charge_children_by_parent(db) -> dict:
+    """All merged child charges grouped by parent id (one query). Twin of _children_by_parent.
+    Empty on a database the poller has not migrated yet — nothing is merged there by definition."""
+    if not _charges_have_merge(db):
+        return {}
+    out: dict = {}
+    for r in db.execute("SELECT * FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
+                        "AND merged_into_id IS NOT NULL", (_current_vehicle_id(),)).fetchall():
+        out.setdefault(r["merged_into_id"], []).append(dict(r))
+    return out
+
+
+def _charge_group_stats(parent: dict, children: list) -> dict:
+    """Parent dict enriched with the combined figures of [parent + children] — one plug-in the car
+    reported as several rows, read back as the single session it was.
+
+    Pure display math: the stored rows are never touched, which is what makes the merge reversible.
+    The merge guards promise no other charge and no driving inside the gaps, so the group's SoC span
+    is the real one — that is the figure the state-of-health divides by, and the reason a split
+    charge lies to it (partial energy over partial ΔSoC).
+
+    ⚠️ `duration_min` is END MINUS START, so the pause inside the group counts. That is the OPPOSITE
+    of _trip_group_stats, which SUMS its segments — and deliberately so: a merged trip's duration is
+    time spent driving, while a charge's is the window the user sees on the page ("18:00 → 18:38").
+    It does inflate the average duration on the Charges page, which already mixes reconstructed
+    sessions into that same average; this rides on that open defect rather than adding a second one
+    in silence.
+
+    ⚠️ Nothing is rounded here. Summing three pieces and rounding would invent a precision the
+    figures do not have, and Mate shows measured values at full precision.
+    """
+    d = dict(parent)
+    d["merged_count"] = 1 + len(children)
+    d["is_merged"] = bool(children)
+    if not children:
+        return d
+    pieces = sorted([parent, *children], key=lambda c: c.get("started_at") or "")
+    first, last = pieces[0], pieces[-1]
+    d["started_at"], d["start_soc"] = first.get("started_at"), first.get("start_soc")
+    d["ended_at"], d["end_soc"] = last.get("ended_at"), last.get("end_soc")
+    # A figure NOBODY reported stays missing: gross_kwh is typed by the owner, and summing None as 0
+    # would turn "never entered" into a perfectly credible zero. → [[signal-absent-is-not-signal-zero]]
+    for f in ("energy_added_kwh", "cost", "ac_energy_kwh", "gross_kwh", "wb_stuck_kwh"):
+        vals = [c[f] for c in pieces if c.get(f) is not None]
+        d[f] = sum(vals) if vals else None
+    peaks = [c["max_power_kw"] for c in pieces if c.get("max_power_kw") is not None]
+    d["max_power_kw"] = max(peaks) if peaks else None
+    # The type follows the piece that carried the most energy: a DC stop inside an AC night must not
+    # make the group read as AC, nor the other way round.
+    d["charge_type"] = max(pieces, key=lambda c: c.get("energy_added_kwh") or 0).get("charge_type")
+    d["duration_min"] = _minutes_between(d["started_at"], d["ended_at"])
+    d["child_ids"] = [c["id"] for c in children]
+    return d
+
+
 def _segment_ids(db, trip_id: int) -> list:
     """Every trip id in the merge-group containing trip_id (parent + children); [trip_id] if none."""
     row = db.execute("SELECT id, merged_into_id FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
@@ -3651,6 +3719,88 @@ def unmerge_trip(parent_id: int) -> dict:
         "UPDATE trips SET efficiency_kwh_100km=COALESCE(efficiency_soc, efficiency_kwh_100km), "
         "efficiency_soc=NULL, ec_kwh=NULL, ec_driving=NULL, ec_ac=NULL, ec_other=NULL, ec_stable=0 "
         "WHERE id=? AND ec_kwh IS NOT NULL", (parent_id,))
+    db.commit()
+    return {"ok": True, "restored": cur.rowcount}
+
+
+# How far apart two rows may sit and still be one plug-in.
+#
+# Measured on a real 29-pair history rather than picked: the gaps are bimodal. The splits sit at
+# 1.0, 1.0, 1.2, 1.5 and 3.0 minutes — four of them inside the one night that came back as six rows
+# (#56 to #61) — while genuinely separate charges start at 30 minutes and up. Exactly one pair lands
+# between, at 17.6 minutes, and that is the kind of call the person who was there should make.
+#
+# So 30 covers every split ever measured with room to spare, and it is not what protects anyway:
+# the charge-in-the-gap and drove-in-the-gap guards below are. A tighter window would only refuse
+# honest merges after a long pause.
+CHARGE_MERGE_GAP_DEFAULT = 30
+# A real pause leaves the SoC where it was, give or take the tenth of a point the car rounds to.
+# A fall bigger than this means the car went somewhere between the two rows.
+_CHARGE_MERGE_SOC_TOLERANCE = 2.0
+
+
+def merge_charges(parent_id: int, child_id: int, gap_min: int = CHARGE_MERGE_GAP_DEFAULT) -> dict:
+    """Join two charge rows the car split by declaring the cable gone on a pause.
+
+    Reversible: only merged_into_id is written, so unmerge brings the originals back untouched.
+    That is the whole reason this exists instead of a grace window in the poller — a window would
+    have to GUESS how long a real pause lasts, and a closed charge is never recomputed, so a wrong
+    guess would be silent and permanent. Here the user decides, and can undo.
+
+    Which makes the guards the important part: a merge moves kilowatt-hours and euros into a row
+    that did not make them, and leaves everything looking perfectly tidy. Refused when the two rows
+    are not the same car, when either is still running or already merged, when they are further
+    apart than gap_min, when ANOTHER charge sits between them, or when the car drove in the gap —
+    a trip overlapping it, or a SoC that FELL (the mirror of the trips rule, where a SoC that ROSE
+    means a charge in the gap).
+    """
+    db = _conn_rw()
+    a = db.execute("SELECT * FROM charges WHERE id=? AND merged_into_id IS NULL "
+                   "AND ended_at IS NOT NULL", (parent_id,)).fetchone()
+    b = db.execute("SELECT * FROM charges WHERE id=? AND merged_into_id IS NULL "
+                   "AND ended_at IS NOT NULL", (child_id,)).fetchone()
+    if not a or not b:
+        return {"ok": False, "error": "not_found_or_already_merged"}
+    if a["vehicle_id"] != b["vehicle_id"]:
+        return {"ok": False, "error": "different_car"}
+    a, b = dict(a), dict(b)
+    if (a.get("started_at") or "") > (b.get("started_at") or ""):
+        a, b = b, a                                   # parent = the earlier row
+    kids = _charge_children_by_parent(db)
+    a_grp = _charge_group_stats(a, kids.get(a["id"], []))
+    gap = _gap_minutes(a_grp.get("ended_at"), b.get("started_at"))
+    if gap is None or gap < 0 or gap >= gap_min:
+        return {"ok": False, "error": "gap_too_large"}
+    group_ids = [a["id"], b["id"], *(c["id"] for c in kids.get(a["id"], [])),
+                 *(c["id"] for c in kids.get(b["id"], []))]
+    holes = ",".join("?" * len(group_ids))
+    other = db.execute(
+        f"SELECT 1 FROM charges WHERE vehicle_id=? AND ended_at IS NOT NULL "
+        f"AND started_at > ? AND started_at < ? AND id NOT IN ({holes}) LIMIT 1",
+        (a["vehicle_id"], a_grp["ended_at"], b["started_at"], *group_ids)).fetchone()
+    if other:
+        return {"ok": False, "error": "charge_in_gap"}
+    drove = db.execute(
+        "SELECT 1 FROM trips WHERE vehicle_id=? AND started_at <= ? "
+        "AND COALESCE(ended_at, started_at) >= ? LIMIT 1",
+        (a["vehicle_id"], b["started_at"], a_grp["ended_at"])).fetchone()
+    if drove:
+        return {"ok": False, "error": "drove_in_gap"}
+    if (a_grp.get("end_soc") is not None and b.get("start_soc") is not None
+            and b["start_soc"] < a_grp["end_soc"] - _CHARGE_MERGE_SOC_TOLERANCE):
+        return {"ok": False, "error": "drove_in_gap"}
+    # absorb B and any of B's own children into A, so every piece points at the parent
+    db.execute("UPDATE charges SET merged_into_id=? WHERE id=? OR merged_into_id=?",
+               (a["id"], b["id"], b["id"]))
+    db.commit()
+    return {"ok": True, "parent_id": a["id"]}
+
+
+def unmerge_charges(parent_id: int) -> dict:
+    """Split a merged charge back into the rows the car reported. Nothing was ever overwritten,
+    so they come back exactly as they were — including the split figures."""
+    db = _conn_rw()
+    cur = db.execute("UPDATE charges SET merged_into_id=NULL WHERE merged_into_id=?", (parent_id,))
     db.commit()
     return {"ok": True, "restored": cur.rowcount}
 
@@ -5076,7 +5226,8 @@ def _trip_stop_charges(db, vehicle_id, raw_ended_at) -> list[dict]:
          "energy_added_kwh, ac_energy_kwh, location_type, started_at, ended_at"
          + (", gross_kwh" if _charges_have_gross(db) else "") + " FROM charges "
          "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
-         "AND latitude IS NOT NULL AND longitude IS NOT NULL AND started_at >= ?")
+         + ("AND merged_into_id IS NULL " if _charges_have_merge(db) else "")
+         + "AND latitude IS NOT NULL AND longitude IS NOT NULL AND started_at >= ?")
     params = [vehicle_id, raw_ended_at]
     if hi:
         q += " AND started_at < ?"
@@ -5496,18 +5647,55 @@ def store_trip_elevation(trip_id: int, gain, loss,
 
 
 def get_charges(limit: int = 50) -> list[dict]:
+    """The finished charges, most recent first — one row per CHARGE, not per stored row.
+
+    A plug-in the car reported in pieces (it declares the cable gone the instant the current stops)
+    comes back as one row once the user has merged them: the children drop out of the list and the
+    parent carries the combined figures. `limit` therefore counts charges, which is what the page
+    asks for — the last 50 charges, not the last 50 fragments."""
     db = _get()
     rows = db.execute(
-        "SELECT * FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL ORDER BY started_at DESC LIMIT ?",
+        "SELECT * FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
+        + ("AND merged_into_id IS NULL " if _charges_have_merge(db) else "")
+        + "ORDER BY started_at DESC LIMIT ?",
         (_current_vehicle_id(), limit),
     ).fetchall()
-    out = []
-    for r in rows:
-        d = dict(r)
+    kids = _charge_children_by_parent(db)
+    # Compose FIRST, localise after: the group maths works on the stored UTC ISO, and swapping the
+    # two would hand the user a correct date at the wrong hour.
+    out = [_charge_group_stats(dict(r), kids.get(r["id"], [])) for r in rows]
+    # Each row learns about the charge BEFORE it, so the page can offer to join them where the two
+    # are close enough to be one plug-in the car reported in pieces. This is an offer, not a
+    # permission: merge_charges re-checks every guard, including the ones too expensive to run for
+    # a whole page (another charge in the gap, a trip in the gap).
+    for i, d in enumerate(out):                       # newest first, so i+1 is the earlier charge
+        earlier = out[i + 1] if i + 1 < len(out) else None
+        d["prev_charge_id"] = earlier["id"] if earlier else None
+        gap = _gap_minutes(earlier.get("ended_at"), d.get("started_at")) if earlier else None
+        d["can_merge_prev"] = gap is not None and 0 <= gap < CHARGE_MERGE_GAP_DEFAULT
         d["started_at"] = _local_iso(d.get("started_at"))
         d["ended_at"] = _local_iso(d.get("ended_at"))
-        out.append(d)
     return out
+
+
+def preview_merge_charges(parent_id: int, child_id: int) -> Optional[dict]:
+    """The charge the merge WOULD produce (for the confirm dialog), without committing."""
+    db = _get()
+    a = db.execute("SELECT * FROM charges WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                   (parent_id, _current_vehicle_id())).fetchone()
+    b = db.execute("SELECT * FROM charges WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                   (child_id, _current_vehicle_id())).fetchone()
+    if not a or not b:
+        return None
+    a, b = dict(a), dict(b)
+    if (a.get("started_at") or "") > (b.get("started_at") or ""):
+        a, b = b, a
+    kids = _charge_children_by_parent(db)
+    g = _charge_group_stats(a, kids.get(a["id"], []) + [b] + kids.get(b["id"], []))
+    g["pause_min"] = _gap_minutes(a.get("ended_at"), b.get("started_at"))
+    g["started_at"] = _local_iso(g.get("started_at"))
+    g["ended_at"] = _local_iso(g.get("ended_at"))
+    return g
 
 
 def get_last_charge_end() -> Optional[datetime]:
@@ -5722,15 +5910,20 @@ def _wallbox_home_charges_raw() -> list[dict]:
         # into the battery — so a running session drags every comparison on this page for as long as
         # the cable is in. Measured: 89.3 % became 93.6 % the moment one joined. Its own guards have
         # not run yet either: the ceiling and stuck-counter backstops fire at finalize_charge.
-        "SELECT c.id, c.started_at, c.energy_added_kwh, c.ac_energy_kwh FROM charges c "
+        "SELECT c.id, c.started_at, c.ended_at, c.energy_added_kwh, c.ac_energy_kwh FROM charges c "
         "WHERE c.vehicle_id = COALESCE(?, c.vehicle_id) AND c.location_type = 'HOME' "
-        "AND c.ended_at IS NOT NULL AND EXISTS ("
+        + ("AND c.merged_into_id IS NULL " if _charges_have_merge(db) else "")
+        + "AND c.ended_at IS NOT NULL AND EXISTS ("
         "  SELECT 1 FROM positions p WHERE p.vehicle_id = c.vehicle_id AND p.charging = 1"
         "  AND p.recorded_at >= c.started_at"
         "  AND (c.ended_at IS NULL OR p.recorded_at <= c.ended_at)"
         ") ORDER BY c.started_at DESC",
         (_current_vehicle_id(),)).fetchall()
-    return [dict(r) for r in rows]
+    # One entry per SESSION: two rows here are two Home Assistant history fetches and two
+    # attributions for one plug-in, and the window has to reach the real end — stopping at the
+    # first piece would leave the rest of the meter's kilowatt-hours outside it.
+    kids = _charge_children_by_parent(db)
+    return [_charge_group_stats(dict(r), kids.get(r["id"], [])) for r in rows]
 
 
 def wallbox_session_energy(charge) -> dict:
@@ -5853,8 +6046,11 @@ def unconfirmed_charges_count() -> int:
     confirmed until they end, otherwise the banner would never clear while charging."""
     db = _get()
     row = db.execute(
+        # Only whole charges: a merged child is not a charge the user can confirm — the group
+        # carries the parent's type, and counting the pieces would ask twice for one answer.
         "SELECT COUNT(*) n FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
-        "AND location_type IS NULL AND ended_at IS NOT NULL",
+        "AND location_type IS NULL AND ended_at IS NOT NULL"
+        + (" AND merged_into_id IS NULL" if _charges_have_merge(db) else ""),
         (_current_vehicle_id(),)
     ).fetchone()
     return row["n"] if row else 0
@@ -6433,7 +6629,8 @@ def _km_since_previous_map() -> dict:
         rows = _get().execute(
             "SELECT id, odometer_km FROM charges "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
-            "AND odometer_km IS NOT NULL AND odometer_km > 0 ORDER BY started_at",
+            + ("AND merged_into_id IS NULL " if _charges_have_merge(_get()) else "")
+            + "AND odometer_km IS NOT NULL AND odometer_km > 0 ORDER BY started_at",
             (_current_vehicle_id(),)).fetchall()
     except sqlite3.Error:
         return out
@@ -6744,6 +6941,18 @@ def get_charge_stats() -> dict:
     if not row:
         return {}
     d = dict(row)
+    # Four of those figures COUNT or AVERAGE charges, and a plug-in the car split into several rows
+    # would count several times: the session tally, the €/kWh denominator, and the two averages.
+    # They are recomputed over the composed groups. The SUMs above are left alone — a group's
+    # pieces sum to the group, so including the children is not just harmless, it is required.
+    groups = get_charges(limit=1_000_000)
+    d["session_count"] = len(groups)
+    d["priced_count"] = sum(1 for g in groups if g.get("cost") is not None)
+    durs = [g["duration_min"] for g in groups if g.get("duration_min") is not None]
+    d["avg_duration_h"] = round(sum(durs) / len(durs) / 60.0, 1) if durs else None
+    deltas = [g["end_soc"] - g["start_soc"] for g in groups
+              if g.get("end_soc") is not None and g.get("start_soc") is not None]
+    d["avg_soc_delta"] = round(sum(deltas) / len(deltas), 1) if deltas else None
     d.update(price_coverage(d.get("total_cost"), d.get("priced_kwh"),
                             d.get("priced_count"), d.get("session_count")))
     return d
@@ -6815,13 +7024,10 @@ def offline_gaps_summary(year: Optional[int] = None, month: Optional[int] = None
 def get_ac_dc_stats() -> dict:
     """Count + energy of AC vs DC charge sessions. DC = charge_type 'DC', or (when not
     set) a measured peak power above 11 kW (AC tops out at ~11 kW; DC is faster)."""
-    db = _get()
-    rows = db.execute(
-        "SELECT charge_type, max_power_kw, energy_added_kwh, ac_energy_kwh, location_type"
-        + (", gross_kwh" if _charges_have_gross(db) else "") + " FROM charges "
-        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL",
-        (_current_vehicle_id(),)
-    ).fetchall()
+    # Read the composed charges, not the stored rows. Excluding merged children from a query here
+    # would have counted right and lost their kilowatt-hours — the split pieces would simply stop
+    # being AC or DC energy at all. The group carries both: one session, all the energy.
+    rows = get_charges(limit=1_000_000)
     ac = {"count": 0, "kwh": 0.0}
     dc = {"count": 0, "kwh": 0.0}
     for r in rows:
@@ -7358,13 +7564,20 @@ def get_battery_health(min_soc_delta: float = 12.0, temp_min_c: float | None = N
             temp_min_c = float(get_setting("soh_temp_min_c", "15") or 15)
         except (TypeError, ValueError):
             temp_min_c = 15.0
+    # Whole charges only. This is the reader a split session lies to hardest: it divides measured
+    # energy by the SoC delta, and each piece hands it a fraction of the energy over a fraction of
+    # the delta — two points estimating a pack the car does not have. Merged, the window spans the
+    # whole session again (first start to last end) and the delta is the real one.
     rows = db.execute(
         "SELECT id, started_at, ended_at, start_soc, end_soc, charge_type "
         "FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
-        "AND start_soc IS NOT NULL "
+        + ("AND merged_into_id IS NULL " if _charges_have_merge(db) else "")
+        + "AND start_soc IS NOT NULL "
         "AND end_soc IS NOT NULL ORDER BY started_at",
         (_current_vehicle_id(),)
     ).fetchall()
+    _kids = _charge_children_by_parent(db)
+    rows = [_charge_group_stats(dict(r), _kids.get(r["id"], [])) for r in rows]
     points = []
     for r in rows:
         delta = (r["end_soc"] or 0) - (r["start_soc"] or 0)

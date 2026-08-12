@@ -1,5 +1,14 @@
 {
   "translations": {
+    "charge_merge_btn": "Juntar à anterior",
+    "charge_merge_help": "O carro declara o cabo desligado assim que a corrente para, por isso um único carregamento pode ser registado como vários. Ao juntá-los a sessão fica inteira — e pode separá-la quando quiser.",
+    "charge_merge_preview_title": "O carregamento que daria",
+    "charge_merge_confirm": "Juntar",
+    "charge_merge_failed": "Estes dois carregamentos não podem ser juntos — verifique se não aconteceu nada entre eles.",
+    "charge_unmerge_btn": "Separar",
+    "charge_unmerge_confirm": "Voltar aos carregamentos registados pelo carro?",
+    "charge_merge_segments": "segmentos",
+    "charge_merge_pause": "pausa",
     "demo_banner": "Modo de demonstração — dados de exemplo, sem carro real.",
     "demo_exit": "Sair da demonstração e configurar o meu carro",
     "demo_exiting": "A sair da demonstração…",

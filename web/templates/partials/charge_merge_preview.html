@@ -1,0 +1,20 @@
+{# The charge two rows would become, shown before committing. `g` is preview_merge_charges()'s
+   group, `a`/`b` the two ids. The pause is spelled out on purpose: it is the thing the merge
+   swallows, and the user is the one deciding it was a pause and not two charges. #}
+<div style="background:#0b1220;border:1px solid #ca8a04;border-radius:10px;padding:12px" class="my-3">
+  <div class="text-sm font-semibold text-yellow-400 mb-2">{{ t('charge_merge_preview_title') }}</div>
+  <div style="font-size:12px" class="text-slate-300 space-y-0.5">
+    <div>🕘 {{ g.started_at[11:16] if g.started_at else '—' }} → {{ g.ended_at[11:16] if g.ended_at else '—' }}
+         <span class="text-slate-500">· {{ fmt_dur(g.duration_min) }}</span></div>
+    <div>🔋 {{ (g.start_soc or 0)|dec(1) }}% → {{ (g.end_soc or 0)|dec(1) }}%</div>
+    <div>⚡ {{ (g.energy_added_kwh or 0)|dec(2) }} kWh
+         <span class="text-slate-500">· {{ g.merged_count }} {{ t('charge_merge_segments') }}</span></div>
+    {% if g.pause_min %}<div>⏸ {{ (g.pause_min * 60)|round|int }}s {{ t('charge_merge_pause') }}</div>{% endif %}
+  </div>
+  <div class="flex gap-2 mt-3">
+    <button type="button" class="rounded-lg bg-yellow-500 text-slate-900 px-3 py-1.5 text-xs font-bold hover:bg-yellow-400"
+            hx-post="api/charges/merge?a={{ a }}&b={{ b }}" hx-swap="none">✓ {{ t('charge_merge_confirm') }}</button>
+    <button type="button" class="rounded-lg border border-slate-600 text-slate-300 px-3 py-1.5 text-xs font-medium hover:border-slate-400"
+            onclick="document.getElementById('charge-merge-modal').style.display='none'">✕ {{ t('cancel') }}</button>
+  </div>
+</div>

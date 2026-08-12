@@ -1,5 +1,14 @@
 {
   "translations": {
+    "charge_merge_btn": "Połącz z poprzednią",
+    "charge_merge_help": "Samochód zgłasza odłączenie kabla, gdy tylko prąd przestaje płynąć, więc jedno podłączenie może zostać zapisane jako kilka sesji ładowania. Połączenie przywraca całą sesję — w każdej chwili możesz ją rozłączyć.",
+    "charge_merge_preview_title": "Sesja ładowania, która powstanie",
+    "charge_merge_confirm": "Połącz",
+    "charge_merge_failed": "Tych dwóch sesji ładowania nie można połączyć — sprawdź, czy nic nie wydarzyło się pomiędzy nimi.",
+    "charge_unmerge_btn": "Rozłącz",
+    "charge_unmerge_confirm": "Wrócić do sesji ładowania zapisanych przez samochód?",
+    "charge_merge_segments": "segmenty",
+    "charge_merge_pause": "przerwa",
     "demo_banner": "Tryb demo — przykładowe dane, brak prawdziwego samochodu.",
     "demo_exit": "Wyjdź z demo i skonfiguruj swój samochód",
     "demo_exiting": "Wychodzenie z demo…",

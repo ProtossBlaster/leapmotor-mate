@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.11.2"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.12.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -958,6 +958,36 @@ async def delete_charge(request: Request, charge_id: int):
     db_reader.delete_charge(charge_id)
     base = request.headers.get("x-ingress-path", "")
     return Response(status_code=200, headers={"HX-Redirect": f"{base}/charges"})
+
+
+@app.get("/api/charges/merge-preview", response_class=HTMLResponse)
+async def charges_merge_preview(request: Request, a: int, b: int):
+    """The single charge the merge WOULD produce — figures plus the pause it swallows — so the
+    confirm step shows what changes, not just that something will."""
+    g = db_reader.preview_merge_charges(a, b)
+    if not g:
+        return HTMLResponse("")
+    return templates.TemplateResponse(request, "partials/charge_merge_preview.html",
+                                      _ctx(g=g, a=a, b=b))
+
+
+@app.post("/api/charges/merge", response_class=HTMLResponse)
+async def charges_merge(request: Request, a: int, b: int):
+    """Join two charge rows the car split when it declared the cable gone on a pause. The earlier
+    becomes the parent. Reversible. Re-validates every guard here — the page only offers the
+    button, it does not grant the permission."""
+    res = db_reader.merge_charges(a, b)
+    if res.get("ok"):
+        return Response(status_code=200, headers={"HX-Refresh": "true"})
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<div style="color:#f87171;font-size:13px;padding:6px 0">⚠️ {t("charge_merge_failed")}</div>')
+
+
+@app.post("/api/charges/unmerge", response_class=HTMLResponse)
+async def charges_unmerge(request: Request, parent: int):
+    """Split a merged charge back into the rows the car reported (reversible — nothing was lost)."""
+    db_reader.unmerge_charges(parent)
+    return Response(status_code=200, headers={"HX-Refresh": "true"})
 
 
 @app.post("/api/charges/{charge_id}/note", response_class=HTMLResponse)

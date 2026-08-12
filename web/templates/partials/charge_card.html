@@ -251,6 +251,34 @@
       🗑 {{ t('charge_delete') }}</button>
   </div>
 
+  {# Join / split. The car reports the cable as gone the moment the current stops, so one plug-in
+     can arrive as several rows; `can_merge_prev` is set by get_charges where a close-enough charge
+     sits before this one. It is an OFFER — the route re-checks every guard, because a button is
+     not a permission. The modal it fills lives in charges.html, which is the page every one of
+     this card's three uses (day accordion, calendar drawer, search) is rendered into. #}
+  {% if c.can_merge_prev or c.is_merged %}
+  <div class="mt-2 pt-2 flex items-center gap-3" style="border-top:1px solid #111c2e">
+    {% if c.can_merge_prev %}
+    <button type="button" title="{{ t('charge_merge_help') }}"
+            hx-get="api/charges/merge-preview?a={{ c.id }}&b={{ c.prev_charge_id }}"
+            hx-target="#charge-merge-modal-body" hx-swap="innerHTML"
+            onclick="document.getElementById('charge-merge-modal').style.display='flex'"
+            style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
+            onmouseover="this.style.color='#fbbf24'" onmouseout="this.style.color='#64748b'">
+      🔗 {{ t('charge_merge_btn') }}</button>
+    {% endif %}
+    {% if c.is_merged %}
+    <span style="font-size:10px" class="text-yellow-400"
+          title="{{ c.merged_count }} {{ t('charge_merge_segments') }}">🔗 {{ c.merged_count }}</span>
+    <button type="button" hx-post="api/charges/unmerge?parent={{ c.id }}"
+            hx-confirm="{{ t('charge_unmerge_confirm') }}" hx-swap="none"
+            style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
+            onmouseover="this.style.color='#fbbf24'" onmouseout="this.style.color='#64748b'">
+      ↩️ {{ t('charge_unmerge_btn') }}</button>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if c.manual_entry %}
   <div id="cedit-{{ c.id }}" class="hidden mt-2 pt-3" style="border-top:1px solid #1e293b">
     <p class="text-[11px] text-slate-500 mb-2">{{ t('charge_edit_hint') }}</p>
