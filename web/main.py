@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.11.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.11.2"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -5224,10 +5224,17 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
 
 # Per-variant USABLE (net) capacity, kWh — the energy between the BMS's protective
 # limits, not the gross pack. Sourced from EV Database / manufacturer sheets (cross-checked):
-#   T03   gross 37.3 → usable 36.0          C10 RWD gross 72.0 → usable 69.9
+#   T03   gross 37.3 → usable 36.0          C10 RWD gross 69.9 → usable 67.0
 #   B10 Pro     56.2 → 55.0                 C10 AWD gross 84.0 → usable 81.9
 #   B10 Pro Max 67.1 → 65.0 (2.1 kWh / 3.1% buffer, confirmed by 2 sources)
 #   B05 Pro     56.2 → 55.0   ·  B05 Pro Max 67.1 → 65.0 (shares the B10 pack; WLTP 401 / 482)
+# ⚠️ The C10 RWD was 69.9 until v3.11.1, taken from EV Database — the ONE source that reads 69.9
+# as the usable figure and estimates a 72.0 gross on top of it, a number Leapmotor does not publish.
+# EVKX and EVspecs both read the 69.9 nameplate as the GROSS and give 67.0 usable (2.9 kWh / 4.1%
+# buffer). @ghuaywen-ai's own charges settled it (#246): on five sessions where he typed his
+# charger's own meter reading, ΔSoC × 69.9 made the battery take 100.8% and 100.0% of what the
+# charger delivered — more energy in than out, which does not exist. At 67.0 the same five land at
+# 90.8–96.6%, with the AC session below the DC ones, which is the shape charging losses have.
 # These are the DEFAULTS for new setups; existing installs keep whatever they configured
 # (no silent migration of a calibrated value). NB on the B10 Pro Max: the car's DISPLAYED
 # SoC 0–100% is calibrated close to the GROSS 67.1 — a real-car ∫V·I measurement matched
@@ -5239,7 +5246,7 @@ _EU_BATTERY_MAP: dict[str, list[dict]] = {
         {"v": "36.0", "label": "36.0 kWh usable"},
     ],
     "C10": [
-        {"v": "69.9", "label": "69.9 kWh usable — RWD"},
+        {"v": "67.0", "label": "67.0 kWh usable — RWD"},
         {"v": "81.9", "label": "81.9 kWh usable — AWD"},
         {"v": "28.4", "label": "28.4 kWh — REEV (range-extender)", "reev": True},
     ],

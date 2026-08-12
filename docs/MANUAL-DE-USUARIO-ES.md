@@ -170,7 +170,7 @@ Según el modelo:
 
 - si la versión europea tiene **una sola variante de batería**, Mate la pone sola — hoy solo el T03
   (36,0 kWh);
-- si hay **varias variantes** — B10 y B05 (Pro 55,0 kWh / Pro Max 65,0), C10 (RWD 69,9 / AWD 81,9) —
+- si hay **varias variantes** — B10 y B05 (Pro 55,0 kWh / Pro Max 65,0), C10 (RWD 67,0 / AWD 81,9) —
   **eliges la tuya**: la nube no dice cuál lleva tu coche, así que Mate no puede saberlo;
 - si la detección falla, puedes **escribir la capacidad a mano** (en kWh).
 

@@ -46,7 +46,7 @@ def test_t03_has_no_reev_variant():
 
 def test_reev_option_does_not_replace_the_bev_variants():
     # The BEV packs must still be selectable — REEV is an *added* option, not a swap.
-    assert {"69.9", "81.9"} <= {o["v"] for o in main._EU_BATTERY_MAP["C10"]}
+    assert {"67.0", "81.9"} <= {o["v"] for o in main._EU_BATTERY_MAP["C10"]}
     assert {"55.0", "65.0"} <= {o["v"] for o in main._EU_BATTERY_MAP["B10"]}
 
 
@@ -87,7 +87,7 @@ def test_betatester_build_offers_reev_and_bev(monkeypatch):
     body = _detect(monkeypatch, "C10", research_on=True)
     offered = {o["v"] for o in body["battery_options"]}
     assert "28.4" in offered                      # REEV
-    assert {"69.9", "81.9"} <= offered            # BEV variants intact
+    assert {"67.0", "81.9"} <= offered            # BEV variants intact
 
 
 def test_official_build_keeps_the_single_variant_autoset(monkeypatch):
@@ -119,7 +119,7 @@ def test_official_wizard_page_ships_no_reev_pack(monkeypatch):
         assert not any(o.get("reev") for o in opts), car_type
     values = {o["v"] for opts in rendered.values() for o in opts}
     assert "28.4" not in values and "18.8" not in values
-    assert {"69.9", "65.0"} <= values                      # the BEV packs are still offered
+    assert {"67.0", "65.0"} <= values                      # the BEV packs are still offered
     assert "REEV" not in html and "range-extender" not in html   # nor as prose/comments
 
 
@@ -129,7 +129,7 @@ def test_betatester_wizard_page_ships_reev_and_bev(monkeypatch):
     rendered = _rendered_options(_wizard_page(monkeypatch, research_on=True))
     values = {o["v"] for opts in rendered.values() for o in opts}
     assert {"28.4", "18.8"} <= values                      # REEV packs
-    assert {"69.9", "81.9", "55.0", "65.0"} <= values      # BEV packs
+    assert {"67.0", "81.9", "55.0", "65.0"} <= values      # BEV packs
 
 
 def test_wizard_page_and_endpoint_cannot_drift(monkeypatch):

@@ -3,6 +3,57 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.11.2] — 2026-08-12
+
+**The C10's battery figure was the gross one, and a merged trip's summary stopped at the midpoint.**
+
+### Fixed
+
+- 🔋 **The C10 RWD pack is 67.0 kWh usable, not 69.9.** @ghuaywen-ai (#246) reported that the
+  charging-efficiency line had disappeared from a charge where he had typed in what his charger's own
+  meter said it delivered. Nothing had broken: Mate withholds that line when the losses come out
+  negative, and on that charge they did — **52.41 kWh delivered against 52.84 kWh "into the
+  battery"**, which would have printed an efficiency of **100.8 %**. More energy into the pack than
+  out of the charger does not exist, so the number that had to be wrong was ours.
+
+  **The manufacturer declares one figure and never says which it is.** The Stellantis press kit's own
+  specification table reads *"Battery (kWh) 69,9"* — no *total*, no *usable*. EV Database reads that
+  69.9 as the **usable** capacity and estimates a 72.0 gross on top of it, a number Leapmotor does
+  not publish; EVKX and EVspecs read the 69.9 nameplate as the **gross** and give **67.0 usable**
+  (2.9 kWh buffer, 4.1 %). Mate had followed the first reading.
+
+  **His five metered charges settle it.** At 69.9 two of them have the battery taking 100.8 % and
+  100.0 % of what the charger delivered; at 67.0 all five land between **89.2 % and 94.9 %**, with
+  the AC session below the DC ones — which is the shape charging losses actually have.
+
+  New setups get 67.0. **An existing install keeps whatever it has**: a configured capacity may have
+  been calibrated against the owner's own car and is never migrated silently. A C10 RWD owner who
+  wants the correction sets it in *Settings*, and charges already recorded keep the energy they were
+  written with — the figure is stored per charge, not recomputed.
+
+  ⚠️ The C10 **AWD** entry (81.9 usable, 84.0 gross) rests on exactly the same assumption and is
+  **left alone**: 81.9 is the manufacturer's unqualified number too, but no owner data exists to
+  check it against, and inference is what produced the wrong figure in the first place.
+
+- 🧭 **A merged trip's summary now describes the whole journey.** @Ng-EY (#247): merge A→B with
+  B→C, press *Generate summary*, and the note came back describing **A→B**. The page had already
+  resolved the merge — the map, the arrival time and the distance all reach C, because every reader
+  composes the group on the fly (`_trip_group_stats`) while the stored rows stay untouched so that
+  unmerging restores the originals exactly. The summary was the **one reader that did not**: it took
+  the parent segment's own row, so the end address, the arrival time and the end temperature all came
+  from the midpoint — the trip's own note contradicting the trip it is attached to, on the same
+  screen. Pressing it on a merged **child** had the mirror problem: the note described that segment
+  alone while the page showed the group. Both now resolve to the group, and the note is written to
+  the parent — the row the page reads it back from.
+
+### Internal
+
+- 🧪 **Five tests for the merged summary**, each seen failing against the previous code before the
+  fix went in, plus the four battery-variant assertions updated to 67.0. ⚠️ Worth knowing: that
+  battery-variant module **skips itself in the CI environment** (it imports `web.main`, which needs
+  fastapi, absent from the minimal CI install) — so the pack figures were guarded locally and by
+  nothing at all in CI.
+
 ## [3.11.1] — 2026-08-11
 
 **The range-extender's distance was counted on the coarse signal, and lost 42 % of it.**

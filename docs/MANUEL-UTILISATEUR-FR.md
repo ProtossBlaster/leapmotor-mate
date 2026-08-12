@@ -170,7 +170,7 @@ Selon le modèle :
 
 - si la version européenne n'a **qu'une seule variante** de batterie, Mate la détecte tout seul (ex. T03 →
   37,3 kWh) ;
-- s'il y a **plusieurs variantes** (ex. B10 Pro 56,2 kWh / Pro Max 67,1 kWh ; C10 RWD 69,9 / AWD 81,9),
+- s'il y a **plusieurs variantes** (ex. B10 Pro 56,2 kWh / Pro Max 67,1 kWh ; C10 RWD 67,0 / AWD 81,9),
   choisissez la vôtre ;
 - si la détection échoue, vous pouvez **saisir la capacité à la main** (en kWh).
 

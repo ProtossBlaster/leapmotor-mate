@@ -161,7 +161,7 @@ Depending on the model:
 
 - if the European version has **a single battery variant**, Mate sets it on its own — today only the
   T03 (36.0 kWh);
-- if there are **several variants** — B10 and B05 (Pro 55.0 kWh / Pro Max 65.0), C10 (RWD 69.9 / AWD
+- if there are **several variants** — B10 and B05 (Pro 55.0 kWh / Pro Max 65.0), C10 (RWD 67.0 / AWD
   81.9) — **you choose yours**: the cloud does not say which one is in your car, so Mate cannot know;
 - if the detection fails, you can **enter the capacity by hand** (in kWh).
 
