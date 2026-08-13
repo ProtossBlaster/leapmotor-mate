@@ -3362,11 +3362,50 @@ def _ensure_command_log(db: sqlite3.Connection) -> None:
         "action TEXT, outcome TEXT NOT NULL, latency_ms INTEGER, vin TEXT)")
     # The car was never recorded at all, so with two of them one badge answered for both: the
     # timeouts of the car in the garage pulled down the score of the one parked outside, and the
-    # figure stayed plausible. Rows written before this column keep vin NULL — which car they
-    # belonged to is not knowable, and guessing would move one car's score with another's commands.
+    # figure stayed plausible.
     cols = {r[1] for r in db.execute("PRAGMA table_info(command_log)").fetchall()}
     if "vin" not in cols:
         db.execute("ALTER TABLE command_log ADD COLUMN vin TEXT")
+    _recover_anonymous_commands(db)
+
+
+_COMMAND_LOG_BACKFILL_KEY = "command_log_vin_backfilled"
+
+
+def _recover_anonymous_commands(db: sqlite3.Connection) -> None:
+    """Give the pre-v3.13.0 commands back to the car they were sent to — once, if it is knowable.
+
+    Adding the vin column left every earlier row without a car, and the badge counts only rows that
+    carry one: a working install lost up to 90 days of history in a single upgrade and printed a
+    dash until three fresh commands rebuilt it.
+
+    It reads the STATE, not the moment the column appeared. Hanging the recovery off that ALTER
+    would only ever reach installs still on 3.12.0 — the ones that already took 3.13.0 have the
+    column since that upgrade, and their dash would never lift.
+
+    The count of cars decides. With ONE car there is nothing to guess: every command ever sent went
+    to it. With two or more the rows belong to nobody and stay NULL — attributing them to the oldest
+    car, or the selected one, or any car at all, would judge one car's coverage on another's diary,
+    which is the defect v3.13.0 just closed. With none registered yet nothing is decided: the
+    question is asked again next time rather than answered at random."""
+    try:
+        done = db.execute("SELECT value FROM settings WHERE key = ?",
+                          (_COMMAND_LOG_BACKFILL_KEY,)).fetchone()
+        if done and done[0] == "1":
+            return
+        cars = db.execute("SELECT vin FROM vehicles WHERE vin IS NOT NULL AND vin != ''").fetchall()
+    except sqlite3.Error:
+        return          # minimal schema, no settings/vehicles: skip the recovery, never raise
+    if not cars:
+        return
+    if len(cars) == 1:
+        db.execute("UPDATE command_log SET vin = ? WHERE vin IS NULL", (cars[0][0],))
+    # `_conn_rw()` hands out a fresh connection every call and nobody closes it, so an uncommitted
+    # write dies with it: without this the badge was right exactly once — the same connection could
+    # see its own pending write — and every later page load found the work undone.
+    db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, '1')",
+               (_COMMAND_LOG_BACKFILL_KEY,))
+    db.commit()
 
 
 def log_command(action: str, outcome: str, latency_ms: Optional[int] = None,

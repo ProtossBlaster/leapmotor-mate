@@ -3,6 +3,24 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.13.1] — 2026-08-13
+
+**Updating blanked the car-responsiveness badge — the commands it already had on record are given back.**
+
+### Fixed
+
+- 📶 **The car-responsiveness badge no longer goes dark on update.** 3.13.0 began recording which car
+  each remote command was sent to, in a column that did not exist before: every command already on
+  record was left without a car, and the badge counts only the rows that carry one. A working
+  install lost up to 90 days of history in a single update and printed a dash until three fresh
+  commands rebuilt it. Where the car is knowable those rows are handed back — with a single car on
+  the account every command ever sent went to it, so it takes them and the badge crosses the update
+  with its history intact. With two or more cars they belong to nobody and stay out: attributing
+  them to the oldest car, or the selected one, or any car at all, would judge one car's coverage on
+  another's diary, which is the defect 3.13.0 closed. The recovery reads the state of the database
+  rather than the moment the column appeared, so an install that already took 3.13.0 is repaired as
+  well, not only one arriving from 3.12.0.
+
 ## [3.13.0] — 2026-08-13
 
 **A second car is now set up, not guessed at — and the settings that were shared between cars are not.**
