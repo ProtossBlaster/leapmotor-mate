@@ -1,5 +1,6 @@
 {
   "translations": {
+    "abrp_car_without_token": "Pas de jeton ABRP propre, donc rien n'est envoyé pour elle — ABRP utilise un jeton par véhicule :",
     "charge_merge_btn": "Fusionner avec la précédente",
     "charge_merge_help": "La voiture signale le câble comme débranché dès que le courant s'arrête : une seule prise peut donc être enregistrée comme plusieurs recharges. Les fusionner reconstitue la session — et vous pouvez les séparer à tout moment.",
     "charge_merge_preview_title": "La recharge obtenue",

@@ -1,5 +1,6 @@
 {
   "translations": {
+    "abrp_car_without_token": "No ABRP token of its own, so nothing is sent for it — ABRP uses one token per vehicle:",
     "charge_merge_btn": "Join with previous",
     "charge_merge_help": "The car reports the cable as gone the moment the current stops, so one plug-in can be recorded as several charges. Joining them puts the session back together — and you can split it again at any time.",
     "charge_merge_preview_title": "The charge this would make",

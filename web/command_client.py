@@ -276,7 +276,8 @@ class LeapmotorSession:
         try:
             import db_reader as _dr
             _dr.log_command(action, _classify_outcome(ok, msg),
-                            int((time.monotonic() - t0) * 1000))
+                            int((time.monotonic() - t0) * 1000),
+                            vin=getattr(getattr(self, "_vehicle", None), "vin", "") or "")
         except Exception:
             pass
         return ok, msg
@@ -800,7 +801,17 @@ def get_energy_breakdown_range(begin_ts: int, end_ts: int) -> dict | None:
 
 
 def detect_vehicle(user: str, pwd: str, pin: str) -> dict:
-    """Login with provided credentials, return vehicle info. Does NOT save to DB."""
+    """Login with the given credentials and return EVERY car on the account. Does NOT save to DB.
+
+    🔴 This used to keep `vehicles[0]` and drop the rest, which is where two-car accounts lost their
+    second car before the wizard ever saw it: you configured one, and the other was registered later
+    by the poller with its model's DEFAULT pack — for a C10 that is the RWD, so an AWD read 20% out
+    and a REEV 2.4 times out, silently. The pack cannot be derived: the cloud says only "C10", and
+    C10/B10 each have several variants (plus the range-extenders). That is why the wizard shows a
+    list — and why every car needs its own.
+
+    `vin`/`car_type` stay at the top level for the first car so nothing that reads the old shape has
+    to change; `vehicles` is the list the wizard walks."""
     try:
         api = LeapmotorApiClient(
             username=user,
@@ -814,13 +825,17 @@ def detect_vehicle(user: str, pwd: str, pin: str) -> dict:
         vehicles = api.get_vehicle_list()
         if not vehicles:
             return {"error": "No vehicle found on this account"}
-        v = vehicles[0]
-        car_type = v.car_type.upper()
         try:
             api.close()
         except Exception:
             pass
-        return {"vin": v.vin, "car_type": car_type}
+        from main import battery_options_for_build          # the build's own list (REEV filtered)
+        opts = battery_options_for_build()
+        cars = [{"vin": v.vin,
+                 "car_type": (v.car_type or "").upper(),
+                 "battery_options": opts.get((v.car_type or "").upper(), [])}
+                for v in vehicles]
+        return {"vin": cars[0]["vin"], "car_type": cars[0]["car_type"], "vehicles": cars}
     except Exception as e:
         return {"error": str(e)}
 

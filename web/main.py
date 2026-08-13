@@ -26,7 +26,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.12.0"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.13.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -2151,7 +2151,8 @@ async def settings_page(request: Request):
     prices = db_reader.get_charge_prices()
     settings = {**settings, **prices,
                 "abrp_enabled": db_reader.get_setting("abrp_enabled", "0"),
-                "abrp_token_set": bool(db_reader.get_setting("abrp_token", "")),
+                "abrp_token_set": db_reader.abrp_token_in_use(),
+                "abrp_cars_without_token": db_reader.abrp_cars_without_token(),
                 "mqtt_enabled": db_reader.get_setting("mqtt_enabled", "0"),
                 "mqtt_broker": db_reader.get_setting("mqtt_broker", ""),
                 "mqtt_port": db_reader.get_setting("mqtt_port", "1883"),
@@ -3648,7 +3649,7 @@ async def abrp_status(request: Request):
     t = i18n.get_t(db_reader.get_language())
     if db_reader.get_setting("abrp_enabled", "0") != "1":
         return _status_dot("slate", t("status_off"))
-    if not db_reader.get_setting("abrp_token", ""):
+    if not db_reader.abrp_token_in_use():
         return _status_dot("amber", t("status_unconfigured"))
     return _status_dot("emerald", t("status_active"))
 
@@ -5434,6 +5435,43 @@ async def detect_vehicle_api(request: Request):
     return JSONResponse(result)
 
 
+def apply_setup_vehicles(cars: list[dict]) -> int:
+    """Save the wizard's answers for EVERY car it found. Returns how many were configured.
+
+    One car is not a special case here, it is a list of one — which is the point: the wizard used to
+    write a single pack and a single PIN, so on a two-car account the second car was left to the
+    poller, which gives it its MODEL's default. For a C10 that default is the RWD, so an AWD ran 20%
+    out and a REEV 2.4 times out, and nobody was ever asked. The pack is not derivable — the cloud
+    says only "C10" — which is why the wizard shows a list, per car.
+
+    Each car takes away its own pack, its own range-extender answer and its own PIN, and is marked
+    as configured: that mark is what later separates a car a human has seen from one that walked in
+    on its own and took a default."""
+    done = 0
+    for car in cars:
+        vin = (car.get("vin") or "").strip()
+        if not vin:
+            continue
+        key = vin.lower()
+        car_type = (car.get("car_type") or "").strip().upper()
+        if car_type:
+            db_reader.upsert_vehicle(vin, car_type)
+        try:
+            kwh = float(car.get("battery") or 0)
+        except (TypeError, ValueError):
+            kwh = 0.0
+        if kwh > 0:
+            db_reader.set_vehicle_capacity(vin, kwh)
+        pin = (car.get("pin") or "").strip()
+        if pin:
+            db_reader.set_secret(f"leapmotor_pin_{key}", pin)
+        db_reader.set_setting(f"is_reev_{key}",
+                              "1" if str(car.get("is_reev")) in ("1", "on", "true") else "0")
+        db_reader.set_setting(f"vehicle_setup_done_{key}", "1")
+        done += 1
+    return done
+
+
 @app.post("/setup", response_class=HTMLResponse)
 async def setup_submit(request: Request):
     form = await request.form()
@@ -5481,9 +5519,18 @@ async def setup_submit(request: Request):
     db_reader.set_timezone(tz or db_reader.detected_tz_name())
     db_reader.set_setting(db_reader.TZ_PINNED_KEY, "1")
 
-    # Pre-populate vehicles table so the UI shows model info before the first poller run
-    if vin and car_type:
-        db_reader.upsert_vehicle(vin, car_type)
+    # Every car the wizard found, each with its OWN pack, range-extender answer and PIN. The
+    # account-wide values written above stay for the single-car install and as the fallback the rest
+    # of the code already knows; these are what a two-car account needs, and what it never had —
+    # before this, car number two was left to the poller and took its model's default.
+    try:
+        _cars = json.loads(form.get("vehicles_json") or "[]")
+    except (TypeError, ValueError):
+        _cars = []
+    if not _cars and vin and car_type:      # one car, or a client that posts the old shape
+        _cars = [{"vin": vin, "car_type": car_type, "battery": str(battery_kwh),
+                  "is_reev": is_reev, "pin": pin}]
+    apply_setup_vehicles(_cars)
 
     # Completing setup cancels any pending factory reset: the user has intentionally configured
     # this install, so a stray marker (e.g. if a reset's relaunch never fired) must never wipe it.

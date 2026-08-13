@@ -497,12 +497,69 @@ class Database:
 
         ⚠️ Falls back to the install-wide token, never to the OTHER car's: a car with no token of its
         own and nothing shared sends **nothing**, because guessing here recreates the very mixing
-        this exists to stop. → [[signal-absent-is-not-signal-zero]]"""
+        this exists to stop. → [[signal-absent-is-not-signal-zero]]
+
+        🔴 And that install-wide fallback is itself off-limits once there are TWO cars, which is the
+        same door from the other side: neither car has its own token, both fall back to the shared
+        one, and two cars' positions and SoCs land in a single ABRP vehicle again. The shared token
+        only exists on installs that predate multi-vehicle, which is exactly the upgrade path where
+        this bites. With one car there is nothing to mix, so the fallback stays — removing it there
+        would silently switch ABRP off for people it works for today. (Same call
+        `kerniger/leapmotor-ha` made in its 0.7.0 beta: the account-wide token is not copied onto
+        every vehicle.)"""
         if vin:
             own = self.get_secret(f"abrp_token_{str(vin).lower()}", "")
             if own:
                 return own
+        if self._vehicle_count() > 1:
+            return ""
         return self.get_secret("abrp_token", "")
+
+    def _vehicle_count(self) -> int:
+        row = self._conn.execute("SELECT COUNT(*) AS n FROM vehicles").fetchone()
+        return (row["n"] if row else 0) or 0
+
+    def migrate_shared_ready_automation(self) -> str:
+        """Twin of migrate_shared_abrp_token, for the ready-automation config: once a second car
+        exists the install-wide blob belongs to the car that was here when it was written, and the
+        newcomer starts with none rather than inheriting a climate answer meant for another car."""
+        if self._vehicle_count() < 2:
+            return ""
+        shared = self.get_setting("ready_automation", "")
+        if not shared:
+            return ""
+        row = self._conn.execute("SELECT vin FROM vehicles ORDER BY id LIMIT 1").fetchone()
+        vin = (row["vin"] if row else "") or ""
+        if vin and not self.get_setting(f"ready_automation_{vin.lower()}", ""):
+            self.set_setting(f"ready_automation_{vin.lower()}", shared)
+        self.set_setting("ready_automation", "")
+        return vin
+
+    def migrate_shared_abrp_token(self) -> str:
+        """Once a second car exists, give the install-wide ABRP token to the car that was here
+        first and drop the shared key. Returns that VIN, or '' when there was nothing to do.
+
+        The shared token is not "everyone's": the Settings form only shows the car selector once
+        there are two cars, so a single-car install has ALWAYS stored its token there — new ones
+        included. The day a second car is registered, both cars would answer to it, and two cars'
+        positions and SoCs would land in one ABRP vehicle. Which car was first is not a guess: the
+        rows are keyed by VIN and keep their id, so the lowest id is the car that was already here
+        when that token was typed.
+
+        Run at registration, where the one-car → two-cars transition is visible. Idempotent, and it
+        never overwrites a car's own token — a shared key surviving next to a per-car one is a
+        leftover, so it is dropped rather than applied."""
+        if self._vehicle_count() < 2:
+            return ""
+        shared = self.get_secret("abrp_token", "")
+        if not shared:
+            return ""
+        row = self._conn.execute("SELECT vin FROM vehicles ORDER BY id LIMIT 1").fetchone()
+        vin = (row["vin"] if row else "") or ""
+        if vin and not self.get_secret(f"abrp_token_{vin.lower()}", ""):
+            self.set_abrp_token(shared, vin)
+        self.set_secret("abrp_token", "")
+        return vin
 
     def set_abrp_token(self, token: str, vin: str) -> None:
         self.set_secret(f"abrp_token_{str(vin).lower()}", token or "")

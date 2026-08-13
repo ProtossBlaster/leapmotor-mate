@@ -1,5 +1,6 @@
 {
   "translations": {
+    "abrp_car_without_token": "Geen eigen ABRP-token, dus er wordt niets voor verzonden — ABRP gebruikt één token per voertuig:",
     "charge_merge_btn": "Samenvoegen met vorige",
     "charge_merge_help": "De auto meldt de kabel als losgekoppeld zodra de stroom stopt, dus één keer inpluggen kan als meerdere laadsessies worden vastgelegd. Samenvoegen maakt de sessie weer heel — en je kunt ze altijd weer losmaken.",
     "charge_merge_preview_title": "De laadsessie die dit oplevert",

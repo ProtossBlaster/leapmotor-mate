@@ -1,5 +1,6 @@
 {
   "translations": {
+    "abrp_car_without_token": "Nie ma własnego tokenu ABRP, więc nic nie jest wysyłane — ABRP używa jednego tokenu na pojazd:",
     "charge_merge_btn": "Połącz z poprzednią",
     "charge_merge_help": "Samochód zgłasza odłączenie kabla, gdy tylko prąd przestaje płynąć, więc jedno podłączenie może zostać zapisane jako kilka sesji ładowania. Połączenie przywraca całą sesję — w każdej chwili możesz ją rozłączyć.",
     "charge_merge_preview_title": "Sesja ładowania, która powstanie",

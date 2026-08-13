@@ -763,6 +763,15 @@ def set_setting(key: str, value: str) -> None:
     _lang_memo[0] = None          # cheap and unconditional: any write re-reads the language once
 
 
+def set_vehicle_capacity(vin: str, kwh: float) -> None:
+    """Capacity onto ONE named car's row. The wizard uses it: it configures every car it found, and
+    "current" has no meaning there — nothing is selected yet."""
+    db = _conn_rw()
+    db.execute("UPDATE vehicles SET capacity_kwh = ? WHERE lower(vin) = ?",
+               (float(kwh), str(vin).lower()))
+    db.commit()
+
+
 def set_vehicle_capacity_current(kwh: float, nominal: float = None) -> None:
     """Mirror a capacity override onto the CURRENT vehicle's own row (vehicles.capacity_kwh), so the
     poller's per-vehicle energy math honours it — the poller reads the vehicle column, not the global
@@ -934,6 +943,35 @@ def restore_database(blob: bytes) -> dict:
     for ext in ("-wal", "-shm"):
         _safe_unlink(DB_PATH + ext)
     return {"counts": counts, "secrets_preserved": len(fresh)}
+
+
+def abrp_cars_without_token() -> list[str]:
+    """Cars that would send NOTHING to ABRP — the ones with no token of their own, once there is
+    more than one car. With a single car the install-wide token still covers it, so the list is
+    empty and nothing is claimed. Shown in Settings because otherwise the silence is invisible:
+    the second car simply never appears on ABRP and nobody says why."""
+    vehicles = get_vehicles()
+    if len(vehicles) < 2:
+        return []
+    out = []
+    for v in vehicles:
+        vin = (v.get("vin") or "")
+        if not get_secret(f"abrp_token_{vin.lower()}", ""):
+            out.append(v.get("car_type") or vin[-6:])
+    return out
+
+
+def abrp_token_in_use() -> bool:
+    """Whether ABRP would actually send anything, which is not the same as "a token exists".
+
+    Mirrors the poller's rule in `Database.get_abrp_token`: a per-car token counts always, the
+    install-wide one only while there is a single car. With two cars and nothing but the shared
+    token the poller sends NOTHING — so a status dot reading that key alone would report "active"
+    over silence, which is the kind of green light that costs an afternoon to disbelieve."""
+    vehicles = get_vehicles()
+    if any(get_secret(f"abrp_token_{(v.get('vin') or '').lower()}", "") for v in vehicles):
+        return True
+    return len(vehicles) <= 1 and bool(get_secret("abrp_token", ""))
 
 
 def get_secret(key: str, default: str = "") -> str:
@@ -1281,10 +1319,39 @@ _READY_PRESETS    = {"cool", "heat", "vent", "defrost", "none"}
 _READY_SEAT_MODES = {"off", "heat", "vent"}
 
 
-def get_ready_automation_config() -> dict:
-    """Sanitised config for the Prepara Veicolo page's automation section."""
+def ready_automation_key(vin: str = "") -> str:
+    """Where THIS car's ready-automation config lives. Same shape as the ABRP token: per-VIN, with
+    the install-wide key still covering a single-car install and covering NOBODY once there are two
+    — turning on the climate of one car on another car's orders is not a fallback, it is the wrong
+    car acting."""
+    v = (vin or _selected_vin() or "").lower()
+    return f"ready_automation_{v}" if v else "ready_automation"
+
+
+def _selected_vin() -> str:
     try:
-        raw = json.loads(get_setting("ready_automation", "") or "{}")
+        row = _get().execute("SELECT vin FROM vehicles WHERE id = COALESCE(?, id) ORDER BY id "
+                             "LIMIT 1", (_current_vehicle_id(),)).fetchone()
+    except sqlite3.Error:
+        return ""
+    return (row["vin"] if row and row["vin"] else "")
+
+
+def _ready_automation_raw(vin: str = "") -> str:
+    own = get_setting(ready_automation_key(vin), "")
+    if own:
+        return own
+    try:
+        one_car = len(get_vehicles()) <= 1
+    except sqlite3.Error:
+        one_car = True
+    return get_setting("ready_automation", "") if one_car else ""
+
+
+def get_ready_automation_config() -> dict:
+    """Sanitised config for the Prepara Veicolo page's automation section — of the SELECTED car."""
+    try:
+        raw = json.loads(_ready_automation_raw() or "{}")
         if not isinstance(raw, dict):
             raw = {}
     except (ValueError, TypeError):
@@ -1365,7 +1432,8 @@ def save_ready_automation_config(form) -> None:
         "steering":        (form.get("steering") or "") in ("1", "on", "true", "True"),
         "mirror":          (form.get("mirror") or "") in ("1", "on", "true", "True"),
     }
-    set_setting("ready_automation", json.dumps(cfg))
+    # On the SELECTED car: with two cars a single blob meant one climate answering for both.
+    set_setting(ready_automation_key(), json.dumps(cfg))
 
 
 def save_cost_config(mode: str, method: str, bands: list) -> None:
@@ -3291,17 +3359,30 @@ def _ensure_command_log(db: sqlite3.Connection) -> None:
     db.execute(
         "CREATE TABLE IF NOT EXISTS command_log ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, "
-        "action TEXT, outcome TEXT NOT NULL, latency_ms INTEGER)")
+        "action TEXT, outcome TEXT NOT NULL, latency_ms INTEGER, vin TEXT)")
+    # The car was never recorded at all, so with two of them one badge answered for both: the
+    # timeouts of the car in the garage pulled down the score of the one parked outside, and the
+    # figure stayed plausible. Rows written before this column keep vin NULL — which car they
+    # belonged to is not knowable, and guessing would move one car's score with another's commands.
+    cols = {r[1] for r in db.execute("PRAGMA table_info(command_log)").fetchall()}
+    if "vin" not in cols:
+        db.execute("ALTER TABLE command_log ADD COLUMN vin TEXT")
 
 
-def log_command(action: str, outcome: str, latency_ms: Optional[int] = None) -> None:
-    """Record one remote-command outcome (confirmed|timeout_car|cloud_unreachable|rejected).
-    Best-effort: never raises into the command path. Keeps ~90 days."""
+def log_command(action: str, outcome: str, latency_ms: Optional[int] = None,
+                vin: str = "") -> None:
+    """Record one remote-command outcome (confirmed|timeout_car|cloud_unreachable|rejected) FOR ONE
+    CAR. Best-effort: never raises into the command path. Keeps ~90 days.
+
+    An empty vin writes an anonymous row rather than refusing: the command must never fail because
+    of its own diary. Anonymous rows are then left out of the badge — see command_responsiveness."""
     try:
         db = _conn_rw()
         _ensure_command_log(db)
-        db.execute("INSERT INTO command_log (ts, action, outcome, latency_ms) VALUES (?,?,?,?)",
-                   (datetime.now(timezone.utc).isoformat(), action, outcome, latency_ms))
+        db.execute(
+            "INSERT INTO command_log (ts, action, outcome, latency_ms, vin) VALUES (?,?,?,?,?)",
+            (datetime.now(timezone.utc).isoformat(), action, outcome, latency_ms,
+             (vin or "").strip() or None))
         db.execute("DELETE FROM command_log WHERE ts < ?",
                    ((datetime.now(timezone.utc) - timedelta(days=90)).isoformat(),))
         db.commit()
@@ -3319,10 +3400,14 @@ def command_responsiveness(last_n: int = 24, min_samples: int = 3) -> dict:
     try:
         db = _conn_rw()
         _ensure_command_log(db)
+        # Only THIS car's commands, and only the rows that carry a car: an anonymous row (written
+        # before the column existed, or by a path with no VIN) belongs to nobody, and counting it
+        # would judge one car on another's coverage.
         rows = db.execute(
             "SELECT outcome, latency_ms FROM command_log "
-            "WHERE outcome IN ('confirmed','timeout_car') ORDER BY id DESC LIMIT ?",
-            (last_n,)).fetchall()
+            "WHERE outcome IN ('confirmed','timeout_car') AND vin IS NOT NULL "
+            "AND lower(vin) = lower(?) ORDER BY id DESC LIMIT ?",
+            (_selected_vin(), last_n)).fetchall()
     except Exception:
         rows = []
     total = len(rows)
@@ -5582,7 +5667,17 @@ def get_trips_needing_elevation(limit: int = 4) -> list[dict]:
     """Finalized trips (any segment — elevation is per-segment like regen_kwh, see _trip_group_stats)
     not yet enriched, under the retry ceiling, with a real GPS track and non-trivial distance (skip
     parking-lot-only hops). A trip that only got a temperature (elevation missed) keeps elev_done=0,
-    so it stays selected until the elevation lands or the ceiling is hit."""
+    so it stays selected until the elevation lands or the ceiling is hit.
+
+    ⚠️ DELIBERATELY NOT scoped to the selected car, and it must stay that way. This is a maintenance
+    QUEUE, read by elevation_enrich._sweep_now — not a page. Which car the user happens to be
+    looking at has nothing to do with which trips still owe Open-Meteo an altitude, and adding the
+    usual `vehicle_id = COALESCE(?, vehicle_id)` here would quietly stop enriching the other car's
+    trips for as long as it is not the selected one. The defect would be an ABSENCE, so nobody would
+    report it.
+
+    A two-car audit flags this function for handing both cars the same trip ids. That is the right
+    answer, not a leak: the giveaway is the caller, not the query."""
     db = _get()
     rows = db.execute(
         """SELECT id FROM trips

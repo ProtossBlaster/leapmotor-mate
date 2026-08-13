@@ -507,6 +507,11 @@
     <!-- ABRP (A Better Route Planner) -->
     {% call scard('abrp', t('abrp_section'), card_open.get('abrp'), 'api/settings/abrp/status') %}
       <p class="text-xs text-slate-400 mb-4">{{ t('abrp_desc') }}</p>
+      {% if settings.get('abrp_cars_without_token') %}
+      <div style="background:#1c1917;border:1px solid #a16207;border-radius:8px;padding:8px 10px;font-size:12px" class="text-amber-400 mb-2">
+        ⚠️ {{ t('abrp_car_without_token') }} <span class="text-slate-300">{{ settings.get('abrp_cars_without_token') | join(', ') }}</span>
+      </div>
+      {% endif %}
       <form hx-post="api/settings/abrp" hx-target="#abrp-feedback" hx-swap="innerHTML" class="space-y-3">
         <label class="flex items-center justify-between gap-3 cursor-pointer">
           <span class="text-sm text-white">{{ t('abrp_enable') }}</span>

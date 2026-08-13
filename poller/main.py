@@ -139,8 +139,18 @@ def _climate_ctx_from_db(db):
 _WINDOWS_SCALE = {"B10": 10, "C10": 10, "B05": 10}   # car_type → native "fully open"; default 100
 
 
-def _mqtt_windows_native(client, pct: int) -> str:
-    ct = (getattr(getattr(client, "_vehicle", None), "car_type", "") or "").upper()
+def _mqtt_windows_native(client, pct: int, vin: str = "") -> str:
+    """The native window value for the car the command is FOR.
+
+    🔴 It used to read the model off `client._vehicle` — the FIRST car on the account — while the
+    command carries its own VIN in the MQTT topic. With a B10 (fully open = 10) next to a T03
+    (= 100), "open the windows" sent to the T03 was scaled by the B10's rule and opened them a
+    tenth of the way. An empty or unknown VIN keeps the old behaviour rather than guessing."""
+    veh = None
+    if vin:
+        veh = next((v for v in (getattr(client, "_vehicles", None) or [])
+                    if (getattr(v, "vin", "") or "").lower() == vin.lower()), None)
+    ct = (getattr(veh or getattr(client, "_vehicle", None), "car_type", "") or "").upper()
     full = _WINDOWS_SCALE.get(ct, 100)
     try:
         pct = max(0, min(int(pct), 100))
@@ -265,8 +275,8 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
             elif cmd == "unlock":      api.unlock_vehicle(vin)
             elif cmd == "open_trunk":  api.open_trunk(vin)
             elif cmd == "close_trunk": api.close_trunk(vin)
-            elif cmd == "open_windows":   api.windows(vin, value=_mqtt_windows_native(client, 20))
-            elif cmd == "close_windows":  api.windows(vin, value=_mqtt_windows_native(client, 0))
+            elif cmd == "open_windows":   api.windows(vin, value=_mqtt_windows_native(client, 20, vin))
+            elif cmd == "close_windows":  api.windows(vin, value=_mqtt_windows_native(client, 0, vin))
             elif cmd == "open_sunshade":  api.open_sunshade(vin)
             elif cmd == "close_sunshade": api.close_sunshade(vin)
             elif cmd == "find_car":    api.find_vehicle(vin)
@@ -1014,6 +1024,15 @@ def main():
         vid = db.ensure_vehicle(veh.vin, veh.car_type, getattr(veh, "year", None),
                                 abilities=getattr(veh, "abilities", None))
         contexts.append(VehicleContext(db, veh, vid))
+    # The one-car → two-cars transition is visible HERE and nowhere else, and it is where the
+    # install-wide ABRP token stops being safe: from this moment both cars would answer to it and
+    # push into a single ABRP vehicle. Hand it to the car that was here first and drop the shared
+    # key. No-op with one car, and on every start after the first.
+    db.migrate_shared_ready_automation()
+    _moved = db.migrate_shared_abrp_token()
+    if _moved:
+        log.info("ABRP: install-wide token assigned to %s (a second car was registered); "
+                 "other cars send nothing until they get their own token", _moved[-6:])
     ctx = contexts[0]
     vehicle_id = ctx.vehicle_id
 

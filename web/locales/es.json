@@ -1,5 +1,6 @@
 {
   "translations": {
+    "abrp_car_without_token": "No tiene un token ABRP propio, así que no se envía nada para ella — ABRP usa un token por vehículo:",
     "charge_merge_btn": "Unir con la anterior",
     "charge_merge_help": "El coche declara el cable desconectado en cuanto la corriente se detiene, así que una sola conexión puede registrarse como varias recargas. Al unirlas la sesión vuelve a estar completa, y puedes separarla cuando quieras.",
     "charge_merge_preview_title": "La recarga que saldría",

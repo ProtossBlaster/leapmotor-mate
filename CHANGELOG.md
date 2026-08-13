@@ -3,6 +3,36 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.13.0] — 2026-08-13
+
+**A second car is now set up, not guessed at — and the settings that were shared between cars are not.**
+
+### Added
+
+- 🚗 **The setup asks about every car on the account.** It used to keep the first one the cloud
+  listed and drop the rest, so on a two-car account you configured one and the other was registered
+  later by the poller with its MODEL's default pack. For a C10 that default is the RWD: an AWD ran
+  20% out and a range-extender 2.4 times out, silently, and nobody was ever asked. The pack cannot
+  be derived — the cloud says only "C10" — which is why the wizard shows a list, and now shows one
+  per car, each with its own PIN.
+
+### Fixed
+
+- 🔌 **The install-wide ABRP token stops covering every car** the day a second one arrives. Both
+  cars answering to one token pushed two cars' positions and SoCs into a single ABRP vehicle. The
+  token now moves onto the car that was here first and the newcomer sends nothing until it has its
+  own — and Settings names the cars that would send nothing, instead of a status dot reporting
+  "active" over silence.
+- 🌡 **The ready-automation belongs to a car.** One shared config meant the temperature chosen for
+  one car answered for both, and switching it off on one switched it off everywhere. The poller
+  reads it by the VIN it is polling, not by the car selected in the web.
+- 📶 **The command-responsiveness badge is per car.** `command_log` had no column for the car at
+  all, so the fact was never recorded: the timeouts of one car pulled down the score of the other.
+  Rows written before are left out rather than attributed to somebody.
+- 🪟 **An MQTT window command is scaled by the car it is for.** It read the model off the first car
+  on the account while "fully open" is 10 on a B10 and 100 on a T03 — sent to the T03, it opened
+  them a tenth of the way.
+
 ## [3.12.0] — 2026-08-13
 
 **A charge the car reported in pieces can be joined back into one, and split again.**

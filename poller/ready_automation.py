@@ -47,11 +47,18 @@ _fired: dict = {}          # vin → already actuated for the CURRENT on-session
 _off_since: dict = {}      # vin → monotonic ts of the first continuous ready=0 poll
 
 
-def _load_config(db) -> dict:
-    """Sanitised config from the `ready_automation` setting (JSON blob). Defensive against a
-    hand-edited or partial DB value — never raises, always returns safe defaults."""
+def _config(db, vin: str = "") -> dict:
+    """Sanitised config for ONE car (JSON blob). Defensive against a hand-edited or partial DB
+    value — never raises, always returns safe defaults.
+
+    ⚠️ Takes the VIN because the poller runs over EVERY car, not over the one selected in the web:
+    reading the install-wide blob applied one car's climate answer to all of them."""
+    key = f"ready_automation_{vin.lower()}" if vin else "ready_automation"
+    blob = db.get_setting(key, "")
+    if not blob and not vin:
+        blob = db.get_setting("ready_automation", "")
     try:
-        raw = json.loads(db.get_setting("ready_automation", "") or "{}")
+        raw = json.loads(blob or "{}")
         if not isinstance(raw, dict):
             raw = {}
     except (ValueError, TypeError):
@@ -176,7 +183,7 @@ def maybe_trigger(db, client, data, api_lock, now: float = None, vehicle=None) -
         _fired[vin] = True            # a real Ready-on happened — never re-evaluate mid-session,
                                        # even if the temperature crosses the threshold later on
 
-        cfg = _load_config(db)
+        cfg = _config(db, getattr(data, 'vin', '') or '')
         if not cfg["enabled"] or not _condition_met(cfg, getattr(data, "inside_temp", None)):
             return False
 

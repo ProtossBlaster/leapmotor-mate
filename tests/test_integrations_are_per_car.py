@@ -43,10 +43,18 @@ def test_each_car_pushes_to_its_own_abrp_vehicle(two_cars):
     assert two_cars.get_abrp_token(B) == "TOKEN_B"
 
 
-def test_one_token_still_covers_a_single_car_install(two_cars):
-    """Everything alive today: one token, no per-car ones. It must keep working untouched."""
+def test_the_install_wide_token_stops_applying_once_a_second_car_exists(two_cars):
+    """🔴 This test used to be called "…still covers a single car install" and assert the opposite,
+    on this very two-car fixture. The name is what hid the defect: falling back to the install-wide
+    token is right with ONE car, and with two it is the same corruption this file exists to stop,
+    wearing the hat of backwards compatibility. Both cars answered to LEGACY and pushed into one
+    ABRP vehicle.
+
+    The single-car promise is real and kept — it is asserted in
+    test_abrp_token_never_feeds_two_cars.py, on a fixture that actually has one car."""
     two_cars.set_secret("abrp_token", "LEGACY")
-    assert two_cars.get_abrp_token(A) == "LEGACY"
+    assert two_cars.get_abrp_token(A) == ""
+    assert two_cars.get_abrp_token(B) == ""
 
 
 def test_a_car_without_a_token_does_not_borrow_the_other_cars(two_cars):

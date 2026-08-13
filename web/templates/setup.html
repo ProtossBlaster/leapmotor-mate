@@ -129,6 +129,7 @@
     <input type="hidden" name="car_type"  id="h-car-type"  value="">
     <input type="hidden" name="is_reev"   id="h-is-reev"   value="0">
     <input type="hidden" name="vin"       id="h-vin"       value="">
+    <input type="hidden" name="vehicles_json" id="h-vehicles" value="">
 
     {% if error %}
     <div style="background:#ef444422;border:1px solid #ef444455;border-radius:10px;padding:12px 16px;color:#fca5a5;font-size:14px">
@@ -729,6 +730,75 @@ function selectBattery(v, reev) {
   });
 }
 
+// ── Più di un'auto sull'account ────────────────────────────────────────────────
+// Il cloud dice solo il MODELLO ("C10"), e ogni modello ha più tagli di batteria: non è
+// deducibile, va chiesto — per OGNI auto, non solo per la prima. Finché non esisteva questo blocco,
+// la seconda auto veniva registrata dal poller col default del suo modello, senza che nessuno
+// l'avesse scelto: su una C10 AWD sono 20 punti di scarto, e su altre varianti molto di più.
+const CARS = {};        // vin → {vin, car_type, battery, is_reev, pin}
+
+function selectCarBattery(vin, v, reev) {
+  CARS[vin].battery = String(v);
+  CARS[vin].is_reev = reev ? '1' : '0';
+  document.querySelectorAll(`[data-car="${vin}"] .bat-opt`).forEach(el => {
+    const sel = el.dataset.v === String(v);
+    el.style.background  = sel ? '#14b8a622' : '#1e293b';
+    el.style.borderColor = sel ? '#14b8a6'   : '#334155';
+    const dot = el.querySelector('.bat-dot');
+    dot.style.background  = sel ? '#14b8a6' : 'transparent';
+    dot.style.borderColor = sel ? '#14b8a6' : '#475569';
+  });
+  syncCars();
+}
+
+function setCarPin(vin, pin) { CARS[vin].pin = pin; syncCars(); }
+
+function syncCars() {
+  document.getElementById('h-vehicles').value = JSON.stringify(Object.values(CARS));
+}
+
+function buildCarCards(cars) {
+  const s = strings[currentLang];
+  const mainPin = (document.querySelector('input[name="pin"]') || {}).value || '';
+  let html = '';
+  cars.forEach(car => {
+    // Belt and braces, exactly as the single-car selector does it: this build must never draw a
+    // pack it isn't meant to offer, whatever the server handed over.
+    let options = car.battery_options || [];
+    if (!RESEARCH) options = options.filter(o => !o.reev);
+    CARS[car.vin] = {vin: car.vin, car_type: car.car_type,
+                     battery: options.length ? String(options[0].v) : '',
+                     is_reev: options.length && options[0].reev ? '1' : '0', pin: mainPin};
+    html += `
+      <div data-car="${car.vin}" style="background:#0b1220;border:1px solid #1e293b;border-radius:12px;padding:14px 16px;margin-bottom:12px">
+        <div style="color:#f1f5f9;font-size:15px;font-weight:700;margin-bottom:10px">🚗 ${s.carLine(car.car_type, car.vin)}</div>
+        <div style="font-size:13px;font-weight:500;color:#cbd5e1;margin-bottom:8px">${s.batteryLabel}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">`;
+    options.forEach(opt => {
+      html += `
+          <div class="bat-opt" data-v="${opt.v}"
+               onclick="selectCarBattery('${car.vin}', '${opt.v}', ${opt.reev ? 'true' : 'false'})"
+               style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+                      border:1px solid #334155;background:#1e293b;cursor:pointer">
+            <span class="bat-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid #475569;flex-shrink:0"></span>
+            <span style="color:#e2e8f0;font-size:13px">${opt.label}</span>
+          </div>`;
+    });
+    html += `
+        </div>
+        <label style="display:block;margin-top:12px;color:#94a3b8;font-size:12px">${s.pinPerCar || 'PIN'}
+          <input type="password" maxlength="4" inputmode="numeric" value="${mainPin}"
+                 oninput="setCarPin('${car.vin}', this.value)"
+                 style="display:block;margin-top:4px;width:120px;padding:8px 10px;border-radius:8px;
+                        border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:14px">
+        </label>
+      </div>`;
+  });
+  cars.forEach(c => { if ((c.battery_options || []).length) selectCarBattery(c.vin, CARS[c.vin].battery, CARS[c.vin].is_reev === '1'); });
+  syncCars();
+  return html;
+}
+
 function buildBatterySelector(options) {
   // Belt and braces: the server already filters the research-only packs out of this build, but this
   // renderer draws whatever it is handed. Filtering here too means a future edit to the map can't
@@ -822,6 +892,20 @@ async function detectCar() {
       // Success — save detected vehicle info in hidden fields
       document.getElementById('h-car-type').value = data.car_type || '';
       document.getElementById('h-vin').value       = data.vin       || '';
+
+      // Two or more cars: each one gets its own pack question and its own PIN. Before this the
+      // wizard only ever saw data.vin — the first car the cloud listed — and the rest walked in
+      // later with a default nobody chose.
+      if ((data.vehicles || []).length > 1) {
+        showResult(`
+          <div style="background:#14b8a615;border:1px solid #14b8a640;border-radius:12px;padding:12px 16px;margin-bottom:12px">
+            <div style="color:#14b8a6;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">${s.detected}</div>
+            <div style="color:#f1f5f9;font-size:14px;margin-top:2px">${data.vehicles.length} 🚗</div>
+          </div>
+          ${buildCarCards(data.vehicles)}`);
+        document.getElementById('btn-submit').style.display = 'block';
+        return;
+      }
 
       // Build battery block based on what the server returns
       let batteryBlock;
