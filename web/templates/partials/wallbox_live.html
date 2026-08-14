@@ -1,40 +1,43 @@
-{% if not b10_plugged %}
+{% if not car_plugged %}
 <div class="mb-3 flex items-center gap-1.5 text-xs text-amber-400/90">
-  <span>⚠</span> {{ t('wb_b10_unplugged') }}
+  <span>⚠</span>
+  {%- if car_model %} {{ t('wb_car_unplugged').format(car=car_model) }}
+  {%- else %} {{ t('wb_car_unplugged_unknown') }}{% endif %}
 </div>
 {% endif %}
 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
   <!-- Power (session — only meaningful when this car is plugged) -->
   <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
     <div class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">{{ t('wb_role_power') }}</div>
-    <div class="text-2xl font-bold {% if b10_plugged and wb.charging %}text-yellow-400{% else %}text-white{% endif %}">
-      {% if b10_plugged and wb.power_kw is not none %}{{ wb.power_kw | nice }}<span class="text-sm text-slate-400 ml-1">kW</span>{% else %}<span class="text-slate-600">—</span>{% endif %}
+    <div class="text-2xl font-bold {% if car_plugged and wb.charging %}text-yellow-400{% else %}text-white{% endif %}">
+      {% if car_plugged and wb.power_kw is not none %}{{ wb.power_kw | nice }}<span class="text-sm text-slate-400 ml-1">kW</span>{% else %}<span class="text-slate-600">—</span>{% endif %}
     </div>
   </div>
   <!-- Status (session) -->
   <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
     <div class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">{{ t('wb_role_status') }}</div>
     <div class="text-2xl font-bold text-white truncate">
-      {% if b10_plugged and wb.status %}{{ wb.status }}{% else %}<span class="text-slate-600">—</span>{% endif %}
+      {% if car_plugged and wb.status %}{{ wb.status }}{% else %}<span class="text-slate-600">—</span>{% endif %}
     </div>
   </div>
   <!-- Session energy -->
   <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
     <div class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">{{ t('wb_role_energy') }}</div>
     <div class="text-2xl font-bold text-white">
-      {% if b10_plugged and wb.energy_kwh is not none %}{{ wb.energy_kwh | nice }}<span class="text-sm text-slate-400 ml-1">kWh</span>{% else %}<span class="text-slate-600">—</span>{% endif %}
+      {% if car_plugged and wb.energy_kwh is not none %}{{ wb.energy_kwh | nice }}<span class="text-sm text-slate-400 ml-1">kWh</span>{% else %}<span class="text-slate-600">—</span>{% endif %}
     </div>
   </div>
   <!-- Charging speed (session) -->
   <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
     <div class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">{{ t('wb_stat_speed') }}</div>
     <div class="text-2xl font-bold text-white">
-      {% if b10_plugged and wb.speed is not none %}{{ wb.speed | nice }}<span class="text-sm text-slate-400 ml-1">{{ wb.speed_unit }}</span>{% else %}<span class="text-slate-600">—</span>{% endif %}
+      {% if car_plugged and wb.speed is not none %}{{ wb.speed | nice }}<span class="text-sm text-slate-400 ml-1">{{ wb.speed_unit }}</span>{% else %}<span class="text-slate-600">—</span>{% endif %}
     </div>
   </div>
-  <!-- Session cost (from Mate's home charges, not an HA sensor) -->
+  <!-- Cost of the last HOME charge — from Mate's own charges, not an HA sensor, and never the
+       session in progress: a charge is priced only once it closes (#248). Hence the label. -->
   <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
-    <div class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">{{ t('wb_stat_cost') }}</div>
+    <div class="text-[11px] uppercase tracking-wide text-slate-400 mb-1">{{ t('wb_stat_last_home_charge') }}</div>
     <div class="text-2xl font-bold text-white">
       {% if wb.cost is not none %}{{ wb.cost | money }}{% else %}<span class="text-slate-600">—</span>{% endif %}
     </div>

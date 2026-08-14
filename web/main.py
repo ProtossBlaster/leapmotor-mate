@@ -2547,9 +2547,13 @@ async def wallbox_live(request: Request):
     status = db_reader.get_latest_status()
     # Session metrics only make sense when THIS car is on the wallbox — otherwise the
     # live reading could be another vehicle charging on the same wallbox.
-    b10_plugged = bool(status and status.get("plug_connected"))
+    car_plugged = bool(status and status.get("plug_connected"))
+    # …and the warning that says so has to name the car the owner actually has. It said "B10" to
+    # everyone until #248 (@Ng-EY, a C10 owner): a line about WHICH vehicle the numbers belong to
+    # is the worst place to get the vehicle wrong. Empty before the poller has seen the car.
+    vehicle, _ = db_reader.get_vehicle()
     return templates.TemplateResponse(request, "partials/wallbox_live.html", _ctx(
-        wb=wb, b10_plugged=b10_plugged))
+        wb=wb, car_plugged=car_plugged, car_model=(vehicle or {}).get("car_type") or ""))
 
 
 def _wallbox_sessions_grouped() -> list:
