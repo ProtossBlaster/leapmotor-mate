@@ -1038,6 +1038,8 @@
     "capacity_nominal": "Odniesienie SoH",
     "capacity_nominal_desc": "Pojemność fabryczna, względem której mierzona jest kondycja akumulatora. Zmień tylko, jeśli zapisano ją błędnie.",
     "capacity_measured": "Zmierzona z Twoich ładowań: ~{kwh} kWh",
+    "capacity_superseded": "Zmierzone ładowania dają dla tego akumulatora {kwh} kWh użytecznych — wartość tutaj to dane znamionowe, ~4% za wysokie.",
+    "capacity_use_corrected": "Użyj {kwh}",
     "capacity_use_measured": "Użyj zmierzonej",
     "charge_prices": "Ceny ładowania",
     "charge_prices_desc": "Koszt za kWh dla każdego typu ładowania — używany do automatycznego obliczania kosztów sesji.",

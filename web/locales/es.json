@@ -1038,6 +1038,8 @@
     "capacity_nominal": "Referencia del estado de salud",
     "capacity_nominal_desc": "La capacidad de nuevo con la que se compara la salud de la batería. Cámbiala solo si se capturó mal.",
     "capacity_measured": "Medida a partir de tus cargas: ~{kwh} kWh",
+    "capacity_superseded": "Las cargas medidas sitúan esta batería en {kwh} kWh utilizables — el valor de aquí es el nominal, ~4% más alto.",
+    "capacity_use_corrected": "Usar {kwh}",
     "capacity_use_measured": "Usar la medida",
     "charge_prices": "Precios de la carga",
     "charge_prices_desc": "Coste por kWh de cada tipo de carga — se usa para calcular solo el coste de las sesiones.",

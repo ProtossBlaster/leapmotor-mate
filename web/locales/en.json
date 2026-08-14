@@ -1038,6 +1038,8 @@
     "capacity_nominal": "SoH reference",
     "capacity_nominal_desc": "The as-new capacity battery health is measured against. Change it only if it was captured wrong.",
     "capacity_measured": "Measured from your charges: ~{kwh} kWh",
+    "capacity_superseded": "Measured charges put this pack at {kwh} kWh usable — the figure here is the nameplate one, ~4% high.",
+    "capacity_use_corrected": "Use {kwh}",
     "capacity_use_measured": "Use measured",
     "charge_prices": "Charge Prices",
     "charge_prices_desc": "Cost per kWh for each charge type — used to calculate session costs automatically.",

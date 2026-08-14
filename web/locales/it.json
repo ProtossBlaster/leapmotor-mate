@@ -1038,6 +1038,8 @@
     "capacity_nominal": "Riferimento SoH",
     "capacity_nominal_desc": "La capacità da nuova su cui si misura la salute batteria. Cambiala solo se è stata registrata sbagliata.",
     "capacity_measured": "Misurata dalle tue ricariche: ~{kwh} kWh",
+    "capacity_superseded": "Le ricariche misurate danno questo pacco a {kwh} kWh utili — il valore qui è quello di targa, ~4% più alto.",
+    "capacity_use_corrected": "Usa {kwh}",
     "capacity_use_measured": "Usa misurata",
     "charge_prices": "Prezzi di ricarica",
     "charge_prices_desc": "Costo per kWh per tipo di ricarica — usato per calcolare automaticamente i costi delle sessioni.",

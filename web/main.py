@@ -2217,6 +2217,9 @@ async def settings_page(request: Request):
         # default (67.1) while the code read another (65.0) — two defaults for one value, and
         # whichever got written first decided the reference for ever (@danielvilhena, #221).
         capacity_kwh=db_reader.get_battery_capacity_kwh(),
+        # A car still sitting on a default Mate has since disproved (the C10 RWD's 69.9, #246).
+        # Offered, never applied: a capacity is the owner's to calibrate.
+        superseded_pack=db_reader.superseded_pack_kwh(),
         capacity_nominal=db_reader.get_setting("battery_capacity_nominal_kwh", ""),
         # Written by the poller when it hears another Mate on our own topic prefix (BetaTester #13).
         # Shown beside the prefix field, which is where the fix lives.

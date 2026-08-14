@@ -1038,6 +1038,8 @@
     "capacity_nominal": "SoH-Referenz",
     "capacity_nominal_desc": "Die Neukapazität, an der die Batteriegesundheit gemessen wird. Nur ändern, wenn sie falsch erfasst wurde.",
     "capacity_measured": "Aus Ihren Ladevorgängen gemessen: ~{kwh} kWh",
+    "capacity_superseded": "Gemessene Ladevorgänge ergeben für diesen Akku {kwh} kWh netto — der Wert hier ist der Typenschildwert, ~4% zu hoch.",
+    "capacity_use_corrected": "{kwh} übernehmen",
     "capacity_use_measured": "Messwert verwenden",
     "charge_prices": "Ladepreise",
     "charge_prices_desc": "Kosten pro kWh je Ladetyp — zur automatischen Berechnung der Ladekosten.",

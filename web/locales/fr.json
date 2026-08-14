@@ -1038,6 +1038,8 @@
     "capacity_nominal": "Référence SoH",
     "capacity_nominal_desc": "La capacité à l'état neuf sur laquelle se mesure la santé batterie. Ne la modifie que si elle a été mal enregistrée.",
     "capacity_measured": "Mesurée d'après vos charges : ~{kwh} kWh",
+    "capacity_superseded": "Les recharges mesurées donnent cette batterie à {kwh} kWh utiles — la valeur ici est celle de la plaque, ~4% trop haute.",
+    "capacity_use_corrected": "Utiliser {kwh}",
     "capacity_use_measured": "Utiliser la mesure",
     "charge_prices": "Prix de recharge",
     "charge_prices_desc": "Coût par kWh pour chaque type de recharge — utilisé pour calculer automatiquement le coût des sessions.",

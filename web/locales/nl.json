@@ -1038,6 +1038,8 @@
     "capacity_nominal": "SoH-referentie",
     "capacity_nominal_desc": "De capaciteit als nieuw waaraan de batterijgezondheid wordt gemeten. Wijzig dit alleen als het verkeerd is vastgelegd.",
     "capacity_measured": "Gemeten uit je laadbeurten: ~{kwh} kWh",
+    "capacity_superseded": "Gemeten laadbeurten geven dit accupakket {kwh} kWh bruikbaar — de waarde hier is de typeplaatwaarde, ~4% te hoog.",
+    "capacity_use_corrected": "Gebruik {kwh}",
     "capacity_use_measured": "Gemeten waarde gebruiken",
     "charge_prices": "Laadprijzen",
     "charge_prices_desc": "Kosten per kWh voor elk laadtype — gebruikt om de kosten van je sessies automatisch te berekenen.",

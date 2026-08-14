@@ -1038,6 +1038,8 @@
     "capacity_nominal": "Referência SoH",
     "capacity_nominal_desc": "A capacidade de origem em relação à qual se mede a saúde da bateria. Altere apenas se tiver sido registada incorretamente.",
     "capacity_measured": "Medida a partir dos teus carregamentos: ~{kwh} kWh",
+    "capacity_superseded": "Os carregamentos medidos dão a esta bateria {kwh} kWh utilizáveis — o valor aqui é o nominal, ~4% acima.",
+    "capacity_use_corrected": "Usar {kwh}",
     "capacity_use_measured": "Usar valor medido",
     "charge_prices": "Preços de carregamento",
     "charge_prices_desc": "Custo por kWh para cada tipo de carregamento — usado para calcular automaticamente o custo das sessões.",

@@ -547,6 +547,29 @@ def get_vehicles() -> list[dict]:
         return []
 
 
+# The C10 RWD default Mate itself wrote until v3.11.1, and what replaced it. 69.9 is the nameplate
+# figure read as usable; @ghuaywen-ai's own charges (#246) showed the battery taking 100.8% of what
+# his charger delivered on it — more energy in than out. Only installs still sitting on the exact
+# old default are offered the correction: 4% high on every kWh, €/kWh and consumption figure they
+# print. A number the owner typed is theirs. → [[pack-capacity-declared-is-gross-not-net]]
+_SUPERSEDED_PACKS = {("C10", 69.9): 67.0}
+
+
+def superseded_pack_kwh() -> "float | None":
+    """The corrected pack for the SELECTED car if it is still on a default Mate has since
+    disproved, else None. A suggestion for Settings to show — never a migration: a capacity is
+    calibratable, some owners have measured theirs, and overwriting that is how a figure becomes
+    impossible to trust."""
+    try:
+        v, _ = get_vehicle()
+        cap = get_battery_capacity_kwh()
+    except sqlite3.Error:
+        return None
+    if not v or cap is None:
+        return None
+    return _SUPERSEDED_PACKS.get(((v.get("car_type") or "").strip().upper(), round(cap, 1)))
+
+
 _SETUP_STAMP_PREFIX = "vehicle_setup_done_"
 
 
