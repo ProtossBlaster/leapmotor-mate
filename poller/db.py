@@ -223,6 +223,7 @@ class Database:
         self._conn.execute("PRAGMA journal_mode=WAL")
         ensure_schema(self._conn)
         self._backfill_vehicle_capacity()
+        self._adopt_the_cars_that_were_already_here()
         self._backfill_null_vehicle_id()
         self._backfill_trip_geohashes()
         self._backfill_charge_odometer()
@@ -237,6 +238,34 @@ class Database:
         self.migrate_secrets()
         self._check_decryption()
         log.info("Database ready: %s", path)
+
+    def _adopt_the_cars_that_were_already_here(self) -> None:
+        """One-time: mark the cars present at THIS moment as already set up, so that only a car
+        arriving later can be called unconfigured.
+
+        The wizard has stamped `vehicle_setup_done_<vin>` since v3.13.0, and no install older than
+        that carries the stamp on any car. Reading "no stamp" as "nobody configured it" would put a
+        banner on every screen out there, including the thousands with one perfectly configured car
+        — absent is not the same as unconfigured. What we do know is that a car already in the
+        database on the day of the update went through some setup, or through months of use with
+        its owner watching the numbers.
+
+        Runs HERE, in the constructor, and not on a page render: the poller registers a new car
+        during a poll, which is necessarily after this. A stamping that ran later could adopt the
+        newcomer it is supposed to expose. `INSERT OR IGNORE` never overwrites a per-car answer,
+        and the marker makes the whole thing a no-op from the second start on — same shape as the
+        three migrations in v3.13.0."""
+        if self.get_setting("vehicle_setup_backfilled") == "1":
+            return
+        rows = self._conn.execute(
+            "SELECT vin FROM vehicles WHERE vin IS NOT NULL AND TRIM(vin) <> ''").fetchall()
+        for r in rows:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES (?, '1')",
+                (f"vehicle_setup_done_{r['vin'].strip().lower()}",))
+        self.set_setting("vehicle_setup_backfilled", "1")
+        if rows:
+            log.info("Marked %d car(s) already on this install as set up", len(rows))
 
     def _repair_quantized_trip_distance(self) -> None:
         """One-time repair for manoeuvres logged as 1 km trips. The whole-km odometer

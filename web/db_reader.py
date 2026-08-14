@@ -547,6 +547,40 @@ def get_vehicles() -> list[dict]:
         return []
 
 
+_SETUP_STAMP_PREFIX = "vehicle_setup_done_"
+
+
+def unconfigured_vehicles() -> list[dict]:
+    """The cars nobody was ever asked about — a second car that walked in from the poller on an
+    install where the login was already done, so the wizard never ran for it and it took its
+    MODEL's default pack. On a C10 that default is the RWD: an AWD is then 20% off and a REEV
+    2.4 times off, and every kWh, €/kWh and consumption figure of that car follows the wrong
+    number in silence. Whoever shows this must offer the wizard, which is where a pack and a PIN
+    are chosen.
+
+    🔴 Silent by design in two cases, both of them "we do not know" rather than "all good":
+
+      * before `vehicle_setup_backfilled` — the poller has not run its one-time stamping yet (a
+        page rendered between the update and the poller's first start), so no stamp on a car
+        means nothing at all;
+      * before `setup_complete` — a fresh install is not an install with an unconfigured car.
+
+    → the same trap as signal-absent-is-not-signal-zero, on a settings key."""
+    try:
+        if get_setting("vehicle_setup_backfilled", "") != "1":
+            return []
+        if get_setting("setup_complete", "") != "1":
+            return []
+        rows = _get().execute(
+            "SELECT key FROM settings WHERE key LIKE ? AND value = '1'",
+            (_SETUP_STAMP_PREFIX + "%",)).fetchall()
+    except sqlite3.Error:      # minimal schema (no settings table): claim nothing
+        return []
+    seen = {r["key"][len(_SETUP_STAMP_PREFIX):] for r in rows}
+    return [v for v in get_vehicles()
+            if (v.get("vin") or "").strip() and (v["vin"]).strip().lower() not in seen]
+
+
 def is_reev_car() -> bool:
     """Whether the SELECTED car is a range-extender.
 

@@ -342,6 +342,8 @@
     "wb_role_max_current_hint": "La commande qui règle le courant de charge — une entité ‘number’ en A (pas un capteur).",
     "wb_role_speed_hint": "Vitesse de charge — un ‘sensor’, p. ex. km/h.",
     "wb_role_max_power_hint": "Limite de charge max disponible, p. ex. via délestage dynamique — un ‘sensor’, en kW ou A selon la wallbox (V2C/Pulsar utilisent A).",
+    "unconfigured_banner": "{cars} : jamais configurée — elle utilise la batterie par défaut de son modèle, ce qui fausse ses kWh et ses coûts.",
+    "unconfigured_banner_btn": "Configurer",
     "wb_car_unplugged": "{car} non connectée — les données de session peuvent concerner un autre véhicule",
     "wb_car_unplugged_unknown": "Voiture non connectée — les données de session peuvent concerner un autre véhicule",
     "wb_profiles_title": "Profils enregistrés",

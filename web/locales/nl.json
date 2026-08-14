@@ -342,6 +342,8 @@
     "wb_role_max_current_hint": "De regeling die de laadstroom instelt — een ‘number’-entiteit in A (geen sensor).",
     "wb_role_speed_hint": "Laadsnelheid — een ‘sensor’, bijv. km/u.",
     "wb_role_max_power_hint": "De maximaal beschikbare laadlimiet, bijv. uit dynamische lastverdeling — een ‘sensor’, in kW of A afhankelijk van de wallbox (V2C/Pulsar geven A).",
+    "unconfigured_banner": "{cars}: nooit ingesteld — gebruikt het standaard accupakket van dit model, wat de kWh en kosten vertekent.",
+    "unconfigured_banner_btn": "Instellen",
     "wb_car_unplugged": "{car} niet aangesloten — sessiegegevens kunnen van een ander voertuig zijn",
     "wb_car_unplugged_unknown": "Auto niet aangesloten — sessiegegevens kunnen van een ander voertuig zijn",
     "wb_profiles_title": "Opgeslagen profielen",

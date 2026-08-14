@@ -342,6 +342,8 @@
     "wb_role_max_current_hint": "The control that sets the charging current — a ‘number’ entity in A (not a sensor).",
     "wb_role_speed_hint": "Charging speed — a ‘sensor’, e.g. km/h.",
     "wb_role_max_power_hint": "Max available charging limit, e.g. from dynamic load balancing — a ‘sensor’, in kW or A depending on the wallbox (V2C/Pulsar report A).",
+    "unconfigured_banner": "{cars}: never set up — running on the default battery pack for its model, which bends its kWh and costs.",
+    "unconfigured_banner_btn": "Set it up",
     "wb_car_unplugged": "{car} not connected — session data may be from another vehicle",
     "wb_car_unplugged_unknown": "Car not connected — session data may be from another vehicle",
     "wb_profiles_title": "Saved profiles",

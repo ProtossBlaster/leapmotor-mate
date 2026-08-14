@@ -342,6 +342,8 @@
     "wb_role_max_current_hint": "Die Steuerung, die den Ladestrom setzt — eine ‚number‘-Entität in A (kein Sensor).",
     "wb_role_speed_hint": "Ladegeschwindigkeit — ein ‚sensor‘, z. B. km/h.",
     "wb_role_max_power_hint": "Max. verfügbares Ladelimit, z. B. durch dynamisches Lastmanagement — ein ‘sensor’, in kW oder A je nach Wallbox (V2C/Pulsar nutzen A).",
+    "unconfigured_banner": "{cars}: nie eingerichtet — nutzt den Standard-Akku ihres Modells, was ihre kWh und Kosten verfälscht.",
+    "unconfigured_banner_btn": "Einrichten",
     "wb_car_unplugged": "{car} nicht angeschlossen — die Daten des Ladevorgangs könnten von einem anderen Fahrzeug stammen",
     "wb_car_unplugged_unknown": "Fahrzeug nicht angeschlossen — die Daten des Ladevorgangs könnten von einem anderen Fahrzeug stammen",
     "wb_profiles_title": "Gespeicherte Profile",

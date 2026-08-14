@@ -485,6 +485,22 @@
                      padding:5px 10px;font-size:12px;cursor:pointer">{{ t('btn_close') }}</button>
     </div>
     {% endif %}
+    {% if unconfigured_cars %}
+    <!-- A car that arrived from the poller on an install where the wizard had already run took its
+         MODEL's default pack, and nobody was ever asked. Sticky at the top of EVERY page because
+         the figures that default bends — kWh, €/kWh, consumption — are on every page.
+         Same z-index rule as the bars above: BELOW the mobile drawer (1003), so it can never
+         swallow the navigation (beta #13, @ebagnoli). -->
+    <div id="unconfigured-bar" style="position:sticky;top:0;z-index:1000;background:#b45309;
+         color:#fff;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;
+         padding:8px 14px;font-size:12.5px;font-weight:600;line-height:1.4;text-align:center;
+         box-shadow:0 2px 10px rgba(0,0,0,.3)">
+      <span>⚠ {{ t('unconfigured_banner').format(cars=unconfigured_cars) }}</span>
+      <a href="{{ request.headers.get('x-ingress-path', '') }}/setup"
+         style="background:#0f172a;color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;
+                font-weight:700;text-decoration:none;white-space:nowrap">{{ t('unconfigured_banner_btn') }}</a>
+    </div>
+    {% endif %}
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
       {% block content %}{% endblock %}
     </div>

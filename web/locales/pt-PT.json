@@ -342,6 +342,8 @@
     "wb_role_max_current_hint": "Controlo que define a corrente de carregamento — uma entidade ‘number’ em A (não é sensor).",
     "wb_role_speed_hint": "Velocidade de carregamento — um ‘sensor’, ex.: km/h.",
     "wb_role_max_power_hint": "Limite máximo de carregamento disponível, ex. de balanceamento dinâmico de carga — um ‘sensor’, em kW ou A consoante a wallbox (V2C/Pulsar reportam A).",
+    "unconfigured_banner": "{cars}: nunca configurado — usa a bateria predefinida do seu modelo, o que distorce os seus kWh e custos.",
+    "unconfigured_banner_btn": "Configurar",
     "wb_car_unplugged": "{car} não ligado — os dados da sessão podem ser de outro veículo",
     "wb_car_unplugged_unknown": "Carro não ligado — os dados da sessão podem ser de outro veículo",
     "wb_profiles_title": "Perfis guardados",

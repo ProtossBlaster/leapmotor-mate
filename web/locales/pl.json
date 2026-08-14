@@ -342,6 +342,8 @@
     "wb_role_max_current_hint": "Sterowanie ustawiające prąd ładowania — encja „number” w A (nie sensor).",
     "wb_role_speed_hint": "Prędkość ładowania — „sensor”, np. km/h.",
     "wb_role_max_power_hint": "Maks. dostępny limit ładowania, np. z dynamicznego balansowania obciążenia — „sensor” w kW lub A w zależności od wallboxa (V2C/Pulsar podaje A).",
+    "unconfigured_banner": "{cars}: nigdy nieskonfigurowany — używa domyślnego akumulatora swojego modelu, co zniekształca jego kWh i koszty.",
+    "unconfigured_banner_btn": "Skonfiguruj",
     "wb_car_unplugged": "{car} niepodłączony — dane sesji mogą być z innego pojazdu",
     "wb_car_unplugged_unknown": "Samochód niepodłączony — dane sesji mogą być z innego pojazdu",
     "wb_profiles_title": "Zapisane profile",

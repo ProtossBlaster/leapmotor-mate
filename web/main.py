@@ -429,7 +429,12 @@ def _ctx(**kwargs):
     # The sidebar car picker. One car — everyone, today — means a list of one, and base.html then
     # renders exactly the badge it has always rendered; the picker only exists from the second car.
     _vehicles = db_reader.get_vehicles()
+    # A car that walked in from the poller and never met the wizard is running on its model's
+    # default pack. On every page, because the figures it bends are on every page.
+    _unconfigured = db_reader.unconfigured_vehicles()
     return {**kwargs, "lang": lang, "t": t, "version": MATE_VERSION, "demo": _IS_DEMO,
+            "unconfigured_cars": ", ".join(
+                (v.get("car_type") or (v.get("vin") or "")[-6:]) for v in _unconfigured),
             "vehicles": _vehicles,
             # Inside the Mac/Windows app there are TWO versions that matter: Mate itself, which
             # updates on its own, and the app shell around it, which almost never does. When a
