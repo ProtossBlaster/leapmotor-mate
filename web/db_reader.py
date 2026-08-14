@@ -7029,7 +7029,15 @@ def get_stats_summary() -> dict:
                ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
                           OR (ec_kwh IS NOT NULL AND ec_stable = 1) THEN distance_km END), 1)
                                                                              AS energy_km,
-               ROUND(SUM(duration_min), 0)                                   AS total_drive_min,
+               -- Reconstructed trips are left OUT of the clock and stay in everything else. Their
+               -- duration is the length of the blackout the odometer jump was found across, not of
+               -- any driving: a ten-minute errand discovered after a night of no contact carries
+               -- nine hours. The kilometres and the energy are real — they are why the trip exists
+               -- — so only the time comes out. → [[feedback-two-numbers-one-word]]
+               ROUND(SUM(CASE WHEN COALESCE(reconstructed, 0) = 0
+                              THEN duration_min END), 0)                     AS total_drive_min,
+               SUM(CASE WHEN COALESCE(reconstructed, 0) = 1
+                         AND duration_min IS NOT NULL THEN 1 ELSE 0 END)     AS drive_time_excluded,
                -- distance-weighted = total energy / total distance (#42): a simple AVG
                -- over-weights short trips and disagreed with both the Trips-page header
                -- and this page's own "energy used ÷ distance". Matches get_trips_summary.
@@ -7276,7 +7284,11 @@ def _collect_monthly_buckets() -> dict:
         b["total_km"]       += km
         b["total_kwh_used"] += km * (eff or 0) / 100.0
         b["regen_kwh"]      += tr.get("regen_kwh") or 0
-        b["drive_min"]      += tr.get("duration_min") or 0
+        # Same rule as the Statistics card: a reconstructed trip's "duration" is the blackout it
+        # was found across, so it never becomes driving time — here too, or the monthly report and
+        # the page would print different hours for the same month.
+        if not tr.get("reconstructed"):
+            b["drive_min"]  += tr.get("duration_min") or 0
         if eff and km > 0:
             b["_eff_wsum"]  += km * eff
             b["_eff_wdist"] += km

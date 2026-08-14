@@ -948,6 +948,7 @@
     "total_distance": "Distance of recorded trips",
     "avg_efficiency": "Avg consumption",
     "best_efficiency": "Best Efficiency",
+    "drive_time_partial": "{n} reconstructed trip(s) left out — their span is an offline gap, not driving",
     "drive_time": "Drive Time",
     "energy_distribution": "Energy Distribution",
     "last_week": "Last week",

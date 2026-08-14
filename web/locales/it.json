@@ -948,6 +948,7 @@
     "total_distance": "Distanza dei viaggi registrati",
     "avg_efficiency": "Consumo medio",
     "best_efficiency": "Efficienza migliore",
+    "drive_time_partial": "{n} viaggio/i ricostruito/i escluso/i — il loro intervallo è un buco offline, non guida",
     "drive_time": "Tempo di guida",
     "energy_distribution": "Distribuzione energia",
     "last_week": "Ultima settimana",

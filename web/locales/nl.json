@@ -948,6 +948,7 @@
     "total_distance": "Afstand van geregistreerde ritten",
     "avg_efficiency": "Gem. verbruik",
     "best_efficiency": "Zuinigste rit",
+    "drive_time_partial": "{n} gereconstrueerde rit(ten) niet meegeteld — hun tijdsduur is een offline gat, geen rijtijd",
     "drive_time": "Rijtijd",
     "energy_distribution": "Verdeling van de energie",
     "last_week": "Vorige week",

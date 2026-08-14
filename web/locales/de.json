@@ -948,6 +948,7 @@
     "total_distance": "Strecke der erfassten Fahrten",
     "avg_efficiency": "Ø-Verbrauch",
     "best_efficiency": "Beste Effizienz",
+    "drive_time_partial": "{n} rekonstruierte Fahrt(en) ausgenommen — ihr Zeitraum ist eine Offline-Lücke, keine Fahrzeit",
     "drive_time": "Fahrzeit",
     "energy_distribution": "Energieverteilung",
     "last_week": "Letzte Woche",

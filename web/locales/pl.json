@@ -948,6 +948,7 @@
     "total_distance": "Dystans zarejestrowanych podróży",
     "avg_efficiency": "Śr. zużycie",
     "best_efficiency": "Najlepsza efektywność",
+    "drive_time_partial": "Pominięto {n} zrekonstruowaną podróż(e) — ich przedział to przerwa offline, nie jazda",
     "drive_time": "Czas jazdy",
     "energy_distribution": "Rozkład energii",
     "last_week": "Ostatni tydzień",
