@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.11.0 · **Sprache:** Deutsch
+> **Mate-Version:** v3.14.0 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -173,6 +173,11 @@ Je nach Modell:
 > gemessener (bereits gealterter) Wert die Gesundheit nicht auf ~100 % zurücksetzt und die Alterung
 > verbirgt. Wurde sie falsch erfasst, kann die Gesundheit über 100 % liegen: dort korrigierbar.
 
+> **Wenn ein Standardwert von Mate inzwischen widerlegt wurde 🆕**, sagt es Einstellungen → Akku
+> an Ort und Stelle und bietet den korrigierten Wert per Schaltfläche an — er wird nie hinter
+> deinem Rücken überschrieben. Heute betrifft das den **C10 RWD**: 69,9 kWh ist der
+> Typenschildwert, echte Ladevorgänge ergeben netto 67,0.
+
 ### Schritt 4 — Verbinden
 
 Drücken Sie **Verbinden & starten**. Mate speichert die Konfiguration, verbindet sich und führt Sie zur
@@ -191,6 +196,12 @@ Die Oberfläche besteht aus:
   die Schaltfläche **🔄 Jetzt aktualisieren**.
 - **Schaltfläche „Jetzt aktualisieren"** — erzwingt ein sofortiges Auslesen des Fahrzeugzustands, ohne auf den
   automatischen Zyklus zu warten. Nützlich, nachdem Sie einen Befehl gegeben haben.
+- **Streifen „nie eingerichtet" 🆕** — ein oranger Streifen oben auf jeder Seite, wenn ein Auto
+  **von selbst** zu Mate gekommen ist, ohne den Assistenten zu durchlaufen: Das passiert dem **zweiten
+  Auto** in einer Installation, in der die Anmeldung bereits erfolgt war. Solange niemand für es
+  geantwortet hat, nutzt dieses Auto den **Standard-Akku seines Modells**, was seine kWh, seinen Preis
+  je kWh und seinen Verbrauch verfälscht. Die Schaltfläche öffnet den Assistenten, wo Akku und PIN
+  gewählt werden.
 
 Am Ende des Menüs finden Sie **⚙️ Einstellungen** und **🚪 Abmelden** — Letzteres *nur, wenn Sie ein
 Zugangspasswort gesetzt haben*; es beendet die Passwort-Sitzung und sonst nichts. Ohne Passwort ist
@@ -628,6 +639,15 @@ Modelle stellen bestimmte Daten nicht bereit).
 [Integrationen](#8-die-integrationen-im-detail)), sehen Sie hier ihre Daten **live** (Leistung, Energie), die
 **Zusammenfassung** und die Liste der **Sitzungen** sowie gegebenenfalls die **Steuerungen** (z. B. maximaler
 Strom), wenn Ihre Wallbox sie über Home Assistant bereitstellt.
+
+
+Wenn dein Auto **nicht angeschlossen** ist, sagt die Karte es beim Namen — *„C10 nicht angeschlossen"* —
+denn an der Wallbox kann ein fremdes Auto hängen, und diese Live-Werte wären dann nicht deine. Die
+Kostenkachel heißt **Letzter Ladevorgang zuhause**: Ein Ladevorgang bekommt seinen Preis erst, wenn er
+endet, also ist diese Zahl nie die laufende Sitzung.
+
+> „Zuhause" heißt in Mate **Wallbox oder Haushaltssteckdose**: Ein Ladevorgang kann diese Kennzeichnung
+> tragen, ohne dass deine Wallbox beteiligt war.
 
 ---
 

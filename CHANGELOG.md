@@ -3,6 +3,50 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.0] — 2026-08-14
+
+**A car nobody was ever asked about now says so, and three figures stop counting the hours Mate was
+not watching.**
+
+### A car that walked in on its own
+- **A strip across every page** when a car reached Mate without going through the wizard — what
+  happens to a **second car** added to an install where the sign-in was already done. Until someone
+  answers for it, that car runs on the **default battery pack of its model**: on a C10 that default
+  is the RWD, so an AWD is 20% off and a REEV 2.4 times off, and its kWh, price per kWh and
+  consumption all follow the wrong number in silence. The strip names the car and opens the wizard,
+  where a pack and a PIN are chosen.
+- **Nobody already installed is accused.** No install older than v3.13.0 carries the wizard's mark
+  on any car, so "no mark" cannot mean "unconfigured": the poller marks, once, the cars present at
+  the moment of the update, and only a car that arrives afterwards is uncovered. Between the update
+  and the poller's first start the page says nothing at all rather than accusing every car.
+
+### The Wallbox card (#248, @Ng-EY)
+- **The warning names your own car.** It said *"B10 not connected"* to everyone — the model was
+  written inside the sentence, in all eight languages, from when Mate only covered the B10. It now
+  comes from the car itself, whatever model that is.
+- **"Session cost" is now "Last home charge".** That tile never showed the session: a charge is
+  priced only once it ends, so even while you are plugged in and charging it prints the previous
+  one. In Mate "home" means wallbox **or** domestic socket, so the label promises no wallbox either.
+
+### Figures that were counting blackouts
+- **Average charge duration** and **drive time** leave out the reconstructed rows. Those are jumps
+  found after the fact, across hours when the car or Mate was offline: their "duration" is the
+  length of that silence. Measured on a real database, one such charge moved the average by +18%.
+  Their kilometres and their energy still count — it is only the clock that is unusable — and each
+  card says how many rows it left out.
+
+### The battery figures
+- **A C10 still on 69.9 kWh is told.** v3.11.2 corrected the RWD default to 67.0 usable after real
+  charges settled it (#246), but only for new setups; every C10 already installed kept the nameplate
+  figure and has been ~4% high ever since. Settings now says so beside the field and offers the
+  corrected value with one button. It is never applied for you: a capacity is yours to calibrate.
+- **The wizard's manual-entry hint quotes the packs Mate actually uses.** It mixed gross and net
+  figures on one line, two languages still carried the disproved 69.9, and the B05 was missing.
+  The field is no longer pre-filled with someone else's battery.
+
+### Under the hood
+- The test suite no longer writes a database into whatever directory it is run from.
+
 ## [3.13.1] — 2026-08-13
 
 **Updating blanked the car-responsiveness badge — the commands it already had on record are given back.**

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v3.11.0 · **Lingua:** Italiano
+> **Versione di Mate:** v3.14.0 · **Lingua:** Italiano
 > Questo manuale è pensato per chi *usa* Mate, non per chi lo sviluppa. Spiega come configurarlo
 > dall'inizio e cosa fa ogni pagina. Per i dettagli tecnici interni c'è `ARCHITECTURE.md`.
 
@@ -172,6 +172,11 @@ In base al modello:
 > valore misurato (e già invecchiato) non può riportare la salute a ~100 % nascondendo
 > l'invecchiamento. Se è stata registrata sbagliata, la salute può superare il 100 %: si corregge lì.
 
+> **Se un valore predefinito di Mate è stato smentito 🆕**, Impostazioni → Batteria lo dice sul
+> posto e offre la cifra corretta con un pulsante — non riscrive mai il numero alle tue spalle.
+> Oggi riguarda la **C10 RWD**: 69,9 kWh è il valore di targa, e le ricariche vere danno un pacco
+> utile di 67,0.
+
 ### Passo 4 — Connetti
 
 Premi **Connetti e avvia**. Mate salva la configurazione, si collega e ti porta alla **Panoramica**.
@@ -190,6 +195,11 @@ L'interfaccia è composta da:
   (↑ vX.Y.Z) e il pulsante **🔄 Aggiorna ora**.
 - **Pulsante Aggiorna ora** — forza una lettura immediata dallo stato dell'auto, senza aspettare il
   ciclo automatico. Utile dopo aver dato un comando.
+- **Striscia «mai configurata» 🆕** — una fascia arancione in cima a ogni pagina quando un'auto è
+  arrivata a Mate **da sola**, senza passare dalla procedura guidata: succede alla **seconda auto**
+  aggiunta a un'installazione dove l'accesso era già fatto. Finché nessuno risponde per lei, quell'auto
+  usa il **pacco batteria predefinito del suo modello**, e questo storce i suoi kWh, il suo prezzo al
+  kWh e i suoi consumi. Il pulsante apre la procedura guidata, dove si scelgono pacco e PIN.
 
 In fondo al menu trovi **⚙️ Impostazioni**, e **🚪 Esci** *solo se hai impostato una password
 d'accesso* — quello chiude la sessione della password, niente altro. Senza password non c'è, perché
@@ -649,6 +659,14 @@ Raffreddamento / Riscaldamento / Ventilazione).
 [Integrazioni](#8-le-integrazioni-in-dettaglio)), qui vedi i suoi dati **dal vivo** (potenza,
 energia), il **riepilogo** e l'elenco delle **sessioni**, ed eventualmente i **controlli** (es.
 corrente massima) se la tua wallbox li espone tramite Home Assistant.
+
+Quando la tua auto **non è collegata**, la scheda lo dice per nome — *«C10 non collegata»* — perché
+alla wallbox può essere attaccata l'auto di un altro, e quei valori dal vivo non sarebbero i tuoi. Il
+riquadro del costo si chiama **Ultima ricarica di casa**: una ricarica riceve un prezzo solo quando
+finisce, quindi quel numero non è mai la sessione in corso.
+
+> In Mate «casa» vuol dire **wallbox o presa domestica**: una ricarica può portare quel contrassegno
+> senza che la tua wallbox c'entri niente.
 
 ---
 

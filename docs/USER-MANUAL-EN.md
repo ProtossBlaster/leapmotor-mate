@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.11.0 · **Language:** English
+> **Mate version:** v3.14.0 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -172,6 +172,11 @@ Depending on the model:
 > a measured (already-aged) figure can never reset your health to ~100 % and hide the ageing. If it
 > was captured from the wrong number, health can read above 100 %: correct it in the same place.
 
+> **If Mate's own default has since been disproved 🆕**, Settings → Battery says so on the spot and
+> offers the corrected figure with one button — it never rewrites the number behind you. Today this
+> is the **C10 RWD**: 69.9 kWh is the nameplate figure, and real charges put the usable pack at 67.0.
+
+
 ### Step 4 — Connect
 
 Press **Connect & Start**. Mate saves the configuration, connects and takes you to the **Overview**.
@@ -190,6 +195,12 @@ The interface is made up of:
   button.
 - **Refresh now button** — forces an immediate read of the car's status without waiting for the
   automatic cycle. Handy after sending a command.
+- **"Never set up" strip 🆕** — an orange strip across the top of every page when a car reached
+  Mate on its own, without ever going through the wizard: that happens to a **second car** added to
+  an install where the sign-in was already done. Until someone answers for it, that car uses the
+  **default battery pack of its model**, which bends its kWh, its price per kWh and its consumption.
+  The button opens the wizard, where the pack and the PIN are chosen.
+
 
 At the bottom of the menu you'll find **⚙️ Settings**, and **🚪 Log out** *only if you have set an
 access password* — that one ends the password session, nothing else. It is not there otherwise, and
@@ -625,6 +636,15 @@ models don't expose certain data).
 [Integrations](#8-the-integrations-in-detail)), here you see its **live** data (power, energy), the
 **summary** and the list of **sessions**, and possibly the **controls** (e.g. max current) if your
 wallbox exposes them through Home Assistant.
+
+When your car is **not plugged in**, the card says so by name — *"C10 not connected"* — because a
+wallbox can be charging somebody else's car and those live figures would not be yours. The cost tile
+reads **Last home charge**: a charge is priced only once it ends, so that figure is never the session
+in progress.
+
+> In Mate "home" means **wallbox or domestic socket**, so a charge can carry that badge without your
+> wallbox being involved at all.
+
 
 ---
 

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v3.11.0 · **Idioma:** Español
+> **Versión de Mate:** v3.14.0 · **Idioma:** Español
 > Este manual está escrito para quien *usa* Mate, no para quien lo desarrolla. Explica cómo
 > configurarlo desde cero y qué hace cada página. Para los detalles técnicos internos está `ARCHITECTURE.md`.
 
@@ -182,6 +182,11 @@ Según el modelo:
 > esconder el envejecimiento. Si se capturó a partir del número equivocado, la salud puede salir por
 > encima del 100 %: corrígela en el mismo sitio.
 
+> **Si un valor predeterminado de Mate ha quedado desmentido 🆕**, Ajustes → Batería lo dice ahí
+> mismo y ofrece la cifra corregida con un botón — nunca reescribe el número a tus espaldas. Hoy
+> se trata del **C10 RWD**: 69,9 kWh es el valor nominal, y las cargas reales dan una batería
+> utilizable de 67,0.
+
 ### Paso 4 — Conectar
 
 Pulsa **Conectar y empezar**. Mate guarda la configuración, se conecta y te lleva al **Resumen**.
@@ -200,6 +205,11 @@ La interfaz se compone de:
   hay, y el botón **🔄 Actualizar**.
 - **Botón Actualizar** — fuerza una lectura inmediata del estado del coche sin esperar al ciclo
   automático. Muy útil después de enviar un comando.
+- **Franja «nunca configurado» 🆕** — una franja naranja en la parte superior de cada página cuando
+  un coche ha llegado a Mate **por su cuenta**, sin pasar por el asistente: le ocurre al **segundo
+  coche** añadido a una instalación donde el acceso ya estaba hecho. Mientras nadie responda por él, ese
+  coche usa la **batería predeterminada de su modelo**, y eso distorsiona sus kWh, su precio por kWh y
+  su consumo. El botón abre el asistente, donde se eligen la batería y el PIN.
 
 Al final del menú están **⚙️ Ajustes** y **🚪 Cerrar sesión**, este último *solo si has puesto una
 contraseña de acceso* — y lo único que hace es cerrar esa sesión de contraseña. Si no la has puesto no
@@ -668,6 +678,15 @@ exponen ciertos datos).
 [Integraciones](#8-las-integraciones-en-detalle)), aquí ves sus datos **en directo** (potencia,
 energía), el **resumen** y la lista de **sesiones**, y en su caso los **controles** (por ejemplo la
 corriente máxima) si tu wallbox los expone a través de Home Assistant.
+
+
+Cuando tu coche **no está enchufado**, la tarjeta lo dice por su nombre — *«El C10 no está conectado»* —
+porque en la wallbox puede haber otro coche, y esas cifras en vivo no serían las tuyas. La casilla del
+coste se llama **Última carga en casa**: una carga recibe precio solo cuando termina, así que ese
+número nunca es la sesión en curso.
+
+> En Mate «casa» significa **wallbox o enchufe doméstico**: una carga puede llevar esa etiqueta sin que
+> tu wallbox tenga nada que ver.
 
 ---
 
