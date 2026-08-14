@@ -117,6 +117,26 @@ unten beschrieben.
 > welche Geheimnisse es nicht lesen kann und was zu tun ist — statt später als Anmeldefehler zu scheitern.
 > Fahrten, Ladevorgänge und Kosten sind nicht verschlüsselt und kommen immer zurück.
 
+
+**Wie Mate aktualisiert wird.** Das Abzeichen **↑ vX.Y.Z** neben der Version, oben links, bedeutet,
+dass auf GitHub eine neuere Release liegt (alle 6 Stunden geprüft). Es ist ein Hinweis, keine
+Schaltfläche: Was du drückst, hängt davon ab, wie du Mate betreibst.
+
+- **Home-Assistant-Add-on** — nichts von Hand zu tun. Home Assistant bietet das Update am Add-on
+  selbst an, und es zu drücken ist die ganze Prozedur. Ist das Abzeichen noch nicht da:
+  *Add-on Store → ⋮ → Nach Updates suchen*. Deine Daten (`/data`) bleiben, wo sie sind.
+- **Docker** — das neue Image holen und den Container neu erstellen:
+
+  ```
+  docker pull ghcr.io/protossblaster/leapmotor-mate:latest
+  docker compose up -d          # oder: docker rm -f <container> && docker run … wie zuvor
+  ```
+
+  Die Datenbank liegt im Volume, nicht im Image — es geht nichts verloren.
+  [Watchtower](https://containrrr.dev/watchtower/) kann das automatisch erledigen.
+- **MateDesktop** — nichts herunterzuladen: Die App holt Mate **bei jedem Start** aus dem Repository,
+  Schließen und erneutes Öffnen *ist* also das Update.
+
 ---
 
 ## 4. Erster Start: die geführte Einrichtung

@@ -116,6 +116,26 @@ for both and is described below.
 > secrets it cannot read and what to do — instead of failing later as a login error. Trips,
 > charges and costs are not encrypted and always come back.
 
+
+**How Mate updates.** A badge **↑ vX.Y.Z** beside the version, top left, means a newer release is on
+GitHub (checked every 6 hours). It is a notice, not a button: what you press depends on how you run
+Mate.
+
+- **Home Assistant add-on** — nothing to do by hand. Home Assistant offers the update on the add-on
+  itself and pressing it is the whole procedure. If the badge has not appeared yet, *Add-on Store →
+  ⋮ → Check for updates*. Your data (`/data`) stays where it is.
+- **Docker** — pull the new image and recreate the container:
+
+  ```
+  docker pull ghcr.io/protossblaster/leapmotor-mate:latest
+  docker compose up -d          # or: docker rm -f <container> && docker run … as before
+  ```
+
+  The database lives in the volume, not in the image, so nothing is lost.
+  [Watchtower](https://containrrr.dev/watchtower/) can do it for you automatically.
+- **MateDesktop** — nothing to download: the app fetches Mate from the repository **every time it
+  starts**, so closing and reopening it *is* the update.
+
 ---
 
 ## 4. First start: the setup wizard
