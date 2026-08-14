@@ -723,6 +723,7 @@
     "session_inline_one": "Ladevorgang",
     "session_inline_many": "Ladevorgänge",
     "total_energy": "Gesamtenergie",
+    "avg_duration_partial": "{n} rekonstruierte Ladung(en) ausgenommen — ihr Zeitraum ist eine Offline-Lücke, kein Ladevorgang",
     "avg_duration": "Ø-Dauer",
     "peak_power": "Spitzenleistung",
     "total_cost": "Gesamtkosten",

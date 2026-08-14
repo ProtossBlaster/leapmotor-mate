@@ -7116,7 +7116,16 @@ def get_charge_stats() -> dict:
     groups = get_charges(limit=1_000_000)
     d["session_count"] = len(groups)
     d["priced_count"] = sum(1 for g in groups if g.get("cost") is not None)
-    durs = [g["duration_min"] for g in groups if g.get("duration_min") is not None]
+    # A reconstructed charge has no duration to average: `duration_min` there is the length of the
+    # BLACKOUT the SoC jump was found across, not of any charging. On the real database 27 observed
+    # charges average 193 min, and the single reconstructed #55 (1091.5 min) pushed the card to
+    # 3.8 h — +18% from one row. Left out, and counted so the card can say so; `session_count`
+    # above still counts every charge, which is why staying silent here would make two tiles
+    # disagree for no visible reason. → [[feedback-two-numbers-one-word]]
+    durs = [g["duration_min"] for g in groups
+            if g.get("duration_min") is not None and not g.get("reconstructed")]
+    d["duration_excluded"] = sum(1 for g in groups
+                                 if g.get("duration_min") is not None and g.get("reconstructed"))
     d["avg_duration_h"] = round(sum(durs) / len(durs) / 60.0, 1) if durs else None
     deltas = [g["end_soc"] - g["start_soc"] for g in groups
               if g.get("end_soc") is not None and g.get("start_soc") is not None]

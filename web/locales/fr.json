@@ -723,6 +723,7 @@
     "session_inline_one": "session",
     "session_inline_many": "sessions",
     "total_energy": "Énergie totale",
+    "avg_duration_partial": "{n} recharge(s) reconstruite(s) exclue(s) — leur intervalle est une coupure hors ligne, pas une recharge",
     "avg_duration": "Durée moyenne",
     "peak_power": "Puissance max",
     "total_cost": "Coût total",

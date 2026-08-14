@@ -723,6 +723,7 @@
     "session_inline_one": "sessione",
     "session_inline_many": "sessioni",
     "total_energy": "Energia totale",
+    "avg_duration_partial": "{n} ricarica/he ricostruita/e escluse — il loro intervallo è un buco offline, non una ricarica",
     "avg_duration": "Durata media",
     "peak_power": "Potenza picco",
     "total_cost": "Costo totale",

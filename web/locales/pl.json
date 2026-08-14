@@ -723,6 +723,7 @@
     "session_inline_one": "sesja",
     "session_inline_many": "sesje",
     "total_energy": "Łączna energia",
+    "avg_duration_partial": "Pominięto {n} zrekonstruowane ładowanie(a) — ich przedział to przerwa offline, nie ładowanie",
     "avg_duration": "Śr. czas trwania",
     "peak_power": "Szczytowa moc",
     "total_cost": "Łączny koszt",

@@ -723,6 +723,7 @@
     "session_inline_one": "sesión",
     "session_inline_many": "sesiones",
     "total_energy": "Energía total",
+    "avg_duration_partial": "{n} carga(s) reconstruida(s) excluida(s) — su intervalo es un hueco sin conexión, no una carga",
     "avg_duration": "Duración media",
     "peak_power": "Potencia máxima",
     "total_cost": "Coste total",

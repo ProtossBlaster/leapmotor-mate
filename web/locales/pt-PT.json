@@ -723,6 +723,7 @@
     "session_inline_one": "sessão",
     "session_inline_many": "sessões",
     "total_energy": "Energia total",
+    "avg_duration_partial": "{n} carregamento(s) reconstruído(s) excluído(s) — o seu intervalo é uma falha offline, não um carregamento",
     "avg_duration": "Duração média",
     "peak_power": "Potência de pico",
     "total_cost": "Custo total",

@@ -723,6 +723,7 @@
     "session_inline_one": "sessie",
     "session_inline_many": "sessies",
     "total_energy": "Totale energie",
+    "avg_duration_partial": "{n} gereconstrueerde laadbeurt(en) niet meegeteld — hun tijdsduur is een offline gat, geen laadbeurt",
     "avg_duration": "Gem. duur",
     "peak_power": "Piekvermogen",
     "total_cost": "Totale kosten",

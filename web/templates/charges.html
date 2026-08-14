@@ -289,7 +289,12 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 
   {{ scard(t('sessions'),     stats.session_count,                        '',    'text-yellow-400') }}
   {{ scard(t('total_energy'), stats.total_kwh or 0,                       'kWh', 'text-yellow-400') }}
-  {{ scard(t('avg_duration'), (stats.avg_duration_h or 0)|dec(1),   'h',   'text-white')      }}
+  {# The reconstructed charges are out of this average — their "duration" is the blackout they were
+     found across. Said out loud, because the sessions tile beside it still counts them. #}
+  {{ scard(t('avg_duration'),
+      stats.avg_duration_h|dec(1) if stats.avg_duration_h is not none else '—',
+      'h' if stats.avg_duration_h is not none else '', 'text-white',
+      t('avg_duration_partial').format(n=stats.duration_excluded) if stats.duration_excluded else '') }}
   {{ scard(t('peak_power'),   stats.peak_power_kw or '—',                 'kW',  'text-blue-400')   }}
   {{ scard(t('total_cost'),
       stats.total_cost | money if stats.total_cost else '—',
