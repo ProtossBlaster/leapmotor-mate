@@ -114,6 +114,19 @@ def test_a_b10_owner_still_reads_b10(tmp_path, monkeypatch):
     assert "B10 " in _render(tmp_path, monkeypatch, car_type="B10")
 
 
+@pytest.mark.parametrize("car_type", ["B10", "C10", "T03", "B05", "C16"])
+def test_every_model_reads_its_own_name(tmp_path, monkeypatch, car_type):
+    """Not a list Mate keeps: the sentence prints `vehicles.car_type` verbatim, which is whatever
+    the cloud reported for that VIN (uppercased on the way in). The four models Mate ships packs
+    for are here, and one it has never heard of — a car released after this build must name itself
+    correctly too, without a release. Nothing in this path maps or whitelists a model."""
+    body = _render(tmp_path, monkeypatch, car_type=car_type)
+    assert f"{car_type} " in body
+    for other in ("B10", "C10", "T03", "B05"):
+        if other != car_type:
+            assert other not in body, f"a {car_type} was told about a {other}"
+
+
 def test_before_the_car_is_known_the_warning_still_warns(tmp_path, monkeypatch):
     """A fresh install can open the Wallbox page before the poller has seen the car. The line must
     not print a blank subject, the word None, or an unrendered placeholder."""
