@@ -1099,7 +1099,6 @@
     "setup_pin": "PIN operativo",
     "setup_pin_ph": "PIN a 4 cifre",
     "setup_battery": "Capacità batteria (kWh)",
-    "setup_battery_hint": "B10 Std: 67.1 · B10 LR: 73.4 · T03: 40.3 · C10: 88.5",
     "setup_language": "Lingua",
     "setup_locale": "Lingua e Valuta",
     "currency_label": "Valuta",

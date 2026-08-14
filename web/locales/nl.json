@@ -1099,7 +1099,6 @@
     "setup_pin": "Bedienings-pincode",
     "setup_pin_ph": "Pincode van 4 cijfers",
     "setup_battery": "Batterijcapaciteit (kWh)",
-    "setup_battery_hint": "B10 Std: 67,1 · B10 LR: 73,4 · T03: 40,3 · C10: 88,5",
     "setup_language": "Taal",
     "setup_locale": "Taal en valuta",
     "currency_label": "Valuta",
