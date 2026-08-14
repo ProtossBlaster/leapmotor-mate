@@ -92,6 +92,25 @@ def test_settings_says_it_and_offers_the_button(tmp_path, monkeypatch):
     assert "{kwh}" not in body, "a placeholder reached the page unrendered"
 
 
+def test_the_figure_wears_the_language_s_own_decimal_mark(tmp_path, monkeypatch):
+    """English writes 67.0 and Italian 67,0 — every other number on that page already does, and a
+    stray dot beside a field reading 69,9 is the reader wondering which one Mate believes."""
+    import db_reader
+    _install(tmp_path, monkeypatch, car_type="C10", capacity=69.9)
+    db_reader.set_setting("language", "it")
+    import asyncio
+
+    import main
+    monkeypatch.setattr(main.db_reader, "DB_PATH", db_reader.DB_PATH)
+    body = asyncio.run(main.settings_page(_Req())).body.decode()
+    assert "Usa 67,0" in body, "the button writes a dot next to a field reading 69,9"
+    assert "67,0 kWh utili" in body
+    # …and the value the button TYPES into the field keeps the dot: it goes into an <input
+    # type=number>, which a comma would make invalid. The separator is a reading convention, not
+    # a storage one, and mixing the two up is how a correction button silently stops working.
+    assert "battery_capacity_kwh.value='67.0'" in body
+
+
 def test_settings_stays_quiet_for_everyone_else(tmp_path, monkeypatch):
     import json
     import pathlib
