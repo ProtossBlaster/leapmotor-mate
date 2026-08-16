@@ -3912,12 +3912,26 @@ async def v2l_card(request: Request):
 
 
 def _configured_charge_limit() -> int | None:
-    """The car's configured max-charge SoC (the % it stops charging at), persisted by the poller
-    from each status read (and on a Mate set). Lets the Overview hero label the charge ETA with the
-    real limit instead of a hardcoded 100. None if never seen → the template falls back to 100."""
+    """The SoC the current charge will stop at, for the Overview hero's ETA label. None when it is
+    not knowable → the template falls back to 100.
+
+    🔴 What the poller stores is the **charging PLAN's** target, not the "charging upper limit" the
+    owner drags in the official app — the cloud does not expose that one at all. The library names
+    the block for what it is: `config["3"]` maps `percent`→`chargesocSetting`, `isEnable`→
+    `chargeScheduleEnabled`, plus the plan's start, end and days.
+
+    So it counts only while the plan is switched ON. With the plan off the car charges to its own
+    upper limit and that number means nothing: @ghuaywen-ai's C10 (#252) had the plan OFF, its
+    stored SoC at 90 and the car's limit at 100, and the hero read "23h 25m to 90%". `_charge_window`
+    below has always applied the same rule to the plan's WINDOW, for the same reason."""
     try:
+        if not db_reader.get_charge_schedule_window().get("enabled"):
+            return None
         return int(db_reader.get_setting("charge_limit_percent", "") or 0) or None
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, AttributeError):
+        # get_charge_schedule_window swallows its own database errors and answers a dict,
+        # so there is nothing sqlite-shaped to catch here — and sqlite3 is not imported in
+        # this module, which would have turned any such error into a NameError.
         return None
 
 
