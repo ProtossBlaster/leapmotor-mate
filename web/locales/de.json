@@ -41,6 +41,7 @@
     "reev_demo_preview": "Vorschau mit Beispieldaten",
     "reev_demo_banner": "Beispieldaten — Layout-Vorschau, nicht aus einem echten Fahrzeug gelesen.",
     "reev_demo_exit": "Vorschau verlassen",
+    "reev_fuel_refuelled": "Während dieser Fahrt getankt — der verbrauchte Kraftstoff ist nicht messbar und bleibt daher außen vor, statt als null zu zählen",
     "reev_engine_ran": "Range Extender lief",
     "reev_engine_km": "Generator an",
     "reev_engine_km_hint": "die l/100 km beziehen sich auf diese Strecke, nicht auf die ganze Fahrt",

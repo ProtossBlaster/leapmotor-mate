@@ -41,6 +41,7 @@
     "reev_demo_preview": "Podgląd z przykładowymi danymi",
     "reev_demo_banner": "Dane przykładowe — podgląd układu, nie odczyt z prawdziwego samochodu.",
     "reev_demo_exit": "Zamknij podgląd",
+    "reev_fuel_refuelled": "Tankowanie w trakcie tej podróży — zużytego paliwa nie da się zmierzyć, więc jest pomijane zamiast liczone jako zero",
     "reev_engine_ran": "Range extender pracował",
     "reev_engine_km": "generator włączony",
     "reev_engine_km_hint": "l/100 km dotyczy tego odcinka, a nie całej podróży",

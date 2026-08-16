@@ -146,7 +146,17 @@ def test_no_coordinates_and_no_free_text(car):
     body = diagnostics.build_bundle("9.9.9")
     for needle in ("45.1", "9.2", "45.4", "u0nd", "Casa mia", "via Roma", "targa AB123CD",
                    "dal dentista"):
-        assert needle not in body, f"the bundle leaked {needle!r}"
+        # On failure, print WHERE it was found. This assertion has gone red twice in a full run
+        # (16/08) and never once on its own or on a re-run, with the file order fixed —
+        # pytest-randomly is not installed — so the cause is not the sequence and is still unknown.
+        # A bare "leaked '45.1'" says nothing: several of these needles are short enough to appear
+        # inside an unrelated number, and the next occurrence has to be answerable from its output
+        # rather than reproducible on demand.
+        if needle in body:
+            i = body.index(needle)
+            raise AssertionError(
+                f"the bundle leaked {needle!r} at offset {i}:\n"
+                f"  …{body[max(0, i - 90):i + 60]}…")
 
 
 def test_the_column_names_alone_are_not_a_leak():

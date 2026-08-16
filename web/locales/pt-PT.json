@@ -41,6 +41,7 @@
     "reev_demo_preview": "Pré-visualização com dados de exemplo",
     "reev_demo_banner": "Dados de exemplo — pré-visualização do layout, não lidos de um carro real.",
     "reev_demo_exit": "Sair da pré-visualização",
+    "reev_fuel_refuelled": "Abastecimento durante esta viagem — o combustível consumido não é mensurável, por isso fica de fora em vez de contar como zero",
     "reev_engine_ran": "Extensor de autonomia esteve ativo",
     "reev_engine_km": "gerador ativo",
     "reev_engine_km_hint": "os L/100 km referem-se a esta distância, não à viagem inteira",

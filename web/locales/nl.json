@@ -41,6 +41,7 @@
     "reev_demo_preview": "Voorbeeld met testgegevens",
     "reev_demo_banner": "Voorbeeldgegevens — alleen om de opmaak te tonen, niet uit een echte auto.",
     "reev_demo_exit": "Voorbeeld sluiten",
+    "reev_fuel_refuelled": "Onderweg getankt — de verbruikte brandstof is niet te meten en blijft daarom buiten beschouwing in plaats van als nul te tellen",
     "reev_engine_ran": "Range extender heeft gedraaid",
     "reev_engine_km": "generator aan",
     "reev_engine_km_hint": "de l/100 km geldt over deze afstand, niet over de hele rit",

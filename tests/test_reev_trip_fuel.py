@@ -43,8 +43,11 @@ def test_engine_ran_gives_litres_and_l_per_100km():
 
 
 def test_no_fuel_data_is_inert():
+    # `fuel_refuelled` joined the shape in beta #30: a tank that ends FULLER than it started is a
+    # refuel mid-drive, and its litres are unknown rather than zero. Inert here like the rest.
     assert db_reader._reev_trip_fuel(None, None, 20) == {
-        "fuel_used_l": None, "fuel_l_100km": None, "engine_ran": False, "engine_km": None}
+        "fuel_used_l": None, "fuel_l_100km": None, "engine_ran": False, "engine_km": None,
+        "fuel_refuelled": False}
 
 
 # ── the engine-on basis: L/100km over the generator-driving distance (matches the car) ─────────

@@ -433,10 +433,24 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
     The litres come from the car's OWN counter (fuel_start_l/fuel_end_l, signal 3263) when the trip
     has them; the tank-% × assumed-capacity path below is the fallback for a BEV, an unknown model,
     or any trip recorded before v2.14.1. `tank_l` overrides the assumed capacity (per model)."""
-    out = {"fuel_used_l": None, "fuel_l_100km": None, "engine_ran": False, "engine_km": None}
+    out = {"fuel_used_l": None, "fuel_l_100km": None, "engine_ran": False, "engine_km": None,
+           "fuel_refuelled": False}
     if fuel_start_pct is None or fuel_end_pct is None:
         return out
     drop = fuel_start_pct - fuel_end_pct
+    # The tank ended FULLER than it started: he filled up during the drive. The litres are then
+    # start − end = a negative number, which fell straight into the "nothing burned" branch below
+    # and published the trip as pure electric — generator off, zero litres, zero petrol kilometres.
+    # Measured on @pdifeo's bundle (beta #30): 3 trips in 98, and on the 30 July one his own note
+    # says the first climb was on petrol while the battery GAINED 3.5 points over 32 km, which is
+    # the generator's signature and nothing else's.
+    #
+    # There is no independent "engine on" signal to fall back on (see the docstring), so what we
+    # know is: something may well have been burned, and we cannot say how much. That is unknown,
+    # not zero — and a zero is what quietly disappears into every fuel total.
+    if drop < -_REEV_FUEL_MIN_DROP:
+        out["fuel_refuelled"] = True
+        return out
     cap = tank_l if tank_l else reev_tank_l()
     measured = (fuel_start_l - fuel_end_l) if (fuel_start_l is not None and fuel_end_l is not None) else None
     # The noise floor belongs to whichever signal is actually being read. 3235 (%) moves in steps of

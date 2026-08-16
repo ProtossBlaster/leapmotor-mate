@@ -41,6 +41,7 @@
     "reev_demo_preview": "Preview with sample data",
     "reev_demo_banner": "Sample data — layout preview, not read from a real car.",
     "reev_demo_exit": "Exit preview",
+    "reev_fuel_refuelled": "Refuelled during this drive — the petrol it used cannot be measured, so it is left out rather than counted as none",
     "reev_engine_ran": "Range-extender ran",
     "reev_engine_km": "generator on",
     "reev_engine_km_hint": "the L/100 km is over this distance, not the whole trip",

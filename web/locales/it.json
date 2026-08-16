@@ -41,6 +41,7 @@
     "reev_demo_preview": "Anteprima con dati di esempio",
     "reev_demo_banner": "Dati di esempio — anteprima del layout, non letti da un'auto reale.",
     "reev_demo_exit": "Esci dall'anteprima",
+    "reev_fuel_refuelled": "Rifornimento durante questo viaggio — il carburante che ha consumato non è misurabile, quindi resta fuori invece di contare come zero",
     "reev_engine_ran": "Range-extender attivo",
     "reev_engine_km": "generatore acceso",
     "reev_engine_km_hint": "il L/100 km è su questa distanza, non sull'intero viaggio",
