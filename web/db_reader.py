@@ -5581,6 +5581,24 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     trip_d = _trip_group_stats(dict(trip), children)
     trip_d["route_segments"] = route_segments
     trip_d["elevation_profile_available"] = elevation_profile_available
+    # The stops INSIDE a joined journey. The chart draws every segment's points in one row, so a
+    # pause between two pieces comes out as a blank stretch identical to a signal dropout — and the
+    # same chart already blanks real dropouts and cloud-cached stretches. @pdifeo (#159) asked for
+    # this after we twice explained his own coffee stop as a network problem: "dal min 14 al 21 mi
+    # sono fermato. Poi ho unito i viaggi."
+    #
+    # Each piece keeps its own start and end (a merge writes only the marker), so a pause is simply
+    # the hole between one piece's end and the next one's start. Raw ISO on purpose: the chart maps
+    # them onto its own time axis, and a localized string would have to be parsed back.
+    _pieces = sorted([dict(trip)] + [dict(k) for k in children],
+                     key=lambda r: r.get("started_at") or "")
+    _pauses = []
+    for _a, _b in zip(_pieces, _pieces[1:]):
+        _mins = _gap_minutes(_a.get("ended_at"), _b.get("started_at"))
+        if _mins is not None and _mins > 0:
+            _pauses.append({"from": _a["ended_at"], "to": _b["started_at"],
+                            "minutes": int(round(_mins))})
+    trip_d["merge_pauses"] = _pauses
     if trip_d.get("is_merged"):
         elapsed = _gap_minutes(trip_d.get("started_at"), trip_d.get("ended_at"))
         trip_d["stop_min"] = (round(max(elapsed - (trip_d.get("duration_min") or 0), 0))

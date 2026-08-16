@@ -535,7 +535,9 @@
         step = deltas.length ? deltas[Math.floor(deltas.length / 2)] : 0;
       }
 
+      var labelMs = [];     // the instant behind each category, so a pause can be pinned to one
       function pushLabel(ms) {
+        labelMs.push(useTime && !isNaN(ms) ? ms : NaN);
         labels.push(useTime && !isNaN(ms)
           ? Math.max(0, Math.round((ms - t0) / 60000)) + "′"
           : String(labels.length));
@@ -563,6 +565,36 @@
         elevArr.push(p.elevation_m != null ? p.elevation_m : null);
         plot.push(p);
       });
+
+      // ⏸ The stops INSIDE a joined journey. Without them this stretch is a blank identical to a
+      // signal dropout — and that is exactly how it was read: @pdifeo (#159) was told twice that
+      // his own stop was the car losing the cloud. The band says who made the gap; the label says
+      // how long it lasted.
+      var pauseAnns = [];
+      var mergePauses = {{ (trip.merge_pauses or []) | tojson }};
+      if (useTime && mergePauses.length) {
+        var nearest = function (ms) {          // the category closest in time to that instant
+          var best = -1, bestD = Infinity;
+          for (var q = 0; q < labelMs.length; q++) {
+            if (isNaN(labelMs[q])) continue;
+            var dd = Math.abs(labelMs[q] - ms);
+            if (dd < bestD) { bestD = dd; best = q; }
+          }
+          return best;
+        };
+        mergePauses.forEach(function (p) {
+          var a = new Date(p.from).getTime(), b = new Date(p.to).getTime();
+          if (isNaN(a) || isNaN(b)) return;
+          var ia = nearest(a), ib = nearest(b);
+          if (ia < 0 || ib < 0 || ia === ib) return;
+          pauseAnns.push({
+            x: labels[ia], x2: labels[ib],
+            fillColor: '#64748b', opacity: 0.14, borderColor: '#64748b',
+            label: { text: '⏸ ' + p.minutes + '′', borderColor: '#64748b',
+                     style: { background: '#334155', color: '#e2e8f0', fontSize: '10px' } }
+          });
+        });
+      }
 
       var nmSoc = {{ t('soc')|tojson }};
       var nmSpd = {{ t('speed')|tojson }};
@@ -727,6 +759,7 @@
                 gradient: { shadeIntensity: 1, opacityFrom: opacityFrom, opacityTo: opacityTo, stops: [0, 100] } },
         dataLabels: { enabled: false },
         markers: { size: 0 },
+        annotations: { xaxis: pauseAnns },
         xaxis: { categories: labels, tickAmount: 6, tooltip: { enabled: false },
                  labels: { style: { colors: '#64748b', fontSize: '10px' }, rotate: 0, hideOverlappingLabels: true },
                  axisBorder: { show: false }, axisTicks: { show: false } },
