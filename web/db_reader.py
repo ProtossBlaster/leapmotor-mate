@@ -6700,11 +6700,26 @@ def generate_charge_auto_note(charge_id: int, provider: str = "", api_key: "str 
     charge_card.html's hx-confirm)."""
     import charger_locator
     import units
-    row = _get().execute("SELECT * FROM charges WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
-                         (charge_id, _current_vehicle_id())).fetchone()
+    _db = _get()
+    row = _db.execute("SELECT * FROM charges WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                      (charge_id, _current_vehicle_id())).fetchone()
     if not row:
         return None
-    row = dict(row)
+    # A joined plug-in is ONE session to whoever is looking at it — the card composes the group —
+    # and this was the one reader that did not: it took the piece's own row, so the note ended at
+    # the first pause while the card above it showed the whole session. The twin of the trip note
+    # fixed in v3.11.2, reported by the same person on the same issue three days later (#247,
+    # @Ng-EY). Resolve the group exactly as the card does, and write to the PARENT — the row the
+    # page reads the note back from. The stored rows stay untouched: a merge is display math and
+    # has to stay reversible.
+    parent_id = row["merged_into_id"] or row["id"]
+    parent = row if parent_id == row["id"] else _db.execute(
+        "SELECT * FROM charges WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+        (parent_id, _current_vehicle_id())).fetchone()
+    if parent is None:          # child pointing at a parent this vehicle cannot see
+        parent, parent_id = row, row["id"]
+    charge_id = parent_id
+    row = _charge_group_stats(dict(parent), _charge_children_by_parent(_db).get(parent_id, []))
     if only_if_note_empty and (row.get("note") or "").strip():
         return row.get("note")
     address = None
