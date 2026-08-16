@@ -984,9 +984,16 @@
         <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" class="diag-part accent-brand" value="web" checked> {{ t('diag_web_log') }}</label>
         <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" class="diag-part accent-brand" value="signals" checked> {{ t('diag_signals') }}</label>
       </div>
+      {# A real link with `download`, not a page navigation. It used to be
+         `window.location.href = …`, which does nothing at all inside Home Assistant's ingress
+         iframe or the HA app's webview — the button simply looked dead, and nobody on a phone
+         could send a bundle (#252 @ghuaywen-ai). The CSV export two pages away has always been a
+         plain <a download> and has never been reported broken; this is the same shape.
+         The href is rebuilt whenever a section is ticked, and starts in step with the boxes. #}
       <div class="flex items-center gap-3">
-        <button type="button" onclick="diagDownload(this)" data-empty="{{ t('diag_pick_one') }}"
-                class="bg-brand text-white text-sm font-semibold rounded-lg px-4 py-2 hover:opacity-90">⬇ {{ t('diag_download') }}</button>
+        <a id="diag-dl" download href="api/diagnostics/bundle?parts=info,poller,web,signals"
+           data-empty="{{ t('diag_pick_one') }}"
+           class="bg-brand text-white text-sm font-semibold rounded-lg px-4 py-2 hover:opacity-90">⬇ {{ t('diag_download') }}</a>
         <span id="diag-dl-hint" class="text-[11px] text-amber-400"></span>
       </div>
 
@@ -1137,14 +1144,27 @@
     });
   }
 
-  // Diagnostics: download only the ticked sections (info / poller / web).
-  function diagDownload(btn) {
+  // Diagnostics: keep the download LINK in step with the ticked sections. The link is what
+  // downloads — see the note on it — so this only ever rewrites its href. With nothing ticked the
+  // link is disabled rather than pointing at an empty bundle.
+  function diagSyncDownload() {
     const parts = Array.from(document.querySelectorAll('.diag-part:checked')).map(function (c) { return c.value; });
+    const a = document.getElementById('diag-dl');
     const hint = document.getElementById('diag-dl-hint');
-    if (!parts.length) { if (hint) { hint.textContent = btn.dataset.empty || ''; } return; }
-    if (hint) { hint.textContent = ''; }
-    window.location.href = 'api/diagnostics/bundle?parts=' + parts.join(',');
+    if (!a) return;
+    if (!parts.length) {
+      a.removeAttribute('href');
+      a.classList.add('opacity-50', 'pointer-events-none');
+      if (hint) hint.textContent = a.dataset.empty || '';
+      return;
+    }
+    a.href = 'api/diagnostics/bundle?parts=' + parts.join(',');
+    a.classList.remove('opacity-50', 'pointer-events-none');
+    if (hint) hint.textContent = '';
   }
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('diag-part')) diagSyncDownload();
+  });
 
 // Access password: the two boxes must agree. Uses the browser's own constraint validation, so an
 // htmx form simply doesn't fire while they differ and the message comes from the browser in its own
