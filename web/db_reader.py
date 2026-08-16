@@ -573,6 +573,26 @@ def superseded_pack_kwh() -> "float | None":
 _SETUP_STAMP_PREFIX = "vehicle_setup_done_"
 
 
+def mark_vehicle_configured(vin: str = "") -> None:
+    """Record that a human has answered for a car — which is what turns the "never set up" strip
+    off. Named `vin`, or the SELECTED car when it is not given.
+
+    Until v3.14.0 the wizard was the only writer of this mark, so a car the strip complained about
+    could be corrected properly, from Settings, and go on being accused (@cookingeek, the first
+    install with two real cars). Choosing that car's pack IS the answer to "nobody chose this car's
+    pack", wherever it is chosen.
+
+    🔴 One car, never install-wide: a third car nobody has looked at must keep its strip. Same rule
+    as the capacity itself, where writing the first car's value while looking at the second was an
+    ~80% error on everything derived from a percentage (#186)."""
+    key = (vin or "").strip().lower()
+    if not key:
+        v, _ = get_vehicle()
+        key = ((v or {}).get("vin") or "").strip().lower()
+    if key:
+        set_setting(f"{_SETUP_STAMP_PREFIX}{key}", "1")
+
+
 def unconfigured_vehicles() -> list[dict]:
     """The cars nobody was ever asked about — a second car that walked in from the poller on an
     install where the login was already done, so the wizard never ran for it and it took its

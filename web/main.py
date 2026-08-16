@@ -3593,6 +3593,11 @@ async def set_operation_pin(request: Request):
         if not any(v.get("vin") == vin for v in db_reader.get_vehicles()):
             return Response("unknown vin", status_code=422)
         db_reader.set_operate_pin(pin, vin)
+        # Giving a car its own PIN is somebody looking at that car, so it answers the "never set up"
+        # strip too. It matters for a car whose model default happens to be right: there is nothing
+        # to change in the capacity box, and without this the strip could not be cleared at all
+        # except by walking the wizard again (@cookingeek set a separate PIN and kept the strip).
+        db_reader.mark_vehicle_configured(vin)
         command_client._session._reset()
         return Response(status_code=204, headers={"HX-Refresh": "true"})
     db_reader.set_secret("leapmotor_pin", pin)
@@ -4327,6 +4332,10 @@ async def capacity_settings(request: Request):
     # the two in sync; multi-car will target the selected vehicle.
     _nom = db_reader.get_setting("battery_capacity_nominal_kwh", "")
     db_reader.set_vehicle_capacity_current(kwh, float(_nom) if _nom else None)
+    # Somebody has now chosen this car's pack, which is the question the "never set up" strip asks.
+    # Before v3.14.1 only the wizard could answer it, so a car corrected properly from here went on
+    # being accused — @cookingeek, on the first install with two real cars.
+    db_reader.mark_vehicle_configured()
     return HTMLResponse(f'<span style="color:#22c55e">✓ {kwh:g} kWh</span>')
 
 
@@ -4636,8 +4645,29 @@ def _car_picture_cache_path() -> str:
 
 
 def _car_picture_pkg_path() -> str:
+    """The layer package of the SELECTED car. The cloud serves it per VIN, so the cache has to be
+    per VIN too: one `car_picture_pkg.zip` for the whole install meant two cars overwrote each
+    other's package on every switch, and the Overview showed whichever had been fetched last
+    (@cookingeek, the first install with two real cars). Falls back to the shared name when no car
+    is known yet, which is also every single-car install's old file — nothing re-downloads for
+    people with one Leapmotor."""
     db_path = os.environ.get("DB_PATH", "leapmotor_mate.db")
-    return os.path.join(os.path.dirname(os.path.abspath(db_path)), "car_picture_pkg.zip")
+    vin = _selected_vin_for_assets()
+    name = f"car_picture_pkg_{vin}.zip" if vin else "car_picture_pkg.zip"
+    return os.path.join(os.path.dirname(os.path.abspath(db_path)), name)
+
+
+def _selected_vin_for_assets() -> str:
+    """Lowercased VIN of the car in the picker, or "" — and "" also when there is only one car, so
+    a single-car install keeps using the files it already has on disk."""
+    try:
+        cars = db_reader.get_vehicles()
+        if len(cars) < 2:
+            return ""
+        v, _ = db_reader.get_vehicle()
+        return ((v or {}).get("vin") or "").strip().lower()
+    except Exception:
+        return ""
 
 
 # Composed images memoised by body-state signature so a 30s hero refresh on an unchanged state
@@ -4720,7 +4750,9 @@ async def car_picture(refresh: int = 0):
         return Response(status_code=404)
 
     status = db_reader.get_latest_status() or {}
-    sig = tuple(bool(status.get(k)) for k in (
+    # The VIN is part of the key, not decoration: two cars parked with everything shut share a body
+    # state, so a memo keyed on the state alone served the second car the first one's picture.
+    sig = (_selected_vin_for_assets(),) + tuple(bool(status.get(k)) for k in (
         "plug_connected", "charging", "trunk_open",
         "door_driver_open", "door_passenger_open", "door_rear_left_open", "door_rear_right_open",
         "window_fl_open", "window_rl_open"))

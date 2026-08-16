@@ -81,7 +81,12 @@
     {# Cache-bust the composed car image by the body state that affects it, so the browser re-fetches
        when (and only when) the picture actually changes — the htmx swap alone keeps the same <img>
        URL, which the browser would serve from cache (stale until a manual refresh). #}
-    {% set car_img_token = ([status.plug_connected, status.charging, status.trunk_open,
+    {# The car itself opens the token. Two cars parked with everything shut produce the same body
+       state, so without it the URL does not change when you switch — and the response asks the
+       browser to cache for five minutes, which is exactly how long you keep seeing the other car
+       (@cookingeek, two real cars). #}
+    {% set car_img_token = ([vehicle.id if vehicle else '',
+                             status.plug_connected, status.charging, status.trunk_open,
                              status.door_driver_open, status.door_passenger_open,
                              status.door_rear_left_open, status.door_rear_right_open,
                              status.window_fl_open, status.window_rl_open] | join('-')) if status else '' %}
