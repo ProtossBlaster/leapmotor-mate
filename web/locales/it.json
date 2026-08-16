@@ -279,6 +279,7 @@
     "nav_not_realtime": "disponibilità live non indicata (dati mappa OSM)",
     "nav_use_dest": "Imposta come destinazione",
     "charge_detect_section": "Rilevamento ricarica",
+    "charge_detect_too_high": "⚠ Sopra quello che l'auto assorbe: carica fino a {a} A, quindi una soglia più alta le nasconde — Mate ne registra un pezzo, o niente.",
     "charge_detect_label": "Corrente minima",
     "charge_detect_desc": "La corrente che l'auto sta assorbendo in quel momento — non quella nominale della presa. Sotto questa soglia un'auto attaccata è considerata ferma e non viene registrata nessuna sessione. Una presa domestica a 230 V dà circa 3-4 A, quindi una soglia più alta fa perdere del tutto le ricariche lente: alzala solo per togliere di mezzo letture fantasma.",
     "adv_section": "Avanzate",

@@ -279,6 +279,7 @@
     "nav_not_realtime": "actuele beschikbaarheid niet getoond (kaartgegevens van OSM)",
     "nav_use_dest": "Als bestemming instellen",
     "charge_detect_section": "Laaddetectie",
+    "charge_detect_too_high": "⚠ Boven wat deze auto trekt: hij laadt tot {a} A, dus een hogere drempel verbergt de laadbeurten — Mate legt er dan een deel van vast, of niets.",
     "charge_detect_label": "Minimale stroom",
     "charge_detect_desc": "De stroom die de auto op dit moment opneemt — niet waar het stopcontact op berekend is. Daaronder geldt een ingeplugde auto als stilstaand en wordt er geen sessie vastgelegd. Een gewoon 230 V-stopcontact levert ongeveer 3-4 A, dus een drempel daarboven laat langzame laadbeurten volledig verloren gaan: verhoog hem alleen om spookmetingen kwijt te raken.",
     "adv_section": "Geavanceerd",

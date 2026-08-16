@@ -470,6 +470,14 @@
                oninput="document.getElementById('cd-val').textContent=this.value"
                class="w-full accent-brand cursor-pointer">
         <div class="flex justify-between text-[10px] text-slate-600 mt-1"><span>0.5 A</span><span>16 A</span></div>
+        {# A floor above the current the car actually draws is the detector switched off, and it
+           does not read as "no charges" — it records half of one (#250 @riri19: 10.2 kWh by his own
+           wallbox counter, with no charge to account for them). Measured from the polls, which keep
+           reporting the current whatever this setting hides. #}
+        {% if charge_floor_peak %}
+        <div class="text-[11px] text-amber-400/90 mt-2">
+          {{ t('charge_detect_too_high').format(a=charge_floor_peak|dec(1)) }}</div>
+        {% endif %}
         <div id="cd-result" class="text-xs mt-2"></div>
       
         <div class="flex items-center justify-end mt-3">

@@ -279,6 +279,7 @@
     "nav_not_realtime": "Live-Verfügbarkeit nicht angezeigt (OSM-Kartendaten)",
     "nav_use_dest": "Als Ziel festlegen",
     "charge_detect_section": "Ladeerkennung",
+    "charge_detect_too_high": "⚠ Über dem, was dieses Auto zieht: Es lädt mit bis zu {a} A, ein höherer Schwellwert verbirgt seine Ladevorgänge — Mate zeichnet dann einen Teil auf, oder nichts.",
     "charge_detect_label": "Mindeststrom",
     "charge_detect_desc": "Der Strom, den das Auto gerade zieht — nicht der Nennstrom der Steckdose. Darunter gilt ein angestecktes Auto als untätig und es wird kein Ladevorgang erfasst. Eine 230-V-Haushaltssteckdose liefert etwa 3-4 A, eine höhere Schwelle verliert langsame Ladevorgänge also vollständig: nur anheben, um Geisterwerte loszuwerden.",
     "adv_section": "Erweitert",

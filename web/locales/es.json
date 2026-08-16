@@ -279,6 +279,7 @@
     "nav_not_realtime": "la disponibilidad en tiempo real no se muestra (datos del mapa de OSM)",
     "nav_use_dest": "Fijar como destino",
     "charge_detect_section": "Detección de carga",
+    "charge_detect_too_high": "⚠ Por encima de lo que consume este coche: carga hasta {a} A, así que un umbral más alto oculta sus cargas — Mate registra una parte, o nada.",
     "charge_detect_label": "Corriente mínima",
     "charge_detect_desc": "La corriente que el coche está tomando en este momento, no la que soporta el enchufe. Por debajo de esta cifra, un coche enchufado cuenta como parado y no se registra ninguna sesión. Un enchufe doméstico de 230 V entrega unos 3-4 A, así que un umbral por encima de eso hace desaparecer todas las cargas lentas: súbelo solo para quitarte de encima lecturas fantasma.",
     "adv_section": "Avanzado",

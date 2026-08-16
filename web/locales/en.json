@@ -279,6 +279,7 @@
     "nav_not_realtime": "live availability not shown (OSM map data)",
     "nav_use_dest": "Set as destination",
     "charge_detect_section": "Charge detection",
+    "charge_detect_too_high": "⚠ Above what this car draws: it charges at up to {a} A, so a higher floor hides its charges — Mate then records part of one, or none.",
     "charge_detect_label": "Minimum current",
     "charge_detect_desc": "The current the car is drawing right now — not the socket's rating. Below this a plugged-in car counts as idle and no session is logged. A domestic 230 V socket delivers around 3-4 A, so a threshold above that loses slow charges entirely: raise it only to shake off phantom readings.",
     "adv_section": "Advanced",

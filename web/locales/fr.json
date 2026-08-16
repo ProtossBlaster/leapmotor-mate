@@ -279,6 +279,7 @@
     "nav_not_realtime": "disponibilité en direct non indiquée (données OSM)",
     "nav_use_dest": "Définir comme destination",
     "charge_detect_section": "Détection de charge",
+    "charge_detect_too_high": "⚠ Au-dessus de ce que la voiture consomme : elle charge jusqu'à {a} A, donc un seuil plus haut les masque — Mate n'en enregistre qu'une partie, ou rien.",
     "charge_detect_label": "Courant minimal",
     "charge_detect_desc": "Le courant que la voiture appelle à cet instant — pas le calibre de la prise. En dessous, une voiture branchée est considérée à l'arrêt et aucune session n'est enregistrée. Une prise domestique 230 V donne environ 3-4 A : un seuil plus haut fait perdre entièrement les charges lentes, ne l'augmentez que pour écarter des valeurs fantômes.",
     "adv_section": "Avancé",

@@ -2221,6 +2221,9 @@ async def settings_page(request: Request):
         # A car still sitting on a default Mate has since disproved (the C10 RWD's 69.9, #246).
         # Offered, never applied: a capacity is the owner's to calibrate.
         superseded_pack=db_reader.superseded_pack_kwh(),
+        # The charge-detection floor set above what the car draws — the detector switched
+        # off by a slider, which shows up as half a charge rather than none (#250).
+        charge_floor_peak=db_reader.charge_threshold_too_high(),
         capacity_nominal=db_reader.get_setting("battery_capacity_nominal_kwh", ""),
         # Written by the poller when it hears another Mate on our own topic prefix (BetaTester #13).
         # Shown beside the prefix field, which is where the fix lives.

@@ -3869,6 +3869,45 @@ def get_merge_candidates(gap_min: int = TRIP_MERGE_GAP_DEFAULT, day=None) -> lis
     return out
 
 
+# A plugged-in car at rest reads a few tenths of an amp; anything at or below this is not a charge,
+# and taking it for one would warn every install on the 2 A default.
+_RESTING_CURRENT_A = 1.0
+
+
+def charge_threshold_too_high() -> "float | None":
+    """The highest charging current this car has ever shown, when the charge-detection floor is set
+    ABOVE it — i.e. when that setting has switched the detector off. None when it hasn't, or when
+    nothing has been measured yet.
+
+    #250 @riri19: his floor sat at 13.5 A and his car charges at home at 12.9–13.4 A. Over two days
+    the poller read "charging" in seven frames — the jitter that touched the floor — and his second
+    session opened at 93.5% where the first had ended at 80%: 13.5 points, 10.2 kWh by his own
+    wallbox counter, with no charge to account for them. A floor that high does not produce "no
+    charges", which anyone would notice. It produces HALF a charge.
+
+    Measured on `positions`, not on `charges`: the poller records the current on every poll whatever
+    it believes the state to be, so this reading survives exactly the setting that hides the
+    charges. Which is the point — a check that used the charges would go quiet at the same moment
+    the problem starts."""
+    try:
+        floor = float(get_setting("charge_detect_min_a", "2.0") or 2.0)
+    except (TypeError, ValueError):
+        return None
+    try:
+        row = _get().execute(
+            "SELECT MAX(ABS(charge_current_a)) AS peak FROM positions "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charge_current_a IS NOT NULL "
+            "AND ABS(charge_current_a) > ?",
+            (_current_vehicle_id(), _RESTING_CURRENT_A)).fetchone()
+    except sqlite3.Error:
+        return None
+    peak = (row or {})["peak"] if row else None
+    if peak is None:
+        return None                      # never seen a charge — nothing to compare against
+    peak = round(float(peak), 1)
+    return peak if floor > peak else None
+
+
 def get_merge_chains(gap_min: int = TRIP_MERGE_GAP_DEFAULT, day=None) -> list[list[dict]]:
     """The same proposals as get_merge_candidates, but as CHAINS: each trip once, with the
     connector to the next one on it. `[[{"trip": …, "link": {"b_id", "gap_min"} | None}, …], …]`.
