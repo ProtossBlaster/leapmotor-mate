@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.14.0 · **Language:** English
+> **Mate version:** v3.14.2 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -135,6 +135,22 @@ Mate.
   [Watchtower](https://containrrr.dev/watchtower/) can do it for you automatically.
 - **MateDesktop** — nothing to download: the app fetches Mate from the repository **every time it
   starts**, so closing and reopening it *is* the update.
+
+**What changed in v3.14.2 🆕**
+
+- **Trips you could join are drawn once.** The "mergeable" view proposed pairs, so a trip sitting
+  between two others appeared twice. A run of trips is now one block with a connector between each
+  neighbouring pair — the merge itself is unchanged.
+- **A stop inside a joined trip is marked on its chart**, shaded and labelled with its length, so it
+  no longer looks like the car losing signal.
+- **The note of a joined charge describes the whole session**, not just its first piece.
+- **The charge ETA and the "scheduled charge target"** now name what they really are: the target of
+  the car's charging PLAN, used only while that plan is switched on. The upper limit you drag in the
+  car's own app is not something the cloud reports.
+- **Settings warns when the charge-detection floor is above what your car actually draws.** A
+  threshold set too high does not record "no charges" — it records half of one.
+- **The diagnostics bundle downloads from a phone.** It was a page navigation, which a Home
+  Assistant webview drops silently; it is a normal download link now.
 
 ---
 

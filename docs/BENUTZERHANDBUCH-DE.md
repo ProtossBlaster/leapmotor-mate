@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.14.0 · **Sprache:** Deutsch
+> **Mate-Version:** v3.14.2 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -136,6 +136,23 @@ Schaltfläche: Was du drückst, hängt davon ab, wie du Mate betreibst.
   [Watchtower](https://containrrr.dev/watchtower/) kann das automatisch erledigen.
 - **MateDesktop** — nichts herunterzuladen: Die App holt Mate **bei jedem Start** aus dem Repository,
   Schließen und erneutes Öffnen *ist* also das Update.
+
+**Was sich in v3.14.2 ändert 🆕**
+
+- **Zusammenführbare Fahrten werden nur einmal gezeichnet.** Die Ansicht schlug Paare vor, also
+  erschien eine Fahrt zwischen zwei anderen doppelt. Eine Kette von Fahrten ist jetzt ein Block mit
+  einem Verbinder zwischen je zwei Nachbarn — die Zusammenführung selbst bleibt unverändert.
+- **Der Halt innerhalb einer zusammengeführten Fahrt ist im Diagramm markiert**, schattiert und mit
+  seiner Dauer beschriftet: Er sieht nicht mehr nach Signalverlust aus.
+- **Die Notiz eines zusammengeführten Ladevorgangs beschreibt die ganze Sitzung**, nicht nur das
+  erste Stück.
+- **Restzeit und „Ziel der geplanten Ladung"** heißen jetzt, was sie sind: das Ziel der LADEPLANUNG
+  des Autos, und nur solange diese eingeschaltet ist. Das obere Limit aus der Auto-App meldet die
+  Cloud nicht.
+- **Die Einstellungen warnen, wenn der Erkennungsschwellwert über dem Strom liegt, den das Auto
+  zieht.** Ein zu hoher Wert speichert nicht „keine Ladevorgänge" — er speichert den halben.
+- **Das Diagnosepaket lädt auch vom Telefon herunter.** Es war eine Seitennavigation, die ein Home-
+  Assistant-Webview stillschweigend verwirft; jetzt ist es ein normaler Download-Link.
 
 ---
 

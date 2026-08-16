@@ -3,6 +3,47 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.2] — 2026-08-16
+
+**Six reports from four owners, and one of them had been waiting three weeks.**
+
+### Trips and charges that were joined
+- **A run of joinable trips is drawn once** (#249, @riri19). The view proposed PAIRS, and pairs
+  overlap: a trip between two others was the second of one and the first of the next, so it was
+  drawn twice. On his own fortnight at the 90-minute stop he had chosen — 23 pairs, 46 cards for 34
+  trips. A chain is now one block with a connector between each neighbouring pair; the merge itself
+  is unchanged and still joins exactly two.
+- **A stop inside a joined trip is marked on its chart** (#159, @pdifeo), shaded and labelled with
+  its length. That blank stretch was indistinguishable from the car losing the cloud — and he was
+  twice told it was exactly that.
+- **The note of a joined charge describes the whole session** (#247, @Ng-EY), not its first piece.
+  The twin of the trip-note fix in v3.11.2, reported by the same person on the same issue.
+
+### What the charge figures are called
+- **The charge ETA no longer quotes a switched-off plan** (#252, @ghuaywen-ai). What Mate showed as
+  "the charge limit" is the target of the car's charging PLAN, and it was being used even with the
+  plan off: his car read "to 90%" while charging to 100%.
+- **That number is now named for what it is** — *scheduled charge target* — on the Charges page and
+  on the battery bar too, in all eight languages. The upper limit in the car's own app is not
+  something the cloud reports.
+
+### Settings that quietly switch things off
+- **Settings says when the charge-detection floor is above what the car actually draws** (#250,
+  @riri19). His sat at 13.5 A on a car charging at 12.9–13.4: over two days Mate read "charging" in
+  seven frames, and 10.2 kWh by his own wallbox counter went unrecorded. A floor that high does not
+  produce "no charges" — it produces half of one.
+
+### For range-extenders
+- **Refuelling in the middle of a drive no longer erases that drive's petrol** (beta #30, @pdifeo).
+  Litres = start − end goes negative on a refuel, and the trip came out as fully electric. It is now
+  unknown rather than zero, and says so.
+- **The BetaTester bundle carries the charges and the behaviour settings.** It had neither, so a
+  report about a charge — the first thing his note describes — could not be answered from it.
+
+### Elsewhere
+- **The diagnostics bundle downloads from a phone** (#252). It was a page navigation, which a Home
+  Assistant webview drops in silence.
+
 ## [3.14.1] — 2026-08-16
 
 **Three things the first install with two real cars found on day one** (#253, @cookingeek).

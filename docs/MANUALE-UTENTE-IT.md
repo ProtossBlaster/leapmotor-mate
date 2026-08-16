@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v3.14.0 · **Lingua:** Italiano
+> **Versione di Mate:** v3.14.2 · **Lingua:** Italiano
 > Questo manuale è pensato per chi *usa* Mate, non per chi lo sviluppa. Spiega come configurarlo
 > dall'inizio e cosa fa ogni pagina. Per i dettagli tecnici interni c'è `ARCHITECTURE.md`.
 
@@ -135,6 +135,22 @@ premere dipende da come fai girare Mate.
   [Watchtower](https://containrrr.dev/watchtower/) può farlo da solo.
 - **MateDesktop** — non c'è niente da scaricare: l'app prende Mate dal repository **a ogni avvio**,
   quindi chiuderla e riaprirla *è* l'aggiornamento.
+
+**Cosa cambia nella v3.14.2 🆕**
+
+- **I viaggi unibili si disegnano una volta sola.** La vista proponeva coppie, quindi un viaggio in
+  mezzo ad altri due compariva due volte. Adesso una serie di viaggi è un blocco unico con un gancio
+  fra ogni coppia vicina — la fusione in sé non cambia.
+- **La sosta dentro un viaggio unito è segnata sul grafico**, ombreggiata e con la sua durata: non
+  sembra più che l'auto abbia perso il segnale.
+- **La nota di una ricarica unita descrive tutta la sessione**, non solo il primo pezzo.
+- **Il tempo che manca e il «traguardo ricarica programmata»** dicono cosa sono davvero: il traguardo
+  della PROGRAMMAZIONE di ricarica, usato solo mentre quella programmazione è accesa. Il limite
+  massimo che sposti nell'app dell'auto il cloud non lo manda.
+- **Le Impostazioni avvisano se la soglia di rilevamento è più alta della corrente che l'auto
+  assorbe.** Una soglia troppo alta non registra «nessuna ricarica»: ne registra metà.
+- **Il pacchetto diagnostico si scarica anche dal telefono.** Era una navigazione di pagina, che il
+  webview di Home Assistant scarta in silenzio; adesso è un collegamento normale.
 
 ---
 

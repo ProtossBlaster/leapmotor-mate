@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v3.14.0 · **Idioma:** Español
+> **Versión de Mate:** v3.14.2 · **Idioma:** Español
 > Este manual está escrito para quien *usa* Mate, no para quien lo desarrolla. Explica cómo
 > configurarlo desde cero y qué hace cada página. Para los detalles técnicos internos está `ARCHITECTURE.md`.
 
@@ -144,6 +144,22 @@ que hay que pulsar depende de cómo ejecutes Mate.
   [Watchtower](https://containrrr.dev/watchtower/) puede hacerlo solo.
 - **MateDesktop** — nada que descargar: la aplicación obtiene Mate del repositorio **en cada
   arranque**, así que cerrarla y volver a abrirla *es* la actualización.
+
+**Qué cambia en la v3.14.2 🆕**
+
+- **Los viajes fusionables se dibujan una sola vez.** La vista proponía parejas, así que un viaje
+  situado entre otros dos aparecía dos veces. Ahora una serie de viajes es un único bloque con un
+  conector entre cada pareja vecina — la fusión en sí no cambia.
+- **La parada dentro de un viaje fusionado está marcada en su gráfico**, sombreada y con su
+  duración: ya no parece una pérdida de señal.
+- **La nota de una carga fusionada describe toda la sesión**, no solo su primer tramo.
+- **El tiempo restante y el «objetivo de la carga programada»** dicen lo que son realmente: el
+  objetivo de la PROGRAMACIÓN de carga, y solo mientras esa programación está activa. El límite
+  superior que ajustas en la app del coche la nube no lo envía.
+- **Los ajustes avisan si el umbral de detección supera la corriente que consume tu coche.** Un
+  umbral demasiado alto no registra «ninguna carga»: registra la mitad de una.
+- **El paquete de diagnóstico se descarga también desde el teléfono.** Era una navegación de página,
+  que el webview de Home Assistant descarta en silencio; ahora es un enlace de descarga normal.
 
 ---
 

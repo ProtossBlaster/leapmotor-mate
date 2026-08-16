@@ -84,3 +84,20 @@ def test_the_hero_says_a_hundred_when_the_plan_is_off(tmp_path, monkeypatch):
     body = asyncio.run(main.overview(_Req())).body.decode()
     assert "to 100%" in body, "the ETA still quotes the switched-off plan"
     assert "to 90%" not in body
+
+
+# ── the same number, the same name, everywhere ────────────────────────────────
+def test_no_screen_calls_the_plans_target_the_charge_limit():
+    """The Charges page shows and SETS this very number, and the battery bar marks it. Fixing the
+    hero and leaving those two calling it "the charge limit" means the reader meets the old wrong
+    word two clicks away — and there it can be changed, believing it moves the car's own limit.
+    → [[feedback-gate-a-feature-find-every-copy]]"""
+    import json
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parent.parent
+    for lang, wrong in (("en", "charge limit"), ("it", "limite di carica")):
+        tr = json.loads((root / "web" / "locales" / f"{lang}.json").read_text())["translations"]
+        assert wrong not in tr["charge_limit"].lower(), f"{lang}: {tr['charge_limit']!r}"
+        # …and the description has to say WHICH of the two settings this is, since the car has both.
+        assert any(w in tr["charge_limit_desc"].lower()
+                   for w in ("plan", "programma", "programmazione")), tr["charge_limit_desc"]

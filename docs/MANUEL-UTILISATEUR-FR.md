@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v3.14.0 · **Langue :** Français
+> **Version de Mate :** v3.14.2 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 
@@ -143,6 +143,22 @@ bouton : ce sur quoi tu appuies dépend de la façon dont tu fais tourner Mate.
   [Watchtower](https://containrrr.dev/watchtower/) peut s'en charger tout seul.
 - **MateDesktop** — rien à télécharger : l'application récupère Mate depuis le dépôt **à chaque
   démarrage**, donc la fermer et la rouvrir *est* la mise à jour.
+
+**Ce qui change dans la v3.14.2 🆕**
+
+- **Les trajets fusionnables sont dessinés une seule fois.** La vue proposait des paires, donc un
+  trajet situé entre deux autres apparaissait deux fois. Une série de trajets forme désormais un
+  seul bloc avec un connecteur entre chaque paire voisine — la fusion elle-même ne change pas.
+- **L'arrêt à l'intérieur d'un trajet fusionné est marqué sur son graphique**, ombré et annoté de sa
+  durée : il ne ressemble plus à une perte de signal.
+- **La note d'une recharge fusionnée décrit toute la session**, pas seulement son premier morceau.
+- **Le temps restant et l'« objectif de la recharge programmée »** disent ce qu'ils sont vraiment :
+  l'objectif de la PROGRAMMATION de recharge, utilisé seulement tant qu'elle est active. La limite
+  haute que tu règles dans l'application de la voiture, le cloud ne la transmet pas.
+- **Les réglages préviennent si le seuil de détection dépasse le courant que ta voiture appelle.** Un
+  seuil trop haut n'enregistre pas « aucune recharge » : il en enregistre la moitié.
+- **Le paquet de diagnostic se télécharge depuis un téléphone.** C'était une navigation de page, que
+  le webview de Home Assistant abandonne en silence ; c'est un lien de téléchargement normal.
 
 ---
 
