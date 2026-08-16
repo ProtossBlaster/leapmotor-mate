@@ -3869,6 +3869,45 @@ def get_merge_candidates(gap_min: int = TRIP_MERGE_GAP_DEFAULT, day=None) -> lis
     return out
 
 
+def get_merge_chains(gap_min: int = TRIP_MERGE_GAP_DEFAULT, day=None) -> list[list[dict]]:
+    """The same proposals as get_merge_candidates, but as CHAINS: each trip once, with the
+    connector to the next one on it. `[[{"trip": …, "link": {"b_id", "gap_min"} | None}, …], …]`.
+
+    Pairs were what the view drew, and pairs overlap: a trip between two others is the second of
+    one and the first of the next, so it was drawn twice. On @riri19's own fortnight (#249) at the
+    90-minute stop he had chosen: 23 pairs, **46 cards for 34 trips**, 12 of them repeated — and
+    his 14 August became ten cards under a heading reading "6 trips".
+
+    Nothing changes underneath: a merge is still between two adjacent trips, and each connector
+    carries exactly its own two ids. Chains keep the pairs' order (most recent first); inside a
+    chain the trips run in the order they were driven, which is the order the pair drew them in.
+    """
+    pairs = get_merge_candidates(gap_min, day=day)
+    if not pairs:
+        return []
+    # `pairs` is most-recent-first; walking it oldest-first makes the chains build forwards, and
+    # `next_of` says which trip follows which. A trip can start at most one chain and continue at
+    # most one, because the pairs come from adjacent trips in a single ordered pass.
+    ordered = list(reversed(pairs))
+    next_of = {p["a"]["id"]: p for p in ordered}
+    continues = {p["b"]["id"] for p in ordered}
+    chains = []
+    for p in ordered:
+        if p["a"]["id"] in continues:
+            continue                                   # not a head — some other pair leads here
+        chain, cur = [], p
+        while cur is not None:
+            chain.append({"trip": cur["a"],
+                          "link": {"b_id": cur["b"]["id"], "gap_min": cur["gap_min"]}})
+            nxt = next_of.get(cur["b"]["id"])
+            if nxt is None:
+                chain.append({"trip": cur["b"], "link": None})
+            cur = nxt
+        chains.append(chain)
+    chains.reverse()                                   # back to most-recent-first
+    return chains
+
+
 def merge_trips(parent_id: int, child_id: int, gap_min: int = TRIP_MERGE_GAP_DEFAULT) -> dict:
     """Merge child into parent (the earlier of the two becomes the parent). Re-validates the
     eligibility server-side. Reversible: only sets merged_into_id, nothing is overwritten."""

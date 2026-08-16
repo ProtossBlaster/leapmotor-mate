@@ -682,7 +682,8 @@ async def trips_calendar_day(request: Request, year: int, month: int, day: int,
         # The drawer builds its own 🔗 / slider URLs, so it needs the day back as three numbers.
         "year": year, "month": month, "day": day,
         "merge_mode": bool(merge), "gap": gap,
-        "candidates": db_reader.get_merge_candidates(gap, day=d) if merge else [],
+        # Chains, not pairs: pairs overlap on the trip between them and drew it twice (#249).
+        "candidates": db_reader.get_merge_chains(gap, day=d) if merge else [],
         "merge_gap_min": db_reader.TRIP_MERGE_GAP_MIN, "merge_gap_max": db_reader.TRIP_MERGE_GAP_MAX,
     })
 

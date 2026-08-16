@@ -78,21 +78,27 @@
 
 {% if candidates %}
 <div class="space-y-4">
-  {% for pair in candidates %}
-  {# The same card the all-history view used, opening the same #merge-modal — that modal is defined
-     once in trips.html, OUTSIDE this swapped area, so it survives every drawer swap. #}
+  {# One block per CHAIN, every trip once. Pairs overlap — a trip between two others is the second of
+     one pair and the first of the next — so drawing pairs drew those trips twice: #249 @riri19 saw
+     his six trips of 14 August as ten cards under a heading that said six. The merge itself is
+     unchanged and still pairwise: every connector carries its own two ids, and opens the same
+     #merge-modal, which is defined once in trips.html OUTSIDE this swapped area. #}
+  {% for chain in candidates %}
   <div class="rounded-xl border border-yellow-500/20 bg-yellow-400/5 p-2">
-    {% with trip = pair.a %}{% include "partials/trip_row.html" %}{% endwith %}
+    {% for step in chain %}
+    {% with trip = step.trip %}{% include "partials/trip_row.html" %}{% endwith %}
+    {% if step.link %}
     <div class="flex justify-center my-1">
       <button type="button"
-              hx-get="api/trips/merge-preview?a={{ pair.a.id }}&b={{ pair.b.id }}&gap={{ merge_gap_max }}"
+              hx-get="api/trips/merge-preview?a={{ step.trip.id }}&b={{ step.link.b_id }}&gap={{ merge_gap_max }}"
               hx-target="#merge-modal-body" hx-swap="innerHTML"
               onclick="document.getElementById('merge-modal').style.display='flex'"
               class="inline-flex items-center gap-1.5 rounded-md border border-yellow-500/50 bg-yellow-400/10 text-yellow-400 px-2.5 py-1 text-[11px] font-semibold hover:bg-yellow-400/15">
-        🔗 {{ t('merge_join') }} <span class="font-normal opacity-70">· {{ t('merge_stop') }} {{ pair.gap_min }}′</span>
+        🔗 {{ t('merge_join') }} <span class="font-normal opacity-70">· {{ t('merge_stop') }} {{ step.link.gap_min }}′</span>
       </button>
     </div>
-    {% with trip = pair.b %}{% include "partials/trip_row.html" %}{% endwith %}
+    {% endif %}
+    {% endfor %}
   </div>
   {% endfor %}
 </div>
