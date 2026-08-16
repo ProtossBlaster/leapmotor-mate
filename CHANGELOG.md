@@ -3,6 +3,29 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.1] — 2026-08-16
+
+**Three things the first install with two real cars found on day one** (#253, @cookingeek).
+
+- **The "never set up" strip can be turned off by fixing the car.** Choosing that car's battery
+  pack from Settings answers it, and so does giving that car its own PIN — which is the only way
+  out for a car whose model default happens to be right and has nothing to change in the capacity
+  box. Until now the mark was written in exactly one place in all of Mate, the setup wizard, so a
+  car corrected properly went on being accused. Both stamp ONE car: an install-wide PIN answers for
+  nobody, or the strip would vanish for a car nobody has looked at.
+- **A phone can switch car again.** The picker was not hidden below 768 px — it was never drawn:
+  it lives in the sidebar's desktop-only block, so a two-car install was stuck on whichever car was
+  selected. It is now also in the ☰ drawer, under the heading. With one car nothing appears
+  anywhere, exactly as before.
+- **The car's picture follows the car you picked**, in the three places that each showed the wrong
+  one on their own: the cached layer package (one file for the whole install), the composed-image
+  memo (keyed on the body state, which two parked cars share) and the image URL's token (same
+  state, so the browser kept the previous car for the five minutes it caches). Single-car installs
+  keep their existing file and re-download nothing.
+
+Also: the user manual now says **how Mate updates** — from the add-on, from Docker and from
+MateDesktop — and explains the ↑ badge beside the version, in all five languages.
+
 ## [3.14.0] — 2026-08-14
 
 **A car nobody was ever asked about now says so, and three figures stop counting the hours Mate was

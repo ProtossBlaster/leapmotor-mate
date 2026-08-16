@@ -234,7 +234,7 @@ for the ones arriving from Home Assistant. Asked for by **@alextchao** (#225).
 **If two Leapmotors share your account 🆕** — a **car picker** appears in the header, next to the
 model badge. It is there only from the second car onwards: with one Leapmotor nothing changes at
 all. Pick a car and everything follows it — the Overview, Statistics, trips, charges, the monthly
-report, the commands that car allows and its Home Assistant entities. Your choice is remembered.
+report, the commands that car allows and its Home Assistant entities. Your choice is remembered. On a phone the picker is inside the ☰ menu, under the heading.
 
 Settings stay shared, because they rarely differ under one roof: prices, currency, time zone, home
 location. What belongs to the car stays with the car — its battery capacity, its **operation PIN**, its **A Better Route Planner token**,

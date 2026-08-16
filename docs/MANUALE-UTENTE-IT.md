@@ -233,7 +233,7 @@ che arrivano da Home Assistant. Domanda di **@alextchao** (#225).
 **Se due Leapmotor condividono il tuo account 🆕** — in testata compare un **selettore auto**,
 accanto al badge del modello. C'è solo dalla seconda auto in poi: con una Leapmotor non cambia
 assolutamente nulla. Scegli un'auto e tutto la segue — Panoramica, Statistiche, viaggi, ricariche,
-report mensile, i comandi che quell'auto permette e le sue entità Home Assistant. La scelta resta.
+report mensile, i comandi che quell'auto permette e le sue entità Home Assistant. La scelta resta. Sul telefono il selettore è dentro il menu ☰, sotto l'intestazione.
 
 Le impostazioni restano condivise, perché sotto lo stesso tetto raramente cambiano: prezzi, valuta,
 fuso orario, posizione di casa. Ciò che è dell'auto resta all'auto — la capacità della batteria, il

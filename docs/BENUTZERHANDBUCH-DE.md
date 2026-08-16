@@ -236,7 +236,7 @@ als auch für die aus Home Assistant. Gewünscht von **@alextchao** (#225).
 neben dem Modell-Abzeichen. Sie ist erst ab dem zweiten Auto da: mit einem Leapmotor ändert sich gar
 nichts. Wähle ein Auto, und alles folgt ihm — Übersicht, Statistiken, Fahrten, Ladevorgänge,
 Monatsbericht, die Befehle, die dieses Auto zulässt, und seine Home-Assistant-Entitäten. Deine Wahl
-bleibt gespeichert.
+bleibt gespeichert. Auf dem Telefon steht die Auswahl im ☰-Menü, unter der Überschrift.
 
 Die Einstellungen bleiben gemeinsam, weil sie unter einem Dach selten abweichen: Preise, Währung,
 Zeitzone, Zuhause-Position. Was dem Auto gehört, bleibt beim Auto — seine Akkukapazität, seine

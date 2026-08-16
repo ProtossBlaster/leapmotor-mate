@@ -245,7 +245,7 @@ comandos de la página como para los que llegan desde Home Assistant. Lo pidió 
 de la insignia del modelo. Solo está a partir del segundo coche: con un solo Leapmotor no cambia
 absolutamente nada. Eliges un coche y todo lo sigue — el Resumen, las Estadísticas, los trayectos, las
 cargas, el informe mensual, los comandos que ese coche permite y sus entidades de Home Assistant. Tu
-elección se recuerda.
+elección se recuerda. En el teléfono el selector está dentro del menú ☰, bajo el encabezado.
 
 Los ajustes siguen siendo comunes, porque bajo un mismo techo rara vez difieren: precios, moneda, zona
 horaria, ubicación de casa. Lo que es del coche se queda con el coche — su capacidad de batería, su

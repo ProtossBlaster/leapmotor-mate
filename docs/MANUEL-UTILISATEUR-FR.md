@@ -245,7 +245,7 @@ les commandes depuis la page que pour celles venant de Home Assistant. Demandé 
 à côté du badge du modèle. Il n'est là qu'à partir de la deuxième voiture : avec une seule Leapmotor,
 rien ne change. Choisissez une voiture et tout la suit — l'Aperçu, les Statistiques, les trajets, les
 recharges, le rapport mensuel, les commandes que cette voiture autorise et ses entités Home
-Assistant. Votre choix est mémorisé.
+Assistant. Votre choix est mémorisé. Sur un téléphone, le sélecteur se trouve dans le menu ☰, sous l'en-tête.
 
 Les réglages restent partagés, car ils diffèrent rarement sous un même toit : tarifs, devise, fuseau
 horaire, position du domicile. Ce qui appartient à la voiture reste à la voiture — la capacité de sa
