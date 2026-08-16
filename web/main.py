@@ -1508,8 +1508,35 @@ async def research_export():
             cp = json.dumps(cloud, indent=2, ensure_ascii=False)
             cp = _re.sub(r"LFZ[A-Z0-9]{12,}", "<VIN>", cp)  # defensive: responses carry no VIN, but scrub anyway
             z.writestr("cloud_probes.json", cp)
+        # The charges, and what the behaviour settings are set to — both lifted from the
+        # diagnostics bundle, which already writes them redacted (no coordinates, no location name,
+        # no free text) and has a test holding that promise.
+        #
+        # They were missing and it cost us twice. @pdifeo's beta #30 opens with "Ricarica e poi
+        # ritorno alla base" and his bundle carried 96,987 signal rows, 98 trips and not one charge
+        # — the half of the day he wrote about first. And beta #29 (@michapr) was ENTIRELY about a
+        # charge recorded as two: answering it meant asking him for a second, different file.
+        # The settings for the same reason a day later: #250 turned out to be ten lines of them (a
+        # 13.5 A detection floor on a car charging at 13), and without them we would have hunted a
+        # defect that was not there.
+        #
+        # Cheap by any measure: 20-40 charge rows over a fortnight, against a raw-signal log that is
+        # 98% of the payload.
+        try:
+            z.writestr("charges.txt", diagnostics._charges_section())
+        except Exception:  # noqa: BLE001 — a bundle must never fail on one section
+            pass
+        try:
+            z.writestr("settings.txt", diagnostics._advanced_settings_section())
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            _charge_count = len(db_reader.get_charges(limit=1_000_000))
+        except Exception:  # noqa: BLE001
+            _charge_count = None
         z.writestr("meta.json", json.dumps({
             "mate_version": MATE_VERSION,
+            "charges": _charge_count,
             "car_type": (db_reader.get_vehicle()[0] or {}).get("car_type"),
             "is_reev": "1" if db_reader.is_reev_car() else "0",
             "signal_rows": len(rows), "logbook_notes": len(logbook),
