@@ -196,7 +196,35 @@ class LeapmotorSession:
     def __init__(self):
         self._api: LeapmotorApiClient | None = None
         self._vehicle = None
+        self._vehicles: list = []
         self._lock = threading.Lock()
+
+    def _target(self):
+        """The car the picker is on — resolved on EVERY use, never frozen at login.
+
+        The session used to bind `vehicles[0]` when it authenticated and keep it for the life of the
+        token, so on a two-car account every COMMAND went to whichever car the cloud happened to
+        list first, whatever the interface was showing: lock and unlock, trunk, windows, climate,
+        charge start and stop — with that car's PIN. @cookingeek, the first install with two real
+        Leapmotors, saw the visible half of it (#253): his C10's page carrying his T03's picture.
+
+        Resolved per use because the picker moves under a live session: re-resolving only on login
+        would keep firing at the old car for as long as the token lasts. Falls back to the first car
+        when nothing is selected (every single-car install) or when the selection names a car this
+        account no longer has — a stale setting must never leave a command with no target."""
+        cars = self._vehicles or ([self._vehicle] if self._vehicle else [])
+        if not cars:
+            return None
+        try:
+            import db_reader as _dr
+            want = (_dr.get_setting(_dr.ACTIVE_VEHICLE_SETTING, "") or "").strip().lower()
+        except Exception:      # noqa: BLE001 — a command must not die on a settings read
+            want = ""
+        if want:
+            for v in cars:
+                if (getattr(v, "vin", "") or "").lower() == want:
+                    return v
+        return cars[0]
 
     def _use_pin_of(self, vin):
         """Authorise this command with the PIN of the car it is going to (#186).
@@ -230,8 +258,10 @@ class LeapmotorSession:
         vehicles = self._api.get_vehicle_list()
         if not vehicles:
             raise RuntimeError("No vehicle found on this account")
-        self._vehicle = vehicles[0]
-        log.info("Session started — VIN %s  model %s", self._vehicle.vin, self._vehicle.car_type)
+        self._vehicles = list(vehicles)
+        self._vehicle = vehicles[0]        # the fallback; _target() picks per command
+        log.info("Session started — %d car(s), first VIN %s model %s",
+                 len(vehicles), vehicles[0].vin, vehicles[0].car_type)
 
     def _is_auth_error(self, err: str) -> bool:
         low = err.lower()
@@ -277,7 +307,7 @@ class LeapmotorSession:
             import db_reader as _dr
             _dr.log_command(action, _classify_outcome(ok, msg),
                             int((time.monotonic() - t0) * 1000),
-                            vin=getattr(getattr(self, "_vehicle", None), "vin", "") or "")
+                            vin=getattr(self._target(), "vin", "") or "")
         except Exception:
             pass
         return ok, msg
@@ -288,8 +318,11 @@ class LeapmotorSession:
             for attempt in range(3):
                 try:
                     self._connect()
-                    self._use_pin_of(self._vehicle.vin)
-                    action_fn(self._api, self._vehicle.vin)
+                    target = self._target()
+                    if target is None:
+                        return False, "no vehicle"
+                    self._use_pin_of(target.vin)
+                    action_fn(self._api, target.vin)
                     return True, "OK"
                 except Exception as e:
                     err = str(e)
@@ -344,7 +377,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    raw = self._api.get_vehicle_raw_status(self._vehicle)
+                    raw = self._api.get_vehicle_raw_status(self._target())
                     data = (raw or {}).get("data") or {}
                     # C10/B10: numeric `signal` dict. T03/EU: named fields at top level.
                     return data.get("signal") or _named_fields_to_signal(data)
@@ -359,7 +392,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    raw = self._api.get_vehicle_raw_status(self._vehicle)
+                    raw = self._api.get_vehicle_raw_status(self._target())
                     plan = ((raw.get("data") or {}).get("config") or {}).get("3") or {}
                     return {
                         "charge_limit_percent": plan.get("percent"),
@@ -379,7 +412,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    return self._api.get_charge_schedule(self._vehicle.vin)
+                    return self._api.get_charge_schedule(self._target().vin)
                 except Exception as e:
                     log.warning("Charge schedule fetch (attempt %d): %s", attempt + 1, e)
                     self._reset()
@@ -400,7 +433,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    return self._api.get_climate_schedule(self._vehicle.vin)
+                    return self._api.get_climate_schedule(self._target().vin)
                 except Exception as e:
                     log.warning("Climate schedule fetch (attempt %d): %s", attempt + 1, e)
                     self._reset()
@@ -418,7 +451,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    return self._api.get_prepare_car_schedule(self._vehicle.vin)
+                    return self._api.get_prepare_car_schedule(self._target().vin)
                 except Exception as e:
                     log.warning("Prepare-car schedule fetch (attempt %d): %s", attempt + 1, e)
                     self._reset()
@@ -433,7 +466,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    meta = self._api.get_car_picture(self._vehicle)
+                    meta = self._api.get_car_picture(self._target())
                     key = (meta.get("data") or {}).get("key") if isinstance(meta, dict) else None
                     if not key:
                         return None
@@ -454,7 +487,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    meta = self._api.get_car_picture(self._vehicle)
+                    meta = self._api.get_car_picture(self._target())
                     key = (meta.get("data") or {}).get("key") if isinstance(meta, dict) else None
                     if not key:
                         return None
@@ -486,7 +519,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    b = self._api.get_consumption_last_week_breakdown(self._vehicle)
+                    b = self._api.get_consumption_last_week_breakdown(self._target())
                     drv, ac, oth = float(b.driver_ec or 0), float(b.ac_ec or 0), float(b.other_ec or 0)
                     total = drv + ac + oth
                     pct = (lambda v: round(v / total * 100, 1)) if total > 0 else (lambda v: 0)
@@ -508,7 +541,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    r = self._api.get_consumption_weekly_rank(self._vehicle)
+                    r = self._api.get_consumption_weekly_rank(self._target())
                     weeks = [{"start": w.week_start, "end": w.week_end,
                               "ec": round(float(w.hundred_km_ec or 0), 1)}
                              for w in (r.weekly or [])]
@@ -542,7 +575,7 @@ class LeapmotorSession:
             for attempt in range(3):
                 try:
                     self._connect()
-                    api, vin = self._api, self._vehicle.vin
+                    api, vin = self._api, self._target().vin
                     headers = build_consumption_last_week_headers(
                         sign_key=api.sign_key, device_id=api.device_id, carvin=vin,
                         begintime=str(begin_ts), endtime=str(end_ts), language=api.language,
@@ -596,7 +629,7 @@ class LeapmotorSession:
         import json as _json
         from urllib.parse import quote
         from leapmotor_api.crypto import build_consumption_last_week_headers
-        api, vin = self._api, self._vehicle.vin
+        api, vin = self._api, self._target().vin
         headers = build_consumption_last_week_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin,
             begintime=str(begin_ts), endtime=str(end_ts), language=api.language).to_dict()
@@ -612,7 +645,7 @@ class LeapmotorSession:
         import json as _json
         from urllib.parse import quote
         from leapmotor_api.crypto import build_consumption_weekly_rank_headers
-        api, vin = self._api, self._vehicle.vin
+        api, vin = self._api, self._target().vin
         headers = build_consumption_weekly_rank_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin, language=api.language).to_dict()
         headers.update(api._auth_headers())
@@ -630,7 +663,7 @@ class LeapmotorSession:
         import json as _json
         from urllib.parse import quote
         from leapmotor_api.crypto import build_consumption_weekly_rank_headers
-        api, vin = self._api, self._vehicle.vin
+        api, vin = self._api, self._target().vin
         headers = build_consumption_weekly_rank_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin, language=api.language).to_dict()
         headers.update(api._auth_headers())
@@ -654,7 +687,7 @@ class LeapmotorSession:
         import json as _json
         from urllib.parse import quote
         from leapmotor_api.crypto import build_signed_headers
-        api, vin = self._api, self._vehicle.vin
+        api, vin = self._api, self._target().vin
         headers = build_signed_headers(
             sign_key=api.sign_key, device_id=api.device_id, vin=vin, language=api.language,
             body_params={"begintime": str(begin_ms), "endtime": str(end_ms)}).to_dict()
@@ -720,7 +753,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    api, vin = self._api, self._vehicle.vin
+                    api, vin = self._api, self._target().vin
                     now_ms = int(_time.time() * 1000); b_ms = now_ms - 7 * 86400 * 1000
                     h = build_signed_headers(
                         sign_key=api.sign_key, device_id=api.device_id, vin=vin, language=api.language,
