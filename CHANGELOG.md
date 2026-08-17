@@ -3,6 +3,26 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.3] — 2026-08-17
+
+**With two cars, a command reaches the car you picked** (#253, @cookingeek).
+
+The session that talks to the cloud bound one vehicle when it logged in — the first the account
+lists — and the picker never touched it. Every read on the page was scoped to the selected car;
+every call to the cloud went to that first one. Lock and unlock, trunk, windows, climate, charge
+start and stop, unlock-charger — carrying that car's PIN. Pick the second car, press Unlock, and the
+first one opens.
+
+Seventeen call sites took their car from the login. Yesterday's v3.14.1 fixed three of them — the
+picture cache, the compose memo, the image token — and left the source, which is why the wrong car's
+picture came straight back. The frozen car also reached the fresh-signal dump behind Diagnostics and
+the bundle, the charge / climate / prepare-car schedules, and the whole consumption family (energy
+breakdown, weekly rank, cumulative summary, and the four raw probes in the BetaTester bundle) —
+which is almost certainly the "live stats not switching" half of the report.
+
+The car is now resolved on every use, never frozen: the picker moves under a live session. With one
+car, or with a selection naming a car the account no longer has, nothing changes.
+
 ## [3.14.2] — 2026-08-16
 
 **Six reports from four owners, and one of them had been waiting three weeks.**

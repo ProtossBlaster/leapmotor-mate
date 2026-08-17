@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.14.2 · **Language:** English
+> **Mate version:** v3.14.3 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -151,6 +151,8 @@ Mate.
   threshold set too high does not record "no charges" — it records half of one.
 - **The diagnostics bundle downloads from a phone.** It was a page navigation, which a Home
   Assistant webview drops silently; it is a normal download link now.
+
+**In v3.14.3 🆕** — with two cars, a **command now reaches the car you picked**. Until this release the session that talks to the cloud stayed on whichever car the account listed first, so lock, trunk, windows, climate and the charge commands went to that one whatever the picker said — and so did the car's picture and the cloud consumption figures. One car: nothing changes.
 
 ---
 

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v3.14.2 · **Idioma:** Español
+> **Versión de Mate:** v3.14.3 · **Idioma:** Español
 > Este manual está escrito para quien *usa* Mate, no para quien lo desarrolla. Explica cómo
 > configurarlo desde cero y qué hace cada página. Para los detalles técnicos internos está `ARCHITECTURE.md`.
 
@@ -160,6 +160,8 @@ que hay que pulsar depende de cómo ejecutes Mate.
   umbral demasiado alto no registra «ninguna carga»: registra la mitad de una.
 - **El paquete de diagnóstico se descarga también desde el teléfono.** Era una navegación de página,
   que el webview de Home Assistant descarta en silencio; ahora es un enlace de descarga normal.
+
+**En la v3.14.3 🆕** — con dos coches, un **comando llega al coche que has elegido**. Hasta esta versión la sesión que habla con la nube se quedaba en el primer coche que lista la cuenta: cierre, maletero, ventanillas, clima y los comandos de carga iban a ese, dijera lo que dijera el selector — y lo mismo la foto del coche y los consumos tomados de la nube. Con un solo coche no cambia nada.
 
 ---
 

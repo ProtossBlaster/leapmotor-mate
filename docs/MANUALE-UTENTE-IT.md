@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v3.14.2 · **Lingua:** Italiano
+> **Versione di Mate:** v3.14.3 · **Lingua:** Italiano
 > Questo manuale è pensato per chi *usa* Mate, non per chi lo sviluppa. Spiega come configurarlo
 > dall'inizio e cosa fa ogni pagina. Per i dettagli tecnici interni c'è `ARCHITECTURE.md`.
 
@@ -151,6 +151,8 @@ premere dipende da come fai girare Mate.
   assorbe.** Una soglia troppo alta non registra «nessuna ricarica»: ne registra metà.
 - **Il pacchetto diagnostico si scarica anche dal telefono.** Era una navigazione di pagina, che il
   webview di Home Assistant scarta in silenzio; adesso è un collegamento normale.
+
+**Nella v3.14.3 🆕** — con due auto, un **comando arriva all'auto che hai scelto**. Fino a questa versione la sessione che parla col cloud restava sulla prima auto elencata dall'account, quindi chiusura, bagagliaio, finestrini, clima e i comandi di ricarica andavano a quella qualunque cosa dicesse il selettore — e così la foto dell'auto e i consumi presi dal cloud. Con una macchina sola non cambia niente.
 
 ---
 
