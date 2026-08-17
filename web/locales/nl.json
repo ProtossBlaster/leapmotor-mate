@@ -54,6 +54,7 @@
     "reev_elec_paid": "kWh betaald aan het stopcontact",
     "reev_elec_from_generator": "kWh van de generator (betaald in liters)",
     "reev_elec_source_note": "Elektrisch = de energie die de ACCU HEEFT VERLATEN, gemeten door de auto (getEC). Het is niet het totale verbruik van de motor: wat de generator rechtstreeks naar de wielen stuurt, gaat niet door het accupakket en telt hier dus niet mee.",
+    "reev_elec_battery_only": "alleen accu",
     "reev_elec_7d": "Elektrisch — laatste 7 dagen",
     "reev_elec_driving": "rijden",
     "reev_elec_7d_note": "Gemeten door de auto (getEC): rijden + klimaat + overig — de kWh-tegenhanger van de liters hierboven.",

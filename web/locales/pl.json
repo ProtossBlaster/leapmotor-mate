@@ -54,6 +54,7 @@
     "reev_elec_paid": "kWh opłacone w gniazdku",
     "reev_elec_from_generator": "kWh z generatora (opłacone w litrach)",
     "reev_elec_source_note": "Energia = to, co WYSZŁO Z AKUMULATORA, zmierzone przez samochód (getEC). To nie jest całkowite zużycie silnika: to, co generator wysyła prosto do kół, nie przechodzi przez pakiet i nie jest tu liczone.",
+    "reev_elec_battery_only": "tylko z baterii",
     "reev_elec_7d": "Energia — ostatnie 7 dni",
     "reev_elec_driving": "jazda",
     "reev_elec_7d_note": "Zmierzone przez samochód (getEC): jazda + klimatyzacja + pozostałe — odpowiednik w kWh dla litrów powyżej.",

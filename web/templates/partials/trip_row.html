@@ -61,6 +61,17 @@
        invisible until you opened the trip — @michapr, beta #11. Same figures as the detail page. #}
     {% if trip.reev_elec_kwh_100km is not none %}
     <span class="block mt-0.5 text-blue-400 text-[11px] font-semibold">⚡ {{ trip.reev_elec_kwh_100km | nice }} kWh/100km</span>
+    {# What that number IS, on the row itself (@gm27271, beta #31). It is the energy that left the
+       PACK over ALL the kilometres: what the generator sends straight to the motor never passes
+       through the battery, so a long engine-on trip reads impossibly good — 645 km on 20 kWh, which
+       a C10 cannot do — and the list gave no way to know that. The detail page has said so since
+       v3.2.0; meeting the number first and the explanation one click later is how a correct figure
+       gets read as the car's electric consumption.
+       VISIBLE, not a tooltip: a title does not exist on a phone. Short because this column is 84px
+       — a test holds the label under 20 characters in every language, and keeps the full sentence
+       reachable in the title for a mouse. #}
+    <span class="block text-slate-500 text-[10px] leading-tight"
+          title="{{ t('reev_elec_source_note') }}">{{ t('reev_elec_battery_only') }}</span>
     {% else %}
     {# A dash, not nothing. A range-extender always draws from the pack to move, so a row carrying
        petrol alone reads as a car that ran on fuel only — which never happens. What is missing is

@@ -54,6 +54,7 @@
     "reev_elec_paid": "kWh pagati alla presa",
     "reev_elec_from_generator": "kWh dal generatore (pagati in litri)",
     "reev_elec_source_note": "Elettrico = l'energia USCITA DALLA BATTERIA, misurata dall'auto (getEC). Non è il consumo totale del motore: ciò che il generatore manda direttamente alle ruote non passa dal pacco, quindi qui non compare.",
+    "reev_elec_battery_only": "solo batteria",
     "reev_elec_7d": "Elettrico — ultimi 7 giorni",
     "reev_elec_driving": "guida",
     "reev_elec_7d_note": "Misurato dall'auto (getEC): guida + clima + altro — la controparte in kWh dei litri qui sopra.",

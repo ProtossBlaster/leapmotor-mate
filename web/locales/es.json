@@ -54,6 +54,7 @@
     "reev_elec_paid": "kWh pagados en el enchufe",
     "reev_elec_from_generator": "kWh del generador (pagados en litros)",
     "reev_elec_source_note": "Eléctrico = la energía que SALIÓ DE LA BATERÍA, tal como la midió el coche (getEC). No es el consumo total del motor: lo que el generador envía directamente a las ruedas no pasa por la batería, así que aquí no se cuenta.",
+    "reev_elec_battery_only": "solo batería",
     "reev_elec_7d": "Eléctrico — últimos 7 días",
     "reev_elec_driving": "conducción",
     "reev_elec_7d_note": "Medido por el coche (getEC): conducción + climatización + otros — la contrapartida en kWh de los litros de arriba.",

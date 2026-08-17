@@ -54,6 +54,7 @@
     "reev_elec_paid": "kWh an der Steckdose bezahlt",
     "reev_elec_from_generator": "kWh vom Generator (in Litern bezahlt)",
     "reev_elec_source_note": "Strom = die Energie, die den AKKU VERLASSEN hat, vom Fahrzeug gemessen (getEC). Das ist nicht der Gesamtverbrauch des Motors: Was der Generator direkt an die Räder liefert, läuft nicht über den Akku und wird hier nicht mitgezählt.",
+    "reev_elec_battery_only": "nur Batterie",
     "reev_elec_7d": "Strom — letzte 7 Tage",
     "reev_elec_driving": "Fahren",
     "reev_elec_7d_note": "Vom Fahrzeug gemessen (getEC): Fahren + Klima + Sonstiges — das kWh-Gegenstück zu den Litern oben.",
