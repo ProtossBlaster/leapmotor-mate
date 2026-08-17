@@ -21,6 +21,7 @@ class _FakeSession:
     def execute(self, fn):
         fn(self.api, "VIN")
         return True, "ok"
+    def _target(self): return None      # no model here — these tests are model-agnostic
 
 
 def _stub(monkeypatch, status):

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.14.3 · **Sprache:** Deutsch
+> **Mate-Version:** v3.14.4 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -154,7 +154,7 @@ Schaltfläche: Was du drückst, hängt davon ab, wie du Mate betreibst.
 - **Das Diagnosepaket lädt auch vom Telefon herunter.** Es war eine Seitennavigation, die ein Home-
   Assistant-Webview stillschweigend verwirft; jetzt ist es ein normaler Download-Link.
 
-**In v3.14.3 🆕** — mit zwei Autos erreicht ein **Befehl das Auto, das du gewählt hast**. Bis zu dieser Version blieb die Sitzung zur Cloud auf dem zuerst gelisteten Fahrzeug: Verriegeln, Kofferraum, Fenster, Klima und die Ladebefehle gingen dorthin, egal was die Auswahl sagte — ebenso das Fahrzeugbild und die Verbrauchswerte aus der Cloud. Bei einem Auto ändert sich nichts.
+**In v3.14.3–3.14.4 🆕** — mit zwei Autos erreicht ein **Befehl das Auto, das du gewählt hast, und ist für dessen Modell gebaut**. Bis zu diesen Versionen blieb die Sitzung zur Cloud auf dem zuerst gelisteten Fahrzeug: Verriegeln, Kofferraum, Fenster, Klima und die Ladebefehle gingen dorthin, egal was die Auswahl sagte — ebenso das Fahrzeugbild und die Verbrauchswerte aus der Cloud. Auch das Modell wurde von diesem Auto gelesen: bei einem Konto mit zwei **verschiedenen** Modellen wurden Fensterstellung, Klima und A/C-Aus nach den Regeln des falschen Autos gebaut. Bei einem Auto, oder bei zwei gleichen Modellen, ändert sich nichts.
 
 ---
 

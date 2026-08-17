@@ -1341,7 +1341,15 @@ def recirc_toggle():
 # has no per-window control). Quick button = 20% vent; slider = 0 (closed) → 100.
 _WINDOWS_SCALE = {"B10": 10, "C10": 10, "B05": 10}   # car_type → native value for "fully open"; default 100 (T03)
 def _session_car_type() -> str:
-    v = getattr(_session, "_vehicle", None)
+    """The MODEL of the car this command is going to — resolved per use, exactly like its VIN.
+
+    v3.14.3 fixed WHERE a command goes and left WHAT is in it: this read the frozen login vehicle,
+    so on a two-car account of two different models the payload was shaped for the wrong one.
+    @cookingeek (#253) lists a T03 first and drives a C10: "windows to 50%" reached the C10's VIN
+    carrying the T03's native 50 — above the C10's full-open 10, which the car silently ignores, so
+    nothing moved at all. Same for the T03 climate rewrite and the T03 A/C-off body (#67).
+    """
+    v = _session._target()
     return (getattr(v, "car_type", "") or "").upper() if v else ""
 def _t03_force_manual(operate: str, mode: str) -> tuple[str, str]:
     """T03-ONLY climate fix (#67). The T03 firmware silently IGNORES operate=auto climate writes — the

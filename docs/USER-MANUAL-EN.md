@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.14.3 · **Language:** English
+> **Mate version:** v3.14.4 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -152,7 +152,7 @@ Mate.
 - **The diagnostics bundle downloads from a phone.** It was a page navigation, which a Home
   Assistant webview drops silently; it is a normal download link now.
 
-**In v3.14.3 🆕** — with two cars, a **command now reaches the car you picked**. Until this release the session that talks to the cloud stayed on whichever car the account listed first, so lock, trunk, windows, climate and the charge commands went to that one whatever the picker said — and so did the car's picture and the cloud consumption figures. One car: nothing changes.
+**In v3.14.3–3.14.4 🆕** — with two cars, a **command now reaches the car you picked, built the way that car's model expects**. Until these releases the session that talks to the cloud stayed on whichever car the account listed first, so lock, trunk, windows, climate and the charge commands went to that one whatever the picker said — and so did the car's picture and the cloud consumption figures. The model was read from that same car, so on an account holding two **different** models the window position and the climate and A/C-off commands were shaped by the wrong car's rules. One car, or two of the same model: nothing changes.
 
 ---
 

@@ -139,19 +139,25 @@ def _climate_ctx_from_db(db):
 _WINDOWS_SCALE = {"B10": 10, "C10": 10, "B05": 10}   # car_type → native "fully open"; default 100
 
 
-def _mqtt_windows_native(client, pct: int, vin: str = "") -> str:
-    """The native window value for the car the command is FOR.
+def _mqtt_car_type(client, vin: str = "") -> str:
+    """The MODEL of the car an MQTT command is FOR — from the VIN in its own topic.
 
-    🔴 It used to read the model off `client._vehicle` — the FIRST car on the account — while the
-    command carries its own VIN in the MQTT topic. With a B10 (fully open = 10) next to a T03
-    (= 100), "open the windows" sent to the T03 was scaled by the B10's rule and opened them a
-    tenth of the way. An empty or unknown VIN keeps the old behaviour rather than guessing."""
+    🔴 Model-dependent payloads used to read `client._vehicle`, the FIRST car on the account, while
+    the command carries its own VIN in the topic. With a B10 (windows fully open = 10) next to a T03
+    (= 100), "open the windows" sent to the T03 was scaled by the B10's rule and opened them a tenth
+    of the way. That was fixed for the windows alone and left in A/C-off eight lines below, which is
+    why this now lives in ONE place: the next model-dependent command must find it already here.
+    An empty or unknown VIN keeps the old behaviour rather than guessing."""
     veh = None
     if vin:
         veh = next((v for v in (getattr(client, "_vehicles", None) or [])
                     if (getattr(v, "vin", "") or "").lower() == vin.lower()), None)
-    ct = (getattr(veh or getattr(client, "_vehicle", None), "car_type", "") or "").upper()
-    full = _WINDOWS_SCALE.get(ct, 100)
+    return (getattr(veh or getattr(client, "_vehicle", None), "car_type", "") or "").upper()
+
+
+def _mqtt_windows_native(client, pct: int, vin: str = "") -> str:
+    """The native window value for the car the command is FOR."""
+    full = _WINDOWS_SCALE.get(_mqtt_car_type(client, vin), 100)
     try:
         pct = max(0, min(int(pct), 100))
     except (TypeError, ValueError):
@@ -344,7 +350,7 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                 # code:0 the cloud returns for every one of them. Same literal as
                 # web/command_client.T03_AC_OFF_BODY — a test holds the two byte-identical.
                 # B10/C10/B05 keep the EXACT original path below (guard + ac_switch operate=off), untouched.
-                if (getattr(getattr(client, "_vehicle", None), "car_type", "") or "").upper() == "T03":
+                if _mqtt_car_type(client, vin) == "T03":
                     log.info("A/C-off (MQTT, T03) → cmd 170 full body, operate=off [@derekzoli]")
                     api._remote_control(vin=vin, action="ac_on", cmd_content=T03_AC_OFF_BODY)
                 else:
