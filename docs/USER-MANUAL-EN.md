@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.14.4 · **Language:** English
+> **Mate version:** v3.14.5 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -153,6 +153,8 @@ Mate.
   Assistant webview drops silently; it is a normal download link now.
 
 **In v3.14.3–3.14.4 🆕** — with two cars, a **command now reaches the car you picked, built the way that car's model expects**. Until these releases the session that talks to the cloud stayed on whichever car the account listed first, so lock, trunk, windows, climate and the charge commands went to that one whatever the picker said — and so did the car's picture and the cloud consumption figures. The model was read from that same car, so on an account holding two **different** models the window position and the climate and A/C-off commands were shaped by the wrong car's rules. One car, or two of the same model: nothing changes.
+
+**In v3.14.5 🆕** — two more places were still answering for the whole install rather than for the car you picked: the **consumption figures** kept in cache (look at one car's Statistics, switch inside half an hour, and you were shown the first one's kilowatt-hours) and the **maintenance start of service**, whose delivery date and odometer were shared between cars — and every service interval is counted from those. With one car, nothing changes.
 
 ---
 

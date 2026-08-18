@@ -3,6 +3,38 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.5] — 2026-08-18
+
+**Two cars, two more places that were not asking which one** (#253, @cookingeek) — and a label on a
+REEV figure that was being read as something it is not (beta #31, @gm27271).
+
+### The third sweep for this defect family, and the first done in full
+
+Rather than waiting for the next report, every screen was checked: 23 pages and 45 self-loading
+panels, each fetched twice on a rig holding two cars with disjoint data. Two leaks, neither of them
+ever reported by anybody.
+
+- **The consumption cache did not know which car it held.** One cache serves four endpoints —
+  energy breakdown, getPlugIn consumption, the period picker, since-last-charge — through nine key
+  shapes, and not one carried the car (`"plugin6w"` was a literal constant). Look at one car's
+  Statistics, switch inside the thirty-minute TTL, and its kilowatt-hours were served under the
+  other car's name. 🔑 v3.14.3 is what made this bite: before it every cloud read answered for the
+  first car on the account, so a shared cache was wrong but uniform.
+- **Maintenance started from the wrong car.** The delivery date and odometer were install-wide, and
+  the fallback was worse — the earliest date and lowest odometer of *every* car at once. Every
+  service interval on that page counts from those. The services already done were per car; the
+  start of service was not.
+
+### The REEV electric figure says what it is
+
+On an engine-on trip the list printed `⚡ 4.5 kWh/100 km` and nothing else. That is the energy which
+left the **pack**, over all the kilometres: what the generator sends straight to the motor never
+passes through the battery, so a long generator trip reads impossibly well. The trip detail has
+explained this since v3.2.0; the list, where the number is met first, did not. It now carries a
+short **battery only** label, with the full sentence in the tooltip.
+
+Single-car installs see no change from this release.
+
 ## [3.14.4] — 2026-08-17
 
 **And the command is now SHAPED for the car you picked, not just addressed to it** (#253,

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.14.4 · **Sprache:** Deutsch
+> **Mate-Version:** v3.14.5 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -155,6 +155,8 @@ Schaltfläche: Was du drückst, hängt davon ab, wie du Mate betreibst.
   Assistant-Webview stillschweigend verwirft; jetzt ist es ein normaler Download-Link.
 
 **In v3.14.3–3.14.4 🆕** — mit zwei Autos erreicht ein **Befehl das Auto, das du gewählt hast, und ist für dessen Modell gebaut**. Bis zu diesen Versionen blieb die Sitzung zur Cloud auf dem zuerst gelisteten Fahrzeug: Verriegeln, Kofferraum, Fenster, Klima und die Ladebefehle gingen dorthin, egal was die Auswahl sagte — ebenso das Fahrzeugbild und die Verbrauchswerte aus der Cloud. Auch das Modell wurde von diesem Auto gelesen: bei einem Konto mit zwei **verschiedenen** Modellen wurden Fensterstellung, Klima und A/C-Aus nach den Regeln des falschen Autos gebaut. Bei einem Auto, oder bei zwei gleichen Modellen, ändert sich nichts.
+
+**In v3.14.5 🆕** — zwei weitere Stellen antworteten noch für die ganze Installation statt für das gewählte Auto: die **zwischengespeicherten Verbrauchswerte** (man sah die Statistik eines Autos, wechselte innerhalb einer halben Stunde und bekam die Kilowattstunden des ersten) und der **Servicebeginn** der Wartung, dessen Übergabedatum und Kilometerstand von beiden Autos geteilt wurden — und daraus werden alle Fälligkeiten gerechnet. Bei einem Auto ändert sich nichts.
 
 ---
 
