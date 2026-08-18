@@ -4457,6 +4457,23 @@ async def cumulative_summary(request: Request, refresh: int = 0):
 _period_cache: dict = {}
 
 
+def _pcache_key(key: str) -> str:
+    """The period cache is one dict for four endpoints and nine key shapes — and not one of those
+    shapes named the car.
+
+    `"plugin6w"` was literally a constant; the others carry only a date, a range or a timestamp. So
+    on a two-car account, looking at the C10's Statistics filled `p:day:2026-08-18`, and switching
+    to the T03 within the thirty-minute TTL served the C10's kilowatt-hours under the T03's name.
+
+    🔑 v3.14.3 is what made this bite. Before it every cloud read answered for the FIRST car on the
+    account whatever the picker said, so a shared cache was wrong but uniform; once the read started
+    following the picker, the shared key began mixing the two. The source was fixed and nobody asked
+    where the results were being put — the same shape as the car-image memo fixed in v3.14.1, one
+    module over. A test now forbids reaching the cache without going through here.
+    """
+    return f"{(db_reader._selected_vin() or '-').lower()}|{key}"
+
+
 @app.get("/api/plugin-consumption", response_class=HTMLResponse)
 async def plugin_consumption(request: Request, refresh: int = 0):
     """The car's OWN two consumptions — kWh/100 km and L/100 km — over ITS OWN window.
@@ -4471,12 +4488,12 @@ async def plugin_consumption(request: Request, refresh: int = 0):
     printed beside monthly ones is how two right figures start contradicting each other."""
     import time, asyncio
     key = "plugin6w"
-    c = _period_cache.get(key)
+    c = _period_cache.get(_pcache_key(key))
     if refresh or not c or time.time() - c["ts"] >= 1800:
         data = await asyncio.get_event_loop().run_in_executor(
             None, command_client.get_plugin_consumption)
         if data is not None:
-            _period_cache[key] = {"data": data, "ts": time.time()}
+            _period_cache[_pcache_key(key)] = {"data": data, "ts": time.time()}
         pc = data if data is not None else (c["data"] if c else None)
     else:
         pc = c["data"]
@@ -4589,7 +4606,7 @@ async def energy_period(request: Request, period: str = "", start: str = "", end
     except Exception:
         return templates.TemplateResponse(request, "partials/energy_breakdown.html", _ctx(eb=None, eb_label=None))
     begin_ts = _clamp_begin_to_first_trip(begin_ts)   # #121: month/custom windows before the first trip
-    c = _period_cache.get(key)
+    c = _period_cache.get(_pcache_key(key))
     if refresh or not c or time.time() - c["ts"] >= 1800:
         data = await asyncio.get_event_loop().run_in_executor(
             None, command_client.get_energy_breakdown_range, begin_ts, end_ts)
@@ -4597,7 +4614,7 @@ async def energy_period(request: Request, period: str = "", start: str = "", end
         # load retries. Keep the last good value if this fetch missed. (Genuinely-empty windows just
         # re-query each load; that's rare and correct.)
         if data is not None:
-            _period_cache[key] = {"data": data, "ts": time.time()}
+            _period_cache[_pcache_key(key)] = {"data": data, "ts": time.time()}
         eb = data if data is not None else (c["data"] if c else None)
     else:
         eb = c["data"]
@@ -4624,12 +4641,12 @@ async def energy_since_charge(request: Request, refresh: int = 0):
     begin_ts, end_ts = int(last_charge_end.timestamp()), int(now.timestamp())
     label = f"{t('ec_since_charge_title')} · {last_charge_end.strftime('%d/%m %H:%M')}"
     key = f"p:sincecharge:{begin_ts}"
-    c = _period_cache.get(key)
+    c = _period_cache.get(_pcache_key(key))
     if refresh or not c or time.time() - c["ts"] >= 1800:
         data = await asyncio.get_event_loop().run_in_executor(
             None, command_client.get_energy_breakdown_range, begin_ts, end_ts)
         if data is not None:
-            _period_cache[key] = {"data": data, "ts": time.time()}
+            _period_cache[_pcache_key(key)] = {"data": data, "ts": time.time()}
         eb = data if data is not None else (c["data"] if c else None)
     else:
         eb = c["data"]
@@ -4671,12 +4688,12 @@ async def report_driving(request: Request, month: str, refresh: int = 0):
         return templates.TemplateResponse(request, "partials/report_driving_energy.html", _ctx(eb=None))
     begin_ts = _clamp_begin_to_first_trip(begin_ts)   # #121: a first partial month starts before the first trip
     key = f"p:reportmonth:{month}:{end_ts}"
-    c = _period_cache.get(key)
+    c = _period_cache.get(_pcache_key(key))
     if refresh or not c or time.time() - c["ts"] >= 1800:
         data = await asyncio.get_event_loop().run_in_executor(
             None, command_client.get_energy_breakdown_range, begin_ts, end_ts)
         if data is not None:
-            _period_cache[key] = {"data": data, "ts": time.time()}
+            _period_cache[_pcache_key(key)] = {"data": data, "ts": time.time()}
         eb = data if data is not None else (c["data"] if c else None)
     else:
         eb = c["data"]

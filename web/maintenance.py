@@ -173,16 +173,22 @@ def get_baseline():
     """The car's start-of-service anchor (date, km, explicit?). If the user hasn't set
     one, infer it from the earliest odometer/date Mate has seen (so a new car still gets
     sensible first-service dates) and flag explicit=False so the UI can prompt."""
-    d = db_reader.get_setting("maint_baseline_date", "")
-    k = db_reader.get_setting("maint_baseline_km", "")
+    d = _setting("maint_baseline_date")
+    k = _setting("maint_baseline_km")
     if d:
         try:
             return d, (float(k) if k != "" else 0.0), True
         except ValueError:
             pass
+    # 🔴 Scoped to the SELECTED car. Unscoped, this took the earliest date and the lowest odometer
+    # of every car on the account: a C10 delivered in 2026 at 7 777 km inherited a T03's 2021 and
+    # its 11 111, and every service interval on the page was then counted from the wrong car.
+    # Found by sweeping 56 screens with two cars, not by a report — it is the only one that leaked.
     row = db_reader._get().execute(
         "SELECT MIN(recorded_at) AS rd, MIN(odometer_km) AS ko FROM positions "
-        "WHERE odometer_km IS NOT NULL AND odometer_km > 0").fetchone()
+        "WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "AND odometer_km IS NOT NULL AND odometer_km > 0",
+        (db_reader._current_vehicle_id(),)).fetchone()
     bdate, bkm = None, 0.0
     if row and row["rd"]:
         dt = db_reader._local_dt(row["rd"])
@@ -191,10 +197,26 @@ def get_baseline():
     return bdate, bkm, False
 
 
+def _key(name: str) -> str:
+    """`name` for the car in the picker — `name_<vin>` when there is a VIN to hang it on.
+
+    The start of service is a fact about ONE car (its delivery date and the kilometres on it that
+    day), and it was stored install-wide: setting it on one car set it on the other. The bare key
+    stays readable as the fallback, so an install that wrote one before this existed keeps it.
+    Same shape as the per-car capacity and the per-car PIN."""
+    vin = (db_reader._selected_vin() or "").strip().lower()
+    return f"{name}_{vin}" if vin else name
+
+
+def _setting(name: str) -> str:
+    """The car's own value, or the install-wide one it used to share."""
+    return db_reader.get_setting(_key(name), "") or db_reader.get_setting(name, "")
+
+
 def set_baseline(date_iso: str, km: Optional[float]) -> None:
-    db_reader.set_setting("maint_baseline_date", date_iso)
+    db_reader.set_setting(_key("maint_baseline_date"), date_iso)
     if km is not None:
-        db_reader.set_setting("maint_baseline_km", str(km))
+        db_reader.set_setting(_key("maint_baseline_km"), str(km))
 
 
 # ── Formatting helpers (distance respects the user's unit system) ─────────────
