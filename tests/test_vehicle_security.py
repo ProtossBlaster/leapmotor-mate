@@ -25,7 +25,10 @@ def test_parse_signal_maps_1255():
     assert client._parse_signal("VIN", _sig(**{"1255": 2})).security_active is True   # armed (real B10 value)
     assert client._parse_signal("VIN", _sig(**{"1255": 1})).security_active is True
     assert client._parse_signal("VIN", _sig(**{"1255": 0})).security_active is False
-    assert client._parse_signal("VIN", _sig()).security_active is False               # absent → False
+    # 🔴 CAMBIATO il 20/08 (#256): assente → None, non False. Due C10 non mandano mai il 1255, e
+    # leggerlo come False stampava «Inattivo» su una riga di SICUREZZA.
+    # → tests/test_absent_security_signal_is_not_inactive.py
+    assert client._parse_signal("VIN", _sig()).security_active is None                # absent → unknown
 
 
 def test_persists_and_reads_back(tmp_path, monkeypatch):
@@ -39,8 +42,8 @@ def test_persists_and_reads_back(tmp_path, monkeypatch):
     db_reader.save_fresh_signals({"1255": 0})
     assert db_reader.get_latest_status()["security_active"] == 0
 
-    db_reader.save_fresh_signals({})                       # signal absent → 0, never NULL/crash
-    assert db_reader.get_latest_status()["security_active"] == 0
+    db_reader.save_fresh_signals({})                       # signal absent → NULL (#256), never 0
+    assert db_reader.get_latest_status()["security_active"] is None
 
 
 def test_schema_has_column(tmp_path):

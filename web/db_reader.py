@@ -2971,7 +2971,8 @@ def save_fresh_signals(signals: dict) -> None:
             sigf("1177") or None,
             sigf("1178") or None,
             int(int(signals.get("3736") or 0) != 0),
-            int(int(signals.get("1255") or 0) != 0),
+            # assente → NULL, come il poller: due scrittori sullo stesso campo, una sola regola
+            (None if signals.get("1255") is None else int(int(signals.get("1255") or 0) != 0)),
             windows_open_count,
             1 if sig("1277") else 0, 1 if sig("1278") else 0,
             1 if sig("1279") else 0, 1 if sig("1280") else 0,

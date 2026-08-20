@@ -83,7 +83,7 @@ class VehicleData:
     mirror_heat_right: int = 0      # signal 50 rightMirrorHeating
     ready: bool = False             # signal 1258 bcmKeyPositionOn3 — faithful READY/ON3 (physical key only)
     charge_completed: bool = False  # signal 3736 chargeCompleted — true at full charge (validate on a real charge)
-    security_active: bool = False   # signal 1255 vehicleSecurityActive — locked + alarm armed (validate on-car)
+    security_active: bool | None = None   # signal 1255 vehicleSecurityActive — None = the car never said
     charge_limit_percent: int | None = None  # configured max-charge SoC (from the config block, not a
                                              # signal); None if unknown / model doesn't report it
     # AC-port / V2L mode — signal 47 (acInputSlowCharge): 0 = AC port idle, 1 = AC charging (input;
@@ -837,5 +837,10 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         tire_rr_bar=round(float(sig.get("2667") or 0) / 100.0, 2),
         ready=int(sig.get("1258") or 0) == 1,   # B10 faithful READY (ON3) sensor
         charge_completed=int(sig.get("3736") or 0) != 0,  # 3736 chargeCompleted — truthy (confirm value at a real full charge)
-        security_active=int(sig.get("1255") or 0) != 0,   # 1255 vehicleSecurityActive — B10 reads 2 when armed; truthy, matches kerniger bool()
+        # 🔴 None when the car never sends 1255 — NOT False. Two C10s (@ghuaywen-ai #256,
+        # @ebagnoli over 17 continuous days) carry 77 and 88 signals and neither has it, while a
+        # B10 sends it 252 times with values 0/1/2. Read as False, an absent signal printed
+        # "Inactive" on a SECURITY row — not a missing figure but a reassuring lie.
+        security_active=(None if sig.get("1255") is None
+                         else int(sig.get("1255") or 0) != 0),   # B10 reads 2 when armed; truthy
     )
