@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v3.14.5 · **Langue :** Français
+> **Version de Mate :** v3.14.6 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 
@@ -163,6 +163,8 @@ bouton : ce sur quoi tu appuies dépend de la façon dont tu fais tourner Mate.
 **Dans la v3.14.3–3.14.4 🆕** — avec deux voitures, une **commande atteint la voiture que tu as choisie, mise en forme selon son modèle**. Jusqu'à ces versions, la session qui parle au cloud restait sur la première voiture listée par le compte : verrouillage, coffre, vitres, climatisation et les commandes de recharge partaient vers celle-là quoi que dise le sélecteur — de même que la photo et les consommations venant du cloud. Le modèle était lu sur cette même voiture : sur un compte avec deux modèles **différents**, la position des vitres et les commandes de climatisation et d'arrêt A/C étaient construites selon les règles de la mauvaise voiture. Avec une seule voiture, ou deux du même modèle, rien ne change.
 
 **Dans la v3.14.5 🆕** — deux autres endroits répondaient encore pour l'installation entière au lieu de la voiture choisie : les **consommations gardées en cache** (vous regardiez les Statistiques d'une voiture, vous changiez dans la demi-heure, et on vous montrait les kilowattheures de la première) et le **début de service** de l'entretien, dont la date de livraison et le kilométrage étaient partagés entre les voitures — et toutes les échéances se comptent à partir de là. Avec une seule voiture, rien ne change.
+
+**Dans la v3.14.6 🆕** — la ligne **Sécurité** n'apparaît plus sur les voitures qui ne la transmettent pas. La C10 n'envoie pas ce signal du tout (mesuré sur deux C10, dont une pendant dix-sept jours consécutifs), et lire cette absence comme un zéro affichait *« Inactif »* — ce qui, sur une ligne de sécurité, se lit *votre voiture n'est pas protégée*. Une voiture qui le transmet, comme la B10, ne change pas.
 
 ---
 

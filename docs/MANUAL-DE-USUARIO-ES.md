@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v3.14.5 · **Idioma:** Español
+> **Versión de Mate:** v3.14.6 · **Idioma:** Español
 > Este manual está escrito para quien *usa* Mate, no para quien lo desarrolla. Explica cómo
 > configurarlo desde cero y qué hace cada página. Para los detalles técnicos internos está `ARCHITECTURE.md`.
 
@@ -164,6 +164,8 @@ que hay que pulsar depende de cómo ejecutes Mate.
 **En la v3.14.3–3.14.4 🆕** — con dos coches, un **comando llega al coche que has elegido, con la forma que ese modelo entiende**. Hasta estas versiones la sesión que habla con la nube se quedaba en el primer coche que lista la cuenta: cierre, maletero, ventanillas, clima y los comandos de carga iban a ese, dijera lo que dijera el selector — y lo mismo la foto del coche y los consumos tomados de la nube. El modelo se leía de ese mismo coche: en una cuenta con dos modelos **distintos**, la posición de las ventanillas y los comandos de clima y apagado del A/C se construían con las reglas del coche equivocado. Con un solo coche, o dos del mismo modelo, no cambia nada.
 
 **En la v3.14.5 🆕** — otros dos puntos seguían respondiendo por toda la instalación en lugar de por el coche elegido: los **consumos guardados en caché** (mirabas las Estadísticas de un coche, cambiabas antes de media hora y te mostraba los kWh del primero) y el **inicio del servicio** del mantenimiento, cuya fecha de entrega y kilómetros se compartían entre los coches — y de ahí se cuentan todos los vencimientos. Con un solo coche no cambia nada.
+
+**En la v3.14.6 🆕** — la fila **Seguridad** ya no aparece en los coches que no la comunican. El C10 no envía esa señal en absoluto (medido en dos C10, uno durante diecisiete días seguidos), y leer su ausencia como un cero mostraba *«Inactivo»* — que en una fila de seguridad se lee como *tu coche no está protegido*. Un coche que sí la envía, como el B10, no cambia.
 
 ---
 

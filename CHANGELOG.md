@@ -3,6 +3,33 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.6] — 2026-08-20
+
+**A signal the car never sends is not "Inactive"** (#256, @ghuaywen-ai).
+
+> *"Security Status for C10 always shows Inactive, B10 does show Active. Is it a limitation in
+> the C10?"*
+
+It is the C10, and it is measured on three cars — signal **1255** (`vehicleSecurityActive`):
+
+| car | signals it sends | 1255 |
+|---|---|---|
+| @ghuaywen-ai's C10 | 77 | absent |
+| @ebagnoli's C10, over 17 continuous days | 88 | absent |
+| @michapr's B10 | 98 | present, 252 samples, values 0/1/2 |
+
+All three send 1256/1257/1258 (the ignition key positions). Only 1255 is missing.
+
+The defect was ours. `int(sig.get("1255") or 0) != 0` turned an absent signal into a zero, and a
+zero into **"Inactive"** — so Mate was not saying *"I don't have this figure"*, it was saying *"your
+car is not protected"*. That is the one direction a missing value must never fall in, all the more
+on a security row. The row is now simply not drawn when the car never said. A B10 loses nothing:
+Active and Inactive both still render.
+
+🔑 Four places, because this field had **two writers**: the poller parses it, the poller stores it,
+**the web writes the same column on its own** through `save_fresh_signals` — fixing only the poller
+would have brought the defect back on the first manual refresh — and the page draws it.
+
 ## [3.14.5] — 2026-08-18
 
 **Two cars, two more places that were not asking which one** (#253, @cookingeek) — and a label on a
