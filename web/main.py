@@ -1530,6 +1530,27 @@ async def research_export():
             z.writestr("settings.txt", diagnostics._advanced_settings_section())
         except Exception:  # noqa: BLE001
             pass
+        # And then the WHOLE diagnostics report, because picking sections in advance decides which
+        # questions a tester is allowed to have answered — and we got that call wrong a third time.
+        #
+        # Beta #13 (@ebagnoli, 21/08/26): he was told his "Auto-assign Home" was off. It is not in
+        # this bundle at all — `settings.txt` is the ten behaviour settings; the wallbox block lives
+        # in _cost_wallbox_section(), which only the diagnostics bundle carries. So the claim was
+        # INFERRED from his charge rows and published to him as a reading. He corrected us.
+        #
+        # The two blocks above were each lifted across after costing us exactly this, one at a time.
+        # The report is a few hundred KB of text against a raw-signal log that is 98% of the payload,
+        # it is redacted and public-shareable by build_bundle's own contract (VIN masked, GPS
+        # stripped, no free text), and this bundle is sealed to our key on top of that. There is no
+        # reason left to send anything less than all of it.
+        try:
+            try:
+                _fresh = command_client.get_fresh_signals()
+            except Exception:  # noqa: BLE001 — the car may be asleep; the rest of the report stands
+                _fresh = None
+            z.writestr("diagnostics.txt", diagnostics.build_bundle(MATE_VERSION, signals=_fresh))
+        except Exception:  # noqa: BLE001
+            pass
         try:
             _charge_count = len(db_reader.get_charges(limit=1_000_000))
         except Exception:  # noqa: BLE001
