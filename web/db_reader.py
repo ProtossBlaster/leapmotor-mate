@@ -1880,6 +1880,14 @@ def update_charge_type(charge_id: int, location_type: str,
     else:
         db.execute("UPDATE charges SET location_type=?, cost=?, is_free=? WHERE id=?",
                    (location_type, cost, free, charge_id))
+
+    # Sync type, cost, free status, and gross_kwh for all pieces in the merged group
+    if _charges_have_merge(db):
+        parent_row = db.execute("SELECT id, merged_into_id FROM charges WHERE id=?", (charge_id,)).fetchone()
+        if parent_row:
+            parent_id = parent_row["merged_into_id"] or parent_row["id"]
+            _sync_charge_group_costs_and_types(db, parent_id, force_recalc=True)
+
     db.commit()
     return dict(db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
 
@@ -4033,6 +4041,82 @@ CHARGE_MERGE_GAP_DEFAULT = 30
 _CHARGE_MERGE_SOC_TOLERANCE = 2.0
 
 
+def _sync_charge_group_costs_and_types(db, parent_id: int, force_recalc: bool = False) -> None:
+    """Sync type, is_free, cost and gross_kwh across all pieces of a merged group.
+
+    If the parent is manual, parent keeps the manual cost and children get None.
+    If the parent has gross_kwh it is distributed proportionally to energy_added_kwh.
+    Otherwise, costs are computed individually for each piece based on its own energy/meter."""
+    parent_row = db.execute("SELECT * FROM charges WHERE id=?", (parent_id,)).fetchone()
+    if not parent_row:
+        return
+    parent = dict(parent_row)
+    location_type = parent.get("location_type")
+    is_free = parent.get("is_free") or 0
+    has_gross_col = _charges_have_gross(db)
+
+    # Find children
+    children = [dict(r) for r in db.execute(
+        "SELECT * FROM charges WHERE merged_into_id=?", (parent_id,)).fetchall()]
+
+    group = [parent] + children
+
+    if not location_type:
+        # Unconfirmed: clear cost and location_type for all
+        for c in group:
+            if c.get("location_type") is not None:
+                db.execute("UPDATE charges SET location_type=NULL, cost=NULL, is_free=0, gross_kwh=NULL WHERE id=?", (c["id"],))
+        return
+
+    if location_type == "MANUAL":
+        # MANUAL: parent keeps the manual cost, children get None
+        db.execute("UPDATE charges SET location_type='MANUAL', cost=?, is_free=0, gross_kwh=NULL WHERE id=?",
+                   (parent.get("cost"), parent["id"]))
+        for c in children:
+            db.execute("UPDATE charges SET location_type='MANUAL', cost=NULL, is_free=0, gross_kwh=NULL WHERE id=?", (c["id"],))
+        return
+
+    # For other types: distribute gross_kwh if parent has it
+    total_gross = parent.get("gross_kwh")
+
+    if total_gross is not None and total_gross > 0 and has_gross_col:
+        total_battery = sum((c.get("energy_added_kwh") or 0.0) for c in group)
+        for c in group:
+            share = (c.get("energy_added_kwh") or 0.0) / total_battery if total_battery > 0 else 1.0 / len(group)
+            c["gross_kwh"] = round(total_gross * share, 3)
+    else:
+        for c in group:
+            c["gross_kwh"] = None
+
+    # Recalculate cost for each piece if needed
+    for c in group:
+        if not force_recalc and c.get("location_type") == location_type and c.get("cost") is not None:
+            # Keep existing cost
+            continue
+
+        meter = c.get("ac_energy_kwh")
+        if location_type == "HOME" and meter and meter > 0:
+            billed = meter
+        elif c["gross_kwh"] and c["gross_kwh"] > 0:
+            billed = c["gross_kwh"]
+        else:
+            billed = None
+
+        temp_charge = {**c, "location_type": location_type, "is_free": is_free}
+        c["cost"] = compute_cost(temp_charge, ac_kwh=billed)
+
+    # Save to DB
+    for c in group:
+        c_gross = c.get("gross_kwh")
+        c_cost = c.get("cost")
+        if has_gross_col:
+            db.execute("UPDATE charges SET location_type=?, cost=?, is_free=?, gross_kwh=? WHERE id=?",
+                       (location_type, c_cost, is_free, c_gross, c["id"]))
+        else:
+            db.execute("UPDATE charges SET location_type=?, cost=?, is_free=? WHERE id=?",
+                       (location_type, c_cost, is_free, c["id"]))
+
+
 def merge_charges(parent_id: int, child_id: int, gap_min: int = CHARGE_MERGE_GAP_DEFAULT) -> dict:
     """Join two charge rows the car split by declaring the cable gone on a pause.
 
@@ -4086,6 +4170,7 @@ def merge_charges(parent_id: int, child_id: int, gap_min: int = CHARGE_MERGE_GAP
     # absorb B and any of B's own children into A, so every piece points at the parent
     db.execute("UPDATE charges SET merged_into_id=? WHERE id=? OR merged_into_id=?",
                (a["id"], b["id"], b["id"]))
+    _sync_charge_group_costs_and_types(db, a["id"], force_recalc=False)
     db.commit()
     return {"ok": True, "parent_id": a["id"]}
 
