@@ -1824,9 +1824,28 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
     return round(energy * (weighted / total_e), 2)
 
 
+def _merged_piece_ids(db, charge_id: int) -> list:
+    """Every OTHER row in the merge-group this charge belongs to; [] when it is alone — or when the
+    poller has not added the column yet, which is the same rule as everywhere else here."""
+    if not _charges_have_merge(db):
+        return []
+    row = db.execute("SELECT id, merged_into_id FROM charges WHERE id=?", (charge_id,)).fetchone()
+    if not row:
+        return []
+    parent = row["merged_into_id"] or row["id"]
+    ids = [r["id"] for r in db.execute(
+        "SELECT id FROM charges WHERE merged_into_id=?", (parent,)).fetchall()]
+    if parent != charge_id:
+        ids.append(parent)
+    return [i for i in ids if i != charge_id]
+
+
 def update_charge_type(charge_id: int, location_type: str,
                        manual_cost: Optional[float] = None,
-                       gross_kwh: Optional[float] = None) -> dict:
+                       gross_kwh: Optional[float] = None,
+                       *, _segment: bool = False,
+                       _free: Optional[int] = None,
+                       _no_cost: bool = False) -> dict:
     """Set location_type and (re)compute the cost from the pricing config in effect now (flat or
     time-of-use). Frozen afterwards (the 'new charges only' rule). HOME charges are billed on the
     wallbox energy the POLLER measured at charge start/stop (charges.ac_energy_kwh = the counter
@@ -1847,9 +1866,17 @@ def update_charge_type(charge_id: int, location_type: str,
     charge["location_type"] = location_type
     # #120: the FREE mark is HOME-only — switching to any other type drops it (free-away is the
     # FREE location_type). Kept as-is when the charge stays HOME.
-    free = 1 if (location_type == "HOME" and charge.get("is_free")) else 0
+    free = 1 if (location_type == "HOME" and
+                 (charge.get("is_free") if _free is None else _free)) else 0
     charge["is_free"] = free
-    if location_type == "MANUAL":
+    gross = gross_kwh if gross_kwh is not None else (
+        charge["gross_kwh"] if "gross_kwh" in charge.keys() else None)
+    if _no_cost:
+        # A piece of a group whose price is the GROUP's and already sits on the row that carries it
+        # (a MANUAL total, or a typed #222 meter reading). The page SUMS the pieces, so a second
+        # figure here would bill the same energy twice.
+        cost = None
+    elif location_type == "MANUAL":
         # Keep the existing cost if no amount was supplied (e.g. re-tagging without re-typing it).
         cost = round(manual_cost, 2) if manual_cost is not None else charge.get("cost")
     else:
@@ -1859,7 +1886,6 @@ def update_charge_type(charge_id: int, location_type: str,
         # PRICES the charge — you pay for what left the charger, conversion losses included — and
         # nothing else. It never becomes the energy Mate reports or totals (_billed_kwh is
         # untouched), because that one is measured and this one is typed.
-        gross = gross_kwh if gross_kwh is not None else (charge["gross_kwh"] if "gross_kwh" in charge.keys() else None)
         if location_type == "HOME" and meter and meter > 0:
             billed = meter
         elif gross and gross > 0:
@@ -1881,7 +1907,29 @@ def update_charge_type(charge_id: int, location_type: str,
         db.execute("UPDATE charges SET location_type=?, cost=?, is_free=? WHERE id=?",
                    (location_type, cost, free, charge_id))
     db.commit()
-    return dict(db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
+    out = dict(db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
+
+    # A merged charge is drawn as ONE row and its figures are the SUM of its pieces. Writing only
+    # the row that was clicked left the children untyped and unpriced, so a 15 kWh charge split
+    # 10 + 5 showed two thirds of its cost — at every type and every tariff. Found by @damde (#258).
+    #
+    # Each piece is priced by THIS function, so there is one pricing rule and not a second copy of
+    # it: a piece bills on its own wallbox delta or its own energy, exactly as it would unmerged.
+    # Two figures are the GROUP's rather than a piece's and must not be charged twice — a MANUAL
+    # total and a typed gross_kwh (#222) — so they stay on the row that carries them and the other
+    # pieces take no cost at all.
+    #
+    # What is NOT touched: the typed number itself. unmerge_charges promises the rows come back
+    # exactly as they were, and splitting 30 kWh into 20 + 10 across two rows would break that
+    # promise for a figure the owner typed by hand.
+    #
+    # After the commit, never before: these calls open their own write connection, and SQLite would
+    # be waiting on a transaction this one has not closed yet.
+    if not _segment:
+        for oid in _merged_piece_ids(db, charge_id):
+            update_charge_type(oid, location_type, _segment=True, _free=free,
+                               _no_cost=(location_type == "MANUAL" or bool(gross and gross > 0)))
+    return out
 
 
 def set_charge_gross_kwh(charge_id: int, gross_kwh: Optional[float]) -> dict:
@@ -1919,16 +1967,14 @@ def set_charge_free(charge_id: int, free: bool) -> dict:
     if charge.get("location_type") != "HOME":
         return charge   # the free mark lives only on HOME charges
     flag = 1 if free else 0
-    charge["is_free"] = flag
-    if flag:
-        cost = 0.0
-    else:
-        meter = charge.get("ac_energy_kwh")
-        billed = meter if (meter and meter > 0) else None
-        cost = compute_cost(charge, ac_kwh=billed)
-    db.execute("UPDATE charges SET is_free=?, cost=? WHERE id=?", (flag, cost, charge_id))
+    db.execute("UPDATE charges SET is_free=? WHERE id=?", (flag, charge_id))
     db.commit()
-    return dict(db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
+    # The price is then whatever HOME costs with the mark now set — 0.0 while free, the normal home
+    # cost when it is taken back — and update_charge_type is where that is decided, once, for this
+    # row AND for every other piece of a merged group. Doing the arithmetic here instead left a
+    # marked group costing its children's share: the page sums the pieces, and the mark stopped at
+    # the row that was clicked.
+    return update_charge_type(charge_id, "HOME")
 
 
 def auto_confirm_home_charges() -> int:
