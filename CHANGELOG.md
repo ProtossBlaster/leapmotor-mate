@@ -3,6 +3,41 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.7] — 2026-08-22
+
+**A merged charge is now priced on all of it** (#258, found by **@damde**).
+
+Join two charge rows the car split apart, confirm the result, and Mate priced only the row you
+clicked. The other pieces stayed untyped and unpriced — and the Charges page adds the pieces up, so
+they counted as nothing. A 15 kWh home charge split 10 + 5 read **2,00 €** instead of 3,00 €.
+
+The share that went missing is exactly the energy sitting in the other pieces, so the percentage is
+the same wherever you charge — and the euros are worst where the tariff is highest:
+
+| | should cost | showed |
+|---|---|---|
+| home, no wallbox | 3,00 € | 2,00 € |
+| home, wallbox metered | 3,60 € | 2,40 € |
+| AC charger | 6,75 € | 4,50 € |
+| DC charger | 9,00 € | 6,00 € |
+| HPC | 11,85 € | 7,90 € |
+| price typed by hand | 9,90 € | 9,90 € — never affected |
+
+Every piece is now priced the same way an unpaired charge is: on its own wallbox reading, or on its
+own energy. Two figures belong to the whole session rather than to a piece — a price you typed by
+hand, and a charger's own kWh reading (#222) — and those stay where you entered them, with the other
+pieces carrying no cost, so the same energy is never billed twice. **The number you typed is never
+rewritten or divided**: split the charge apart again and it comes back exactly as it was.
+
+**Charges you confirmed before this release are put right on their own**, once, when Mate starts —
+at the rate that group was priced at, not at today's prices. Without that the fix would have reached
+only people who had not yet hit it. Nothing you had already confirmed is recalculated.
+
+The 🆓 free mark had the same shape and was corrected with it: it wrote only the row you clicked, so
+on a merged charge it would have left the group costing the other pieces' share instead of nothing.
+
+Thanks to **@damde**, who found this, measured it and wrote the tests — nobody had reported it.
+
 ## [3.14.6] — 2026-08-20
 
 **A signal the car never sends is not "Inactive"** (#256, @ghuaywen-ai).
