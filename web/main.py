@@ -123,6 +123,20 @@ def _repair_manual_charge_timezones() -> None:
         pass
 
 
+def _repair_merged_charge_pieces() -> None:
+    """#258 (@damde): confirming a merged charge used to price only the row that was clicked, so
+    every group already confirmed carries the parent's share alone — a 15 kWh home charge reading
+    2,00 € instead of 3,00 €. The corrected code cannot reach those on its own: they are confirmed,
+    and nothing confirms them again. Put them right once, here, at the rate their own group was
+    priced at. Safe to run twice — it selects on the absence it fills."""
+    try:
+        n = db_reader.repair_merged_charge_pieces()
+        if n:
+            log.info("Merged-charge repair: %d piece(s) of an already-confirmed group priced (#258)", n)
+    except Exception:  # noqa: BLE001 — never block startup over a repair
+        pass
+
+
 def _pin_auto_timezone() -> None:
     """Runs BEFORE the repair below, and the order is the point: the repair refuses to convert while
     the zone is Auto (it will not bake in a guess), so an install left on Auto could never have its
@@ -153,6 +167,7 @@ def _check_secret_key() -> None:
 _check_secret_key()
 _pin_auto_timezone()
 _repair_manual_charge_timezones()
+_repair_merged_charge_pieces()
 
 app = FastAPI(title="LeapMotor Mate")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))

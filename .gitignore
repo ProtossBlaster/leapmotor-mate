@@ -39,3 +39,6 @@ docker-compose.override.yml
 
 # local trips-redesign backups (not for VCS)
 web/templates/_backup_trips_*/
+
+# demo containers for UI approval — never committed (see feedback-demo-docker-not-agent-browser)
+.mergedemo/

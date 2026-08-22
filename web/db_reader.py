@@ -1932,6 +1932,58 @@ def update_charge_type(charge_id: int, location_type: str,
     return out
 
 
+def repair_merged_charge_pieces() -> int:
+    """One-time: give the pieces of an ALREADY-confirmed group the share they never got. Returns
+    how many charges were repaired.
+
+    update_charge_type prices every piece now — but only when someone confirms, and a charge already
+    confirmed is never touched again. Measured on a container: the corrected code opened on a
+    database written by the old one still shows 2,00 € for a 15 kWh home charge. Without this the
+    fix reaches only people who have not yet hit the defect, which is exactly how the responsiveness
+    badge shipped broken in August. → [[migration-on-the-alter-misses-who-already-updated]]
+
+    🔑 The rate is the one the group was PRICED AT — the parent's own cost ÷ its own billed energy —
+    never today's tariff. A confirmed cost is frozen ('new charges only'), so pricing the children
+    at current prices would quietly rewrite a piece of history to patch an omission. And the parent
+    itself is never written: only the children, only where they are missing.
+
+    A price that belongs to the GROUP and already sits on the parent — a MANUAL total, a typed
+    gross_kwh (#222) — gives the children the type and no cost, the same answer a fresh confirm
+    gives. Safe to run twice: the second pass finds nothing, because it selects on the absence it
+    fills."""
+    db = _conn_rw()
+    if not _charges_have_merge(db):
+        return 0
+    has_gross = _charges_have_gross(db)
+    g = "p.gross_kwh" if has_gross else "NULL"
+    try:
+        rows = db.execute(
+            f"""SELECT c.id AS cid, c.energy_added_kwh AS c_kwh, c.ac_energy_kwh AS c_meter,
+                       p.id AS pid, p.location_type AS ptype, p.cost AS pcost,
+                       p.energy_added_kwh AS p_kwh, p.ac_energy_kwh AS p_meter, {g} AS p_gross
+                  FROM charges c JOIN charges p ON p.id = c.merged_into_id
+                 WHERE c.location_type IS NULL AND p.location_type IS NOT NULL""").fetchall()
+    except sqlite3.Error:
+        return 0
+    n = 0
+    for r in rows:
+        ptype = r["ptype"]
+        whole = ptype == "MANUAL" or bool(r["p_gross"] and r["p_gross"] > 0)
+        cost = None
+        if not whole and r["pcost"] is not None:
+            # what the parent was billed ON, in _billed_kwh's own order
+            p_billed = (r["p_meter"] if (ptype == "HOME" and r["p_meter"] and r["p_meter"] > 0)
+                        else r["p_kwh"])
+            c_billed = (r["c_meter"] if (ptype == "HOME" and r["c_meter"] and r["c_meter"] > 0)
+                        else r["c_kwh"])
+            if p_billed and p_billed > 0 and c_billed:
+                cost = round(r["pcost"] / p_billed * c_billed, 2)
+        db.execute("UPDATE charges SET location_type=?, cost=? WHERE id=?", (ptype, cost, r["cid"]))
+        n += 1
+    db.commit()
+    return n
+
+
 def set_charge_gross_kwh(charge_id: int, gross_kwh: Optional[float]) -> dict:
     """#222 — store the kWh the charger's own display said it delivered, and NOTHING else about the
     charge. Its own type is handed back to update_charge_type unchanged, so the cost is recomputed on
