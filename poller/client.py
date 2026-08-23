@@ -98,6 +98,9 @@ class VehicleData:
     fan_level: int = 0
     recirculation: bool = False
     climate_mode: int | None = None
+    # Cabin PTC power in watts (signal 1348, 50 W steps 0..2700). Measured across the beta
+    # channel; NOT the range-extender generator (disproved by @michapr) nor traction.
+    climate_power: int | None = None
 
     # Cable inserted AND the charge deliberately postponed to the programmed window (1149 == 4).
     # Kept apart from plug_connected because the two answer different questions: the Overview and
@@ -793,6 +796,7 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         fan_level=int(sig.get("1941") or 0),                        # 1941 acAirVolume: fan level 1-7
         recirculation=int(sig.get("1943") or 0) == 1,              # 1943: 1=recirc(in) / 0=fresh(out)
         climate_mode=int(sig["3713"]) if sig.get("3713") is not None else None,  # 3713: 0 auto/1 cool/3 heat/4 vent
+        climate_power=int(sig["1348"]) if sig.get("1348") is not None else None,  # 1348 PTC power (W)
         trunk_open=int(sig.get("1281") or 0) != 0,
         windows_open=any(bool(w) for w in win_states),
         sunshade_open=int(sig.get("1724") or 0) != 0,

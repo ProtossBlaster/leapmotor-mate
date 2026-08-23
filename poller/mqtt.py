@@ -329,6 +329,7 @@ class MqttService:
         pub("ac_target_temp", data.climate_target_temp)
         pub("locked", data.is_locked);          pub("climate_on", data.climate_on)
         pub("fan_level", data.fan_level or None)              # acAirVolume 1-7 (empty when no data)
+        pub("climate_power", data.climate_power)             # 1348 PTC power in W (None when absent)
         pub("recirculation", data.recirculation)             # binary: recirc on / fresh off
         pub("climate_mode", data.climate_mode_label or None) # auto/cool/heat/vent
         pub("plug_connected", data.plug_connected)
@@ -450,6 +451,7 @@ class MqttService:
             ("data_age", "Data Age", {"dc": "duration", "unit": "s",
                                       "icon": "mdi:timer-sand", "tpl": _EMPTY_NONE}),
             ("climate_mode", "Climate Mode", {"icon": "mdi:air-conditioner"}),
+            ("climate_power", "Climate Power", {"dc": "power", "unit": "W", "icon": "mdi:air-conditioner"}),
         ]
         for key, name, extra in sensors:
             c = {"name": name, "state_topic": f"{prefix}/{vin}/{key}"}
