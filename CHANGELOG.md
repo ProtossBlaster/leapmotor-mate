@@ -3,6 +3,20 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.8] — 2026-08-25
+
+**The charging dashboard shows the real target, not a fixed 100%** (beta #33, found by **@pdifeo**).
+
+While charging, the Overview chip read "· 7h 25m to 100%" even when the car was set to stop at 90%.
+The time was right; the target beside it was not — it fell back to 100 whenever the car's scheduled
+charging plan was switched off, which is the usual case. Mate had the real figure all along (the
+Charges page shows it), so the dashboard now reads the same value — "to 90%" — and follows the limit
+as you change it. On models that don't report a limit, the chip shows just the remaining time
+instead of guessing.
+
+**New sensor: Climate Power.** The car's climate power draw (signal 1348) is now published as a Home
+Assistant sensor in watts, next to the other climate signals.
+
 ## [3.14.7] — 2026-08-22
 
 **A merged charge is now priced on all of it** (#258, found by **@damde**).
