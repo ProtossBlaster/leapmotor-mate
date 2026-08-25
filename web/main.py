@@ -574,7 +574,7 @@ async def overview(request: Request):
         status=status, recent_trips=trips,
         last_charge=charges[0] if charges else None,
         v2l=db_reader.get_v2l_status(),
-        charge_limit=_configured_charge_limit(),
+        charge_limit=_configured_charge_limit((vehicle or {}).get("vin") or ""),
         car_resp=db_reader.command_responsiveness(),
         battery_price=db_reader.current_blended_price(),   # #200 — must match /api/status-card
     ))
@@ -3974,27 +3974,23 @@ async def v2l_card(request: Request):
                                       _ctx(v2l=db_reader.get_v2l_status()))
 
 
-def _configured_charge_limit() -> int | None:
-    """The SoC the current charge will stop at, for the Overview hero's ETA label. None when it is
-    not knowable → the template falls back to 100.
+def _configured_charge_limit(vin: str = "") -> int | None:
+    """The car's REAL max-charge limit — the SoC it will actually stop at — for the Overview hero's
+    "to X%" ETA label. It is `config["3"]["percent"]` exactly as the CAR reports it, captured by the
+    poll loop on every change (it tracks the app's slider "even when the limit is changed from the
+    official app", poller/main.py) and stored under the per-VIN key. So set the limit to 75 or 80 on
+    the car and the hero reads exactly that.
 
-    🔴 What the poller stores is the **charging PLAN's** target, not the "charging upper limit" the
-    owner drags in the official app — the cloud does not expose that one at all. The library names
-    the block for what it is: `config["3"]` maps `percent`→`chargesocSetting`, `isEnable`→
-    `chargeScheduleEnabled`, plus the plan's start, end and days.
-
-    So it counts only while the plan is switched ON. With the plan off the car charges to its own
-    upper limit and that number means nothing: @ghuaywen-ai's C10 (#252) had the plan OFF, its
-    stored SoC at 90 and the car's limit at 100, and the hero read "23h 25m to 90%". `_charge_window`
-    below has always applied the same rule to the plan's WINDOW, for the same reason."""
+    🔒 It is NEVER a value typed into Mate. The poll loop only ever writes the per-VIN key from the
+    car's own report; the shared (non-VIN) `charge_limit_percent` key is what Mate's Set-limit button
+    writes — a typed value — and is deliberately NOT consulted here. When the car hasn't reported a
+    limit yet, this is None → the template shows the remaining time with no target, never a guessed
+    100. → #33 (@pdifeo)."""
+    if not vin:
+        return None
     try:
-        if not db_reader.get_charge_schedule_window().get("enabled"):
-            return None
-        return int(db_reader.get_setting("charge_limit_percent", "") or 0) or None
-    except (TypeError, ValueError, AttributeError):
-        # get_charge_schedule_window swallows its own database errors and answers a dict,
-        # so there is nothing sqlite-shaped to catch here — and sqlite3 is not imported in
-        # this module, which would have turned any such error into a NameError.
+        return int(db_reader.get_setting(f"charge_limit_percent_{vin.lower()}", "") or 0) or None
+    except (TypeError, ValueError):
         return None
 
 
@@ -4023,7 +4019,7 @@ async def overview_hero(request: Request):
     status = db_reader.get_latest_status()
     vehicle, _ = db_reader.get_vehicle()
     return templates.TemplateResponse(request, "partials/overview_hero.html", _ctx(
-        status=status, vehicle=vehicle, charge_limit=_configured_charge_limit(),
+        status=status, vehicle=vehicle, charge_limit=_configured_charge_limit((vehicle or {}).get("vin") or ""),
     ))
 
 

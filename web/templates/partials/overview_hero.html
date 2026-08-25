@@ -112,7 +112,7 @@
     </div>
     <span class="hero-chip hero-chip--charge bg-teal-400/10 text-teal-300 border border-teal-400/30">
       {% if status.charge_power_kw %}{{ '%.1f'|format(status.charge_power_kw) }} kW · {% endif %}
-      {{ status.soc | round | int }}%{% if status.remaining_charge_min %} · {{ fmt_dur(status.remaining_charge_min) }} {{ t('hero_to_full').format(pct=(charge_limit or 100)) }}{% endif %}
+      {{ status.soc | round | int }}%{% if status.remaining_charge_min %} · {{ fmt_dur(status.remaining_charge_min) }}{% if charge_limit %} {{ t('hero_to_full').format(pct=charge_limit) }}{% endif %}{% endif %}
     </span>
   </div>
   {% elif plug %}
