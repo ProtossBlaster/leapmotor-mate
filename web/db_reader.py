@@ -2508,6 +2508,22 @@ def list_fuel_purchases(limit: int = 200) -> list:
         db.close()
 
 
+def research_fuel_purchases() -> list:
+    """Every refuel — with `vehicle_id` and `created_at` — for the BetaTester bundle's
+    fuel_purchases.csv (beta #36). Unlike list_fuel_purchases (the UI's: newest-first, no scope, no
+    entered-when), this carries the two columns a REEV cost analysis turns on, all rows, oldest
+    first so it reads like a ledger. `note` is left for the export's allow-list to drop."""
+    db = _conn_rw()
+    try:
+        _ensure_fuel_purchases(db)
+        rows = db.execute(
+            "SELECT id, vehicle_id, ts, liters, price_per_l, total_cost, fuel_before_pct, created_at "
+            "FROM fuel_purchases ORDER BY ts, id").fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        db.close()
+
+
 def get_fuel_calendar_month(year: int, month: int) -> dict:
     """Per-day totals for the Rifornimenti calendar's Month view (beta #14 @gm27271, seconded by
     @michapr): how many refuels, how many litres and how much they cost on each day, plus the

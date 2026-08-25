@@ -3,6 +3,19 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.9] — 2026-08-26
+
+**BetaTester bundle: the refuels, and what each page computed** (beta #35 and #36, from **@michapr**).
+
+Two range-extender questions arrived on the same day — a monthly cost that looked too low, and a
+kWh/100km that read three different ways on three pages — and the diagnostic bundle could not answer
+either: it carried the trips, but not the **refuels** behind the fuel cost, nor **what each page made
+of the same trips**. Both are in it now. `fuel_purchases.csv` lists every refuel with the amounts,
+the car it was logged against, and when it was entered; `page_stats.json` records the Trips,
+Statistics and Report figures for each month side by side, plus the cost card's electric/fuel split —
+so a number that disagrees across pages, and the inputs behind it, can be read from the pack instead
+of reproduced by hand. No coordinates, no free text; the normal build is unchanged.
+
 ## [3.14.8] — 2026-08-25
 
 **The charging dashboard shows the real target, not a fixed 100%** (beta #33, found by **@pdifeo**).

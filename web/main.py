@@ -27,7 +27,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.14.8"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.14.9"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1476,6 +1476,16 @@ _RESEARCH_TRIP_FIELDS = (
     "elevation_gain_m", "elevation_loss_m",
 )
 
+# The refuels — the table a REEV cost question is made of, and the one the bundle never carried
+# (beta #36). Allow-listed, like the trips: `note` is deliberately OUT (free text a tester may put a
+# place-name into). Beyond the amounts, two columns earn their place — `vehicle_id`, because a
+# refuel scoped to a different car than the trips is exactly what zeroes a per-vehicle fuel sum, and
+# `created_at`, because a purchase entered AFTER the drive it belongs to is the other way the €/L at
+# trip-time comes out empty.
+_RESEARCH_FUEL_FIELDS = (
+    "id", "vehicle_id", "ts", "liters", "price_per_l", "total_cost", "fuel_before_pct", "created_at",
+)
+
 
 @app.get("/api/research/export")
 async def research_export():
@@ -1510,6 +1520,50 @@ async def research_export():
         w.writeheader()
         w.writerows(trips)
         z.writestr("trips.csv", s.getvalue())
+        # The refuels behind the fuel numbers on those trips — beta #36. The cost card recomputes the
+        # petrol cost from these rows, and the bundle used to leave them out, so a card reading €0 of
+        # fuel could not be told apart from a card that simply never saw a refuel. Oldest first.
+        fuels = db_reader.research_fuel_purchases()
+        s = io.StringIO(); w = csv.DictWriter(s, fieldnames=_RESEARCH_FUEL_FIELDS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(fuels)
+        z.writestr("fuel_purchases.csv", s.getvalue())
+        # What each PAGE made of those same trips — beta #35/#36. Three pages print three kWh/100km
+        # for one month (Statistics AVERAGES the per-trip ratios; Trips divides getEC by its own km;
+        # the Report divides getEC by ALL km), and the cost card can drop the fuel. The raw trips are
+        # above; this is each page's OWN computed output, per month, so the divergence and its inputs
+        # (energy, km, trip count, the cost breakdown) sit in the pack instead of being reproduced off
+        # a screenshot. Best-effort per part: one card that will not compute must not cost the rest.
+        _pages: dict = {"note": "each page's own monthly figures — compare kwh_100km across them"}
+        try:
+            # The Statistics PAGE's own function (year→month→day, avg_efficiency built from
+            # efficiency_kwh_100km) — NOT get_monthly_stats, which nothing renders.
+            _pages["statistics_page"] = db_reader.get_stats_grouped()
+        except Exception:  # noqa: BLE001
+            _pages["statistics_page"] = None
+        _tc: dict = {}
+        try:
+            for _yr in (_pages.get("statistics_page") or []):
+                for _mkey in (_yr.get("months") or {}):
+                    try:
+                        _y, _mo = (int(x) for x in str(_mkey).split("-")[:2])
+                        _tc[_mkey] = db_reader.get_trips_calendar_month(_y, _mo).get("total")
+                    except Exception:  # noqa: BLE001
+                        pass
+        except Exception:  # noqa: BLE001
+            pass
+        _pages["trips_page"] = _tc
+        try:
+            _pages["monthly_report"] = db_reader._collect_monthly_buckets()
+        except Exception:  # noqa: BLE001
+            _pages["monthly_report"] = None
+        try:
+            _rf = ((db_reader.reev_total_consumption() or {}).get("total_fuel_l")
+                   if db_reader.is_reev_car() else None)
+            _pages["cost_card"] = db_reader.cost_per_100km(_rf)
+        except Exception:  # noqa: BLE001
+            _pages["cost_card"] = None
+        z.writestr("page_stats.json", json.dumps(_pages, indent=2, default=str))
         # Cloud consumption probe: UNMAPPED raw responses (getEC 24h/7d + 6-week rank), so a REEV's
         # fuel/L-100km field surfaces even though the BEV mapping ignores it. Best-effort: a cloud
         # hiccup must not fail the export.
@@ -1583,6 +1637,8 @@ async def research_export():
             "trips": len(trips),
             "trips_with_ec_kwh": sum(1 for t in trips if t.get("ec_kwh") is not None),
             "trip_fields": list(_RESEARCH_TRIP_FIELDS),
+            "fuel_purchases": len(fuels),
+            "fuel_fields": list(_RESEARCH_FUEL_FIELDS),
         }, indent=2))
     encrypted = research.encrypt_bundle(buf.getvalue())
     fname = f"mate-beta-bundle-{int(time.time())}.matebeta"
