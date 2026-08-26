@@ -499,7 +499,7 @@
     "ago_m": "{n} min temu",
     "ago_h": "{n} godz. temu",
     "data_age": "dane sprzed {age}",
-    "data_age_hint": "Samoch\u00f3d nie \u0142\u0105czy si\u0119 z chmur\u0105: widzisz ostatni\u0105 ramk\u0119, kt\u00f3r\u0105 chmura otrzyma\u0142a, a nie stan bie\u017c\u0105cy.",
+    "data_age_hint": "Samochód nie łączy się z chmurą: widzisz ostatnią ramkę, którą chmura otrzymała, a nie stan bieżący.",
     "cmd_timeout_car": "Wysłano — samochód nie potwierdził w czasie (słaby sygnał lub śpi). Może jednak zadziałało; spróbuj ponownie za chwilę.",
     "cmd_ready": "Gotowy na nowe polecenie",
     "cmd_sending": "Polecenie w toku… (jeszcze nie zakończone)",
@@ -1197,7 +1197,10 @@
     "desktop_remove_desc": "macOS nie ma deinstalatora: przeciągnięcie aplikacji do Kosza zostawia dane w Bibliotece. Stąd usuwa się wszystko.",
     "desktop_remove_btn": "Usuń Mate i wszystkie dane",
     "desktop_remove_confirm": "Usunąć Mate i WSZYSTKIE dane? Przejazdy, ładowania, ustawienia i certyfikat zostaną trwale skasowane. Aplikacja trafi do Kosza. Tego nie da się cofnąć — jeśli dane są potrzebne, najpierw zrób kopię w Eksport / Kopia zapasowa.",
-    "desktop_remove_doing": "Usuwanie — aplikacja zaraz się zamknie."
+    "desktop_remove_doing": "Usuwanie — aplikacja zaraz się zamknie.",
+    "fuel_edit": "Edytuj tankowanie",
+    "fuel_edit_save": "Zapisz zmiany",
+    "fuel_edit_cancel": "Anuluj"
   },
   "months": {
     "full": [
@@ -1230,6 +1233,14 @@
     ]
   },
   "weekdays": {
-    "abbr": ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Nie"]
+    "abbr": [
+      "Pon",
+      "Wt",
+      "Śr",
+      "Czw",
+      "Pt",
+      "Sob",
+      "Nie"
+    ]
   }
 }

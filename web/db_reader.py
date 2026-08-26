@@ -2574,6 +2574,91 @@ def delete_fuel_purchase(purchase_id: int) -> bool:
         db.close()
 
 
+def update_fuel_purchase(purchase_id: int, liters: Optional[float] = None,
+                         price_per_l: Optional[float] = None,
+                         total_cost: Optional[float] = None,
+                         note: Optional[str] = None,
+                         ts: Optional[str] = None) -> bool:
+    """Edit an existing refuel (beta discussion #34 @pdifeo: "change the price per litre … even the
+    other details"). Same derivation rule as add_fuel_purchase — a NEW €/L wins over a NEW total and
+    derives it; a total with no €/L derives the €/L — so the stored pair stays consistent. Fields left
+    as None keep their current value. `note=""` clears it.
+
+    The price pair is re-derived from scratch each call: the edit form always posts both fields
+    pre-filled, so what arrives is the user's full intent, never a half-update to merge blindly.
+    `fuel_before_pct` (the WAC residual weight) is refreshed ONLY when the instant actually moves —
+    a price correction must not rewrite history — and falls back to the old snapshot when no tank
+    reading precedes the new ts."""
+    liters = None if liters in (None, "") else float(liters)
+    ppl = None if price_per_l in (None, "") else float(price_per_l)
+    tot = None if total_cost in (None, "") else float(total_cost)
+    if liters is not None and liters <= 0:
+        raise ValueError("liters must be > 0")
+    if (ppl is not None and ppl <= 0) or (tot is not None and tot <= 0):
+        raise ValueError("price must be > 0")
+    db = _conn_rw()
+    try:
+        _ensure_fuel_purchases(db)
+        row = db.execute(
+            "SELECT vehicle_id, ts, liters, price_per_l, total_cost FROM fuel_purchases WHERE id = ?",
+            (int(purchase_id),)).fetchone()
+        if row is None:
+            return False
+        cur_ts = row["ts"]
+        new_liters = round(liters, 2) if liters is not None else row["liters"]
+        # Price contract, mirroring add_fuel_purchase: an arriving €/L always WINS (and derives the
+        # total); an arriving total alone derives the €/L; nothing arriving keeps the stored pair —
+        # unless the litres moved, in which case the pair is re-priced against the stored €/L so the
+        # two columns can never disagree about what one litre cost.
+        new_ppl, new_tot = row["price_per_l"], row["total_cost"]
+        if ppl is not None:
+            new_ppl, new_tot = ppl, ppl * new_liters
+        elif tot is not None:
+            new_tot, new_ppl = tot, tot / new_liters
+        elif liters is not None:
+            if new_ppl is not None:
+                new_tot = new_ppl * new_liters
+            elif new_tot is not None:
+                new_ppl = new_tot / new_liters
+        if new_ppl is not None and new_ppl <= 0:
+            raise ValueError("price must be > 0")
+        ts_changed = bool(ts) and ts != cur_ts
+        new_ts = ts if ts_changed else cur_ts
+        new_fb = None
+        if ts_changed:
+            old_fb_row = db.execute(
+                "SELECT fuel_before_pct FROM fuel_purchases WHERE id = ?", (int(purchase_id),)
+            ).fetchone()
+            old_fb = old_fb_row["fuel_before_pct"] if old_fb_row else None
+            new_fb = _fuel_before_pct(db, row["vehicle_id"], new_ts)
+            if new_fb is None:
+                new_fb = old_fb
+        db.execute(
+            "UPDATE fuel_purchases SET liters = ?, price_per_l = ?, total_cost = ?, "
+            "note = COALESCE(?, note), ts = ?, fuel_before_pct = COALESCE(?, fuel_before_pct) "
+            "WHERE id = ?",
+            (new_liters, round(new_ppl, 4) if new_ppl is not None else None,
+             round(new_tot, 2) if new_tot is not None else None,
+             note if note is not None else None, new_ts, new_fb, int(purchase_id)))
+        db.commit()
+        return True
+    finally:
+        db.close()
+
+
+def get_fuel_purchase(purchase_id: int) -> Optional[dict]:
+    """One refuel by id — the pre-fill for the inline edit form (beta discussion #34)."""
+    db = _conn_rw()
+    try:
+        _ensure_fuel_purchases(db)
+        r = db.execute(
+            "SELECT id, vehicle_id, ts, liters, price_per_l, total_cost, fuel_before_pct, note "
+            "FROM fuel_purchases WHERE id = ?", (int(purchase_id),)).fetchone()
+        return dict(r) if r else None
+    finally:
+        db.close()
+
+
 # ── Refuel auto-detection (beta #14 @gm27271) ───────────────────────────────────────────────────
 # A tank can only rise one way: somebody put fuel in it. Nothing recuperates into it, nothing
 # refills it while driving — so a rise in the car's OWN gauge *is* a refuel, and the only thing left

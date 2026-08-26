@@ -499,7 +499,7 @@
     "ago_m": "{n} min fa",
     "ago_h": "{n} h fa",
     "data_age": "dati di {age} fa",
-    "data_age_hint": "L\u2019auto non sta raggiungendo il cloud: quello che vedi \u00e8 l\u2019ultimo frame che il cloud ha ricevuto, non lo stato di adesso.",
+    "data_age_hint": "L’auto non sta raggiungendo il cloud: quello che vedi è l’ultimo frame che il cloud ha ricevuto, non lo stato di adesso.",
     "cmd_timeout_car": "Inviato — l'auto non ha confermato in tempo (segnale debole o in standby). Potrebbe aver funzionato lo stesso; riprova tra poco.",
     "cmd_ready": "Pronto per un nuovo comando",
     "cmd_sending": "Comando in corso… (non ancora completato)",
@@ -1197,7 +1197,10 @@
     "desktop_remove_desc": "macOS non ha un disinstallatore: trascinare l'app nel Cestino lascia i dati in Libreria. Da qui si toglie tutto.",
     "desktop_remove_btn": "Rimuovi Mate e i suoi dati",
     "desktop_remove_confirm": "Rimuovere Mate e TUTTI i suoi dati? Viaggi, ricariche, impostazioni e certificato verranno cancellati definitivamente. L'app finisce nel Cestino. Non si può annullare — se ti servono i dati, prima fai un backup da Esporta / Backup.",
-    "desktop_remove_doing": "Rimozione in corso — l'app si chiuderà fra un istante."
+    "desktop_remove_doing": "Rimozione in corso — l'app si chiuderà fra un istante.",
+    "fuel_edit": "Modifica rifornimento",
+    "fuel_edit_save": "Salva modifiche",
+    "fuel_edit_cancel": "Annulla"
   },
   "months": {
     "full": [
@@ -1230,6 +1233,14 @@
     ]
   },
   "weekdays": {
-    "abbr": ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]
+    "abbr": [
+      "Lun",
+      "Mar",
+      "Mer",
+      "Gio",
+      "Ven",
+      "Sab",
+      "Dom"
+    ]
   }
 }

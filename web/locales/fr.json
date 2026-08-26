@@ -498,8 +498,8 @@
     "ago_s": "il y a {n}s",
     "ago_m": "il y a {n} min",
     "ago_h": "il y a {n} h",
-    "data_age": "donn\u00e9es d\u2019il y a {age}",
-    "data_age_hint": "La voiture ne joint plus le cloud\u00a0: ce que vous voyez est la derni\u00e8re trame re\u00e7ue par le cloud, pas l\u2019\u00e9tat actuel.",
+    "data_age": "données d’il y a {age}",
+    "data_age_hint": "La voiture ne joint plus le cloud : ce que vous voyez est la dernière trame reçue par le cloud, pas l’état actuel.",
     "cmd_timeout_car": "Envoyé — la voiture n'a pas confirmé à temps (signal faible ou en veille). Ça a peut-être marché ; réessayez bientôt.",
     "cmd_ready": "Prêt pour une nouvelle commande",
     "cmd_sending": "Commande en cours… (pas encore terminée)",
@@ -1197,7 +1197,10 @@
     "desktop_remove_desc": "macOS n'a pas de désinstalleur : glisser l'app à la corbeille laisse vos données dans la Bibliothèque. Ici, tout part.",
     "desktop_remove_btn": "Supprimer Mate et ses données",
     "desktop_remove_confirm": "Supprimer Mate et TOUTES ses données ? Trajets, recharges, réglages et certificat seront effacés définitivement. L'app va à la corbeille. Irréversible — si vous tenez aux données, sauvegardez-les d'abord depuis Export / Sauvegarde.",
-    "desktop_remove_doing": "Suppression en cours — l'app va se fermer."
+    "desktop_remove_doing": "Suppression en cours — l'app va se fermer.",
+    "fuel_edit": "Modifier le plein",
+    "fuel_edit_save": "Enregistrer les modifications",
+    "fuel_edit_cancel": "Annuler"
   },
   "months": {
     "full": [
@@ -1230,6 +1233,14 @@
     ]
   },
   "weekdays": {
-    "abbr": ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+    "abbr": [
+      "Lun",
+      "Mar",
+      "Mer",
+      "Jeu",
+      "Ven",
+      "Sam",
+      "Dim"
+    ]
   }
 }

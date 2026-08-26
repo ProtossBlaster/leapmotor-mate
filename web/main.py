@@ -27,7 +27,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.14.11"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.14.12"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1822,6 +1822,57 @@ async def fuel_delete(request: Request):
         db_reader.delete_fuel_purchase(int(form.get("id")))
     except (TypeError, ValueError):
         pass
+    return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request),
+                                      headers={"HX-Trigger": "fuelChanged"})
+
+
+@app.get("/api/fuel/{purchase_id}/edit-form", response_class=HTMLResponse)
+async def fuel_edit_form(request: Request, purchase_id: int):
+    """The inline edit row for one refuel (beta discussion #34 @pdifeo). GET — it only reads and
+    renders the pre-filled form; the write happens on /api/fuel/edit."""
+    if _fuel_blocked():
+        return RedirectResponse(request.headers.get("x-ingress-path", "") + "/", status_code=303)
+    p = db_reader.get_fuel_purchase(purchase_id)
+    if not p:
+        return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request))
+    _ld = db_reader._local_dt(p.get("ts"))
+    p["ts_local_input"] = _ld.strftime("%Y-%m-%dT%H:%M") if _ld else ""
+    return templates.TemplateResponse(request, "partials/fuel_edit_row.html", _ctx(purchase=p))
+
+
+@app.get("/api/fuel/{purchase_id}/row", response_class=HTMLResponse)
+async def fuel_row(request: Request, purchase_id: int):
+    """One refuel row, re-rendered — what Annulla swaps the edit form back to, so closing the
+    editor never needs a whole-list round trip or a page reload."""
+    if _fuel_blocked():
+        return RedirectResponse(request.headers.get("x-ingress-path", "") + "/", status_code=303)
+    p = db_reader.get_fuel_purchase(purchase_id)
+    if not p:
+        return HTMLResponse("", status_code=200)
+    for key, src in (("ts_local", "ts"),):
+        _ld = db_reader._local_dt(p.get(src))
+        p[key] = _ld.strftime("%d/%m/%Y %H:%M") if _ld else (p.get(src) or "")
+    return templates.TemplateResponse(request, "partials/fuel_row.html", _ctx(p=p))
+
+
+@app.post("/api/fuel/edit", response_class=HTMLResponse)
+async def fuel_edit(request: Request):
+    """Apply an edit to one refuel: litres, price (€/L wins over total when both arrive, like the
+    add form), note, and the instant itself. Swaps the whole list back so the corrected row shows
+    immediately — same contract as every other fuel endpoint."""
+    if _fuel_blocked():
+        return RedirectResponse(request.headers.get("x-ingress-path", "") + "/", status_code=303)
+    form = await request.form()
+    try:
+        db_reader.update_fuel_purchase(
+            int(form.get("id")),
+            liters=form.get("liters"),
+            price_per_l=(form.get("price_per_l") or "").strip(),
+            total_cost=(form.get("total_cost") or "").strip(),
+            note=(form.get("note") or "").strip(),
+            ts=_fuel_local_to_utc((form.get("ts") or "").strip()) if (form.get("ts") or "").strip() else None)
+    except (TypeError, ValueError):
+        pass   # a bad number leaves the refuel untouched — the list swap shows the unchanged row
     return templates.TemplateResponse(request, "partials/fuel_content.html", _fuel_ctx(request),
                                       headers={"HX-Trigger": "fuelChanged"})
 

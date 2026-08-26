@@ -1197,7 +1197,10 @@
     "desktop_remove_desc": "macOS no tiene desinstalador: arrastrar la aplicación a la papelera deja tus datos en la Biblioteca. Esto se lo lleva todo.",
     "desktop_remove_btn": "Quitar Mate y sus datos",
     "desktop_remove_confirm": "¿Quitar Mate y TODOS sus datos? Los trayectos, las cargas, los ajustes y el certificado se borrarán para siempre. La aplicación se irá a la papelera. Esto no se puede deshacer — si quieres conservar los datos, haz antes una copia desde Exportar / Copia de seguridad.",
-    "desktop_remove_doing": "Quitando — la aplicación se cerrará dentro de un momento."
+    "desktop_remove_doing": "Quitando — la aplicación se cerrará dentro de un momento.",
+    "fuel_edit": "Editar repostaje",
+    "fuel_edit_save": "Guardar cambios",
+    "fuel_edit_cancel": "Cancelar"
   },
   "months": {
     "full": [
@@ -1230,6 +1233,14 @@
     ]
   },
   "weekdays": {
-    "abbr": ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    "abbr": [
+      "Lun",
+      "Mar",
+      "Mié",
+      "Jue",
+      "Vie",
+      "Sáb",
+      "Dom"
+    ]
   }
 }

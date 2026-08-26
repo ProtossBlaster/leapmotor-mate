@@ -1,0 +1,66 @@
+{# The inline edit form for one refuel (beta discussion #34 @pdifeo) — swapped in place of its row
+   by ✏️, swapped back by Annulla (/api/fuel/{{ p.id }}/row). Pre-filled with the stored values; the
+   same price contract as the add form applies server-side: a filled €/L wins over the total. #}
+<form id="fuel-row-{{ purchase.id }}"
+      hx-post="api/fuel/edit" hx-target="#fuel-content" hx-swap="innerHTML"
+      style="margin:0" class="bg-slate-950 rounded-xl p-3 border border-brand/60 space-y-3">
+  <input type="hidden" name="id" value="{{ purchase.id }}">
+  <div class="text-xs font-semibold text-white">✏️ {{ t('fuel_edit') }}</div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <label class="block">
+      <span class="text-xs text-slate-400">🕒 {{ t('fuel_when') }}</span>
+      <input type="datetime-local" name="ts" value="{{ purchase.ts_local_input }}"
+             class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-brand">
+    </label>
+    <label class="block">
+      <span class="text-xs text-slate-400">⛽ {{ t('fuel_liters') }}</span>
+      <input type="number" name="liters" step="0.01" min="0" required inputmode="decimal"
+             value="{{ purchase.liters }}"
+             class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-sm text-right focus:outline-none focus:border-brand">
+    </label>
+    <label class="block">
+      <span class="text-xs text-slate-400">💶 {{ t('fuel_price_per_l') }} <span class="text-slate-600">({{ currency.symbol }}/L)</span></span>
+      <input type="number" name="price_per_l" step="0.001" min="0" inputmode="decimal"
+             value="{{ '%.3f' | format(purchase.price_per_l or 0) }}" data-price-pair="ppl"
+             class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-sm text-right focus:outline-none focus:border-brand">
+    </label>
+    <label class="block">
+      <span class="text-xs text-slate-400">🧾 {{ t('fuel_total') }} <span class="text-slate-600">({{ currency.symbol }})</span></span>
+      <input type="number" name="total_cost" step="0.01" min="0" inputmode="decimal"
+             value="{{ '%.2f' | format(purchase.total_cost or 0) }}" data-price-pair="tot"
+             class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-sm text-right focus:outline-none focus:border-brand">
+    </label>
+  </div>
+  <p class="text-[11px] text-slate-500">💡 {{ t('fuel_either_hint') }}</p>
+  <label class="block">
+    <span class="text-xs text-slate-400">📝 {{ t('fuel_note') }}</span>
+    <input type="text" name="note" maxlength="120" value="{{ purchase.note or '' }}"
+           placeholder="{{ t('fuel_note_ph') }}"
+           class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-brand">
+  </label>
+  <div class="flex items-center justify-end gap-2 mt-1">
+    <button type="button" hx-get="api/fuel/{{ purchase.id }}/row"
+            hx-target="#fuel-row-{{ purchase.id }}" hx-swap="outerHTML"
+            class="bg-slate-800 text-slate-300 text-sm rounded-lg px-4 py-2">
+      {{ t('fuel_edit_cancel') }}
+    </button>
+    <button type="submit" class="bg-brand text-white text-sm font-semibold rounded-lg px-5 py-2">
+      {{ t('fuel_edit_save') }}
+    </button>
+  </div>
+</form>
+<script>
+  {# Both price fields arrive pre-filled, so without this an edit to ONLY the total would be
+     silently overruled by the stale €/L (server rule: €/L wins when both are posted — the same
+     contract as the add form). Typing in one blanks the other; blank means "keep/derive". #}
+  (function () {
+    var form = document.getElementById('fuel-row-{{ purchase.id }}');
+    if (!form) return;
+    form.querySelectorAll('[data-price-pair]').forEach(function (input) {
+      input.addEventListener('input', function () {
+        var other = form.querySelector('[data-price-pair]:not([data-price-pair="' + this.dataset.pricePair + '"])');
+        if (other && this.value) other.value = '';
+      });
+    });
+  })();
+</script>

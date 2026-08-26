@@ -1197,7 +1197,10 @@
     "desktop_remove_desc": "macOS heeft geen verwijderprogramma: de app naar de prullenmand slepen laat je gegevens in de Bibliotheek achter. Dit haalt alles weg.",
     "desktop_remove_btn": "Mate en zijn gegevens verwijderen",
     "desktop_remove_confirm": "Mate en AL zijn gegevens verwijderen? Ritten, laadbeurten, instellingen en het certificaat worden definitief gewist. De app gaat naar de prullenmand. Dit kan niet ongedaan gemaakt worden — wil je de gegevens houden, maak dan eerst een back-up via Export / Back-up.",
-    "desktop_remove_doing": "Bezig met verwijderen — de app sluit zo."
+    "desktop_remove_doing": "Bezig met verwijderen — de app sluit zo.",
+    "fuel_edit": "Tankbeurt bewerken",
+    "fuel_edit_save": "Wijzigingen opslaan",
+    "fuel_edit_cancel": "Annuleren"
   },
   "months": {
     "full": [

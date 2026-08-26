@@ -1,5 +1,6 @@
-{# Tank state + refuel history. Included by fuel.html and returned by /api/fuel/add|delete and by
-   the two detected/* endpoints (HTMX). #}
+{# Tank state + refuel history. Included by fuel.html and returned by /api/fuel/add|delete|edit and
+   by the two detected/* endpoints (HTMX). Each row lives in its own partial so ✏️ can swap it with
+   the inline edit form and Annulla can swap it straight back. #}
 <div class="space-y-5">
 
   <!-- Refuels Mate spotted and the user hasn't ruled on. First, because it is the only thing on
@@ -37,36 +38,7 @@
     <h2 class="font-semibold text-white mb-3">📒 {{ t('fuel_history_title') }}</h2>
     {% if purchases %}
     <div class="space-y-2">
-      {% for p in purchases %}
-      <div class="flex items-center gap-3 bg-slate-950 rounded-xl p-3 border border-slate-900">
-        <div class="text-2xl flex-shrink-0">⛽</div>
-        <div class="flex-1 min-w-0">
-          <div class="text-sm font-semibold text-white">
-            {{ p.liters | nice }} L · {{ p.price_per_l | price3 }} {{ currency.symbol }}/L
-          </div>
-          <div class="text-[11px] text-slate-400 truncate">
-            {{ p.ts_local }} · {{ t('fuel_total') }}: {{ p.total_cost | money }}{% if p.note %} · {{ p.note }}{% endif %}
-          </div>
-        </div>
-        {# 🧭 — fill the note with where the car was standing, the same button trips and charges
-           have (@gm27271, beta discussion #14: "then users do not need to enter any notes"). It
-           asks first only when there is a note to lose, exactly like charge_card.html. #}
-        <button hx-post="api/fuel/{{ p.id }}/auto-note" hx-target="#fuel-content" hx-swap="innerHTML"
-                hx-disabled-elt="this" hx-indicator="#fuel-note-spin-{{ p.id }}"
-                {% if p.note %}hx-confirm="{{ t('auto_note_overwrite_confirm') }}"{% endif %}
-                title="{{ t('auto_note_generate_btn') }}"
-                class="text-slate-500 hover:text-brand px-2 text-base flex-shrink-0 disabled:opacity-40"
-                style="background:none;border:none;cursor:pointer">
-          <span id="fuel-note-spin-{{ p.id }}" class="htmx-indicator">⏳</span><span>🧭</span>
-        </button>
-        <form hx-post="api/fuel/delete" hx-target="#fuel-content" hx-swap="innerHTML"
-              hx-confirm="{{ t('fuel_delete_confirm') }}" style="margin:0" class="flex-shrink-0">
-          <input type="hidden" name="id" value="{{ p.id }}">
-          <button type="submit" class="text-slate-500 hover:text-red-400 px-2 text-base"
-                  title="{{ t('fuel_delete') }}">🗑</button>
-        </form>
-      </div>
-      {% endfor %}
+      {% for p in purchases %}{% include "partials/fuel_row.html" %}{% endfor %}
     </div>
     {% else %}
     <p class="text-sm text-slate-500">{{ t('fuel_empty') }}</p>

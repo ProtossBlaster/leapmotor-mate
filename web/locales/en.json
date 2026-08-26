@@ -499,7 +499,7 @@
     "ago_m": "{n}m ago",
     "ago_h": "{n}h ago",
     "data_age": "data {age} old",
-    "data_age_hint": "The car isn\u2019t reaching the cloud: what you see is the last frame the cloud received, not the car right now.",
+    "data_age_hint": "The car isn’t reaching the cloud: what you see is the last frame the cloud received, not the car right now.",
     "cmd_timeout_car": "Sent — the car didn't confirm in time (weak signal or asleep). It may still have worked; try again shortly.",
     "cmd_ready": "Ready for a new command",
     "cmd_sending": "Command in progress… (not yet completed)",
@@ -1197,7 +1197,10 @@
     "desktop_remove_desc": "macOS has no uninstaller: dragging the app to the Bin leaves your data in the Library. This takes everything.",
     "desktop_remove_btn": "Remove Mate and its data",
     "desktop_remove_confirm": "Remove Mate and ALL of its data? Trips, charges, settings and the certificate will be deleted for good. The app goes to the Bin. This cannot be undone — if you want the data, back it up first from Export / Backup.",
-    "desktop_remove_doing": "Removing — the app will close in a moment."
+    "desktop_remove_doing": "Removing — the app will close in a moment.",
+    "fuel_edit": "Edit refuel",
+    "fuel_edit_save": "Save changes",
+    "fuel_edit_cancel": "Cancel"
   },
   "months": {
     "full": [
@@ -1230,6 +1233,14 @@
     ]
   },
   "weekdays": {
-    "abbr": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    "abbr": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun"
+    ]
   }
 }

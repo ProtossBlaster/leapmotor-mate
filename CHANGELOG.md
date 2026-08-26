@@ -3,6 +3,20 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.12] — 2026-08-26
+
+**Edit a refuel after the fact** (beta discussion #34, asked by **@pdifeo**).
+
+The price is the one thing the cloud can never know about a refuel — and the one thing a pump
+receipt corrects: a discount applied at the till, a total that quietly includes a coffee. Until
+now the only way to fix a typed-wrong €/L was to delete the whole entry and retype it. Every refuel
+row on the Rifornimenti page now carries a ✏️ that opens the add form's twin in place, pre-filled:
+litres, €/L or total, note, and the instant itself. The server keeps the price pair consistent
+exactly as the add form does — a filled €/L wins over the total, and editing the litres re-prices
+the session against its €/L. The WAC's residual snapshot moves only when the instant moves, so a
+price correction never rewrites the blend behind every trip's fuel cost. Annulla swaps the row back
+without a reload; saving refreshes the list and the month calendar like every other fuel action.
+
 ## [3.14.11] — 2026-08-26
 
 **One consumption figure, the same on every page** (beta #35, found by **@michapr**).

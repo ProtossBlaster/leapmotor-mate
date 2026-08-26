@@ -495,11 +495,11 @@
     "ac_target": "Objetivo A/C",
     "battery_temp": "Temp. bateria",
     "last_seen": "Visto pela última vez",
-    "ago_s": "h\u00e1 {n}s",
-    "ago_m": "h\u00e1 {n} min",
-    "ago_h": "h\u00e1 {n} h",
-    "data_age": "dados de h\u00e1 {age}",
-    "data_age_hint": "O carro n\u00e3o est\u00e1 a alcan\u00e7ar a cloud: v\u00ea a \u00faltima trama que a cloud recebeu, n\u00e3o o estado atual.",
+    "ago_s": "há {n}s",
+    "ago_m": "há {n} min",
+    "ago_h": "há {n} h",
+    "data_age": "dados de há {age}",
+    "data_age_hint": "O carro não está a alcançar a cloud: vê a última trama que a cloud recebeu, não o estado atual.",
     "cmd_timeout_car": "Enviado — o carro não confirmou a tempo (sinal fraco ou adormecido). Pode ainda assim ter funcionado; tenta de novo em breve.",
     "cmd_ready": "Pronto para novo comando",
     "cmd_sending": "Comando em curso… (ainda não concluído)",
@@ -1197,7 +1197,10 @@
     "desktop_remove_desc": "O macOS não tem desinstalador: arrastar a app para o Lixo deixa os dados na Biblioteca. Aqui remove-se tudo.",
     "desktop_remove_btn": "Remover o Mate e os seus dados",
     "desktop_remove_confirm": "Remover o Mate e TODOS os seus dados? Viagens, carregamentos, definições e o certificado serão apagados definitivamente. A app vai para o Lixo. Não é reversível — se precisa dos dados, faça primeiro uma cópia em Exportar / Cópia de segurança.",
-    "desktop_remove_doing": "A remover — a app vai fechar-se num instante."
+    "desktop_remove_doing": "A remover — a app vai fechar-se num instante.",
+    "fuel_edit": "Editar abastecimento",
+    "fuel_edit_save": "Guardar alterações",
+    "fuel_edit_cancel": "Cancelar"
   },
   "months": {
     "full": [
@@ -1230,6 +1233,14 @@
     ]
   },
   "weekdays": {
-    "abbr": ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+    "abbr": [
+      "Seg",
+      "Ter",
+      "Qua",
+      "Qui",
+      "Sex",
+      "Sáb",
+      "Dom"
+    ]
   }
 }
