@@ -5,7 +5,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [3.14.12] — 2026-08-26
 
-**Edit a refuel after the fact** (beta discussion #34, asked by **@pdifeo**).
+**Edit a refuel after the fact** (beta discussion [#34](https://github.com/ProtossBlaster/MateBetaTesterOnly/discussions/34), asked by **@pdifeo**).
 
 The price is the one thing the cloud can never know about a refuel — and the one thing a pump
 receipt corrects: a discount applied at the till, a total that quietly includes a coffee. Until
@@ -19,7 +19,7 @@ without a reload; saving refreshes the list and the month calendar like every ot
 
 ## [3.14.11] — 2026-08-26
 
-**One consumption figure, the same on every page** (beta #35, found by **@michapr**).
+**One consumption figure, the same on every page** (beta [#35](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/35), found by **@michapr**).
 
 The Trips, Statistics and Monthly Report pages each worked kWh/100km out their own way, so one month
 could read three numbers. On @michapr's July: **10.1** on Trips (getEC over the km getEC covers),
@@ -43,7 +43,7 @@ returns.
 
 ## [3.14.9] — 2026-08-26
 
-**BetaTester bundle: the refuels, and what each page computed** (beta #35 and #36, from **@michapr**).
+**BetaTester bundle: the refuels, and what each page computed** (beta [#35](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/35) and [#36](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/36), from **@michapr**).
 
 Two range-extender questions arrived on the same day — a monthly cost that looked too low, and a
 kWh/100km that read three different ways on three pages — and the diagnostic bundle could not answer
@@ -56,7 +56,7 @@ of reproduced by hand. No coordinates, no free text; the normal build is unchang
 
 ## [3.14.8] — 2026-08-25
 
-**The charging dashboard shows the real target, not a fixed 100%** (beta #33, found by **@pdifeo**).
+**The charging dashboard shows the real target, not a fixed 100%** (beta [#33](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/33), found by **@pdifeo**).
 
 While charging, the Overview chip read "· 7h 25m to 100%" even when the car was set to stop at 90%.
 The time was right; the target beside it was not — it fell back to 100 whenever the car's scheduled
@@ -133,7 +133,7 @@ would have brought the defect back on the first manual refresh — and the page 
 ## [3.14.5] — 2026-08-18
 
 **Two cars, two more places that were not asking which one** (#253, @cookingeek) — and a label on a
-REEV figure that was being read as something it is not (beta #31, @gm27271).
+REEV figure that was being read as something it is not (beta [#31](https://github.com/ProtossBlaster/MateBetaTesterOnly/discussions/31), @gm27271).
 
 ### The third sweep for this defect family, and the first done in full
 
@@ -238,7 +238,7 @@ car, or with a selection naming a car the account no longer has, nothing changes
   produce "no charges" — it produces half of one.
 
 ### For range-extenders
-- **Refuelling in the middle of a drive no longer erases that drive's petrol** (beta #30, @pdifeo).
+- **Refuelling in the middle of a drive no longer erases that drive's petrol** (beta [#30](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/30), @pdifeo).
   Litres = start − end goes negative on a refuel, and the trip came out as fully electric. It is now
   unknown rather than zero, and says so.
 - **The BetaTester bundle carries the charges and the behaviour settings.** It had neither, so a
@@ -370,7 +370,7 @@ not watching.**
 ### Added
 
 - 🔗 **Joining two charges.** The car declares the cable GONE the instant the current stops, on
-  fresh frames, so a single plug-in can be recorded as several charges: @michapr (beta #29) was
+  fresh frames, so a single plug-in can be recorded as several charges: @michapr (beta [#29](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/29)) was
   split by one 30-second frame, and a load-balancing wallbox turned one night into six rows. A
   grace window in the poller would have to guess how long a real pause lasts, and a closed charge
   is never recomputed — the guess would be silent and permanent. So the rows stay as the car
@@ -447,7 +447,7 @@ not watching.**
 
 ### Fixed
 
-- ⛽ **How far the generator drove, measured against the car's own dashboard.** @pdifeo (beta #28)
+- ⛽ **How far the generator drove, measured against the car's own dashboard.** @pdifeo (beta [#28](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/28))
   sent five drives with the thing we almost never get: **photographs of his C10's own screen**,
   which states the petrol distance per drive. Mate stated much less — 35.0 km where the car said
   60.2, and one 3 km drive where it said the generator had run and then showed no distance at all.
@@ -464,7 +464,7 @@ not watching.**
   Reading them takes the same five drives from 35.0 km to **54.0 km** against the car's 60.2.
 
   ⚠️ Second time this file has made this mistake: `_reev_trip_fuel` had its noise floor on the
-  percentage while reading the millilitres (beta #22/#23). Same disease, one function up.
+  percentage while reading the millilitres (beta [#22](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/22)/[#23](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/23)). Same disease, one function up.
 
   A car that does not send the millilitres, and every trip recorded before v2.14.1, keep the
   percentage walk — worse, but it is what those rows have, and it must not become nothing.
@@ -1122,7 +1122,7 @@ to name the half that had been missed.
   the statistics period reset too. Reported by @michapr (#236).
 
   The month and the period are held in the page, not in the address, so `location.reload()` could
-  never restore them. The idle guards added for @pdifeo in beta #22 could not help either: they
+  never restore them. The idle guards added for @pdifeo in beta [#22](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/22) could not help either: they
   protect a field being typed in or a mode switched on, and a choice already made and now being
   *read* looks exactly like an idle page. Both pages show history, so there is nothing live for a
   reload to fetch and the refresh button is in the header. Every other page keeps its 30 seconds.
@@ -1150,7 +1150,7 @@ to name the half that had been missed.
 
   Measured on a 30 + 30 km drive that burned **2.9 L**: the Trips list said **4.8 L/100km** and the
   trip's own page said **2.5** — one drive, two pages, two answers, and neither number looked wrong
-  on its own. It is beta #20 returning through the millilitre path added in v2.14.1, which the fix
+  on its own. It is beta [#20](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/20) returning through the millilitre path added in v2.14.1, which the fix
   of the time never covered; merging writes only the link between the trips, so nothing rewrote the
   first segment's tank afterwards. Found while checking something else — nobody reported it.
 
@@ -1164,7 +1164,7 @@ to name the half that had been missed.
 
 - ⚡ **The trip page shows the electric kWh/100 km on a generator drive.** The Trips list has
   printed it since the range-extender work; the trip's own page showed a dash for the very same
-  drive. @michapr (beta #27): *"I think the 1.2 kWh are right. Because all other energy is coming
+  drive. @michapr (beta [#27](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/27)): *"I think the 1.2 kWh are right. Because all other energy is coming
   from generator — counted by fuel usage."* He is right that the pair describes the drive: 1.2 kWh
   **and** 4.6 L, each over the whole distance.
 
@@ -1278,7 +1278,7 @@ one case in 35.
 The bundle reported the vampire-drain thresholds and **not that one**. It does now.
 
 ### Fixed
-- 🔴 **The cost card was billing petrol that is still in the tank.** @michapr (beta #25) said the
+- 🔴 **The cost card was billing petrol that is still in the tank.** @michapr (beta [#25](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/25)) said the
   card "looks wrong"; asked which number, he pointed at **27.72 €/100 km**, of which **24.18 €** was
   fuel. Measured on the trips in his own bundle:
 
@@ -1293,7 +1293,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   move the car on kilometres this window has never seen.
 
   Everywhere else Mate multiplies **litres burned × a blended €/L**, the lookup written for this
-  same tester on beta #11. So the Trips page said that petrol cost 18.54 € while the Statistics card
+  same tester on beta [#11](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/11). So the Trips page said that petrol cost 18.54 € while the Statistics card
   said 116 €: two numbers under one word, same program, same period, same car. The card now uses the
   same figure. Two existing tests had to be corrected — they asserted the old behaviour, and were
   asserting the defect.
@@ -1303,7 +1303,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
 
 ### Changed
 - **On a range-extender the trip's fuel sits in the header**, beside the kWh — which is what a car
-  with no tank already does with its one energy figure (@michapr, beta #27). Looking at the rendered
+  with no tank already does with its one energy figure (@michapr, beta [#27](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/27)). Looking at the rendered
   page made his point sharper than his words: the header showed **12.4** as AVG CONSUMPTION and
   **12.4 kWh** as ENERGY USED, and the amber "Dual energy" box underneath opened with **12.4 kWh**
   again — the same number three times in one column, the third framed as a warning, for something
@@ -1400,7 +1400,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   compare. And the page no longer fetches Home Assistant history at all, which is what made it take
   five to ten seconds to open.
 
-- **A range-extender's L/100 km was divided by the generator trips alone.** @michapr (beta #26).
+- **A range-extender's L/100 km was divided by the generator trips alone.** @michapr (beta [#26](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/26)).
   v3.6.9 moved this figure onto the whole distance and the line was changed with it, but the query
   above it still selected only the trips whose tank had dropped — so the denominator could never see
   an electric kilometre. On his own history it read **5.85 L/100 km instead of 2.0**, against the
@@ -1408,7 +1408,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   summed over had not.
 
 ### Added
-- **The Cost per 100 km card now also says how many kWh those 100 km took.** @michapr (beta #25),
+- **The Cost per 100 km card now also says how many kWh those 100 km took.** @michapr (beta [#25](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/25)),
   who worked the method out on his own history and cross-checked it two independent ways.
 
   It is a **closed-system balance**, not a sum of trips: *energy charged inside the window* minus
@@ -1427,13 +1427,13 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   shows a kWh/100 km that means something different and the two are about 28 % apart.
 
 - **What the generator itself drinks while it runs**, on the Statistics page beside the pair
-  measured by the car. @michapr (beta #26) — *"certainly an interesting technical metric"*. On his
+  measured by the car. @michapr (beta [#26](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/26)) — *"certainly an interesting technical metric"*. On his
   history that is **15.2 L/100 km over the 63 km the generator drove**, against 2.0 over all 479.
   Same unit, same card, seven times apart, so it carries **"while running"** next to the figure.
   Range-extender and BetaTester only, gated on the data rather than on the markup.
 
 - **The Trips period strip says what its efficiency covers** — *"over 452 km of 509 km"* with an ⓘ,
-  and only when the two differ. @michapr (beta #11), in his wording rather than mine: a figure over
+  and only when the two differ. @michapr (beta [#11](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/11)), in his wording rather than mine: a figure over
   452 km tells you nothing on its own about whether that slice is most of the window or a corner
   of it.
 
@@ -1464,7 +1464,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
 
 ### Changed
 - **On a range extender the trip's ENERGY USED tile shows getEC and nothing derived from SoC.**
-  @michapr (beta #11): *"we should only show the getEC value that is actually used for the
+  @michapr (beta [#11](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/11)): *"we should only show the getEC value that is actually used for the
   calculation"*. Both branches it chose between were SoC arithmetic — `battery_net_kwh` is
   ΔSoC × capacity, and the consumption figure is efficiency × distance where the efficiency itself
   came from ΔSoC when the trip closed. On a series hybrid the generator refills the pack mid-drive,
@@ -1488,7 +1488,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
 ### Changed
 - **A range-extender trip now shows the TOTAL energy that left the battery, not the driving share.**
   The card read `ec_driving`, while the money printed beside it is billed on `ec_kwh` — so
-  @michapr's trips showed "1.7 kWh" over a cost worked out on 2.0 (beta #11). Two electric figures
+  @michapr's trips showed "1.7 kWh" over a cost worked out on 2.0 (beta [#11](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/11)). Two electric figures
   on one card, and the one on show was not the one paid. A plain electric car has always been
   billed on the total; a range-extender now matches it. On @michapr's history the figure goes from
   3.2 to **2.71 kWh/100 km**.
@@ -1519,7 +1519,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
 ### Fixed
 - 🔴 **A range-extender's day and month showed the electric half of the bill.** @michapr's 28 July
   read **129 km · 8.3 L · 0.08 €**, and his July strip **416 km · 9.6 L · 9.02 €** against the ~33 €
-  he worked out by hand (beta #11).
+  he worked out by hand (beta [#11](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/11)).
 
   The totals folded `cost`, which is the **electric** line by design — the petrol has a field of its
   own so every existing reader keeps the meaning it had. And a generator trip carries no efficiency,
@@ -1538,7 +1538,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   distances.** The consumption pill is the efficiency the car MEASURED, and Mate stores none for a
   generator trip — so it covered the battery-driven part of the window while the litres beside it
   covered all of it. Fixed in the Trips header in v3.7.0 and left in these two; @michapr found both
-  within two hours (beta #24 → beta #11). On a range-extender all three now divide by the same
+  within two hours (beta [#24](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/24) → beta [#11](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/11)). On a range-extender all three now divide by the same
   kilometres, from the same SoC-based rule the Statistics page uses, so the pages cannot disagree.
   A BEV keeps the measured efficiency everywhere.
 
@@ -1604,7 +1604,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   filtering those children out, while the distance beside it never did. So the litres came up short
   and the kilometres did not, and the L/100 km divided one by the other.
 
-  On **@michapr**'s B10 (beta #23) his 28 July 07:56 trip was merged into the 2 km hop before it and
+  On **@michapr**'s B10 (beta [#23](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/23)) his 28 July 07:56 trip was merged into the 2 km hop before it and
   carried **3.7 of his 9.6 L**: the card read **5.9**, through four rounds of me looking in the
   wrong place. It is the second half of his #20 — on 31 July I fixed how a merged group *reads* its
   fuel and left the period query filtering the child away. One rule, two places, one corrected.
@@ -1614,7 +1614,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   generator trip — so it covered only the battery-driven part of the window while the litres beside
   it covered all of it. On a range-extender that tile now uses the same kilometres as the fuel tile
   next to it; a BEV keeps the measured figure, and so does the Statistics page, where it is labelled
-  with the distance it covers. Reported by **@michapr** (beta #24).
+  with the distance it covers. Reported by **@michapr** (beta [#24](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/24)).
 
   Side effect worth knowing: on a car driven mostly by the generator that tile used to read **—**,
   because none of those trips has an efficiency to average.
@@ -2021,7 +2021,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
 
 ### Fixed
 - **A code comment described a diagnosis that had been publicly retracted ten days earlier.** The
-  REEV charge-detection rule in `poller/client.py` cited beta #12 (@michapr) as an instance of "pack
+  REEV charge-detection rule in `poller/client.py` cited beta [#12](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/12) (@michapr) as an instance of "pack
   current reads ~0 during AC charging". That is the **C10** signature; his B10 reads −3.8 A, the
   rule shipped for him in v2.8.4 changed nothing, and his car is covered by the SoC-rise branch
   added in v2.8.6 instead. All of that was said in the issue on 24 July and never made it back into
@@ -2273,7 +2273,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
 
 ### Added
 - **Settings → Vehicle now names the account this instance signs in with.** Asked for by
-  **@ebagnoli** (beta #13), who runs several Mate instances against several Leapmotor accounts and
+  **@ebagnoli** (beta [#13](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/13)), who runs several Mate instances against several Leapmotor accounts and
   had no way to tell them apart from inside the app: the card gave the model and the VIN, and both
   of those describe the **car**, not the login. Two instances watching the same car were identical
   on screen. The row sits under the VIN and reuses the label the setup wizard already has, so it
@@ -2364,7 +2364,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   fills up and drives home is the next time the car woke. So the address is only written when the
   car actually reported a position within twenty minutes of it — otherwise the note is left empty,
   because naming the wrong forecourt is worse than naming none. Range-extender cars only.
-  _(beta discussion #14.)_
+  _(beta discussion [#14](https://github.com/ProtossBlaster/MateBetaTesterOnly/discussions/14).)_
 
 ## [3.4.6] — 2026-08-01
 
@@ -2383,7 +2383,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   The same constant was quietly doing a second, unrelated job: the slack that lets a session still
   be matched to the trip it belongs to, sized on the ~1 minute the gear-P trip-end lags behind
   ready-off. Lowering both together would have left that slack exactly equal to the lag it exists to
-  cover, so the two questions now have two numbers. _(beta #19.)_
+  cover, so the two questions now have two numbers. _(beta [#19](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/19).)_
 
 ## [3.4.5] — 2026-08-01
 
@@ -2474,7 +2474,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   consent screen. All seven languages. The beta repository's issue form, its acknowledgement
   checkbox, both READMEs, the add-on documentation, the consent notice and the add-on store
   description carried the same discouragement in seven more places and now say the same thing.
-  _(beta #17, @pdifeo.)_
+  _(beta [#17](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/17), @pdifeo.)_
 
 ## [3.4.2] — 2026-07-31
 
@@ -2484,7 +2484,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   the neighbour as *"the adjacent one"*, which says neither *previous* nor *next* nor *how many*.
   The reporter had to come back and ask which trip was meant; his was the previous one. The message
   now lists the other trips by their start time, so a session holding three of them no longer
-  describes itself in the singular either. All seven languages. _(beta #19, @michapr.)_
+  describes itself in the singular either. All seven languages. _(beta [#19](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/19), @michapr.)_
 
 ## [3.4.1] — 2026-07-31
 
@@ -2501,7 +2501,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   Nothing was lost from the database: the segments kept their own readings throughout, so every
   merged trip already in your history reports its fuel again with no re-recording, and unmerging was
   never necessary. The same figure feeds the trips list, so the ⛽ marker returns there too.
-  _(beta #20, reported by @michapr — who hit it by following Mate's own advice to merge.)_
+  _(beta [#20](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/20), reported by @michapr — who hit it by following Mate's own advice to merge.)_
 
 ## [3.4.0] — 2026-07-31
 
@@ -2519,12 +2519,12 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   are true, they answer different questions, and putting a minus sign on the second would have been
   the wrong number under the right label. Where the pack drained normally, the net stays out — the
   consumption figure already says it, and one trip should not print two energy numbers.
-  _(beta #11, reported by @michapr and @gm27271.)_
+  _(beta [#11](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/11), reported by @michapr and @gm27271.)_
 
 ### Changed
 - **"From the car's own gauges" now reads "Measured by the car".** The old wording made the figure
   sound like a second opinion when it is the energy you actually have to put back in. All seven
-  languages. _(beta #11, @michapr.)_
+  languages. _(beta [#11](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/11), @michapr.)_
 
 ## [3.3.1] — 2026-07-31
 
@@ -2732,7 +2732,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
 ## [2.19.2] — 2026-07-30
 
 ### Fixed
-- **One tank of fuel is one refuel again.** A float gauge does not jump to the final level — it climbs there in steps, and the car reports every one. Measured on **@pdifeo**'s C10 (beta #17): 70.2 → 78.0 → 87.0 → 98.1 → 100.0 % in twenty-eight seconds. Mate read those pairwise and filed each rise as its own refuel, so one fill-up showed up as **three**. It now follows the fill while the level keeps climbing and records it once, absorbing the small final step as well — that step is under the detection floor, and dropping it was costing nine tenths of a litre off every full tank. His fill reads 33.390 → 47.500 L, one row. Tuning the floor could never have fixed this: raise it and you still get three, lower it and you get four. **This reached the beta testers running a range-extender** — the Refuels page needs both a REEV and the BetaTester build. _(Corrected 2026-08-01: this entry first claimed the page ships publicly and that every REEV owner was affected. It does not and they were not — the gate has been in place since 2026-07-13. The defect and the fix are unchanged; only their reach was overstated.)_ As a bonus his tank reads 47.500 L at 100 %, confirming the C10 capacity correction from v2.14.1 on a second car.
+- **One tank of fuel is one refuel again.** A float gauge does not jump to the final level — it climbs there in steps, and the car reports every one. Measured on **@pdifeo**'s C10 (beta [#17](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/17)): 70.2 → 78.0 → 87.0 → 98.1 → 100.0 % in twenty-eight seconds. Mate read those pairwise and filed each rise as its own refuel, so one fill-up showed up as **three**. It now follows the fill while the level keeps climbing and records it once, absorbing the small final step as well — that step is under the detection floor, and dropping it was costing nine tenths of a litre off every full tank. His fill reads 33.390 → 47.500 L, one row. Tuning the floor could never have fixed this: raise it and you still get three, lower it and you get four. **This reached the beta testers running a range-extender** — the Refuels page needs both a REEV and the BetaTester build. _(Corrected 2026-08-01: this entry first claimed the page ships publicly and that every REEV owner was affected. It does not and they were not — the gate has been in place since 2026-07-13. The defect and the fix are unchanged; only their reach was overstated.)_ As a bonus his tank reads 47.500 L at 100 %, confirming the C10 capacity correction from v2.14.1 on a second car.
 
 ### Changed
 - The comment describing when a charge session closes said it "only CLOSES when the cable is pulled". Measured on a real car over one night: when a load-balancing wallbox stops the current, the car reports the cable **gone** — so the session does close, and a single plug-in was recorded as six charges. Behaviour is unchanged; the comment now states what the data says, so the next reader does not inherit a false premise.
@@ -2885,7 +2885,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
 ### Fixed
 - **The setup wizard showed the word "undefined" in French and German**, where the warning to use a Leapmotor account dedicated to Mate belongs — the single most important line of the whole setup, and the cause of the most common problem people report. The wizard keeps its own set of strings, separate from the rest of the app, and that one had never been translated; JavaScript renders a missing string as the literal text "undefined". Anyone setting Mate up in those two languages simply never saw the warning.
 - **German and Polish were missing 80 and 91 strings**, so parts of the app appeared in English. All six languages now carry all 1027. Nothing was checking any of this, which is why both faults survived: **it is now checked** — every language must match English in both directions, every wizard language must match too, and the accepted-language list in the code must agree with the files on disk.
-- **Range-extenders no longer announce "Fully charged" while the car is filling.** Signal 3736 was mapped as "charge completed"; nine complete charges from a B10 REEV show it turns **on** when a charge starts — cable in, current flowing, hours remaining — and off when it ends. On a REEV it means "a charge is running", so Mate now says "plugged in" rather than repeating a completion it cannot establish. What replaced it was a tolerance fitted to the first report, which hid the fault early in a charge and let it through near the end — where it was most likely to be seen. Fully-electric cars are untouched. Found from **@michapr**'s diagnostic bundles (beta #12).
+- **Range-extenders no longer announce "Fully charged" while the car is filling.** Signal 3736 was mapped as "charge completed"; nine complete charges from a B10 REEV show it turns **on** when a charge starts — cable in, current flowing, hours remaining — and off when it ends. On a REEV it means "a charge is running", so Mate now says "plugged in" rather than repeating a completion it cannot establish. What replaced it was a tolerance fitted to the first report, which hid the fault early in a charge and let it through near the end — where it was most likely to be seen. Fully-electric cars are untouched. Found from **@michapr**'s diagnostic bundles (beta [#12](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/12)).
 
 ## [2.10.1] — 2026-07-26
 
