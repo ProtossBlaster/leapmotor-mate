@@ -7677,10 +7677,10 @@ def _report_bucket() -> dict:
         "unconfirmed": 0,
         # REEV — the petrol side of the month, so a range-extender owner gets a report about the
         # car he drives instead of one about half of it (Silvio's call, beta #11/#22). Litres BURNED
-        # come from the trips; litres and € BOUGHT come from the refuels he entered, because a tank
-        # is filled on one day and burned over the next fortnight — the two are different questions
-        # and summing them would answer neither.
-        "fuel_l_burned": 0.0, "fuel_engine_km": 0.0,
+        # and their € (the per-trip WAC the Trips list already prices) come from the trips; litres and
+        # € BOUGHT come from the refuels he entered, because a tank is filled on one day and burned
+        # over the next fortnight — the two are different questions and summing them would answer neither.
+        "fuel_l_burned": 0.0, "fuel_cost_burned": 0.0, "fuel_engine_km": 0.0,
         # Electric consumption MEASURED by the car (getEC per trip), so a month with generator
         # driving in it still gets an electric average. avg_efficiency above cannot: on a
         # range-extender trip Mate blanks efficiency_kwh_100km on purpose, and that average then
@@ -7723,6 +7723,10 @@ def _collect_monthly_buckets() -> dict:
         # engine_km, not km: the L/100 km of a range-extender trip is over the distance the
         # generator actually drove, not the whole trip — the same basis reev_fuel_summary uses.
         b["fuel_l_burned"]  += tr.get("fuel_used_l") or 0
+        # …and what those litres COST — the per-trip WAC get_trips allocates (litres × the tank's
+        # blended €/L at the trip's start). The petrol half of "what did 100 km cost", so the Report's
+        # cost tile stops showing only the electric charge on a month that ran on the generator (#36).
+        b["fuel_cost_burned"] += tr.get("fuel_cost") or 0
         # getEC TOTAL (ec_kwh), NOT the driving share (ec_driving) — the SAME quantity the Trips and
         # Statistics pages divide by, so the three cannot print three different kWh/100km for one
         # month (beta #35, @michapr: the Report read 8.8 from ec_driving while the others read 10.1
@@ -7794,7 +7798,7 @@ def _collect_monthly_buckets() -> dict:
         if b["_ec_km"] > 0:
             b["avg_efficiency_measured"] = round(b["_ec_kwh"] / b["_ec_km"] * 100, 1)
         for k in ("total_km", "total_kwh_used", "regen_kwh", "charge_kwh", "charge_cost",
-                  "charge_kwh_priced"):
+                  "charge_kwh_priced", "fuel_cost_burned"):
             b[k] = round(b[k], 2)
         b["drive_min"] = int(round(b["drive_min"]))
         for g in ("home", "public"):

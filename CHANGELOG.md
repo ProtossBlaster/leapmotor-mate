@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.14] — 2026-08-26
+
+**The monthly report's cost per 100 km counts the petrol too** (beta [#36](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/36), found by **@michapr**).
+
+On a range-extender the Report's "cost per 100 km" tile answered with only the electric charge: a
+month that burned a tank of petrol read 2.66 €/100 km where the real figure — electricity plus the
+petrol actually burned — was near 10. The litres were already shown right above it; only the cost
+side ignored them. It now adds the fuel at the same per-trip weighted-average price the Trips list
+and the day totals already use (litres burned × the tank's blended €/L), so all three pages agree.
+Verified on @michapr's August: **2.66 → 9.86 €/100 km**. Battery-only cars and months are untouched.
+
 ## [3.14.13] — 2026-08-26
 
 **Consumption against outside temperature, one point per trip** (Statistics page — inspired by

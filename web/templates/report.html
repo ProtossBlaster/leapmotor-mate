@@ -229,7 +229,7 @@
     <div>
       <div class="stat-label">{{ t('report_cost_per') }} 100 {{ dist_unit() }}</div>
       <div class="stat-value text-xl">
-        {% if c.has_cost and c.total_km > 0 %}{{ (c.charge_cost / dist_val(c.total_km) * 100) | money }}{% else %}<span class="text-slate-500">—</span>{% endif %}
+        {% if (c.has_cost or c.fuel_cost_burned) and c.total_km > 0 %}{{ ((c.charge_cost + c.fuel_cost_burned) / dist_val(c.total_km) * 100) | money }}{% else %}<span class="text-slate-500">—</span>{% endif %}
       </div>
     </div>
     {% if not is_reev %}

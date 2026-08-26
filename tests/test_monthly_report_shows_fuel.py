@@ -118,6 +118,27 @@ def test_the_l_per_100km_uses_the_whole_distance():
     assert "fuel_engine_km * 100" not in REPORT_HTML
 
 
+def test_the_cost_per_100km_counts_petrol_not_just_electricity():
+    """#36 (@michapr): the tile beside Home/Public answered "what did 100 km cost" with only the
+    electric charge — a month that burned a tank read 2.28 €/100 km instead of ~11. It must add the
+    petrol, the same WAC allocation the Trips list already prices (litres × the tank's blended €/L)."""
+    assert "(c.charge_cost + c.fuel_cost_burned) / dist_val(c.total_km) * 100" in REPORT_HTML
+    assert "c.charge_cost / dist_val(c.total_km) * 100" not in REPORT_HTML
+
+
+def test_the_month_fuel_cost_is_the_sum_of_its_trips(reev):
+    """The petrol half of that tile: the cost of the litres BURNED, not of the litres bought. It is
+    exactly the per-trip fuel cost get_trips already computes, summed over the month — so the Report
+    and the Trips page price the same petrol the same way (and refuel_cost stays a separate figure)."""
+    _refuel(reev, litres=30.0, cost=60.0, day=1)     # 2.00 €/L, before the trip so a rate exists
+    _trip(reev, 200.0, 80.0, 70.0, day=5)            # burns petrol (fuel 80% → 70%)
+    priced = [t for t in db_reader.get_trips(1_000_000)
+              if (t.get("started_at") or "").startswith("2026-07")]
+    expected = round(sum(t.get("fuel_cost") or 0 for t in priced), 2)
+    assert expected > 0, "premise: get_trips must price the burned litres"
+    assert _month(reev)["fuel_cost_burned"] == pytest.approx(expected)
+
+
 @pytest.mark.parametrize("lang", ["en", "it", "fr", "de", "nl", "pl", "pt-PT"])
 def test_the_labels_exist_in_every_language(lang):
     d = json.loads((ROOT / "web" / "locales" / f"{lang}.json").read_text())["translations"]
