@@ -606,6 +606,13 @@ class Database:
     def set_charge_limit_percent(self, pct, vin: str) -> None:
         self.set_setting(f"charge_limit_percent_{str(vin).lower()}", str(pct))
 
+    def get_own_charge_limit_percent(self, vin: str) -> str:
+        """The per-VIN value ONLY — no shared fallback. The poll loop's "changed?" guard reads this,
+        so a legacy shared `charge_limit_percent` (older versions, or the Set-limit button) that
+        happens to match the car's setting can't make it skip writing the per-VIN key the Overview
+        hero reads. A fresh install had that key; an upgraded one silently never got it."""
+        return self.get_setting(f"charge_limit_percent_{str(vin).lower()}", "") if vin else ""
+
     def set_boost(self, vin: str, until: float) -> None:
         """Poll this car fast for a minute after a command, so its state syncs quickly.
 

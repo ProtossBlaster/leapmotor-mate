@@ -765,6 +765,21 @@ class AccountState:
         self.mqtt_service = None
 
 
+def _persist_charge_limit(db, vin: str, pct) -> None:
+    """Write the car's configured charge limit (the SoC it stops at) under the per-VIN key when it
+    changes — the number the Overview hero reads to label the charge ETA (beta #33).
+
+    🔑 Compared against the PER-VIN value ONLY, never the shared fallback. An instance that still
+    carries a legacy shared `charge_limit_percent` (from an older poller, or the Set-limit button)
+    would otherwise see that value match and skip the per-VIN write forever, so the hero — which
+    reads the per-VIN key alone — showed no target on Silvio's prod while a fresh Docker on the SAME
+    version showed it. Write only on change, so no per-poll churn."""
+    if pct is None:
+        return
+    if str(pct) != db.get_own_charge_limit_percent(vin):
+        db.set_charge_limit_percent(pct, vin)
+
+
 def _poll_vehicle(db, client, ctx, acct) -> None:
     """One car, once. Sets `ctx.interval` — how long before this car is due again.
 
@@ -842,9 +857,7 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         # changes, so the Overview hero can label the charge ETA with the real % read cheaply
         # from settings — works even when the limit is changed from the official app. Write
         # only on change, like the GPS sign above → no per-poll churn.
-        if data.charge_limit_percent is not None and \
-                str(data.charge_limit_percent) != db.get_charge_limit_percent(data.vin):
-            db.set_charge_limit_percent(data.charge_limit_percent, data.vin)
+        _persist_charge_limit(db, data.vin, data.charge_limit_percent)
 
         _maybe_refresh_charge_schedule(db, client)
 

@@ -3,6 +3,18 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.10] — 2026-08-26
+
+**The charge-ETA target comes back on upgraded instances.**
+
+Since 3.14.8 the Overview chip reads the charge limit from a per-VIN setting the poll loop fills from
+the car. On an instance that still carried a legacy shared `charge_limit_percent` (from an older
+version, or the Set-limit button), the loop's "changed?" check read that shared value as a fallback,
+saw it already matched the car, and so never wrote the per-VIN key — leaving the chip with no
+"to X%" target. A fresh install wrote the key and hid it; an upgraded one did not. The check now
+compares against the per-VIN value alone, so the key is written on the next poll and the target
+returns.
+
 ## [3.14.9] — 2026-08-26
 
 **BetaTester bundle: the refuels, and what each page computed** (beta #35 and #36, from **@michapr**).
