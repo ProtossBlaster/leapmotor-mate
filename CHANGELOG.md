@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.15] — 2026-08-26
+
+**Always charging at home** (discussion [#255](https://github.com/ProtossBlaster/leapmotor-mate/discussions/255), asked by **@CartusGress**).
+
+An install with no wallbox and no Home Assistant has no signal that a charge happened at home, so
+every charge is born unclassified and the owner tags each one by hand — a lot of identical clicks for
+someone who only ever charges at home, several short top-ups a day. A new opt-in under Settings ▸
+Charge detection turns it around: while it is on, a new charge is born Home, editable afterwards for
+the rare public one. It works forward only — the past backlog is left exactly as it was — and, so it
+can never be switched on by accident, enabling it goes through an explicit confirm.
+
 ## [3.14.14] — 2026-08-26
 
 **The monthly report's cost per 100 km counts the petrol too** (beta [#36](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/36), found by **@michapr**).

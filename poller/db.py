@@ -1429,12 +1429,17 @@ class Database:
     # ── Charge ───────────────────────────────────────────────────────────────
 
     def create_charge(self, vehicle_id: int, data) -> int:
+        # Opt-in (disc #255, @CartusGress): an install with no wallbox/HA that always charges at
+        # home can be spared tagging every session by hand — the charge is born HOME instead of
+        # unclassified. Forward-only (the past backlog is untouched) and editable afterwards for the
+        # rare public one. Off by default; enabling it is behind an explicit confirm in Settings.
+        location_type = "HOME" if self.get_setting("home_charges_default", "0") == "1" else None
         cur = self._conn.execute(
             """INSERT INTO charges (vehicle_id, started_at, start_soc, latitude, longitude,
-                                    odometer_km)
-               VALUES (?,?,?,?,?,?)""",
+                                    odometer_km, location_type)
+               VALUES (?,?,?,?,?,?,?)""",
             (vehicle_id, _now_iso(), data.soc, data.latitude, data.longitude,
-             _odo_or_none(data)),
+             _odo_or_none(data), location_type),
         )
         self._conn.commit()
         charge_id = cur.lastrowid

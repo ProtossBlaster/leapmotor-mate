@@ -1,0 +1,24 @@
+{# Auto-classify new charges as HOME (disc #255, @CartusGress). Two states, one box that swaps
+   itself. Enabling is behind hx-confirm — Mate's own dialog (base.html) — so it can never be
+   flipped by accident; disabling is safe and immediate. `home_charges_default` = current state. #}
+<div id="home-default-box">
+  {% if home_charges_default %}
+  <div class="flex items-center justify-between gap-3">
+    <span class="text-sm text-emerald-400">✅ {{ t('home_default_on') }}</span>
+    <button hx-post="api/settings/home-charges-default"
+            hx-vals='{"home_charges_default":"0"}'
+            hx-target="#home-default-box" hx-swap="outerHTML"
+            class="text-xs font-medium text-slate-300 border border-slate-600 hover:border-slate-400 rounded-lg px-3 py-1.5 flex-shrink-0">
+      {{ t('home_default_disable') }}
+    </button>
+  </div>
+  {% else %}
+  <button hx-post="api/settings/home-charges-default"
+          hx-vals='{"home_charges_default":"1"}'
+          hx-confirm="{{ t('home_default_warn') }}"
+          hx-target="#home-default-box" hx-swap="outerHTML"
+          class="text-sm font-semibold text-white bg-brand/90 hover:bg-brand rounded-lg px-4 py-2">
+    🏠 {{ t('home_default_enable') }}
+  </button>
+  {% endif %}
+</div>

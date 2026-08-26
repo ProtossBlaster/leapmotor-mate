@@ -27,7 +27,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.14.14"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.14.15"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -2593,6 +2593,20 @@ async def save_wallbox_auto_home(request: Request):
     t = i18n.get_t(db_reader.get_language())
     msg = t("wallbox_saved") + (" · " + t("wallbox_auto_home_applied").format(n=n) if n else "")
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{msg}</span>')
+
+
+@app.post("/api/settings/home-charges-default", response_class=HTMLResponse)
+async def save_home_charges_default(request: Request):
+    """Opt-in (disc #255, @CartusGress): while on, a NEW charge is born HOME instead of unclassified —
+    for an install with no wallbox/HA that always charges at home. Forward-only (the past backlog is
+    left as it was; retagging it is a separate, deliberate act) and editable afterwards for the rare
+    public one. Enabling is guarded by an explicit confirm in the box, so a stray click can't flip it.
+    Returns the box re-rendered with the new state."""
+    form = await request.form()
+    val = "1" if form.get("home_charges_default") in ("1", "on", "true") else "0"
+    db_reader.set_setting("home_charges_default", val)
+    return templates.TemplateResponse(request, "partials/home_default_box.html",
+                                      _ctx(home_charges_default=(val == "1")))
 
 
 @app.post("/api/settings/trip-defaults", response_class=HTMLResponse)

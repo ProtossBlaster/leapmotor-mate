@@ -486,6 +486,16 @@
           </button>
         </div>
       </form>
+
+      {# Always charging at home (disc #255, @CartusGress): for an install with no wallbox/HA that
+         only ever charges at home — a new charge is born HOME instead of waiting for a manual tag.
+         Behind an explicit confirm so it can't be switched on by accident. #}
+      <div class="mt-5 pt-4 border-t border-slate-700">
+        <div class="text-sm text-white">{{ t('home_default_title') }}</div>
+        <div class="text-xs text-slate-400 mt-0.5 mb-3">{{ t('home_default_desc') }}</div>
+        {% set home_charges_default = settings.get('home_charges_default') == '1' %}
+        {% include 'partials/home_default_box.html' %}
+      </div>
     {% endcall %}
 
     <!-- Trip defaults (drive mode / One-Pedal) — #119 -->
