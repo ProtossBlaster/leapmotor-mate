@@ -27,7 +27,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.14.15"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.14.16"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -2746,6 +2746,11 @@ async def wallbox_profile_delete(request: Request, profile_id: str):
 async def wallbox_live(request: Request):
     wb = ha_client.get_live()
     wb["cost"] = db_reader.latest_home_charge_cost()  # cost comes from Mate's charges, not HA
+    # "Session energy" is the SESSION, not the meter's lifetime total: ha_client returns the energy
+    # sensor raw, which for a cumulative `_total` reads the whole life of the meter (@michapr's 162.58
+    # kWh, beta #37). Read the reset-safe running sum the poller keeps on the open charge instead;
+    # None when nothing is charging → the tile shows "—".
+    wb["energy_kwh"] = db_reader.open_charge_session_energy()
     status = db_reader.get_latest_status()
     # Session metrics only make sense when THIS car is on the wallbox — otherwise the
     # live reading could be another vehicle charging on the same wallbox.

@@ -6700,6 +6700,20 @@ def newest_unconfirmed_charge_id() -> int:
     return row["id"] if row else 0
 
 
+def open_charge_session_energy() -> Optional[float]:
+    """The AC energy the wallbox has put into the charge IN PROGRESS — the reset-safe running sum the
+    poller keeps on the open charge (ended_at IS NULL). This is what the live "Session energy" tile
+    must read: taking ha_client's meter raw prints the whole life of a cumulative `_total` sensor
+    instead, which is how @michapr's tile read 162.58 kWh (beta #37). None when no charge is open, so
+    the tile says "—" rather than a figure for a session Mate is not tracking (car asleep, no plug
+    signal from the cloud)."""
+    row = _get().execute(
+        "SELECT ac_energy_kwh FROM charges WHERE ended_at IS NULL "
+        "AND vehicle_id = COALESCE(?, vehicle_id) ORDER BY id DESC LIMIT 1",
+        (_current_vehicle_id(),)).fetchone()
+    return row["ac_energy_kwh"] if row and row["ac_energy_kwh"] is not None else None
+
+
 def latest_home_charge_cost():
     """Cost of the most recent home charge (= the wallbox) — from Mate's own charge
     records, so the Wallbox page reuses it instead of a separate HA cost sensor."""

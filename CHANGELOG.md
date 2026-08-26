@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.16] — 2026-08-26
+
+**The wallbox "Session energy" is the session, not the meter's whole life** (beta [#37](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/37), found by **@michapr**).
+
+The live Wallbox card printed the energy sensor raw. For a cumulative counter — a `_total` sensor,
+which is what Tasmota, Shelly and most smart plugs expose, and the very reading Mate deltas
+start-to-stop for each charge — that is the meter's entire life: @michapr's tile read 162.58 kWh
+under a label that says "Session energy". It now shows the reset-safe running figure the poller
+already keeps on the charge in progress, and "—" when nothing is charging (the honest answer when
+the car is asleep and no session was ever opened).
+
 ## [3.14.15] — 2026-08-26
 
 **Always charging at home** (discussion [#255](https://github.com/ProtossBlaster/leapmotor-mate/discussions/255), asked by **@CartusGress**).
