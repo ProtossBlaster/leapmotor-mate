@@ -6527,99 +6527,56 @@ def latest_home_charge_cost():
 
 
 def get_stats_grouped() -> list[dict]:
-    """Trip stats nested as year → month → day (aggregated, no individual trips)."""
+    """Trip stats nested year → month → day — built on `_localized_trips` + the `_totals_*` helpers,
+    the SAME machinery as the Trips calendar (get_trips_calendar_month), so the Statistics page
+    prints the SAME kWh/100km as the Trips page for one month. Before beta #35 (@michapr) it did not:
+    it read the consumption from `efficiency_kwh_100km` over the km THAT has (→ 12.2), grouped by the
+    car's UTC clock, and counted merged children — while the Trips page read getEC over the km getEC
+    covers (→ 10.1), local, non-merged. `avg_efficiency` here IS that getEC figure (kwh_100km);
+    `total_kwh` the getEC energy behind it. Newest year/month/day first, trips kept chronological."""
     from collections import OrderedDict
-    db = _get()
-    rows = db.execute("""
-        SELECT
-            strftime('%Y', started_at)    AS year,
-            strftime('%Y-%m', started_at) AS month_key,
-            date(started_at)              AS day_key,
-            COUNT(*)                      AS trip_count,
-            ROUND(SUM(distance_km), 2)    AS total_km,
-            ROUND(SUM(distance_km * COALESCE(efficiency_kwh_100km, 0) / 100), 2) AS total_kwh,
-            ROUND(
-                SUM(distance_km * COALESCE(efficiency_kwh_100km, 0) / 100) /
-                NULLIF(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
-                               THEN distance_km END), 0) * 100, 1
-            ) AS avg_efficiency,
-            ROUND(SUM(regen_kwh), 2) AS total_regen_kwh
-        FROM trips
-        WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
-        GROUP BY year, month_key, day_key
-        ORDER BY started_at DESC
-    """, (_current_vehicle_id(),)).fetchall()
-
     lang = get_language()
-    years: dict = OrderedDict()
-    for r in rows:
-        d = dict(r)
-        yr, mo_key, day_key = d["year"], d["month_key"], d["day_key"]
+    years: "OrderedDict[str, dict]" = OrderedDict()
+    for t in _localized_trips(get_trips(limit=1_000_000)):
+        dt = t["_dt"]
+        yr, mo_key, day_key = dt.strftime("%Y"), dt.strftime("%Y-%m"), dt.strftime("%Y-%m-%d")
+        y = years.setdefault(yr, {"label": yr, "_n": _totals_node(), "months": OrderedDict()})
+        mo = y["months"].setdefault(mo_key, {"label": i18n.fmt_month_year(lang, dt),
+                                             "_n": _totals_node(), "_days": {}, "trips": []})
+        d = mo["_days"].setdefault(day_key, {"year": yr, "month_key": mo_key, "day_key": day_key,
+                                             "day_label": i18n.fmt_day_month_year(lang, dt),
+                                             "_n": _totals_node()})
+        for node in (y["_n"], mo["_n"], d["_n"]):
+            _totals_add(node, t)
+        mo["trips"].append({"id": t.get("id"), "started_at": t.get("started_at"),
+                            "distance_km": t.get("distance_km"),
+                            "efficiency_kwh_100km": t.get("efficiency_kwh_100km"),
+                            "regen_kwh": t.get("regen_kwh"),
+                            "label": dt.strftime("%d/%m %H:%M")})
 
-        # Localize labels in Python (SQLite %B/%b not supported; strftime is English-only)
-        try:
-            mo_dt  = datetime.strptime(mo_key, "%Y-%m")
-            mo_label = i18n.fmt_month_year(lang, mo_dt)
-            day_dt   = datetime.strptime(day_key, "%Y-%m-%d")
-            d["day_label"] = i18n.fmt_day_month_year(lang, day_dt)
-        except Exception:
-            mo_label = mo_key
-            d["day_label"] = day_key
+    def _seal(node: dict) -> dict:
+        s = _totals_seal(node.pop("_n"))
+        node["trip_count"] = s["count"]
+        node["total_km"] = s["km"]
+        node["total_regen_kwh"] = round(s["regen"], 2)
+        node["avg_efficiency"] = s["kwh_100km"]           # getEC ÷ km-with-getEC — the Trips figure
+        node["avg_efficiency_km"] = s["kwh_100km_km"]     # how many km it speaks for
+        node["total_kwh"] = (round(s["kwh_100km"] * s["kwh_100km_km"] / 100, 2)
+                             if s["kwh_100km"] is not None else 0.0)   # the getEC energy behind it
+        return node
 
-        if yr not in years:
-            years[yr] = {"label": yr, "trip_count": 0, "total_km": 0.0,
-                         "total_kwh": 0.0, "total_regen_kwh": 0.0,
-                         "_ws": 0.0, "_wd": 0.0,
-                         "avg_efficiency": None, "months": OrderedDict()}
-        if mo_key not in years[yr]["months"]:
-            years[yr]["months"][mo_key] = {"label": mo_label, "trip_count": 0,
-                                           "total_km": 0.0, "total_kwh": 0.0,
-                                           "total_regen_kwh": 0.0,
-                                           "_ws": 0.0, "_wd": 0.0,
-                                           "avg_efficiency": None, "days": []}
-
-        years[yr]["months"][mo_key]["days"].append(d)
-
-        km  = d.get("total_km") or 0
-        eff = d.get("avg_efficiency")
-        for node in (years[yr], years[yr]["months"][mo_key]):
-            node["trip_count"]      += d["trip_count"]
-            node["total_km"]         = round(node["total_km"] + km, 2)
-            node["total_kwh"]        = round(node["total_kwh"] + (d.get("total_kwh") or 0), 2)
-            node["total_regen_kwh"]  = round(node["total_regen_kwh"] + (d.get("total_regen_kwh") or 0), 2)
-            if eff and km > 0:
-                node["_ws"] += km * eff
-                node["_wd"] += km
-
-    for yr_node in years.values():
-        if yr_node["_wd"] > 0:
-            yr_node["avg_efficiency"] = round(yr_node["_ws"] / yr_node["_wd"], 1)
-        for mo_node in yr_node["months"].values():
-            if mo_node["_wd"] > 0:
-                mo_node["avg_efficiency"] = round(mo_node["_ws"] / mo_node["_wd"], 1)
-            mo_node["trips"] = []
-
-    # Attach individual trips (chronological ASC) to each month for per-trip charts
-    db2 = _get()
-    trip_rows = db2.execute(
-        """SELECT id, started_at, distance_km, efficiency_kwh_100km, regen_kwh
-           FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
-           ORDER BY started_at ASC""",
-        (_current_vehicle_id(),)
-    ).fetchall()
-    for r in trip_rows:
-        t = dict(r)
-        if not t.get("started_at"):
-            continue
-        dt = _local_dt(t["started_at"])
-        if dt is None:
-            continue
-        yr, mo_key = dt.strftime("%Y"), dt.strftime("%Y-%m")
-        t["label"] = dt.strftime("%d/%m %H:%M")
-        if yr in years and mo_key in years[yr]["months"]:
-            years[yr]["months"][mo_key]["trips"].append(t)
-
-    return list(years.values())
+    out = []
+    for yr in sorted(years, reverse=True):                # newest year first, as before
+        y = years[yr]
+        y["months"] = OrderedDict((mk, y["months"][mk]) for mk in sorted(y["months"], reverse=True))
+        for mo in y["months"].values():
+            mo["days"] = [_seal(mo["_days"][dk]) for dk in sorted(mo["_days"], reverse=True)]
+            del mo["_days"]
+            mo["trips"].sort(key=lambda tr: tr.get("started_at") or "")   # chronological for charts
+            _seal(mo)
+        _seal(y)
+        out.append(y)
+    return out
 
 
 def get_monthly_stats() -> list[dict]:
@@ -7579,10 +7536,14 @@ def _collect_monthly_buckets() -> dict:
         # engine_km, not km: the L/100 km of a range-extender trip is over the distance the
         # generator actually drove, not the whole trip — the same basis reev_fuel_summary uses.
         b["fuel_l_burned"]  += tr.get("fuel_used_l") or 0
-        # Only trips the enrichment has actually answered for: a NULL is "not measured yet", and
-        # counting its kilometres with zero energy would drag the average down for free.
-        _ec = tr.get("ec_driving")
-        if _ec is not None and km > 0:
+        # getEC TOTAL (ec_kwh), NOT the driving share (ec_driving) — the SAME quantity the Trips and
+        # Statistics pages divide by, so the three cannot print three different kWh/100km for one
+        # month (beta #35, @michapr: the Report read 8.8 from ec_driving while the others read 10.1
+        # from ec_kwh). Silvio's rule (05/08): always the total battery energy, never the driving
+        # slice. Only trips the cloud has answered for — a NULL/zero is "not measured yet", and
+        # counting its kilometres for free would drag the average down. Same truthy guard as _totals_add.
+        _ec = tr.get("ec_kwh")
+        if _ec and km > 0:
             b["_ec_kwh"] += _ec
             b["_ec_km"]  += km
         b["fuel_engine_km"] += tr.get("engine_km") or 0

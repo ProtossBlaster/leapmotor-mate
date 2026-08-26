@@ -3,6 +3,18 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.11] — 2026-08-26
+
+**One consumption figure, the same on every page** (beta #35, found by **@michapr**).
+
+The Trips, Statistics and Monthly Report pages each worked kWh/100km out their own way, so one month
+could read three numbers. On @michapr's July: **10.1** on Trips (getEC over the km getEC covers),
+**12.2** on Statistics (from `efficiency_kwh_100km`, over its own km, on UTC months, counting merged
+children), and a third on the Report (getEC's *driving* share instead of the total). The Statistics
+breakdown now runs on the same machinery the Trips calendar always has, and the Report's measured
+average reads the total getEC — so all three land on the same basis: getEC over the km getEC covers,
+local months, non-merged trips. Verified on his data: 10.1 everywhere.
+
 ## [3.14.10] — 2026-08-26
 
 **The charge-ETA target comes back on upgraded instances.**

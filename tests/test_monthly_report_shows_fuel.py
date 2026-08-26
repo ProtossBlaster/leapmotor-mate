@@ -133,7 +133,7 @@ def test_the_measured_average_covers_generator_trips_too(reev):
     twin reads the cloud's own per-trip figure, so a month driven partly on petrol still has an
     electric average instead of one covering only the battery-only days."""
     _trip(reev, 200.0, 80.0, 70.0)                       # generator ran → efficiency NULL
-    reev._conn.execute("UPDATE trips SET ec_driving = 24.0 WHERE distance_km = 200.0")
+    reev._conn.execute("UPDATE trips SET ec_kwh = 24.0 WHERE distance_km = 200.0")
     reev._conn.commit()
     b = _month(reev)
     assert b["avg_efficiency"] is None, "premise: the ordinary average has nothing to work with"
@@ -146,7 +146,7 @@ def test_a_trip_the_cloud_has_not_answered_for_is_left_out(reev):
     without the car having moved."""
     _trip(reev, 100.0, 80.0, 70.0, day=5)
     _trip(reev, 100.0, 70.0, 60.0, day=6)
-    reev._conn.execute("UPDATE trips SET ec_driving = 15.0 WHERE started_at LIKE '2026-07-05%'")
+    reev._conn.execute("UPDATE trips SET ec_kwh = 15.0 WHERE started_at LIKE '2026-07-05%'")
     reev._conn.commit()
     assert _month(reev)["avg_efficiency_measured"] == 15.0   # the unanswered 100 km stay out
 

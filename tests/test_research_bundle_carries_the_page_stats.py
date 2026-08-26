@@ -73,16 +73,17 @@ def test_it_carries_each_pages_own_output(tmp_path, monkeypatch):
         assert key in ps, f"page_stats is missing {key}: {list(ps)}"
 
 
-def test_the_divergence_is_visible_side_by_side(tmp_path, monkeypatch):
-    """The whole reason it exists: the Statistics figure (efficiency → 20) and the Trips getEC figure
-    (10) both in the file for the same July, so no one has to reproduce a screenshot to see they
-    disagree. Statistics is the page's real function (get_stats_grouped), nested year → months."""
+def test_each_pages_figure_is_captured_side_by_side(tmp_path, monkeypatch):
+    """Each page's OWN monthly figure is in the file, so they can be compared straight from the pack
+    (this is what let us confirm #35). Since the #35 fix both pages read getEC, so here they AGREE
+    (10.0) rather than the old 12.2-vs-10.1 split — but it is still each page's real function that
+    put its number here, the Statistics one nested year → months (get_stats_grouped)."""
     ps = _page_stats(tmp_path, monkeypatch)
     jul_stats = None
     for yr in ps["statistics_page"]:
         if "2026-07" in (yr.get("months") or {}):
             jul_stats = yr["months"]["2026-07"]
     assert jul_stats is not None, f"July not in statistics_page: {ps['statistics_page']}"
-    assert jul_stats["avg_efficiency"] == 20.0, f"statistics efficiency figure not captured: {jul_stats}"
     jul_trips = ps["trips_page"]["2026-07"]
-    assert jul_trips["kwh_100km"] == 10.0, f"trips getEC figure not captured: {jul_trips}"
+    assert jul_stats["avg_efficiency"] == jul_trips["kwh_100km"] == 10.0, \
+        f"the two pages should agree on getEC now: stats {jul_stats['avg_efficiency']} vs trips {jul_trips['kwh_100km']}"
