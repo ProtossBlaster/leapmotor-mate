@@ -1200,7 +1200,15 @@
     "desktop_remove_doing": "Rimozione in corso — l'app si chiuderà fra un istante.",
     "fuel_edit": "Modifica rifornimento",
     "fuel_edit_save": "Salva modifiche",
-    "fuel_edit_cancel": "Annulla"
+    "fuel_edit_cancel": "Annulla",
+    "stats_efftemp_title": "Consumi vs temperatura esterna",
+    "stats_efftemp_hint": "Un punto per viaggio (≥ {km} km), sulla temperatura dell’aria esterna a partenza e arrivo. La linea di tendenza è Mate che legge il tuo inverno e la tua estate.",
+    "stats_efftemp_electric": "Elettrico (kWh/100 km)",
+    "stats_efftemp_petrol": "Benzina (L/100 km)",
+    "stats_efftemp_y": "kWh/100 km",
+    "stats_efftemp_fuel_y": "L/100 km",
+    "stats_efftemp_trend_elec": "≈{val} kWh/100 km ogni 10 °C (elettrico)",
+    "stats_efftemp_trend_fuel": "≈{val} L/100 km ogni 10 °C (benzina)"
   },
   "months": {
     "full": [

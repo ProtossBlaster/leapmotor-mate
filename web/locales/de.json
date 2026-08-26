@@ -1200,7 +1200,15 @@
     "desktop_remove_doing": "Wird entfernt — die App schließt sich gleich.",
     "fuel_edit": "Tankstopp bearbeiten",
     "fuel_edit_save": "Änderungen speichern",
-    "fuel_edit_cancel": "Abbrechen"
+    "fuel_edit_cancel": "Abbrechen",
+    "stats_efftemp_title": "Verbrauch vs. Außentemperatur",
+    "stats_efftemp_hint": "Ein Punkt pro Fahrt (≥ {km} km), gegen die Außentemperatur bei Abfahrt und Ankunft. Die Trendlinie ist Mate, der deinen Winter und Sommer liest.",
+    "stats_efftemp_electric": "Elektrisch (kWh/100 km)",
+    "stats_efftemp_petrol": "Benzin (L/100 km)",
+    "stats_efftemp_y": "kWh/100 km",
+    "stats_efftemp_fuel_y": "L/100 km",
+    "stats_efftemp_trend_elec": "≈{val} kWh/100 km je 10 °C (elektrisch)",
+    "stats_efftemp_trend_fuel": "≈{val} L/100 km je 10 °C (Benzin)"
   },
   "months": {
     "full": [

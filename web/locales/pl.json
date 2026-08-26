@@ -1200,7 +1200,15 @@
     "desktop_remove_doing": "Usuwanie — aplikacja zaraz się zamknie.",
     "fuel_edit": "Edytuj tankowanie",
     "fuel_edit_save": "Zapisz zmiany",
-    "fuel_edit_cancel": "Anuluj"
+    "fuel_edit_cancel": "Anuluj",
+    "stats_efftemp_title": "Zużycie vs temperatura zewnętrzna",
+    "stats_efftemp_hint": "Jeden punkt na trasę (≥ {km} km), względem temperatury zewnętrznej przy wyjeździe i przyjeździe. Linia trendu to Mate czytający twoją zimę i twoje lato.",
+    "stats_efftemp_electric": "Elektryczne (kWh/100 km)",
+    "stats_efftemp_petrol": "Benzyna (L/100 km)",
+    "stats_efftemp_y": "kWh/100 km",
+    "stats_efftemp_fuel_y": "L/100 km",
+    "stats_efftemp_trend_elec": "≈{val} kWh/100 km co 10 °C (elektryczne)",
+    "stats_efftemp_trend_fuel": "≈{val} L/100 km co 10 °C (benzyna)"
   },
   "months": {
     "full": [

@@ -1200,7 +1200,15 @@
     "desktop_remove_doing": "Bezig met verwijderen — de app sluit zo.",
     "fuel_edit": "Tankbeurt bewerken",
     "fuel_edit_save": "Wijzigingen opslaan",
-    "fuel_edit_cancel": "Annuleren"
+    "fuel_edit_cancel": "Annuleren",
+    "stats_efftemp_title": "Verbruik vs. buitentemperatuur",
+    "stats_efftemp_hint": "Eén punt per rit (≥ {km} km), tegen de buitentemperatuur bij vertrek en aankomst. De trendlijn is Mate die jouw winter en zomer leest.",
+    "stats_efftemp_electric": "Elektrisch (kWh/100 km)",
+    "stats_efftemp_petrol": "Benzine (L/100 km)",
+    "stats_efftemp_y": "kWh/100 km",
+    "stats_efftemp_fuel_y": "L/100 km",
+    "stats_efftemp_trend_elec": "≈{val} kWh/100 km per 10 °C (elektrisch)",
+    "stats_efftemp_trend_fuel": "≈{val} L/100 km per 10 °C (benzine)"
   },
   "months": {
     "full": [

@@ -3,6 +3,24 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.13] — 2026-08-26
+
+**Consumption against outside temperature, one point per trip** (Statistics page — inspired by
+[ghianciulu's MG4 Mate](https://github.com/ghianciulu/mg4-mate), a fork that went its own way).
+
+The question every owner asks when the cold arrives — *how much does MY car really drink at 5 °C?* —
+now has its own card on Statistics: one dot per finished trip against the outside air temperature
+the elevation enrichment already collects (Open-Meteo), so it costs one query and zero cloud calls.
+A dashed trend line reads your own winter and your own summer out of it; on realistic synthetic data
+the pattern is legible after a single month of driving.
+
+On a range-extender the chart carries **two series**: the electric points are battery-only by
+construction (finalize blanks generator-on trips), and — behind the usual is_reev+research gate — a
+petrol series plots L/100 km against °C, showing exactly when the generator starts costing more than
+the socket. Mid-trip refuels never become points (those litres are unknowable); merged trips count
+once; short hops under 3 km stay out, because preconditioning spread over three kilometres reads as
+a cold penalty that isn't one.
+
 ## [3.14.12] — 2026-08-26
 
 **Edit a refuel after the fact** (beta discussion [#34](https://github.com/ProtossBlaster/MateBetaTesterOnly/discussions/34), asked by **@pdifeo**).

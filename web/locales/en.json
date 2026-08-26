@@ -1200,7 +1200,15 @@
     "desktop_remove_doing": "Removing — the app will close in a moment.",
     "fuel_edit": "Edit refuel",
     "fuel_edit_save": "Save changes",
-    "fuel_edit_cancel": "Cancel"
+    "fuel_edit_cancel": "Cancel",
+    "stats_efftemp_title": "Consumption vs outside temperature",
+    "stats_efftemp_hint": "One point per trip (≥ {km} km), against the outside air temperature at departure and arrival. The trend line is Mate reading your own winter and summer.",
+    "stats_efftemp_electric": "Electric (kWh/100 km)",
+    "stats_efftemp_petrol": "Petrol (L/100 km)",
+    "stats_efftemp_y": "kWh/100 km",
+    "stats_efftemp_fuel_y": "L/100 km",
+    "stats_efftemp_trend_elec": "≈{val} kWh/100 km every 10 °C (electric)",
+    "stats_efftemp_trend_fuel": "≈{val} L/100 km every 10 °C (petrol)"
   },
   "months": {
     "full": [

@@ -144,6 +144,85 @@
    (@ebagnoli, beta #13). Both rates are measured on their OWN kilometres — see
    db_reader.reev_breakeven_kwh_price, and do NOT be tempted to reuse the pair above: those are
    divided by the whole distance, which answers a different question. #}
+{# ── Consumption vs outside temperature (one point per trip) ──────────────────
+   The temperatures are the trips' own Open-Meteo readings, already collected by the elevation
+   enrichment — this card costs one query and no cloud calls. The electric series is battery-only
+   by construction on a REEV (finalize blanks generator-on trips); the petrol series carries its
+   usual is_reev+research gate server-side. #}
+{% if efftemp and efftemp.points %}
+<div class="card mb-6">
+  <h2 class="font-semibold text-white mb-1">🌡️ {{ t('stats_efftemp_title') }}</h2>
+  <p class="text-xs text-slate-400 mb-3">{{ t('stats_efftemp_hint').format(km=efftemp.min_km|int) }}</p>
+  <canvas id="chart-efftemp" height="230"></canvas>
+  {% if efftemp.trend %}
+  <p class="text-[11px] text-slate-500 mt-2">📈
+    {{ t('stats_efftemp_trend_elec').format(val=efftemp.trend.per_10c|abs) }}
+    {% if efftemp.fuel_trend %} · {{ t('stats_efftemp_trend_fuel').format(val=efftemp.fuel_trend.per_10c|abs) }}{% endif %}
+    · r²={{ efftemp.trend.r2 }}
+  </p>
+  {% endif %}
+  <script>
+  (function () {
+    var el = document.getElementById('chart-efftemp');
+    if (!el || typeof Chart === 'undefined') return;
+    var data = {{ efftemp | tojson }};
+    var datasets = [{
+      label: '{{ t('stats_efftemp_electric') }}',
+      data: data.points.map(function (p) { return { x: p.t, y: p.e, id: p.id, km: p.km, d: p.ts }; }),
+      backgroundColor: 'rgba(56,189,248,0.65)', pointRadius: 4, pointHoverRadius: 6
+    }];
+    if (data.trend && data.points.length >= 8) {
+      var ts = data.points.map(function (p) { return p.t; });
+      var lo = Math.min.apply(null, ts), hi = Math.max.apply(null, ts);
+      datasets.push({ type: 'line', label: '',
+        data: [{x: lo, y: data.trend.at20c + data.trend.per_10c/10*(lo-20)},
+               {x: hi, y: data.trend.at20c + data.trend.per_10c/10*(hi-20)}],
+        borderColor: '#38bdf8', borderWidth: 1.5, borderDash: [6, 4],
+        pointRadius: 0, fill: false });
+    }
+    if (data.fuel_points && data.fuel_points.length) {
+      datasets.push({ label: '{{ t('stats_efftemp_petrol') }}',
+        data: data.fuel_points.map(function (p) { return { x: p.t, y: p.l, id: p.id, km: p.km, d: p.ts }; }),
+        backgroundColor: 'rgba(251,146,60,0.65)', pointRadius: 4, pointHoverRadius: 6,
+        yAxisID: 'y1' });
+      if (data.fuel_trend && data.fuel_points.length >= 8) {
+        var ft = data.fuel_points.map(function (p) { return p.t; });
+        var flo = Math.min.apply(null, ft), fhi = Math.max.apply(null, ft);
+        datasets.push({ type: 'line', label: '',
+          data: [{x: flo, y: data.fuel_trend.at20c + data.fuel_trend.per_10c/10*(flo-20)},
+                 {x: fhi, y: data.fuel_trend.at20c + data.fuel_trend.per_10c/10*(fhi-20)}],
+          borderColor: '#fb923c', borderWidth: 1.5, borderDash: [6, 4],
+          pointRadius: 0, fill: false, yAxisID: 'y1' });
+      }
+    }
+    new Chart(el, {
+      type: 'scatter',
+      data: { datasets: datasets },
+      options: { responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { labels: { color: '#94a3b8', boxWidth: 12 } },
+          tooltip: { callbacks: { label: function (c) {
+            var p = c.raw;
+            return c.dataset.yAxisID === 'y1'
+              ? p.l + ' L/100km · ' + p.km + ' km · ' + p.d
+              : p.e + ' kWh/100km · ' + p.km + ' km · ' + p.d; } } } },
+        scales: {
+          x: { title: { display: true, text: '°C', color: '#64748b' },
+               ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+          y: { position: 'left', ticks: { color: '#94a3b8' },
+               title: { display: true, text: '{{ t('stats_efftemp_y') }}', color: '#64748b' },
+               grid: { color: '#1e293b' } },
+          y1: { position: 'right', display: !!(data.fuel_points && data.fuel_points.length),
+               ticks: { color: '#94a3b8' },
+               title: { display: !!(data.fuel_points && data.fuel_points.length),
+                        text: '{{ t('stats_efftemp_fuel_y') }}', color: '#64748b' },
+               grid: { drawOnChartArea: false } }
+        } }
+    });
+  })();
+  </script>
+</div>
+{% endif %}
+
 {# Kilometres the car covered while the cloud was quiet. They are in NO figure on this page — the
    distance and the charge that went with it are both held out, because attributing them to a trip
    would be a guess and holding out only one of the two would divide whole energy by partial

@@ -4388,6 +4388,108 @@ def get_trips(limit: int = 500) -> list[dict]:
     return out
 
 
+def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
+                           min_km: float = 3.0) -> dict:
+    """Consumption against OUTSIDE temperature, one point per finished trip — the data behind the
+    Statistics scatter (the question every owner asks: *how much does MY car really drink at 5°C?*).
+    The temperatures are the trip's own outside_temp_start_c/end_c, collected by the elevation
+    enrichment (Open-Meteo) — no new cloud calls here.
+
+    The electric series reads the stored efficiency_kwh_100km, which finalize_trip blanks on every
+    generator-on trip of a range-extender — so on a REEV it is battery-only by construction, the same
+    basis as the average-efficiency card above it (beta #24). The petrol series (L/100 km vs °C) is
+    REEV-only and follows the usual is_reev+research gate via `include_fuel`; it walks the engine
+    detection exactly like get_trips does, group-aware for merged families and skipping mid-trip
+    refuels, whose litres are unknowable.
+
+    Short trips (< min_km) stay out: preconditioning spread over three kilometres reads as a cold
+    penalty that isn't one. Points come back oldest-first so a time tooltip reads forward; the chart
+    sees at most the newest 500."""
+    db = _get()
+    # No `efficiency_kwh_100km IS NOT NULL` here ON PURPOSE: on a REEV exactly the generator-on
+    # trips carry a NULL there (finalize blanks it), and they are the petrol series' whole point.
+    # The electric points filter the column themselves below.
+    rows = db.execute(
+        """SELECT id, vehicle_id, started_at, distance_km, efficiency_kwh_100km,
+                  outside_temp_start_c, outside_temp_end_c, fuel_start_pct, fuel_end_pct
+           FROM trips
+           WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
+             AND merged_into_id IS NULL AND distance_km >= ?
+           ORDER BY started_at DESC LIMIT ?""",
+        (_current_vehicle_id(), float(min_km), int(limit))).fetchall()
+
+    def _temp(r) -> Optional[float]:
+        vals = [v for v in (r["outside_temp_start_c"], r["outside_temp_end_c"]) if v is not None]
+        return sum(vals) / len(vals) if vals else None
+
+    def _series(pts: list[dict], ykey: str) -> dict:
+        acc: dict[int, list] = {}
+        for p in pts:
+            acc.setdefault(int(math.floor(p["t"] / 5.0)) * 5, []).append(p[ykey])
+        bins = [{"lo": lo, "hi": lo + 5, "mean": round(sum(v) / len(v), 2), "n": len(v)}
+                for lo, v in sorted(acc.items())]
+        n = len(pts)
+        trend = None
+        if n >= 8:
+            mx = sum(p["t"] for p in pts) / n
+            my = sum(p[ykey] for p in pts) / n
+            sxx = sum((p["t"] - mx) ** 2 for p in pts)
+            syy = sum((p[ykey] - my) ** 2 for p in pts)
+            sxy = sum((p["t"] - mx) * (p[ykey] - my) for p in pts)
+            if sxx > 0:
+                slope = sxy / sxx
+                trend = {"per_10c": round(slope * 10, 2),
+                         "at20c": round(my + slope * (20 - mx), 2),
+                         "r2": round((sxy * sxy) / (sxx * syy), 2) if syy else 0.0,
+                         "n": n}
+        return {"bins": bins, "trend": trend}
+
+    pts = []
+    for r in rows:
+        if r["efficiency_kwh_100km"] is None:
+            continue                            # a generator trip (or unmeasured) — petrol series' business
+        t = _temp(r)
+        if t is None:
+            continue
+        pts.append({"id": r["id"], "t": round(t, 1),
+                    "e": round(r["efficiency_kwh_100km"], 2),
+                    "km": round(r["distance_km"], 1),
+                    "ts": (r["started_at"] or "")[:10]})
+    pts.reverse()                                   # oldest first
+    pts = pts[-500:]                                # the chart's cap
+    out = {"points": pts, "min_km": min_km, **_series(pts, "e")}
+
+    fuel_pts = []
+    if include_fuel:
+        kids = _children_by_parent(db)
+        for r in rows:
+            _fs, _fe = r["fuel_start_pct"], r["fuel_end_pct"]
+            if _fs is None or _fe is None or (_fs - _fe) <= _REEV_FUEL_MIN_DROP:
+                continue
+            kids_r = kids.get(r["id"], [])
+            td = _trip_group_stats(dict(r), kids_r)
+            seg = [r["id"]] + [k["id"] for k in kids_r]
+            b = db.execute(
+                f"SELECT MIN(started_at) s, MAX(ended_at) e FROM trips WHERE id IN ({','.join('?' * len(seg))})",
+                seg).fetchone()
+            eng = _reev_engine_on(db, r["vehicle_id"], b["s"], b["e"])
+            f = _reev_trip_fuel(td.get("fuel_start_pct"), td.get("fuel_end_pct"),
+                                td.get("distance_km"), eng,
+                                td.get("fuel_start_l"), td.get("fuel_end_l"))
+            l100 = f.get("fuel_l_100km")
+            t = _temp(r)
+            if not l100 or t is None:
+                continue                            # includes mid-trip refuels: litres unknown
+            fuel_pts.append({"id": r["id"], "t": round(t, 1), "l": round(l100, 2),
+                             "km": round(td.get("distance_km") or 0.0, 1),
+                             "ts": (r["started_at"] or "")[:10]})
+        fuel_pts.reverse()
+        fuel_pts = fuel_pts[-500:]
+    out["fuel_points"] = fuel_pts
+    out.update({f"fuel_{k}": v for k, v in _series(fuel_pts, "l").items()})
+    return out
+
+
 def reev_fuel_summary() -> Optional[dict]:
     """REEV — the range-extender's REAL fuel appetite, from the engine-on trips (on-board): total
     litres burned, generator-on driving km, and the L/100km WHILE the generator drove the car. This is

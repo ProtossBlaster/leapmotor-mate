@@ -27,7 +27,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.14.12"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.14.13"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1301,9 +1301,14 @@ async def statistics(request: Request):
     # cloud had nothing new to say. They are kept out of every figure above — both the distance and
     # the charge that went with it — so this is the only place they are ever stated.
     totals["offline_gaps"] = db_reader.offline_gaps_summary()
+    # Consumption vs outside temperature, one point per trip (the temperatures are already on the
+    # trips from the elevation enrichment). The petrol half follows the same REEV+research gate as
+    # every other fuel figure — computed for nobody else, not merely hidden.
+    efftemp = db_reader.get_efficiency_vs_temp(
+        include_fuel=(_reev and research.research_enabled()))
     return templates.TemplateResponse(request, "statistics.html", _ctx(
         page="statistics", vehicle=vehicle,
-        grouped=grouped, totals=totals,
+        grouped=grouped, totals=totals, efftemp=efftemp,
     ))
 
 

@@ -1200,7 +1200,15 @@
     "desktop_remove_doing": "Suppression en cours — l'app va se fermer.",
     "fuel_edit": "Modifier le plein",
     "fuel_edit_save": "Enregistrer les modifications",
-    "fuel_edit_cancel": "Annuler"
+    "fuel_edit_cancel": "Annuler",
+    "stats_efftemp_title": "Consommation vs température extérieure",
+    "stats_efftemp_hint": "Un point par trajet (≥ {km} km), selon la température extérieure au départ et à l’arrivée. La courbe de tendance, c’est Mate qui lit votre hiver et votre été.",
+    "stats_efftemp_electric": "Électrique (kWh/100 km)",
+    "stats_efftemp_petrol": "Essence (L/100 km)",
+    "stats_efftemp_y": "kWh/100 km",
+    "stats_efftemp_fuel_y": "L/100 km",
+    "stats_efftemp_trend_elec": "≈{val} kWh/100 km tous les 10 °C (électrique)",
+    "stats_efftemp_trend_fuel": "≈{val} L/100 km tous les 10 °C (essence)"
   },
   "months": {
     "full": [
