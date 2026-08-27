@@ -4,6 +4,7 @@ import math
 import sqlite3
 import statistics
 import time
+import zlib
 from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
@@ -683,6 +684,7 @@ _ABSENT_SENSOR_WINDOW = 500      # how many recent polls the question is asked o
 
 # The temperature sensors that can legitimately not exist on a car, and the column each lives in.
 _OPTIONAL_TEMPS = {"inside_temp": "inside_temp",
+                   "outside_temp": "outside_temp",
                    "battery_temp": "battery_min_temp",
                    "ac_target": "climate_target_temp"}
 
@@ -986,6 +988,26 @@ def _safe_unlink(path: str) -> None:
         pass
 
 
+def gzip_db_stream(path: str | None = None, chunk_size: int = 256 * 1024):
+    """Yield the SQLite database at `path` (default DB_PATH) as a gzip byte stream, read and compressed
+    in chunks so even a large backup never lands in memory whole (disc #264). The Export endpoint serves
+    this as `leapmotor_mate.db.gz`; restore_database transparently un-gzips it, and a raw .db still
+    restores too. Checkpoint first (the caller's job) so the WAL is already folded into the file read.
+    Level 6 — SQLite's telemetry rows gzip well, and 6 keeps the CPU cost small on a Pi."""
+    comp = zlib.compressobj(6, zlib.DEFLATED, 31)   # wbits=31 → gzip header/trailer (not bare deflate)
+    with open(path or DB_PATH, "rb") as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            out = comp.compress(chunk)
+            if out:
+                yield out
+    tail = comp.flush()
+    if tail:
+        yield tail
+
+
 def restore_database(blob: bytes) -> dict:
     """Replace the live DB with an uploaded `leapmotor_mate.db` backup — losing ZERO data — while
     KEEPING the current install's freshly-entered credentials, so the user stays logged in.
@@ -999,6 +1021,14 @@ def restore_database(blob: bytes) -> dict:
 
     Raises ValueError on a bad/foreign file WITHOUT touching the live DB. The caller restarts the app
     (exit 42 → run.sh) so both processes reopen the restored DB and run migrations."""
+    if blob[:2] == b"\x1f\x8b":                       # a gzip-compressed backup (.db.gz, disc #264)
+        try:
+            # wbits=31 decodes the gzip wrapper → the raw SQLite bytes below (a raw .db skips this).
+            # zlib, not gzip: zlib is already in every build (zipfile's ZIP_DEFLATED pulls it), so this
+            # needs no new module in the frozen MateDesktop shell. Our export writes one gzip member.
+            blob = zlib.decompress(blob, 31)
+        except Exception as e:  # noqa: BLE001 — any malformed gzip is a bad upload, not a server bug
+            raise ValueError("not a valid gzip backup") from e
     if blob[:16] != b"SQLite format 3\x00":
         raise ValueError("not a valid SQLite database file")
     tmp = DB_PATH + ".restore.tmp"
@@ -6245,6 +6275,25 @@ def get_trips_needing_elevation(limit: int = 4) -> list[dict]:
         (int(limit),),
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+def trip_outside_temp_samples(trip_id: int) -> tuple:
+    """The trip's OWN outside temperature, from the LIVE Open-Meteo samples the poller recorded along
+    it (positions.outside_temp, opt-in): (first, last) over the trip's span. Real readings taken on the
+    route, so they replace the two hourly endpoints elevation_enrich.fetch_trip_temperature computes
+    post-hoc. (None, None) when the live feature was off for this trip → that lookup stays the fallback."""
+    db = _get()
+    tr = db.execute("SELECT vehicle_id, started_at, ended_at FROM trips WHERE id = ?",
+                    (trip_id,)).fetchone()
+    if not tr or not tr["started_at"]:
+        return (None, None)
+    rows = db.execute(
+        "SELECT outside_temp FROM positions WHERE vehicle_id = ? AND outside_temp IS NOT NULL "
+        "AND recorded_at >= ? AND recorded_at <= ? ORDER BY recorded_at",
+        (tr["vehicle_id"], tr["started_at"], tr["ended_at"] or "9999-12-31")).fetchall()
+    if not rows:
+        return (None, None)
+    return (rows[0]["outside_temp"], rows[-1]["outside_temp"])
 
 
 def get_trip_points_for_elevation(trip_id: int, max_points: int = 60) -> list[dict]:

@@ -16,6 +16,7 @@ from client import (LeapmotorMateClient, set_charge_current_min, EmptyStatusErro
                     seed_coord_signs, get_coord_signs)
 from db import Database
 from mqtt import MqttService
+from outside_temp import OutsideTempSampler
 from recorder import Recorder
 
 logging.basicConfig(
@@ -729,7 +730,7 @@ class VehicleContext:
 
     __slots__ = ("vehicle", "vehicle_id", "vin", "recorder", "persisted_signs",
                  "empty_status_count", "poll_error_count", "research_last_sig",
-                 "interval", "next_due")
+                 "interval", "next_due", "outside_sampler")
 
     def __init__(self, db, vehicle, vehicle_id: int):
         self.vehicle = vehicle
@@ -743,6 +744,7 @@ class VehicleContext:
         self.empty_status_count = 0   # consecutive "no live signals" responses (car asleep)
         self.poll_error_count = 0     # consecutive hard API errors (cloud unreachable)
         self.research_last_sig: dict = {}   # beta build: last value per signal id, for delta logging
+        self.outside_sampler = OutsideTempSampler()   # live outside temp (Open-Meteo), cached per car
         self.interval = 30.0
         self.next_due = 0.0           # monotonic; 0 = due now, so the first round polls every car
 
@@ -801,6 +803,12 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
             pass
         with _API_LOCK:
             data = client.get_status(ctx.vehicle)
+        # Live outside-air temperature for the car's spot (Open-Meteo; the cloud carries none — see
+        # client.py). Opt-in and cached hard, so a parked car makes no calls. Set BEFORE the recorder
+        # runs, so it lands on the position row (positions.outside_temp) and flows on to MQTT, ABRP
+        # and — averaged along the route — the trip's temperature.
+        if db.get_setting("outside_temp_enabled", "0") == "1":
+            data.outside_temp = ctx.outside_sampler.sample(data.latitude, data.longitude, time.time())
         ctx.recorder.process(data)
         _write_comfort_state(db, data)
 

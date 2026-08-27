@@ -129,6 +129,12 @@
     <span class="text-white font-medium">{{ status.inside_temp | temp(0) if status.inside_temp is not none else '—' }}</span>
   </div>
   {% endif %}
+  {% if 'outside_temp' not in absent %}
+  <div class="flex justify-between text-slate-400">
+    <span>{{ t('outside_temp_label') }} <span class="text-slate-600 cursor-help" title="{{ t('outside_temp_title') }}">ⓘ</span></span>
+    <span class="text-white font-medium">{{ status.outside_temp | temp(0) if status.outside_temp is not none else '—' }}</span>
+  </div>
+  {% endif %}
   {% if 'ac_target' not in absent %}
   <div class="flex justify-between text-slate-400">
     <span>{{ t('ac_target') }}</span>

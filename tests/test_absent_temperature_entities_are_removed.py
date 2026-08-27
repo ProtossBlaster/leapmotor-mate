@@ -159,7 +159,8 @@ def database(tmp_path):
 def test_the_poller_measures_the_same_thing_the_page_does(database):
     _polls(database, 200, inside_temp=None, battery_min_temp=31.0, climate_target_temp=None)
     absent = database.never_reported_temps()
-    assert absent == {"inside_temp", "ac_target_temp"}, "MQTT topic keys, not the web's"
+    # outside_temp is absent too — it is Open-Meteo, opt-in, and these polls never carried one.
+    assert absent == {"inside_temp", "outside_temp", "ac_target_temp"}, "MQTT topic keys, not the web's"
 
 
 def test_a_fresh_install_deletes_nothing(database):
@@ -228,7 +229,7 @@ def test_the_poll_loop_actually_hands_the_measurement_to_the_bridge(database, mo
     monkeypatch.setattr(service, "publish_status",
                         lambda data, absent_temps=None, **kw: seen.update(got=absent_temps))
     pmain._mqtt_tick(database, None, Frame(), service, None, 1)
-    assert seen.get("got") == {"inside_temp", "ac_target_temp"}
+    assert seen.get("got") == {"inside_temp", "outside_temp", "ac_target_temp"}
 
 
 def test_the_two_sides_describe_the_same_three_columns():

@@ -55,6 +55,7 @@ _SIGN_MAJORITY = 0.9
 # web/db_reader.py holds the same three columns under the WEB's key names; a test ties the two
 # together, because two copies of a rule are how the page and Home Assistant come to disagree.
 ABSENT_TEMP_COLUMNS = {"inside_temp": "inside_temp",
+                       "outside_temp": "outside_temp",
                        "battery_temp": "battery_min_temp",
                        "ac_target_temp": "climate_target_temp"}
 ABSENT_TEMP_MIN_POLLS = 50    # below this, "never seen" describes the install's age, not the car

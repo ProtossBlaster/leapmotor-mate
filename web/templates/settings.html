@@ -527,6 +527,22 @@
         <div id="trip-def-result" class="col-span-2 text-xs h-4"></div>
       </form>
       <div class="text-[11px] text-slate-500 mt-2">{{ t('trip_defaults_hint') }}</div>
+
+      {# Live outside temperature (Open-Meteo) → the Overview tile, an MQTT sensor and each trip's own
+         temperature. Opt-in: the car's position leaves the device for the weather lookup (disc #261). #}
+      <form hx-post="api/settings/outside-temp" hx-trigger="change"
+            hx-target="#outside-temp-feedback" hx-swap="innerHTML" class="mt-4 pt-4 border-t border-slate-700">
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <div>
+            <div class="text-sm text-white">{{ t('outside_temp_title') }}</div>
+            <div class="text-xs text-slate-400">{{ t('outside_temp_desc') }}</div>
+          </div>
+          <input type="checkbox" name="outside_temp_enabled" value="1"
+                 {% if settings.get('outside_temp_enabled') == '1' %}checked{% endif %}
+                 class="w-5 h-5 accent-brand cursor-pointer flex-shrink-0">
+        </label>
+        <div id="outside-temp-feedback" class="text-xs mt-2" style="min-height:16px"></div>
+      </form>
     {% endcall %}
 
   </div>
@@ -950,7 +966,7 @@
               hx-target="#restore-result" hx-swap="innerHTML"
               hx-confirm="{{ t('restore_db_confirm') }}"
               hx-indicator="#restore-spin" class="flex flex-wrap items-center gap-2">
-          <input type="file" name="file" accept=".db" required
+          <input type="file" name="file" accept=".db,.gz" required
                  class="text-xs text-slate-300 file:mr-2 file:rounded-lg file:border file:border-slate-600 file:bg-slate-800 file:text-slate-200 file:px-3 file:py-1.5 file:text-xs file:cursor-pointer">
           <button type="submit"
                   class="border border-amber-600/70 text-amber-300 text-sm font-medium rounded-lg px-4 py-2 hover:bg-amber-600/10">{{ t('restore_db_btn') }}</button>

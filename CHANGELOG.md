@@ -3,6 +3,35 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.19] — 2026-08-27
+
+Two requests from the discussions, in one release.
+
+**Outside temperature, from the weather — on the Overview, in Home Assistant, and on every trip** (discussion [#261](https://github.com/ProtossBlaster/leapmotor-mate/discussions/261), asked by **@wlighter**).
+
+The Leapmotor cloud reports the cabin temperature but never the air outside — and neither does the
+official app. Mate now fills that gap from Open-Meteo (keyless, free): while the car is awake it
+samples the temperature at its current position — at most once every 20 minutes or 10 km, whichever
+comes first — and shows it next to the cabin reading on the Overview, publishes it as an **Outside
+Temp** Home Assistant sensor, and gives each trip its own start/end temperature from the readings
+taken along the route (the post-trip weather lookup stays the fallback for trips recorded before the
+feature was on).
+
+Off by default: the lookup sends the car's position to Open-Meteo, so it is a single opt-in switch
+under **Settings → trip defaults**. A car that has never reported a reading hides the row entirely,
+exactly like the other optional temperatures ([#144](https://github.com/ProtossBlaster/leapmotor-mate/issues/144)).
+
+**The database backup downloads compressed** (discussion [#264](https://github.com/ProtossBlaster/leapmotor-mate/discussions/264), asked by **@joeyoong**).
+
+Settings → Export → the database backup now downloads gzip-compressed (`leapmotor_mate.db.gz`),
+streamed in chunks so even a large database never lands in memory whole. Restore accepts **both** the
+new compressed file and a raw `.db` backup taken before this change, so nothing you already saved
+stops working — and a smaller file is easier to keep or sync wherever you back up. A Mate database is
+mostly repetitive telemetry, which gzip shrinks well. Backing up straight to a cloud drive
+(OneDrive/Google Drive), asked in the same thread, would need per-provider integrations Mate doesn't
+carry; Home Assistant's own backup, a synced folder on the data volume, or rclone already cover that
+— now on a smaller file.
+
 ## [3.14.17] — 2026-08-26
 
 **The cost per 100 km is the sum of the trips — and a range-extender's electricity is priced the same on every page** (beta [#36](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/36) follow-up + discussion [#207](https://github.com/ProtossBlaster/leapmotor-mate/discussions/207), found by **@michapr**).

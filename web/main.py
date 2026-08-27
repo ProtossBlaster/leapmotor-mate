@@ -8,7 +8,8 @@ import time
 from pathlib import Path
 
 from fastapi import FastAPI, Request, BackgroundTasks
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response, FileResponse
+from fastapi.responses import (HTMLResponse, RedirectResponse, JSONResponse, Response, FileResponse,
+                               StreamingResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -27,7 +28,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.14.17"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.14.19"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -2624,6 +2625,18 @@ async def save_trip_defaults(request: Request):
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("trip_defaults_saved")}</span>')
 
 
+@app.post("/api/settings/outside-temp", response_class=HTMLResponse)
+async def save_outside_temp(request: Request):
+    """Opt-in live outside temperature (Open-Meteo) — feeds the Overview tile, the MQTT sensor and each
+    trip's own temperature (disc #261, @wlighter). The car's position leaves the device for the weather
+    lookup, so it is off by default."""
+    form = await request.form()
+    val = "1" if form.get("outside_temp_enabled") in ("1", "on", "true") else "0"
+    db_reader.set_setting("outside_temp_enabled", val)
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("retention_saved")}</span>')
+
+
 # ── Wallbox saved profiles ───────────────────────────────────────────────────
 
 def _get_wallbox_profiles() -> list:
@@ -3630,14 +3643,19 @@ async def export_trip_gpx(trip_id: int):
 
 @app.get("/api/export/database")
 async def export_database():
-    """Download the SQLite database as a backup. NB: encrypted credentials need the
-    matching /data/secret.key to be usable on another install."""
+    """Download the SQLite database as a gzip-compressed backup (`leapmotor_mate.db.gz`, disc #264) —
+    streamed in chunks so a large DB never lands in memory whole, and served as application/gzip WITHOUT
+    Content-Encoding so the browser saves the .gz as-is instead of silently inflating it. Restore
+    accepts both this and a raw .db. NB: encrypted credentials need the matching /data/secret.key to be
+    usable on another install."""
     try:
         db_reader.checkpoint()
     except Exception:  # noqa: BLE001
         pass
-    return FileResponse(db_reader.DB_PATH, media_type="application/octet-stream",
-                        filename="leapmotor_mate.db")
+    return StreamingResponse(
+        db_reader.gzip_db_stream(),
+        media_type="application/gzip",
+        headers={"Content-Disposition": "attachment; filename=leapmotor_mate.db.gz"})
 
 
 @app.post("/api/import/database", response_class=HTMLResponse)

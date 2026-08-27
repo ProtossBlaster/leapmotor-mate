@@ -210,6 +210,7 @@ class MqttService:
     # The three temperature entities and their HA config, shared by discovery and the re-check above
     # so one list cannot describe them differently in two places.
     _TEMP_ENTITIES = (("inside_temp", "Inside Temp"),
+                      ("outside_temp", "Outside Temp"),
                       ("ac_target_temp", "AC Target"),
                       ("battery_temp", "Battery Temp"))
 
@@ -326,6 +327,7 @@ class MqttService:
         pub("v2l_energy_session", v2l_wh)
         pub("battery_temp", data.battery_min_temp)
         pub("inside_temp", data.inside_temp)
+        pub("outside_temp", data.outside_temp)              # Open-Meteo (opt-in); None → entity dropped
         pub("ac_target_temp", data.climate_target_temp)
         pub("locked", data.is_locked);          pub("climate_on", data.climate_on)
         pub("fan_level", data.fan_level or None)              # acAirVolume 1-7 (empty when no data)

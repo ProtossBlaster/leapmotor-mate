@@ -172,10 +172,15 @@ def _enrich_segment(seg_id: int, count_miss: bool) -> bool:
             db_reader.store_trip_elevation(seg_id, None, None)
         return False
     elevations = fetch_elevations(points)
-    temp_start, temp_end = fetch_trip_temperature(
-        points[0]["latitude"], points[0]["longitude"],
-        points[-1]["latitude"], points[-1]["longitude"],
-        points[0].get("recorded_at"), points[-1].get("recorded_at"))
+    # The trip's OWN temperature from the live samples the poller recorded along the route
+    # (positions.outside_temp, opt-in) — real readings on the way, not two hourly endpoints. The
+    # Open-Meteo lookup below is the fallback for trips with no live sample (the feature was off).
+    temp_start, temp_end = db_reader.trip_outside_temp_samples(seg_id)
+    if temp_start is None and temp_end is None:
+        temp_start, temp_end = fetch_trip_temperature(
+            points[0]["latitude"], points[0]["longitude"],
+            points[-1]["latitude"], points[-1]["longitude"],
+            points[0].get("recorded_at"), points[-1].get("recorded_at"))
     gain, loss = compute_gain_loss(elevations) if elevations else (None, None)
     if gain is None and temp_start is None and temp_end is None:
         if count_miss:
