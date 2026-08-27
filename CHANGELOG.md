@@ -3,6 +3,23 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.17] — 2026-08-26
+
+**The cost per 100 km is the sum of the trips — and a range-extender's electricity is priced the same on every page** (beta [#36](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/36) follow-up + discussion [#207](https://github.com/ProtossBlaster/leapmotor-mate/discussions/207), found by **@michapr**).
+
+Two threads that turned out to be one. The Monthly Report priced its "cost per 100 km" from
+charge_cost/km — the money charged over the kilometres driven — so it climbed when you charged with
+the car parked, and it folded in energy charged but not yet driven. It now **sums the per-trip cost**,
+the same figure the Trips and Statistics pages carry.
+
+And that per-trip cost, on a range-extender, was itself split-brained: the trip **detail** priced the
+electricity from the depleting **paid stock** (where generator kWh are free — already paid for in
+litres), while the list, calendar, Statistics and the Report priced it through the blended €/kWh —
+wrong for a REEV, which made the calendar disagree with the detail (on @michapr's data, **9.01 €
+against 11.35 €** for one month). Every page now reads the REEV electric cost from that one paid-stock
+replay, so a trip costs the same wherever you read it. **A pure electric car is untouched** — it keeps
+the blended €/kWh, exactly as before.
+
 ## [3.14.16] — 2026-08-26
 
 **The wallbox "Session energy" is the session, not the meter's whole life** (beta [#37](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/37), found by **@michapr**).

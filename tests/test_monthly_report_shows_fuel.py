@@ -119,10 +119,11 @@ def test_the_l_per_100km_uses_the_whole_distance():
 
 
 def test_the_cost_per_100km_counts_petrol_not_just_electricity():
-    """#36 (@michapr): the tile beside Home/Public answered "what did 100 km cost" with only the
-    electric charge — a month that burned a tank read 2.28 €/100 km instead of ~11. It must add the
-    petrol, the same WAC allocation the Trips list already prices (litres × the tank's blended €/L)."""
-    assert "(c.charge_cost + c.fuel_cost_burned) / dist_val(c.total_km) * 100" in REPORT_HTML
+    """#36 (@michapr): the tile beside Home/Public must add the petrol to the electric DRIVING cost,
+    both per trip — a month that burned a tank is not priced on the electricity alone. (The electric
+    half moved from charge_cost/km to the per-trip cost in the #36 follow-up; see
+    test_report_cost_is_summed_from_trips.)"""
+    assert "(c.elec_cost_driven + c.fuel_cost_burned) / dist_val(c.total_km) * 100" in REPORT_HTML
     assert "c.charge_cost / dist_val(c.total_km) * 100" not in REPORT_HTML
 
 

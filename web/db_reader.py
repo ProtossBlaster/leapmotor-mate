@@ -5130,11 +5130,14 @@ def _trip_blended_rate_fn():
 
 
 def _localized_trips(trips: list[dict]) -> list[dict]:
-    """Per-trip localization + derived cost shared by the Trips calendar and search: the
-    ec_pending flag, local start/end times, and cost (efficiency × distance × the blended
-    €/kWh in effect AT the trip's time — same basis as get_trip_detail). Adds a private
+    """Per-trip localization + derived cost shared by the Trips calendar, search, Statistics and the
+    Monthly Report: the ec_pending flag, local start/end times, and `cost` — the electric cost of the
+    trip, priced the SAME way the trip detail prices it so every page agrees. On a REEV that is the
+    depleting PAID STOCK (reev_trip_electric_cost, generator kWh free); on a BEV it is efficiency ×
+    distance × the blended €/kWh in effect AT the trip's time (_wac_blend), unchanged. Adds a private
     `_dt` (aware, local-tz datetime) for the caller's OWN day/date bucketing or filtering."""
     rate_at = _trip_blended_rate_fn()
+    reev_costs = _reev_electric_cost_by_trip()   # {} on a BEV → the BEV branch below runs unchanged
     ec_on = get_setting("ec_trip_energy_enabled", "1") == "1"
     ec_cutoff = get_setting("ec_trip_since", "")
     now_ts = datetime.now(timezone.utc).timestamp()
@@ -5153,11 +5156,18 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
             and ee and (now_ts - ee) < 6 * 3600)
         t["started_at"] = dt.isoformat()
         t["ended_at"] = _local_iso(t.get("ended_at"))
-        km = t.get("distance_km") or 0
-        eff = t.get("efficiency_kwh_100km")
-        energy = (eff * km / 100) if (eff and km) else 0
-        rate = rate_at(t.get("vehicle_id"), raw_start) if energy else None
-        t["cost"] = (energy * rate) if (energy and rate) else 0
+        if reev_costs:
+            # REEV: the electric cost from the depleting PAID STOCK the trip detail uses, so list,
+            # calendar, Statistics and Report all agree — and generator kWh come out free (already
+            # paid in litres). See _paid_stock_replay / reev_trip_electric_cost.
+            t["cost"] = reev_costs.get(t["id"], 0.0)
+        else:
+            # BEV: the blended €/kWh — every kWh in the pack has an invoice. UNCHANGED from before.
+            km = t.get("distance_km") or 0
+            eff = t.get("efficiency_kwh_100km")
+            energy = (eff * km / 100) if (eff and km) else 0
+            rate = rate_at(t.get("vehicle_id"), raw_start) if energy else None
+            t["cost"] = (energy * rate) if (energy and rate) else 0
         t["_dt"] = dt
         out.append(t)
     return out
@@ -5635,6 +5645,39 @@ def _paid_stock_replay(events, capacity_kwh: float) -> list[dict]:
     return out
 
 
+def _reev_stock_rows(vehicle_id) -> list[dict]:
+    """Replay a REEV's whole history — every priced charge and every trip draw, in time order — and
+    return the per-draw paid-stock rows (`_paid_stock_replay`). Shared by `reev_trip_electric_cost`
+    (one trip, the detail) and `_reev_electric_cost_by_trip` (the whole list, for `_localized_trips`),
+    so the single-trip price and the list/Report price can never come from two different replays."""
+    cap = get_battery_capacity_kwh()
+    db = _get()
+    charges = db.execute(
+        "SELECT ended_at ts, energy_added_kwh kwh, cost, start_soc FROM charges "
+        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL AND cost IS NOT NULL "
+        "AND energy_added_kwh > 0", (vehicle_id,)).fetchall()
+    trips = db.execute(
+        "SELECT id, ended_at ts, ec_kwh, ec_stable, start_soc, end_soc FROM trips "
+        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL AND merged_into_id IS NULL",
+        (vehicle_id,)).fetchall()
+
+    events = [{"kind": "charge", "ts": r["ts"], "kwh": r["kwh"], "cost": r["cost"],
+               "start_soc": r["start_soc"]} for r in charges]
+    for r in trips:
+        if r["ec_kwh"] and r["ec_stable"]:
+            draw = r["ec_kwh"]
+        elif r["start_soc"] is not None and r["end_soc"] is not None:
+            draw = (r["start_soc"] - r["end_soc"]) / 100.0 * cap
+        else:
+            draw = 0.0
+        events.append({"kind": "draw", "ts": r["ts"], "id": r["id"], "kwh": max(0.0, draw)})
+
+    # A charge and a trip can share a timestamp only by accident; when they do, settle the charge
+    # first — you cannot spend energy that arrives in the same instant.
+    events.sort(key=lambda e: (e["ts"] or "", 0 if e["kind"] == "charge" else 1))
+    return _paid_stock_replay(events, cap)
+
+
 def reev_trip_electric_cost(vehicle_id: int, trip_id: int) -> Optional[dict]:
     """REEV — what the electricity of ONE trip cost, from the depleting paid stock.
 
@@ -5657,35 +5700,21 @@ def reev_trip_electric_cost(vehicle_id: int, trip_id: int) -> Optional[dict]:
     """
     if not is_reev_car():
         return None
-    cap = get_battery_capacity_kwh()
-    db = _get()
-    charges = db.execute(
-        "SELECT ended_at ts, energy_added_kwh kwh, cost, start_soc FROM charges "
-        "WHERE vehicle_id = ? AND ended_at IS NOT NULL AND cost IS NOT NULL AND energy_added_kwh > 0",
-        (vehicle_id,)).fetchall()
-    trips = db.execute(
-        "SELECT id, ended_at ts, ec_kwh, ec_stable, start_soc, end_soc FROM trips "
-        "WHERE vehicle_id = ? AND ended_at IS NOT NULL AND merged_into_id IS NULL",
-        (vehicle_id,)).fetchall()
-
-    events = [{"kind": "charge", "ts": r["ts"], "kwh": r["kwh"], "cost": r["cost"],
-               "start_soc": r["start_soc"]} for r in charges]
-    for r in trips:
-        if r["ec_kwh"] and r["ec_stable"]:
-            draw = r["ec_kwh"]
-        elif r["start_soc"] is not None and r["end_soc"] is not None:
-            draw = (r["start_soc"] - r["end_soc"]) / 100.0 * cap
-        else:
-            draw = 0.0
-        events.append({"kind": "draw", "ts": r["ts"], "id": r["id"], "kwh": max(0.0, draw)})
-
-    # A charge and a trip can share a timestamp only by accident; when they do, settle the charge
-    # first — you cannot spend energy that arrives in the same instant.
-    events.sort(key=lambda e: (e["ts"] or "", 0 if e["kind"] == "charge" else 1))
-    for row in _paid_stock_replay(events, cap):
+    for row in _reev_stock_rows(vehicle_id):
         if row["id"] == trip_id:
             return row
     return None
+
+
+def _reev_electric_cost_by_trip() -> dict:
+    """{trip_id: electric €} from ONE paid-stock replay — the batch twin of `reev_trip_electric_cost`,
+    so `_localized_trips` prices a REEV's whole list from the SAME depleting stock the trip detail
+    uses, in O(history) instead of O(trips × history). Returns {} on a BEV — which is exactly what
+    keeps the BEV branch of `_localized_trips` on `_wac_blend`, byte-for-byte unchanged."""
+    if not is_reev_car():
+        return {}
+    return {row["id"]: row["cost"] for row in _reev_stock_rows(_current_vehicle_id())
+            if row.get("id") is not None}
 
 
 def _fuel_wac_blend(purchases, tank_l: float = _REEV_TANK_L) -> Optional[float]:
@@ -7694,6 +7723,11 @@ def _report_bucket() -> dict:
         # and their € (the per-trip WAC the Trips list already prices) come from the trips; litres and
         # € BOUGHT come from the refuels he entered, because a tank is filled on one day and burned
         # over the next fortnight — the two are different questions and summing them would answer neither.
+        # The DRIVING cost, per trip, from the SAME machinery the Trips and Statistics pages use
+        # (_localized_trips → t["cost"] = electric energy × the battery's blended €/kWh at the trip's
+        # time; t["fuel_cost"] = the tank's WAC). NOT charge_cost/km, which counts energy charged but
+        # not yet driven and so climbs on a charge alone, with the car parked (@michapr, #36 follow-up).
+        "elec_cost_driven": 0.0,
         "fuel_l_burned": 0.0, "fuel_cost_burned": 0.0, "fuel_engine_km": 0.0,
         # Electric consumption MEASURED by the car (getEC per trip), so a month with generator
         # driving in it still gets an electric average. avg_efficiency above cannot: on a
@@ -7714,8 +7748,12 @@ def _collect_monthly_buckets() -> dict:
     cost and the billed-kWh basis (_billed_kwh) so the report's € matches the Charges page."""
     buckets: dict = {}
 
-    for tr in get_trips(limit=1_000_000):
-        dt = _local_dt(tr.get("started_at"))
+    # Same trips the Trips and Statistics pages use, localized once — _localized_trips also derives
+    # t["cost"] (electric energy × the battery's blended €/kWh at the trip's time), the electric half
+    # of the DRIVING cost, so the Report's "cost per 100 km" is built from the very per-trip figures
+    # the other pages sum instead of from charge_cost/km (@michapr, #36 follow-up).
+    for tr in _localized_trips(get_trips(limit=1_000_000)):
+        dt = tr.get("_dt")
         if dt is None:
             continue
         b = buckets.setdefault(dt.strftime("%Y-%m"), _report_bucket())
@@ -7741,6 +7779,10 @@ def _collect_monthly_buckets() -> dict:
         # blended €/L at the trip's start). The petrol half of "what did 100 km cost", so the Report's
         # cost tile stops showing only the electric charge on a month that ran on the generator (#36).
         b["fuel_cost_burned"] += tr.get("fuel_cost") or 0
+        # …and the ELECTRIC driving cost — t["cost"] from _localized_trips (energy × the battery's
+        # blended €/kWh at the trip's time). This + the fuel above is exactly node["cost"] in
+        # _totals_add, so the Report's cost per 100 km equals the Trips and Statistics pages'.
+        b["elec_cost_driven"] += tr.get("cost") or 0
         # getEC TOTAL (ec_kwh), NOT the driving share (ec_driving) — the SAME quantity the Trips and
         # Statistics pages divide by, so the three cannot print three different kWh/100km for one
         # month (beta #35, @michapr: the Report read 8.8 from ec_driving while the others read 10.1
@@ -7812,7 +7854,7 @@ def _collect_monthly_buckets() -> dict:
         if b["_ec_km"] > 0:
             b["avg_efficiency_measured"] = round(b["_ec_kwh"] / b["_ec_km"] * 100, 1)
         for k in ("total_km", "total_kwh_used", "regen_kwh", "charge_kwh", "charge_cost",
-                  "charge_kwh_priced", "fuel_cost_burned"):
+                  "charge_kwh_priced", "fuel_cost_burned", "elec_cost_driven"):
             b[k] = round(b[k], 2)
         b["drive_min"] = int(round(b["drive_min"]))
         for g in ("home", "public"):
