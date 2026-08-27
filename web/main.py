@@ -28,7 +28,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.14.19"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.14.20"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -213,7 +213,10 @@ def _money(x) -> str:
     if x is None:
         return "—"
     cur = db_reader.get_currency()
-    s = f"{float(x):,.{cur['dec']}f}"
+    # Never show fewer than 2 decimals, even for zero-minor-unit currencies (ISK/JPY/KRW/HUF): dropping
+    # to whole units would ROUND the figure on screen, and Mate shows full precision, never a rounded
+    # number (Silvio's rule). `dec` stays the true ISO minor-unit count; this is only the display floor.
+    s = f"{float(x):,.{max(cur['dec'], 2)}f}"
     if db_reader.get_language() != "en":
         # swap separators: 1,234.50 -> 1.234,50
         s = s.translate(str.maketrans({",": ".", ".": ","}))

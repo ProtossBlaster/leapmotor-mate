@@ -89,7 +89,9 @@
               <span class="text-slate-500 text-sm">{{ currency.symbol }}</span>
               <input type="number" name="{{ setting_key }}" id="price-input-{{ key }}"
                      value="{{ settings.get(setting_key, '0.00') }}"
-                     step="0.01" min="0" max="9.99"
+                     step="0.01" min="0"
+                     {# no max: a hard ceiling blocks high-value currencies — ISK/JPY/KRW/HUF price
+                        electricity in tens–hundreds per kWh (disc #265). min+step still hold. #}
                      class="price-input w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-sm font-semibold text-right focus:outline-none focus:border-brand">
               <span class="text-slate-500 text-xs">/ kWh</span>
             </div>
@@ -368,7 +370,7 @@
       eur.className = "text-slate-500 text-xs"; eur.textContent = CURRENCY_SYMBOL;
       const v = (prices[t] !== undefined && prices[t] !== null) ? prices[t] : "";
       const inp = mkInput('number', v, "band-price w-20 text-right",
-                          { step: "0.01", min: "0", max: "9.99" });
+                          { step: "0.01", min: "0" });   // no max — see the base-price input (disc #265)
       inp.dataset.type = t;
       inp.placeholder = BASE_PRICES[t] || "";   // empty → base price is used
       lab.append(name, eur, inp);

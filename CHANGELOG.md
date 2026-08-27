@@ -3,6 +3,20 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.20] — 2026-08-27
+
+**The Icelandic króna, and charging prices are no longer capped at 9.99** (discussion [#265](https://github.com/ProtossBlaster/leapmotor-mate/discussions/265), asked by **@alloutnow**).
+
+Iceland — and Japan, Korea, Hungary — prices electricity in tens or hundreds of currency units per
+kWh, but the charging-price fields refused anything above `9.99`, a ceiling that only ever suited
+euro/dollar-scale tariffs. That cap is gone (the `0` floor and decimal entry stay), so an
+ISK/JPY/KRW/HUF tariff goes in exactly as typed. The **Icelandic króna** (`kr.`) is now in the
+currency list.
+
+And every amount now shows **at least two decimals**, even for zero-minor-unit currencies (ISK, JPY,
+KRW, HUF): collapsing to whole units would round the figure on screen, and Mate shows the number in
+full.
+
 ## [3.14.19] — 2026-08-27
 
 Two requests from the discussions, in one release.

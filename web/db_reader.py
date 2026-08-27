@@ -1267,6 +1267,7 @@ CURRENCIES = {
     "SEK": {"name": "Swedish Krona",   "symbol": "kr",  "pos": "after",  "dec": 2},
     "NOK": {"name": "Norwegian Krone", "symbol": "kr",  "pos": "after",  "dec": 2},
     "DKK": {"name": "Danish Krone",    "symbol": "kr",  "pos": "after",  "dec": 2},
+    "ISK": {"name": "Icelandic Króna", "symbol": "kr.", "pos": "after",  "dec": 0},
     "PLN": {"name": "Polish Złoty",    "symbol": "zł",  "pos": "after",  "dec": 2},
     "CZK": {"name": "Czech Koruna",    "symbol": "Kč",  "pos": "after",  "dec": 2},
     "HUF": {"name": "Hungarian Forint","symbol": "Ft",  "pos": "after",  "dec": 0},
