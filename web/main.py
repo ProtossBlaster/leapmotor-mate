@@ -28,7 +28,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.14.20"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.14.21"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -265,6 +265,17 @@ def _eff_cls(e) -> str:
     return "eff-good" if e < 18 else "eff-mid" if e < 22 else "eff-bad"
 
 
+def _range_at_charge_target(range_km, soc):
+    """Overview range estimate aimed at the car's charge limit (disc #266, @adoewa). A template GLOBAL,
+    like absent_temps below, because status_card.html is rendered by several routes: a per-route value
+    would reach one render and vanish from the rest. Reads the current car's REAL limit (the SoC it
+    stops at, never a value typed into Mate — see _configured_charge_limit) and hands db_reader the
+    pure extrapolation."""
+    vehicle, _ = db_reader.get_vehicle()
+    limit = _configured_charge_limit((vehicle or {}).get("vin") or "")
+    return db_reader.range_at_charge_target(range_km, soc, limit)
+
+
 templates.env.globals.update(
     dist_unit=units.dist_unit, speed_unit=units.speed_unit, temp_unit=units.temp_unit,
     pressure_unit=units.pressure_unit, eff_unit=units.eff_unit, elev_unit=units.elev_unit,
@@ -285,6 +296,8 @@ templates.env.globals.update(
     # context, and a value threaded through `_ctx` would reach the page and vanish from the rest.
     # A callable, so a sensor that starts working un-hides itself without a restart.
     absent_temps=db_reader.never_reported_temps,
+    # #266 — the Overview range estimate, aimed at the car's charge target instead of a fixed 100%.
+    range_at_charge_target=_range_at_charge_target,
 )
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 

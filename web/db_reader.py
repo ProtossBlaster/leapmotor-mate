@@ -1254,6 +1254,18 @@ def get_language() -> str:
     return _lang_memo[0]
 
 
+def range_at_charge_target(range_km, soc, charge_limit):
+    """Estimated range at the car's charge target (disc #266, @adoewa): the same range ÷ SoC
+    extrapolation the Overview showed at a fixed 100%, now aimed at `charge_limit` — the SoC the car
+    will actually stop at. Returns {"km", "pct"}; pct falls back to 100 when charge_limit is None (the
+    car hasn't reported a limit yet), so the figure is unchanged until a target is known. None when
+    range or SoC can't carry an estimate."""
+    if range_km is None or not soc or soc <= 0:
+        return None
+    pct = charge_limit or 100
+    return {"km": range_km / soc * pct, "pct": pct}
+
+
 # ── Currency ──────────────────────────────────────────────────────────────────
 # Monetary amounts are formatted via the Jinja `money` filter using this table.
 # Stored setting `currency` holds the ISO 4217 code; default EUR keeps the old
@@ -6841,6 +6853,13 @@ def get_stats_grouped() -> list[dict]:
         node["total_regen_kwh"] = round(s["regen"], 2)
         node["avg_efficiency"] = s["kwh_100km"]           # getEC ÷ km-with-getEC — the Trips figure
         node["avg_efficiency_km"] = s["kwh_100km_km"]     # how many km it speaks for
+        # The FUEL half, for a range-extender (beta #35 follow-up, @michapr): on his months the
+        # generator drives carry no efficiency at all, so the kWh figures above describe only part of
+        # the driving and the litres that moved the car appeared nowhere on this page. Already summed
+        # by _totals_seal — over ALL the kilometres, the car's own basis, NOT the getEC km the kWh
+        # figure uses. Two denominators, so they stay under two different words.
+        node["total_fuel_l"] = round(s["fuel_l"], 2)
+        node["fuel_l_100km"] = s["fuel_l_100km"]
         node["total_kwh"] = (round(s["kwh_100km"] * s["kwh_100km_km"] / 100, 2)
                              if s["kwh_100km"] is not None else 0.0)   # the getEC energy behind it
         return node

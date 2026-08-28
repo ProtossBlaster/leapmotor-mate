@@ -530,6 +530,12 @@
         <span class="text-slate-500 whitespace-nowrap">{{ year.trip_count }} {{ t('trip_singular') if year.trip_count == 1 else t('trips_plural') }}</span>
         <span class="text-white font-semibold whitespace-nowrap">{{ year.total_km | dist(0) }}</span>
         <span class="text-slate-400 whitespace-nowrap">{{ year.total_kwh | nice }} kWh</span>
+        {# The fuel half, beside the electric one (beta #35): on a range-extender the kWh figures
+           describe only the trips that ran on the battery, and the litres that moved the car the rest
+           of the time were nowhere on this page. Over ALL the km, unlike the kWh/100km beside it. #}
+        {% if year.total_fuel_l %}
+        <span class="text-amber-400/90 whitespace-nowrap">{{ year.total_fuel_l | nice }} L{% if year.fuel_l_100km %} · {{ year.fuel_l_100km | nice }} L/100km{% endif %}</span>
+        {% endif %}
         {{ eff_badge(year.avg_efficiency) }}
         <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
       </div>
@@ -550,6 +556,9 @@
             <span class="text-slate-500 whitespace-nowrap">{{ month.trip_count }} {{ t('trip_singular') if month.trip_count == 1 else t('trips_plural') }}</span>
             <span class="text-slate-200 font-semibold whitespace-nowrap">{{ month.total_km | dist(0) }}</span>
             <span class="text-slate-400 whitespace-nowrap">{{ month.total_kwh | nice }} kWh</span>
+            {% if month.total_fuel_l %}
+            <span class="text-amber-400/90 whitespace-nowrap">{{ month.total_fuel_l | nice }} L{% if month.fuel_l_100km %} · {{ month.fuel_l_100km | nice }} L/100km{% endif %}</span>
+            {% endif %}
             {{ eff_badge(month.avg_efficiency) }}
             <button type="button" onclick="lmCollapseDetails(this,event)" class="collapse-btn">⊟</button>
           </div>
@@ -569,6 +578,15 @@
           <div style="background:#0a1628;border:1px solid #1a2438;border-radius:10px;padding:12px">
             <div class="text-xs text-slate-500 uppercase tracking-wide mb-2">{{ t('regen_trend') }}</div>
             <canvas id="chart-regen-{{ mo_key }}" height="160"></canvas>
+          </div>
+          {# A range-extender has no regen figure to plot, and that third slot sat empty — while the
+             half of the driving that ran on the generator had no trend anywhere on this page (beta
+             #35, @michapr). Same shape as the efficiency chart beside it: a consumption per day, with
+             a gap on the days the generator never ran. Only drawn when the month burned something. #}
+          {% elif month.total_fuel_l %}
+          <div style="background:#0a1628;border:1px solid #1a2438;border-radius:10px;padding:12px">
+            <div class="text-xs text-slate-500 uppercase tracking-wide mb-2">{{ t('fuel_trend') }}</div>
+            <canvas id="chart-fuel-{{ mo_key }}" height="160"></canvas>
           </div>
           {% endif %}
         </div>
@@ -636,6 +654,30 @@
                 x: { ticks: tick, grid },
                 y: { beginAtZero: true, ticks: tick, grid,
                      title: { display: true, text: 'kWh', color: '#475569', font: { size: 9 } } },
+              }
+            }
+          });
+          {% elif month.total_fuel_l %}
+          // The generator's own consumption per day (beta #35). `null` — not 0 — on the days it never
+          // ran: a zero would draw the line down to the floor and read as "0 L/100 km driven on fuel",
+          // which is not what an all-electric day means. spanGaps bridges them, as the efficiency
+          // chart beside it already does for the days getEC had nothing to say.
+          new Chart(document.getElementById('chart-fuel-{{ mo_key }}'), {
+            type: 'line',
+            data: { labels, datasets: [{
+              label: 'L/100km',
+              data: [{% for d in month.days|reverse %}{{ d.fuel_l_100km if d.fuel_l_100km else 'null' }}{{ "," if not loop.last }}{% endfor %}],
+              borderColor: '#fb923c', backgroundColor: '#fb923c15',
+              fill: true, tension: 0.3, pointRadius: 3,
+              pointBackgroundColor: '#fb923c', spanGaps: true,
+            }]},
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { ticks: tick, grid },
+                y: { beginAtZero: true, ticks: tick, grid,
+                     title: { display: true, text: 'L/100km', color: '#475569', font: { size: 9 } } },
               }
             }
           });

@@ -2,7 +2,6 @@
 {% set soc = status.soc or 0 %}
 {% set color = soc_color(soc) %}
 {% set state = state_label(status) %}
-{% set est_full_range_km = (status.range_km / soc * 100) if status.range_km is not none and soc > 0 else none %}
 
 <!-- SOC + Range -->
 <div class="mb-4">
@@ -14,10 +13,11 @@
     <div class="text-right flex flex-col items-end">
       <div class="stat-label">{{ t('range') }}</div>
       <div class="stat-value leading-none mt-1">{{ dist_val(status.range_km)|int }} <span class="text-base font-normal text-slate-400">{{ dist_unit() }}</span></div>
-      {% if est_full_range_km is not none %}
+      {% set est = range_at_charge_target(status.range_km, soc) %}
+      {% if est %}
       <div class="mt-0 text-[11px] leading-none">
-        <span class="text-slate-400">{{ t('range_est_100') }}:</span>
-        <span class="font-semibold text-teal-300">{{ dist_val(est_full_range_km)|int }}</span>
+        <span class="text-slate-400">{{ t('range_est_at').replace('{pct}', est.pct|string) }}:</span>
+        <span class="font-semibold text-teal-300">{{ dist_val(est.km)|int }}</span>
         <span class="text-slate-400">{{ dist_unit() }}</span>
       </div>
       {% endif %}
