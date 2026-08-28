@@ -23,6 +23,7 @@ def test_isk_is_a_supported_currency():
 def test_isk_amount_keeps_at_least_two_decimals(monkeypatch):
     """ISK has zero ISO minor units, but Mate never rounds a figure on screen: a total keeps at least
     two decimals (Silvio's full-precision rule) instead of collapsing to whole krónur."""
+    pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
     import db_reader
     import main
     monkeypatch.setattr(db_reader, "get_currency", lambda: db_reader.CURRENCIES["ISK"])
