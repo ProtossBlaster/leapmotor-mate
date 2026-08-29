@@ -3,6 +3,24 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.24] — 2026-08-30
+
+**The kilometres the generator drove are a figure now, not a footnote** (beta #31, reported by
+**@gm27271**). On a range-extender trip that distance was printed at the end of the note explaining
+what the electric figure measures — after 41 words of prose, joined to them by a `·`, at 10px in the
+same grey the sidebar prints the build number in. His words, after two weeks of the thread going the
+other way: *"let's display this distance in crappy comment after loads of text like today"*. It now
+has a line of its own, above the note: **⛽ 25 km with the generator running**.
+
+Nothing about the number changed — only where it sits. And because a figure on its own line claims a
+confidence a footnote does not, the line says what it is: **at least** that far. There is no
+"generator on" signal in the car's cloud, so those kilometres are counted from the samples where the
+odometer rises *and* the fuel falls; the stretches where the odometer has not refreshed yet cannot be
+judged, and the count comes out short in one direction only — 54.0 km against the 60.2 the
+dashboard showed on the drive it was measured against.
+
+Range-extender models on the BetaTester build; a car with no tank is unchanged.
+
 ## [3.14.23] — 2026-08-29
 
 **Three charts that drew the wrong thing, or nothing at all.** Three reports in one day, none of

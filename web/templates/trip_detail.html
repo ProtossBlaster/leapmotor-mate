@@ -212,7 +212,30 @@
           💶 {{ trip.paid_kwh | nice }} {{ t('reev_elec_paid') }}{% if trip.free_kwh %} · ⛽ {{ trip.free_kwh | nice }} {{ t('reev_elec_from_generator') }}{% endif %}
         </div>
         {% endif %}
-        <div class="text-[10px] text-slate-500 mt-2 leading-snug">🔋 {{ t('reev_elec_source_note') }}{% if trip.engine_km %} · ⛽ {{ t('reev_engine_km') }}: {{ trip.engine_km | nice }} km{% endif %}</div>
+        {# The generator's distance, on a line of its own — @gm27271, beta #31. It used to be the
+           tail of the note below, joined to it by a `·`: 41 words of prose, then the figure, at
+           10px slate-500 — the same type the sidebar prints "v3.14.23" in, for the one number a
+           range-extender owner opens this page to read. His words, after two weeks: *«let's
+           display this distance in crappy comment after loads of text like today»*. Nothing about
+           the number changed; only where it sits.
+
+           ⚠️ And promoting it means carrying its limit with it. There is no "generator on" signal
+           in the cloud — all 89 were checked, and the best separates at 61% once the car is
+           already moving. These kilometres are counted from the samples where the odometer rises
+           AND the fuel falls, so half the stretches cannot be judged and land on the other side:
+           the count is short in one direction only, 54.0 against the 60.2 km @pdifeo's own
+           dashboard showed. At 10px grey the figure claimed nothing; on its own line it claims
+           confidence, so it says out loud that it is a floor. Otherwise this trades a layout
+           defect for the one Silvio drew the line on — two quantities under one label. #}
+        {% if trip.engine_km %}
+        <div class="mt-2" style="border-top:1px solid #33415560;padding-top:6px">
+          <div class="text-[13px] text-slate-200 leading-snug">
+            ⛽ <span class="font-semibold text-white">{{ trip.engine_km | nice }} km</span> {{ t('reev_engine_km') }}
+          </div>
+          <div class="text-[10px] text-slate-500 leading-snug mt-0.5">{{ t('reev_engine_km_floor') }}</div>
+        </div>
+        {% endif %}
+        <div class="text-[10px] text-slate-500 mt-2 leading-snug">🔋 {{ t('reev_elec_source_note') }}</div>
       </div>
       {% endif %}
       {% if trip.ec_pending %}
