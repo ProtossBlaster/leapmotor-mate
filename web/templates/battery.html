@@ -46,6 +46,11 @@
     </div>
   </div>
   <div id="soh-chart" style="height:340px"></div>
+  {# What the dashed line is, said under the drawing instead of on top of it (#268, @pdifeo). #}
+  <div class="flex items-center gap-2 text-xs text-slate-400 mt-1" id="soh-nominal-key">
+    <span style="display:inline-block;width:20px;border-top:2px dashed #475569"></span>
+    {{ t('battery_nominal') }} {{ health.nominal_kwh }} kWh
+  </div>
 </div>
 
 {% if health.cold_count %}
@@ -107,9 +112,15 @@
                labels: { style: { colors: '#94a3b8' }, formatter: function (v) { return v.toFixed(0); } },
                title: { text: 'kWh', style: { color: '#64748b' } } },
       grid: { borderColor: '#1e293b' },
-      annotations: { yaxis: [{ y: nominal, borderColor: '#475569', strokeDashArray: 5,
-                     label: { text: '{{ t('battery_nominal') }} ' + nominal + ' kWh',
-                              style: { background: '#334155', color: '#e2e8f0', fontSize: '10px' } } }] },
+      // The line, with NO label on it. ApexCharts pins a y-annotation label to the right edge of the
+      // plot — exactly where the newest charges sit, and those are the ones you open this chart to
+      // read: on @pdifeo's screenshot the last four dots were behind the "Nominal 28.4 kWh" box
+      // (#268). Moving the box was tried and dropped: the dots sit AROUND this very line, so no
+      // offset is safe for every dataset — a value that clears them on one car covers a dot on the
+      // next. The name of the line moved out of the drawing instead, into the caption below it,
+      // where it cannot overlap anything by construction.
+      // → tests/test_the_charts_do_not_hide_what_they_draw.py
+      annotations: { yaxis: [{ y: nominal, borderColor: '#475569', strokeDashArray: 5 }] },
       tooltip: { theme: 'dark',
                  x: (mode === 'dist')
                     ? { formatter: function (v) { return Math.round(v).toLocaleString() + ' km'; } }

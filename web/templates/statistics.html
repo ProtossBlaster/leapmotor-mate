@@ -18,6 +18,16 @@
   {% endif %}
 </div>
 
+{# Chart.js for the WHOLE page, loaded here and not beside the charts that use it. It used to sit
+   further down, next to the monthly ones, and the temperature card added above it in v3.14.19 came
+   out blank for everyone: its inline script ran before the library existed and its own
+   `typeof Chart === 'undefined'` guard returned in silence — no drawing, no error (beta #38,
+   @michapr). Loaded first, any card can be placed anywhere on the page.
+   → tests/test_charts_load_their_library_first.py #}
+{% if grouped or (efftemp and efftemp.points) %}
+<script src="static/vendor/chart.umd.min.js"></script>
+{% endif %}
+
 <!-- KPI cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="card">
@@ -499,7 +509,6 @@
 {% endif %}
 
 {% if grouped %}
-<script src="static/vendor/chart.umd.min.js"></script>
 
 {% macro eff_badge(v) %}
   {% if v %}

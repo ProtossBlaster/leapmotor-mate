@@ -261,7 +261,13 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
       stroke: { width: 0 },
       dataLabels: { enabled: true, formatter: function (v) { return Math.round(v) + '%'; },
                     style: { fontSize: '12px' } },
+      {# The VALUE in the middle of the ring needs its colour said out loud. ApexCharts styles the
+         label above it (`total.color`) and the % on the segment, but leaves the number itself on its
+         own default — a near-black that vanishes on our dark card: @adoewa's screenshot has the ring,
+         the 100% and both side tiles readable, and the count in the centre all but invisible (#269).
+         → tests/test_the_charges_donut_prints_a_legible_total.py #}
       plotOptions: { pie: { donut: { size: '62%', labels: { show: true,
+        value: { color: '#f1f5f9', fontSize: '22px', fontWeight: 700 },
         total: { show: true, label: '{{ t('charges_title') }}', color: '#94a3b8',
                  formatter: function (w) { return w.globals.seriesTotals.reduce(function (a, b) { return a + b; }, 0); } } } } } },
       tooltip: { theme: 'dark', y: { formatter: function (v) { return v + ' ⚡'; } } }
