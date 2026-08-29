@@ -496,6 +496,7 @@
     "battery": "Batterie",
     "range": "Reichweite",
     "range_est_at": "Schätzung bei {pct}%",
+    "range_est_100": "Schätzung bei 100%",
     "state": "Status",
     "speed": "Tempo",
     "gear": "Gang",

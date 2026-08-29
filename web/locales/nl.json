@@ -496,6 +496,7 @@
     "battery": "Batterij",
     "range": "Actieradius",
     "range_est_at": "Geschat bij {pct}%",
+    "range_est_100": "Geschat bij 100%",
     "state": "Status",
     "speed": "Snelheid",
     "gear": "Stand",

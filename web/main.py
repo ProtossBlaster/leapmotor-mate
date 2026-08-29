@@ -276,6 +276,36 @@ def _range_at_charge_target(range_km, soc):
     return db_reader.range_at_charge_target(range_km, soc, limit)
 
 
+def _range_estimates(range_km, soc):
+    """Dual range estimates for the status card: at charge limit AND at 100%.
+    Returns a dict with:
+    - limit_est: estimate at the car's charge limit (dict with 'km' and 'pct')
+    - full_est: estimate at 100% (dict with 'km' and 'pct' = 100)
+    - show_both: boolean — True if limit is < 100 and should be shown separately, False otherwise
+    
+    Smart logic: if charge_limit is null or 100, show_both is False (avoid redundancy)."""
+    if range_km is None or not soc or soc <= 0:
+        return None
+    
+    vehicle, _ = db_reader.get_vehicle()
+    limit = _configured_charge_limit((vehicle or {}).get("vin") or "")
+    
+    # Always compute the estimate at 100%
+    full_est = db_reader.range_at_charge_target(range_km, soc, 100)
+    
+    # Compute estimate at limit
+    limit_est = db_reader.range_at_charge_target(range_km, soc, limit)
+    
+    # Show both only if limit is set and < 100
+    show_both = limit is not None and limit < 100
+    
+    return {
+        "limit_est": limit_est,
+        "full_est": full_est,
+        "show_both": show_both
+    }
+
+
 templates.env.globals.update(
     dist_unit=units.dist_unit, speed_unit=units.speed_unit, temp_unit=units.temp_unit,
     pressure_unit=units.pressure_unit, eff_unit=units.eff_unit, elev_unit=units.elev_unit,
@@ -298,6 +328,8 @@ templates.env.globals.update(
     absent_temps=db_reader.never_reported_temps,
     # #266 — the Overview range estimate, aimed at the car's charge target instead of a fixed 100%.
     range_at_charge_target=_range_at_charge_target,
+    # Dual estimates: at charge limit AND at 100%, with smart logic to avoid redundancy
+    range_estimates=_range_estimates,
 )
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
