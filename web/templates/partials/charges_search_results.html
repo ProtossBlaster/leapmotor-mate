@@ -14,6 +14,20 @@
     ✕ {{ t('charges_search_clear') }}
   </button>
 </div>
+{# The period's own total (disc #263, @joeyoong). The calendar's month strip has always totalled
+   its sessions; the search listed cards and totalled nothing — so any period that is not a calendar
+   month (his electricity is billed 22nd→21st, and the date filters above can already select it) had
+   to be added up by hand. Same figures, same words, same source as the month strip. #}
+{% if charges and search_total and search_total.count %}
+<div class="flex items-center justify-center gap-4 text-sm mb-4 flex-wrap">
+  <span class="text-slate-400">{{ search_total.count }} {{ t('session_inline_one') if search_total.count == 1 else t('session_inline_many') }}</span>
+  <span class="text-yellow-400 font-semibold" title="{{ t('cal_kwh_delivered_help') }}">{{ search_total.kwh | nice }} kWh {{ t('cal_kwh_delivered') }}</span>
+  {% if search_total.battery_kwh and search_total.battery_kwh != search_total.kwh %}
+  <span class="text-slate-300" title="{{ t('energy_in_battery_help') }}">{{ search_total.battery_kwh | nice }} {{ t('cal_kwh_in_battery') }}</span>
+  {% endif %}
+  {% if search_total.has_cost %}<span class="text-green-400 font-semibold">{{ search_total.cost | money }}</span>{% endif %}
+</div>
+{% endif %}
 {% if charges %}
 <div class="space-y-3">
   {% for c in charges %}

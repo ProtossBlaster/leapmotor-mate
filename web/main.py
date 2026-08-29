@@ -28,7 +28,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.14.21"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.14.22"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -760,6 +760,9 @@ async def trips_search(request: Request, q: str = "", drive_mode: str = "",
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
         "is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),
         "trips": trips, "year": year or today.year, "month": month or today.month,
+        # disc #263 — the period's own total (km, fuel, cost) for whatever the filters selected, so a
+        # custom billing cycle reads off the results instead of being added up by hand.
+        "search_total": db_reader.search_results_total_trips(trips),
     })
 
 
@@ -1277,6 +1280,9 @@ async def charges_search(request: Request, q: str = "", type: str = "",
     return templates.TemplateResponse(request, "partials/charges_search_results.html", {
         "t": i18n.get_t(lang), "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
         "charges": charges, "station": station,
+        # disc #263 — the period's own total, so a custom billing cycle (his is 22nd→21st) can be
+        # read off the filtered results instead of added up by hand.
+        "search_total": db_reader.search_results_total_charges(charges),
         # charge_card.html labels its price box in the reader's own money, and this partial is
         # rendered on its own — it inherits nothing from _ctx. Three routes were missing it.
         "currency": db_reader.get_currency(),

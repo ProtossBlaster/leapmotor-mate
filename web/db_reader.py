@@ -7437,6 +7437,34 @@ def _localized_charges(charges: list[dict]) -> list[dict]:
     return out
 
 
+def search_results_total_charges(charges: list) -> dict:
+    """Totals for a list of SEARCHED charges — the same figures the calendar's month strip shows,
+    over whatever the filters selected (disc #263, @joeyoong: his electricity is billed 22nd→21st,
+    and the date filters could already pick that period while the results totalled nothing).
+
+    Uses `_billed_kwh` so the delivered side matches the month strip and the per-charge card exactly;
+    `has_cost` keeps a period where nothing is priced from printing a confident 0.00."""
+    total = {"count": 0, "kwh": 0.0, "battery_kwh": 0.0, "cost": 0.0, "has_cost": False}
+    for c in charges:
+        total["count"] += 1
+        total["kwh"] = round(total["kwh"] + _billed_kwh(c), 2)
+        total["battery_kwh"] = round(total["battery_kwh"] + (c.get("energy_added_kwh") or 0), 2)
+        if c.get("cost") is not None:
+            total["cost"] = round(total["cost"] + (c["cost"] or 0), 2)
+            total["has_cost"] = True
+    return total
+
+
+def search_results_total_trips(trips: list) -> dict:
+    """Totals for a list of SEARCHED trips (disc #263) — built on `_totals_add`/`_totals_seal`, the
+    same machinery behind the Trips calendar and the Statistics page, so a searched period and a
+    calendar month never disagree about the same trips. Cost is electricity + fuel, as everywhere."""
+    node = _totals_node()
+    for t in trips:
+        _totals_add(node, t)
+    return _totals_seal(node)
+
+
 def get_charges_calendar_month(year: int, month: int, station: str | None = None) -> dict:
     """Per-day totals for the Ricariche calendar's Month view: how many sessions, kWh and
     cost landed on each day of `year`/`month` (local time, same billed-kWh convention as

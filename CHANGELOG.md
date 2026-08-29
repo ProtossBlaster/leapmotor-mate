@@ -3,6 +3,20 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.22] — 2026-08-28
+
+**Search results carry a total, so any period adds itself up** (discussion [#263](https://github.com/ProtossBlaster/leapmotor-mate/discussions/263), asked by **@joeyoong**).
+
+His electricity is billed 22nd→21st rather than by calendar month, so the month strip's total never
+covered the period he actually pays for. The date filters that select such a period were already
+there on both the Charges and the Trips search — what was missing is the sum: the results listed
+their cards and totalled nothing, so anything other than a calendar month had to be added up by hand.
+
+Both searches now show the period's own total above the results: **sessions, kWh delivered (and the
+battery figure beside it), cost** on Charges; **trips, km, litres on a range-extender, cost** on Trips.
+Same figures and same source as the calendar's month strip, so a searched period and a month can
+never disagree about the same records.
+
 ## [3.14.21] — 2026-08-28
 
 **The Overview's range estimate aims at your charge limit** (discussion [#266](https://github.com/ProtossBlaster/leapmotor-mate/discussions/266), asked by **@adoewa**).
