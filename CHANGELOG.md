@@ -3,6 +3,41 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.23] — 2026-08-29
+
+**Three charts that drew the wrong thing, or nothing at all.** Three reports in one day, none of
+them about a wrong number: the figures were right and the pixels were not.
+
+**The "Consumption vs outside temperature" chart was blank — for everyone** (beta #38, reported by
+**@michapr**). The card shipped in v3.14.19 sat above the point where the Statistics page loads its
+charting library, so its script ran before that library existed and gave up in silence: no drawing,
+and nothing in the console either. The caption underneath still printed the trend line, which is
+what proved the data had been there all along. The library now loads once, at the top of the page.
+
+**"Nominal 28.4 kWh" covered the newest charges** (issue [#268](https://github.com/ProtossBlaster/leapmotor-mate/issues/268),
+reported by **@pdifeo**). On Battery health, that label was pinned to the right edge of the chart —
+exactly where the most recent charges are drawn, the ones you open the chart to read. Moving the box
+was tried and dropped: the dots sit around that very line, so no offset is safe on every car. The
+name of the line now sits under the chart, where it cannot cover anything.
+
+**The number in the middle of the AC/DC ring was unreadable** (issue [#269](https://github.com/ProtossBlaster/leapmotor-mate/issues/269),
+reported by **@adoewa**). The ring's title and its percentage were styled; the count between them
+was left on the charting library's own default — a near-black on a dark card. It is now as bright as
+the figures beside it.
+
+**The range estimate shows your charge limit and 100%, side by side**
+(pull request [#267](https://github.com/ProtossBlaster/leapmotor-mate/pull/267), by **@domevite**).
+v3.14.21 replaced the estimate at 100% with the one at your real charge limit; this brings both,
+whenever the car reports a limit below 100 — and a single line when it does not, so the two can
+never print the same number twice. In all eight languages.
+
+*Under the hood:* three new tests, each seen failing on the released code before the fix. One is
+cheap and runs everywhere — in every page, the charting library must be loaded before the first
+chart is built. The other two open the pages in a real browser and measure the drawing itself: how
+many points reached the canvas, whether a label's box overlaps a data point's box, and the colour
+the browser actually resolved for that centre number. No assertion on the generated HTML could see
+any of these three defects: the HTML was right every time.
+
 ## [3.14.22] — 2026-08-28
 
 **Search results carry a total, so any period adds itself up** (discussion [#263](https://github.com/ProtossBlaster/leapmotor-mate/discussions/263), asked by **@joeyoong**).
