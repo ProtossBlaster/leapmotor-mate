@@ -24,6 +24,7 @@ The `Last charges` line inside the cost section STAYS: it is the derived #109 di
 (`show_wb`, `raw_ac`), not the raw record. Two lists, two questions — said out loud here so nobody
 later "deduplicates" them into one.
 """
+import os
 import pathlib
 import re
 
@@ -33,6 +34,11 @@ import diagnostics
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# Where the bundle looked BEFORE the fixture was isolated: the data dir conftest.py sets for the
+# whole run (or, when DB_PATH is exported, the developer's real one). Captured at import, before
+# any fixture can move it — it is the decoy's address in the guard below.
+SUITE_DATA_DIR = pathlib.Path(os.environ.get("DB_PATH", "x")).parent
 
 # Everything that must never reach the file. `note` is free text; `location_name`/`location_url`
 # are user-typed and routinely hold a home address.
@@ -45,6 +51,15 @@ def car(tmp_path, monkeypatch):
     path = str(tmp_path / "t.db")
     pdb = PollerDB.Database(path)
     monkeypatch.setattr(db_reader, "DB_PATH", path)
+    # 🔴 The ENVIRONMENT too, and not as a belt-and-braces: `diagnostics.data_dir()` reads
+    # os.environ["DB_PATH"], which is a DIFFERENT thing from db_reader.DB_PATH and is set once,
+    # for the whole run, in conftest.py. Patch only the module variable and the bundle's log
+    # sections are read from a directory shared by every test in the suite — and, when DB_PATH is
+    # already exported (conftest uses setdefault), from the developer's REAL Mate data directory,
+    # logs and all. That is the shape of the intermittent red this file carried from 16/08 to
+    # 29/08: never alone, never on a re-run, never reproducible, because it never depended on
+    # this test at all. → test_the_bundle_reads_nothing_outside_this_test
+    monkeypatch.setenv("DB_PATH", path)
     pdb.ensure_vehicle("LVIN0000000000001", "C10", 2025)
 
     def charge(day, kwh=30.0, cost=6.0, ac=None, hour=20):
@@ -157,6 +172,39 @@ def test_no_coordinates_and_no_free_text(car):
             raise AssertionError(
                 f"the bundle leaked {needle!r} at offset {i}:\n"
                 f"  …{body[max(0, i - 90):i + 60]}…")
+
+
+def test_the_bundle_reads_nothing_outside_this_test(car, tmp_path, monkeypatch):
+    """The bundle must be built from THIS test's data dir and nothing else.
+
+    This is the one that would have caught it. From 16/08 the privacy assertion above went red
+    about one full run in four, never alone and never on a re-run, and the cause was never in the
+    bundle: `diagnostics.data_dir()` resolves os.environ["DB_PATH"], the fixture only replaced
+    `db_reader.DB_PATH`, and the two are different values. So the log sections came from the
+    suite-wide directory conftest.py creates — or, when DB_PATH is exported before the run, from a
+    real Mate data directory, whose poller log is full of coordinates.
+
+    Measured, not argued: a decoy log dropped in the shared directory put all three needles
+    ('45.4', '9.2', 'dal dentista') into the bundle of an otherwise isolated test.
+    """
+    charge, _trip = car
+    charge(3)
+    # A log where the bundle used to look, holding exactly what must never travel.
+    decoy_dirs = [d for d in {SUITE_DATA_DIR, tmp_path.parent} if d.is_dir()]
+    assert decoy_dirs, "no directory to plant the decoy in — the guard would prove nothing"
+    for d in decoy_dirs:
+        (d / "mate-poller.log").write_text(
+            "2026-08-16 12:00:00 INFO position lat=45.4085 lon=9.2272\n"
+            "2026-08-16 12:00:30 INFO nota: 'dal dentista'\n", encoding="utf-8")
+    try:
+        body = diagnostics.build_bundle("9.9.9")
+        for needle in ("45.4", "9.2", "dal dentista"):
+            assert needle not in body, (
+                f"the bundle picked up {needle!r} from a log this test never wrote — it is reading "
+                f"a directory it does not own")
+    finally:
+        for d in decoy_dirs:
+            (d / "mate-poller.log").unlink(missing_ok=True)
 
 
 def test_the_column_names_alone_are_not_a_leak():
