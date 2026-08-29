@@ -34,10 +34,12 @@ def test_missing_range_or_soc_gives_no_estimate(range_km, soc):
 
 
 def test_status_card_shows_the_target_not_a_fixed_100():
-    """The Overview card must read the target through the global and label it with the real %, not the
-    old hard-coded 'Estimated at 100%'."""
+    """The Overview card must read the target through the global and label it with the real %, never a
+    hard-coded percentage or a hard-coded language. It now shows the target AND 100% side by side
+    (range_estimates), which is the same promise: the number you plan around is the one you charge to."""
     import pathlib
     src = (pathlib.Path(db_reader.__file__).resolve().parent
-           / "templates" / "partials" / "status_card.html").read_text()
-    assert "range_at_charge_target(status.range_km" in src
-    assert "est.pct" in src and "range_est_100" not in src
+           / "templates" / "partials" / "status_card.html").read_text(encoding="utf-8")
+    assert "range_estimates(status.range_km" in src
+    assert "ests.limit_est.pct" in src            # the target %, read from the estimate — not a literal
+    assert "Stima al" not in src                  # labels come from the locale files, not the template

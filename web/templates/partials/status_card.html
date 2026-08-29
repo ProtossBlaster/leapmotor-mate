@@ -2,6 +2,9 @@
 {% set soc = status.soc or 0 %}
 {% set color = soc_color(soc) %}
 {% set state = state_label(status) %}
+{# #266 — dual range estimates: at the car's charge limit AND at 100%. `show_both` is false when the
+   car charges to 100 (or hasn't reported a limit), so the two lines never repeat the same number. #}
+{% set ests = range_estimates(status.range_km, soc) %}
 
 <!-- SOC + Range -->
 <div class="mb-2">
@@ -13,11 +16,10 @@
     <div class="text-right flex flex-col">
       <div class="stat-label">{{ t('range') }}</div>
       <div class="stat-value text-4xl leading-none mt-1">{{ dist_val(status.range_km)|int }} <span class="text-base font-normal text-slate-400">{{ dist_unit() }}</span></div>
-      {% set ests = range_estimates(status.range_km, soc) %}
       {% if ests and not ests.show_both %}
         <!-- Single 100% estimate: show as before in the right column -->
         <div class="text-[11px] text-slate-400 leading-none mt-1">
-          Stima al <span class="font-bold">100</span>%: <span class="font-semibold text-teal-300">{{ dist_val(ests.full_est.km)|int }}</span> {{ dist_unit() }}
+          <span class="text-slate-400">{{ t('range_est_100') }}:</span> <span class="font-semibold text-teal-300">{{ dist_val(ests.full_est.km)|int }}</span> {{ dist_unit() }}
         </div>
       {% endif %}
     </div>
@@ -25,15 +27,14 @@
 </div>
 
 <!-- Range estimates above SOC bar: dual layout when limit < 100% -->
-{% set ests = range_estimates(status.range_km, soc) %}
 {% if ests and ests.show_both %}
   <!-- Left: estimate at limit%, Right: estimate at 100% -->
   <div class="grid grid-cols-2 gap-4 mb-2">
     <div class="text-left text-[11px] text-slate-400 leading-none">
-      Stima al <span class="font-bold">{{ ests.limit_est.pct|int }}</span>%: <span class="font-semibold text-teal-300">{{ dist_val(ests.limit_est.km)|int }}</span> {{ dist_unit() }}
+      {{ t('range_est_at').replace('{pct}', ests.limit_est.pct|int|string) }}: <span class="font-semibold text-teal-300">{{ dist_val(ests.limit_est.km)|int }}</span> {{ dist_unit() }}
     </div>
     <div class="text-right text-[11px] text-slate-400 leading-none">
-      Stima al <span class="font-bold">100</span>%: <span class="font-semibold text-teal-300">{{ dist_val(ests.full_est.km)|int }}</span> {{ dist_unit() }}
+      {{ t('range_est_100') }}: <span class="font-semibold text-teal-300">{{ dist_val(ests.full_est.km)|int }}</span> {{ dist_unit() }}
     </div>
   </div>
 {% endif %}
