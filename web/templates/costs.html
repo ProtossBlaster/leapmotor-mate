@@ -76,6 +76,9 @@
               <option value="tou" {% if cost_modes[key] == 'tou' %}selected{% endif %}>{{ t('cost_mode_tou') }}</option>
               {% if key == 'HOME' %}
               <option value="dynamic" {% if cost_modes[key] == 'dynamic' %}selected{% endif %}>{{ t('cost_mode_dynamic') }}</option>
+              {# beta #13 — the price stays fixed; what varies is HOW MANY kWh of the charge were
+                 actually bought. Only HOME: nobody has such a helper for a public charger. #}
+              <option value="custom_kwh" {% if cost_modes[key] == 'custom_kwh' %}selected{% endif %}>{{ t('cost_mode_custom_kwh') }}</option>
               {% endif %}
             </select>
             {# Price input HIDDEN (not just dimmed) while this type is Dynamic (Silvio 02/07):
@@ -107,6 +110,15 @@
              v2.1.0 page break). Form-less partial for the same reason (no nested <form>). #}
           <div id="dyn-wrap-{{ key }}" class="{% if cost_modes[key] != 'dynamic' %}hidden{% endif %}"
                {% if cost_modes[key] == 'dynamic' %}data-loaded="1" hx-get="api/costs/dynamic-entities?ctype={{ key }}" hx-trigger="load" hx-target="this" hx-swap="innerHTML"{% endif %}>
+            <div class="text-center py-3 text-slate-500 text-sm">{{ t('loading') }}…</div>
+          </div>
+          {# Custom-kWh note + picker (beta #13). Unlike dynamic, the price field above STAYS
+             visible: here that number is not a fallback, it is the multiplier. #}
+          <div id="ckwh-note-{{ key }}" class="text-[11px] text-slate-500 mt-1.5 {% if cost_modes[key] != 'custom_kwh' %}hidden{% endif %}">
+            {{ t('cost_custom_kwh_note') }}
+          </div>
+          <div id="ckwh-wrap-{{ key }}" class="{% if cost_modes[key] != 'custom_kwh' %}hidden{% endif %}"
+               {% if cost_modes[key] == 'custom_kwh' %}data-loaded="1" hx-get="api/costs/custom-kwh-entities?ctype={{ key }}" hx-trigger="load" hx-target="this" hx-swap="innerHTML"{% endif %}>
             <div class="text-center py-3 text-slate-500 text-sm">{{ t('loading') }}…</div>
           </div>
         </div>
@@ -219,7 +231,8 @@
   };
   const MODE_LABELS = {
     flat: "{{ t('cost_mode_flat') }}", tou: "{{ t('cost_mode_tou') }}",
-    dynamic: "{{ t('cost_mode_dynamic') }}"
+    dynamic: "{{ t('cost_mode_dynamic') }}",
+    custom_kwh: "{{ t('cost_mode_custom_kwh') }}"
   };
   // Live per-type mode, kept in sync by updateModeUI() — the band editor reads this to grey
   // out columns for types not on Time slots (Silvio 02/07: a band's DC/HPC price was editable
@@ -253,6 +266,18 @@
       }
       const fbNote = document.getElementById('fallback-note-' + ctype);
       if (fbNote) fbNote.classList.toggle('hidden', mode !== 'dynamic');
+      // Custom kWh (beta #13): same lazy-load discipline as the dynamic picker — a live HA call
+      // is never spent on someone who is not using the mode.
+      const ck = document.getElementById('ckwh-wrap-' + ctype);
+      if (ck) {
+        ck.classList.toggle('hidden', mode !== 'custom_kwh');
+        if (mode === 'custom_kwh' && ck.dataset.loaded !== '1') {
+          ck.dataset.loaded = '1';
+          htmx.ajax('GET', 'api/costs/custom-kwh-entities?ctype=' + ctype, {target: '#ckwh-wrap-' + ctype, swap: 'innerHTML'});
+        }
+      }
+      const ckNote = document.getElementById('ckwh-note-' + ctype);
+      if (ckNote) ckNote.classList.toggle('hidden', mode !== 'custom_kwh');
       // Price input HIDDEN (not edited) while dynamic — a live sensor prices it (Silvio 02/07:
       // an editable spinner there invited exactly the kind of accident that raised this, a
       // stray mouse-wheel scroll silently bumping the value). Stays in the DOM un-disabled so

@@ -3442,6 +3442,29 @@ async def dynamic_price_entities(request: Request, ctype: str = ""):
     ))
 
 
+@app.get("/api/costs/custom-kwh-entities", response_class=HTMLResponse)
+async def custom_kwh_entities(request: Request, ctype: str = "HOME"):
+    """Lazy-loaded picker for the billed-kWh sensor (beta #13): HA entities that measure ENERGY.
+    Filtered by unit rather than by name — a helper someone writes themselves is called whatever
+    they called it, so a keyword list would hide exactly the entity this mode exists for."""
+    entities = ha_client.entities_for_role(
+        "energy", ha_client.list_entities(only_wallbox=False),
+        selected_eid=db_reader.get_custom_kwh_entity_for(ctype))
+    return templates.TemplateResponse(request, "partials/custom_kwh_entities.html", _ctx(
+        entities=entities, selected=db_reader.get_custom_kwh_entity_for(ctype), ctype=ctype,
+    ))
+
+
+@app.post("/api/costs/custom-kwh", response_class=HTMLResponse)
+async def save_cost_custom_kwh(request: Request):
+    """Save the chosen billed-kWh sensor for one charge type (beta #13)."""
+    form = await request.form()
+    db_reader.save_custom_kwh_entity_for((form.get("ctype") or "HOME").strip(),
+                                         form.get("custom_kwh_entity", ""))
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("costs_saved")}</span>')
+
+
 @app.post("/api/costs/dynamic", response_class=HTMLResponse)
 async def save_cost_dynamic(request: Request):
     """Save the chosen dynamic-price sensor entity — per charge type when `ctype` is posted

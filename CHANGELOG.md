@@ -31,6 +31,18 @@ v3.14.21 replaced the estimate at 100% with the one at your real charge limit; t
 whenever the car reports a limit below 100 — and a single line when it does not, so the two can
 never print the same number twice. In all eight languages.
 
+**Price a home charge on the kWh you actually bought** (beta #13, asked by **@ebagnoli**). With
+solar on the roof, only part of a charge is paid for: the rest came off the panels, and nothing in
+the car or the cloud knows the split — but a Home Assistant helper can. Charge prices → Home now
+offers **Custom kWh (HA)**: pick the entity holding the kWh this charge should be billed for, and
+Mate reads it when the charge ends and multiplies it by your fixed price. Your price stays fixed;
+what varies is how many kWh it applies to.
+
+The energy Mate reports does not change — those kWh are a payment fact, not what reached the
+battery, and mixing the two would put different quantities under one word. If the entity is unset
+or Home Assistant does not answer, the charge is priced on its measured energy as before, so a
+charge is never left without a cost.
+
 *Under the hood:* three new tests, each seen failing on the released code before the fix. One is
 cheap and runs everywhere — in every page, the charting library must be loaded before the first
 chart is built. The other two open the pages in a real browser and measure the drawing itself: how

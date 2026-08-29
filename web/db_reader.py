@@ -1342,8 +1342,14 @@ def _mode_allowed(ctype: str, mode: str) -> bool:
     """Dynamic (HA sensor) is HOME-ONLY (Silvio 02/07): no HA integration exposes a price for
     public AC/DC/HPC charging — those are operator-billed, not a home tariff — so 'dynamic' on
     an away type is never a valid choice, whatever wrote it (UI, a raw API call, or a value
-    saved before this rule existed)."""
-    return mode in ("flat", "tou") or (mode == "dynamic" and ctype == "HOME")
+    saved before this rule existed).
+
+    'custom_kwh' is HOME-only for the same reason turned around: it prices the charge on a
+    kWh figure the OWNER's own HA helper produces (beta #13, @ebagnoli — solar at home, where
+    only part of a charge is bought from the grid). Nobody has such a helper for a public
+    charger, and the operator's bill is not ours to second-guess."""
+    return (mode in ("flat", "tou")
+            or (mode in ("dynamic", "custom_kwh") and ctype == "HOME"))
 
 
 def get_cost_config() -> dict:
@@ -1367,7 +1373,8 @@ def get_cost_config() -> dict:
         m = m if isinstance(m, dict) else {}
     except (ValueError, TypeError):
         m = {}
-    modes = {t: (m.get(t) if m.get(t) in ("flat", "tou", "dynamic") and _mode_allowed(t, m.get(t))
+    modes = {t: (m.get(t) if m.get(t) in ("flat", "tou", "dynamic", "custom_kwh")
+                 and _mode_allowed(t, m.get(t))
                  else _default_mode_for(t, legacy))
              for t in _TOU_TYPES}
     return {
@@ -1443,6 +1450,31 @@ def save_dynamic_price_entity_for(ctype: str, entity_id: str) -> None:
         m = {}
     m[ctype] = (entity_id or "").strip()
     set_setting("dynamic_price_entities", json.dumps(m))
+
+
+def get_custom_kwh_entity_for(ctype: str) -> str:
+    """The HA entity holding the kWh THIS charge should be billed for (beta #13). No legacy
+    fallback to anything: this setting is new, and an empty value means the mode prices on the
+    measured energy like flat does — never on some other type's sensor."""
+    try:
+        raw = get_setting("custom_kwh_entities", "")
+        m = json.loads(raw) if raw else {}
+        return (m.get(ctype) or "").strip() if isinstance(m, dict) else ""
+    except Exception:  # noqa: BLE001 — settings table may not exist in minimal test DBs
+        return ""
+
+
+def save_custom_kwh_entity_for(ctype: str, entity_id: str) -> None:
+    if ctype not in _TOU_TYPES:
+        return
+    try:
+        raw = get_setting("custom_kwh_entities", "")
+        m = json.loads(raw) if raw else {}
+        m = m if isinstance(m, dict) else {}
+    except (ValueError, TypeError):
+        m = {}
+    m[ctype] = (entity_id or "").strip()
+    set_setting("custom_kwh_entities", json.dumps(m))
 
 
 # ── Ready-triggered "prepare now" automation (design agreed 2026-07-02) ────────
@@ -1752,6 +1784,45 @@ def _dynamic_sensor_cost(charge, energy: float, base: float, ctype: str = None) 
     return round(energy * (weighted / total_e), 2)
 
 
+def _custom_kwh_cost(charge, energy: float, base: float, ctype: str = "HOME") -> Optional[float]:
+    """Cost = the owner's OWN kWh figure x the fixed price, read from an HA entity at the end of
+    the charge (beta #13, @ebagnoli).
+
+    He has solar. The price never moves — 0.24 — but only part of a charge is bought: the rest came
+    off his roof, and his HA helper is the only thing that knows the split. We answered "use Dynamic"
+    twice and were twice told we had misunderstood, and he was right both times. Dynamic varies the
+    PRICE and weights it over the power curve; what he has is a number of kWh, already worked out,
+    and what he wants is one multiplication.
+
+    So this reads the entity's LAST value inside the charge's window and multiplies. Not the rise
+    across the window, not an average: the value, as Silvio put it — the helper's job is to present
+    the kWh this charge should be billed for, and ours is to price them. That is a deliberate
+    simplification: a helper exposing a lifetime counter instead of a per-charge figure will price
+    a fortune, and no guard here can tell the two apart.
+
+    ⚠️ It prices the charge and NOTHING else. The energy Mate reports stays the measured one
+    (`_billed_kwh`) — these kWh are a payment fact, not the energy that reached the battery, and
+    letting them into the totals would put two different quantities under one word.
+
+    Falls back to energy x base whenever the entity is unset, HA is unreachable, or it has no
+    history in the window — the same rule as dynamic: never leave a charge silently uncosted."""
+    entity_id = get_custom_kwh_entity_for(ctype)
+    flat = round(energy * base, 2) if base else None
+    if not entity_id or not charge["ended_at"]:
+        return flat
+
+    import ha_client   # local: ha_client imports db_reader, so this avoids a circular import
+    db = _get()
+    lo, hi, _excl = _power_window_bounds(db, charge["started_at"], charge["ended_at"])
+    hist = ha_client.get_history(entity_id, lo, hi)
+    if not hist:
+        return flat
+    kwh = hist[-1][1]
+    if kwh is None or kwh < 0:
+        return flat
+    return round(kwh * base, 2)
+
+
 def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] = None):
     """Cost for ONE charge using the pricing config in effect *now*. This is the
     single place a charge's cost is set, and it is frozen afterwards (no retroactive
@@ -1763,6 +1834,8 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
                       sample priced by the band matching its own day+time
         dynamic     → same power-curve split as TOU 'split', priced by a live HA
                       sensor's history instead of a static band (see _dynamic_sensor_cost)
+        custom_kwh  → the fixed price x a kWh figure the owner's own HA helper produces
+                      (see _custom_kwh_cost) — for a charge only partly bought from the grid
 
     `ac_kwh`: for HOME charges on a configured wallbox, the caller passes the real AC energy the
     wallbox delivered (what you actually pay the utility, incl. AC→DC conversion losses). When given
@@ -1800,6 +1873,9 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
 
     if mode == "dynamic":
         return _dynamic_sensor_cost(charge, energy, base, ctype=location_type)
+
+    if mode == "custom_kwh":
+        return _custom_kwh_cost(charge, energy, base, ctype=location_type)
 
     bands = config.get("bands") or []
     if mode != "tou" or not bands:

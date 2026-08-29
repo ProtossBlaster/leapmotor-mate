@@ -1,0 +1,32 @@
+{# Billed-kWh sensor picker for ONE charge type (beta #13, @ebagnoli). FORM-LESS, for the same
+   reason as the dynamic-price picker beside it: this fragment lands inside the prices card's
+   <form>, and a nested <form> is invalid HTML the browser "repairs" by relocating fields. #}
+{% set sfx = '-' + ctype %}
+<div id="ckwh-picker{{ sfx }}" class="mt-3 sm:pl-11">
+  <p class="text-xs text-slate-500 leading-relaxed mb-2">{{ t('ckwh_picker_help') }}</p>
+  <select name="custom_kwh_entity"
+          hx-post="api/costs/custom-kwh" hx-trigger="change" hx-include="this"
+          hx-vals='{"ctype": "{{ ctype }}"}'
+          hx-target="#ckwh-entities-result{{ sfx }}" hx-swap="innerHTML"
+          onchange="this.title=this.options[this.selectedIndex].title"
+          class="w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600 text-white
+                 text-sm focus:outline-none focus:border-brand cursor-pointer">
+    <option value="">{{ t('wb_none') }}</option>
+    {% for e in entities %}
+    <option value="{{ e.entity_id }}" {% if selected == e.entity_id %}selected{% endif %}
+            title="{{ e.name }}{% if e.unit %} ({{ e.unit }}){% endif %} · {{ e.entity_id }}">
+      {{ e.name }}{% if e.unit %} ({{ e.unit }}){% endif %} — {{ e.state }}
+    </option>
+    {% endfor %}
+  </select>
+  {% if not entities %}
+  <p class="text-[11px] text-amber-300/80 mt-2">{{ t('ckwh_no_entities') }}</p>
+  {% endif %}
+  <script>
+    document.querySelectorAll('#ckwh-picker{{ sfx }} select').forEach(function (s) {
+      var o = s.options[s.selectedIndex];
+      if (o) s.title = o.title;
+    });
+  </script>
+  <div id="ckwh-entities-result{{ sfx }}" class="text-xs mt-1.5"></div>
+</div>
