@@ -13,13 +13,28 @@
     <div class="text-right flex flex-col items-end">
       <div class="stat-label">{{ t('range') }}</div>
       <div class="stat-value leading-none mt-1">{{ dist_val(status.range_km)|int }} <span class="text-base font-normal text-slate-400">{{ dist_unit() }}</span></div>
-      {% set est = range_at_charge_target(status.range_km, soc) %}
-      {% if est %}
-      <div class="mt-0 text-[11px] leading-none">
-        <span class="text-slate-400">{{ t('range_est_at').replace('{pct}', est.pct|string) }}:</span>
-        <span class="font-semibold text-teal-300">{{ dist_val(est.km)|int }}</span>
-        <span class="text-slate-400">{{ dist_unit() }}</span>
-      </div>
+      {% set ests = range_estimates(status.range_km, soc) %}
+      {% if ests %}
+        {% if ests.show_both %}
+          <!-- Show both: estimate at limit (primary) and at 100% (secondary) -->
+          <div class="mt-0.5 text-[11px] leading-none">
+            <span class="text-slate-400">{{ t('range_est_at').replace('{pct}', ests.limit_est.pct|string) }}:</span>
+            <span class="font-semibold text-teal-300">{{ dist_val(ests.limit_est.km)|int }}</span>
+            <span class="text-slate-400">{{ dist_unit() }}</span>
+          </div>
+          <div class="mt-0.5 text-[10.5px] leading-none">
+            <span class="text-slate-400">{{ t('range_est_100') }}:</span>
+            <span class="font-normal text-teal-200">{{ dist_val(ests.full_est.km)|int }}</span>
+            <span class="text-slate-400">{{ dist_unit() }}</span>
+          </div>
+        {% else %}
+          <!-- Show only 100% estimate (no redundancy when limit is null or 100) -->
+          <div class="mt-0 text-[11px] leading-none">
+            <span class="text-slate-400">{{ t('range_est_100') }}:</span>
+            <span class="font-semibold text-teal-300">{{ dist_val(ests.full_est.km)|int }}</span>
+            <span class="text-slate-400">{{ dist_unit() }}</span>
+          </div>
+        {% endif %}
       {% endif %}
     </div>
   </div>
