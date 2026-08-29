@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.14.6 · **Sprache:** Deutsch
+> **Mate-Version:** v3.14.24 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -315,6 +315,20 @@ Weiter unten finden Sie Ministatistiken und einen **Indikator für die „Fahrze
 🟢/🟡/🔴, ⚪ wenn keine Daten vorliegen): Er fasst zusammen, wie zuverlässig das Auto auf die zuletzt gesendeten
 Befehle reagiert hat.
 
+**Die Reichweite bei Ihrem Ladelimit — und bei 100 % 🆕** — unter der geschätzten Reichweite zeigt
+Mate, wie weit das Auto **bei dem Limit käme, auf das Sie wirklich laden** (etwa 80 %), daneben den
+Wert bei 100 %. Meldet das Auto kein Limit unter 100, steht dort nur eine Zeile, damit dieselbe Zahl
+nie zweimal erscheint.
+
+**Die Außentemperatur, aus dem Wetter 🆕** — die Leapmotor-Cloud sendet die Innenraumtemperatur, aber
+nie die Luft draußen, und die offizielle App auch nicht. Ist der Schalter an, fragt Mate, solange das
+Auto wach ist, [Open-Meteo](https://open-meteo.com) zu seiner Position — höchstens alle 20 Minuten
+oder alle 10 km, je nachdem, was zuerst eintritt — und zeigt den Wert neben dem Innenraumwert. Es ist
+**standardmäßig aus**, weil die Abfrage die Position des Autos an Open-Meteo sendet: Der einzige
+Schalter liegt unter *Einstellungen → Standardwerte für Fahrten*. Derselbe Wert wird zu einer
+**Außentemperatur**-Entität in Home Assistant und gibt jeder Fahrt ihre eigene Temperatur bei Start
+und Ankunft.
+
 #### Die drei Temperaturen: Innenraum, A/C-Ziel, Batterie
 Nicht jeder Leapmotor sendet alle drei. Mate unterscheidet **drei verschiedene Situationen**, denn sie
 zu verwechseln erzeugt absurde Werte:
@@ -366,11 +380,29 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   Detail. Ältere Fahrten haben eine Schaltfläche **„Mit offiziellen Daten umwandeln“**. Wenn die Cloud die
   Daten einer Fahrt nicht hat (kommt vor, bei jedem vernetzten Auto), bleibt die **Schätzung** — kein
   Fehler. **Immer aktiv**, keine Einrichtung.
+- **Höhenmeter und Außentemperatur.** Die Leapmotor-Cloud liefert weder das eine noch das andere:
+  Ein paar Minuten nach dem Ende einer Fahrt gleicht Mate deren GPS-Spur mit
+  [Open-Meteo](https://open-meteo.com) ab (kostenlos, ohne Schlüssel, ohne Konto). Das Detail bekommt
+  dadurch eine **Höhenlinie unter dem SoC-&-Geschwindigkeits-Diagramm**, die **überwundenen und
+  abgefahrenen** Höhenmeter sowie die Temperatur **bei Abfahrt und bei Ankunft** — kein Mittelwert,
+  sodass eine Auffahrt vom Tal zum Pass den echten Abfall zeigt. Zusammen erklären die beiden einen
+  guten Teil des Verbrauchs einer Fahrt: Steigen kostet Energie, Kälte kostet Reichweite. Fahrten,
+  die vor dieser Funktion aufgezeichnet wurden, haben eine Schaltfläche **Höhenmeter berechnen**, und
+  das Ganze lässt sich in den Einstellungen abschalten. Ist der Schalter für die Außentemperatur an
+  (siehe *Übersicht*), stammen die Temperaturen der Fahrt aus den **unterwegs** genommenen Messungen;
+  diese nachträgliche Abfrage bleibt der Rückfall für ältere Fahrten 🆕.
+
 - **Ihre Notiz + Fahr-Tags 🆕** (#107) — im Detail einer Fahrt können Sie eine **freie Notiz** (Verkehr,
   Wetter, Streckentyp, jede Anmerkung) schreiben und den verwendeten **Fahrmodus** (Comfort / Normal /
   Sport) sowie **One-Pedal** (ein/aus) angeben. Mate kann sie nicht vom Auto lesen — Leapmotor sendet sie
   nicht an die Cloud — Sie tragen sie also von Hand ein; sie helfen zu erklären, warum zwei ähnliche
   Fahrten unterschiedlich verbraucht haben.
+
+- **Ein gesuchter Zeitraum summiert sich selbst 🆕** — die Datumsfilter konnten schon immer jedes
+  Fenster auswählen, aber die Ergebnisse listeten ihre Karten und summierten nichts: Ein
+  Abrechnungszeitraum, der kein Kalendermonat ist, musste von Hand addiert werden. Über den
+  Ergebnissen stehen jetzt **Fahrten, km und Kosten** dieses Zeitraums — dieselben Zahlen, aus
+  derselben Quelle wie die Monatszeile über dem Kalender.
 
 ### Karte
 **(Menü: Karte)** — Alle Orte, an denen Sie gefahren sind, auf einer einzigen Karte. Die aktuelle Position des
@@ -453,13 +485,33 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   bereits gespeicherten Sitzung wird **nur** der Kilometerstand geschrieben: Kosten, die Mate aus
   einer echten Ladekurve errechnet hat, werden nie überschrieben.
 
+- **Ein gesuchter Zeitraum summiert sich selbst 🆕** — über den Ergebnissen stehen **Sitzungen,
+  gelieferte kWh (mit dem Batteriewert daneben) und Kosten** dieses Fensters. Strom, der vom 22. bis
+  zum 21. abgerechnet wird — oder jeder andere Zeitraum, der kein Kalendermonat ist — muss nicht
+  mehr von Hand addiert werden.
+
 ### Ladepreise
 **(Menü: Ladepreise)** — Hier legen Sie fest, **was Sie für die Energie zahlen**, damit Mate die Kosten berechnen
 kann. Sie können einen Preis **für jeden Ladetyp** (Zuhause, AC, Schnell, HPC) festlegen und wählen zwischen:
 
-- **Festtarif** (ein einziger €/kWh), oder
+- **Festtarif** (ein einziger €/kWh);
 - **Zeitfenster (TOU)** — unterschiedliche Preise je nach Wochentag und Tageszeit (z. B. F1/F2/F3, Nacht
   günstiger).
+- **Dynamisch (Home-Assistant-Sensor) 🆕** — Mate liest den Preis aus einer Entität, die sich **über
+  die Zeit ändert** (Nordpool, Tibber, die Integration Ihres Versorgers), und gewichtet ihn über die
+  Leistungskurve der Sitzung: Ein Ladevorgang über einen Preiswechsel hinweg wird mit dem
+  abgerechnet, was jeder seiner Teile wirklich gekostet hat.
+- **Eigene kWh (Home Assistant) 🆕** — für den Fall, dass der Preis fest ist, **wie viel des
+  Ladevorgangs Sie bezahlt haben** aber nicht. Mit Solar auf dem Dach kommt nur ein Teil der Sitzung
+  aus dem Netz, und diese Aufteilung kennt weder das Auto noch die Cloud — ein Home-Assistant-Helper
+  schon. Wählen Sie die Entität mit den kWh, die abgerechnet werden sollen; am Ende des Ladevorgangs
+  liest Mate sie aus und multipliziert sie mit Ihrem Festpreis. **Die Energie, die Mate für den
+  Ladevorgang ausweist, ändert sich nicht** — sie bleibt die, die in der Batterie angekommen ist;
+  aus Ihrer Zahl wird nur der Preis gebildet. Fehlt die Entität oder antwortet sie nicht, fällt der
+  Ladevorgang auf den Festpreis über die gemessenen kWh zurück.
+
+> Die letzten beiden gelten nur für **Zuhause**-Ladungen: Eine öffentliche Sitzung rechnet ihr
+> Betreiber ab, und ein Helper von Ihnen hat ihr keinen Preis zu geben.
 
 Der Preis für **Zuhause** speist die Kosten der Heimladungen und, in der Folge, die Kosten der Fahrten (berechnet
 auf dem „durchschnittlichen" Energiepreis in der Batterie zum Zeitpunkt der Fahrt).
@@ -468,6 +520,12 @@ auf dem „durchschnittlichen" Energiepreis in der Batterie zum Zeitpunkt der Fa
 > nicht. Mit den Zeitfenstern können Sie auch wählen, *wie* eine Sitzung auf die Fenster aufgeteilt wird —
 > *Genaue Aufteilung* (anhand der realen Leistungskurve) oder *Nach Startzeit* (die ganze Sitzung zu dem Fenster,
 > in dem sie begonnen hat).
+
+> **Keine Obergrenze mehr beim Preis 🆕** — die Felder verweigerten jeden Wert über `9,99`, eine
+> Grenze, die nur zu Tarifen in Euro oder Dollar passte. Island, Japan, Korea und Ungarn rechnen
+> Strom in Zehnern oder Hunderten Währungseinheiten je kWh ab: Tragen Sie die Zahl genau so ein. Die
+> **isländische Krone** steht in der Währungsliste, und jeder Betrag zeigt jetzt **mindestens zwei
+> Nachkommastellen**, damit auf dem Bildschirm nichts gerundet wird.
 
 ### Statistik
 **(Menü: Statistik)** — Ihre Durchschnitte und Summen über die Zeit: **Strecke der erfassten
@@ -478,6 +536,13 @@ Strecke) und **bester**, **verbrauchte und geladene Energie**, **Rekuperation** 
 Anzahl der **Ladesitzungen**, mit den entsprechenden **Trends** (Effizienz und Rekuperation über die Zeit). Die
 Summen enthalten jetzt auch eine Karte **V2L gesamt** mit der über die gesamte Historie via V2L entnommenen
 kumulierten Energie.
+
+**Verbrauch über der Außentemperatur 🆕** — ein Punkt je abgeschlossener Fahrt: ihr Verbrauch über
+der Lufttemperatur, in der sie gefahren wurde, mit einer gestrichelten Trendlinie hindurch. Das ist
+die Antwort auf die Frage, die sich jeder Besitzer stellt, wenn es kalt wird — *wie viel schluckt
+MEIN Auto wirklich bei 5 °C?* — aus Ihrem eigenen Fahren statt aus einer Tabelle. Die Fahrten müssen
+dafür eine Außentemperatur tragen (siehe *Übersicht*); bei realistischen Daten ist das Muster nach
+etwa einem Monat Fahren lesbar.
 
 **Kosten pro 100 km 🆕** — was 100 km wirklich kosten: **die ausgegebenen Euro**, geteilt durch **die
 gefahrenen Kilometer**. Kein Preis pro kWh und keine Schätzung — die Summe des Bezahlten über der
@@ -716,6 +781,14 @@ ist in drei Spalten unterteilt.
 - **Ladeerkennung** — die **Stromschwelle** (in Ampere), oberhalb derer Mate „laufender Ladevorgang" annimmt. Nur
   herabsetzen, wenn Sie sehr langsame, nicht erkannte Ladevorgänge haben.
 
+- **Ich lade immer zu Hause 🆕** — ohne Wallbox und ohne Home Assistant gibt es nichts, was Mate
+  sagt, wo ein Ladevorgang stattgefunden hat: Jede Sitzung entsteht ohne Typ und muss von Hand
+  gekennzeichnet werden — viele gleiche Klicks für jemanden, der nur zu Hause lädt, womöglich mit
+  mehreren kurzen Nachladungen am Tag. Mit dieser Option entsteht ein neuer Ladevorgang als
+  **Zuhause** und bleibt für die seltene öffentliche Sitzung änderbar. Es gilt **nur nach vorn** —
+  Ihre vorhandenen Ladevorgänge bleiben genau, wie sie sind — und das Einschalten verlangt eine
+  ausdrückliche Bestätigung, damit es nie versehentlich passiert.
+
 **Spalte 2 — Integrationen**
 
 - **ABRP** — Senden von Telemetrie an A Better Routeplanner (siehe [§8](#8-die-integrationen-im-detail)).
@@ -744,6 +817,11 @@ ist in drei Spalten unterteilt.
   immer" behalten (Standard) oder die älter als 6/12/18/24 Monate löschen, um Platz zu sparen. *Es werden nur die
   Positionen entfernt*: Fahrten, Ladevorgänge und Ladekurven bleiben erhalten.
 - **Export / Backup** — laden Sie **Fahrten (CSV)**, **Ladevorgänge (CSV)** und ein **Backup der Datenbank** herunter.
+  Das Backup kommt **gzip-komprimiert** (`leapmotor_mate.db.gz`) 🆕 und wird in Stücken gesendet,
+  damit auch eine große Datenbank nie ganz in den Speicher muss. Die Wiederherstellung nimmt
+  **sowohl** die komprimierte Datei **als auch** ein vor dieser Änderung gesichertes `.db` an — nichts
+  von dem, was Sie schon haben, hört auf zu funktionieren, und eine kleinere Datei lässt sich
+  leichter aufbewahren oder dorthin synchronisieren, wo Sie sichern.
 - **🩺 Diagnose** — eine Momentaufnahme des Systems (Version, Modell, Zählwerte, letzte Abfrage, aktive
   Integrationen), die Möglichkeit, die **Logs anzusehen** (Poller/Web) und vor allem ein **Diagnosepaket
   herunterzuladen**, indem Sie die gewünschten Teile ankreuzen (Info, Poller-Log, Web-Log, **Rohsignale**). Das
@@ -813,6 +891,11 @@ Lenkrad…), wird gar nicht erst erzeugt, und eine **Temperatur-Entität**, dere
 hat, wird **entfernt** — nicht für immer auf `unknown` stehen gelassen. Die Entfernung kommt, wenn die
 Belege kommen (etwa eine halbe Stunde Updates), ohne Neustart, und wenn der Sensor zu antworten beginnt,
 **kehrt die Entität zurück**.
+
+Zuletzt sind zwei weitere Entitäten dazugekommen 🆕: **Klimaleistung**, die Watt, die die Klimaanlage
+gerade zieht (so sieht eine Automatisierung, dass der Innenraum geheizt oder gekühlt wird), und
+**Außentemperatur**, die Lufttemperatur aus dem Wetter — Letztere nur, solange der entsprechende
+Schalter an ist (siehe *Übersicht*).
 
 1. Bereiten Sie einen **MQTT-Broker** vor (üblicherweise das *Mosquitto*-Add-on in Home Assistant).
 2. Aktivieren Sie unter *Einstellungen → MQTT* die Option **MQTT aktivieren** und füllen Sie aus:

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v3.14.6 · **Lingua:** Italiano
+> **Versione di Mate:** v3.14.24 · **Lingua:** Italiano
 > Questo manuale è pensato per chi *usa* Mate, non per chi lo sviluppa. Spiega come configurarlo
 > dall'inizio e cosa fa ogni pagina. Per i dettagli tecnici interni c'è `ARCHITECTURE.md`.
 
@@ -310,6 +310,20 @@ dall'auto (cambio in P + un dispositivo collegato), non da Mate. È accurato da 
 Più in basso trovi mini-statistiche e un **indicatore di "reattività auto"** (un pallino
 🟢/🟡/🔴, ⚪ se non ci sono dati): riassume quanto l'auto ha risposto agli ultimi comandi inviati.
 
+**L'autonomia al tuo limite di ricarica, e al 100% 🆕** — sotto l'autonomia stimata Mate mostra quanto
+farebbe l'auto **al limite a cui la carichi davvero** (per dire, l'80%), con accanto il valore al
+100%. Se l'auto non dichiara un limite sotto il 100 la riga è una sola, così lo stesso numero non
+viene mai stampato due volte.
+
+**La temperatura esterna, dal meteo 🆕** — il cloud Leapmotor manda la temperatura dell'abitacolo ma
+mai quella dell'aria fuori, e nemmeno l'app ufficiale ce l'ha. Con l'interruttore acceso, mentre
+l'auto è sveglia Mate interroga [Open-Meteo](https://open-meteo.com) sulla sua posizione — al massimo
+una volta ogni 20 minuti o 10 km, quello che arriva prima — e mostra il valore accanto a quello
+dell'abitacolo. È **spento di default**, perché la richiesta manda la posizione dell'auto a
+Open-Meteo: l'unico interruttore sta in *Impostazioni → valori predefiniti dei viaggi*. Lo stesso
+dato diventa un'entità **Temperatura esterna** in Home Assistant e dà a ogni viaggio la sua
+temperatura di partenza e di arrivo.
+
 #### Le tre temperature: abitacolo, target A/C, batteria
 Non tutte le Leapmotor mandano tutte e tre. Mate distingue **tre situazioni diverse**, perché
 confonderle porta a numeri assurdi:
@@ -384,6 +398,12 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   Normale / Sport) e il **One-Pedal** (attivo/disattivo) usati. Mate non può leggerli dall'auto —
   Leapmotor non li manda al cloud — quindi li imposti a mano; aiutano a spiegare perché due guidate
   simili hanno consumato in modo diverso.
+
+- **Un periodo cercato si somma da solo 🆕** — i filtri per data hanno sempre saputo selezionare
+  qualunque finestra, ma i risultati elencavano le schede senza totalizzare niente: un periodo di
+  fatturazione che non è un mese solare andava sommato a mano. Sopra i risultati ora compaiono
+  **viaggi, km e costo** di quel periodo — gli stessi numeri, dalla stessa fonte, della striscia del
+  mese sul calendario.
 
 ### Mappa
 **(menu: Mappa)** — Tutti i posti dove hai guidato, su una mappa sola. C'è la posizione attuale
@@ -467,14 +487,32 @@ un'etichetta:
   in silenzio. ⚠️ Di una ricarica già registrata viene toccato **solo** il contachilometri: un costo
   che Mate ha calcolato da una curva di ricarica vera non viene mai sovrascritto.
 
+- **Un periodo cercato si somma da solo 🆕** — sopra i risultati compaiono **sessioni, kWh erogati
+  (col dato in batteria accanto) e costo** di quella finestra. L'energia fatturata dal 22 al 21, o
+  qualunque altro periodo che non sia un mese solare, non va più sommata a mano.
+
 ### Prezzi di ricarica
 **(menu: Prezzi di ricarica)** — Qui imposti **quanto paghi l'energia**, così Mate può calcolare i
 costi. Puoi definire un prezzo **per ciascun tipo** di ricarica (Casa, AC, Veloce, HPC) e scegliere
 tra:
 
-- **Tariffa fissa** (un solo €/kWh), oppure
+- **Tariffa fissa** (un solo €/kWh);
 - **Fasce orarie (TOU)** — prezzi diversi per giorno della settimana e fascia oraria (es. F1/F2/F3,
   notte più economica).
+- **Dinamico (sensore Home Assistant) 🆕** — Mate legge il prezzo da un'entità che **cambia nel
+  tempo** (Nordpool, Tibber, l'integrazione del tuo fornitore) e lo pesa sulla curva di potenza
+  della sessione: una ricarica a cavallo di un cambio di prezzo viene addebitata per quello che
+  ogni sua parte è costata davvero.
+- **kWh personalizzati (Home Assistant) 🆕** — serve quando il prezzo è fisso ma **quanta parte della
+  ricarica hai pagato** non lo è. Col fotovoltaico solo una parte della sessione viene dalla rete, e
+  quella divisione non la conosce né l'auto né il cloud: la conosce un helper di Home Assistant.
+  Scegli l'entità che contiene i kWh da addebitare; a fine ricarica Mate la legge e la moltiplica
+  per il tuo prezzo fisso. **L'energia che Mate dichiara per la ricarica non cambia** — resta quella
+  arrivata in batteria; dal tuo numero si ricava solo il costo. Se l'entità manca o non risponde, la
+  ricarica torna al prezzo fisso sui kWh misurati.
+
+> Le ultime due valgono solo per le ricariche di **Casa**: una sessione pubblica la fattura il suo
+> gestore, e un helper tuo non ha titolo per darle un prezzo.
 
 Il prezzo di **Casa** è quello che alimenta i costi delle ricariche domestiche e, a cascata, il
 costo dei viaggi (calcolato sul prezzo "medio" dell'energia in batteria al momento del viaggio).
@@ -483,6 +521,12 @@ costo dei viaggi (calcolato sul prezzo "medio" dell'energia in batteria al momen
 > cambiano. Con le fasce orarie puoi anche scegliere *come* ripartire una sessione tra le fasce —
 > *Split accurato* (sulla curva di potenza reale) oppure *Ora di inizio* (tutta la sessione alla
 > fascia in cui è partita).
+
+> **Niente tetto sul prezzo 🆕** — i campi rifiutavano qualunque valore sopra `9,99`, un limite che
+> andava bene solo per tariffe in euro o dollari. Islanda, Giappone, Corea e Ungheria prezzano
+> l'energia in decine o centinaia di unità per kWh: scrivi il numero com'è. La **corona islandese**
+> è nell'elenco delle valute, e ogni importo mostra ora **almeno due decimali**, così niente viene
+> arrotondato a schermo.
 
 ### Statistiche
 **(menu: Statistiche)** — Le tue medie e i totali nel tempo: **distanza dei viaggi registrati** 🆕
@@ -496,6 +540,13 @@ scheda **Totale V2L** con l'energia cumulativa prelevata via V2L in tutto lo sto
 Veicolo"** 🆕 — energia totale, chilometraggio e media kWh/100 km **da consegna** (dal contatore
 dell'auto, quindi non intaccata dai rari viaggi che il cloud non registra), con una barra
 **Guida / A·C / Altro / Da-fermo**.
+
+**Consumo contro temperatura esterna 🆕** — un punto per ogni viaggio concluso: il suo consumo contro
+la temperatura dell'aria in cui è stato guidato, con una linea di tendenza tratteggiata a
+attraversarli. Risponde alla domanda che si fa ogni proprietario quando arriva il freddo — *quanto
+beve davvero la MIA auto a 5 °C?* — partendo dalla tua guida invece che da una tabella. Serve che i
+viaggi portino una temperatura esterna (vedi *Panoramica*); su dati realistici il disegno si legge
+dopo circa un mese di guida.
 
 **Costo per 100 km 🆕** — quanto costa davvero percorrere 100 km: **gli euro spesi** diviso **i
 chilometri percorsi**. Nessun prezzo al kWh e nessuna stima — la somma di ciò che hai pagato sopra
@@ -734,6 +785,13 @@ volta. È divisa in tre colonne.
 - **Rilevamento ricarica** — la **soglia di corrente** (in ampere) sopra la quale Mate considera
   "ricarica in corso". Da abbassare solo se hai ricariche molto lente non rilevate.
 
+- **Ricarico sempre a casa 🆕** — senza wallbox e senza Home Assistant non c'è niente che dica a Mate
+  dove è avvenuta una ricarica, quindi ogni sessione nasce senza tipo e va etichettata a mano: tanti
+  clic identici per chi ricarica solo a casa, magari con più rabbocchi brevi al giorno. Con questo
+  acceso una ricarica nuova nasce **Casa**, e resta modificabile per la rara volta in pubblico. Vale
+  **solo in avanti** — le ricariche che hai già restano esattamente come sono — e accenderlo chiede
+  una conferma esplicita, così non può succedere per sbaglio.
+
 **Colonna 2 — Integrazioni**
 
 - **ABRP** — invio telemetria ad A Better Routeplanner (vedi [§8](#8-le-integrazioni-in-dettaglio)).
@@ -762,6 +820,10 @@ volta. È divisa in tre colonne.
   "per sempre" (predefinito) o cancellare quelli più vecchi di 6/12/18/24 mesi per risparmiare
   spazio. *Vengono potate solo le posizioni*: viaggi, ricariche e curve di ricarica restano.
 - **Esporta / backup** — scarica **viaggi (CSV)**, **ricariche (CSV)** e un **backup del database**.
+  Il backup arriva **compresso in gzip** (`leapmotor_mate.db.gz`) 🆕, mandato a pezzi così nemmeno un
+  database grande deve stare tutto in memoria. Il ripristino accetta **sia** il file compresso **sia**
+  un `.db` salvato prima di questa modifica, quindi niente di quello che hai già smette di
+  funzionare — e un file più piccolo è più comodo da tenere o da sincronizzare dove fai i backup.
 - **🩺 Diagnostica** — una fotografia del sistema (versione, modello, conteggi, ultimo poll,
   integrazioni attive), la possibilità di **vedere i log** (poller/web) e soprattutto di **scaricare
   un pacchetto diagnostico** spuntando le parti volute (info, log poller, log web, **segnali grezzi**).
@@ -844,6 +906,11 @@ ha (sedili riscaldati, volante…) non vengono create, e un'**entità di tempera
 l'auto non ha mai riportato viene **rimossa** — non lasciata su `unknown` per sempre. La rimozione
 arriva quando arrivano le prove (circa mezz'ora di aggiornamenti), non serve riavviare, e se il
 sensore ricomincia a rispondere l'entità **torna**.
+
+Di recente sono arrivate altre due entità 🆕: **Potenza clima**, i watt che il climatizzatore sta
+assorbendo (così un'automazione vede l'abitacolo che viene riscaldato o raffreddato), e **Temperatura
+esterna**, quella dell'aria dal meteo — la seconda solo con quell'interruttore acceso (vedi
+*Panoramica*).
 
 1. Prepara un **broker MQTT** (di solito l'add-on *Mosquitto* in Home Assistant).
 2. In *Impostazioni → MQTT*, attiva **Abilita MQTT** e compila:

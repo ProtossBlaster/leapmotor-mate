@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v3.14.6 · **Langue :** Français
+> **Version de Mate :** v3.14.24 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 
@@ -325,6 +325,21 @@ avec une barre 0–3500 W — et l'**énergie soutirée durant la session** ; il
 sur P + un appareil branché), pas depuis Mate. Il est précis à partir d'environ **42 W** (la résolution du
 capteur de courant de la voiture — une petite charge de ~10 W reste invisible).
 
+**L'autonomie à votre limite de charge, et à 100 % 🆕** — sous l'autonomie estimée, Mate indique
+combien la voiture ferait **à la limite à laquelle vous la chargez vraiment** (80 %, par exemple),
+avec à côté la valeur à 100 %. Si la voiture n'annonce aucune limite en dessous de 100, la ligne est
+unique : le même chiffre n'est jamais imprimé deux fois.
+
+**La température extérieure, depuis la météo 🆕** — le cloud Leapmotor envoie la température de
+l'habitacle mais jamais celle de l'air extérieur, et l'application officielle non plus. Avec
+l'interrupteur activé, tant que la voiture est éveillée Mate interroge
+[Open-Meteo](https://open-meteo.com) sur sa position — au plus une fois toutes les 20 minutes ou tous
+les 10 km, au premier des deux — et affiche la valeur à côté de celle de l'habitacle. C'est
+**désactivé par défaut**, parce que la requête envoie la position de la voiture à Open-Meteo :
+l'unique interrupteur se trouve dans *Réglages → valeurs par défaut des trajets*. La même donnée
+devient une entité **Température extérieure** dans Home Assistant et donne à chaque trajet sa
+température de départ et d'arrivée.
+
 #### Les trois températures : habitacle, cible A/C, batterie
 Toutes les Leapmotor n'envoient pas les trois. Mate distingue **trois situations différentes**, car les
 confondre produit des valeurs absurdes :
@@ -376,11 +391,29 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   **répartition** apparaît dans le détail. Les trajets plus anciens ont un bouton **« Convertir avec les
   données officielles »**. Si le cloud n'a pas la donnée d'un trajet (cela arrive, sur toute voiture
   connectée), l'**estimation** reste — ce n'est pas une erreur. **Toujours actif**, sans configuration.
+- **Dénivelé et température extérieure.** Le cloud Leapmotor ne donne ni l'un ni l'autre : quelques
+  minutes après la fin d'une conduite, Mate confronte le tracé GPS du trajet à
+  [Open-Meteo](https://open-meteo.com) (gratuit, sans clé, sans compte). Le détail gagne alors une
+  **ligne d'altitude sous le graphique SoC & vitesse**, les mètres **montés et descendus**, et la
+  température **au départ et à l'arrivée** — pas une moyenne, si bien qu'une montée de la vallée au
+  col montre la vraie chute. À eux deux, ils expliquent une bonne part de la consommation d'une
+  conduite : monter coûte de l'énergie, le froid coûte de l'autonomie. Les trajets enregistrés avant
+  que cela existe ont un bouton **Calculer le dénivelé**, et l'ensemble se désactive dans les
+  Réglages. Quand l'interrupteur de température extérieure est activé (voir *Aperçu*), les
+  températures du trajet viennent des relevés pris **en route** ; cette recherche après coup reste le
+  recours pour les trajets plus anciens 🆕.
+
 - **Votre note + tags de conduite 🆕** (#107) — dans le détail d'un trajet, vous pouvez écrire une **note
   libre** (trafic, météo, type de route, toute remarque) et indiquer le **mode de conduite** (Confort /
   Normal / Sport) et le **One-Pedal** (activé/désactivé) utilisés. Mate ne peut pas les lire depuis la
   voiture — Leapmotor ne les envoie pas au cloud — vous les renseignez donc à la main ; ils aident à
   expliquer pourquoi deux conduites semblables ont consommé différemment.
+
+- **Une période recherchée s'additionne toute seule 🆕** — les filtres de date ont toujours su
+  sélectionner n'importe quelle fenêtre, mais les résultats affichaient les cartes sans rien
+  totaliser : une période de facturation qui n'est pas un mois civil devait être additionnée à la
+  main. Au-dessus des résultats figurent désormais les **trajets, les km et le coût** de cette
+  période — les mêmes chiffres, de la même source, que le bandeau du mois sur le calendrier.
 
 ### Carte
 **(menu : Carte)** — Tous les endroits où vous avez roulé, sur une seule carte. La position actuelle de la
@@ -465,14 +498,34 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   tout doublait en silence. ⚠️ Sur une session déjà enregistrée, **seul** le compteur est écrit : un
   coût que Mate a calculé à partir d'une vraie courbe de charge n'est jamais écrasé.
 
+- **Une période recherchée s'additionne toute seule 🆕** — au-dessus des résultats, les **sessions,
+  les kWh délivrés (avec la valeur en batterie à côté) et le coût** de cette fenêtre. L'électricité
+  facturée du 22 au 21, ou toute autre période qui n'est pas un mois civil, ne se calcule plus à la
+  main.
+
 ### Prix de recharge
 **(menu : Prix de recharge)** — Ici, vous définissez **combien vous payez l'énergie**, afin que Mate puisse
 calculer les coûts. Vous pouvez définir un prix **pour chaque type** de recharge (Domicile, AC, Rapide, HPC)
 et choisir entre :
 
-- **Tarif fixe** (un seul €/kWh), ou
+- **Tarif fixe** (un seul €/kWh) ;
 - **Plages horaires (TOU)** — des prix différents selon le jour de la semaine et la plage horaire (ex. F1/F2/F3,
   nuit moins chère).
+- **Dynamique (capteur Home Assistant) 🆕** — Mate lit le prix depuis une entité qui **change au fil
+  du temps** (Nordpool, Tibber, l'intégration de votre fournisseur) et le pondère sur la courbe de
+  puissance de la session : une recharge à cheval sur un changement de prix est facturée à ce que
+  chacune de ses parties a réellement coûté.
+- **kWh personnalisés (Home Assistant) 🆕** — utile quand le prix est fixe mais que **la part de la
+  recharge que vous avez payée** ne l'est pas. Avec du solaire sur le toit, une partie seulement de
+  la session vient du réseau, et ce partage n'est connu ni de la voiture ni du cloud : une aide
+  (helper) Home Assistant, elle, le connaît. Choisissez l'entité qui contient les kWh à facturer ;
+  à la fin de la recharge Mate la lit et la multiplie par votre prix fixe. **L'énergie que Mate
+  annonce pour la recharge ne change pas** — elle reste celle arrivée dans la batterie ; votre
+  chiffre ne sert qu'au coût. Si l'entité manque ou ne répond pas, la recharge revient au prix fixe
+  sur les kWh mesurés.
+
+> Les deux dernières ne valent que pour les recharges à **Domicile** : une session publique est
+> facturée par son opérateur, et une aide qui vous appartient n'a pas à lui donner un prix.
 
 Le prix **Domicile** est celui qui alimente les coûts des recharges à domicile et, par ricochet, le coût des
 trajets (calculé sur le prix « moyen » de l'énergie en batterie au moment du trajet).
@@ -482,6 +535,12 @@ trajets (calculé sur le prix « moyen » de l'énergie en batterie au moment du
 > *Répartition précise* (sur la courbe de puissance réelle) ou *Heure de début* (toute la session à la plage
 > où elle a démarré).
 
+> **Plus de plafond sur le prix 🆕** — les champs refusaient toute valeur au-dessus de `9,99`, une
+> limite qui ne convenait qu'aux tarifs en euros ou en dollars. L'Islande, le Japon, la Corée et la
+> Hongrie facturent l'électricité en dizaines ou en centaines d'unités par kWh : saisissez le
+> chiffre tel quel. La **couronne islandaise** figure dans la liste des devises, et tout montant
+> affiche désormais **au moins deux décimales**, pour que rien ne soit arrondi à l'écran.
+
 ### Statistiques
 **(menu : Statistiques)** — Vos moyennes et totaux dans le temps : **distance des trajets
 enregistrés** 🆕 (elle s'appelait *distance totale*, mais c'était toujours la somme des trajets
@@ -490,6 +549,13 @@ terminés — pas le compteur de la voiture) et nombre de trajets,
 **meilleure**, **énergie consommée et rechargée**, **récupération** totale et moyenne, nombre de **sessions de
 recharge**, avec les **tendances** correspondantes (efficacité et récupération dans le temps). Les totaux
 incluent désormais une carte **Total V2L** avec l'énergie cumulée soutirée via V2L sur tout l'historique.
+
+**Consommation en fonction de la température extérieure 🆕** — un point par trajet terminé : sa
+consommation face à la température de l'air dans laquelle il a été parcouru, avec une ligne de
+tendance en pointillés qui les traverse. C'est la réponse à la question que se pose tout propriétaire
+quand le froid arrive — *combien MA voiture consomme-t-elle vraiment à 5 °C ?* — à partir de votre
+conduite et non d'un tableau. Il faut que les trajets portent une température extérieure (voir
+*Aperçu*) ; sur des données réalistes, la tendance se lit après un mois de conduite environ.
 
 **Coût aux 100 km 🆕** — ce que parcourir 100 km coûte réellement : **les euros dépensés**, divisés
 par **les kilomètres parcourus**. Pas de prix au kWh ni d'estimation — la somme de ce que vous avez
@@ -735,6 +801,14 @@ Elle est divisée en trois colonnes.
 - **Détection de charge** — le **seuil de courant** (en ampères) au-dessus duquel Mate considère qu'une
   « recharge est en cours ». À n'abaisser que si vous avez des recharges très lentes non détectées.
 
+- **Je recharge toujours à domicile 🆕** — sans wallbox ni Home Assistant, rien n'indique à Mate où
+  une recharge a eu lieu : chaque session naît sans type et doit être étiquetée à la main, soit
+  beaucoup de clics identiques pour qui ne recharge qu'à domicile, parfois avec plusieurs appoints
+  courts par jour. Avec cette option, une nouvelle recharge naît **Domicile** et reste modifiable
+  pour la rare session publique. Cela ne vaut **que pour la suite** — vos recharges existantes ne
+  bougent pas — et l'activation demande une confirmation explicite, pour qu'elle n'arrive jamais par
+  accident.
+
 **Colonne 2 — Intégrations**
 
 - **ABRP** — envoi de la télémétrie à A Better Routeplanner (voir [§8](#8-les-intégrations-en-détail)).
@@ -765,7 +839,11 @@ Elle est divisée en trois colonnes.
   les points GPS « pour toujours » (par défaut) ou supprimer ceux de plus de 6/12/18/24 mois pour économiser
   de l'espace. *Seules les positions sont élaguées* : les trajets, recharges et courbes de charge restent.
 - **Export / sauvegarde** — téléchargez les **trajets (CSV)**, les **recharges (CSV)** et une **sauvegarde de
-  la base de données**.
+  la base de données**. La sauvegarde arrive **compressée en gzip** (`leapmotor_mate.db.gz`) 🆕,
+  envoyée par morceaux pour qu'une grande base n'ait jamais à tenir entière en mémoire. La
+  restauration accepte **aussi bien** le fichier compressé **qu'un** `.db` enregistré avant ce
+  changement : rien de ce que vous avez déjà ne cesse de fonctionner — et un fichier plus petit est
+  plus facile à conserver ou à synchroniser là où vous sauvegardez.
 - **🩺 Diagnostic** — une photographie du système (version, modèle, comptages, dernier relevé, intégrations
   actives), la possibilité de **voir les journaux** (poller/web) et surtout de **télécharger un paquet de
   diagnostic** en cochant les parties voulues (infos, journal poller, journal web, **signaux bruts**). Le
@@ -838,6 +916,11 @@ modèle n'a pas (sièges chauffants, volant…) ne sont jamais créées, et une 
 capteur n'a jamais été rapporté par la voiture est **supprimée** — pas laissée sur `unknown` pour toujours.
 La suppression arrive quand arrivent les preuves (environ une demi-heure de mises à jour), sans redémarrage,
 et si le capteur se met à répondre l'entité **revient**.
+
+Deux autres entités sont arrivées récemment 🆕 : **Puissance climatisation**, les watts que la
+climatisation consomme (une automatisation voit ainsi l'habitacle en train d'être chauffé ou
+refroidi), et **Température extérieure**, celle de l'air d'après la météo — cette dernière uniquement
+lorsque l'interrupteur correspondant est activé (voir *Aperçu*).
 
 1. Préparez un **broker MQTT** (généralement le module complémentaire *Mosquitto* dans Home Assistant).
 2. Dans *Paramètres → MQTT*, activez **Activé** et renseignez :

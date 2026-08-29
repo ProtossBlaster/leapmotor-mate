@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.14.6 · **Language:** English
+> **Mate version:** v3.14.24 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -311,6 +311,19 @@ resolution — a tiny ~10 W load stays invisible).
 Further down you'll find mini-statistics and a **"Car responsiveness" indicator** (a 🟢/🟡/🔴 dot, ⚪
 if there's no data): it summarizes how well the car has responded to the latest commands sent.
 
+**The range at your charge limit, and at 100% 🆕** — under the estimated range Mate shows how far the
+car would go **at the limit you actually charge to** (80%, say), with the figure at 100% beside it.
+When the car reports no limit below 100 there is a single line, so the same number is never printed
+twice.
+
+**The outside temperature, from the weather 🆕** — the Leapmotor cloud sends the cabin temperature but
+never the air outside, and neither does the official app. With the switch on, while the car is awake
+Mate looks its position up against [Open-Meteo](https://open-meteo.com) — at most once every 20
+minutes or 10 km, whichever comes first — and shows the reading next to the cabin one. It is **off by
+default**, because the lookup sends the car's position to Open-Meteo: the single opt-in is in
+*Settings → trip defaults*. The same reading becomes an **Outside Temp** entity in Home Assistant and
+gives each trip its own departure and arrival figure.
+
 #### The three temperatures: cabin, A/C target, battery
 Not every Leapmotor sends all three. Mate tells **three different situations** apart, because
 confusing them produces absurd numbers:
@@ -379,6 +392,11 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   weather, road type, any remark) and tag the **drive mode** (Comfort / Normal / Sport) and **One-Pedal**
   (on/off) you used. Mate can't read these from the car — Leapmotor doesn't send them to the cloud — so
   you set them by hand; they help explain why two otherwise similar drives consumed differently.
+
+- **A searched period adds itself up 🆕** — the date filters could always select any window, but the
+  results listed their cards and totalled nothing, so a billing period that is not a calendar month
+  had to be added up by hand. Above the results you now get that period's own **trips, km and cost**
+  — the same figures, from the same source, as the calendar's month strip.
 
 ### Map
 **(menu: Map)** — Everywhere you have driven, on one map. The car's current position is there (if the
@@ -459,13 +477,31 @@ label:
   silence. ⚠️ On a session already recorded **only** the odometer is written: a cost Mate worked out
   from a real charging curve is never overwritten.
 
+- **A searched period adds itself up 🆕** — above the results, that window's own **sessions, kWh
+  delivered (with the battery figure beside it) and cost**. Electricity billed from the 22nd to the
+  21st, or any other period that is not a calendar month, no longer has to be added up by hand.
+
 ### Charge Prices
 **(menu: Charge Prices)** — Here you set **how much you pay for energy**, so Mate can calculate the
 costs. You can define a price **for each type** of charge (Home, AC, Fast, HPC) and choose between:
 
-- **Fixed rate** (a single €/kWh), or
+- **Fixed rate** (a single €/kWh);
 - **Time-of-use bands (TOU)** — different prices for the day of the week and the time band (e.g.
   F1/F2/F3, cheaper at night).
+- **Dynamic (Home Assistant sensor) 🆕** — Mate reads the price from an entity that **changes over
+  time** (Nordpool, Tibber, your utility's own integration) and weighs it across the session's own
+  power curve, so a charge that ran across a price change is billed at what each part of it really
+  cost.
+- **Custom kWh (Home Assistant) 🆕** — for when the price is fixed but **how much of the charge you
+  paid for** is not. With solar on the roof only part of a session comes off the grid, and nothing
+  in the car or in the cloud knows the split — a Home Assistant helper does. Pick the entity that
+  holds the kWh this charge should be billed for; when the charge ends Mate reads it and multiplies
+  it by your fixed price. **The energy Mate reports for the charge does not change** — that stays
+  what reached the battery; only the money is worked out from your figure. If the entity is missing
+  or says nothing, the charge falls back to the fixed price over the measured kWh.
+
+> The last two are for **Home** charges only: a public session is billed by its operator, and a
+> helper of yours has no business pricing it.
 
 The **Home** price is the one that feeds the cost of home charges and, in turn, the cost of trips
 (calculated on the "average" price of the energy in the battery at the time of the trip).
@@ -473,6 +509,12 @@ The **Home** price is the one that feeds the cost of home charges and, in turn, 
 > Price changes apply **only to future charges**: costs already calculated do not change. With
 > time-of-use bands you can also choose *how* to split a session across the bands — *Accurate split*
 > (on the real power curve) or *By start time* (the whole session at the band it started in).
+
+> **No ceiling on the price 🆕** — the fields used to refuse anything above `9.99`, which only ever
+> suited euro- or dollar-scale tariffs. Iceland, Japan, Korea and Hungary price electricity in tens
+> or hundreds of currency units per kWh: type the figure exactly as it is. The **Icelandic króna**
+> is in the currency list, and every amount now shows **at least two decimals**, so nothing is
+> rounded on screen.
 
 ### Statistics
 **(menu: Statistics)** — Your averages and totals over time: **distance of recorded trips** 🆕 (it
@@ -482,6 +524,12 @@ odometer) and number of trips,
 **best**, **energy used and charged**, total and average **regen**, number of **charge sessions**,
 with the related **trends** (efficiency and regen over time). The totals also include a **Total V2L**
 card showing the cumulative energy drawn via V2L over all time.
+
+**Consumption against outside temperature 🆕** — one dot per finished trip: its consumption against
+the air temperature it was driven in, with a dashed trend line through them. It answers the question
+every owner asks when the cold arrives — *how much does my car really drink at 5 °C?* — out of your
+own driving rather than a table. It needs the trips to carry an outside temperature (see *Overview*),
+and on realistic data the pattern is legible after about a month of driving.
 
 **Cost per 100 km 🆕** — what covering 100 km actually costs: **the euros spent**, divided by **the
 kilometres driven**. No price per kWh and no estimate — the sum of what you paid over the sum of
@@ -713,6 +761,13 @@ divided into three columns.
 - **Charge detection** — the **current threshold** (in amperes) above which Mate considers it "charge
   in progress". Lower it only if you have very slow charges that go undetected.
 
+- **Always charging at home 🆕** — with no wallbox and no Home Assistant there is nothing to tell Mate
+  where a charge happened, so every session is born unclassified and has to be tagged by hand: a lot
+  of identical clicks for someone who only ever charges at home, several short top-ups a day. With
+  this on, a new charge is born **Home** and can still be changed afterwards for the rare public one.
+  It works **forward only** — the charges you already have are left exactly as they are — and turning
+  it on asks for an explicit confirmation, so it can never happen by accident.
+
 **Column 2 — Integrations**
 
 - **ABRP** — sending telemetry to A Better Routeplanner (see [§8](#8-the-integrations-in-detail)).
@@ -740,7 +795,11 @@ divided into three columns.
 - **Database** — the size of the DB and the **GPS retention**: you can keep the GPS points "forever"
   (default) or delete those older than 6/12/18/24 months to save space. *Only positions are pruned*:
   trips, charges and charge curves stay.
-- **Export / Backup** — download **trips (CSV)**, **charges (CSV)** and a **database backup**.
+- **Export / Backup** — download **trips (CSV)**, **charges (CSV)** and a **database backup**. The
+  backup arrives **gzip-compressed** (`leapmotor_mate.db.gz`) 🆕, streamed in pieces so even a large
+  database never has to fit in memory whole. Restore takes **both** the compressed file and a plain
+  `.db` saved before this change, so nothing you already have stops working — and a smaller file is
+  easier to keep or to sync wherever you back things up.
 - **🩺 Diagnostics** — a snapshot of the system (version, model, counts, last poll, active
   integrations), the ability to **view the logs** (poller/web) and, above all, to **download a
   diagnostics bundle** by ticking the parts you want (info, poller log, web log, **raw signals**). The
@@ -810,6 +869,10 @@ Entities **your** car doesn't support aren't left on your hands: the ones the mo
 steering wheel…) are never created, and a **temperature entity** whose sensor the car has never reported
 is **removed** — not left on `unknown` for ever. The removal arrives when the evidence does (about half
 an hour of updates), with no restart needed, and if the sensor starts answering the entity **comes back**.
+
+Two more entities arrived recently 🆕: **Climate Power**, the watts the climate system is drawing
+(so an automation can see the cabin being heated or cooled), and **Outside Temp**, the air
+temperature from the weather — the latter only while that switch is on (see *Overview*).
 
 1. Get an **MQTT broker** ready (usually the *Mosquitto* add-on in Home Assistant).
 2. In *Settings → MQTT*, turn on **Enabled** and fill in:

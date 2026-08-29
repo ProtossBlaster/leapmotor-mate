@@ -55,7 +55,7 @@ LeapMotor Mate is free and open-source, developed in my spare time. If it's usef
 - **Battery card on the Charges page** — battery %, range and a bar with a **marker at your charge limit**, live while a charge runs. The **Unlock cable** button lives here too.
 - **The charger's own kWh** — on a public charger Mate has no meter, so you can type what its display said. It opens only on purpose and never comes pre-filled: from there it prices the charge, exactly as a wallbox counter does at home, and shows how much the on-board charger turned into heat. The energy Mate reports stays the one measured at the battery.
 - **Delivered vs into the battery** — the month above the charge calendar says both, in words: what came out of the chargers and what reached the pack. The gap between them is the conversion loss you pay for.
-- **Prices** — flat, or **time-of-use bands** per day of the week and per charge type, with each session split across the bands it really spans, by the real power curve.
+- **Prices** — four ways to price a session: **flat**, **time-of-use bands** per day of the week and per charge type (each session split across the bands it really spans, by the real power curve), **dynamic** from a Home Assistant price entity weighted over the charge's own power curve, and **custom kWh** — a fixed price applied to the kWh a Home Assistant helper says you actually bought, for a roof that supplies the rest.
 - **Battery health (SoH)** — a page estimating your **usable capacity over time**: each charge's *measured* energy (∫ voltage × current) divided by the SoC it added, **stopping at 95 %** because above that an LFP's BMS re-anchors a counted SoC and those points arrive without energy. Charges are pooled in proportion to how much of the scale they covered, and the figure carries its own **scatter** — it is measured energy over a counted SoC, not a lab measurement.
 - **Charging-station names** — public charges are tagged automatically with the station's name, from OpenStreetMap and the Italian PUN registry. Home charges are never looked up. *(Optional, off by default.)*
 - **Find charging stations** — a **⚡ Find chargers** button maps the public stations around the car with **AC/DC, kW, operator and live availability**; tap one to send it to the car's navigator.
@@ -248,10 +248,12 @@ Everything is configured from the web UI (**Settings**), no YAML needed:
 
 ### Charge prices
 
-Set what each kWh costs on the dedicated **Charge Prices** page (💰 in the sidebar), so Mate prices your sessions. Two modes:
+Set what each kWh costs on the dedicated **Charge Prices** page (💰 in the sidebar), so Mate prices your sessions. Four modes — the last two for **Home** charges only, since a public session is billed by its operator:
 
 - **Fixed (24h)** — one price per charge type (Home / AC / DC / HPC).
 - **Time-of-use bands** — add one or more time windows, choose the **days of the week** each applies to (All / Weekdays / Weekend shortcuts), and set a price per charge type for every band. Leave a price blank to fall back to the base price, or enter `0` if it's free in that band. A session spanning two bands is split by its real power curve, and one crossing midnight on a Sat→Sun boundary is priced per day correctly.
+- **Dynamic (Home Assistant sensor)** — the price comes from an entity that changes over time (Nordpool, Tibber, your utility's own integration), weighted across the session's own power curve, so a charge that ran across a price change is billed at what each part of it really cost.
+- **Custom kWh (Home Assistant)** — for a fixed price where what varies is *how much of the charge you paid for*: with solar on the roof only part of a session comes off the grid, and only your own HA helper knows the split. Pick the entity holding the kWh to bill; Mate reads it when the charge ends and multiplies by your fixed price. The energy Mate reports for the charge is untouched — that stays what reached the battery.
 
 Cost changes apply to **new charges only**: a charge's cost is frozen when you confirm its type, so editing prices or bands later never changes past sessions.
 
