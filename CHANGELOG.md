@@ -3,6 +3,13 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.25] — 2026-08-30
+
+**Fixed:** the Statistics “Consumption vs outside temperature” tooltip no longer shows
+`undefined` for electric kWh or petrol litres. The chart stores the plotted consumption in its
+standard `y` value; the tooltip now reads that value and ignores trend-line points, which have no
+trip metadata. Added a regression test for both behaviours (beta #38).
+
 ## [3.14.24] — 2026-08-30
 
 **The kilometres the generator drove are a figure now, not a footnote** (beta #31, reported by

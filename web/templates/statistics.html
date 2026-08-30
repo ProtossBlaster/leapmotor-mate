@@ -210,11 +210,17 @@
       data: { datasets: datasets },
       options: { responsive: true, maintainAspectRatio: true,
         plugins: { legend: { labels: { color: '#94a3b8', boxWidth: 12 } },
-          tooltip: { callbacks: { label: function (c) {
+          tooltip: { filter: function (item) {
+              // Trend-line points have only x/y; show tooltips for trip points only.
+              return item.raw && item.raw.km != null;
+            }, callbacks: { label: function (c) {
             var p = c.raw;
+            // The plotted value is stored as y; p.e/p.l were the source fields and are not
+            // copied into the Chart.js point object, which made the tooltip print undefined.
+            var value = c.parsed && c.parsed.y != null ? c.parsed.y : p.y;
             return c.dataset.yAxisID === 'y1'
-              ? p.l + ' L/100km · ' + p.km + ' km · ' + p.d
-              : p.e + ' kWh/100km · ' + p.km + ' km · ' + p.d; } } } },
+              ? value + ' L/100km · ' + p.km + ' km · ' + p.d
+              : value + ' kWh/100km · ' + p.km + ' km · ' + p.d; } } } },
         scales: {
           x: { title: { display: true, text: '°C', color: '#64748b' },
                ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
