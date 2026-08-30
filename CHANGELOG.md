@@ -3,6 +3,32 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.26] — 2026-08-30
+
+**Fixed:** the **Custom kWh** pricing mode (beta #13) could not be chosen. The Costs page offered it,
+but the save dropped it and the menu came back on *Fixed* — the mode list existed in three copies and
+only one of them had learned the new mode when it shipped in 3.14.24. The three are now one list, and
+a test pins the page's menu to it. Same cause, second symptom: with Custom kWh selected the menu
+marked **two** options at once (the browser shows the last, so it looked right).
+
+**Fixed:** on an account with two cars, the Statistics energy split, the consumption rank and the
+since-delivery totals were cached **per account instead of per car** — open them on one car, switch,
+and for up to six hours the other car showed the first one's kilowatt-hours and lifetime kilometres
+under its own name. The REEV page shares that cache and is fixed with it.
+
+**Fixed:** the **Refuels** page and both its calendars summed *every* car's refuels while the
+Statistics spend card summed only the selected one — two different numbers under the same word.
+Editing or deleting can no longer reach a refuel that belongs to the other car, and confirming a
+*detected* refuel now files it under the car that actually burned the fuel instead of the one in the
+sidebar (the detection row is deleted right after, so filing it wrong could never be repaired).
+
+**Security:** the shared Leapmotor session — access token, refresh token and the account's TLS
+**private key** — was the one secret written to the database in the clear, bypassing the encryption
+every other secret uses. The database backup is a copy of that file, and the export page tells you it
+contains *encrypted* credentials. It does now. Existing installs keep working with no re-login and
+are re-encrypted on the next save; if you have already shared a backup, sign out and back in to
+rotate the token.
+
 ## [3.14.25] — 2026-08-30
 
 **Fixed:** the Statistics “Consumption vs outside temperature” tooltip no longer shows

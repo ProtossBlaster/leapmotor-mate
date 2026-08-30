@@ -6,6 +6,7 @@ import json
 import os
 import sqlite3
 
+import crypto
 import session_share
 
 
@@ -46,8 +47,11 @@ def test_reuse_survives_vanished_cert(tmp_path, monkeypatch):
     a.account_key_file = str(key)
     session_share._save(a)
 
-    blob = json.loads(sqlite3.connect(str(db)).execute(
-        "SELECT value FROM settings WHERE key='shared_session'").fetchone()[0])
+    # ⚠️ Il blob è CIFRATO a riposo (token, refresh e chiave privata dell'account non stanno in
+    # chiaro nel backup). Questi due test lo ispezionano da fuori, quindi decifrano come fa il
+    # codice; il comportamento provato — riuso della sessione, cert ricreato — non cambia.
+    blob = json.loads(crypto.decrypt(sqlite3.connect(str(db)).execute(
+        "SELECT value FROM settings WHERE key='shared_session'").fetchone()[0]))
     assert "account_cert_b64" in blob   # bytes stashed for re-materialization
 
     # the per-login tempfiles AND the stable copy both vanish
@@ -83,8 +87,11 @@ def test_ensure_account_cert_rematerializes_without_relogin(tmp_path, monkeypatc
     a.account_key_file = str(key)
     session_share._save(a)                       # stashes bytes + writes stable copies
 
-    blob = json.loads(sqlite3.connect(str(db)).execute(
-        "SELECT value FROM settings WHERE key='shared_session'").fetchone()[0])
+    # ⚠️ Il blob è CIFRATO a riposo (token, refresh e chiave privata dell'account non stanno in
+    # chiaro nel backup). Questi due test lo ispezionano da fuori, quindi decifrano come fa il
+    # codice; il comportamento provato — riuso della sessione, cert ricreato — non cambia.
+    blob = json.loads(crypto.decrypt(sqlite3.connect(str(db)).execute(
+        "SELECT value FROM settings WHERE key='shared_session'").fetchone()[0]))
     stable_cert, stable_key = blob["account_cert_file"], blob["account_key_file"]
     for p in (stable_cert, stable_key):          # both stable files vanish mid-session
         if os.path.exists(p):

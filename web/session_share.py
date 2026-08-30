@@ -17,6 +17,8 @@ import sqlite3
 import time
 import types
 
+import crypto
+
 log = logging.getLogger("session_share")
 
 _TTL = 45 * 60   # only restore a session blob younger than this (token lifetime margin)
@@ -79,9 +81,14 @@ def _save(api) -> None:
             blob["account_cert_b64"] = base64.b64encode(cert_b).decode()
             blob["account_key_b64"] = base64.b64encode(key_b).decode()
         blob["ts"] = time.time()
+        # CIFRATO a riposo, come ogni altro segreto (set_secret fa lo stesso per token HA, ABRP,
+        # chiavi dei geocodificatori, PIN). Questo modulo scrive con una connessione sua, saltando
+        # db_reader, ed era rimasto l'unico posto in chiaro: dentro ci sono il token di sessione, il
+        # token di rinnovo e la CHIAVE PRIVATA dell'account. Il backup del database è una copia del
+        # file, e la pagina dell'esportazione promette all'utente credenziali «cifrate».
         c = sqlite3.connect(_db_path(), timeout=5)
         c.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('shared_session', ?)",
-                  (json.dumps(blob),))
+                  (crypto.encrypt(json.dumps(blob)),))
         c.commit()
         c.close()
     except Exception as e:  # noqa: BLE001
@@ -95,7 +102,12 @@ def _restore(api) -> bool:
         c.close()
         if not row:
             return False
-        b = json.loads(row[0])
+        # `decrypt` lascia passare il testo in chiaro apposta, quindi un blob scritto da una versione
+        # precedente si legge ancora e viene ricifrato al primo salvataggio: nessuna migrazione,
+        # nessun accesso nuovo da fare. Con la chiave persa torna stringa VUOTA, `json.loads` alza e
+        # si finisce qui sotto: nessuna sessione → accesso normale. È la scelta della #227 — meglio
+        # rifare l'accesso che passare al cloud del testo cifrato scambiandolo per una credenziale.
+        b = json.loads(crypto.decrypt(row[0]))
     except Exception:  # noqa: BLE001
         return False
     if not b.get("token") or time.time() - b.get("ts", 0) > _TTL:
@@ -138,7 +150,7 @@ def ensure_account_cert(api) -> bool:
         c = sqlite3.connect(_db_path(), timeout=5)
         row = c.execute("SELECT value FROM settings WHERE key='shared_session'").fetchone()
         c.close()
-        b = json.loads(row[0]) if row else None
+        b = json.loads(crypto.decrypt(row[0])) if row else None    # stesso blob, stessa chiave
     except Exception:  # noqa: BLE001
         return False
     if not b:

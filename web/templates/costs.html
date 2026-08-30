@@ -72,7 +72,11 @@
                     onchange="updateModeUI()"
                     class="mode-select w-full sm:w-48 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-brand cursor-pointer"
                     title="{{ t('cost_mode') }}">
-              <option value="flat" {% if cost_modes[key] not in ('tou', 'dynamic') %}selected{% endif %}>{{ t('cost_mode_flat') }}</option>
+              {# «Fisso» è il ripiego: tutto ciò che non è una delle altre modalità. L'elenco va
+                 tenuto completo — con 'custom_kwh' fuori, una casa in «kWh personalizzati» rendeva
+                 DUE voci `selected` nello stesso menu (il browser mostra l'ultima, quindi sembrava
+                 giusto). Terza copia della stessa lista dopo lo scrittore e il lettore. #}
+              <option value="flat" {% if cost_modes[key] not in ('tou', 'dynamic', 'custom_kwh') %}selected{% endif %}>{{ t('cost_mode_flat') }}</option>
               <option value="tou" {% if cost_modes[key] == 'tou' %}selected{% endif %}>{{ t('cost_mode_tou') }}</option>
               {% if key == 'HOME' %}
               <option value="dynamic" {% if cost_modes[key] == 'dynamic' %}selected{% endif %}>{{ t('cost_mode_dynamic') }}</option>

@@ -278,3 +278,75 @@ def test_per_type_entity_roundtrip_and_fallback(monkeypatch):
     assert db_reader.get_dynamic_price_entity_for("AC") == "sensor.public_ac"  # explicit wins
     db_reader.save_dynamic_price_entity_for("BOGUS", "sensor.x")               # ignored
     assert "BOGUS" not in json.loads(db_reader.get_setting("dynamic_price_entities"))
+
+
+# ── beta #13, @ebagnoli: la QUARTA modalità ───────────────────────────────────────────────────
+# «kWh personalizzati» è uscita nella v3.14.24 e non si poteva scegliere: il LETTORE la conosceva
+# (get_cost_config la elenca) ma lo SCRITTORE no — `save_cost_modes` sanificava ancora sulle tre
+# modalità di prima. L'utente la sceglieva, la pagina la offriva, il salvataggio la buttava via, e
+# alla ricarica successiva della pagina era tornata su «Fisso». In silenzio.
+#
+# Perché nessun test l'ha vista: test_custom_kwh_cost.py FINGE la modalità (monkeypatch su
+# get_cost_config) e prova solo la moltiplicazione. Il salto fra «l'utente la sceglie» e «il calcolo
+# la vede» non era coperto da nessuno. → [[feedback-a-green-test-can-assert-the-bug]]
+
+def test_custom_kwh_survives_the_save(monkeypatch):
+    """Il difetto in una riga: la modalità che l'utente sceglie dev'essere quella che rilegge."""
+    _settings_db(monkeypatch)
+    db_reader.save_cost_modes({"HOME": "custom_kwh", "AC": "flat", "FAST": "flat", "HPC": "flat"})
+    assert json.loads(db_reader.get_setting("cost_modes"))["HOME"] == "custom_kwh"
+    assert db_reader.get_cost_config()["modes"]["HOME"] == "custom_kwh"
+
+
+def test_custom_kwh_is_home_only_like_dynamic(monkeypatch):
+    """Stessa regola di `dynamic`, e per lo stesso motivo: il conteggio di kWh che l'aiutante HA
+    produce esiste solo per casa propria. Una chiamata API grezza non deve poterlo parcheggiare su
+    un tipo pubblico — rifiutato in SCRITTURA, non solo in lettura."""
+    _settings_db(monkeypatch)
+    db_reader.save_cost_modes({"HOME": "custom_kwh", "AC": "custom_kwh",
+                               "FAST": "custom_kwh", "HPC": "flat"})
+    assert json.loads(db_reader.get_setting("cost_modes")) == {"HOME": "custom_kwh", "HPC": "flat"}
+
+
+def test_every_mode_the_page_offers_can_be_saved(monkeypatch):
+    """La guardia che avrebbe fermato tutto questo: le opzioni del menu della pagina Costi e le
+    modalità che il salvataggio accetta sono lo STESSO insieme. Una quinta modalità aggiunta al
+    modello senza toccare il salvataggio fa arrossire questo test, non l'utente."""
+    import pathlib
+    import re
+    html = pathlib.Path(__file__).resolve().parents[1].joinpath(
+        "web/templates/costs.html").read_text()
+    offerte = set(re.findall(r'<option value="(\w+)"', html))
+    assert offerte, "nessuna opzione trovata: il menu è cambiato forma, aggiorna la ricerca"
+    for modo in offerte:
+        _settings_db(monkeypatch)
+        db_reader.save_cost_modes({"HOME": modo, "AC": "flat", "FAST": "flat", "HPC": "flat"})
+        letto = db_reader.get_cost_config()["modes"]["HOME"]
+        assert letto == modo, f"la pagina offre {modo!r} ma il salvataggio lo scarta (rileggo {letto!r})"
+
+
+def test_no_mode_menu_marks_two_options_selected(monkeypatch):
+    """Un menu a tendina con due voci `selected` è HTML sbagliato: il browser mostra l'ultima, quindi
+    il difetto NON si vede guardando la pagina — si vede solo leggendo cosa è stato reso.
+
+    Era la TERZA copia della lista delle modalità, dopo lo scrittore e il lettore: il template decide
+    «Fisso» per esclusione, e 'custom_kwh' non era fra le esclusioni.
+    → [[feedback-gate-a-feature-find-every-copy]] · [[feedback-verify-drawings-with-coordinates]]"""
+    import pathlib
+    import re
+    from jinja2 import Environment, FileSystemLoader
+
+    radice = pathlib.Path(__file__).resolve().parents[1] / "web" / "templates"
+    env = Environment(loader=FileSystemLoader(str(radice)))
+    sorgente = (radice / "costs.html").read_text()
+    blocco = re.search(r'<select[^>]*name="cost_mode_\{\{ key \}\}".*?</select>', sorgente, re.S)
+    assert blocco, "il menu delle modalità ha cambiato forma: aggiorna questa ricerca"
+
+    modello = env.from_string(blocco.group(0).replace("{{ t(", "{{ _t("))
+    for modo in _COST_MODES_PAGINA:
+        reso = modello.render(key="HOME", cost_modes={"HOME": modo}, _t=lambda k: k)
+        scelte = re.findall(r'<option value="(\w+)"[^>]*\bselected\b', reso)
+        assert scelte == [modo], f"con la modalità {modo!r} il menu segna {scelte}, non [{modo!r}]"
+
+
+_COST_MODES_PAGINA = ("flat", "tou", "dynamic", "custom_kwh")

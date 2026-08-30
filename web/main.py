@@ -28,7 +28,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.14.25"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.14.26"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1472,12 +1472,13 @@ async def reev_page(request: Request):
                       "driving_pct": 82.1, "ac_pct": 12.6, "other_pct": 5.3}
     elif reev["has_fuel"]:
         import time as _t
-        if not _energy_cache["data"] or _t.time() - _energy_cache["ts"] >= 6 * 3600:
+        _slot = _car_slot(_energy_cache)     # per-auto: la pagina REEV condivide la cache delle Statistiche
+        if not _slot["data"] or _t.time() - _slot["ts"] >= 6 * 3600:
             eb = await asyncio.get_event_loop().run_in_executor(None, command_client.get_energy_breakdown)
             if eb:
-                _energy_cache["data"] = eb
-                _energy_cache["ts"] = _t.time()
-        energy_abs = _energy_cache["data"]
+                _slot["data"] = eb
+                _slot["ts"] = _t.time()
+        energy_abs = _slot["data"]
     return templates.TemplateResponse(request, "reev.html", _ctx(
         page="reev", vehicle=vehicle, reev=reev, consumption=consumption, signals_ok=bool(signals),
         energy_abs=energy_abs,                        # absolute electric kWh (7-day getEC split)
@@ -4665,7 +4666,21 @@ async def get_charge_plan():
     return plan or {}
 
 
-_energy_cache: dict = {"data": None, "ts": 0.0}
+def _car_slot(cache: dict) -> dict:
+    """Il posto di QUESTA auto dentro una cache a slot lungo (6 h).
+
+    `_energy_cache`, `_rank_cache` e `_cum_cache` tenevano un `data` solo per tutto l'account: la
+    rastrellata della #253 ha messo l'auto davanti alle nove chiavi di `_period_cache` e non ha
+    raccolto queste tre, che stanno venti righe più sotto e hanno una forma diversa. Il danno è lo
+    stesso — apri le Statistiche della C10, passi alla T03 e leggi i chilowattora e i chilometri di
+    tutta la vita della C10 sotto il nome della T03 — ma dura **sei ore** invece di trenta minuti.
+
+    Stessa chiave di `_pcache_key`, così l'auto la nomina un posto solo.
+    → [[feedback-gate-a-feature-find-every-copy]]"""
+    return cache.setdefault(_pcache_key("slot"), {"data": None, "ts": 0.0})
+
+
+_energy_cache: dict = {}
 
 
 @app.get("/api/energy-breakdown", response_class=HTMLResponse)
@@ -4673,30 +4688,32 @@ async def energy_breakdown(request: Request, refresh: int = 0):
     """Last-week energy split (driving / A/C / other) as an HTML partial. Cached 6h
     (weekly data changes slowly) to avoid an API call on every Statistics page load."""
     import time, asyncio
-    if refresh or not _energy_cache["data"] or time.time() - _energy_cache["ts"] >= 6 * 3600:
+    slot = _car_slot(_energy_cache)
+    if refresh or not slot["data"] or time.time() - slot["ts"] >= 6 * 3600:
         data = await asyncio.get_event_loop().run_in_executor(None, command_client.get_energy_breakdown)
         if data:
-            _energy_cache["data"] = data
-            _energy_cache["ts"] = time.time()
-    return templates.TemplateResponse(request, "partials/energy_breakdown.html", _ctx(eb=_energy_cache["data"]))
+            slot["data"] = data
+            slot["ts"] = time.time()
+    return templates.TemplateResponse(request, "partials/energy_breakdown.html", _ctx(eb=slot["data"]))
 
 
-_rank_cache: dict = {"data": None, "ts": 0.0}
+_rank_cache: dict = {}
 
 
 @app.get("/api/consumption-rank", response_class=HTMLResponse)
 async def consumption_rank(request: Request, refresh: int = 0):
     """6-week consumption trend (kWh/100km) + driver ranking, as an HTML partial. Cached 6h."""
     import time, asyncio
-    if refresh or not _rank_cache["data"] or time.time() - _rank_cache["ts"] >= 6 * 3600:
+    slot = _car_slot(_rank_cache)
+    if refresh or not slot["data"] or time.time() - slot["ts"] >= 6 * 3600:
         data = await asyncio.get_event_loop().run_in_executor(None, command_client.get_consumption_rank)
         if data:
-            _rank_cache["data"] = data
-            _rank_cache["ts"] = time.time()
-    return templates.TemplateResponse(request, "partials/consumption_rank.html", _ctx(cr=_rank_cache["data"]))
+            slot["data"] = data
+            slot["ts"] = time.time()
+    return templates.TemplateResponse(request, "partials/consumption_rank.html", _ctx(cr=slot["data"]))
 
 
-_cum_cache: dict = {"data": None, "ts": 0.0}
+_cum_cache: dict = {}
 
 
 @app.get("/api/cumulative-summary", response_class=HTMLResponse)
@@ -4704,12 +4721,13 @@ async def cumulative_summary(request: Request, refresh: int = 0):
     """Since-delivery cumulative totals from the cloud (total energy incl. parked, mileage, lifetime
     kWh/100km, driving vs parked split), as an HTML partial. Lifetime data → cached 6h."""
     import time, asyncio
-    if refresh or not _cum_cache["data"] or time.time() - _cum_cache["ts"] >= 6 * 3600:
+    slot = _car_slot(_cum_cache)
+    if refresh or not slot["data"] or time.time() - slot["ts"] >= 6 * 3600:
         data = await asyncio.get_event_loop().run_in_executor(None, command_client.get_cumulative_summary)
         if data is not None:
-            _cum_cache["data"] = data
-            _cum_cache["ts"] = time.time()
-    return templates.TemplateResponse(request, "partials/cumulative_summary.html", _ctx(cs=_cum_cache["data"]))
+            slot["data"] = data
+            slot["ts"] = time.time()
+    return templates.TemplateResponse(request, "partials/cumulative_summary.html", _ctx(cs=slot["data"]))
 
 
 _period_cache: dict = {}

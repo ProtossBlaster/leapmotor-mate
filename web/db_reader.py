@@ -1337,6 +1337,12 @@ def get_charge_prices() -> dict:
 # price_*_kwh values double as the "off-band" price in time-of-use mode.
 _TOU_TYPES = ["HOME", "AC", "FAST", "HPC"]
 
+# Every pricing mode the Costs page offers. ONE list, read by both the writer (`save_cost_modes`)
+# and the reader (`get_cost_config`) — they used to carry a copy each, and when 'custom_kwh' shipped
+# (v3.14.24, beta #13) only the reader's copy was updated: the page offered the mode, the save threw
+# it away, and it came back 'flat' on the next load. Adding a mode means adding it HERE, once.
+_COST_MODES = ("flat", "tou", "dynamic", "custom_kwh")
+
 
 def _mode_allowed(ctype: str, mode: str) -> bool:
     """Dynamic (HA sensor) is HOME-ONLY (Silvio 02/07): no HA integration exposes a price for
@@ -1373,8 +1379,7 @@ def get_cost_config() -> dict:
         m = m if isinstance(m, dict) else {}
     except (ValueError, TypeError):
         m = {}
-    modes = {t: (m.get(t) if m.get(t) in ("flat", "tou", "dynamic", "custom_kwh")
-                 and _mode_allowed(t, m.get(t))
+    modes = {t: (m.get(t) if m.get(t) in _COST_MODES and _mode_allowed(t, m.get(t))
                  else _default_mode_for(t, legacy))
              for t in _TOU_TYPES}
     return {
@@ -1398,14 +1403,20 @@ def _default_mode_for(ctype: str, legacy: str) -> str:
 
 
 def save_cost_modes(modes: dict) -> None:
-    """Persist the per-charge-type pricing modes (#106). Values are sanitised to the three known
-    modes AND to `_mode_allowed` (dynamic is HOME-only — rejected here too, not just at read
-    time, so a raw API call can't park an away type on 'dynamic' in storage); unknown/rejected/
+    """Persist the per-charge-type pricing modes (#106). Values are sanitised to the known modes
+    AND to `_mode_allowed` (dynamic and custom_kwh are HOME-only — rejected here too, not just at
+    read time, so a raw API call can't park an away type on them in storage); unknown/rejected/
     missing types fall back to the legacy global mode at read time. When all four types agree,
     the legacy `cost_mode` is aligned too, so single-mode users keep a coherent value
-    everywhere."""
+    everywhere.
+
+    ⚠️ This tuple and `get_cost_config`'s are the SAME list read twice; keep them together. When
+    'custom_kwh' shipped (v3.14.24, beta #13) only the reader learned it, so the mode the page
+    offered was silently dropped on save and came back 'flat' on the next page load. The feature
+    was untestable through the UI while its own test — which mocks get_cost_config — stayed green.
+    `test_every_mode_the_page_offers_can_be_saved` now pins the page's menu to this list."""
     clean = {t: v for t, v in (modes or {}).items()
-             if t in _TOU_TYPES and v in ("flat", "tou", "dynamic") and _mode_allowed(t, v)}
+             if t in _TOU_TYPES and v in _COST_MODES and _mode_allowed(t, v)}
     set_setting("cost_modes", json.dumps(clean))
     vals = set(clean.values())
     if len(clean) == len(_TOU_TYPES) and len(vals) == 1:
@@ -2576,14 +2587,21 @@ def _fuel_before_pct(db: sqlite3.Connection, vehicle_id, ts: str):
 
 def add_fuel_purchase(ts: str, liters: float, price_per_l: Optional[float] = None,
                       total_cost: Optional[float] = None, note: Optional[str] = None,
-                      fuel_before_pct: Optional[float] = None) -> int:
+                      fuel_before_pct: Optional[float] = None,
+                      vehicle_id: Optional[int] = None) -> int:
     """Log one REEV refuel. Either `price_per_l` or `total_cost` is enough — the other is derived
     (€/L = total/litres, or total = €/L·litres). Snapshots the tank % just before `ts` so the WAC
     weight is frozen against pruning. Feeds fuel_blended_price_at → the per-trip fuel cost.
 
     `fuel_before_pct` overrides that snapshot, and confirming a detected refuel is why it exists: the
     detection's own instant is the first reading that already shows the FULL tank, so re-deriving the
-    residual from "the last reading at or before ts" would hand back the level after the fill."""
+    residual from "the last reading at or before ts" would hand back the level after the fill.
+
+    `vehicle_id` overrides the SIDEBAR car, and confirming a detected refuel is why THAT exists too:
+    the detection knows which car burned the fuel, and the sidebar may be showing the other one. The
+    detection row is deleted right after the confirm, so filing it under the wrong car cannot be
+    repaired later — nothing is left that remembers whose it was. Typed-by-hand refuels keep the
+    sidebar car: there the selected car IS the user's answer. → [[multi-car-scoping-audit]]"""
     liters = float(liters)
     if liters <= 0:
         raise ValueError("liters must be > 0")
@@ -2600,7 +2618,8 @@ def add_fuel_purchase(ts: str, liters: float, price_per_l: Optional[float] = Non
     db = _conn_rw()
     try:
         _ensure_fuel_purchases(db)
-        vehicle_id = _selected_or_first(db)
+        if vehicle_id is None:
+            vehicle_id = _selected_or_first(db)
         fb = fuel_before_pct if fuel_before_pct is not None else _fuel_before_pct(db, vehicle_id, ts)
         cur = db.execute(
             "INSERT INTO fuel_purchases (vehicle_id, ts, liters, price_per_l, total_cost, "
@@ -2615,13 +2634,21 @@ def add_fuel_purchase(ts: str, liters: float, price_per_l: Optional[float] = Non
 
 
 def list_fuel_purchases(limit: int = 200) -> list:
-    """The user's refuels, newest first — for the Rifornimenti page and the tank state."""
+    """The user's refuels, newest first — for the Rifornimenti page and the tank state.
+
+    ⚠️ SCOPED to the selected car, like every other reader of this table (reev_actual_spend, the WAC
+    rate map, fuel_blended_price_at, generate_fuel_auto_note). It was the one that wasn't: on two
+    REEVs the page summed both cars while the Statistics spend card summed one, two different numbers
+    under the same word. The two calendars go through here, so they are scoped by this line too —
+    which is exactly why the scope belongs HERE and not in each of them.
+    → [[multi-car-scoping-audit]] · [[feedback-two-numbers-one-word]]"""
     db = _conn_rw()
     try:
         _ensure_fuel_purchases(db)
         rows = db.execute(
             "SELECT id, ts, liters, price_per_l, total_cost, fuel_before_pct, note "
-            "FROM fuel_purchases ORDER BY ts DESC, id DESC LIMIT ?", (int(limit),)).fetchall()
+            "FROM fuel_purchases WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "ORDER BY ts DESC, id DESC LIMIT ?", (_current_vehicle_id(), int(limit))).fetchall()
         return [dict(r) for r in rows]
     finally:
         db.close()
@@ -2683,10 +2710,14 @@ def get_fuel_calendar_day(year: int, month: int, day: int) -> list[dict]:
 
 
 def delete_fuel_purchase(purchase_id: int) -> bool:
+    """⚠️ Scoped: an id belonging to the OTHER car is refused, not deleted. After the list fix such
+    a row is no longer on screen to click — this is the second lock, for a hand-made request."""
     db = _conn_rw()
     try:
         _ensure_fuel_purchases(db)
-        cur = db.execute("DELETE FROM fuel_purchases WHERE id = ?", (int(purchase_id),))
+        cur = db.execute("DELETE FROM fuel_purchases WHERE id = ? "
+                         "AND vehicle_id = COALESCE(?, vehicle_id)",
+                         (int(purchase_id), _current_vehicle_id()))
         db.commit()
         return cur.rowcount > 0
     finally:
@@ -2719,8 +2750,9 @@ def update_fuel_purchase(purchase_id: int, liters: Optional[float] = None,
     try:
         _ensure_fuel_purchases(db)
         row = db.execute(
-            "SELECT vehicle_id, ts, liters, price_per_l, total_cost FROM fuel_purchases WHERE id = ?",
-            (int(purchase_id),)).fetchone()
+            "SELECT vehicle_id, ts, liters, price_per_l, total_cost FROM fuel_purchases "
+            "WHERE id = ? AND vehicle_id = COALESCE(?, vehicle_id)",   # ⚠️ mai l'auto accanto
+            (int(purchase_id), _current_vehicle_id())).fetchone()
         if row is None:
             return False
         cur_ts = row["ts"]
@@ -2994,7 +3026,10 @@ def confirm_fuel_detected(det_id: int, liters: Optional[float] = None,
     n_liters = float(liters) if liters else float(row["liters"])
     pid = add_fuel_purchase(row["ts"], n_liters, price_per_l=price_per_l,
                             total_cost=total_cost, note=note,
-                            fuel_before_pct=row["fuel_before_pct"])
+                            fuel_before_pct=row["fuel_before_pct"],
+                            # ⚠️ l'auto del RILEVAMENTO, non quella nella barra: fra due secondi
+                            # la riga qui sotto viene cancellata e nessuno saprà più di chi era.
+                            vehicle_id=row["vehicle_id"])
     db = _conn_rw()
     try:
         db.execute("DELETE FROM fuel_detected WHERE id = ?", (int(det_id),))

@@ -54,6 +54,8 @@ def rig(tmp_path, monkeypatch):
     import main
     monkeypatch.setattr(main.db_reader, "DB_PATH", path)
     main._period_cache.clear()
+    for _c in (main._energy_cache, main._rank_cache, main._cum_cache):
+        _c.clear()
 
     # 11,1 kWh per la T03 · 77,7 per la C10 — disgiunti, come nella rastrellata
     def _per_car(*a, **k):
@@ -72,9 +74,27 @@ def rig(tmp_path, monkeypatch):
                 "ec_driving_kwh": None, "ec_ac_kwh": None, "ec_other_kwh": None,
                 "driving_kwh": None, "parked_kwh": None}
 
-    for name in ("get_energy_breakdown_range", "get_energy_breakdown",
-                 "get_consumption_rank", "get_cumulative_summary"):
+    # Ognuna delle tre ha una forma SUA, e il template legge campi diversi: un finto solo per tutte
+    # rende la pagina vuota e il rosso diventa colpa mia. Stessa ragione di `_per_car_plugin`.
+    def _kwh():
+        vin = (db_reader.get_setting(db_reader.ACTIVE_VEHICLE_SETTING, "") or "").lower()
+        return 77.7 if vin == B.lower() else 11.1
+
+    def _per_car_cum(*a, **k):
+        kwh = _kwh()
+        return {"total_energy_kwh": kwh, "total_mileage_km": 100.0,
+                "lifetime_eff_kwh_100km": kwh, "driving_kwh": kwh, "parked_kwh": 0.0,
+                "ec_driving_kwh": kwh, "ec_ac_kwh": 0.0, "ec_other_kwh": 0.0}
+
+    def _per_car_rank(*a, **k):
+        kwh = _kwh()
+        return {"current_ec": kwh, "rank": 1,
+                "weeks": [{"start": "2026-08-10", "ec": kwh}]}
+
+    for name in ("get_energy_breakdown_range", "get_energy_breakdown"):
         monkeypatch.setattr(main.command_client, name, _per_car, raising=False)
+    monkeypatch.setattr(main.command_client, "get_consumption_rank", _per_car_rank, raising=False)
+    monkeypatch.setattr(main.command_client, "get_cumulative_summary", _per_car_cum, raising=False)
     monkeypatch.setattr(main.command_client, "get_plugin_consumption", _per_car_plugin,
                         raising=False)
     return db_reader, main
@@ -94,6 +114,13 @@ def _body(main, db_reader, vin, call):
     ("energy_period", {"start": "2026-08-01", "end": "2026-08-17"}),
     ("energy_since_charge", {}),
     ("plugin_consumption", {}),
+    # Le TRE che la rastrellata #253 non ha raccolto: non usano `_period_cache` ma tre dizionari a
+    # slot singolo, `_energy_cache` / `_rank_cache` / `_cum_cache`, con dentro un `data` solo e
+    # nessun VIN. Stessa forma, stesso danno, TTL sei volte più lungo (6 ore contro trenta minuti).
+    # → [[feedback-gate-a-feature-find-every-copy]]: si cerca ogni copia, non la prima.
+    ("energy_breakdown", {}),
+    ("consumption_rank", {}),
+    ("cumulative_summary", {}),
 ])
 def test_the_second_car_is_not_served_the_first_ones_numbers(rig, endpoint, kwargs):
     """Una per forma di chiave: basta che UNA non porti l'auto perché quella schermata menta."""
@@ -120,12 +147,17 @@ def test_going_back_finds_its_own_again(rig):
 def test_no_key_reaches_the_cache_without_a_car():
     """Il guardiano, non il test sopra: nove forme di chiave oggi, e la decima la scriverà qualcuno
     copiando la riga accanto. Nessuno tocca `_period_cache` se non attraverso l'aiutante che ci
-    mette l'auto davanti."""
+    mette l'auto davanti.
+
+    🔑 E le TRE cache lunghe stanno qui dentro dalla stessa parte: il guardiano guardava una cache
+    sola, e le altre tre — venti righe più sotto, forma diversa, stesso difetto — gli sono passate
+    accanto per due rastrellate. Un guardiano che sorveglia UNA copia non è un guardiano."""
     import pathlib
     import re
     src = (pathlib.Path(__file__).resolve().parent.parent / "web" / "main.py").read_text()
+    nomi = r"(?:_period_cache|_energy_cache|_rank_cache|_cum_cache)"
     bad = [f"{n}: {ln.strip()}" for n, ln in enumerate(src.split("\n"), 1)
-           if re.search(r"_period_cache\s*[\[.]", ln) and "_pcache_key" not in ln
-           and not re.search(r"_period_cache\.(clear|pop)\b", ln)
-           and "def _pcache_key" not in ln]
+           if re.search(nomi + r"\s*\[", ln)
+           and "_pcache_key" not in ln and "_car_slot" not in ln
+           and not re.search(nomi + r"\.(clear|pop)\b", ln)]
     assert not bad, "queste toccano la cache senza l'auto:\n  " + "\n  ".join(bad)
