@@ -988,24 +988,74 @@ def _safe_unlink(path: str) -> None:
         pass
 
 
+def _db_snapshot(dest: str) -> None:
+    """Copy the live DB to `dest` as a CONSISTENT point-in-time snapshot, using SQLite's own backup
+    API — which holds a read transaction for the copy, so a writer committing meanwhile cannot show
+    through half-applied. Separate function so the export can fall back when it raises."""
+    src = sqlite3.connect(DB_PATH, timeout=30)
+    try:
+        out = sqlite3.connect(dest)
+        try:
+            src.backup(out)
+        finally:
+            out.close()
+    finally:
+        src.close()
+
+
 def gzip_db_stream(path: str | None = None, chunk_size: int = 256 * 1024):
-    """Yield the SQLite database at `path` (default DB_PATH) as a gzip byte stream, read and compressed
-    in chunks so even a large backup never lands in memory whole (disc #264). The Export endpoint serves
-    this as `leapmotor_mate.db.gz`; restore_database transparently un-gzips it, and a raw .db still
-    restores too. Checkpoint first (the caller's job) so the WAL is already folded into the file read.
-    Level 6 — SQLite's telemetry rows gzip well, and 6 keeps the CPU cost small on a Pi."""
+    """Yield the SQLite database as a gzip byte stream, read and compressed in chunks so even a large
+    backup never lands in memory whole (disc #264). The Export endpoint serves this as
+    `leapmotor_mate.db.gz`; restore_database transparently un-gzips it, and a raw .db still restores.
+    Level 6 — SQLite's telemetry rows gzip well, and 6 keeps the CPU cost small on a Pi.
+
+    With no `path`, a SNAPSHOT of the live DB is taken first and that is what gets streamed. The
+    checkpoint the caller does only settles instant zero: the poller keeps writing for the whole
+    download, which on a Pi with a big database and a slow line lasts minutes. Measured — a download
+    that began at 4000 rows, with 4000 written midway, produced a backup of 4005: not the state
+    before, not the state after, an instant that never existed. (It was not corrupt; a VACUUM
+    rewriting pages under the reader could go further, but that was not reproduced.)
+
+    ⚠️ The snapshot needs room for a second copy of the DB for as long as the download lasts. If it
+    cannot be taken — no disk space, an I/O error — the old behaviour is used instead: an imperfect
+    backup beats no backup, and nobody loses the export because their device is full.
+
+    An explicit `path` is streamed as-is, with no snapshot: it already IS a file nobody is writing."""
+    tmp = None
+    if not path:
+        tmp = f"{DB_PATH}.snapshot.tmp"
+        _safe_unlink(tmp)                      # un residuo di uno scaricamento interrotto a forza
+        try:
+            _db_snapshot(tmp)
+            path = tmp
+        except Exception as e:                 # noqa: BLE001 — spazio, I/O, permessi: si ripiega
+            # Il ripiego NON è silenzioso: chi legge i registri deve poter sapere che quel backup
+            # è stato preso alla vecchia maniera. `db_reader` non ha un registro suo (9000 righe che
+            # non registrano niente), quindi si prende quello di sistema qui, come gli altri import
+            # locali di questo file.
+            import logging
+            logging.getLogger("db_reader").warning(
+                "backup snapshot failed (%s) — streaming the live file instead", e)
+            _safe_unlink(tmp)
+            tmp, path = None, DB_PATH
     comp = zlib.compressobj(6, zlib.DEFLATED, 31)   # wbits=31 → gzip header/trailer (not bare deflate)
-    with open(path or DB_PATH, "rb") as f:
-        while True:
-            chunk = f.read(chunk_size)
-            if not chunk:
-                break
-            out = comp.compress(chunk)
-            if out:
-                yield out
-    tail = comp.flush()
-    if tail:
-        yield tail
+    try:
+        with open(path, "rb") as f:
+            while True:
+                chunk = f.read(chunk_size)
+                if not chunk:
+                    break
+                out = comp.compress(chunk)
+                if out:
+                    yield out
+        tail = comp.flush()
+        if tail:
+            yield tail
+    finally:
+        # Anche se l'utente chiude il browser a metà: il generatore viene chiuso e si passa di qui,
+        # altrimenti ogni scaricamento interrotto lascerebbe una copia del database sul volume.
+        if tmp:
+            _safe_unlink(tmp)
 
 
 def restore_database(blob: bytes) -> dict:
