@@ -110,17 +110,32 @@ def _charge_fields(data) -> str:
     return f"plug={plug} chg={data.charging_status} A={amps}"
 
 
-def _climate_ctx_from_db(db):
-    """(mode_token, circle, fan, temp) from the latest stored position — lets an MQTT fan/recirc
-    change PRESERVE the rest of the panel. Short-lived connection: this runs on paho's network
-    thread and the poller's shared db connection is not safe cross-thread."""
+def _climate_ctx_from_db(db, vin: str = ""):
+    """(mode_token, circle, fan, temp) from THIS car's latest stored position — lets an MQTT
+    fan/recirc change PRESERVE the rest of the panel. Short-lived connection: this runs on paho's
+    network thread and the poller's shared db connection is not safe cross-thread.
+
+    ⚠️ `vin` is what makes the panel belong to the right car. Without it this read the newest row of
+    `positions` FULL STOP, and the poller polls every car on the account, each writing its own rows:
+    a fan nudge sent to the C10 could carry the T03's mode and target temperature, so asking for more
+    fan changed the rest of the panel too. An unknown VIN keeps the resting defaults rather than
+    borrowing some other car's. → [[multi-car-scoping-audit]]
+
+    🔴 APERTO, e non correggibile da qui: signal 3713 = 0 means AUTO, and `_CLIM_MODE_TOKEN` has no
+    entry for it, so an AUTO panel comes back as "wind" and the command takes the car OUT of AUTO
+    into vent. Fixing that means knowing what the cloud accepts as "leave it in auto", and the
+    payloads of this API are only ever learned ON THE CAR — guessing one here would be exactly the
+    kind of plausible-not-verified change this project does not ship.
+    → [[feedback-leapmotor-discovery-method]] · [[t03-climate-operate-manual-only]]"""
     mode, circle, fan, temp = "wind", "out", 3, 26
     try:
         import sqlite3
         c = sqlite3.connect(db._path, timeout=5.0)
         try:
-            row = c.execute("SELECT climate_mode, recirculation, fan_level, climate_target_temp "
-                            "FROM positions ORDER BY id DESC LIMIT 1").fetchone()
+            row = c.execute(
+                "SELECT p.climate_mode, p.recirculation, p.fan_level, p.climate_target_temp "
+                "FROM positions p JOIN vehicles v ON v.id = p.vehicle_id "
+                "WHERE v.vin = ? ORDER BY p.id DESC LIMIT 1", (vin,)).fetchone()
         finally:
             c.close()
         if row:
@@ -368,14 +383,14 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                     lvl = max(1, min(int(float(value)), 7))
                 except (TypeError, ValueError):
                     log.warning("MQTT: fan_level value %r not a number — ignored", value); return
-                m, circ, _f, tmp = _climate_ctx_from_db(db)
+                m, circ, _f, tmp = _climate_ctx_from_db(db, vin)
                 api._remote_control(vin=vin, action="ac_on", cmd_content=json.dumps(
                     {"circle": circ, "mode": m, "operate": "manual", "position": "all",
                      "temperature": str(tmp), "windlevel": str(lvl), "wshld": "0"}, separators=(",", ":")))
                 optimistic = ("climate_on", True)
             elif cmd == "recirculation":  # writable HA switch: ON = recirc / OFF = fresh (signal 1943)
                 on = str(value).upper() == "ON"
-                m, _circ, f, tmp = _climate_ctx_from_db(db)
+                m, _circ, f, tmp = _climate_ctx_from_db(db, vin)
                 api._remote_control(vin=vin, action="ac_on", cmd_content=json.dumps(
                     {"circle": "in" if on else "out", "mode": m, "operate": "manual", "position": "all",
                      "temperature": str(tmp), "windlevel": str(f), "wshld": "0"}, separators=(",", ":")))
