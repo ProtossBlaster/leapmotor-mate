@@ -123,6 +123,7 @@
     "map_routes": "Percorsi",
     "map_points": "punti GPS",
     "map_no_data": "Ancora nessun dato GPS — guida un po' e la mappa si popolerà.",
+    "map_no_data_filtered": "Nessun percorso da disegnare con l'impostazione «Viaggi mostrati» attuale — i viaggi che tiene non hanno punti GPS. Cambia il riquadro qui sotto (0 = tutti i viaggi).",
     "map_charging_stations": "Colonnine di ricarica",
     "map_unnamed_station": "Colonnina senza nome",
     "map_station_sessions": "Ricariche",

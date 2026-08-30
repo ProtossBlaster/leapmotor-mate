@@ -123,6 +123,7 @@
     "map_routes": "Routes",
     "map_points": "GPS points",
     "map_no_data": "No GPS data yet — drive a bit and your map will fill in.",
+    "map_no_data_filtered": "No route to draw with the current «Trips shown» setting — the trips it keeps have no GPS points. Change the box below (0 = every trip).",
     "map_charging_stations": "Charging stations",
     "map_unnamed_station": "Unnamed station",
     "map_station_sessions": "Sessions",

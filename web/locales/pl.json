@@ -123,6 +123,7 @@
     "map_routes": "Trasy",
     "map_points": "punkty GPS",
     "map_no_data": "Brak danych GPS — jedź trochę, a mapa się wypełni.",
+    "map_no_data_filtered": "Brak trasy do narysowania przy obecnym ustawieniu «Wyświetlane trasy» — zachowane przejazdy nie mają punktów GPS. Zmień pole poniżej (0 = wszystkie przejazdy).",
     "map_charging_stations": "Stacje ładowania",
     "map_unnamed_station": "Stacja bez nazwy",
     "map_station_sessions": "Sesje",

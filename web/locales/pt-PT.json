@@ -123,6 +123,7 @@
     "map_routes": "Rotas",
     "map_points": "Pontos GPS",
     "map_no_data": "Ainda sem dados GPS — conduz um pouco e o teu mapa será preenchido.",
+    "map_no_data_filtered": "Não há nenhum percurso para desenhar com a definição «Viagens mostradas» atual — as viagens que mantém não têm pontos GPS. Muda a caixa abaixo (0 = todas as viagens).",
     "map_charging_stations": "Postos de carregamento",
     "map_unnamed_station": "Posto sem nome",
     "map_station_sessions": "Carregamentos",

@@ -123,6 +123,7 @@
     "map_routes": "Routen",
     "map_points": "GPS-Punkte",
     "map_no_data": "Noch keine GPS-Daten — fahr ein wenig und die Karte füllt sich.",
+    "map_no_data_filtered": "Mit der aktuellen Einstellung «Angezeigte Fahrten» gibt es keine Route zu zeichnen — die behaltenen Fahrten haben keine GPS-Punkte. Ändere das Feld unten (0 = alle Fahrten).",
     "map_charging_stations": "Ladestationen",
     "map_unnamed_station": "Unbenannte Station",
     "map_station_sessions": "Ladevorgänge",

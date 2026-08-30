@@ -93,17 +93,42 @@
 
       L.marker([s.latitude, s.longitude], { icon: icon }).addTo(map).bindPopup(popup);
     });
-
-    var pc = document.getElementById('map-pts');
-    if (pc) pc.textContent = allPts.length;
   </script>
 </div>
 
+{% else %}
+<div class="card flex items-center justify-center h-64 text-slate-500">
+  <div class="text-center">
+    <div class="text-4xl mb-2">🌍</div>
+    {# Which emptiness is this? A «Trips shown» that kept only trips carrying no GPS point looks
+       exactly like a car that has never been driven, and the «drive a bit» line then sends the
+       reader off to do the one thing that cannot help — #270 read it precisely that way.
+       `trips_shown` alone decides: asking the database whether ANY point exists would be exact,
+       but the box below is the answer either way, and setting it to 0 turns this line straight
+       back into the other one. #}
+    <div>{{ t('map_no_data_filtered') if trips_shown else t('map_no_data') }}</div>
+  </div>
+</div>
+{% endif %}
+
+{# The legend, and the two boxes — OUTSIDE the map/no-map branch on purpose. The COUNTERS describe
+   the map, so they stay with it. The BOXES do not: they are preferences, and this row is the only
+   place in Mate where they can be set (not Settings, not a URL parameter). Inside `{% if track %}`
+   they took the user's way out with them — «Trips shown» = 1 landing on a trip without GPS points
+   hid the map AND the box that said 1, with no way back but driving (#270 @speshos). #}
 <div class="mt-4 flex items-center gap-x-5 gap-y-1 flex-wrap text-xs text-slate-500">
+  {% if track %}
   <span><span style="color:#2563eb">—</span> {{ t('map_routes') }} ({{ track|length }})</span>
   {% if places %}<span><span style="color:#14b8a6">●</span> {{ t('map_frequent_places') }} ({{ places|length }})</span>{% endif %}
   {% if stations %}<span><span style="color:#f59e0b">●</span> {{ t('map_charging_stations') }} ({{ stations|length }})</span>{% endif %}
-  <span><span id="map-pts">—</span> {{ t('map_points') }}</span>
+  {# Counted here rather than by the map script: that line ran while the page was still being
+     parsed and looked for `#map-pts`, an element that appears further DOWN this same document,
+     so it found nothing and the dash stayed on every map Mate has ever drawn. This is the same
+     number it meant to show — every point of every run, gap-bridges included — and it no longer
+     depends on the script, or on Leaflet, having run at all. #}
+  {% set punti = namespace(n=0) %}{% for viaggio in track %}{% for tratto in viaggio %}{% set punti.n = punti.n + tratto.points|length %}{% endfor %}{% endfor %}
+  <span><span id="map-pts">{{ punti.n }}</span> {{ t('map_points') }}</span>
+  {% endif %}
   {# Both POST and come back through a redirect — see save_map_trip_count/save_map_station_count:
      a GET here would re-save the preference every time someone hit Back or opened a bookmarked
      map URL. #}
@@ -124,13 +149,4 @@
                   color:#e2e8f0;padding:2px 6px;font-size:11px">
   </form>
 </div>
-
-{% else %}
-<div class="card flex items-center justify-center h-64 text-slate-500">
-  <div class="text-center">
-    <div class="text-4xl mb-2">🌍</div>
-    <div>{{ t('map_no_data') }}</div>
-  </div>
-</div>
-{% endif %}
 {% endblock %}

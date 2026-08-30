@@ -123,6 +123,7 @@
     "map_routes": "Rutas",
     "map_points": "Puntos GPS",
     "map_no_data": "Todavía no hay datos GPS — conduce un poco y tu mapa se irá llenando.",
+    "map_no_data_filtered": "No hay ninguna ruta que dibujar con el ajuste «Trayectos mostrados» actual — los trayectos que conserva no tienen puntos GPS. Cambia la casilla de abajo (0 = todos los trayectos).",
     "map_charging_stations": "Puntos de recarga",
     "map_unnamed_station": "Punto sin nombre",
     "map_station_sessions": "Sesiones",

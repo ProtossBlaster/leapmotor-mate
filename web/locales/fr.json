@@ -123,6 +123,7 @@
     "map_routes": "Itinéraires",
     "map_points": "points GPS",
     "map_no_data": "Pas encore de données GPS — roulez un peu et la carte se remplira.",
+    "map_no_data_filtered": "Aucun trajet à tracer avec le réglage «Trajets affichés» actuel — les trajets qu'il conserve n'ont aucun point GPS. Modifiez la case ci-dessous (0 = tous les trajets).",
     "map_charging_stations": "Bornes de recharge",
     "map_unnamed_station": "Borne sans nom",
     "map_station_sessions": "Recharges",

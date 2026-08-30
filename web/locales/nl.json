@@ -123,6 +123,7 @@
     "map_routes": "Routes",
     "map_points": "Gps-punten",
     "map_no_data": "Nog geen gps-gegevens — rijd een stukje en je kaart vult zich vanzelf.",
+    "map_no_data_filtered": "Geen route om te tekenen met de huidige instelling «Getoonde ritten» — de ritten die overblijven hebben geen gps-punten. Wijzig het vakje hieronder (0 = alle ritten).",
     "map_charging_stations": "Laadpalen",
     "map_unnamed_station": "Laadpaal zonder naam",
     "map_station_sessions": "Sessies",
