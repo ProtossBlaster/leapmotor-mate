@@ -3,6 +3,44 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.14.27] — 2026-08-30
+
+**Fixed:** the map's **"Trips shown"** and **"Stations shown"** boxes could lock you out of
+themselves (#270). They live on the map's legend row and nowhere else — not in Settings, not in a
+URL — and that row only rendered when there was a map to draw. Set "Trips shown" to 1, land on a
+most-recent trip that carries no GPS point, and the empty-state card took the only box that could
+undo it down with it. The boxes now render either way; the empty state also says *which* emptiness
+it is, instead of telling you to go and drive when a filter is what hid the map.
+
+**Fixed:** the map's **"GPS points"** counter has shown a dash on every map Mate has ever drawn. It
+was filled by a line of script that looked for an element appearing further down the same document,
+so it never found it. It is counted server-side now and no longer depends on the map script running
+at all.
+
+**Fixed:** a merged charge with a **hand-typed total** priced the whole group at the wrong rate:
+10 + 5 kWh for €6.00 came out at €0.60/kWh instead of €0.40, because the readers that blend prices
+walked the individual rows while the cost belongs to the group. Three of them did it — the blended
+home price, the REEV paid-stock replay, and the Statistics average €/kWh — and all three now compose
+the group the same way the page does. Nothing is rewritten in the database: a confirmed cost stays
+exactly the number you confirmed.
+
+**Fixed:** with **time-of-use** pricing, a `0.00` nobody ever typed was read as *free* rather than as
+*no price set*, so charges you actually paid for were reported at zero — while the flat-rate mode
+read the same zero as *unknown*. The two modes now agree; a zero typed **inside a band** is still a
+real price, and the price form no longer pre-fills empty fields with `0.00`.
+
+**Fixed:** with **"I always charge at home"** on, charges were born with the Home badge and **no
+cost** — the pricing engine only ever ran on a confirmation, and a charge born already confirmed went
+through neither path. The period spend and the average €/kWh count only priced charges, so they
+excluded every single one: turning the option on quietly stopped you seeing what you spend. They are
+now priced by the same route as a manual confirmation, backlog included. A cost already entered is
+never touched, and a charge marked free stays free.
+
+**Fixed:** on an account with **two cars**, an MQTT climate command re-read the newest row of
+`positions` with no filter on the car. The cloud has no "change only the fan" command — the whole
+panel is sent back — so asking the C10 for more fan could carry the T03's mode and target
+temperature and change the rest of the panel with it.
+
 ## [3.14.26] — 2026-08-30
 
 **Fixed:** the **Custom kWh** pricing mode (beta #13) could not be chosen. The Costs page offered it,

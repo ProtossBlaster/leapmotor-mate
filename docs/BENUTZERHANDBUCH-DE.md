@@ -785,9 +785,16 @@ ist in drei Spalten unterteilt.
   sagt, wo ein Ladevorgang stattgefunden hat: Jede Sitzung entsteht ohne Typ und muss von Hand
   gekennzeichnet werden — viele gleiche Klicks für jemanden, der nur zu Hause lädt, womöglich mit
   mehreren kurzen Nachladungen am Tag. Mit dieser Option entsteht ein neuer Ladevorgang als
-  **Zuhause** und bleibt für die seltene öffentliche Sitzung änderbar. Es gilt **nur nach vorn** —
-  Ihre vorhandenen Ladevorgänge bleiben genau, wie sie sind — und das Einschalten verlangt eine
-  ausdrückliche Bestätigung, damit es nie versehentlich passiert.
+  **Zuhause** und bleibt für die seltene öffentliche Sitzung änderbar. Der **Typ** gilt nur nach vorn
+  — Ladevorgänge von vor dem Einschalten bleiben ohne Typ, genau wie sie sind — und das Einschalten
+  verlangt eine ausdrückliche Bestätigung, damit es nie versehentlich passiert.
+- **Und mit Preis, nicht nur mit Etikett 🆕** — ein als **Zuhause** entstandener Ladevorgang kam
+  bisher mit grüner Plakette und ohne Kosten an, denn die Preisberechnung lief nur bei einer
+  *Bestätigung* — von Hand oder von der Wallbox. Da er bereits bestätigt entstand, ging er durch
+  keine von beiden. Jetzt wird er genau so berechnet, als hätten Sie seine Plakette selbst gedrückt
+  — Zeitzonen-Tarife lesen die Stunde des Ladevorgangs, nicht die jetzige — und auch die bereits
+  vorhandenen ohne Preis werden nachgetragen. Ein von Ihnen eingetragener Betrag wird nie
+  überschrieben, und ein als kostenlos markierter Ladevorgang bleibt kostenlos.
 
 **Spalte 2 — Integrationen**
 

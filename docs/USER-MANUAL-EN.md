@@ -765,8 +765,15 @@ divided into three columns.
   where a charge happened, so every session is born unclassified and has to be tagged by hand: a lot
   of identical clicks for someone who only ever charges at home, several short top-ups a day. With
   this on, a new charge is born **Home** and can still be changed afterwards for the rare public one.
-  It works **forward only** — the charges you already have are left exactly as they are — and turning
-  it on asks for an explicit confirmation, so it can never happen by accident.
+  The **type** works forward only — charges from before you turned it on stay unclassified, exactly
+  as they are — and turning it on asks for an explicit confirmation, so it can never happen by
+  accident.
+- **And priced, not only labelled 🆕** — a charge born **Home** used to arrive with the green badge
+  and no cost, because the pricing engine only ever ran on a *confirmation*, by hand or from the
+  wallbox. Being born already confirmed, it went through neither. It is now priced exactly as if you
+  pressed its badge yourself — time-of-use bands read the hour of the charge, not the hour of now —
+  and the ones already sitting there without a price are filled in too. A cost you typed is never
+  overwritten, and a charge you marked free stays free.
 
 **Column 2 — Integrations**
 

@@ -789,8 +789,15 @@ volta. È divisa in tre colonne.
   dove è avvenuta una ricarica, quindi ogni sessione nasce senza tipo e va etichettata a mano: tanti
   clic identici per chi ricarica solo a casa, magari con più rabbocchi brevi al giorno. Con questo
   acceso una ricarica nuova nasce **Casa**, e resta modificabile per la rara volta in pubblico. Vale
-  **solo in avanti** — le ricariche che hai già restano esattamente come sono — e accenderlo chiede
-  una conferma esplicita, così non può succedere per sbaglio.
+  **solo in avanti** per il **tipo** — le ricariche di prima che tu lo accendessi restano senza tipo,
+  esattamente come sono — e accenderlo chiede una conferma esplicita, così non può succedere per
+  sbaglio.
+- **E prezzata, non solo etichettata 🆕** — una ricarica nata **Casa** arrivava col distintivo verde e
+  senza costo, perché il motore dei prezzi girava solo su una *conferma*, a mano o dalla wallbox.
+  Nascendo già confermata non passava da nessuna delle due. Adesso è prezzata esattamente come se ne
+  premessi tu il distintivo — le fasce orarie leggono l'ora della ricarica, non quella di adesso — e
+  anche quelle che stanno lì da prima senza prezzo vengono riempite. Un costo che hai scritto tu non
+  viene mai riscritto, e una ricarica che hai segnato gratis resta gratis.
 
 **Colonna 2 — Integrazioni**
 
