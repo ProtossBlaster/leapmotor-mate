@@ -126,3 +126,65 @@ def test_the_learned_wallbox_position_does_not_move(tmp_path, monkeypatch):
     db_reader.merge_charges(1, 2)
 
     assert db_reader._learned_wallbox_location(1) == before
+
+
+# ── e la forma che NON è invariante: il totale scritto a mano ────────────────────
+# Il test sopra prova la forma in cui ogni pezzo porta il suo prezzo, e lì la media pesata non si
+# sposta per costruzione. Quando invece il gruppo è prezzato da un TOTALE A MANO (o da un lordo
+# digitato, #222), `update_charge_type` lascia tutti gli euro sulla riga padre e scrive `cost=NULL`
+# sui figli — di proposito, perché quel prezzo appartiene al GRUPPO.
+#
+# Ma i lettori che accoppiano il costo di una riga con l'energia della STESSA riga dividevano il
+# totale del gruppo per i soli kWh del padre. Un plug-in che l'auto ha riportato in due pezzi
+# faceva salire il €/kWh del 50%, e da lì in avanti ogni viaggio veniva prezzato a quella cifra.
+# → [[feedback-two-numbers-one-word]]: la pagina Ricariche mostrava il totale GIUSTO nello stesso
+#   momento in cui la miscela usava un tasso sbagliato.
+
+def _manual_pair(path):
+    """10 kWh (40→50%) + 5 kWh (50→55%): un'unica presa, due righe. 15 kWh in tutto."""
+    _charge(path, 1, "2026-08-12T20:00:00+00:00", "2026-08-12T22:00:00+00:00", 40.0, 50.0, 10.0)
+    _charge(path, 2, "2026-08-12T22:00:30+00:00", "2026-08-12T23:00:00+00:00", 50.0, 55.0, 5.0)
+
+
+def test_a_manual_total_on_a_merged_pair_prices_the_WHOLE_group(tmp_path, monkeypatch):
+    """6,00 € per 15 kWh fanno 0,40 €/kWh. Non 0,60, che sono 6,00 diviso i soli 10 kWh del padre."""
+    p = _setup(tmp_path, monkeypatch); _manual_pair(p)
+    db_reader.merge_charges(1, 2)
+    db_reader.update_charge_type(1, "MANUAL", manual_cost=6.00)
+
+    prezzo = db_reader.blended_price_at(1, "2026-08-13T00:00:00+00:00")
+    assert prezzo == pytest.approx(0.40, rel=0.01), (
+        f"il €/kWh miscelato è {prezzo}: il totale del gruppo diviso per l'energia di UN pezzo")
+
+
+def test_merging_does_not_change_the_price_of_the_same_session(tmp_path, monkeypatch):
+    """La proprietà che conta davvero, e che vale per QUALSIASI forma di prezzo: la stessa energia
+    allo stesso prezzo dà lo stesso €/kWh, che l'auto l'abbia riportata come una riga o come due."""
+    p = _setup(tmp_path, monkeypatch)
+    _charge(p, 1, "2026-08-12T20:00:00+00:00", "2026-08-12T23:00:00+00:00", 40.0, 55.0, 15.0)
+    db_reader.update_charge_type(1, "MANUAL", manual_cost=6.00)
+    intera = db_reader.blended_price_at(1, "2026-08-13T00:00:00+00:00")
+
+    (tmp_path / "due").mkdir()
+    p2 = _setup(tmp_path / "due", monkeypatch); _manual_pair(p2)
+    db_reader.merge_charges(1, 2)
+    db_reader.update_charge_type(1, "MANUAL", manual_cost=6.00)
+    spezzata = db_reader.blended_price_at(1, "2026-08-13T00:00:00+00:00")
+
+    assert spezzata == pytest.approx(intera, rel=0.01), (
+        f"la stessa presa costa {intera} €/kWh se l'auto la riporta intera e {spezzata} se la spezza")
+
+
+def test_the_statistics_average_price_divides_by_the_whole_group(tmp_path, monkeypatch):
+    """Il terzo consumatore, e l'unico che NON si sistemava con la ricomposizione della miscela:
+    `priced_kwh` non è una somma semplice, è condizionata a `cost IS NOT NULL`. I kWh dei figli
+    uscivano dal denominatore mentre tutti i loro euro restavano al numeratore."""
+    p = _setup(tmp_path, monkeypatch); _manual_pair(p)
+    db_reader.merge_charges(1, 2)
+    db_reader.update_charge_type(1, "MANUAL", manual_cost=6.00)
+
+    st = db_reader.get_charge_stats()
+    assert st["total_cost"] == pytest.approx(6.00)
+    assert st["priced_kwh"] == pytest.approx(15.0), (
+        f"il denominatore è {st['priced_kwh']}: i kWh dei pezzi senza costo sono spariti")
+    assert st["avg_price"] == pytest.approx(0.40, rel=0.01)

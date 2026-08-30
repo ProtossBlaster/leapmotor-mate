@@ -5769,19 +5769,61 @@ def _wac_blend(charges) -> Optional[float]:
     return p
 
 
+def _priced_charge_groups(vehicle_id: int, extra_sql: str = "", params: tuple = ()) -> list[dict]:
+    """Le ricariche PREZZATE di un'auto, con i pezzi di una sessione unita **già ricomposti**.
+
+    Chi accoppia il costo di una riga con l'energia della stessa riga non può leggere le righe
+    grezze. Quando un gruppo unito è prezzato da un totale a mano — o da un lordo digitato (#222) —
+    `update_charge_type` lascia tutti gli euro sul padre e scrive `cost=NULL` sui figli, di
+    proposito: quel prezzo appartiene al GRUPPO. Un lettore che filtrava `cost IS NOT NULL` buttava
+    via i figli e divideva il totale del gruppo per i soli kWh del padre. Misurato: 10 + 5 kWh
+    pagati 6,00 € davano **0,60 €/kWh invece di 0,40**, e da lì ogni viaggio successivo veniva
+    prezzato al 50% in più.
+
+    La ricomposizione è quella di `_charge_group_stats`, la stessa che disegna la pagina Ricariche:
+    UNA somma sola, letta da due parti. Sommarli una seconda volta qui sarebbe stato il difetto di
+    stanotte da capo. → [[feedback-gate-a-feature-find-every-copy]]
+
+    🔑 Il filtro sul prezzo si applica DOPO la ricomposizione: un figlio senza costo non è una
+    ricarica non prezzata, è mezzo gruppo.
+
+    ⚠️ Le colonne facoltative si chiedono PRIMA di nominarle: su un archivio non ancora migrato non
+    esistono, e una lettura che le nomina comunque fa cadere la pagina invece di mostrare un dato in
+    meno. Senza unione non c'è niente da ricomporre e si torna alle righe grezze."""
+    db = _get()
+    unite = _charges_have_merge(db)
+    campi = ["id", "started_at", "ended_at", "start_soc", "end_soc", "cost", "ac_energy_kwh",
+             "location_type", "energy_added_kwh", "max_power_kw", "charge_type"]
+    if _charges_have_gross(db):
+        campi.append("gross_kwh")
+    if unite:
+        campi.append("merged_into_id")
+    rows = [dict(r) for r in db.execute(
+        f"SELECT {', '.join(campi)} FROM charges WHERE vehicle_id = ? AND ended_at IS NOT NULL "
+        f"{extra_sql} ORDER BY ended_at", (vehicle_id, *params)).fetchall()]
+    if not unite:
+        return [r for r in rows
+                if r.get("cost") is not None and (r.get("energy_added_kwh") or 0) > 0]
+    figli: dict = {}
+    for r in rows:
+        if r.get("merged_into_id"):
+            figli.setdefault(r["merged_into_id"], []).append(r)
+    fuori = []
+    for r in rows:
+        if r.get("merged_into_id"):
+            continue                                  # arriva dentro il suo gruppo
+        g = _charge_group_stats(r, figli.get(r["id"], []))
+        if g.get("cost") is not None and (g.get("energy_added_kwh") or 0) > 0:
+            fuori.append(g)
+    return fuori
+
+
 def blended_price_at(vehicle_id: int, ts: str) -> Optional[float]:
     """Blended €/kWh of the battery (WAC, #53) for `vehicle_id` at instant `ts` — the price in
     effect for a trip starting then, set by every PRICED charge that ended at/before `ts`. None until
     the first priced charge (early trips stay uncosted, as today). Recomputed from history each call
     (no stored state) → self-corrects the moment a charge's cost is assigned/edited."""
-    db = _get()
-    rows = db.execute(
-        "SELECT start_soc, end_soc, cost, ac_energy_kwh, location_type, energy_added_kwh "
-        "FROM charges WHERE vehicle_id = ? AND ended_at IS NOT NULL AND ended_at <= ? "
-        "  AND cost IS NOT NULL AND energy_added_kwh > 0 ORDER BY ended_at",
-        (vehicle_id, ts),
-    ).fetchall()
-    return _wac_blend([dict(r) for r in rows])
+    return _wac_blend(_priced_charge_groups(vehicle_id, "AND ended_at <= ?", (ts,)))
 
 
 def current_blended_price() -> Optional[float]:
@@ -5856,10 +5898,14 @@ def _reev_stock_rows(vehicle_id) -> list[dict]:
     so the single-trip price and the list/Report price can never come from two different replays."""
     cap = get_battery_capacity_kwh()
     db = _get()
-    charges = db.execute(
-        "SELECT ended_at ts, energy_added_kwh kwh, cost, start_soc FROM charges "
-        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL AND cost IS NOT NULL "
-        "AND energy_added_kwh > 0", (vehicle_id,)).fetchall()
+    # Gruppi ricomposti, non righe grezze: un gruppo unito prezzato da un totale a mano tiene tutti
+    # gli euro sul padre e `cost=NULL` sui figli, quindi filtrare le righe su `cost IS NOT NULL`
+    # faceva entrare nella scorta il costo INTERO con i kWh di UN pezzo solo. Gli euro tornavano
+    # comunque (la scorta li consuma tutti) ma i primi prelievi venivano pagati troppo e i kWh
+    # comprati dei pezzi scartati finivano contati come energia gratis del generatore.
+    charges = [{"ts": g["ended_at"], "kwh": g["energy_added_kwh"], "cost": g["cost"],
+                "start_soc": g["start_soc"]}
+               for g in _priced_charge_groups(vehicle_id)]
     trips = db.execute(
         "SELECT id, ended_at ts, ec_kwh, ec_stable, start_soc, end_soc FROM trips "
         "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL AND merged_into_id IS NULL",
@@ -7847,11 +7893,20 @@ def get_charge_stats() -> dict:
     d = dict(row)
     # Four of those figures COUNT or AVERAGE charges, and a plug-in the car split into several rows
     # would count several times: the session tally, the €/kWh denominator, and the two averages.
-    # They are recomputed over the composed groups. The SUMs above are left alone — a group's
+    # They are recomputed over the composed groups. The plain SUMs above are left alone — a group's
     # pieces sum to the group, so including the children is not just harmless, it is required.
+    #
+    # ⚠️ `priced_kwh` is NOT a plain SUM: it is conditional on `cost IS NOT NULL`, and that
+    # condition does not survive the split. A group priced by a MANUAL total (or a typed #222 gross)
+    # keeps the whole cost on the parent and writes cost=NULL on the children by design — so the
+    # children's kWh were dropped from the denominator while all their euros stayed in the
+    # numerator, and the "€/kWh actually paid" card read 0,60 for 15 kWh bought at 0,40. Recomputed
+    # over the groups with `_billed_kwh`, which is the same rule the SQL CASE above encodes.
     groups = get_charges(limit=1_000_000)
     d["session_count"] = len(groups)
     d["priced_count"] = sum(1 for g in groups if g.get("cost") is not None)
+    prezzati = [_billed_kwh(g) for g in groups if g.get("cost") is not None]
+    d["priced_kwh"] = round(sum(prezzati), 2) if prezzati else None
     # A reconstructed charge has no duration to average: `duration_min` there is the length of the
     # BLACKOUT the SoC jump was found across, not of any charging. On the real database 27 observed
     # charges average 193 min, and the single reconstructed #55 (1091.5 min) pushed the card to
