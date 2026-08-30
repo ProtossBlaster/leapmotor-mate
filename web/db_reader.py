@@ -1744,6 +1744,24 @@ def _match_band(bands: list, weekday: int, minute: int):
     return None
 
 
+def _band_priced(bands: list, ctype: str) -> bool:
+    """True se ALMENO UNA fascia prezza esplicitamente questo tipo di ricarica — zero compreso.
+
+    Serve a separare due zeri che in archivio sono identici:
+      · lo zero DIGITATO in una fascia   → è un prezzo, e «gratis» è la risposta giusta;
+      · la tariffa BASE a zero            → non è un prezzo: quasi sempre l'ha scritta la pagina
+        Costi da sola, che precompilava tutti e quattro i campi con `0.00`, e chi riempiva solo
+        «Casa» si portava in archivio tre zeri mai toccati.
+
+    Senza questa distinzione le due modalità rispondevano in modo opposto allo STESSO zero: a
+    tariffa fissa la ricarica restava non prezzata, a fasce risultava gratis — 40 kWh in rapida
+    pagati davvero entravano nella media come pagati zero e diluivano la miscela di ogni viaggio
+    successivo. Si allinea al ramo a tariffa fissa, che questa regola ce l'ha da sempre, perché
+    l'altra direzione prezzerebbe a zero le ricariche di chiunque abbia quello 0.00 in archivio.
+    Per «questa ricarica è stata gratis» c'è il contrassegno apposta (#120)."""
+    return any((b.get("prices") or {}).get(ctype) is not None for b in (bands or []))
+
+
 def _resolve_band_price(bands: list, ctype: str, weekday: int, minute: int,
                         base: float, base_set: bool):
     """TYPE-AWARE band price for a moment (#106 fix): the first band covering this moment
@@ -1949,8 +1967,8 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
         price, is_set = _resolve_band_price(bands, location_type,
                                             dt.weekday(), dt.hour * 60 + dt.minute,
                                             base, base_set)
-        if not is_set and price == 0:
-            return None
+        if price == 0 and not _band_priced(bands, location_type):
+            return None       # tariffa base a zero → non è un prezzo, come nel ramo a tariffa fissa
         return round(energy * price, 2)
 
     if config.get("method") == "start":
@@ -1997,8 +2015,8 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
 
     if total_e <= 0:               # no usable curve → fall back to the start band
         return _start_band_cost()
-    if not any_set and weighted == 0:
-        return None
+    if weighted == 0 and not _band_priced(bands, location_type):
+        return None                # stessa regola del ramo "start": una base a zero non è un prezzo
     # scale the time-weighted average price onto the authoritative (SOC) energy,
     # so the total stays consistent with the energy shown elsewhere.
     return round(energy * (weighted / total_e), 2)

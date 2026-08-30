@@ -95,7 +95,7 @@
             <div id="price-block-{{ key }}" class="flex items-center gap-2 self-end sm:self-auto {% if cost_modes[key] == 'dynamic' %}hidden{% endif %}">
               <span class="text-slate-500 text-sm">{{ currency.symbol }}</span>
               <input type="number" name="{{ setting_key }}" id="price-input-{{ key }}"
-                     value="{{ settings.get(setting_key, '0.00') }}"
+                     value="{{ settings.get(setting_key, '') }}"
                      step="0.01" min="0"
                      {# no max: a hard ceiling blocks high-value currencies — ISK/JPY/KRW/HUF price
                         electricity in tens–hundreds per kWh (disc #265). min+step still hold. #}
