@@ -2253,6 +2253,48 @@ def auto_confirm_home_charges() -> int:
     return len(rows)
 
 
+def price_default_home_charges() -> int:
+    """Price the charges that «I always charge at home» (v3.14.15, disc #255) created ALREADY typed.
+
+    That opt-in makes a charge be born `location_type='HOME'` instead of untyped, to spare an owner
+    who only ever charges at home one confirm per session. But the costing engine runs on a CONFIRM
+    — by hand, or the wallbox auto-confirm above. Born confirmed, the charge went through neither:
+    green HOME badge, cost '—'. And since the period spend and the average €/kWh count only priced
+    charges, turning that switch on quietly stopped both from counting anything.
+
+    🔑 Each hit goes through `update_charge_type` — the SAME path as a manual confirm, exactly like
+    its wallbox sibling. That is also why the backlog needs no separate rule about "which tariff":
+    an old charge is priced exactly as it would be if the owner pressed its badge today, and TOU
+    bands read the charge's own hour either way.
+
+    ⚠️ Only NULL costs are filled. A confirmed cost is frozen ('new charges only'), and a charge
+    marked free (#120) holds 0.0, which is not NULL — neither is rewritten.
+
+    ⚠️ Bails out unless a home tariff is actually configured: with nothing to price with, the rows
+    would stay in the set and be re-selected on every single page render.
+
+    Runs on page renders, like its siblings (a settings probe + one SELECT, normally 0 rows).
+    Returns how many were priced."""
+    try:
+        if get_setting("home_charges_default", "0") != "1":
+            return 0
+        if not float(get_charge_prices().get("price_home_kwh") or 0):
+            return 0
+        rows = _get().execute(
+            "SELECT id FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND location_type = 'HOME' AND ended_at IS NOT NULL AND cost IS NULL "
+            "AND COALESCE(energy_added_kwh, 0) > 0",
+            (_current_vehicle_id(),)
+        ).fetchall()
+    except (sqlite3.Error, TypeError, ValueError):   # fresh install, or no usable price
+        return 0
+    fatte = 0
+    for r in rows:
+        update_charge_type(r["id"], "HOME")
+        fatte += 1
+    return fatte
+
+
 # ── 📍 charging-station labels (resolved by web/charger_locator.py) ───────────
 # A candidate is a closed public charge with a GPS fix and no label yet. Home charges
 # are excluded twice over — by the HOME type and by any wallbox session evidence — so a

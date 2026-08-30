@@ -436,6 +436,11 @@ def _ctx(**kwargs):
     # Self-guarding no-op unless the wallbox_auto_home toggle is on AND a closed untyped
     # wallbox charge exists — so by the time any page shows charges, they're already tagged.
     db_reader.auto_confirm_home_charges()
+    # Its twin: «I always charge at home» makes a charge be born already typed HOME, so it went
+    # through no confirm and nothing ever priced it — green badge, cost '—', and the period spend
+    # counting none of them. Same lazy sweep, same update_charge_type path, and it catches the
+    # backlog of whoever turned that switch on weeks ago.
+    db_reader.price_default_home_charges()
     # Same piggyback for the 📍 station labels — settings probe + tiny SELECT per render,
     # the OSM lookups run in a background thread on a TTL (see charger_locator.maybe_sweep).
     charger_locator.maybe_sweep()
