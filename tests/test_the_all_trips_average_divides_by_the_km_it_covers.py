@@ -22,13 +22,21 @@ His bundle also settles the doubt about mixing sources: the cloud's total for th
 is exactly the sum of the two months' getEC. Cloud and trips agree on the energy; only the
 denominator differed.
 
-CI-safe: db_reader + sqlite, no fastapi, no cloud.
+The db_reader half runs anywhere; the three that read the card's own figures import `main`, which
+needs fastapi — absent from the minimal CI environment, so they skip there rather than fail.
 """
 import sqlite3
 
 import db as poller_db
 import db_reader
 import pytest
+
+
+def _main():
+    """`web.main` imports fastapi, which the minimal CI env does not install."""
+    pytest.importorskip("fastapi", reason="the card lives in web.main")
+    import main
+    return main
 
 
 @pytest.fixture()
@@ -79,7 +87,7 @@ def test_the_totals_report_the_covered_distance_too(michapr):
 
 def test_the_average_is_over_the_covered_kilometres(michapr):
     """106.20 kWh over 992 km is 10.7 — between the two months, where an average belongs."""
-    import main
+    main = _main()
     b, e = _window()
     eb = main._enrich_eb_with_trip_totals({"total_kwh": 106.20}, b, e)
     assert eb["avg_kwh100"] == pytest.approx(10.7), \
@@ -88,7 +96,7 @@ def test_the_average_is_over_the_covered_kilometres(michapr):
 
 def test_the_distance_shown_is_still_the_distance_driven(michapr):
     """Only the denominator of the average changes: the card's Distance is what the car drove."""
-    import main
+    main = _main()
     b, e = _window()
     eb = main._enrich_eb_with_trip_totals({"total_kwh": 106.20}, b, e)
     assert eb["distance_km"] == pytest.approx(1172.0)
@@ -96,7 +104,7 @@ def test_the_distance_shown_is_still_the_distance_driven(michapr):
 
 def test_the_card_can_say_what_it_averaged_over(michapr):
     """The months print "over 395 km of 416". The card needs the same two numbers to do it."""
-    import main
+    main = _main()
     b, e = _window()
     eb = main._enrich_eb_with_trip_totals({"total_kwh": 106.20}, b, e)
     assert eb["avg_kwh100_km"] == pytest.approx(992.0)

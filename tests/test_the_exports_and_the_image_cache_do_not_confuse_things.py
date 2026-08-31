@@ -13,7 +13,8 @@ CAR-IMAGE CACHE. The parsed ~39-layer package is memoised under `len(package_byt
 whose packages happen to weigh the same byte count share the entry, and the second is served the
 first one's picture. The length is a cheap proxy for identity that is not one.
 
-CI-safe: pure helpers, no fastapi, no network.
+The image-cache half runs anywhere; the CSV half reads `_csv_safe` out of `main`, which needs
+fastapi — absent from the minimal CI environment, so those skip there rather than fail.
 """
 import car_image
 import pytest
@@ -22,6 +23,7 @@ import pytest
 # ── CSV ─────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize("evil", ["=1+1", "+1", "-1+1", "@SUM(A1)", "=HYPERLINK(\"http://x\")"])
 def test_a_formula_in_a_text_cell_is_neutralised(evil):
+    pytest.importorskip("fastapi", reason="_csv_safe lives in web.main")
     from main import _csv_safe
     out = _csv_safe(evil)
     assert out.startswith("'"), f"{evil!r} would be a formula, got {out!r}"
@@ -29,6 +31,7 @@ def test_a_formula_in_a_text_cell_is_neutralised(evil):
 
 
 def test_ordinary_text_is_left_alone():
+    pytest.importorskip("fastapi", reason="_csv_safe lives in web.main")
     from main import _csv_safe
     for ok in ["Ionity Milano", "casa", "", "note with = inside", "3 phase"]:
         assert _csv_safe(ok) == ok
@@ -36,6 +39,7 @@ def test_ordinary_text_is_left_alone():
 
 def test_numbers_are_never_touched():
     """A negative number starts with '-' and must stay a number, not become text."""
+    pytest.importorskip("fastapi", reason="_csv_safe lives in web.main")
     from main import _csv_safe
     for n in (-1.5, -3, 0, 42.0, None, True):
         assert _csv_safe(n) is n
