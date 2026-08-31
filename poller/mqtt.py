@@ -453,7 +453,11 @@ class MqttService:
             ("data_age", "Data Age", {"dc": "duration", "unit": "s",
                                       "icon": "mdi:timer-sand", "tpl": _EMPTY_NONE}),
             ("climate_mode", "Climate Mode", {"icon": "mdi:air-conditioner"}),
-            ("climate_power", "Climate Power", {"dc": "power", "unit": "W", "icon": "mdi:air-conditioner"}),
+            # Empty-to-none like frame_ts and data_age above: the car stops reporting 1348 the
+            # moment the climate is off, `pub()` writes "" for an absent value, and a `power` entity
+            # fed "" logs a conversion error on every poll instead of simply going unknown.
+            ("climate_power", "Climate Power", {"dc": "power", "unit": "W",
+                                                "icon": "mdi:air-conditioner", "tpl": _EMPTY_NONE}),
         ]
         for key, name, extra in sensors:
             c = {"name": name, "state_topic": f"{prefix}/{vin}/{key}"}
@@ -526,6 +530,9 @@ class MqttService:
             "state_topic": f"{prefix}/{vin}/fan_level",
             "command_topic": f"{prefix}/{vin}/fan_level/set",
             "min": 1, "max": 7, "step": 1, "icon": "mdi:fan",
+            # Same reason as climate_power: `pub("fan_level", data.fan_level or None)` sends "" when
+            # the car is not reporting the fan, and a number entity cannot read that.
+            "value_template": _EMPTY_NONE,
         })
         cfg("switch", "recirculation", {
             "name": "Air Recirculation",
