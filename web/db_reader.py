@@ -225,8 +225,10 @@ def get_charge_local_date(charge_id: int) -> "date | None":
 
 # In-memory optimistic overlay: after a command, keep the expected state for
 # _OPT_TTL seconds so the poller can't overwrite it before the UI refreshes.
-_opt_overrides: dict = {}
-_opt_expiry: float = 0.0
+# Per VEHICLE: {vehicle_id: (overrides, expires_at)}. The row this overlay mirrors is already
+# scoped when it is written (see write_optimistic_status) — the in-memory copy was not, so a command
+# sent to one car was replayed onto whichever car was selected next, for up to _OPT_TTL seconds.
+_opt_by_vehicle: dict = {}
 _OPT_TTL = 30
 
 
@@ -3318,9 +3320,7 @@ def get_vehicle():
 
 def clear_optimistic_status() -> None:
     """Remove the in-memory optimistic overlay (called when API does not confirm the command)."""
-    global _opt_overrides, _opt_expiry
-    _opt_overrides = {}
-    _opt_expiry = 0.0
+    _opt_by_vehicle.pop(_current_vehicle_id(), None)
 
 
 def extend_optimistic_status() -> None:
@@ -3328,9 +3328,10 @@ def extend_optimistic_status() -> None:
     The post-command verification can poll the cloud for up to ~30s waiting for the
     car's state to propagate; without this the overlay would expire mid-wait and the
     UI would briefly flash the stale pre-command state (GitHub #34)."""
-    global _opt_expiry
-    if _opt_overrides:
-        _opt_expiry = time.time() + _OPT_TTL
+    vid = _current_vehicle_id()
+    entry = _opt_by_vehicle.get(vid)
+    if entry and entry[0]:
+        _opt_by_vehicle[vid] = (entry[0], time.time() + _OPT_TTL)
 
 
 def write_optimistic_status(overrides: dict) -> None:
@@ -3338,7 +3339,6 @@ def write_optimistic_status(overrides: dict) -> None:
        Also caches overrides in memory so get_latest_status() can re-apply them
        even if the poller overwrites the DB row before the UI refresh fires.
     """
-    global _opt_overrides, _opt_expiry
     db = _conn_rw()
     # Clone the CURRENT vehicle's latest row (scoped) — an unscoped "latest" could clone another
     # car's position and insert the optimistic override under the wrong vehicle_id. No-op single-car.
@@ -3354,8 +3354,7 @@ def write_optimistic_status(overrides: dict) -> None:
     placeholders = ", ".join("?" for _ in d)
     db.execute(f"INSERT INTO positions ({cols}) VALUES ({placeholders})", list(d.values()))
     db.commit()
-    _opt_overrides = dict(overrides)
-    _opt_expiry = time.time() + _OPT_TTL
+    _opt_by_vehicle[_current_vehicle_id()] = (dict(overrides), time.time() + _OPT_TTL)
 
 
 # ── GPS sign on the web write path (GitHub #158 — same root cause as #30/#43) ───────────
@@ -3566,8 +3565,9 @@ def get_latest_status() -> Optional[dict]:
         return None
     d = dict(row)
     # Apply in-memory optimistic overrides if still within TTL
-    if time.time() < _opt_expiry and _opt_overrides:
-        d.update(_opt_overrides)
+    entry = _opt_by_vehicle.get(_current_vehicle_id())
+    if entry and entry[0] and time.time() < entry[1]:
+        d.update(entry[0])
     # GPS fallback: a poll can come back with no fix → (0,0). Don't let that blank the Overview
     # map (or reset Navigation's start point) — fall back to the last position that had a real
     # fix and flag it stale, so the last known location keeps showing. Only a true (0,0)/null is
