@@ -3,6 +3,25 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.1] — 2026-08-31
+
+**Fixed:** one physical charge could be recorded **twice**. On the poll that closes a charge, Mate
+finalised it and then, a few lines later, looked at that same poll again, saw a parked car with
+nothing open and a battery far above the previous reading, and filed the charge a second time as a
+"reconstructed" one. It needed a car-to-cloud link that had gone dark mid-charge, which is exactly
+when it happened: a 40 → 78 % session came out as 24.7 kWh *and* 20.8 kWh, so the charge count, the
+kWh totals, the calendar and the monthly report all carried that energy twice. A charge that closes
+on a poll now owns its own battery rise; charges that happened while the car was asleep are still
+reconstructed as before.
+
+**Fixed:** a charge that **ended while the cloud was unreachable** was left open, and the next
+plug-in was recorded inside it. Mate closed a charge when the car went from charging to parked or to
+driving — but a charge that ends during an outage goes charging → offline → parked, which is neither.
+Two sessions, possibly at two different places and on two different price bases, became one row
+carrying the first one's location, wallbox attribution and starting percentage. Such a charge is now
+closed on the last reading taken *while it was still charging* — the same answer Mate already gives
+for a car that drove away — and only once the cable is out, so a charging pause is still a pause.
+
 ## [3.15.0] — 2026-08-31
 
 **Added:** a new **Solar kWh (manual)** pricing mode for Home, for owners with solar and no Home
