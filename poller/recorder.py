@@ -36,6 +36,10 @@ class Recorder:
         # SoC-jump charge reconstruction (GitHub #29): baseline SoC + when we last saw it.
         self._last_soc: Optional[float] = None
         self._last_soc_ts: Optional[str] = None
+        # Set by the close in _handle_event, read and cleared by _maybe_reconstruct_charge in the
+        # SAME poll: the two run in that order inside process(), so without it the reconstruction
+        # sees the state the close just produced. See the guard there.
+        self._charge_closed_this_poll: bool = False
         self._reconstruct_min_pct: float = 2.0   # min SoC rise to call it a (missed) charge
         # Odometer-jump TRIP reconstruction (#118): baseline odometer. A parked car's odometer never
         # moves, so any jump while parked = a drive we missed offline. Whole-km signal → 1 km floor.
@@ -144,6 +148,7 @@ class Recorder:
         if not (stale and self._sm.state == State.DRIVING):
             self._db.save_position(self._vehicle_id, data)
 
+        self._charge_closed_this_poll = False
         events = self._sm.update(data)
         for event in events:
             self._handle_event(event, data)
@@ -272,6 +277,15 @@ class Recorder:
         self._last_soc, self._last_soc_ts = data.soc, _now_iso()   # advance baseline every poll
         if prev_soc is None or prev_ts is None:
             return
+        # A charge closed on THIS poll owns that SoC rise — it has just been written as a live row.
+        # The events run before this pass, so by now the state is back to parked and the id is
+        # None: the guard below is answered correctly and still lets the same energy through a
+        # second time as a "reconstructed" charge on top of the real one. Measured on the real
+        # Recorder: one 40→78 charge behind a frozen frame came out as 24.7 kWh live AND 20.8 kWh
+        # reconstructed. The baseline above has already advanced, so the next poll compares against
+        # this reading and nothing is left dangling.
+        if self._charge_closed_this_poll:
+            return
         if self._sm.state not in _PARKED_STATES or self._active_charge_id is not None:
             return                                                 # live charge/trip owns this
         if data.soc - prev_soc < self._reconstruct_min_pct:
@@ -308,8 +322,14 @@ class Recorder:
         for e in events:
             self._handle_event(e, None)
 
-    def _close_charge_driven_away(self, data: VehicleData) -> None:
-        """Close a charge whose car turned up on the road — on the right reading, not this one.
+    def _close_dangling_charge(self, data: VehicleData) -> None:
+        """Close a charge the car has plainly finished — on the right reading, not this one.
+
+        Called from two places, and the second is why the name is no longer "driven away": a car
+        that turns up on the ROAD, and a car that turns up PARKED AND UNPLUGGED after the cloud
+        went quiet. Both mean the same thing — the charge is over and the live frame is not its
+        end — and both were closing on nothing before their respective fixes (#208, and the 30/08
+        audit for the parked one).
 
         The live frame is no longer the end of the charge. @mikeeeeekoo's car finished at 100 %
         and read 98.1 % by the time Mate saw it: ten kilometres of road, not two points that never
@@ -333,7 +353,7 @@ class Recorder:
             end_wb = self._read_wallbox_energy()
             if end_wb is not None:
                 self._db.accumulate_wallbox_energy(self._active_charge_id, end_wb)
-        log.info("Charge #%d: the car is driving — closing it on the last reading seen while "
+        log.info("Charge #%d: the charge is over — closing it on the last reading seen while "
                  "charging (%s)", self._active_charge_id,
                  "SoC %.1f%% at %s" % end if end else "none available, using the live frame")
         self._db.finalize_charge(self._active_charge_id, data,
@@ -341,6 +361,7 @@ class Recorder:
         self._auto_note_charge(self._active_charge_id)
         self._active_charge_id = None
         self._max_charge_kw = 0.0
+        self._charge_closed_this_poll = True
 
     def _read_wallbox_energy(self) -> Optional[float]:
         """Current wallbox kWh-counter reading from Home Assistant (best-effort, never raises).
@@ -431,13 +452,27 @@ class Recorder:
             # CHARGING → OFFLINE (three refused logins) → DRIVING left its charge open forever,
             # and an open charge appears in no calendar and in no AC count.
             if self._active_charge_id:
-                self._close_charge_driven_away(data)
+                self._close_dangling_charge(data)
             self._regen_kwh = 0.0
             # Before the trip is created, so both baselines still hold the last poll's reading:
             # anything the odometer gained while the cloud was quiet is declared on its own instead
             # of becoming the front of this trip.
             self._record_offline_gap(data)
             self._active_trip_id = self._db.create_trip(self._vehicle_id, data)
+
+        elif frm == State.OFFLINE and to in _PARKED_STATES and self._active_charge_id and data \
+                and not data.plug_connected:
+            # The charge ended, and the cable came out, while the cloud was refusing us (30/08
+            # audit). The close only ever watched CHARGING → parked and CHARGING → DRIVING, and
+            # this is neither: the row dangled open, and the next plug-in was then RESUMED into it
+            # — because finding a charge open on re-entering CHARGING means "we never unplugged",
+            # which the outage had just made false. Two sessions, possibly at two places and on two
+            # price bases, became one row carrying the first one's GPS and start SoC.
+            #
+            # Gated on the cable being GONE, not merely on "not charging": with the cable still in,
+            # a flat frame is a pause (a modulating wallbox does exactly this), and the live path
+            # owns that. Same condition the state machine leaves CHARGING on.
+            self._close_dangling_charge(data)
 
         elif frm == State.DRIVING and to in _PARKED_STATES:
             if self._active_trip_id and data:
@@ -489,3 +524,4 @@ class Recorder:
                 self._auto_note_charge(self._active_charge_id)
             self._active_charge_id = None
             self._max_charge_kw = 0.0
+            self._charge_closed_this_poll = True
