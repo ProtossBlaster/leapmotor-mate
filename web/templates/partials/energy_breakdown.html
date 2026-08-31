@@ -24,6 +24,15 @@
   <div>
     <div class="text-xs text-slate-400">{{ t('avg_efficiency') }}</div>
     <div class="text-white font-bold mt-1">{% if eb.avg_kwh100 %}{{ eb.avg_kwh100 | eff }}{% else %}—{% endif %}</div>
+    {# Which kilometres the average speaks for — shown only when they differ from the distance
+       beside it (beta #40 @michapr: an all-trips average that sat below both of its own months,
+       because getEC covered 992 km of his 1172). Same condition, strings and reasoning as the
+       Statistics figure: one label true on both a REEV and a full-electric car does not exist,
+       so the wording follows the car. #}
+    {% if eb.avg_kwh100 and eb.avg_kwh100_km and eb.distance_km
+          and (eb.distance_km - eb.avg_kwh100_km) > 0.5 %}
+    <div class="text-[11px] text-slate-500 mt-0.5">{{ (t('stats_eff_over_km_reev') if is_reev else t('stats_eff_over_km')).format(km=eb.avg_kwh100_km|nice) }}</div>
+    {% endif %}
   </div>
   {# REEV — the petrol half of the same window (@michapr, beta #11). Only when litres were actually
      burned: a range-extender week driven on the battery alone must not carry an empty tile, and a

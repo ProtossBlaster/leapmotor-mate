@@ -4857,8 +4857,21 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int) -
     tot = db_reader.get_trip_totals_between(begin_ts, end_ts)
     dist_km = tot.get("distance_km") or 0
     eb = {**eb, "distance_km": dist_km, "duration_min": tot.get("duration_min") or 0}
-    if dist_km > 0:
-        eb["avg_kwh100"] = round(eb["total_kwh"] / dist_km * 100, 1)
+    # The average divides by the kilometres the ENERGY speaks for, not by every kilometre driven
+    # (beta #40 @michapr). getEC covers only the trips the cloud saw: on his two months, 992 km of
+    # 1172, so 106.20 kWh came out as 9.1 kWh/100 km — BELOW both of the months it averages, which
+    # divide by their own covered distance and say so ("over 395 km of 416"). His bundle also
+    # settles the obvious worry about mixing sources: the cloud's window total is exactly the sum of
+    # the months' getEC, so only the denominator ever differed.
+    #
+    # Falls back to the whole distance when nothing carries a cloud figure: dividing by zero prints
+    # nothing at all, and a card with a distance and no average is worse than one whose average is
+    # the only basis available.
+    ec_km = tot.get("ec_km") or 0
+    basis_km = ec_km if ec_km > 0 else dist_km
+    if basis_km > 0:
+        eb["avg_kwh100"] = round(eb["total_kwh"] / basis_km * 100, 1)
+        eb["avg_kwh100_km"] = basis_km
     # The petrol half of the SAME window (@michapr, beta #11). getPlugIn gives both energies
     # measured by the car but only over its own six weeks; a period the reader picked has to be
     # answered from the trips. L/100 km over the generator-on distance, not the whole window —
@@ -4956,7 +4969,7 @@ async def energy_period(request: Request, period: str = "", start: str = "", end
         eb = c["data"]
     eb = _enrich_eb_with_trip_totals(eb, begin_ts, end_ts)
     return templates.TemplateResponse(request, "partials/energy_breakdown.html",
-                                      _ctx(eb=eb, eb_label=label))
+                                      _ctx(eb=eb, eb_label=label, is_reev=db_reader.is_reev_car()))
 
 
 @app.get("/api/energy-since-charge", response_class=HTMLResponse)
@@ -4988,7 +5001,7 @@ async def energy_since_charge(request: Request, refresh: int = 0):
         eb = c["data"]
     eb = _enrich_eb_with_trip_totals(eb, begin_ts, end_ts)
     return templates.TemplateResponse(request, "partials/energy_breakdown.html",
-                                      _ctx(eb=eb, eb_label=label))
+                                      _ctx(eb=eb, eb_label=label, is_reev=db_reader.is_reev_car()))
 
 
 def _report_month_bounds(month: str, now: "datetime") -> "tuple[int, int]":
@@ -5034,6 +5047,7 @@ async def report_driving(request: Request, month: str, refresh: int = 0):
     else:
         eb = c["data"]
     eb = _enrich_eb_with_trip_totals(eb, begin_ts, end_ts)
+    # report_driving_energy.html does not carry the coverage line, so it needs no is_reev.
     return templates.TemplateResponse(request, "partials/report_driving_energy.html", _ctx(eb=eb))
 
 

@@ -6845,6 +6845,17 @@ def get_fuel_totals_between(begin_ts: int, end_ts: int) -> dict:
     return out
 
 
+def _trips_have_ec(db) -> bool:
+    """Whether the trips table carries `ec_kwh` yet. Same reasoning as `_charges_have_gross`: the
+    column is in the schema AND in a migration, so between an update and the poller's next start it
+    is simply absent, and naming it is a 500 on the page that asks. Asked per call — the poller can
+    add it while the web is running."""
+    try:
+        return any(r[1] == "ec_kwh" for r in db.execute("PRAGMA table_info(trips)"))
+    except sqlite3.Error:
+        return False
+
+
 def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
     """Distance/duration/count/energy of LOCAL trips started within [begin_ts, end_ts] (epoch
     seconds) — paired by the caller with a live getEC total for the SAME window, to show distance +
@@ -6855,15 +6866,26 @@ def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
     up, cloud getEC where the cloud had a usable one and the SoC estimate where it didn't. The
     caller uses it as the reference the cloud's period total is checked against (#212). A trip with
     no efficiency counts as 0, which can only make the local total SMALLER — i.e. the check errs
-    toward leaving the cloud figure alone."""
+    toward leaving the cloud figure alone.
+
+    `ec_km` is the distance of the trips that HAVE a cloud figure, and it is what an average over
+    getEC energy must divide by (beta #40 @michapr). `distance_km` is what the car drove; the two
+    differ by every trip the cloud never saw, and dividing one by the other prints an average that
+    describes neither. The months already use this basis (`_totals_seal`'s `_ec_km`) and say so on
+    the page — "over 395 km of 416"."""
     b = datetime.fromtimestamp(begin_ts, tz=timezone.utc).isoformat()
     e = datetime.fromtimestamp(end_ts, tz=timezone.utc).isoformat()
     db = _get()
+    # NULL, not 0, where the column is missing: the caller reads a falsy ec_km as "no covered
+    # distance known" and falls back to the whole distance — the behaviour before beta #40.
+    ec_km_expr = ("ROUND(SUM(CASE WHEN ec_kwh IS NOT NULL AND ec_kwh > 0 THEN distance_km ELSE 0 END), 2)"
+                  if _trips_have_ec(db) else "NULL")
     row = db.execute(
-        """SELECT COUNT(*) AS trip_count,
+        f"""SELECT COUNT(*) AS trip_count,
                   ROUND(SUM(distance_km), 2) AS distance_km,
                   ROUND(SUM(duration_min), 0) AS duration_min,
-                  ROUND(SUM(distance_km * COALESCE(efficiency_kwh_100km, 0) / 100.0), 2) AS energy_kwh
+                  ROUND(SUM(distance_km * COALESCE(efficiency_kwh_100km, 0) / 100.0), 2) AS energy_kwh,
+                  {ec_km_expr} AS ec_km
            FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
              AND started_at >= ? AND started_at <= ?""",
         (_current_vehicle_id(), b, e),
