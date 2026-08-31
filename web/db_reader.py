@@ -3043,6 +3043,12 @@ def _ensure_fuel_detected(db: sqlite3.Connection) -> None:
         "status TEXT NOT NULL DEFAULT 'pending', created_at TEXT)")
 
 
+def _fuel_watermark_key(vehicle_id: int) -> str:
+    """How far the refuel scan got, for ONE car. Named here rather than inline so the reader and
+    the writer cannot drift apart — they are 50 lines and one early return away from each other."""
+    return f"fuel_scan_watermark_{vehicle_id}"
+
+
 def scan_fuel_refuels(vehicle_id: Optional[int] = None) -> int:
     """Walk the tank readings the car has already logged and record every rise as a pending refuel.
     Returns how many new ones it found.
@@ -3058,7 +3064,16 @@ def scan_fuel_refuels(vehicle_id: Optional[int] = None) -> int:
     try:
         _ensure_fuel_detected(db)
         _ensure_fuel_purchases(db)
-        mark = get_setting("fuel_scan_watermark", "")
+        # Per VEHICLE, like every other per-car setting here (`is_reev_<vin>`,
+        # `charge_limit_percent_<vin>`): the walk below is scoped to one car, so a single
+        # install-wide mark let the first car to scan carry the second one past its own history —
+        # and since the mark only moves forward, those refuels were skipped for good. Keyed on the
+        # id rather than the VIN because that is what this function is given and what the query
+        # filters on. The old shared key is deliberately NOT migrated onto either car: re-reading a
+        # car's log costs one longer scan and cannot duplicate anything (`_flush_fuel_run` refuses
+        # a run already filed or already logged by hand), while carrying it over would preserve the
+        # very skip this fixes.
+        mark = get_setting(_fuel_watermark_key(vid), "")
         rows = db.execute(
             "SELECT recorded_at, fuel_level_pct, fuel_liters FROM positions "
             "WHERE vehicle_id = ? AND fuel_level_pct IS NOT NULL AND recorded_at >= ? "
@@ -3108,8 +3123,8 @@ def scan_fuel_refuels(vehicle_id: Optional[int] = None) -> int:
         if run is not None:
             found += _flush_fuel_run(db, vid, run, tank)
         # Stop one pair short: the final reading may yet be the "before" of a rise still arriving.
-        db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('fuel_scan_watermark', ?)",
-                   (rows[-2]["recorded_at"],))
+        db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                   (_fuel_watermark_key(vid), rows[-2]["recorded_at"]))
         db.commit()
         return found
     except sqlite3.Error:

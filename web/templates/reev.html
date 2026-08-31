@@ -86,7 +86,7 @@
         <div style="font-size:2rem;font-weight:800" class="text-amber-400">{% if reev_summary.avg_l_100km is not none %}{{ reev_summary.avg_l_100km | nice }}<span style="font-size:1rem;color:#94a3b8;font-weight:400"> L/100km</span>{% else %}—{% endif %}</div>
       </div>
       <div class="text-right text-xs text-slate-400" style="line-height:1.8">
-        <div>{{ reev_summary.total_l | nice }} L · {{ reev_summary.engine_km | nice }} km</div>
+        <div>{{ reev_summary.total_l | nice }} L · {{ reev_summary.engine_km | dist(1) }}</div>
         <div class="text-slate-500">{{ reev_summary.engine_trips }} {{ t('reev_engine_trips') }}</div>
       </div>
     </div>

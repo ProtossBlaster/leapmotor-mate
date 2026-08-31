@@ -230,7 +230,7 @@
         {% if trip.engine_km %}
         <div class="mt-2" style="border-top:1px solid #33415560;padding-top:6px">
           <div class="text-[13px] text-slate-200 leading-snug">
-            ⛽ <span class="font-semibold text-white">{{ trip.engine_km | nice }} km</span> {{ t('reev_engine_km') }}
+            ⛽ <span class="font-semibold text-white">{{ trip.engine_km | dist(1) }}</span> {{ t('reev_engine_km') }}
           </div>
           <div class="text-[10px] text-slate-500 leading-snug mt-0.5">{{ t('reev_engine_km_floor') }}</div>
         </div>
