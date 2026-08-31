@@ -171,8 +171,15 @@ class Recorder:
                     # What the CAR says it took over this poll — the only thing that can tell a
                     # STOPPED counter from a slow one (#215). Sent only while the car reports real
                     # power: below that a flat counter proves nothing, because nothing is flowing.
+                    #
+                    # And only on a FRESH frame, for the same reason the regen above is gated: a
+                    # re-served frame still reads "7 kW" long after the car stopped drawing, so
+                    # every repeat would pile fictional energy onto wb_stuck_kwh and — past 3 kWh,
+                    # about 26 minutes of a dark link at the default cadence — make finalize_charge
+                    # throw away a wallbox total that was never wrong. The counter reading itself is
+                    # NOT gated: it comes from Home Assistant, not from the cloud that went quiet.
                     car_kwh = (data.charge_power_kw * (self._sm.poll_interval / 3600)
-                               if data.charge_power_kw >= _WB_STUCK_MIN_KW else 0.0)
+                               if not stale and data.charge_power_kw >= _WB_STUCK_MIN_KW else 0.0)
                     self._db.accumulate_wallbox_energy(self._active_charge_id, wb, car_kwh)
                     log.debug("Charge #%d: wallbox counter %.3f kWh", self._active_charge_id, wb)
 
