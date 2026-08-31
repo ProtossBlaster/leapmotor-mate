@@ -1577,7 +1577,9 @@ async def research_export():
         w.writerow(["ts_ms", "sig_key", "value"]); w.writerows(rows)
         z.writestr("raw_signals_log.csv", s.getvalue())
         s = io.StringIO(); w = csv.writer(s)
-        w.writerow(["ts_ms", "note"]); w.writerows([(n["ts"], n["note"]) for n in logbook])
+        # The note is free text a tester types, and this file is the one they send US: same
+        # neutralisation as the exports, for the same reason (see _csv_safe).
+        w.writerow(["ts_ms", "note"]); w.writerows([(n["ts"], _csv_safe(n["note"])) for n in logbook])
         z.writestr("logbook.csv", s.getvalue())
         # The trips themselves — the one thing this bundle could never answer. Raw signals say what
         # the car sent; they do not say what Mate MADE of it, and every open range-extender question
@@ -3724,12 +3726,27 @@ def _csv_response(rows: list, filename: str) -> Response:
             for k in r:
                 if k not in fieldnames and k not in drop:
                     fieldnames.append(k)
-        clean_rows = [{k: v for k, v in r.items() if k in fieldnames} for r in rows]
+        clean_rows = [{k: _csv_safe(v) for k, v in r.items() if k in fieldnames} for r in rows]
         w = csv.DictWriter(buf, fieldnames=fieldnames)
         w.writeheader()
         w.writerows(clean_rows)
     return Response(buf.getvalue(), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+def _csv_safe(v):
+    """Neutralise a spreadsheet formula in a TEXT cell, leaving everything else untouched.
+
+    A cell beginning `=`, `+`, `-` or `@` is a formula to Excel, LibreOffice and Sheets, so opening
+    an export can run what the text says. Not merely the owner's own notes: `location_name` comes
+    from OpenStreetMap and Open Charge Map, which anybody can edit, and an export is exactly the
+    file that gets mailed to somebody else when a charge looks wrong.
+
+    Strings only. A numeric column may legitimately start with a minus, and prefixing that would
+    turn a number into text in every spreadsheet that opens it — trading a rare attack for a
+    certain defect. The apostrophe is the standard neutralisation: the text itself survives intact
+    and displays unchanged, it just stops being executable."""
+    return f"'{v}" if isinstance(v, str) and v[:1] in ("=", "+", "-", "@") else v
 
 
 @app.get("/api/export/trips.csv")

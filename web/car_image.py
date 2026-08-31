@@ -33,7 +33,12 @@ _parsed: dict = {"key": None, "pkg": None, "order": None}
 
 def _package(package_bytes: bytes):
     from leapmotor_api.image import CarImagePackage
-    key = len(package_bytes)
+    # The BYTES identify the package, not their count: two cars whose packages weigh the same —
+    # same model, different colour — shared one entry, and the second was served the first one's
+    # picture. `hash()` on bytes is a C-speed pass and randomised per process, which is exactly
+    # right for a cache that lives inside one; the length stays in the key because a collision then
+    # needs both to match.
+    key = (len(package_bytes), hash(package_bytes))
     if _parsed["key"] != key or _parsed["pkg"] is None:
         _parsed["pkg"] = CarImagePackage.from_zip(package_bytes)
         _parsed["key"] = key
