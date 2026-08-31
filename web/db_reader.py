@@ -2080,10 +2080,10 @@ def update_charge_type(charge_id: int, location_type: str,
     else:
         meter = charge.get("ac_energy_kwh")
         # A public charger has no meter Mate can read, so the owner may type what its display said
-        # (#222 @ghuaywen-ai). It plays exactly the role the wallbox counter plays at home: it
-        # PRICES the charge — you pay for what left the charger, conversion losses included — and
-        # nothing else. It never becomes the energy Mate reports or totals (_billed_kwh is
-        # untouched), because that one is measured and this one is typed.
+        # (#222 @ghuaywen-ai). It plays exactly the role the wallbox counter plays at home: you pay
+        # for what left the charger, conversion losses included, so it PRICES the charge here — and
+        # since 04/08 it is ALSO the energy Mate reports for that charge. `_billed_kwh` takes it
+        # over the battery figure; the reasoning for that change lives in its docstring, not here.
         if location_type == "HOME" and meter and meter > 0:
             billed = meter
         elif gross and gross > 0:

@@ -68,7 +68,7 @@
     "eb_fuel": "Paliwo",
     "gross_kwh_short": "wydane przez ładowarkę",
     "gross_kwh_lost": "stracone",
-    "gross_kwh_help": "Co pokazywał wyświetlacz ładowarki. Wpisujesz to sam: przy ładowarce publicznej Mate nie ma licznika. Służy do wyceny — pokazywana energia pozostaje tą zmierzoną na akumulatorze.",
+    "gross_kwh_help": "Co pokazywał wyświetlacz ładowarki: kWh brutto, wraz ze stratami konwersji. Wpisujesz to sam, bo przy ładowarce publicznej Mate nie ma licznika. Staje się energią ładowania i na niej liczony jest koszt.",
     "eb_fuel_over_engine_km": "na wszystkich kilometrach, tak jak wartość auta",
     "stats_reev_gauges_note": "każda trasa, także z generatorem",
     "stats_reev_gauges_engine": "generator, gdy pracuje",

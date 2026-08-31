@@ -68,7 +68,7 @@
     "eb_fuel": "Kraftstoff",
     "gross_kwh_short": "von der Ladesäule abgegeben",
     "gross_kwh_lost": "verloren",
-    "gross_kwh_help": "Was die Anzeige der Ladesäule sagte. Sie tragen es ein: an einer öffentlichen Säule hat Mate keinen Zähler. Es dient der Bepreisung — die ausgewiesene Energie bleibt die an der Batterie gemessene.",
+    "gross_kwh_help": "Was die Anzeige der Ladesäule sagte: die Brutto-kWh, einschließlich Umwandlungsverluste. Sie tragen es ein, denn an einer öffentlichen Säule hat Mate keinen Zähler. Es wird zur Energie des Ladevorgangs, und darauf werden die Kosten berechnet.",
     "eb_fuel_over_engine_km": "über alle Kilometer, wie der Wert des Autos",
     "stats_reev_gauges_note": "jede Fahrt, auch mit Generator",
     "stats_reev_gauges_engine": "Generator, während er läuft",

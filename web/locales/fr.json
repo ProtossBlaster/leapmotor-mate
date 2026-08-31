@@ -68,7 +68,7 @@
     "eb_fuel": "Carburant",
     "gross_kwh_short": "délivrés par la borne",
     "gross_kwh_lost": "perdus",
-    "gross_kwh_help": "Ce qu'affichait la borne. C'est toi qui le saisis : sur une borne publique Mate n'a pas de compteur. Il sert à tarifer la recharge — l'énergie affichée reste celle mesurée à la batterie.",
+    "gross_kwh_help": "Ce qu'affichait la borne : les kWh bruts, pertes de conversion comprises. C'est toi qui le saisis, car sur une borne publique Mate n'a pas de compteur. Il devient l'énergie de la recharge, et le coût est calculé dessus.",
     "eb_fuel_over_engine_km": "sur tous les kilomètres, comme le chiffre de la voiture",
     "stats_reev_gauges_note": "chaque trajet, générateur compris",
     "stats_reev_gauges_engine": "générateur, pendant qu'il tourne",

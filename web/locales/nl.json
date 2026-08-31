@@ -68,7 +68,7 @@
     "eb_fuel": "Brandstof",
     "gross_kwh_short": "geleverd door de lader",
     "gross_kwh_lost": "verloren",
-    "gross_kwh_help": "Wat het display van de lader aangaf. Jij voert het in: bij een openbare lader heeft Mate geen meter. Het bepaalt de prijs — de getoonde energie blijft die gemeten aan de accu.",
+    "gross_kwh_help": "Wat het display van de lader aangaf: de bruto-kWh, inclusief conversieverliezen. Jij voert het in, want bij een openbare lader heeft Mate geen meter. Het wordt de energie van de laadbeurt, en daarop worden de kosten berekend.",
     "eb_fuel_over_engine_km": "over alle kilometers, net als het cijfer van de auto",
     "stats_reev_gauges_note": "elke rit, ook die met de generator",
     "stats_reev_gauges_engine": "generator, terwijl hij draait",

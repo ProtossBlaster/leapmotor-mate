@@ -68,7 +68,7 @@
     "eb_fuel": "Fuel",
     "gross_kwh_short": "delivered by the charger",
     "gross_kwh_lost": "lost",
-    "gross_kwh_help": "What the charger's display said. You type it: Mate has no meter on a public charger. It prices the charge — the energy reported stays the one measured at the battery.",
+    "gross_kwh_help": "What the charger's display said: the gross kWh, conversion losses included. You type it, because Mate has no meter on a public charger. It becomes the charge's energy, and the cost is computed on it.",
     "eb_fuel_over_engine_km": "over all the kilometres, like the car's own figure",
     "stats_reev_gauges_note": "every trip, generator ones included",
     "stats_reev_gauges_engine": "generator, while running",

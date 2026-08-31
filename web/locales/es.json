@@ -68,7 +68,7 @@
     "eb_fuel": "Combustible",
     "gross_kwh_short": "entregados por el cargador",
     "gross_kwh_lost": "perdidos",
-    "gross_kwh_help": "Lo que indicaba la pantalla del cargador. Lo escribes tú: Mate no tiene contador en un punto de recarga público. Sirve para calcular el precio de la carga; la energía que se muestra sigue siendo la medida en la batería.",
+    "gross_kwh_help": "Lo que indicaba la pantalla del cargador: los kWh brutos, incluidas las pérdidas de conversión. Lo escribes tú, porque Mate no tiene contador en un punto de recarga público. Pasa a ser la energía de la carga, y sobre ella se calcula el coste.",
     "eb_fuel_over_engine_km": "sobre todos los kilómetros, como la cifra del propio coche",
     "stats_reev_gauges_note": "todos los trayectos, incluidos los del generador",
     "stats_reev_gauges_engine": "generador, mientras funciona",

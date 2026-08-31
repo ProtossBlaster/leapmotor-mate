@@ -68,7 +68,7 @@
     "eb_fuel": "Carburante",
     "gross_kwh_short": "erogati dalla colonnina",
     "gross_kwh_lost": "persi",
-    "gross_kwh_help": "Quanto diceva il display della colonnina. Lo scrivi tu: su una colonnina pubblica Mate non ha un contatore. Serve a prezzare la ricarica — l'energia riportata resta quella misurata in batteria.",
+    "gross_kwh_help": "Quanto diceva il display della colonnina: i kWh lordi, perdite di conversione comprese. Lo scrivi tu, perché su una colonnina pubblica Mate non ha un contatore. Diventa l'energia della ricarica, e su questa si calcola il costo.",
     "eb_fuel_over_engine_km": "su tutti i chilometri, come il numero dell'auto",
     "stats_reev_gauges_note": "ogni viaggio, anche quelli col generatore",
     "stats_reev_gauges_engine": "generatore, mentre è in marcia",
