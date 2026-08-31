@@ -3,6 +3,49 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.2] — 2026-08-31
+
+Ten fixes from the 30/08 audit and from beta #40, none of them changing how anything is meant to
+work — only making it do what it already said.
+
+**Fixed:** the **all-trips consumption** figure was an average over kilometres its energy never
+described, so it could sit *below* every month it averaged (beta #40, @michapr): 106.2 kWh spread
+over 1172 km read 9.1 kWh/100 km, where the same energy over the 992 km the cloud actually covered
+is 10.7 — between his July and August, where an average belongs. It now divides by the kilometres
+it speaks for, exactly as the monthly figures already did, and a line under it says how many those
+are. The distance beside it still shows what the car drove.
+
+**Fixed:** with two REEVs, the **second car's older refuels were never found**. The scan walks one
+car's tank log but remembered how far it got in a single setting shared by the whole install, so
+the first car to run it carried the others past their own history — and the mark only moves
+forward.
+
+**Fixed:** the **generator distance** printed a hard-coded "km" after an unconverted number, on
+pages that are otherwise unit-aware: an imperial install read miles everywhere and kilometres on
+those two lines.
+
+**Fixed:** a charge that **cost nothing** — the free tick, a band priced at 0, solar covering a
+whole session — rendered exactly like one nobody has priced: grey, and a dash.
+
+**Fixed:** with no GPS fix, Mate asked for the **weather at 0,0** — in the Gulf of Guinea — and
+stored it as the car's outside temperature.
+
+**Fixed:** a charge **imported at exactly 00:00** was moved to noon, into a different time-of-use
+band and out of round-trip with Mate's own export.
+
+**Fixed:** **CSV exports** wrote free-text columns straight out, and a cell beginning `=`, `+`, `-`
+or `@` is a formula to Excel and LibreOffice — including station names, which come from
+OpenStreetMap and can be edited by anybody.
+
+**Fixed:** the **car picture** was cached by byte count, so two cars whose image packages weigh the
+same were served each other's.
+
+**Fixed:** a **command sent to one car** was replayed onto whichever car you selected next, for up
+to thirty seconds.
+
+**Fixed:** **Climate Power** and **Fan Level** published an empty string when the car stopped
+reporting them, which Home Assistant logs as a conversion error rather than reading as unknown.
+
 ## [3.15.1] — 2026-08-31
 
 **Fixed:** one physical charge could be recorded **twice**. On the poll that closes a charge, Mate
