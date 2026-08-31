@@ -78,6 +78,22 @@ TEMPLATE = (
 _DATE_FORMATS = ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d")
 
 
+def _start_of(text: str, dt):
+    """The start a row means, given both what was WRITTEN and what it parsed to.
+
+    The noon default exists so a charge with no time cannot day-shift across time zones — the same
+    12:00 the manual-entry form uses. Deciding it from the parsed value instead (`dt.hour or
+    dt.minute`) also caught the one time that IS written and still reads as zero: `00:00`. A charge
+    imported at midnight was moved twelve hours, into a different time-of-use band — a different
+    price — and out of round-trip with Mate's own export.
+
+    So the question is whether a time was written, and only the text can answer it. Every accepted
+    format separates the time with a colon and the bare-date format has none, which makes this the
+    whole test.
+    """
+    return dt if ":" in (text or "") else dt.replace(hour=12)
+
+
 def _parse_dt(s: str):
     """Naive when the text carries no zone (what a person types), AWARE when it does — Mate's own
     export writes a full ISO stamp with the offset, and that offset is the truth, not a guess."""
@@ -216,9 +232,9 @@ def parse_charge_csv(text: str, *, tz, today=None):
             errors.append(f"line {i}: end_soc '{cell(cells, 'end_soc')}' must be a number 0-100")
             continue
 
-        # Noon default when no time given → the charge never day-shifts on display across time zones,
-        # matching the manual-entry form's own 12:00 default.
-        start_final = dt if (dt.hour or dt.minute) else dt.replace(hour=12)
+        # Noon default when no time given — see _start_of, which reads the TEXT rather than the
+        # parsed value, because a written 00:00 parses to the same zeros as no time at all.
+        start_final = _start_of(date_s, dt)
 
         # Optional end date/time → the charge's duration (#67 @rossiadobe). Full 'YYYY-MM-DD HH:MM' (or
         # date); must not be before the start. Blank → None (add_manual_charge then makes end == start).

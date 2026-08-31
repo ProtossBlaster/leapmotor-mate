@@ -68,7 +68,14 @@ class OutsideTempSampler:
         self._lon: Optional[float] = None
 
     def sample(self, lat, lon, now_ts) -> Optional[float]:
-        if lat is None or lon is None:
+        # `None` never arrives: `client._resolve_coord` returns 0.0 when no usable value exists, so
+        # this guard tested for something the parser cannot produce and a frame without a fix asked
+        # for the weather at 0,0 — Null Island, in the Gulf of Guinea — stored it as the car's
+        # outside temperature, and moved the anchor there, which then suppressed the next real fetch
+        # until the car had "moved" 10 km back. Exactly 0,0 is no fix: the same convention the rest
+        # of the poller already uses (`if data.latitude and data.longitude` for geohashes,
+        # `latitude != 0 AND longitude != 0` in the trip query).
+        if not lat or not lon:
             return self._temp   # no fix → keep the last reading, don't guess a new place
         if _should_refetch(self._ts, self._lat, self._lon, lat, lon, now_ts):
             t = self._fetch(lat, lon)
