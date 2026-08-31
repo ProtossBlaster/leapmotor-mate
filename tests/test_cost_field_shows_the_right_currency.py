@@ -52,6 +52,8 @@ def _env():
     env.filters["dec"] = lambda v, n=1: "—" if v is None else f"{float(v):.{n}f}"
     env.filters["dist"] = lambda v, n=1: "—" if v is None else f"{float(v):.{n}f} km"
     env.globals["gross_kwh_ok"] = lambda: True
+    env.globals["solar_kwh_ok"] = lambda: True
+    env.globals["solar_mode_on"] = lambda: False
     env.globals["dist_unit"] = lambda: "km"
     env.globals["dist_val"] = lambda v, n=1: None if v is None else round(float(v), n)
     return env

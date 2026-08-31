@@ -166,7 +166,7 @@ def test_the_grid_really_lands_inside_the_wrapper(tmp_path):
                              undefined=_Quiet)
     for f in ("money", "nice", "dec", "dist", "price3", "pct", "kwh"):
         env.filters[f] = lambda v, *a, **k: str(v)
-    for g in ("gross_kwh_ok", "dist_unit", "absent_temps"):
+    for g in ("gross_kwh_ok", "solar_kwh_ok", "solar_mode_on", "dist_unit", "absent_temps"):
         env.globals[g] = lambda *a, **k: ""
     env.globals["dist_val"] = lambda v, n=1: v
 

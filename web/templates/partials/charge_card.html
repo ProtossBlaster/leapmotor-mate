@@ -203,8 +203,25 @@
 
      Under the three tiles rather than inside the ENERGY one: on a phone those tiles stay three
      columns, so a box in there is ~110 px wide and the panel unrolls into a thirty-line ribbon. #}
-  {% if not show_wb and c.location_type and gross_kwh_ok() %}
+  {% if not show_wb and c.location_type and gross_kwh_ok() and not (solar_mode_on() and c.location_type == 'HOME') %}
   {% with charge=c %}{% include "partials/charge_gross_kwh.html" %}{% endwith %}
+  {% endif %}
+
+  {# #272 — the owner's own solar kWh, subtracted from the MEASURED wallbox energy before pricing.
+     Offered only under the solar pricing mode, and only on a home charge the wallbox actually
+     measured: a subtraction needs a minuend that was measured, and the battery estimate is not one.
+
+     The two fields are exclusive by construction — `show_wb` shows this one and hides its twin —
+     so a card never carries two boxes that both look like "type the kWh". #}
+  {% if solar_mode_on() and c.location_type == 'HOME' and solar_kwh_ok() %}
+    {% if show_wb %}
+    {% with charge=c %}{% include "partials/charge_solar_kwh.html" %}{% endwith %}
+    {% else %}
+    {# The wallbox is how this owner prices Casa, but it did not measure THIS charge (counter
+       unreachable, a charge older than the mapping, or a total dropped as implausible). Saying so
+       beats a field that appears on one charge and not the next with no reason given. #}
+    <div style="margin-top:6px;font-size:10px;color:#475569">☀️ {{ t('solar_kwh_no_meter') }}</div>
+    {% endif %}
   {% endif %}
 
   <!-- User note (#107) — free-text context the raw data can't capture -->

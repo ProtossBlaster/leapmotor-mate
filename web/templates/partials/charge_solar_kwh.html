@@ -1,0 +1,64 @@
+{# #272 @kingean93 — the kWh of this charge that came off the owner's own roof, typed by them.
+
+   The mirror of charge_gross_kwh.html, and deliberately its exclusive twin: that field stands in
+   for a meter Mate does not have, this one subtracts from a meter it DOES have. They are never on
+   the same card, because the condition that shows one hides the other.
+
+   Same discipline as its twin: closed by default, opened on purpose, never pre-filled. A number
+   that prices a charge must not change because a Tab landed in it.
+
+   Expects `charge` and `t`. `charge.error == "too_much"` comes back from the route when the figure
+   exceeds what the wallbox measured — the mistake this field exists to catch. #}
+{% set _s = charge.solar_kwh or 0 %}
+{% set _m = charge.ac_energy_kwh or 0 %}
+{% set _paid = (_m - _s) if _m > _s else 0 %}
+<div id="sk-{{ charge.id }}"{% if solar_oob %} hx-swap-oob="true"{% endif %} style="margin-top:6px">
+
+  {# ── closed: the sum, spelled out ────────────────────────────────────────────────────────── #}
+  <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+    {% if _s > 0 %}
+    {# The whole line, not just the number: someone who typed what they BOUGHT instead of what the
+       sun gave reads "8.0 paid" where they expected 12.0 and catches it without reading any help. #}
+    <span style="font-size:10px;color:#94a3b8" title="{{ t('solar_kwh_help') }}">🔌 {{ _m|dec(1) }} {{ t('solar_kwh_delivered') }} − ☀️ {{ _s|dec(1) }} {{ t('solar_kwh_solar') }} = {{ _paid|dec(1) }} kWh {{ t('solar_kwh_paid') }}</span>
+    {% endif %}
+    <button type="button" title="{{ t('solar_kwh_help') }}"
+            onclick="var f=document.getElementById('sk-form-{{ charge.id }}');f.classList.toggle('hidden');if(!f.classList.contains('hidden'))document.getElementById('sk-in-{{ charge.id }}').focus()"
+            style="background:transparent;border:1px dashed #33415599;border-radius:6px;color:#64748b;
+                   padding:1px 7px;font-size:10px;cursor:pointer;white-space:nowrap">
+      ✎{% if _s <= 0 %} ☀️ {{ t('solar_kwh_label') }}{% endif %}
+    </button>
+  </div>
+
+  {# ── open ────────────────────────────────────────────────────────────────────────────────── #}
+  <div id="sk-form-{{ charge.id }}" class="{% if not charge.error %}hidden{% endif %}"
+       style="margin-top:5px;background:#0b1220;border:1px solid #1e293b;border-radius:7px;padding:6px 7px">
+    <form hx-post="api/charges/{{ charge.id }}/solar-kwh" hx-target="#sk-{{ charge.id }}" hx-swap="outerHTML"
+          style="margin:0;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+      {# deliberately no value= — see the note above #}
+      <input type="number" id="sk-in-{{ charge.id }}" name="solar_kwh" step="0.01" min="0" max="500"
+             placeholder="—" autocomplete="off" inputmode="decimal"
+             style="width:70px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;padding:2px 5px;font-size:11px">
+      <span style="font-size:10px;color:#94a3b8">kWh</span>
+      <button type="submit"
+              style="background:#33415555;color:#cbd5e1;border:1px solid #47556955;border-radius:5px;padding:1px 7px;font-size:10px;cursor:pointer">OK</button>
+      <button type="button"
+              onclick="document.getElementById('sk-form-{{ charge.id }}').classList.add('hidden')"
+              style="background:transparent;color:#64748b;border:none;padding:1px 4px;font-size:10px;cursor:pointer">{{ t('cancel') }}</button>
+      {% if _s > 0 %}
+      {# Its own request, for the reason its twin gives: two fields of one name and the empty box wins. #}
+      <button type="button" hx-post="api/charges/{{ charge.id }}/solar-kwh" hx-vals='{"solar_kwh": "0"}'
+              hx-target="#sk-{{ charge.id }}" hx-swap="outerHTML"
+              style="background:transparent;color:#64748b;border:none;padding:1px 4px;font-size:10px;cursor:pointer;margin-left:auto">{{ t('band_remove') }}</button>
+      {% endif %}
+    </form>
+    {% if charge.error == 'too_much' %}
+    {# Kept open with the reason showing: a refusal that closes the box looks like it worked. #}
+    <div style="font-size:9px;color:#f87171;margin-top:4px;line-height:1.3">{{ t('solar_kwh_too_much') }} {{ charge.max|dec(1) }} kWh</div>
+    {% endif %}
+    <div style="font-size:9px;color:#475569;margin-top:4px;line-height:1.3">{{ t('solar_kwh_help') }}</div>
+  </div>
+</div>
+{% if cost_oob %}
+{# This figure is subtracted before pricing, so the cost above changes with it. #}
+{% include "partials/charge_cost_cell.html" %}
+{% endif %}

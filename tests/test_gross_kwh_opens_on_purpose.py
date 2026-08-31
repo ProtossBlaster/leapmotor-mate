@@ -162,7 +162,11 @@ def test_every_route_that_renders_a_charge_card_needs_no_extra_context():
 
 
 def test_it_is_not_offered_on_a_wallbox_charge_or_an_untyped_one():
-    assert "{% if not show_wb and c.location_type and gross_kwh_ok() %}" in CARD
+    """...and, since #272, not on a home charge whose owner prices Casa by subtracting solar: that
+    mode has its own field on the same card, and two boxes that both read "type the kWh" is exactly
+    the confusion each of them was shaped to avoid."""
+    assert ("{% if not show_wb and c.location_type and gross_kwh_ok() "
+            "and not (solar_mode_on() and c.location_type == 'HOME') %}") in CARD
     assert '{% with charge=c %}{% include "partials/charge_gross_kwh.html" %}{% endwith %}' in CARD
 
 

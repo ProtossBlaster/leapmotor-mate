@@ -76,13 +76,17 @@
                  tenuto completo — con 'custom_kwh' fuori, una casa in «kWh personalizzati» rendeva
                  DUE voci `selected` nello stesso menu (il browser mostra l'ultima, quindi sembrava
                  giusto). Terza copia della stessa lista dopo lo scrittore e il lettore. #}
-              <option value="flat" {% if cost_modes[key] not in ('tou', 'dynamic', 'custom_kwh') %}selected{% endif %}>{{ t('cost_mode_flat') }}</option>
+              <option value="flat" {% if cost_modes[key] not in ('tou', 'dynamic', 'custom_kwh', 'solar_manual') %}selected{% endif %}>{{ t('cost_mode_flat') }}</option>
               <option value="tou" {% if cost_modes[key] == 'tou' %}selected{% endif %}>{{ t('cost_mode_tou') }}</option>
               {% if key == 'HOME' %}
               <option value="dynamic" {% if cost_modes[key] == 'dynamic' %}selected{% endif %}>{{ t('cost_mode_dynamic') }}</option>
               {# beta #13 — the price stays fixed; what varies is HOW MANY kWh of the charge were
                  actually bought. Only HOME: nobody has such a helper for a public charger. #}
               <option value="custom_kwh" {% if cost_modes[key] == 'custom_kwh' %}selected{% endif %}>{{ t('cost_mode_custom_kwh') }}</option>
+              {# #272 — the same split with no HA helper: the owner types the solar kWh on each
+                 charge and Mate subtracts them from what the wallbox measured. HOME for the same
+                 reason as the two above. #}
+              <option value="solar_manual" {% if cost_modes[key] == 'solar_manual' %}selected{% endif %}>{{ t('cost_mode_solar_manual') }}</option>
               {% endif %}
             </select>
             {# Price input HIDDEN (not just dimmed) while this type is Dynamic (Silvio 02/07):
@@ -120,6 +124,12 @@
              visible: here that number is not a fallback, it is the multiplier. #}
           <div id="ckwh-note-{{ key }}" class="text-[11px] text-slate-500 mt-1.5 {% if cost_modes[key] != 'custom_kwh' %}hidden{% endif %}">
             {{ t('cost_custom_kwh_note') }}
+          </div>
+          {# #272 — the manual twin needs no picker: the number lives on each charge, not here. A
+             note is the whole settings-side surface, and it says WHERE to type it, because a mode
+             that silently waits for a field on another page reads as a mode that does nothing. #}
+          <div id="skwh-note-{{ key }}" class="text-[11px] text-slate-500 mt-1.5 {% if cost_modes[key] != 'solar_manual' %}hidden{% endif %}">
+            {{ t('cost_mode_solar_manual_desc') }}
           </div>
           <div id="ckwh-wrap-{{ key }}" class="{% if cost_modes[key] != 'custom_kwh' %}hidden{% endif %}"
                {% if cost_modes[key] == 'custom_kwh' %}data-loaded="1" hx-get="api/costs/custom-kwh-entities?ctype={{ key }}" hx-trigger="load" hx-target="this" hx-swap="innerHTML"{% endif %}>
@@ -236,7 +246,8 @@
   const MODE_LABELS = {
     flat: "{{ t('cost_mode_flat') }}", tou: "{{ t('cost_mode_tou') }}",
     dynamic: "{{ t('cost_mode_dynamic') }}",
-    custom_kwh: "{{ t('cost_mode_custom_kwh') }}"
+    custom_kwh: "{{ t('cost_mode_custom_kwh') }}",
+    solar_manual: "{{ t('cost_mode_solar_manual') }}"
   };
   // Live per-type mode, kept in sync by updateModeUI() — the band editor reads this to grey
   // out columns for types not on Time slots (Silvio 02/07: a band's DC/HPC price was editable
@@ -282,6 +293,8 @@
       }
       const ckNote = document.getElementById('ckwh-note-' + ctype);
       if (ckNote) ckNote.classList.toggle('hidden', mode !== 'custom_kwh');
+      const skNote = document.getElementById('skwh-note-' + ctype);
+      if (skNote) skNote.classList.toggle('hidden', mode !== 'solar_manual');
       // Price input HIDDEN (not edited) while dynamic — a live sensor prices it (Silvio 02/07:
       // an editable spinner there invited exactly the kind of accident that raised this, a
       // stray mouse-wheel scroll silently bumping the value). Stays in the DOM un-disabled so

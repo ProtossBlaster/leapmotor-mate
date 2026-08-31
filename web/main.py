@@ -320,6 +320,14 @@ templates.env.globals.update(
     # for the field, watched it disappear between v3.6.6 and v3.6.8. A callable, so it answers per
     # render: the poller can add the column while the web is running.
     gross_kwh_ok=lambda: db_reader._charges_have_gross(db_reader._get()),
+    # #272 — the same question for the solar field, and a GLOBAL for the same reason its twin is
+    # one: the charge card is rendered by the page and by two partials that build their context by
+    # hand, and a flag threaded through _ctx reaches the page and vanishes from the day drawer.
+    solar_kwh_ok=lambda: db_reader._charges_have_solar(db_reader._get()),
+    # #272 — whether Casa is priced by subtracting the owner's own solar. The card asks, because
+    # the field is only meaningful under that mode; a callable so switching the mode in Settings
+    # shows the field without a restart.
+    solar_mode_on=db_reader.home_prices_by_solar,
     # #144 — the temperature sensors this car has never once reported, so the status card can leave
     # them out instead of promising a number that will never arrive. A GLOBAL for exactly the reason
     # above: `status_card.html` is rendered by the Overview AND by partials that build their own
@@ -3078,6 +3086,36 @@ async def set_charge_gross_kwh(request: Request, charge_id: int):
         "charge": charge,
         "t": t,
         "cost_oob": True,   # the cost is billed on this figure when there is no meter — refresh it
+    })
+
+
+@app.post("/api/charges/{charge_id}/solar-kwh", response_class=HTMLResponse)
+async def set_charge_solar_kwh(request: Request, charge_id: int):
+    """#272 @kingean93 — the kWh of this charge that came off the owner's own roof.
+
+    Same reading rules as its twin above: an empty box means "leave it alone", a zero is the
+    deliberate way to take a wrong figure back, and anything unparseable is treated as empty rather
+    than as a zero so a typo cannot wipe a good number.
+
+    A figure larger than the energy the wallbox measured comes back as a refusal, not a clamp — the
+    reader hands the partial `error`/`max` and the box stays open with the reason showing. That is
+    the mistake this field exists to catch: typing what you BOUGHT where the solar goes."""
+    form = await request.form()
+    solar_kwh = None
+    _s = str(form.get("solar_kwh", "")).strip().replace(",", ".")
+    if _s:
+        try:
+            solar_kwh = max(0.0, min(float(_s), 500.0))
+        except (ValueError, TypeError):
+            solar_kwh = None
+    charge = db_reader.set_charge_solar_kwh(charge_id, solar_kwh)
+    t = i18n.get_t(db_reader.get_language())
+    return templates.TemplateResponse(request, "partials/charge_solar_kwh.html", {
+        "charge": charge,
+        "t": t,
+        # Not on a refusal: nothing was written, so the cost cell has nothing new to say and
+        # swapping it would suggest the number went in.
+        "cost_oob": charge.get("error") is None,
     })
 
 

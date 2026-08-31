@@ -1391,7 +1391,7 @@ _TOU_TYPES = ["HOME", "AC", "FAST", "HPC"]
 # and the reader (`get_cost_config`) — they used to carry a copy each, and when 'custom_kwh' shipped
 # (v3.14.24, beta #13) only the reader's copy was updated: the page offered the mode, the save threw
 # it away, and it came back 'flat' on the next load. Adding a mode means adding it HERE, once.
-_COST_MODES = ("flat", "tou", "dynamic", "custom_kwh")
+_COST_MODES = ("flat", "tou", "dynamic", "custom_kwh", "solar_manual")
 
 
 def _mode_allowed(ctype: str, mode: str) -> bool:
@@ -1403,9 +1403,13 @@ def _mode_allowed(ctype: str, mode: str) -> bool:
     'custom_kwh' is HOME-only for the same reason turned around: it prices the charge on a
     kWh figure the OWNER's own HA helper produces (beta #13, @ebagnoli — solar at home, where
     only part of a charge is bought from the grid). Nobody has such a helper for a public
-    charger, and the operator's bill is not ours to second-guess."""
+    charger, and the operator's bill is not ours to second-guess.
+
+    'solar_manual' (#272, @kingean93) is the same case without Home Assistant: the owner types the
+    solar kWh of each charge and Mate subtracts them from the measured wallbox energy. HOME-only
+    for the same reason — a public charger delivers nobody's roof."""
     return (mode in ("flat", "tou")
-            or (mode in ("dynamic", "custom_kwh") and ctype == "HOME"))
+            or (mode in ("dynamic", "custom_kwh", "solar_manual") and ctype == "HOME"))
 
 
 def get_cost_config() -> dict:
@@ -1511,6 +1515,22 @@ def save_dynamic_price_entity_for(ctype: str, entity_id: str) -> None:
         m = {}
     m[ctype] = (entity_id or "").strip()
     set_setting("dynamic_price_entities", json.dumps(m))
+
+
+def home_prices_by_solar() -> bool:
+    """Whether Casa is priced by subtracting the owner's own solar (#272). Asked once PER CHARGE
+    CARD, so it reads the one setting it needs instead of `get_cost_config()`, which also parses
+    the time-of-use bands and resolves all four charge types: measured at 459 µs a call against
+    18 µs here, and a month of charges asks this thirty times.
+
+    Still routed through `_mode_allowed`, so a mode saved before that rule existed — or by a raw
+    API call — cannot turn the field on for a type that may not have it."""
+    try:
+        m = json.loads(get_setting("cost_modes", "") or "{}")
+    except (ValueError, TypeError):
+        return False
+    mode = m.get("HOME") if isinstance(m, dict) else None
+    return mode == "solar_manual" and _mode_allowed("HOME", "solar_manual")
 
 
 def get_custom_kwh_entity_for(ctype: str) -> str:
@@ -1902,6 +1922,33 @@ def _custom_kwh_cost(charge, energy: float, base: float, ctype: str = "HOME") ->
     return round(kwh * base, 2)
 
 
+def _solar_kwh_cost(charge, energy: float, base: float) -> Optional[float]:
+    """Cost = (the measured energy MINUS the owner's own solar kWh) x the fixed price (#272,
+    @kingean93).
+
+    The sibling of `_custom_kwh_cost` for an owner with solar and no Home Assistant helper: there
+    the entity states how many kWh were BOUGHT, here the owner types how many came off the roof and
+    Mate subtracts. Opposite directions, same destination — and the subtraction is the one the owner
+    can read straight off an inverter, which is why it is the number we ask for.
+
+    `energy` is what the caller already resolved as the billed figure — the wallbox counter delta on
+    a HOME charge that has one. That is the only basis this mode is offered against: the field is
+    hidden where no meter measured the charge, because a subtraction needs a minuend that was
+    measured, not a battery estimate standing in for one.
+
+    Like every mode here it PRICES the charge and nothing else: the energy Mate reports stays the
+    measured one. And like `custom_kwh` it falls back to energy x base whenever the figure is
+    absent — a charge nobody typed a number on is a charge billed in full, never an uncosted one."""
+    solar = charge["solar_kwh"] if "solar_kwh" in charge.keys() else None
+    flat = round(energy * base, 2) if base else None
+    if not base or solar is None or solar <= 0:
+        return flat
+    # Clamped rather than trusted: the route refuses a figure above the measured energy, but a
+    # charge can be re-priced later against a meter total that shrank (a dropped implausible
+    # wallbox reading, #46/#215), and a negative cost is not a discount anybody offers.
+    return round(max(energy - solar, 0.0) * base, 2)
+
+
 def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] = None):
     """Cost for ONE charge using the pricing config in effect *now*. This is the
     single place a charge's cost is set, and it is frozen afterwards (no retroactive
@@ -1915,6 +1962,8 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
                       sensor's history instead of a static band (see _dynamic_sensor_cost)
         custom_kwh  → the fixed price x a kWh figure the owner's own HA helper produces
                       (see _custom_kwh_cost) — for a charge only partly bought from the grid
+        solar_manual→ the fixed price x (the measured energy MINUS the solar kWh the owner typed
+                      on the charge itself) — the same case with no HA helper (see _solar_kwh_cost)
 
     `ac_kwh`: for HOME charges on a configured wallbox, the caller passes the real AC energy the
     wallbox delivered (what you actually pay the utility, incl. AC→DC conversion losses). When given
@@ -1955,6 +2004,9 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
 
     if mode == "custom_kwh":
         return _custom_kwh_cost(charge, energy, base, ctype=location_type)
+
+    if mode == "solar_manual":
+        return _solar_kwh_cost(charge, energy, base)
 
     bands = config.get("bands") or []
     if mode != "tou" or not bands:
@@ -2041,6 +2093,7 @@ def _merged_piece_ids(db, charge_id: int) -> list:
 def update_charge_type(charge_id: int, location_type: str,
                        manual_cost: Optional[float] = None,
                        gross_kwh: Optional[float] = None,
+                       solar_kwh: Optional[float] = None,
                        *, _segment: bool = False,
                        _free: Optional[int] = None,
                        _no_cost: bool = False) -> dict:
@@ -2069,6 +2122,11 @@ def update_charge_type(charge_id: int, location_type: str,
     charge["is_free"] = free
     gross = gross_kwh if gross_kwh is not None else (
         charge["gross_kwh"] if "gross_kwh" in charge.keys() else None)
+    # #272 — the solar figure the owner typed, read by `_solar_kwh_cost` off this same dict. Put
+    # the incoming value in BEFORE compute_cost runs, or the price would be computed against the
+    # figure the row still holds and only the column would change.
+    if solar_kwh is not None:
+        charge["solar_kwh"] = solar_kwh
     if _no_cost:
         # A piece of a group whose price is the GROUP's and already sits on the row that carries it
         # (a MANUAL total, or a typed #222 meter reading). The page SUMS the pieces, so a second
@@ -2101,6 +2159,9 @@ def update_charge_type(charge_id: int, location_type: str,
     if gross_kwh is not None and _charges_have_gross(db):
         db.execute("UPDATE charges SET location_type=?, cost=?, is_free=?, gross_kwh=? WHERE id=?",
                    (location_type, cost, free, gross_kwh, charge_id))
+    elif solar_kwh is not None and _charges_have_solar(db):
+        db.execute("UPDATE charges SET location_type=?, cost=?, is_free=?, solar_kwh=? WHERE id=?",
+                   (location_type, cost, free, solar_kwh, charge_id))
     else:
         db.execute("UPDATE charges SET location_type=?, cost=?, is_free=? WHERE id=?",
                    (location_type, cost, free, charge_id))
@@ -2200,6 +2261,32 @@ def set_charge_gross_kwh(charge_id: int, gross_kwh: Optional[float]) -> dict:
     if gross_kwh is None:
         return dict(row)
     return update_charge_type(charge_id, row["location_type"], gross_kwh=gross_kwh)
+
+
+def set_charge_solar_kwh(charge_id: int, solar_kwh: Optional[float]) -> dict:
+    """#272 — store the kWh of this charge that came off the owner's own roof, and nothing else.
+
+    Mirrors `set_charge_gross_kwh`: the type goes back to `update_charge_type` unchanged so the cost
+    is recomputed on the one rule, an untyped charge is left alone, and `None` (an empty box) writes
+    nothing — the field opens empty every time, so an accidental open followed by Enter must be a
+    no-op rather than an erasure. Zero is the deliberate way to take a wrong number back.
+
+    Returns `{"error": "too_much", "max": <kWh>}` when the figure exceeds the energy the wallbox
+    measured. Refusing beats clamping here: the whole risk of this field is the owner typing the
+    OPPOSITE number — what they bought instead of what the sun gave — and a silent clamp would
+    price that mistake as a free charge without ever saying so. Equal to the measured energy is
+    accepted: a charge entirely off the roof costs nothing, and that is a real case.
+    """
+    db = _conn_rw()
+    row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
+    if not row or not row["location_type"]:
+        return dict(row) if row else {}
+    if solar_kwh is None:
+        return dict(row)
+    measured = row["ac_energy_kwh"] or 0.0
+    if solar_kwh > measured:
+        return {**dict(row), "error": "too_much", "max": round(measured, 2)}
+    return update_charge_type(charge_id, row["location_type"], solar_kwh=solar_kwh)
 
 
 def set_charge_free(charge_id: int, free: bool) -> dict:
@@ -7489,6 +7576,16 @@ def _charges_have_gross(db) -> bool:
     remembered "no" would keep the page degraded until someone restarted it."""
     try:
         return any(r[1] == "gross_kwh" for r in db.execute("PRAGMA table_info(charges)"))
+    except sqlite3.Error:
+        return False
+
+
+def _charges_have_solar(db) -> bool:
+    """Whether the charges table carries the #272 column yet. Same reasoning as
+    `_charges_have_gross`: the migration lives in the poller, the web only reads, so between an
+    update and the poller's next start the column is absent and any query naming it is a 500."""
+    try:
+        return any(r[1] == "solar_kwh" for r in db.execute("PRAGMA table_info(charges)"))
     except sqlite3.Error:
         return False
 

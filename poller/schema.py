@@ -127,6 +127,11 @@ CREATE TABLE IF NOT EXISTS charges (
                                    -- figures: it prices the charge (like a wallbox meter does at
                                    -- home) and shows the conversion loss. The energy Mate reports
                                    -- and totals stays the battery (DC) one — see _billed_kwh.
+    solar_kwh        REAL,         -- #272: kWh of this charge that came off the owner's own roof,
+                                   -- TYPED BY THE OWNER. Subtracted from the measured wallbox
+                                   -- energy before pricing, so only the grid share is billed.
+                                   -- Like gross_kwh it is a payment fact, never a measurement:
+                                   -- the energy Mate reports stays ac_energy_kwh.
     note             TEXT,         -- #107: optional free-text user note (location, shade, weather…)
     merged_into_id   INTEGER DEFAULT NULL  -- user merge: a child charge points at its parent. The
                                    -- car declares the CABLE GONE the instant the current stops, so
@@ -336,6 +341,9 @@ def ensure_schema(conn) -> None:
     # migration: #222 — the charger's own kWh, typed in for a public charge
     if "gross_kwh" not in ccols:
         conn.execute("ALTER TABLE charges ADD COLUMN gross_kwh REAL")
+    # migration: #272 — the owner's own solar kWh, subtracted from the wallbox energy before pricing
+    if "solar_kwh" not in ccols:
+        conn.execute("ALTER TABLE charges ADD COLUMN solar_kwh REAL")
     # migration: flag charges reconstructed from a SoC jump (car was asleep/offline to the
     # cloud during the charge, so it was never seen live — recorded from the SoC delta instead).
     if "reconstructed" not in ccols:
