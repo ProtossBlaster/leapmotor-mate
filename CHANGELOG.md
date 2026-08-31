@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.3] — 2026-08-31
+
+**Fixed (tests only):** nine of v3.15.2's new tests read helpers out of `web.main`, which imports
+FastAPI — a package the continuous-integration environment deliberately does not install. They
+failed there while every assertion that could run passed, which left v3.15.2 tagged with a red CI
+over a green codebase. They now skip where FastAPI is absent, the pattern the rest of the suite
+already uses. No change to Mate itself: same code, same behaviour, same image contents as 3.15.2.
+
 ## [3.15.2] — 2026-08-31
 
 Ten fixes from the 30/08 audit and from beta #40, none of them changing how anything is meant to
