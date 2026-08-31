@@ -511,7 +511,17 @@ tra:
   arrivata in batteria; dal tuo numero si ricava solo il costo. Se l'entità manca o non risponde, la
   ricarica torna al prezzo fisso sui kWh misurati.
 
-> Le ultime due valgono solo per le ricariche di **Casa**: una sessione pubblica la fattura il suo
+- **kWh solari (manuali) 🆕** — lo stesso caso di sopra, senza Home Assistant. Scegli questa se hai
+  il fotovoltaico e preferisci scrivere tu, ricarica per ricarica, quanti kWh sono venuti dal tuo
+  impianto: Mate li sottrae da quelli misurati dalla wallbox e ti addebita solo il resto. Sulla
+  ricarica compare un campo **☀️ Solare**, sotto i tre riquadri, e la riga accanto scrive il conto
+  per esteso — «20,0 erogati − 8,0 solari = 12,0 pagati» — così un numero scritto al contrario si
+  vede subito. Un valore più alto di quanto la wallbox ha misurato viene rifiutato. Il campo compare
+  solo sulle ricariche di casa che la wallbox ha davvero misurato: senza quella misura non c'è
+  niente da cui sottrarre, e una riga te lo dice. **L'energia che Mate dichiara non cambia** — resta
+  quella misurata; dal tuo numero si ricava solo il costo.
+
+> Le ultime tre valgono solo per le ricariche di **Casa**: una sessione pubblica la fattura il suo
 > gestore, e un helper tuo non ha titolo per darle un prezzo.
 
 Il prezzo di **Casa** è quello che alimenta i costi delle ricariche domestiche e, a cascata, il

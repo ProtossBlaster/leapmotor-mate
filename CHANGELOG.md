@@ -3,6 +3,30 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.0] — 2026-08-31
+
+**Added:** a new **Solar kWh (manual)** pricing mode for Home, for owners with solar and no Home
+Assistant helper (#272). Type, charge by charge, how many kWh came off your own roof; Mate subtracts
+them from the energy the wallbox measured and bills only the rest. The charge card writes the sum
+out in full — *20.0 delivered − 8.0 solar = 12.0 paid* — so a number typed the wrong way round shows
+itself at once, and a figure larger than the wallbox measured is refused rather than quietly
+clamped. The field appears only on home charges the wallbox actually measured; where it mapped but
+missed one, a line says so instead of the field silently vanishing. As with every pricing mode, the
+energy Mate reports for the charge does not change — your figure only makes the cost.
+
+**Fixed:** a charge at a mapped wallbox could lose its **measured** energy and fall back to billing
+the battery estimate, purely because the car's link went dark. When the cloud loses a car it re-serves
+the last frame it had — same payload, poll after poll — and that frozen frame still reads "7 kW", so
+Mate kept crediting the car with energy it was no longer drawing while the wallbox counter, correctly,
+stood still. Past 3 kWh of that fiction — about 26 minutes at the default cadence — the meter was
+declared dead and its total discarded. Repeated frames no longer count as energy drawn; a genuinely
+stopped meter is still caught.
+
+**Fixed:** the help under the **typed charger kWh** field said the energy Mate reports "stays the one
+measured at the battery". That stopped being true when the typed figure became the energy reported
+for the charge, and two other places in the app already said so correctly. It now names the figure:
+the **gross** kWh, conversion losses included.
+
 ## [3.14.27] — 2026-08-30
 
 **Fixed:** the map's **"Trips shown"** and **"Stations shown"** boxes could lock you out of

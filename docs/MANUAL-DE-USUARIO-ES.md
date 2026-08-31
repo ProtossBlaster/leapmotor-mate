@@ -529,7 +529,17 @@ HPC) y elegir entre:
   siendo la que llegó a la batería; de tu número solo sale el coste. Si la entidad falta o no
   responde, la carga vuelve al precio fijo sobre los kWh medidos.
 
-> Las dos últimas valen solo para las cargas **En casa**: una sesión pública la factura su operador,
+- **kWh solares (manuales) 🆕** — el mismo caso de arriba, sin Home Assistant. Elígelo si tienes
+  solar y prefieres escribir tú, carga por carga, cuántos kWh vinieron de tu instalación: Mate los
+  resta de lo que midió el cargador y te cobra solo el resto. En la carga aparece un campo **☀️
+  Solar**, bajo los tres recuadros, y la línea de al lado escribe la cuenta entera — «20,0
+  entregados − 8,0 solares = 12,0 pagados» — para que un número escrito al revés se vea enseguida.
+  Un valor mayor de lo que midió el cargador se rechaza. El campo aparece solo en las cargas en casa
+  que el cargador midió de verdad: sin esa medida no hay nada de lo que restar, y una línea te lo
+  dice. **La energía que Mate declara no cambia** — sigue siendo la medida; de tu número sale solo
+  el coste.
+
+> Las tres últimas valen solo para las cargas **En casa**: una sesión pública la factura su operador,
 > y un helper tuyo no tiene por qué ponerle precio.
 
 El precio **En casa** es el que alimenta el coste de las cargas domésticas y, a su vez, el coste de

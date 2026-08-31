@@ -500,7 +500,17 @@ costs. You can define a price **for each type** of charge (Home, AC, Fast, HPC) 
   what reached the battery; only the money is worked out from your figure. If the entity is missing
   or says nothing, the charge falls back to the fixed price over the measured kWh.
 
-> The last two are for **Home** charges only: a public session is billed by its operator, and a
+- **Solar kWh (manual) 🆕** — the same case as above, without Home Assistant. Choose it if you have
+  solar and would rather type, charge by charge, how many kWh came off your own roof: Mate subtracts
+  them from what the wallbox measured and bills you only the rest. A **☀️ Solar** field appears on
+  the charge, under the three tiles, and the line beside it spells the sum out — "20.0 delivered −
+  8.0 solar = 12.0 paid" — so a number typed the wrong way round shows itself at once. A figure
+  larger than the wallbox measured is refused. It is offered only on home charges the wallbox
+  actually measured: without that reading there is nothing to subtract from, and a line says so.
+  **The energy Mate reports does not change** — it stays the measured one; your figure only makes
+  the cost.
+
+> The last three are for **Home** charges only: a public session is billed by its operator, and a
 > helper of yours has no business pricing it.
 
 The **Home** price is the one that feeds the cost of home charges and, in turn, the cost of trips

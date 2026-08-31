@@ -510,7 +510,17 @@ kann. Sie können einen Preis **für jeden Ladetyp** (Zuhause, AC, Schnell, HPC)
   aus Ihrer Zahl wird nur der Preis gebildet. Fehlt die Entität oder antwortet sie nicht, fällt der
   Ladevorgang auf den Festpreis über die gemessenen kWh zurück.
 
-> Die letzten beiden gelten nur für **Zuhause**-Ladungen: Eine öffentliche Sitzung rechnet ihr
+- **Solar-kWh (manuell) 🆕** — derselbe Fall wie oben, ohne Home Assistant. Wählen Sie das, wenn Sie
+  Solar haben und lieber selbst eintragen, Ladevorgang für Ladevorgang, wie viele kWh von Ihrem Dach
+  kamen: Mate zieht sie von dem ab, was die Wallbox gemessen hat, und rechnet Ihnen nur den Rest ab.
+  Am Ladevorgang erscheint ein Feld **☀️ Solar**, unter den drei Kacheln, und die Zeile daneben
+  schreibt die Rechnung aus — „20,0 abgegeben − 8,0 Solar = 12,0 bezahlt" — damit eine
+  verkehrt herum eingetragene Zahl sofort auffällt. Ein Wert über dem, was die Wallbox gemessen hat,
+  wird abgelehnt. Das Feld erscheint nur bei Zuhause-Ladungen, die die Wallbox wirklich gemessen
+  hat: ohne diese Messung gibt es nichts zum Abziehen, und eine Zeile sagt das. **Die Energie, die
+  Mate ausweist, ändert sich nicht** — sie bleibt die gemessene; aus Ihrer Zahl wird nur der Preis.
+
+> Die letzten drei gelten nur für **Zuhause**-Ladungen: Eine öffentliche Sitzung rechnet ihr
 > Betreiber ab, und ein Helper von Ihnen hat ihr keinen Preis zu geben.
 
 Der Preis für **Zuhause** speist die Kosten der Heimladungen und, in der Folge, die Kosten der Fahrten (berechnet

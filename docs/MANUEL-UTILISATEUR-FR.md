@@ -524,7 +524,17 @@ et choisir entre :
   chiffre ne sert qu'au coût. Si l'entité manque ou ne répond pas, la recharge revient au prix fixe
   sur les kWh mesurés.
 
-> Les deux dernières ne valent que pour les recharges à **Domicile** : une session publique est
+- **kWh solaires (manuels) 🆕** — le même cas que ci-dessus, sans Home Assistant. Choisis-le si tu
+  as du solaire et préfères saisir toi-même, recharge par recharge, combien de kWh sont venus de ton
+  installation : Mate les soustrait de ce que la borne a mesuré et ne te facture que le reste. Un
+  champ **☀️ Solaire** apparaît sur la recharge, sous les trois tuiles, et la ligne à côté écrit le
+  calcul en toutes lettres — « 20,0 délivrés − 8,0 solaires = 12,0 payés » — pour qu'un nombre saisi
+  à l'envers se voie tout de suite. Une valeur supérieure à ce que la borne a mesuré est refusée. Le
+  champ n'apparaît que sur les recharges à domicile que la borne a réellement mesurées : sans cette
+  mesure il n'y a rien à soustraire, et une ligne te le dit. **L'énergie que Mate annonce ne change
+  pas** — elle reste celle mesurée ; ton nombre ne fait que le coût.
+
+> Les trois dernières ne valent que pour les recharges à **Domicile** : une session publique est
 > facturée par son opérateur, et une aide qui vous appartient n'a pas à lui donner un prix.
 
 Le prix **Domicile** est celui qui alimente les coûts des recharges à domicile et, par ricochet, le coût des
