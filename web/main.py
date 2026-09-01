@@ -28,7 +28,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.15.3"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.15.4"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -4867,11 +4867,28 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int) -
     # Falls back to the whole distance when nothing carries a cloud figure: dividing by zero prints
     # nothing at all, and a card with a distance and no average is worse than one whose average is
     # the only basis available.
+    #
+    # ⚠️ On a RANGE-EXTENDER neither of those is the right pair, and the card said so out loud for a
+    # day: getEC measures the energy that LEAVES THE BATTERY, never what the generator sends past
+    # the pack to the wheels. A mixed trip therefore HAS a getEC figure — it lands inside `ec_km`
+    # — while an engine moved most of it. Measured on three owners' bundles, the trips with the
+    # generator running read 4.8 (@michapr) and 6.5 (@pdifeo) kWh/100 km against 14.3 and 16.1 on
+    # the same cars without it; no car does 4.8. Diluted, this card printed 10.7 over 992 km where
+    # Statistics printed 14.3 over 625 — two numbers for one month, 33 % apart, and the same
+    # complaint @michapr has now made three times (beta #11, #24, #41). So a REEV divides Mate's
+    # OWN battery-only pair, exactly as the Statistics card does: `energy_kwh` over `eff_km`, the
+    # trips carrying an efficiency, which Mate blanks for every generator trip. A full-electric car
+    # carries an efficiency on every trip, so it never takes this branch.
     ec_km = tot.get("ec_km") or 0
-    basis_km = ec_km if ec_km > 0 else dist_km
-    if basis_km > 0:
-        eb["avg_kwh100"] = round(eb["total_kwh"] / basis_km * 100, 1)
-        eb["avg_kwh100_km"] = basis_km
+    eff_km = tot.get("eff_km") or 0
+    if db_reader.is_reev_car() and eff_km > 0 and (tot.get("energy_kwh") or 0) > 0:
+        eb["avg_kwh100"] = round(tot["energy_kwh"] / eff_km * 100, 1)
+        eb["avg_kwh100_km"] = eff_km
+    else:
+        basis_km = ec_km if ec_km > 0 else dist_km
+        if basis_km > 0:
+            eb["avg_kwh100"] = round(eb["total_kwh"] / basis_km * 100, 1)
+            eb["avg_kwh100_km"] = basis_km
     # The petrol half of the SAME window (@michapr, beta #11). getPlugIn gives both energies
     # measured by the car but only over its own six weeks; a period the reader picked has to be
     # answered from the trips. L/100 km over the generator-on distance, not the whole window —

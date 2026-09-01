@@ -21,14 +21,18 @@
     <div class="text-xs text-slate-400">{{ t('duration') }}</div>
     <div class="text-white font-bold mt-1">{{ fmt_dur(eb.duration_min) }}</div>
   </div>
-  <div>
+  {# Same help as the Statistics card, because it is now the same figure: it is the one place that
+     says WHY a range-extender's electric average covers only part of the driving. #}
+  <div title="{{ t('stats_eff_help') }}">
     <div class="text-xs text-slate-400">{{ t('avg_efficiency') }}</div>
     <div class="text-white font-bold mt-1">{% if eb.avg_kwh100 %}{{ eb.avg_kwh100 | eff }}{% else %}—{% endif %}</div>
     {# Which kilometres the average speaks for — shown only when they differ from the distance
        beside it (beta #40 @michapr: an all-trips average that sat below both of its own months,
-       because getEC covered 992 km of his 1172). Same condition, strings and reasoning as the
-       Statistics figure: one label true on both a REEV and a full-electric car does not exist,
-       so the wording follows the car. #}
+       because getEC covered 992 km of his 1172).
+       On a range-extender this is Mate's OWN battery-only pair (`energy_kwh` over `eff_km`), the
+       same one the Statistics card divides — so the shared wording is literally true on both, and
+       one month can no longer read 10.7 here and 14.3 there. Why it must be that pair and not the
+       getEC one is in `_enrich_eb_with_trip_totals` (@michapr, beta #41). #}
     {% if eb.avg_kwh100 and eb.avg_kwh100_km and eb.distance_km
           and (eb.distance_km - eb.avg_kwh100_km) > 0.5 %}
     <div class="text-[11px] text-slate-500 mt-0.5">{{ (t('stats_eff_over_km_reev') if is_reev else t('stats_eff_over_km')).format(km=eb.avg_kwh100_km|nice) }}</div>

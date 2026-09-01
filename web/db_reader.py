@@ -6872,7 +6872,16 @@ def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
     getEC energy must divide by (beta #40 @michapr). `distance_km` is what the car drove; the two
     differ by every trip the cloud never saw, and dividing one by the other prints an average that
     describes neither. The months already use this basis (`_totals_seal`'s `_ec_km`) and say so on
-    the page — "over 395 km of 416"."""
+    the page — "over 395 km of 416".
+
+    `eff_km` is the distance behind `energy_kwh` — the trips that carry an efficiency at all. On a
+    range-extender that is the BATTERY-ONLY distance, because Mate blanks the efficiency of every
+    trip the generator ran, and the pair is what the Statistics card already divides. It exists
+    because `ec_km` is NOT that distance: a mixed trip has a getEC figure, so it lands inside
+    `ec_km` while the generator was moving the car past the pack — measured on three owners'
+    bundles, the trips with the engine running read 4.8 and 6.5 kWh/100 km against 14.3 and 16.1
+    without it (@michapr, beta #41; getEC counts what LEAVES THE BATTERY, never the generator's
+    path to the wheels → [[reev-getec-is-battery-not-traction]])."""
     b = datetime.fromtimestamp(begin_ts, tz=timezone.utc).isoformat()
     e = datetime.fromtimestamp(end_ts, tz=timezone.utc).isoformat()
     db = _get()
@@ -6885,6 +6894,8 @@ def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
                   ROUND(SUM(distance_km), 2) AS distance_km,
                   ROUND(SUM(duration_min), 0) AS duration_min,
                   ROUND(SUM(distance_km * COALESCE(efficiency_kwh_100km, 0) / 100.0), 2) AS energy_kwh,
+                  ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+                                 THEN distance_km END), 2) AS eff_km,
                   {ec_km_expr} AS ec_km
            FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
              AND started_at >= ? AND started_at <= ?""",

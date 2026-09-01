@@ -3,6 +3,25 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.4] — 2026-09-01
+
+**Fixed:** on a **range-extender**, the Energy card's average consumption was diluted by the
+kilometres an engine drove. getEC measures the energy that *leaves the battery*; on a series hybrid
+the generator can send power past the pack straight to the wheels, and getEC never sees that path.
+A mixed trip therefore carries a getEC figure and landed inside the denominator v3.15.2 introduced,
+while an engine moved most of it — measured across three owners' bundles, the trips with the
+generator running read 4.8 and 6.5 kWh/100 km against 14.3 and 16.1 on the same cars without it.
+No car does 4.8. One of @michapr's months read **10.7 over 992 km** on this card and **14.3 over
+625 km** on Statistics: two numbers for one month, 33 % apart (beta #41). Mate already blanks the
+efficiency of every trip the generator ran, so it already held the battery-only pair the Statistics
+card divides — the Energy card now divides that same pair, and the line beneath it ("over
+battery-only kilometres") describes the figure again instead of a mixed one. A full-electric car
+carries an efficiency on every trip, so both bases agree there and nothing about it changes.
+
+**Changed:** the Energy card now carries the same explanation the Statistics card has always had —
+why a range-extender's electric average covers only part of the driving — instead of leaving it in
+one place only.
+
 ## [3.15.3] — 2026-08-31
 
 **Fixed (tests only):** nine of v3.15.2's new tests read helpers out of `web.main`, which imports
