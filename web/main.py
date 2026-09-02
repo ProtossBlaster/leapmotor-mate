@@ -28,7 +28,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.15.4"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.15.5"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -4836,7 +4836,8 @@ async def plugin_consumption(request: Request, refresh: int = 0):
     return templates.TemplateResponse(request, "partials/plugin_consumption.html", _ctx(pc=pc))
 
 
-def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int) -> "dict | None":
+def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int,
+                                battery_only: bool = False) -> "dict | None":
     """Add local distance/duration/average-kWh-per-100km to a getEC breakdown, computed from
     trips in the SAME window — mirrors the car's own "since last charge" screen (Distanza/Durata/
     Media shown next to the same Guida/AC/Altro split). No-op when there's no energy to average.
@@ -4875,20 +4876,31 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int) -
     # generator running read 4.8 (@michapr) and 6.5 (@pdifeo) kWh/100 km against 14.3 and 16.1 on
     # the same cars without it; no car does 4.8. Diluted, this card printed 10.7 over 992 km where
     # Statistics printed 14.3 over 625 — two numbers for one month, 33 % apart, and the same
-    # complaint @michapr has now made three times (beta #11, #24, #41). So a REEV divides Mate's
-    # OWN battery-only pair, exactly as the Statistics card does: `energy_kwh` over `eff_km`, the
-    # trips carrying an efficiency, which Mate blanks for every generator trip. A full-electric car
-    # carries an efficiency on every trip, so it never takes this branch.
+    # complaint @michapr has now made three times (beta #11, #24, #41). So the STATISTICS card
+    # divides Mate's OWN battery-only pair, exactly as the rest of that page does: `energy_kwh`
+    # over `eff_km`, the trips carrying an efficiency, which Mate blanks for every generator trip.
+    #
+    # ⚠️ ONLY when the caller asks (`battery_only`, the Statistics route). v3.15.4 put that pair on
+    # every copy of this card for a day, and on the Trips page it sat under a month strip that
+    # divides by the getEC kilometres (beta #24 → #40, @michapr's own design: "the Trips page should
+    # focus solely on the recorded trips") — 14.1 over 252 km printed above 10.1 over 395, two
+    # numbers under one word on one page (beta #41, 02/09). The Trips and Report copies stay on the
+    # beta #40 basis, the one their own strips and tiles use. `avg_kwh100_basis` tells the template
+    # which wording is true for the figure it is printing. A full-electric car carries an
+    # efficiency on every trip, so both pairs agree there.
     ec_km = tot.get("ec_km") or 0
     eff_km = tot.get("eff_km") or 0
-    if db_reader.is_reev_car() and eff_km > 0 and (tot.get("energy_kwh") or 0) > 0:
+    if (battery_only and db_reader.is_reev_car() and eff_km > 0
+            and (tot.get("energy_kwh") or 0) > 0):
         eb["avg_kwh100"] = round(tot["energy_kwh"] / eff_km * 100, 1)
         eb["avg_kwh100_km"] = eff_km
+        eb["avg_kwh100_basis"] = "battery"
     else:
         basis_km = ec_km if ec_km > 0 else dist_km
         if basis_km > 0:
             eb["avg_kwh100"] = round(eb["total_kwh"] / basis_km * 100, 1)
             eb["avg_kwh100_km"] = basis_km
+            eb["avg_kwh100_basis"] = "getec"
     # The petrol half of the SAME window (@michapr, beta #11). getPlugIn gives both energies
     # measured by the car but only over its own six weeks; a period the reader picked has to be
     # answered from the trips. L/100 km over the generator-on distance, not the whole window —
@@ -5016,7 +5028,7 @@ async def energy_since_charge(request: Request, refresh: int = 0):
         eb = data if data is not None else (c["data"] if c else None)
     else:
         eb = c["data"]
-    eb = _enrich_eb_with_trip_totals(eb, begin_ts, end_ts)
+    eb = _enrich_eb_with_trip_totals(eb, begin_ts, end_ts, battery_only=True)
     return templates.TemplateResponse(request, "partials/energy_breakdown.html",
                                       _ctx(eb=eb, eb_label=label, is_reev=db_reader.is_reev_car()))
 

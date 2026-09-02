@@ -1,5 +1,5 @@
-"""A range-extender's electric average must not be diluted by the kilometres an engine drove
-(@michapr, beta #41).
+"""A range-extender's electric average must not be diluted by the kilometres an engine drove — on the
+STATISTICS card (@michapr, beta #41).
 
 getEC measures the energy that LEAVES THE BATTERY. On a series hybrid the generator can send power
 past the pack straight to the wheels, and getEC never sees that path. A mixed trip therefore HAS a
@@ -9,14 +9,15 @@ moved most of it. Measured on three owners' bundles:
     trips with the generator running   4.8 (michapr)   6.5 (pdifeo)   kWh/100 km
     trips without it                  14.3            16.1
 
-No car does 4.8. Diluted by those kilometres the Energy card printed 10.7 over 992 km for one of
-his months while the Statistics card printed 14.3 over 625 — two numbers for one month, 33% apart.
+No car does 4.8. So the Statistics card divides Mate's OWN battery-only pair, `energy_kwh` over
+`eff_km` — the trips carrying an efficiency, which Mate blanks for every generator trip.
 
-Mate already blanks the efficiency of every generator trip, so the pair `energy_kwh` / `eff_km` IS
-the battery-only pair, and it is the one Statistics divides. A range-extender now divides the same
-one. A full-electric car carries an efficiency on every trip, so both bases agree there and it
-keeps the beta #40 behaviour untouched — asserted below, because that is the regression that would
-hurt everyone else.
+⚠️ ONLY the Statistics card. v3.15.4 put that pair on every copy of the Energy card, and on the
+Trips page it sat under a month strip that divides by the getEC kilometres (beta #24 → #40,
+@michapr's own design: "the Trips page should focus solely on the recorded trips"): 14.1 over 252 km
+above 10.1 over 395, two numbers under one word on one page (beta #41, 02/09). The Trips and Report
+copies are back on the beta #40 basis; the caller says which pair it wants (`battery_only`).
+A full-electric car carries an efficiency on every trip, so both bases agree there.
 """
 import sqlite3
 from datetime import datetime, timezone
@@ -69,21 +70,46 @@ def test_the_totals_report_the_battery_only_distance(tmp_path, monkeypatch):
     assert tot["energy_kwh"] == pytest.approx(84.0)
 
 
-def test_a_range_extender_averages_over_the_battery_kilometres(tmp_path, monkeypatch):
+def test_the_statistics_card_averages_over_the_battery_kilometres(tmp_path, monkeypatch):
     """14.0, the figure the car really achieved — not 10.4, which no owner recognises."""
     _build(tmp_path, monkeypatch, reev=True)
     main = _main()
-    eb = main._enrich_eb_with_trip_totals({"total_kwh": 104.0}, *_window())
+    eb = main._enrich_eb_with_trip_totals({"total_kwh": 104.0}, *_window(), battery_only=True)
     assert eb["avg_kwh100"] == pytest.approx(14.0), \
         f"got {eb.get('avg_kwh100')} — 10.4 means the generator's 400 km diluted it"
     assert eb["avg_kwh100_km"] == pytest.approx(600.0)
+    assert eb["avg_kwh100_basis"] == "battery", "the template picks the wording from this"
+
+
+def test_the_trips_and_report_cards_keep_the_getec_basis_on_a_range_extender(tmp_path, monkeypatch):
+    """The Trips page strip divides by the getEC kilometres (beta #40); the card below it must not
+    print a second figure under the same word. Same rows, no `battery_only` → 10.4 over 1000."""
+    _build(tmp_path, monkeypatch, reev=True)
+    main = _main()
+    eb = main._enrich_eb_with_trip_totals({"total_kwh": 104.0}, *_window())
+    assert eb["avg_kwh100"] == pytest.approx(10.4)
+    assert eb["avg_kwh100_km"] == pytest.approx(1000.0)
+    assert eb["avg_kwh100_basis"] == "getec"
+
+
+def test_only_the_statistics_endpoint_asks_for_the_battery_pair():
+    """Anchored to the routes: energy-since-charge (Statistics) passes the flag, energy-period
+    (Trips + Report) and report-driving do not."""
+    import pathlib
+    src = pathlib.Path(__file__).resolve().parents[1].joinpath("web", "main.py").read_text()
+    since = src.split('@app.get("/api/energy-since-charge"', 1)[1].split("\n@app.", 1)[0]
+    period = src.split('@app.get("/api/energy-period"', 1)[1].split("\n@app.", 1)[0]
+    driving = src.split('@app.get("/api/report-driving"', 1)[1].split("\n@app.", 1)[0]
+    assert "_enrich_eb_with_trip_totals(eb, begin_ts, end_ts, battery_only=True)" in since
+    assert "_enrich_eb_with_trip_totals(eb, begin_ts, end_ts)" in period
+    assert "_enrich_eb_with_trip_totals(eb, begin_ts, end_ts)" in driving
 
 
 def test_the_distance_driven_is_untouched(tmp_path, monkeypatch):
     """Only the average's denominator changes. The card's Distance is still every kilometre."""
     _build(tmp_path, monkeypatch, reev=True)
     main = _main()
-    eb = main._enrich_eb_with_trip_totals({"total_kwh": 104.0}, *_window())
+    eb = main._enrich_eb_with_trip_totals({"total_kwh": 104.0}, *_window(), battery_only=True)
     assert eb["distance_km"] == pytest.approx(1000.0)
 
 
@@ -92,6 +118,6 @@ def test_a_full_electric_car_keeps_the_beta_40_basis(tmp_path, monkeypatch):
     `ec_km`. Same rows, REEV flag off → 104.0 over 1000 km."""
     _build(tmp_path, monkeypatch, reev=False)
     main = _main()
-    eb = main._enrich_eb_with_trip_totals({"total_kwh": 104.0}, *_window())
+    eb = main._enrich_eb_with_trip_totals({"total_kwh": 104.0}, *_window(), battery_only=True)
     assert eb["avg_kwh100"] == pytest.approx(10.4)
     assert eb["avg_kwh100_km"] == pytest.approx(1000.0)

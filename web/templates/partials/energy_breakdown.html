@@ -21,21 +21,23 @@
     <div class="text-xs text-slate-400">{{ t('duration') }}</div>
     <div class="text-white font-bold mt-1">{{ fmt_dur(eb.duration_min) }}</div>
   </div>
-  {# Same help as the Statistics card, because it is now the same figure: it is the one place that
-     says WHY a range-extender's electric average covers only part of the driving. #}
-  <div title="{{ t('stats_eff_help') }}">
+  {# The Statistics help only where the figure IS the Statistics one (`avg_kwh100_basis` = battery):
+     it explains why a range-extender's electric average covers the battery-only kilometres, which
+     is not what the Trips/Report copy prints. #}
+  <div{% if eb.avg_kwh100_basis == 'battery' %} title="{{ t('stats_eff_help') }}"{% endif %}>
     <div class="text-xs text-slate-400">{{ t('avg_efficiency') }}</div>
     <div class="text-white font-bold mt-1">{% if eb.avg_kwh100 %}{{ eb.avg_kwh100 | eff }}{% else %}—{% endif %}</div>
     {# Which kilometres the average speaks for — shown only when they differ from the distance
        beside it (beta #40 @michapr: an all-trips average that sat below both of its own months,
        because getEC covered 992 km of his 1172).
-       On a range-extender this is Mate's OWN battery-only pair (`energy_kwh` over `eff_km`), the
-       same one the Statistics card divides — so the shared wording is literally true on both, and
-       one month can no longer read 10.7 here and 14.3 there. Why it must be that pair and not the
-       getEC one is in `_enrich_eb_with_trip_totals` (@michapr, beta #41). #}
+       The wording follows the BASIS, not the car: on the Statistics page a range-extender divides
+       Mate's own battery-only pair (`avg_kwh100_basis` = battery) and says so; on the Trips and
+       Report pages the card divides by the getEC kilometres like the strips around it (beta #40),
+       and "over N km" is the true sentence there. Why the two pages differ is in
+       `_enrich_eb_with_trip_totals` (@michapr, beta #41). #}
     {% if eb.avg_kwh100 and eb.avg_kwh100_km and eb.distance_km
           and (eb.distance_km - eb.avg_kwh100_km) > 0.5 %}
-    <div class="text-[11px] text-slate-500 mt-0.5">{{ (t('stats_eff_over_km_reev') if is_reev else t('stats_eff_over_km')).format(km=eb.avg_kwh100_km|nice) }}</div>
+    <div class="text-[11px] text-slate-500 mt-0.5">{{ (t('stats_eff_over_km_reev') if eb.avg_kwh100_basis == 'battery' else t('stats_eff_over_km')).format(km=eb.avg_kwh100_km|nice) }}</div>
     {% endif %}
   </div>
   {# REEV — the petrol half of the same window (@michapr, beta #11). Only when litres were actually

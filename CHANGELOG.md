@@ -3,6 +3,18 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.5] — 2026-09-02
+
+**Fixed:** on a **range-extender**, the Trips page printed two electric averages under one word.
+v3.15.4 moved every copy of the Energy card to the battery-only pair the Statistics page divides,
+and on the Trips page that card sat under a month strip that divides by the getEC kilometres — the
+basis the Trips page has used since beta #24 → #40, on purpose: that page is about the recorded
+trips, all of them. One July read **14.1 kWh/100 km over 252 km** on the card and **10.1 over
+395 km** on the strip above it (@michapr, beta #41). The Trips and Report copies of the card are
+back on the getEC basis, the one their own strips and tiles use, and their coverage line says
+"over N km" again. The Statistics card alone keeps the battery-only pair and its explanation,
+because that is what the rest of that page shows. Nothing changes on a full-electric car.
+
 ## [3.15.4] — 2026-09-01
 
 **Fixed:** on a **range-extender**, the Energy card's average consumption was diluted by the
