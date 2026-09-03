@@ -9,7 +9,8 @@ that attack, and they need different answers:
     Answered by `origin_allowed()`: a mutating request that declares a foreign origin is refused.
   * clickjacking — evil.example frames Mate invisibly and lines a "claim your prize" button up
     with the real Unlock. The click happens INSIDE Mate, same-origin, so no origin check can
-    see it. Answered by refusing to be framed at all (`SECURITY_HEADERS`).
+    see it. Answered by refusing to be framed at all, except by an origin you've explicitly
+    named in MATE_TRUSTED_ORIGINS — e.g. your own Home Assistant dashboard (`security_headers()`).
 
 Both are skipped as a Home Assistant add-on: there the browser talks to HA and HA proxies to
 us, so every request legitimately carries HA's origin and HA frames the panel on purpose.
@@ -39,18 +40,40 @@ SECURITY_HEADERS = {
 }
 
 
+def security_headers() -> dict[str, str]:
+    """SECURITY_HEADERS, relaxed to name specific trusted embedders when MATE_TRUSTED_ORIGINS is
+    set — e.g. a Home Assistant dashboard you control, embedding Mate as a panel. X-Frame-Options
+    has no multi-origin form (ALLOW-FROM is dead in every current browser), so once a trusted
+    origin is configured we rely on CSP frame-ancestors alone and drop X-Frame-Options, rather
+    than send a value that would just re-block the very origin we were asked to trust. No
+    MATE_TRUSTED_ORIGINS means no change: still 'none', still DENY."""
+    origins = _raw_trusted_origins()
+    if not origins:
+        return dict(SECURITY_HEADERS)
+    headers = dict(SECURITY_HEADERS)
+    del headers["X-Frame-Options"]
+    headers["Content-Security-Policy"] = "frame-ancestors 'self' " + " ".join(origins)
+    return headers
+
+
 def is_addon() -> bool:
     """Running under the HA Supervisor (add-on), where ingress owns the browser relationship."""
     return bool(os.environ.get("SUPERVISOR_TOKEN") or os.environ.get("HASSIO_TOKEN"))
+
+
+def _raw_trusted_origins() -> list[str]:
+    """MATE_TRUSTED_ORIGINS, split and stripped, scheme intact — e.g. ['https://mate.example.com'].
+    Kept separate from trusted_origins() because that one deliberately drops the scheme for the
+    origin-match comparison, while the CSP builder below needs the full origin to name."""
+    raw = os.environ.get("MATE_TRUSTED_ORIGINS", "")
+    return [o.strip() for o in raw.split(",") if o.strip()]
 
 
 def trusted_origins() -> set[str]:
     """Extra origins to accept, comma-separated in MATE_TRUSTED_ORIGINS. The escape hatch for a
     reverse proxy that rewrites Host, where the browser's (correct) origin can't match what we
     see. Values are compared as scheme://host[:port], e.g. https://mate.example.com."""
-    raw = os.environ.get("MATE_TRUSTED_ORIGINS", "")
-    return {_host_of(o.strip()) or o.strip().lower()
-            for o in raw.split(",") if o.strip()}
+    return {_host_of(o) or o.lower() for o in _raw_trusted_origins()}
 
 
 def _host_of(value: str) -> str:

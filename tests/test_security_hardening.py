@@ -103,8 +103,20 @@ def test_https_behind_a_proxy_is_not_locked_out(monkeypatch):
 
 def test_framing_is_refused(monkeypatch):
     """Clickjacking is the half no origin check can see: the click really is inside Mate."""
-    assert security.SECURITY_HEADERS["X-Frame-Options"] == "DENY"
-    assert "frame-ancestors 'none'" in security.SECURITY_HEADERS["Content-Security-Policy"]
+    monkeypatch.delenv("MATE_TRUSTED_ORIGINS", raising=False)
+    headers = security.security_headers()
+    assert headers["X-Frame-Options"] == "DENY"
+    assert "frame-ancestors 'none'" in headers["Content-Security-Policy"]
+
+
+def test_framing_is_allowed_for_a_declared_trusted_origin(monkeypatch):
+    """A dashboard you named (e.g. your own Home Assistant) may embed Mate as a panel; nothing
+    else can, since X-Frame-Options has no way to say "this one origin" and would just re-block
+    it, so it's dropped in favor of CSP frame-ancestors alone."""
+    monkeypatch.setenv("MATE_TRUSTED_ORIGINS", "https://hass.example.com")
+    headers = security.security_headers()
+    assert "X-Frame-Options" not in headers
+    assert headers["Content-Security-Policy"] == "frame-ancestors 'self' https://hass.example.com"
 
 
 # ── the login throttle ───────────────────────────────────────────────────────
