@@ -171,6 +171,38 @@ def test_a_good_entry_survives_alongside_bad_ones(monkeypatch):
     assert headers["Content-Security-Policy"] == "frame-ancestors https://hass.example.com"
 
 
+def test_a_trailing_slash_from_the_address_bar_is_forgiven(monkeypatch):
+    """What a browser shows for a bare origin — copy it as-is and it still works, since that's
+    the single most likely way anyone pastes one in."""
+    monkeypatch.setenv("MATE_FRAME_ANCESTORS", "https://hass.example.com/")
+    headers = security.security_headers()
+    assert headers["Content-Security-Policy"] == "frame-ancestors https://hass.example.com"
+
+
+def test_a_slash_followed_by_an_actual_path_is_still_rejected(monkeypatch):
+    """The forgiveness above is for the bare trailing "/" only — a real path must still fail."""
+    monkeypatch.setenv("MATE_FRAME_ANCESTORS", "https://hass.example.com/lovelace/")
+    headers = security.security_headers()
+    assert "frame-ancestors 'none'" in headers["Content-Security-Policy"]
+
+
+def test_an_ipv6_literal_is_accepted(monkeypatch):
+    """CSP host-source syntax wants the brackets kept, same as a URL does."""
+    monkeypatch.setenv("MATE_FRAME_ANCESTORS", "http://[::1]:8123")
+    headers = security.security_headers()
+    assert headers["Content-Security-Policy"] == "frame-ancestors http://[::1]:8123"
+
+
+def test_a_rejected_entry_is_logged(monkeypatch, caplog):
+    """Silent used to mean untraceable: MATE_FRAME_ANCESTORS is set to something, the panel still
+    won't embed, and nothing says why. The web log (readable from Settings) now does."""
+    monkeypatch.setenv("MATE_FRAME_ANCESTORS", "https://hass.example.com/some/path")
+    with caplog.at_level("WARNING", logger="security"):
+        security.security_headers()
+    assert "MATE_FRAME_ANCESTORS" in caplog.text
+    assert "https://hass.example.com/some/path" in caplog.text
+
+
 def test_no_header_value_can_ever_break_latin1_encoding(monkeypatch):
     """What Starlette actually does when writing a response header out — this reproduces the
     crash a validation gap would cause, independent of whether fastapi/starlette are installed
