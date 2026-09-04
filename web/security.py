@@ -69,6 +69,13 @@ _FRAME_ANCESTOR_RE = re.compile(
 )
 
 
+# Entries already reported. `security_headers()` runs on EVERY response, so a warning written
+# straight into it repeats with the traffic — Mate's own polling alone is thousands of requests a
+# day, and one typo would bury everything else in the very log the message sends you to read.
+# Warned per bad value instead: the set is bounded by what the operator put in the variable.
+_warned: set[str] = set()
+
+
 def _valid_frame_ancestors() -> list[str]:
     """MATE_FRAME_ANCESTORS, split, stripped, and filtered to entries that are exactly
     scheme://host[:port]. A single trailing "/" is forgiven before checking — that's the bare
@@ -89,7 +96,8 @@ def _valid_frame_ancestors() -> list[str]:
         if _FRAME_ANCESTOR_RE.match(candidate):
             if candidate not in seen:
                 seen.append(candidate)
-        else:
+        elif entry not in _warned:
+            _warned.add(entry)
             log.warning("MATE_FRAME_ANCESTORS: rejected %r — must be exactly "
                         "scheme://host[:port], no path/query/wildcard", entry)
     return seen

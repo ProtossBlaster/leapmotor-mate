@@ -203,6 +203,24 @@ def test_a_rejected_entry_is_logged(monkeypatch, caplog):
     assert "https://hass.example.com/some/path" in caplog.text
 
 
+def test_a_rejected_entry_is_logged_once_and_not_once_per_response(monkeypatch, caplog):
+    """security_headers() runs on EVERY response, so a warning built into it repeats with the
+    traffic: Mate's own polling alone is thousands of requests a day, and a single typo would
+    bury the rest of the web log — the log the message tells you to go and read. Warn per bad
+    value, not per request; a different bad value is still worth its own line."""
+    monkeypatch.setattr(security, "_warned", set())
+    monkeypatch.setenv("MATE_FRAME_ANCESTORS", "https://hass.example.com/some/path")
+    with caplog.at_level("WARNING", logger="security"):
+        for _ in range(50):
+            security.security_headers()
+        assert caplog.text.count("MATE_FRAME_ANCESTORS") == 1
+
+        monkeypatch.setenv("MATE_FRAME_ANCESTORS", "https://other.example/*")
+        for _ in range(50):
+            security.security_headers()
+        assert caplog.text.count("MATE_FRAME_ANCESTORS") == 2
+
+
 def test_no_header_value_can_ever_break_latin1_encoding(monkeypatch):
     """What Starlette actually does when writing a response header out — this reproduces the
     crash a validation gap would cause, independent of whether fastapi/starlette are installed
