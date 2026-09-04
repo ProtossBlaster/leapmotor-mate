@@ -2,15 +2,23 @@
 
 Mate's API can unlock the doors, so the interesting attacker isn't someone on the network —
 it's a page in the *victim's own browser*, which is already inside the network. Two shapes of
-that attack, and they need different answers:
+that attack, and they need different answers — and, on purpose, different environment variables,
+because they are different permissions:
 
   * cross-site submission — evil.example posts a form at http://192.168.1.x:4000/api/command/...
     The browser sends it; the reply is unreadable to the attacker, but the door already opened.
-    Answered by `origin_allowed()`: a mutating request that declares a foreign origin is refused.
+    Answered by `origin_allowed()`: a mutating request that declares a foreign origin is refused,
+    except one named in MATE_TRUSTED_ORIGINS — e.g. a reverse proxy that rewrites Host.
   * clickjacking — evil.example frames Mate invisibly and lines a "claim your prize" button up
     with the real Unlock. The click happens INSIDE Mate, same-origin, so no origin check can
     see it. Answered by refusing to be framed at all, except by an origin you've explicitly
-    named in MATE_TRUSTED_ORIGINS — e.g. your own Home Assistant dashboard (`security_headers()`).
+    named in MATE_FRAME_ANCESTORS — e.g. your own Home Assistant dashboard (`security_headers()`).
+
+Naming an origin in MATE_TRUSTED_ORIGINS does NOT grant it framing, and naming one in
+MATE_FRAME_ANCESTORS does NOT grant it write access — trusting a reverse proxy host is not the
+same decision as trusting every page that origin might ever serve (a HACS card, a Lovelace
+resource, an add-on) with `/api/command/unlock`. Set whichever one you mean; set both if you
+mean both.
 
 Both are skipped as a Home Assistant add-on: there the browser talks to HA and HA proxies to
 us, so every request legitimately carries HA's origin and HA frames the panel on purpose.
@@ -18,6 +26,7 @@ Keeping either rule on would break the add-on UI for everyone while protecting n
 already authenticates, and it isn't reachable cross-origin without an HA session.
 """
 import os
+import re
 from urllib.parse import urlsplit
 
 # Requests that can change something. GET/HEAD/OPTIONS are not checked: they must stay reachable
@@ -39,20 +48,49 @@ SECURITY_HEADERS = {
     "Referrer-Policy": "same-origin",
 }
 
+# scheme://host[:port] and NOTHING else — no userinfo, no path/query/fragment, no wildcard, no
+# whitespace, ASCII only. Anchored on both ends, so a trailing ";" or a second directive smuggled
+# in after the origin fails the match rather than riding along into the header. ASCII-only also
+# means a value that passes this can never fail the latin-1 encode Starlette does when it writes
+# the header out — that failure mode (a 500 on every response, /healthz included) is exactly what
+# unrestricted values risked before.
+_FRAME_ANCESTOR_RE = re.compile(
+    r"^https?://"
+    r"[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
+    r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*"
+    r"(?::[0-9]{1,5})?$"
+)
+
+
+def _valid_frame_ancestors() -> list[str]:
+    """MATE_FRAME_ANCESTORS, split, stripped, and filtered to entries that are exactly
+    scheme://host[:port] — each rejected entry is dropped silently rather than passed through
+    (there is no reader to report a warning to), so a typo degrades to 'nothing configured', never
+    to 'whatever slipped past the regex'."""
+    raw = os.environ.get("MATE_FRAME_ANCESTORS", "")
+    seen: list[str] = []
+    for entry in raw.split(","):
+        entry = entry.strip()
+        if entry and _FRAME_ANCESTOR_RE.match(entry) and entry not in seen:
+            seen.append(entry)
+    return seen
+
 
 def security_headers() -> dict[str, str]:
-    """SECURITY_HEADERS, relaxed to name specific trusted embedders when MATE_TRUSTED_ORIGINS is
+    """SECURITY_HEADERS, relaxed to name specific trusted embedders when MATE_FRAME_ANCESTORS is
     set — e.g. a Home Assistant dashboard you control, embedding Mate as a panel. X-Frame-Options
     has no multi-origin form (ALLOW-FROM is dead in every current browser), so once a trusted
-    origin is configured we rely on CSP frame-ancestors alone and drop X-Frame-Options, rather
-    than send a value that would just re-block the very origin we were asked to trust. No
-    MATE_TRUSTED_ORIGINS means no change: still 'none', still DENY."""
-    origins = _raw_trusted_origins()
-    if not origins:
+    embedder is configured we rely on CSP frame-ancestors alone and drop X-Frame-Options, rather
+    than send a value that would just re-block the very origin we were asked to trust. Only the
+    named origins are listed — 'self' is not added for free, since nobody asked for Mate to frame
+    itself. No valid MATE_FRAME_ANCESTORS (unset, or every entry rejected) means no change: still
+    'none', still DENY."""
+    ancestors = _valid_frame_ancestors()
+    if not ancestors:
         return dict(SECURITY_HEADERS)
     headers = dict(SECURITY_HEADERS)
     del headers["X-Frame-Options"]
-    headers["Content-Security-Policy"] = "frame-ancestors 'self' " + " ".join(origins)
+    headers["Content-Security-Policy"] = "frame-ancestors " + " ".join(ancestors)
     return headers
 
 
@@ -64,7 +102,9 @@ def is_addon() -> bool:
 def _raw_trusted_origins() -> list[str]:
     """MATE_TRUSTED_ORIGINS, split and stripped, scheme intact — e.g. ['https://mate.example.com'].
     Kept separate from trusted_origins() because that one deliberately drops the scheme for the
-    origin-match comparison, while the CSP builder below needs the full origin to name."""
+    origin-match comparison. Unlike MATE_FRAME_ANCESTORS, these values never reach a response
+    header — they are only ever compared for equality against `Origin`/`Referer` — so a malformed
+    entry is harmless noise rather than a header-injection risk, and isn't validated here."""
     raw = os.environ.get("MATE_TRUSTED_ORIGINS", "")
     return [o.strip() for o in raw.split(",") if o.strip()]
 
