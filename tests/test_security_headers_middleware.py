@@ -6,12 +6,17 @@ encoded as latin-1 when the response is written). `security.py`'s own validation
 that failure now, but this file is the one that would notice if some future change reintroduced
 an unvalidated value on the path from MATE_FRAME_ANCESTORS to a live response header.
 
-Needs web.main (fastapi); the minimal CI env skips this module cleanly, same as
-test_command_json_api.py and friends.
+Needs web.main (fastapi) AND httpx, which is what starlette's TestClient is built on and is in
+neither requirements file — without that second guard the import raises at COLLECTION time, which
+does not skip a file, it stops the whole run (3235 collected, 0 executed). The minimal CI env has
+neither and skips this module cleanly, same as test_command_json_api.py and friends.
 """
 import pytest
 
 pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
+
+pytest.importorskip("httpx", reason="starlette's TestClient is built on httpx, which is in "
+                                    "neither requirements file")
 
 import main
 from starlette.testclient import TestClient
