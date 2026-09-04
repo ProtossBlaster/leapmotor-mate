@@ -25,9 +25,12 @@ us, so every request legitimately carries HA's origin and HA frames the panel on
 Keeping either rule on would break the add-on UI for everyone while protecting nobody — ingress
 already authenticates, and it isn't reachable cross-origin without an HA session.
 """
+import logging
 import os
 import re
 from urllib.parse import urlsplit
+
+log = logging.getLogger(__name__)
 
 # Requests that can change something. GET/HEAD/OPTIONS are not checked: they must stay reachable
 # for the browser to render anything, and Mate has no state-changing GET.
@@ -53,26 +56,50 @@ SECURITY_HEADERS = {
 # in after the origin fails the match rather than riding along into the header. ASCII-only also
 # means a value that passes this can never fail the latin-1 encode Starlette does when it writes
 # the header out — that failure mode (a 500 on every response, /healthz included) is exactly what
-# unrestricted values risked before.
+# unrestricted values risked before. Host is a DNS name/IPv4, or an IPv6 literal in brackets
+# (e.g. https://[::1]:4000) — CSP host-source syntax requires the brackets there too.
 _FRAME_ANCESTOR_RE = re.compile(
     r"^https?://"
-    r"[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
+    r"(?:"
+    r"\[[0-9a-fA-F:]+\]"
+    r"|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
     r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*"
+    r")"
     r"(?::[0-9]{1,5})?$"
 )
 
 
+# Entries already reported. `security_headers()` runs on EVERY response, so a warning written
+# straight into it repeats with the traffic — Mate's own polling alone is thousands of requests a
+# day, and one typo would bury everything else in the very log the message sends you to read.
+# Warned per bad value instead: the set is bounded by what the operator put in the variable.
+_warned: set[str] = set()
+
+
 def _valid_frame_ancestors() -> list[str]:
     """MATE_FRAME_ANCESTORS, split, stripped, and filtered to entries that are exactly
-    scheme://host[:port] — each rejected entry is dropped silently rather than passed through
-    (there is no reader to report a warning to), so a typo degrades to 'nothing configured', never
-    to 'whatever slipped past the regex'."""
+    scheme://host[:port]. A single trailing "/" is forgiven before checking — that's the bare
+    form a browser's address bar shows for an origin with no path, and rejecting it outright
+    would silently break the single most likely way to paste one in. Anything else malformed
+    (an actual path, a wildcard, a stray ";") is dropped and logged rather than passed through,
+    so a typo degrades to 'nothing configured, and it says why in the log', never to 'whatever
+    slipped past the regex'."""
     raw = os.environ.get("MATE_FRAME_ANCESTORS", "")
     seen: list[str] = []
     for entry in raw.split(","):
         entry = entry.strip()
-        if entry and _FRAME_ANCESTOR_RE.match(entry) and entry not in seen:
-            seen.append(entry)
+        if not entry:
+            continue
+        candidate = entry
+        if not _FRAME_ANCESTOR_RE.match(candidate) and candidate.endswith("/"):
+            candidate = candidate[:-1]
+        if _FRAME_ANCESTOR_RE.match(candidate):
+            if candidate not in seen:
+                seen.append(candidate)
+        elif entry not in _warned:
+            _warned.add(entry)
+            log.warning("MATE_FRAME_ANCESTORS: rejected %r — must be exactly "
+                        "scheme://host[:port], no path/query/wildcard", entry)
     return seen
 
 
