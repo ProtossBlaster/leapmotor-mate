@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v3.14.24 · **Idioma:** Español
+> **Versión de Mate:** v3.15.7 · **Idioma:** Español
 > Este manual está escrito para quien *usa* Mate, no para quien lo desarrolla. Explica cómo
 > configurarlo desde cero y qué hace cada página. Para los detalles técnicos internos está `ARCHITECTURE.md`.
 
@@ -100,7 +100,8 @@ Mate funciona igual en tres entornos (la interfaz es idéntica):
   Docker: lo descargas, lo abres y tienes el mismo asistente de configuración. En Windows se
   distribuye **dentro de un `.zip`** — descomprímelo antes y luego ejecuta el instalador, porque un
   `.exe` suelto descargado de internet todavía no tiene reputación ante SmartScreen y lo bloquean al
-  entrar.
+  entrar. El servidor web solo escucha en este ordenador; para acceder desde otro dispositivo usa
+  Docker o el complemento.
 
 Las instrucciones de instalación paso a paso (repositorio, compose, etc.) están en el **README** del
 proyecto y en la página de **Docker Hub**. Una vez en marcha, el *primer inicio de sesión* es igual en

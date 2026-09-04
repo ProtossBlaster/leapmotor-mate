@@ -28,7 +28,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.15.6"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.15.7"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -346,7 +346,9 @@ app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")
 
 @app.middleware("http")
 async def setup_check(request: Request, call_next):
-    path = request.url.path
+    # Security decisions must use the path supplied by ASGI routing. With affected Starlette
+    # versions a malformed Host header can alter request.url.path without altering the route.
+    path = request.scope.get("path", "")
     # Cross-site write guard. Ahead of every other gate — including the always-public paths and
     # the auth check — because it protects the install that has NO password, which is the default
     # one. See web/security.py for why an absent origin is allowed and why add-on mode is exempt.
@@ -5999,7 +6001,12 @@ async def setup_submit(request: Request):
     return RedirectResponse(request.headers.get("x-ingress-path", "") + "/", status_code=303)
 
 
+def _web_listen_host() -> str:
+    """Desktop is local-only; containers must remain reachable through their port mapping."""
+    return "127.0.0.1" if os.environ.get("MATE_DESKTOP") == "1" else "0.0.0.0"
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("WEB_PORT", 4000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run("main:app", host=_web_listen_host(), port=port, reload=False)

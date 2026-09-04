@@ -3,6 +3,36 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.7] — 2026-09-05
+
+**Security:** standalone Mate with an access password could be made to treat a protected page or
+API endpoint as though it were the public static directory. The affected Starlette version builds
+`request.url.path` from the unvalidated HTTP `Host` header, while routing still uses the real ASGI
+path; a crafted `Host` could therefore make the authentication middleware inspect one path and
+execute another. Mate now makes every authentication, setup and cross-site-write decision from the
+path supplied by ASGI routing. The released regression test reproduces the old unauthenticated
+`204` write and requires `401` after the fix.
+
+**Security (MateDesktop):** the desktop shell opens Mate at `127.0.0.1`, but the payload was
+listening on every network interface. That made a default Desktop install — which has no separate
+web password because it is meant to be local — reachable from another device on the LAN. In
+MateDesktop the web server now binds only to `127.0.0.1`; Docker and both Home Assistant add-ons
+continue to bind to `0.0.0.0` and remain reachable through their normal port mapping or ingress.
+Someone deliberately using the Desktop payload as a LAN server must use the Docker deployment
+instead.
+
+**Changed (CI):** continuous integration now installs the complete poller and web production
+requirements plus the test-only `httpx` dependency. This turns on the web/API/middleware tests
+that the former minimal environment silently skipped. The release was checked from an empty
+Python 3.12 environment: **3244 tests passed, 5 were intentionally skipped**, the Docker image
+built, standalone rejected the crafted request with `401`, add-on ingress writes still returned
+`204`, and the Desktop listener was `127.0.0.1`.
+
+**Upgrade impact:** this is a normal patch update. It changes no dependency, database schema,
+stored setting, API contract or container volume. Docker and Home Assistant users receive the
+usual image replacement and restart; their data remains in `/data`. MateDesktop receives the
+payload on its next launch and needs no new desktop-shell installer.
+
 ## [3.15.6] — 2026-09-04
 
 **Fixed:** on a **range-extender**, the Statistics average called itself measured and was not.

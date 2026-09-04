@@ -179,7 +179,8 @@ The database is stored in `./data/` (mounted at `/data` in the container).
 
 Neither of the above? **[MateDesktop](https://github.com/ProtossBlaster/MateDesktop)** is Mate as an
 ordinary desktop application: download it, open it, and follow the same setup wizard. Same Mate,
-same database, nothing to install around it.
+same database, nothing to install around it. Its web server listens only on this computer; use the
+Docker or Home Assistant installation if Mate must be reachable from another device.
 
 - **macOS** (Apple Silicon) — `LeapMotor-Mate-<version>-arm64.dmg`
 - **Windows** — `LeapMotor-Mate-Setup-<version>-x64.exe.zip` or the `.msi.zip`
@@ -487,7 +488,8 @@ Il database è salvato in `./data/` (montato su `/data` nel container).
 
 Non usi né l'uno né l'altro? **[MateDesktop](https://github.com/ProtossBlaster/MateDesktop)** è Mate
 come normale applicazione da scrivania: scarichi, apri, e trovi lo stesso wizard di configurazione.
-Stesso Mate, stesso database, niente da installare attorno.
+Stesso Mate, stesso database, niente da installare attorno. Il suo server web ascolta soltanto su
+questo computer; per raggiungere Mate da un altro dispositivo usa Docker o l'add-on Home Assistant.
 
 - **macOS** (Apple Silicon) — `LeapMotor-Mate-<versione>-arm64.dmg`
 - **Windows** — `LeapMotor-Mate-Setup-<versione>-x64.exe.zip` oppure il `.msi.zip`

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v3.14.24 · **Lingua:** Italiano
+> **Versione di Mate:** v3.15.7 · **Lingua:** Italiano
 > Questo manuale è pensato per chi *usa* Mate, non per chi lo sviluppa. Spiega come configurarlo
 > dall'inizio e cosa fa ogni pagina. Per i dettagli tecnici interni c'è `ARCHITECTURE.md`.
 
@@ -95,7 +95,8 @@ Mate gira allo stesso modo in tre ambienti (l'interfaccia è identica):
   è lo stesso Mate impacchettato per **macOS e Windows**, per chi non usa né Home Assistant né
   Docker: scarichi, apri, e trovi lo stesso wizard di configurazione. Su Windows si distribuisce
   **dentro uno `.zip`**: prima lo scompatti, poi lanci l'installatore — un `.exe` preso da internet
-  non ha ancora una reputazione per SmartScreen e viene fermato all'ingresso.
+  non ha ancora una reputazione per SmartScreen e viene fermato all'ingresso. Il server web ascolta
+  soltanto su questo computer; per accedere da un altro dispositivo usa Docker o l'add-on.
 
 Le istruzioni passo-passo di installazione (repository, compose, ecc.) sono nel **README** del
 progetto e nella pagina **Docker Hub**. Una volta avviato, il *primo accesso* è uguale per entrambi

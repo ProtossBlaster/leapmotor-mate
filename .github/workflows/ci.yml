@@ -15,10 +15,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install test deps
-        # cryptography → crypto tests; jinja2/leapmotor-api/paho-mqtt let the EVCC, scheduling and
-        # climate-render tests actually RUN in CI (they importorskip when these are absent).
-        # paho-mqtt>=2.0.0 is quoted so the shell doesn't treat '>' as a redirect.
-        run: pip install pytest cryptography jinja2==3.1.4 leapmotor-api==0.3.1 "paho-mqtt>=2.0.0"
+        # Exercise the same dependency sets as production. httpx is test-only: Starlette's
+        # TestClient needs it for the live middleware/API regression tests.
+        run: pip install pytest httpx -r poller/requirements.txt -r web/requirements.txt
       - name: Run tests
         run: pytest -q
 
