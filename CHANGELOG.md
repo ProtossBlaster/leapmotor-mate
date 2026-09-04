@@ -3,6 +3,26 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.6] — 2026-09-04
+
+**Fixed:** on a **range-extender**, the Statistics average called itself measured and was not.
+Mate writes a trip's consumption at the end of the trip from the battery percentage, and replaces
+it with the figure the car itself measured only once the cloud reports that trip — so every trip
+the cloud never covered was carrying an estimate into the one average whose wording promises
+measurements (@michapr, beta #43). Those trips are now out of that average and out of the Energy
+card on the same page. On his bundle that is **4 trips and 5 km of 625**: the number reads the same
+at one decimal, and the line under it now says 620 km instead of 625. The four it drops are 1-2 km
+hops reading 35.7 and 18.8 kWh/100 km, which is what a battery percentage does over one kilometre.
+Full-electric cars are unaffected — there the label promises nothing about the source and every
+trip carries a figure. The local total that catches a cloud period far below Mate's own trips is
+deliberately left counting everything, since a reference blind to the trips the cloud missed is the
+wrong yardstick for judging what the cloud reported.
+
+**Changed:** in all eight languages, "over battery-only kilometres" became "over the kilometres of
+**battery-only trips**". A trip the generator ran also covers kilometres on the battery, and
+nothing in the data says which — so the old phrase claimed a number Mate does not have
+(@michapr, beta #43).
+
 ## [3.15.5] — 2026-09-02
 
 **Fixed:** on a **range-extender**, the Trips page printed two electric averages under one word.
