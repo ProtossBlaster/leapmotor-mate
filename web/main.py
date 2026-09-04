@@ -386,7 +386,7 @@ async def security_headers(request: Request, call_next):
     does happen inside Mate. Skipped as an add-on — HA frames the panel deliberately."""
     resp = await call_next(request)
     if not security.is_addon():
-        for k, v in security.SECURITY_HEADERS.items():
+        for k, v in security.security_headers().items():
             resp.headers.setdefault(k, v)
     return resp
 
