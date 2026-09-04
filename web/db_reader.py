@@ -6889,6 +6889,20 @@ def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
     # distance known" and falls back to the whole distance — the behaviour before beta #40.
     ec_km_expr = ("ROUND(SUM(CASE WHEN ec_kwh IS NOT NULL AND ec_kwh > 0 THEN distance_km ELSE 0 END), 2)"
                   if _trips_have_ec(db) else "NULL")
+    # `measured_*` is the same pair as `energy_kwh`/`eff_km` with the estimates taken out, and it
+    # is a SEPARATE pair on purpose (beta #43 @michapr). `efficiency_kwh_100km` is not a
+    # measurement by default: the poller writes it at trip end from ΔSoC × capacity
+    # (poller/db.py, `energy_used_kwh`) and ec_enrich overwrites it with the getEC figure only once
+    # the cloud answers, keeping the estimate in `efficiency_soc`. So the battery-only card, which
+    # calls its number measured, was averaging estimates for every trip the cloud never covered —
+    # on his bundle 4 trips and 5 km of 625, 14.30 against 14.26; small there only because 80 of
+    # his 88 trips reached the cloud, and the four it drops are 1-2 km hops reading 35.7 and 18.8
+    # kWh/100 km, which is what ΔSoC does over one kilometre.
+    # `energy_kwh` itself must NOT be narrowed: it is also the local reference that catches a cloud
+    # period total far below Mate's own trips (`flag_short_cloud_total`, #212 @riri19), and a
+    # reference that ignores every trip the cloud missed is exactly the wrong one for judging what
+    # the cloud reported. → tests/test_cloud_short_period.py
+    measured = " AND ec_kwh IS NOT NULL" if _trips_have_ec(db) else ""
     row = db.execute(
         f"""SELECT COUNT(*) AS trip_count,
                   ROUND(SUM(distance_km), 2) AS distance_km,
@@ -6896,6 +6910,11 @@ def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
                   ROUND(SUM(distance_km * COALESCE(efficiency_kwh_100km, 0) / 100.0), 2) AS energy_kwh,
                   ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
                                  THEN distance_km END), 2) AS eff_km,
+                  ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{measured}
+                                 THEN distance_km * efficiency_kwh_100km / 100.0
+                                 ELSE 0 END), 2) AS measured_energy_kwh,
+                  ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{measured}
+                                 THEN distance_km END), 2) AS measured_eff_km,
                   {ec_km_expr} AS ec_km
            FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
              AND started_at >= ? AND started_at <= ?""",
@@ -7977,6 +7996,17 @@ def search_charges(text: str = "", charge_type: str = "",
 
 def get_stats_summary() -> dict:
     db = _get()
+    # The average and the kilometres under it count a trip only where the CLOUD measured its
+    # energy — on a RANGE-EXTENDER, where this pair is the one the page calls battery-only and
+    # measured (beta #43 @michapr). `efficiency_kwh_100km` starts life as ΔSoC × capacity written
+    # by the poller at trip end and is overwritten by the getEC figure only when the cloud answers,
+    # so without this the "measured" average quietly averaged estimates too: on his bundle 4 trips,
+    # 5 km of 625, 14.30 against 14.26.
+    # NOT applied to a full-electric car: there the label promises nothing about the source, every
+    # trip carries an efficiency, and dropping the ones the cloud never covered would shrink the
+    # average's reach for no claim it has to keep.
+    measured = (" AND ec_kwh IS NOT NULL"
+                if (is_reev_car() and _trips_have_ec(db)) else "")
     trips = db.execute(
         """SELECT
                COUNT(*)                                                       AS trip_count,
@@ -8020,14 +8050,15 @@ def get_stats_summary() -> dict:
                -- distance-weighted = total energy / total distance (#42): a simple AVG
                -- over-weights short trips and disagreed with both the Trips-page header
                -- and this page's own "energy used ÷ distance". Matches get_trips_summary.
-               ROUND(SUM(distance_km * efficiency_kwh_100km) /
-                     NULLIF(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+               ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{MEASURED}
+                                   THEN distance_km * efficiency_kwh_100km END) /
+                     NULLIF(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{MEASURED}
                                      THEN distance_km END), 0), 1)           AS avg_efficiency,
                -- The kilometres that average actually covers. Not the same as the total on a
                -- range-extender, where a generator trip has no efficiency to average: 13.9 kWh/100km
                -- over 272 of 434 km is a different statement from 13.9 over all of them, and the
                -- card used to make the second one.
-               ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+               ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{MEASURED}
                               THEN distance_km END), 1)                      AS avg_efficiency_km,
                -- "Best" must come from a real trip, not a 3 km downhill coast or a glitch frame
                -- (#86): a min-distance floor keeps this metric representative of the car.
@@ -8036,7 +8067,8 @@ def get_stats_summary() -> dict:
                ROUND(SUM(regen_kwh), 2)                                      AS total_regen_kwh,
                ROUND(AVG(regen_kwh), 2)                                      AS avg_regen_kwh,
                MIN(started_at)                                               AS _since_trip
-           FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL""",
+           FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL"""
+        .replace("{MEASURED}", measured),
         (_current_vehicle_id(),)
     ).fetchone()
     charges = db.execute(

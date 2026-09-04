@@ -4888,11 +4888,18 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int,
     # beta #40 basis, the one their own strips and tiles use. `avg_kwh100_basis` tells the template
     # which wording is true for the figure it is printing. A full-electric car carries an
     # efficiency on every trip, so both pairs agree there.
+    #
+    # ⚠️ And the pair is the MEASURED one: `efficiency_kwh_100km` is written from ΔSoC at trip end
+    # and only overwritten by the cloud's getEC when it arrives, so the plain pair carries an
+    # estimate for every trip the cloud missed — the card would call that "measured" (beta #43
+    # @michapr). When nothing here was measured the branch is simply not taken and the getEC/
+    # distance basis below answers, with its own wording, rather than a battery-only claim about
+    # numbers the cloud never saw.
     ec_km = tot.get("ec_km") or 0
-    eff_km = tot.get("eff_km") or 0
+    eff_km = tot.get("measured_eff_km") or 0
     if (battery_only and db_reader.is_reev_car() and eff_km > 0
-            and (tot.get("energy_kwh") or 0) > 0):
-        eb["avg_kwh100"] = round(tot["energy_kwh"] / eff_km * 100, 1)
+            and (tot.get("measured_energy_kwh") or 0) > 0):
+        eb["avg_kwh100"] = round(tot["measured_energy_kwh"] / eff_km * 100, 1)
         eb["avg_kwh100_km"] = eff_km
         eb["avg_kwh100_basis"] = "battery"
     else:
