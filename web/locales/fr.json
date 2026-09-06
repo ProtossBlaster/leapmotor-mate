@@ -1,5 +1,9 @@
 {
   "translations": {
+    "reev_export_waiting": "Préparation du bundle complet. Les requêtes cloud peuvent prendre quelques minutes ; vous pouvez continuer à utiliser Mate.",
+    "reev_export_busy": "Un bundle est déjà en préparation. Veuillez patienter puis réessayer.",
+    "reev_export_error": "Échec du téléchargement. Veuillez réessayer.",
+    "reev_export_ready": "Bundle prêt ; téléchargement lancé.",
     "abrp_car_without_token": "Pas de jeton ABRP propre, donc rien n'est envoyé pour elle — ABRP utilise un jeton par véhicule :",
     "charge_merge_btn": "Fusionner avec la précédente",
     "charge_merge_help": "La voiture signale le câble comme débranché dès que le courant s'arrête : une seule prise peut donc être enregistrée comme plusieurs recharges. Les fusionner reconstitue la session — et vous pouvez les séparer à tout moment.",

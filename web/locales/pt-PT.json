@@ -1,5 +1,9 @@
 {
   "translations": {
+    "reev_export_waiting": "A preparar o pacote completo. Os pedidos à cloud podem demorar alguns minutos; pode continuar a usar o Mate.",
+    "reev_export_busy": "Já está a ser preparado um pacote. Aguarde e tente novamente.",
+    "reev_export_error": "Falha na transferência. Tente novamente.",
+    "reev_export_ready": "Pacote pronto; transferência iniciada.",
     "abrp_car_without_token": "Não tem um token ABRP próprio, por isso não é enviado nada — o ABRP usa um token por veículo:",
     "charge_merge_btn": "Juntar à anterior",
     "charge_merge_help": "O carro declara o cabo desligado assim que a corrente para, por isso um único carregamento pode ser registado como vários. Ao juntá-los a sessão fica inteira — e pode separá-la quando quiser.",

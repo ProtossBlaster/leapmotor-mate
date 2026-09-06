@@ -3,6 +3,34 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.8] — 2026-09-06
+
+**Fixed (beta #44):** Statistics and Energy-by-date-range now aggregate merged trips as one
+logical journey, using the same group distance and efficiency as the Trips list. A reported
+1 km + 6 km group with 0.4 kWh previously counted as two trips, credited only 1 km of energy
+coverage and computed 0.06 kWh locally. It now counts once, covers 7 km and computes about
+0.40 kWh. Date windows follow the parent's start date, including groups crossing midnight.
+REEV measured/battery-only rules, missing values, SQLite rounding and exclusion of reconstructed
+blackouts from driving time are retained. Stored trip segments are never rewritten.
+
+**Fixed (beta #13):** encrypted research-bundle generation runs outside the web event loop.
+The download shows preparation/success/error feedback in all eight languages; duplicate clicks
+are ignored and concurrent exports receive HTTP 409 rather than starting more work. Local and
+cloud reads stay on the export's selected vehicle even if the sidebar selection changes.
+All existing bundle sections and encryption remain; cloud requests can still take minutes.
+Per-stage timings are included in metadata and web logs; final archive/encryption and total
+timing are recorded in logs only. No cloud endpoint, timeout or retry policy was changed.
+
+**Clarified (beta discussion #42):** cloud-covered distance and measured battery-only trip
+distance are not interchangeable. Statistics uses the latter for REEV when available; Trips
+and Report retain their existing cloud-coverage basis. REEV/standard unification is not part
+of this release.
+
+**Upgrade impact:** normal patch update for Docker and Home Assistant; MateDesktop receives
+the payload through its existing updater. No new dependency, shell installer, database migration,
+data deletion or settings reset. Existing merged histories may show corrected statistical totals.
+See [release and rollback notes](docs/releases/v3.15.8.md).
+
 ## [3.15.7] — 2026-09-05
 
 **Security:** standalone Mate with an access password could be made to treat a protected page or

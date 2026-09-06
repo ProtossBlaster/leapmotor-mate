@@ -1,5 +1,9 @@
 {
   "translations": {
+    "reev_export_waiting": "Preparazione del bundle completo. Le richieste cloud possono richiedere alcuni minuti; puoi continuare a usare Mate.",
+    "reev_export_busy": "Un bundle è già in preparazione. Attendi e riprova.",
+    "reev_export_error": "Download non riuscito. Riprova.",
+    "reev_export_ready": "Bundle pronto; download avviato.",
     "abrp_car_without_token": "Non ha un token ABRP suo, quindi per lei non viene inviato niente — ABRP usa un token per veicolo:",
     "charge_merge_btn": "Unisci alla precedente",
     "charge_merge_help": "L'auto dichiara il cavo staccato appena la corrente si ferma, quindi un solo attacco può essere registrato come più ricariche. Unendole la sessione torna intera — e puoi separarla quando vuoi.",

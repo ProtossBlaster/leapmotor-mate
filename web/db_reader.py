@@ -9,6 +9,7 @@ from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 import os
+import threading
 
 import i18n
 import crypto  # hard import at module top: a missing crypto dep must fail web boot loudly,
@@ -530,6 +531,7 @@ def _get():
 
 
 ACTIVE_VEHICLE_SETTING = "active_vehicle_vin"
+_read_vehicle_scope = threading.local()
 
 
 def _current_vehicle_id():
@@ -545,6 +547,9 @@ def _current_vehicle_id():
     Returns None only before the first vehicle is registered; `vehicle_id = COALESCE(?, vehicle_id)`
     then matches everything, so a fresh or minimal database behaves as it always did.
     """
+    pinned = getattr(_read_vehicle_scope, "vehicle_id", None)
+    if pinned is not None:
+        return pinned[0]
     try:
         row = _get().execute(
             "SELECT id FROM vehicles ORDER BY vin <> COALESCE("
@@ -781,6 +786,10 @@ _IMPORT_MATCH_KWH = 0.05
 
 
 def get_setting(key: str, default: str = "") -> str:
+    if key == ACTIVE_VEHICLE_SETTING and getattr(_read_vehicle_scope, "vehicle_id", None) is not None:
+        # Cloud reads resolve their target through this setting, too. Only the export
+        # worker sees the pinned value; the actual sidebar setting is never overwritten.
+        return (get_vehicle()[0] or {}).get("vin") or default
     db = _get()
     row = db.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
     return row["value"] if row else default
@@ -6856,6 +6865,83 @@ def _trips_have_ec(db) -> bool:
         return False
 
 
+def _merged_trip_statistics(db, begin=None, end=None):
+    """Overrides for beta #44: aggregate logical trips, not their stored segments.
+
+    None keeps the existing SQL path for old schemas and vehicles without merges. Groups
+    belong to the parent's start date, like the Trips list; children are loaded BEFORE
+    applying the window so a midnight boundary cannot split a group's energy/distance.
+    This is read-only: conversion and unmerge still own the original rows.
+    """
+    if not any(r[1] == "merged_into_id" for r in db.execute("PRAGMA table_info(trips)")):
+        return None
+    kids = _children_by_parent(db)
+    if not kids:
+        return None
+    sql = ("SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+           "AND ended_at IS NOT NULL AND merged_into_id IS NULL")
+    args = [_current_vehicle_id()]
+    if begin is not None:
+        sql += " AND started_at >= ? AND started_at <= ?"
+        args.extend((begin, end))
+    groups = [_trip_group_stats(dict(r), kids.get(r["id"], []))
+              for r in db.execute(sql, args).fetchall()]
+
+    def rounded(value, digits):
+        # Keep SQLite's rounding, not Python's ties-to-even, at the old SQL boundary.
+        return db.execute("SELECT ROUND(?, ?)", (value, digits)).fetchone()[0]
+
+    def total(values, digits=2):
+        # Preserve SQL SUM's distinction between no observations and observed zero.
+        values = [v for v in values if v is not None]
+        return rounded(sum(values), digits) if values else None
+
+    def energy(g):
+        km, eff = g.get("distance_km"), g.get("efficiency_kwh_100km")
+        return km * eff / 100.0 if km is not None and eff is not None else None
+
+    efficient = [g for g in groups if g.get("efficiency_kwh_100km") is not None]
+    has_ec = _trips_have_ec(db)
+    measured = [g for g in efficient if not has_ec or g.get("ec_kwh") is not None]
+    measured_ids = {g["id"] for g in measured}
+    period = {
+        "trip_count": len(groups),
+        "distance_km": total(g.get("distance_km") for g in groups),
+        "duration_min": total((g.get("duration_min") for g in groups), 0),
+        "energy_kwh": total((g["distance_km"] * (g.get("efficiency_kwh_100km") or 0) / 100.0
+                             if g.get("distance_km") is not None else None) for g in groups),
+        "eff_km": total(g.get("distance_km") for g in efficient),
+        "measured_energy_kwh": total(energy(g) if g["id"] in measured_ids else 0 for g in groups),
+        "measured_eff_km": total(g.get("distance_km") for g in measured),
+        "ec_km": (total(g.get("distance_km") if (g.get("ec_kwh") or 0) > 0 else 0
+                         for g in groups) if has_ec else None),
+    }
+    average_trips = measured if is_reev_car() else efficient
+    # Match the existing choice: trip efficiency first; stable cloud EC only as fallback
+    # (notably for REEV generator trips). Never override the owner's energy-source setting.
+    covered = [g for g in groups if g.get("efficiency_kwh_100km") is not None
+               or (g.get("ec_kwh") is not None and g.get("ec_stable") == 1)]
+    best = [g["efficiency_kwh_100km"] for g in efficient
+            if g["efficiency_kwh_100km"] > 0 and (g.get("distance_km") or 0) >= 15]
+    regen = [g["regen_kwh"] for g in groups if g.get("regen_kwh") is not None]
+    # Do not round numerator/denominator before division, as in the SQL weighted average.
+    km = sum(g.get("distance_km") or 0 for g in average_trips)
+    summary = {
+        "trip_count": len(groups),
+        "total_km": period["distance_km"],
+        "total_kwh_used": total(energy(g) if g.get("efficiency_kwh_100km") is not None
+                                else g.get("ec_kwh") for g in covered),
+        "energy_trips": len(covered) if groups else None,
+        "energy_km": total((g.get("distance_km") for g in covered), 1),
+        "avg_efficiency": (rounded(sum(energy(g) or 0 for g in average_trips) / km * 100, 1)
+                           if km else None),
+        "avg_efficiency_km": total((g.get("distance_km") for g in average_trips), 1),
+        "best_efficiency": rounded(min(best), 1) if best else None,
+        "avg_regen_kwh": rounded(sum(regen) / len(regen), 2) if regen else None,
+    }
+    return period, summary
+
+
 def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
     """Distance/duration/count/energy of LOCAL trips started within [begin_ts, end_ts] (epoch
     seconds) — paired by the caller with a live getEC total for the SAME window, to show distance +
@@ -6885,6 +6971,9 @@ def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
     b = datetime.fromtimestamp(begin_ts, tz=timezone.utc).isoformat()
     e = datetime.fromtimestamp(end_ts, tz=timezone.utc).isoformat()
     db = _get()
+    merged = _merged_trip_statistics(db, b, e)
+    if merged is not None:
+        return merged[0]
     # NULL, not 0, where the column is missing: the caller reads a falsy ec_km as "no covered
     # distance known" and falls back to the whole distance — the behaviour before beta #40.
     ec_km_expr = ("ROUND(SUM(CASE WHEN ec_kwh IS NOT NULL AND ec_kwh > 0 THEN distance_km ELSE 0 END), 2)"
@@ -8081,6 +8170,11 @@ def get_stats_summary() -> dict:
         (_current_vehicle_id(),)
     ).fetchone()
     t = dict(trips) if trips else {}
+    merged = _merged_trip_statistics(db)
+    if merged is not None:
+        t.update(merged[1])
+    # Driving time/excluded reconstructed durations and total regen stay per-segment:
+    # merging must not turn a reconstructed segment's blackout into measured driving.
     c = dict(charges) if charges else {}
     total_kwh = t.get("total_kwh_used") or 0
     total_regen = t.get("total_regen_kwh") or 0

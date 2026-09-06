@@ -162,10 +162,14 @@
   </form>
   <div id="logbook-list" class="mb-5">{{ logbook_html | safe }}</div>
 
-  <a href="api/research/export"
+  <a href="api/research/export" id="research-export"
+     data-waiting="{{ t('reev_export_waiting') }}" data-busy="{{ t('reev_export_busy') }}"
+     data-error="{{ t('reev_export_error') }}" data-ready="{{ t('reev_export_ready') }}"
      class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold">
     ⬇️ {{ t('reev_export') }}</a>
+  <div id="research-export-status" role="status" aria-live="polite" class="text-xs text-slate-400 mt-2"></div>
   <div class="text-[11px] text-slate-500 mt-2 leading-relaxed">{{ t('reev_export_note') }}</div>
 </div>
+<script src="static/research-export.js" defer></script>
 {% endif %}
 {% endblock %}

@@ -1,5 +1,9 @@
 {
   "translations": {
+    "reev_export_waiting": "Preparando el paquete completo. Las consultas a la nube pueden tardar unos minutos; puedes seguir usando Mate.",
+    "reev_export_busy": "Ya se está preparando un paquete. Espera y vuelve a intentarlo.",
+    "reev_export_error": "Error de descarga. Vuelve a intentarlo.",
+    "reev_export_ready": "Paquete listo; descarga iniciada.",
     "abrp_car_without_token": "No tiene un token ABRP propio, así que no se envía nada para ella — ABRP usa un token por vehículo:",
     "charge_merge_btn": "Unir con la anterior",
     "charge_merge_help": "El coche declara el cable desconectado en cuanto la corriente se detiene, así que una sola conexión puede registrarse como varias recargas. Al unirlas la sesión vuelve a estar completa, y puedes separarla cuando quieras.",

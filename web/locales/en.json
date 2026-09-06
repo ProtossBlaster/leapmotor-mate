@@ -1,5 +1,9 @@
 {
   "translations": {
+    "reev_export_waiting": "Preparing the complete bundle. Cloud requests may take a few minutes; you can keep using Mate.",
+    "reev_export_busy": "A bundle is already being prepared. Please wait and try again.",
+    "reev_export_error": "Download failed. Please try again.",
+    "reev_export_ready": "Bundle ready; download started.",
     "abrp_car_without_token": "No ABRP token of its own, so nothing is sent for it — ABRP uses one token per vehicle:",
     "charge_merge_btn": "Join with previous",
     "charge_merge_help": "The car reports the cable as gone the moment the current stops, so one plug-in can be recorded as several charges. Joining them puts the session back together — and you can split it again at any time.",

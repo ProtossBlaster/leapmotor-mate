@@ -1,5 +1,9 @@
 {
   "translations": {
+    "reev_export_waiting": "Het volledige pakket wordt voorbereid. Cloudverzoeken kunnen enkele minuten duren; je kunt Mate blijven gebruiken.",
+    "reev_export_busy": "Er wordt al een pakket voorbereid. Wacht en probeer het opnieuw.",
+    "reev_export_error": "Download mislukt. Probeer het opnieuw.",
+    "reev_export_ready": "Pakket gereed; download gestart.",
     "abrp_car_without_token": "Geen eigen ABRP-token, dus er wordt niets voor verzonden — ABRP gebruikt één token per voertuig:",
     "charge_merge_btn": "Samenvoegen met vorige",
     "charge_merge_help": "De auto meldt de kabel als losgekoppeld zodra de stroom stopt, dus één keer inpluggen kan als meerdere laadsessies worden vastgelegd. Samenvoegen maakt de sessie weer heel — en je kunt ze altijd weer losmaken.",

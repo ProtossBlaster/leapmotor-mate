@@ -12,6 +12,7 @@ from fastapi.responses import (HTMLResponse, RedirectResponse, JSONResponse, Res
                                StreamingResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.concurrency import run_in_threadpool
 
 sys.path.insert(0, str(Path(__file__).parent))
 import battery_packs
@@ -28,7 +29,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.15.7"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.15.8"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -1563,16 +1564,56 @@ _RESEARCH_FUEL_FIELDS = (
 )
 
 
+_research_export_lock = threading.Lock()
+
+
 @app.get("/api/research/export")
 async def research_export():
+    if not research.research_enabled():
+        return Response(status_code=404)
+    return await run_in_threadpool(_research_export_worker)
+
+
+def _research_export_worker():
+    # The worker owns the lock until it REALLY finishes, including after a client disconnect.
+    # Repeated clicks/tabs must not queue several expensive cloud probes and archives.
+    if not _research_export_lock.acquire(blocking=False):
+        return Response(status_code=409, headers={"Retry-After": "5"})
+    started = time.perf_counter()
+    try:
+        # The UI can now switch cars while this worker runs. Keep every scoped read (and
+        # the command client's target) on the original car, without changing the sidebar.
+        previous = getattr(db_reader._read_vehicle_scope, "vehicle_id", None)
+        db_reader._read_vehicle_scope.vehicle_id = (db_reader._current_vehicle_id(),)
+        try:
+            return _build_research_export()
+        finally:
+            db_reader._read_vehicle_scope.vehicle_id = previous
+    finally:
+        log.info("Research export total_seconds=%.3f", time.perf_counter() - started)
+        _research_export_lock.release()
+
+
+def _build_research_export():
     """BetaTester only: build an ENCRYPTED bundle (redacted raw-signal history + logbook + trips)
     for the tester to attach to a beta issue. GPS is stripped; the bundle is sealed to our public
     key so only the maintainer's private key can open it."""
     if not research.research_enabled():
         return Response(status_code=404)
     import csv, io, json, time, zipfile
+    timings = {}
+    checkpoint = time.perf_counter()
+
+    def mark(stage):
+        nonlocal checkpoint
+        now = time.perf_counter()
+        timings[stage] = round(now - checkpoint, 3)
+        log.info("Research export stage=%s seconds=%.3f", stage, now - checkpoint)
+        checkpoint = now
+
     rows = research.redact_signal_rows(db_reader.get_raw_signal_rows())
     logbook = db_reader.get_logbook(limit=1000000)
+    mark("signals_and_logbook")
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         s = io.StringIO(); w = csv.writer(s)
@@ -1598,6 +1639,7 @@ async def research_export():
         w.writeheader()
         w.writerows(trips)
         z.writestr("trips.csv", s.getvalue())
+        mark("signal_archive_and_trips")
         # The refuels behind the fuel numbers on those trips — beta #36. The cost card recomputes the
         # petrol cost from these rows, and the bundle used to leave them out, so a card reading €0 of
         # fuel could not be told apart from a card that simply never saw a refuel. Oldest first.
@@ -1642,6 +1684,7 @@ async def research_export():
         except Exception:  # noqa: BLE001
             _pages["cost_card"] = None
         z.writestr("page_stats.json", json.dumps(_pages, indent=2, default=str))
+        mark("fuel_and_page_statistics")
         # Cloud consumption probe: UNMAPPED raw responses (getEC 24h/7d + 6-week rank), so a REEV's
         # fuel/L-100km field surfaces even though the BEV mapping ignores it. Best-effort: a cloud
         # hiccup must not fail the export.
@@ -1655,6 +1698,7 @@ async def research_export():
             cp = json.dumps(cloud, indent=2, ensure_ascii=False)
             cp = _re.sub(r"LFZ[A-Z0-9]{12,}", "<VIN>", cp)  # defensive: responses carry no VIN, but scrub anyway
             z.writestr("cloud_probes.json", cp)
+        mark("cloud_probes")
         # The charges, and what the behaviour settings are set to — both lifted from the
         # diagnostics bundle, which already writes them redacted (no coordinates, no location name,
         # no free text) and has a test holding that promise.
@@ -1698,6 +1742,7 @@ async def research_export():
             z.writestr("diagnostics.txt", diagnostics.build_bundle(MATE_VERSION, signals=_fresh))
         except Exception:  # noqa: BLE001
             pass
+        mark("diagnostics")
         try:
             _charge_count = len(db_reader.get_charges(limit=1_000_000))
         except Exception:  # noqa: BLE001
@@ -1717,8 +1762,10 @@ async def research_export():
             "trip_fields": list(_RESEARCH_TRIP_FIELDS),
             "fuel_purchases": len(fuels),
             "fuel_fields": list(_RESEARCH_FUEL_FIELDS),
+            "stage_seconds": timings,
         }, indent=2))
     encrypted = research.encrypt_bundle(buf.getvalue())
+    mark("archive_and_encryption")
     fname = f"mate-beta-bundle-{int(time.time())}.matebeta"
     return Response(encrypted, media_type="application/octet-stream",
                     headers={"Content-Disposition": f'attachment; filename="{fname}"'})

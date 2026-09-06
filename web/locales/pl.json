@@ -1,5 +1,9 @@
 {
   "translations": {
+    "reev_export_waiting": "Przygotowywanie pełnego pakietu. Zapytania do chmury mogą potrwać kilka minut; możesz nadal korzystać z Mate.",
+    "reev_export_busy": "Pakiet jest już przygotowywany. Poczekaj i spróbuj ponownie.",
+    "reev_export_error": "Pobieranie nie powiodło się. Spróbuj ponownie.",
+    "reev_export_ready": "Pakiet gotowy; rozpoczęto pobieranie.",
     "abrp_car_without_token": "Nie ma własnego tokenu ABRP, więc nic nie jest wysyłane — ABRP używa jednego tokenu na pojazd:",
     "charge_merge_btn": "Połącz z poprzednią",
     "charge_merge_help": "Samochód zgłasza odłączenie kabla, gdy tylko prąd przestaje płynąć, więc jedno podłączenie może zostać zapisane jako kilka sesji ładowania. Połączenie przywraca całą sesję — w każdej chwili możesz ją rozłączyć.",
