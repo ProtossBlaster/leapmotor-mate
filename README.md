@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v3.15.8:** corrected merged-trip statistics and responsive research-bundle downloads.
-See [release notes and upgrade impact](docs/releases/v3.15.8.md).
+**v3.15.9:** fixed B05 live vehicle and charge-plan reads through the working status path.
+See [release notes and upgrade impact](docs/releases/v3.15.9.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -336,8 +336,8 @@ Publish the car to Home Assistant as **native entities** (in parallel to the Mat
 
 # LeapMotor Mate · Italiano
 
-**v3.15.8:** corrette le statistiche dei viaggi uniti e la reattività durante l'esportazione dei bundle.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v3.15.8.md#italiano).
+**v3.15.9:** corrette le letture live del veicolo e del piano di ricarica sulle B05.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v3.15.9.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

@@ -18,6 +18,7 @@ import asyncio
 import csv
 import io
 import json
+import re
 import zipfile
 
 import pytest
@@ -32,6 +33,10 @@ import research
 
 LOCATION_COLUMNS = {"start_lat", "start_lon", "end_lat", "end_lon",
                     "start_geohash", "end_geohash"}
+
+
+def _numeric_value_pattern(value):
+    return rf"(?<![\d.]){re.escape(value)}(?!\d)"
 
 
 @pytest.fixture
@@ -106,7 +111,16 @@ def test_no_coordinate_ever_leaves_the_machine(beta):
         assert col not in header, col
     whole = b"".join(beta.read(n) for n in beta.namelist()).decode(errors="replace")
     for coord in ("45.4642", "9.19", "44.4949", "11.3426", "45.07", "7.68"):
-        assert coord not in whole, f"{coord} travelled in the bundle"
+        # Match a complete numeric value, not the same digits inside an unrelated value.  In
+        # particular, a timestamp ending in ``:45.073734`` is not the Turin latitude ``45.07``.
+        leaked_value = _numeric_value_pattern(coord)
+        assert re.search(leaked_value, whole) is None, f"{coord} travelled in the bundle"
+
+
+def test_a_timestamp_prefix_is_not_mistaken_for_a_coordinate():
+    pattern = _numeric_value_pattern("45.07")
+    assert re.search(pattern, "2026-09-07T17:59:45.073734+00:00") is None
+    assert re.search(pattern, '"latitude": 45.07,') is not None
 
 
 def test_the_allow_list_covers_no_location_column():

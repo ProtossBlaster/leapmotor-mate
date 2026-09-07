@@ -3,6 +3,27 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.9] — 2026-09-07
+
+**Fixed (#278):** B05 live-status reads now use the same model-aware status-path fallback as
+the poller. Vehicle, Refresh, raw-signal diagnostics and charge-plan reads try the reported
+model once, retry through the working `c10` family path when necessary, then remember that
+path per VIN. The vehicle keeps its real model for commands, capabilities and battery sizing.
+Models whose own status path works are unchanged, and a failed fallback is not repeated on
+every request.
+
+**Changed:** Pillow is now an explicit dependency because `leapmotor-api 0.3.1` does not
+publish the documented `image` extra. AnyIO is constrained below 4.15 while FastAPI 0.115.0
+uses Starlette 0.38, avoiding their incompatible deprecated alias without a framework upgrade.
+
+**Tests:** the research-bundle location guard now distinguishes complete numeric coordinate
+values from the same digits inside timestamps. Release verification passed 3,298 tests with
+one intentional documentation skip and deprecation warnings treated as errors.
+
+**Upgrade impact:** normal patch update for Docker, Home Assistant and MateDesktop. No database
+schema, stored setting, command path or user data changes. Rollback to v3.15.8 requires no data
+conversion. See [release and rollback notes](docs/releases/v3.15.9.md).
+
 ## [3.15.8] — 2026-09-06
 
 **Fixed (beta #44):** Statistics and Energy-by-date-range now aggregate merged trips as one

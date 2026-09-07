@@ -2,6 +2,7 @@
 *.db
 *.db-wal
 *.db-shm
+mate-web.log
 __pycache__/
 *.pyc
 .DS_Store

@@ -198,6 +198,8 @@ class LeapmotorSession:
         self._vehicle = None
         self._vehicles: list = []
         self._lock = threading.Lock()
+        self._status_car_type: dict[str, str] = {}
+        self._status_fallback_tried: set[str] = set()
 
     def _target(self):
         """The car the picker is on — resolved on EVERY use, never frozen at login.
@@ -372,12 +374,44 @@ class LeapmotorSession:
             log.error("Command failed after all retries")
             return False, "Unknown error"
 
+    _STATUS_PATH_FALLBACK = "c10"
+
+    def _with_status_car_type(self, car_type: str, vehicle):
+        """Copy a vehicle with only the status-address model changed."""
+        import dataclasses
+        return dataclasses.replace(vehicle, car_type=car_type)
+
+    def _raw_status(self, vehicle=None):
+        """Read status through the model path, with one remembered fallback per VIN."""
+        vehicle = vehicle or self._target()
+        proven = self._status_car_type.get(vehicle.vin)
+        if proven is not None:
+            return self._api.get_vehicle_raw_status(self._with_status_car_type(proven, vehicle))
+        try:
+            return self._api.get_vehicle_raw_status(vehicle)
+        except Exception as first:                                  # noqa: BLE001
+            own = (getattr(vehicle, "car_type", "") or "").lower()
+            if vehicle.vin in self._status_fallback_tried or own == self._STATUS_PATH_FALLBACK:
+                raise
+            self._status_fallback_tried.add(vehicle.vin)
+            log.warning("Status call failed for model %s (%s) — retrying once on the %s path",
+                        own or "?", first, self._STATUS_PATH_FALLBACK)
+            try:
+                raw = self._api.get_vehicle_raw_status(
+                    self._with_status_car_type(self._STATUS_PATH_FALLBACK, vehicle))
+            except Exception:                                       # noqa: BLE001
+                raise first from None
+            self._status_car_type[vehicle.vin] = self._STATUS_PATH_FALLBACK
+            log.warning("Model %s reads its status on the %s path — using it from now on.",
+                        own or "?", self._STATUS_PATH_FALLBACK)
+            return raw
+
     def get_fresh_signals(self) -> dict | None:
         with self._lock:
             for attempt in range(2):
                 try:
                     self._connect()
-                    raw = self._api.get_vehicle_raw_status(self._target())
+                    raw = self._raw_status()
                     data = (raw or {}).get("data") or {}
                     # C10/B10: numeric `signal` dict. T03/EU: named fields at top level.
                     return data.get("signal") or _named_fields_to_signal(data)
@@ -392,7 +426,7 @@ class LeapmotorSession:
             for attempt in range(2):
                 try:
                     self._connect()
-                    raw = self._api.get_vehicle_raw_status(self._target())
+                    raw = self._raw_status()
                     plan = ((raw.get("data") or {}).get("config") or {}).get("3") or {}
                     return {
                         "charge_limit_percent": plan.get("percent"),
