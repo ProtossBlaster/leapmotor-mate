@@ -3,6 +3,18 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.11] — 2026-09-09
+
+**Fixed (release metadata):** the application version now matches the published release and
+changelog after v3.15.10 shipped with its internal version still reporting 3.15.9. The joined-trip
+note correction from #279 is unchanged.
+
+**Tests:** the version-to-changelog release guard is included in the complete project suite.
+
+**Upgrade impact:** metadata-only corrective patch on top of v3.15.10. No database schema,
+migration, dependency or stored data changes. Rollback to v3.15.10 requires no data conversion.
+See [release and rollback notes](docs/releases/v3.15.11.md).
+
 ## [3.15.10] — 2026-09-09
 
 **Fixed (#279):** joined trips now retain and display the automatic notes from every later
