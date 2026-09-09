@@ -112,3 +112,30 @@ def test_trip_note_saved_on_parent(tmp_path, monkeypatch):
     detail = db_reader.get_trip_detail(child)
     assert detail["note"] == "grouped note"
     assert detail["drive_mode"] == "normal"
+
+
+def test_merged_trip_keeps_later_segment_notes_visible_and_reversible(tmp_path, monkeypatch):
+    pdb = _setup(tmp_path, monkeypatch)
+    parent = _insert_trip(pdb, note="First automatic note")
+    child = _insert_trip(
+        pdb,
+        started_at="2026-05-01T08:35:00",
+        ended_at="2026-05-01T09:00:00",
+        note="Second automatic note",
+        merged_into_id=parent,
+    )
+
+    detail = db_reader.get_trip_detail(parent)
+    assert detail["note"] == "First automatic note"
+    assert detail["additional_segment_notes"] == [
+        {
+            "id": child,
+            "started_at": "2026-05-01T08:35:00",
+            "ended_at": "2026-05-01T09:00:00",
+            "note": "Second automatic note",
+        }
+    ]
+
+    db_reader.unmerge_trip(parent)
+    notes = dict(pdb._conn.execute("SELECT id, note FROM trips ORDER BY id").fetchall())
+    assert notes == {parent: "First automatic note", child: "Second automatic note"}

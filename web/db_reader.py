@@ -4337,9 +4337,20 @@ def _trip_group_stats(parent: dict, children: list) -> dict:
     d = dict(parent)
     d["merged_count"] = 1
     d["is_merged"] = False
+    d["additional_segment_notes"] = []
     if not children:
         return d
     segs = sorted([parent, *children], key=lambda t: t.get("started_at") or "")
+    d["additional_segment_notes"] = [
+        {
+            "id": segment["id"],
+            "started_at": segment.get("started_at"),
+            "ended_at": segment.get("ended_at"),
+            "note": segment.get("note"),
+        }
+        for segment in segs[1:]
+        if (segment.get("note") or "").strip()
+    ]
     first, last = segs[0], segs[-1]
     d["started_at"], d["start_soc"] = first.get("started_at"), first.get("start_soc")
     d["start_odometer_km"] = first.get("start_odometer_km")

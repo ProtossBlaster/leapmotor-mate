@@ -409,6 +409,19 @@
             hx-on::after-request="if(event.detail.successful){var m=document.getElementById('trip-note-msg');setTimeout(function(){if(m)m.textContent='';},2500);}">
         {% include "partials/trip_note_textarea.html" %}
 
+        {% if trip.additional_segment_notes %}
+        <div class="mt-3 space-y-3">
+          {% for segment in trip.additional_segment_notes %}
+          <div class="border-t border-slate-700/70 pt-3">
+            <div class="mb-1 text-xs font-medium text-slate-400">
+              {{ segment.started_at[11:16] }} &rarr; {{ segment.ended_at[11:16] }}
+            </div>
+            <div class="whitespace-pre-wrap break-words text-sm text-slate-200">{{ segment.note }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
         <div class="grid grid-cols-2 gap-3 mt-3">
           <div>
             <label class="stat-label" style="font-size:10px">{{ t('drive_mode') }}</label>
