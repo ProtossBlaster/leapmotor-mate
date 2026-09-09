@@ -3,6 +3,21 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.10] — 2026-09-09
+
+**Fixed (#279):** joined trips now retain and display the automatic notes from every later
+segment instead of showing only the first trip's note. Additional notes appear chronologically
+with their segment times and remain stored on their original trip, so splitting the journey
+restores every note unchanged.
+
+**Tests:** focused note and merged-summary checks passed 14 tests. The complete suite passed
+3,280 tests with 8 intentional skips; the remaining output consists only of dependency
+deprecation warnings.
+
+**Upgrade impact:** normal patch update for Docker, Home Assistant and MateDesktop. No database
+schema, migration or stored data changes. Rollback to v3.15.9 requires no data conversion.
+See [release and rollback notes](docs/releases/v3.15.10.md).
+
 ## [3.15.9] — 2026-09-07
 
 **Fixed (#278):** B05 live-status reads now use the same model-aware status-path fallback as
