@@ -930,6 +930,13 @@ assorbendo (così un'automazione vede l'abitacolo che viene riscaldato o raffred
 esterna**, quella dell'aria dal meteo — la seconda solo con quell'interruttore acceso (vedi
 *Panoramica*).
 
+E un'altra ancora 🆕: **Avviso aggiornamento OTA**, accesa quando nella casella dei messaggi del tuo
+account Leapmotor c'è un avviso di aggiornamento software, con titolo e data del messaggio come
+attributi — quanto basta a un'automazione per avvisarti. Va letta per quello che è: la casella è
+dell'**account**, quindi con due auto lo stesso avviso compare su entrambe, e dice che è arrivato un
+messaggio, non che la tua auto ha un aggiornamento in attesa. Leapmotor non pubblica uno stato
+dell'aggiornamento, quindi non c'è nessun numero di versione da mostrare.
+
 1. Prepara un **broker MQTT** (di solito l'add-on *Mosquitto* in Home Assistant).
 2. In *Impostazioni → MQTT*, attiva **Abilita MQTT** e compila:
    - **Broker** (es. `192.168.1.10` o `core-mosquitto`) e **Porta** (default `1883`);

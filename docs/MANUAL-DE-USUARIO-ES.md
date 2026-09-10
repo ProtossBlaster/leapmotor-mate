@@ -947,6 +947,13 @@ la climatización (así una automatización ve el habitáculo calentándose o en
 **Temperatura exterior**, la del aire según el tiempo — esta última solo mientras ese interruptor
 esté activado (ver *Resumen*).
 
+Y una más 🆕: **Aviso de actualización OTA**, encendida cuando en el buzón de tu cuenta Leapmotor hay
+un mensaje de actualización de software, con el título y la fecha del mensaje como atributos — lo
+suficiente para que una automatización te avise. Léela por lo que es: el buzón es de la **cuenta**,
+así que con dos coches el mismo aviso aparece en ambos, y dice que ha llegado un mensaje, no que tu
+coche tenga una actualización pendiente. Leapmotor no publica un estado de actualización, por lo que
+no hay número de versión que mostrar.
+
 1. Ten preparado un **broker MQTT** (normalmente el complemento *Mosquitto* de Home Assistant).
 2. En *Ajustes → MQTT*, activa **Activado** y rellena:
    - **Broker** (por ejemplo `192.168.1.10` o `core-mosquitto`) y **Puerto** (por defecto `1883`);

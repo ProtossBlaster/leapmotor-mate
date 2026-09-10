@@ -892,6 +892,12 @@ Two more entities arrived recently 🆕: **Climate Power**, the watts the climat
 (so an automation can see the cabin being heated or cooled), and **Outside Temp**, the air
 temperature from the weather — the latter only while that switch is on (see *Overview*).
 
+And one more 🆕: **OTA Update Notice**, on when a software-update message is sitting in your
+Leapmotor account inbox, with the message title and its date as attributes — enough for an
+automation to notify you. Read it for what it is: the inbox belongs to the **account**, so with two
+cars the same notice appears on both, and it says a message arrived, not that your car has an update
+pending. Leapmotor publishes no update status, so there is no version number to show.
+
 1. Get an **MQTT broker** ready (usually the *Mosquitto* add-on in Home Assistant).
 2. In *Settings → MQTT*, turn on **Enabled** and fill in:
    - **Broker** (e.g. `192.168.1.10` or `core-mosquitto`) and **Port** (default `1883`);

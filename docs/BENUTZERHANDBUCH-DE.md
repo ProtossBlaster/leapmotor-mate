@@ -915,6 +915,13 @@ gerade zieht (so sieht eine Automatisierung, dass der Innenraum geheizt oder gek
 **Außentemperatur**, die Lufttemperatur aus dem Wetter — Letztere nur, solange der entsprechende
 Schalter an ist (siehe *Übersicht*).
 
+Und noch eine 🆕: **OTA-Update-Hinweis**, an, wenn im Postfach Ihres Leapmotor-Kontos eine Nachricht
+über ein Software-Update liegt, mit Titel und Datum der Nachricht als Attribute — genug, damit eine
+Automatisierung Sie benachrichtigt. Richtig verstanden: Das Postfach gehört zum **Konto**, bei zwei
+Fahrzeugen erscheint derselbe Hinweis also an beiden, und er sagt, dass eine Nachricht eingetroffen
+ist, nicht dass Ihr Fahrzeug ein Update offen hat. Leapmotor veröffentlicht keinen Update-Status,
+eine Versionsnummer gibt es daher nicht.
+
 1. Bereiten Sie einen **MQTT-Broker** vor (üblicherweise das *Mosquitto*-Add-on in Home Assistant).
 2. Aktivieren Sie unter *Einstellungen → MQTT* die Option **MQTT aktivieren** und füllen Sie aus:
    - **Broker** (z. B. `192.168.1.10` oder `core-mosquitto`) und **Port** (Standard `1883`);
