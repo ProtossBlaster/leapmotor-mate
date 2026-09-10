@@ -372,9 +372,39 @@ class MqttService:
             pub("frame_ts", None)
             pub("data_age", None)
         self._publish_evcc(base, data)
+        self._publish_ota_notice(base)
         self.client.publish(f"{base}/location",
                             json.dumps({"latitude": data.latitude, "longitude": data.longitude}),
                             retain=True)
+
+    def _publish_ota_notice(self, base):
+        """The software-update notice the poller found in the account inbox (#277 @HaJeeEs).
+
+        Read from settings the poll loop already wrote — the inbox scan runs every 10 minutes on its
+        own schedule, so this entity costs NO cloud request, only two retained messages.
+
+        🔴 Two things it is not. It is ACCOUNT-level: the inbox belongs to the account, so on a
+        multi-vehicle install the same notice goes out under every VIN, which is what the Overview
+        already shows whichever car is selected — publishing it under one car would hide it from the
+        other's Home Assistant device. And it says "there is an update message", not "your car has
+        an update pending": the cloud exposes no OTA status, no available version and no installed
+        version (client.check_ota), so the title and the send time are all there is to carry.
+
+        Attributes go out with the state, empty ones included: a retained title left under an OFF
+        entity would read as an update still waiting."""
+        get = self.get_setting or (lambda k, d="": d)
+        available = get("ota_available", "") == "1"
+        title = get("ota_title", "") or None
+        raw = get("ota_time", "")
+        sent = None
+        if raw:
+            try:
+                sent = datetime.fromtimestamp(int(raw) / 1000, tz=timezone.utc).isoformat()
+            except (TypeError, ValueError, OSError):
+                sent = None     # a malformed timestamp must never cost the notification itself
+        self.client.publish(f"{base}/ota_notice", "ON" if available else "OFF", retain=True)
+        self.client.publish(f"{base}/ota_notice/attrs",
+                            json.dumps({"title": title, "sent": sent}), retain=True)
 
     def _publish_evcc(self, base, data):
         """EVCC-friendly boolean mirrors of plug/charging/climate.
@@ -510,10 +540,17 @@ class MqttService:
             ("window_rl", "Window Rear Left", "window"), ("window_rr", "Window Rear Right", "window"),
             ("sunshade_open", "Sunshade", "window"),
             ("any_door_open", "Any Door", "door"), ("windows_open", "Any Window", "window"),
+            # Account-level, not this car's: see _publish_ota_notice. `update` is the HA device
+            # class whose ON reads "update available", which is exactly what the inbox says.
+            ("ota_notice", "OTA Update Notice", "update"),
         ]
         for key, name, dc in binaries:
             conf = {"name": name, "state_topic": f"{prefix}/{vin}/{key}",
                     "payload_on": "ON", "payload_off": "OFF", "device_class": dc}
+            if key == "ota_notice":
+                # The message title and its send time — the only detail the cloud gives us.
+                conf["json_attributes_topic"] = f"{prefix}/{vin}/ota_notice/attrs"
+                conf["icon"] = "mdi:cellphone-arrow-down"
             if key == "locked":
                 # HA's `lock` device_class is inverted (on = unlocked, off = locked).
                 # We publish ON = locked, so swap the payloads → a locked car shows

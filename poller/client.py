@@ -7,6 +7,7 @@ library's typed model and insulated from its enum changes.
 """
 import logging
 import os
+import re
 from dataclasses import dataclass
 
 from leapmotor_api import LeapmotorApiClient
@@ -141,15 +142,33 @@ class EmptyStatusError(Exception):
     retry rather than treating it as a hard failure."""
 
 
-# Title/body keywords that mark an inbox message as an OTA / software update (lowercase, substring),
-# across the languages a Leapmotor account may use. STOPGAP until a real OTA message pins its
-# msg_type — see LeapmotorMateClient.check_ota(). Kept broad enough to catch the notice, specific
-# enough that everyday messages (vehicle sharing, etc.) don't match.
-_OTA_KEYWORDS = (
-    "ota", "fota", "firmware", "aggiorn", "software update", "software-update", "system update",
-    "vehicle update", "update available", "mise à jour", "mise a jour", "logiciel",
-    "aktualis", "software-aktualisierung", "upgrade",
+# Title/body patterns that mark an inbox message as an OTA / software update, across the languages
+# a Leapmotor account may use. STOPGAP until a real OTA message pins its msg_type — see
+# LeapmotorMateClient.check_ota().
+#
+# 🔴 These were bare substrings, and a substring is the wrong test for a flag that now drives a
+# Home Assistant notification (#277): "ota" matched inside *nota* and *quota*, and a lone
+# "upgrade" / "aggiorn" / "mise à jour" matched membership offers and terms-of-service notices —
+# five false positives out of six everyday titles. Two rules instead:
+#   • the acronyms match as WORDS (\b), never inside another one;
+#   • a generic update word only counts NEXT TO a software/vehicle word (up to three words apart,
+#     so "aggiornamento del software" and "mise à jour du logiciel" still match).
+# Precision is bought at some recall, deliberately: we have never seen the real notice, but a false
+# ON is a push on someone's phone, and a false OFF is the same silence as before the entity existed.
+_OTA_PATTERNS = (
+    r"\b(?:ota|fota)\b",                                                     # the acronym itself
+    r"\bfirmware\b",
+    r"\bsoftware[\s\-]?(?:update|upgrade|aktualisierung|updaten)\b",          # en/de/nl
+    r"\b(?:system|vehicle|car|fahrzeug)[\s\-]?update\b",
+    r"\bupdate\s+available\b",
+    r"\baggiornamento\b(?:\W+\w+){0,3}\W+\b(?:software|firmware|veicolo|sistema|centralina)\b",
+    r"\bmise\s+[àa]\s+jour\b(?:\W+\w+){0,3}\W+\b(?:logiciel|logicielle|v[ée]hicule|syst[èe]me)\b",
+    r"\baktualisierung\b(?:\W+\w+){0,3}\W+\b(?:software|fahrzeug|system)\b",
+    r"\bactualizaci[óo]n\b(?:\W+\w+){0,3}\W+\b(?:software|sistema|veh[íi]culo)\b",
+    r"\batualiza[çc][ãa]o\b(?:\W+\w+){0,3}\W+\b(?:software|sistema|ve[íi]culo)\b",
+    r"\baktualizacja\b(?:\W+\w+){0,3}\W+\b(?:oprogramowania|systemu|pojazdu)\b",
 )
+_OTA_RE = re.compile("|".join(_OTA_PATTERNS), re.IGNORECASE | re.UNICODE)
 
 
 class LeapmotorMateClient:
@@ -320,9 +339,10 @@ class LeapmotorMateClient:
         (ok=False). The caller logs each outcome so a diagnostics bundle can tell which it is.
 
         We match on the message title/body because the numeric `msg_type` is undocumented and was
-        None on every message we've captured so far — so this keyword match is a deliberate STOPGAP:
+        None on every message we've captured so far — so this pattern match is a deliberate STOPGAP:
         the moment a real OTA message is seen on-car, key off its exact msg_type instead and tighten
-        this. Non-OTA messages (vehicle sharing, etc.) are intentionally ignored — not surfaced."""
+        this. The patterns are word-anchored and pair generic update words with a software/vehicle
+        word (see _OTA_PATTERNS): the flag reaches Home Assistant, where a false ON is a push. Non-OTA messages (vehicle sharing, etc.) are intentionally ignored — not surfaced."""
         try:
             ml = self._api.get_message_list(page_no=1, page_size=20)
             msgs = getattr(ml, "messages", None) or []
@@ -330,8 +350,8 @@ class LeapmotorMateClient:
             log.warning("OTA inbox scan: message endpoint failed (%s) — cannot check for updates", e)
             return {"ok": False}
         for m in msgs:
-            hay = f"{getattr(m, 'title', '') or ''} {getattr(m, 'message', '') or ''}".lower()
-            if any(k in hay for k in _OTA_KEYWORDS):
+            hay = f"{getattr(m, 'title', '') or ''} {getattr(m, 'message', '') or ''}"
+            if _OTA_RE.search(hay):
                 st = getattr(m, "send_time", None)
                 return {"ok": True, "scanned": len(msgs), "ota": True,
                         "title": getattr(m, "title", None),
