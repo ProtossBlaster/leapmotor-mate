@@ -3,6 +3,30 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.12] — 2026-09-10
+
+**Added (#277):** the software-update notice Mate finds in the Leapmotor account inbox is now
+published to Home Assistant as an `OTA Update Notice` binary sensor, with the message title and its
+send time as attributes. The value comes from the inbox scan the poller already performs every ten
+minutes, so the entity costs no additional cloud request. The notice belongs to the account, not to
+a car: on a multi-vehicle installation it is published under every VIN, exactly as the Overview
+shows it for whichever car is selected. It reports that an update message exists, not that a vehicle
+has an update pending, and carries no version number because the vehicle cloud publishes none.
+
+**Changed:** update detection is stricter. The previous keyword scan matched substrings, so `ota`
+matched inside unrelated words and a lone `upgrade`, `aggiornamento` or `mise à jour` matched
+membership offers and terms-of-service notices. Acronyms now match as whole words and a generic
+update word only counts next to a software or vehicle word, across the eight supported languages.
+The stricter match also applies to the Overview indicator.
+
+**Tests:** sixteen new tests cover the tightened detection in every supported language and the new
+entity, including its account-level scope, its attributes and a malformed timestamp.
+
+**Upgrade impact:** no database schema, migration, dependency or stored data changes. The new
+entity is created by MQTT discovery when the poller reconnects after the update. Rollback to
+v3.15.11 requires no data conversion; it removes the entity and restores the previous, looser
+update detection. See [release and rollback notes](docs/releases/v3.15.12.md).
+
 ## [3.15.11] — 2026-09-09
 
 **Fixed (release metadata):** the application version now matches the published release and
