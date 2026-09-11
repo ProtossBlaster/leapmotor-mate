@@ -3,6 +3,23 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.13] — 2026-09-11
+
+**Fixed (#276):** on the Maintenance page, the `+ Log` button of every service card did nothing.
+It was a disclosure with no content, so a click opened an empty box, while the form that records a
+service sat further down the card behind a second, grey `✎ Mark this service as done` line. The
+button now opens that card's form and places the cursor on the date. The duplicate line is gone and
+its wording remains as the button's tooltip. The defect dates back to the page's introduction in
+v1.22.0.
+
+**Tests:** four new tests render the real template over the real B10 service pack and check that
+each card has exactly one log control, that it opens that card's own form, that the form starts
+closed, and that no empty disclosure remains.
+
+**Upgrade impact:** template-only change. No database schema, migration, dependency, stored data
+or MQTT change. Rollback to v3.15.12 requires no data conversion and restores the previous two
+controls. See [release and rollback notes](docs/releases/v3.15.13.md).
+
 ## [3.15.12] — 2026-09-10
 
 **Added (#277):** the software-update notice Mate finds in the Leapmotor account inbox is now
