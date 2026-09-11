@@ -82,9 +82,13 @@
         {% if item.next_text %}<div class="text-xs {{ scol[item.status] }}">{{ item.next_text }}</div>{% endif %}
       </div>
       <span class="text-[11px] px-2 py-0.5 rounded-full shrink-0 {{ spill[item.status] }}">{{ slbl[item.status] }}</span>
-      <details class="shrink-0 group">
-        <summary class="list-none cursor-pointer text-xs text-brand hover:text-brand/80 select-none whitespace-nowrap">+ {{ m.log_btn }}</summary>
-      </details>
+      {# The card's ONE log control. It used to be a <details> holding only its own <summary>: a click
+         opened an empty box, while the working form sat further down behind a second, grey
+         "✎ Mark this service as done" (#276 @joeyoong clicked the visible one and saw nothing).
+         Now it opens this card's form. #}
+      <button type="button" aria-expanded="false" aria-controls="maint-log-{{ loop.index }}" title="{{ m.log_done }}"
+              onclick="var f=document.getElementById(this.getAttribute('aria-controls')),o=!f.classList.toggle('hidden');this.setAttribute('aria-expanded',o);if(o)f.querySelector('input[name=date]').focus()"
+              class="shrink-0 cursor-pointer text-xs text-brand hover:text-brand/80 select-none whitespace-nowrap">+ {{ m.log_btn }}</button>
     </div>
 
     {% if item.km_pct is not none or item.time_pct is not none %}
@@ -106,8 +110,7 @@
 
     <div class="text-[11px] text-slate-500 mt-2">{{ m.last }}: {{ item.last_text }} · {{ m.interval }} {{ item.interval_text }}</div>
 
-    <details class="mt-1">
-      <summary class="list-none cursor-pointer text-xs text-slate-500 hover:text-brand select-none inline-flex items-center gap-1">✎ {{ m.log_done }}</summary>
+    <div id="maint-log-{{ loop.index }}" class="hidden">
       <form hx-post="api/maintenance/log" hx-target="#maint-content" hx-swap="innerHTML"
             class="mt-2 flex flex-wrap items-end gap-2 bg-slate-900/60 p-2 rounded-lg">
         <input type="hidden" name="service_type" value="{{ item.service_type }}">
@@ -128,7 +131,7 @@
                 class="text-slate-500 hover:text-red-400 text-sm px-2">🗑</button>
         {% endif %}
       </form>
-    </details>
+    </div>
   </div>
 {% endfor %}
 </div>
