@@ -1238,7 +1238,11 @@
     "stats_efftemp_y": "kWh/100 km",
     "stats_efftemp_fuel_y": "L/100 km",
     "stats_efftemp_trend_elec": "≈{val} kWh/100 km co 10 °C (elektryczne)",
-    "stats_efftemp_trend_fuel": "≈{val} L/100 km co 10 °C (benzyna)"
+    "stats_efftemp_trend_fuel": "≈{val} L/100 km co 10 °C (benzyna)",
+    "trip_area_electric": "Energia elektryczna",
+    "trip_area_fuel": "Paliwo",
+    "fuel_used": "Zużyte paliwo",
+    "reev_engine_km_label": "Z generatorem"
   },
   "months": {
     "full": [

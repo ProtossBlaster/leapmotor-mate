@@ -3,6 +3,40 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.15] — 2026-09-12
+
+**Changed (beta #31):** the trip page's summary card is arranged in three areas — the trip
+(distance, duration and the total cost, now the largest figure on the card), the electricity, and,
+on a range extender that burned something, the fuel. Every figure it showed before is still there:
+none is computed differently and none was dropped. The litres and the L/100 km moved out of the
+energy tile into the fuel area, where the generator's own distance joins them, beside the petrol
+that produced it and still marked as a floor. The block at the foot of the card keeps what lives
+nowhere else: the battery and tank start→end, the split between the kWh paid for at a plug and the
+kWh the generator supplied, and the note on what the electric figure measures.
+
+**Fixed:** on a range-extender trip where the generator ran, the card printed `Avg consumption` over
+a dash. That figure is withheld on purpose — a ΔSoC consumption means nothing once the generator
+refills the pack mid-drive — so the label is no longer printed either, and the electricity area
+takes a single column instead of leaving an empty cell beside it. A car with no tank keeps its
+`Avg consumption`, `Energy used` and `Regen` tiles and gains no section headings: with one source
+there is nothing to tell apart.
+
+**Not included:** the share of the distance driven on electricity against the generator, which the
+same request asks for. There is no "generator on" signal in the cloud, the generator's kilometres
+are counted from the fuel drop and are short in one direction only (54.0 against a dashboard's
+60.2), and subtracting them from the distance inherits that error — over 32 real trips, 8 of the
+remainders went to zero or negative.
+
+**Tests:** the eight that pinned the old arrangement were rewritten around the same questions, not
+removed: the generator's distance must still be legible rather than footnote type, neither fuel
+figure may be torn from its unit, a car with no tank must gain no fuel line, and the five figures
+that live in one place each must still have a place. Four new keys in all eight languages.
+
+**Upgrade impact:** template and translations only. No database schema, migration, dependency,
+stored data or MQTT change, and no figure on the page is calculated differently. Rollback to
+v3.15.14 requires no data conversion.
+See [release and rollback notes](docs/releases/v3.15.15.md).
+
 ## [3.15.14] — 2026-09-12
 
 **Fixed (#280):** an account with more than one car could not finish the setup wizard. The wizard

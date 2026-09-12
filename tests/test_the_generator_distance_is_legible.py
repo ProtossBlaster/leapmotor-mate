@@ -145,10 +145,19 @@ def _figure(page):
     number and three assertions passed while measuring nothing. Hence both the ⛽ and the guard
     test below."""
     return page.evaluate("""() => {
+        // The figure now sits under its own label in the fuel section (beta #31, three-area card),
+        // so the search starts from the label and looks inside its tile. Before, it looked for the
+        // smallest element carrying ⛽ AND a distance, because the figure was glued to the end of
+        // the getEC paragraph and had no label of its own to start from.
+        const labels = [...document.querySelectorAll('*')].filter(
+            el => (el.textContent || '').trim() === 'With the generator');
+        if (!labels.length) return null;
+        const label = labels[labels.length - 1];          // the innermost element holding the text
+        const tile = label.parentElement;
         let best = null;
-        document.querySelectorAll('*').forEach(el => {
+        tile.querySelectorAll('*').forEach(el => {
+            if (el === label) return;
             const t = (el.textContent || '').trim();
-            if (!t.includes('\\u26FD')) return;                 // ⛽
             if (/\\/\\s*100\\s*km/.test(t)) return;              // "1.1 L/100km" is a rate
             if (!/(^|[^\\/\\d])\\d+([.,]\\d+)?\\s*km\\b/.test(t)) return;
             if (best && t.length >= best.text.length) return;

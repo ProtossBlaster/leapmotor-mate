@@ -96,9 +96,19 @@ def test_the_two_pages_agree(tmp_path, monkeypatch):
 
 
 def test_the_litres_are_still_printed_beside_it(tmp_path, monkeypatch):
-    """The pair is the answer — the electric half alone would be the same half-story in reverse."""
+    """The pair is the answer — the electric half alone would be the same half-story in reverse.
+
+    📍 "Beside" stopped meaning "in the same 130px cell" with the three-area card (@gm27271, beta
+    #31): the rate is in the ⚡ section and the litres in the ⛽ one, a few lines apart on the same
+    screen. What must not happen is one of them disappearing, so both are still asserted — each
+    where it now lives."""
     visible = _render_tile(_trip(tmp_path, monkeypatch))
-    assert "1.8 kWh/100km" in visible and "L/100km" in visible, visible
+    assert "1.8 kWh/100km" in visible, visible
+    src = TEMPLATE.read_text()
+    fuel = src[src.index("{% if is_reev and trip.fuel_used_l %}"):
+               src.index("{% if is_reev and research and trip.engine_ran %}")]
+    assert "trip.fuel_l_100km" in fuel and "trip.fuel_used_l|nice" in fuel, \
+        "the petrol half of the pair is no longer printed anywhere"
 
 
 # ── and what it must NOT become ───────────────────────────────────────────────
