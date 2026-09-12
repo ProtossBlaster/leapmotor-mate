@@ -3,6 +3,34 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.14] — 2026-09-12
+
+**Fixed (#280):** an account with more than one car could not finish the setup wizard. The wizard
+draws a card per car and posts the answers as `vehicles_json`, but the check that runs on submit
+read only the single-car `battery` field — which the multi-car branch never fills. The result was
+"Please select a battery variant first." on a form where every pack *was* selected, with no way
+past it. The check now validates what is actually posted: every car must carry its own pack. The
+defect dates back to v3.13.0, the release that introduced the per-car cards.
+
+**Fixed:** on a multi-car account the account-wide capacity setting was left empty and fell back to
+65.0 kWh — a pack nobody had chosen. It now mirrors the first car's own answer, range-extender flag
+included. Each car's own capacity was, and remains, stored per vehicle.
+
+**Fixed:** a car whose model Mate does not recognise drew a card with a `Battery pack` heading and
+nothing under it, so its owner had nothing to choose and, with the check above, no way forward. The
+card now offers the same manual kWh field the wizard already shows when a single car is not
+recognised, feeding that car's own answer.
+
+**Tests:** six scenarios run the wizard's own JavaScript, rendered from the real template, in Node:
+two cars through, the account-wide mirror, a car with no pack refused, its manual field accepted and
+posted, the single-car path unchanged, and an empty form still refused. A second test guards the
+same invariant without Node.
+
+**Upgrade impact:** template-only change. No database schema, migration, dependency, stored data or
+MQTT change. An installation already set up is unaffected: this is the first-run wizard. Rollback to
+v3.15.13 requires no data conversion and restores the block.
+See [release and rollback notes](docs/releases/v3.15.14.md).
+
 ## [3.15.13] — 2026-09-11
 
 **Fixed (#276):** on the Maintenance page, the `+ Log` button of every service card did nothing.

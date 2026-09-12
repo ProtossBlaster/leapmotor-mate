@@ -754,7 +754,14 @@ function selectCarBattery(vin, v, reev) {
 function setCarPin(vin, pin) { CARS[vin].pin = pin; syncCars(); }
 
 function syncCars() {
-  document.getElementById('h-vehicles').value = JSON.stringify(Object.values(CARS));
+  const cars = Object.values(CARS);
+  document.getElementById('h-vehicles').value = JSON.stringify(cars);
+  // The account-wide fields are still posted, and setup_submit writes the first into the legacy
+  // `battery_capacity_kwh` — the pack a car without its own row is measured with. The multi-car
+  // branch left them empty, so that setting became the 65.0 fallback: a B10 Pro Max pack on an
+  // account whose first car may be an 81.9 kWh AWD. The first car's own answer belongs there.
+  document.getElementById('h-battery').value = cars.length ? cars[0].battery : '';
+  document.getElementById('h-is-reev').value = cars.length ? cars[0].is_reev : '0';
 }
 
 function buildCarCards(cars) {
@@ -771,11 +778,13 @@ function buildCarCards(cars) {
                      is_reev: options.length && options[0].reev ? '1' : '0', pin: mainPin};
     html += `
       <div data-car="${car.vin}" style="background:#0b1220;border:1px solid #1e293b;border-radius:12px;padding:14px 16px;margin-bottom:12px">
-        <div style="color:#f1f5f9;font-size:15px;font-weight:700;margin-bottom:10px">🚗 ${s.carLine(car.car_type, car.vin)}</div>
+        <div style="color:#f1f5f9;font-size:15px;font-weight:700;margin-bottom:10px">🚗 ${s.carLine(car.car_type, car.vin)}</div>`;
+    if (options.length) {
+      html += `
         <div style="font-size:13px;font-weight:500;color:#cbd5e1;margin-bottom:8px">${s.batteryLabel}</div>
         <div style="display:flex;flex-direction:column;gap:8px">`;
-    options.forEach(opt => {
-      html += `
+      options.forEach(opt => {
+        html += `
           <div class="bat-opt" data-v="${opt.v}"
                onclick="selectCarBattery('${car.vin}', '${opt.v}', ${opt.reev ? 'true' : 'false'})"
                style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
@@ -783,9 +792,23 @@ function buildCarCards(cars) {
             <span class="bat-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid #475569;flex-shrink:0"></span>
             <span style="color:#e2e8f0;font-size:13px">${opt.label}</span>
           </div>`;
-    });
+      });
+      html += `
+        </div>`;
+    } else {
+      // A model the map has never heard of has no list to draw: the card would be a "Battery pack"
+      // heading with nothing under it, and the pack is required — so its owner could not finish the
+      // wizard at all. With ONE car this case already falls back to a kWh field (buildManualInput);
+      // a card gets the same field and the same hint, feeding this car's own answer.
+      html += `
+        <div style="font-size:13px;font-weight:500;color:#cbd5e1;margin-bottom:8px">${s.manualEntry}</div>
+        <input type="number" class="manual-battery" min="10" max="200" step="0.1"
+               oninput="selectCarBattery('${car.vin}', this.value, false)"
+               style="width:100%;padding:10px 12px;border-radius:10px;background:#0f172a;
+                      border:1px solid #334155;color:#fff;font-size:14px;outline:none;box-sizing:border-box">
+        <p style="font-size:11px;color:#475569;margin-top:6px">${s.manualHint}</p>`;
+    }
     html += `
-        </div>
         <label style="display:block;margin-top:12px;color:#94a3b8;font-size:12px">${s.pinPerCar || 'PIN'}
           <input type="password" maxlength="4" inputmode="numeric" value="${mainPin}"
                  oninput="setCarPin('${car.vin}', this.value)"
@@ -965,7 +988,22 @@ function showResult(html) {
 }
 
 // ── Form validation ───────────────────────────────────────────────────────────
+// The form posts ONE of two shapes: `vehicles_json` when the account has more than one car, and
+// the account-wide `battery` when it has one. This read only the second — and the multi-car branch
+// returns before anything fills it — so from v3.13.0 an account with two cars was answered "select
+// a battery variant first" on a form where every pack WAS selected, with no way past it (#280).
+// Validate what is actually being sent: every car must carry its own pack, not just the first.
 function validateSubmit() {
+  const cars = document.getElementById('h-vehicles').value.trim();
+  if (cars) {
+    let list = [];
+    try { list = JSON.parse(cars); } catch { list = []; }
+    if (list.length) {
+      if (list.every(c => c.battery)) return true;
+      alert(strings[currentLang].noBattery);
+      return false;
+    }
+  }
   const battery = document.getElementById('h-battery').value.trim();
   if (!battery) {
     alert(strings[currentLang].noBattery);
