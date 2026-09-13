@@ -85,9 +85,28 @@
           {{ trip.cost_per_kwh | price3 }} {{ currency.symbol }}/kWh
         </div>
         {% endif %}
+        {# What the trip cost per distance — @michapr's own layout, beta #31. The card carried the
+           total and the rate the electricity was billed at, but not the figure that lets two trips
+           of different lengths be compared, which is the one a running cost is usually read for.
+           Same denominator and same helpers as the Statistics card (cost100_val + dist100_unit), so
+           the two pages state it identically and imperial readers get it per 100 mi. On a range
+           extender it spans BOTH sources, because cost_total does. #}
+        {% if trip.distance_km %}
+        <div class="mt-1 text-[11px] leading-none text-slate-400">
+          {{ cost100_val(trip.cost_total / trip.distance_km * 100) | money }}/{{ dist100_unit() }}
+        </div>
+        {% endif %}
         {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
       </div>
 
+      {# ⛔ Areas 2 and 3 are NOT put side by side, and the reason is geometry, not taste.
+         @michapr built exactly that on beta #31 and it is right on his screen: his card is the full
+         width of a phone. Ours is not — this page is `lg:grid-cols-3` and the card sits in the
+         first column, so measured on the rendered page a two-column rule inside it gives 87px per
+         column at a 1024px viewport and 148px at 1600px, and area 3 then splits ITS width again
+         into two cells. At 1600px that is ~70px for "5.4 L/100km". Tried, measured, reverted:
+         the arrangement would only fit on a viewport around 1900px and be broken on every other.
+         The two areas stay stacked, each using the full width of the column. #}
       {# ── 2 · The electricity ─────────────────────────────────────────────────────────────────
          Everything that came out of the pack, under one heading. Same figures as before, no longer
          interleaved with the petrol: on a range extender the energy tile carried the kWh, the
@@ -330,7 +349,17 @@
       </div>
       {% endif %}
     </div>
-    <div class="card space-y-3 text-sm">
+    {# The secondary readings, foldable — @gm27271's point 5 on beta #31 ("the battery and fuel
+       level changes could be moved into a smaller, less prominent section at the bottom"), in the
+       shape @michapr built for it. Native <details>, so it costs no script and keeps the keyboard
+       and screen-reader behaviour the browser already gives a disclosure.
+       🔴 OPEN by default, deliberately: folding is OFFERED, nothing is taken away. Every reading in
+       here has been visible on this page since it existed, and shipping it closed would look like
+       data had been removed — which is the complaint this card is already answering, not one to
+       create. The rows keep their own indentation; the wrapper carries the spacing they had. #}
+    <details class="card" open>
+      <summary class="cursor-pointer text-sm font-medium text-slate-300 hover:text-white">{{ t('trip_details_section') }}</summary>
+      <div class="space-y-3 text-sm mt-3">
       <div class="flex justify-between">
         <span class="text-slate-400">{{ t('start_soc') }}</span>
         <span class="text-white font-medium">{{ (trip.start_soc or 0)|dec(1) }}%</span>
@@ -407,7 +436,8 @@
         <span class="text-slate-400">{{ t('gps_points') }}</span>
         <span class="text-white font-medium">{{ trip.positions|length }}</span>
       </div>
-    </div>
+      </div>
+    </details>
 
     {% if trip.ec_stable and trip.ec_kwh and trip.ec_kwh > 0 %}
     <!-- Consumo ufficiale (cloud getEC) di QUESTO viaggio: totale + Guida/AC/Altro in kWh.

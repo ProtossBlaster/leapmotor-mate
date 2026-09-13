@@ -1241,6 +1241,7 @@
     "stats_efftemp_trend_fuel": "≈{val} L/100 km per 10 °C (benzine)",
     "trip_area_electric": "Elektriciteit",
     "trip_area_fuel": "Brandstof",
+    "trip_details_section": "Ritdetails",
     "fuel_used": "Brandstof verbruikt",
     "reev_engine_km_label": "Met de generator"
   },

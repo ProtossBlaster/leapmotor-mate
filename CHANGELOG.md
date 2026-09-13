@@ -3,6 +3,25 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.16] — 2026-09-13
+
+**Added (beta #31, @michapr):** the trip's cost per distance, under the total it comes from —
+`12.87 €/100 km` beside the `12.48 €`. The card carried the total and the rate the electricity was
+billed at, but not the figure that lets two trips of different lengths be compared. It uses the same
+denominator as the Statistics card, so a reader in miles gets it per 100 mi, and on a range extender
+it spans both sources because the total does.
+
+**Changed (beta #31, @michapr):** the block of secondary readings at the foot of a trip — battery
+level start→end, odometer, speeds, elevation, temperature, GPS points — folds. It ships open, so
+nothing is hidden from a reader who never touches it.
+
+Both come from the layout @michapr built and attached to that discussion. His third idea — the
+electricity and the fuel side by side instead of stacked — was built, measured on the rendered page
+and reverted: it is right on his screen, where the card is the full width of a phone, and wrong on
+ours, where the card is the first column of a three-column page. Measured there, the two columns
+came out 87px wide at a 1024px viewport and 148px at 1600px, and the fuel area halves its own width
+again — about 70px for `5.4 L/100km`.
+
 ## [3.15.15] — 2026-09-12
 
 **Changed (beta #31):** the trip page's summary card is arranged in three areas — the trip

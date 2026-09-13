@@ -1241,6 +1241,7 @@
     "stats_efftemp_trend_fuel": "≈{val} L/100 km je 10 °C (Benzin)",
     "trip_area_electric": "Strom",
     "trip_area_fuel": "Kraftstoff",
+    "trip_details_section": "Fahrtdetails",
     "fuel_used": "Kraftstoff verbraucht",
     "reev_engine_km_label": "Mit Generator"
   },
