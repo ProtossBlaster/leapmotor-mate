@@ -1368,6 +1368,9 @@ async def statistics(request: Request):
         totals["cost100"] = db_reader.cost_per_100km(_rt["total_fuel_l"] if _rt else 0.0)
     else:
         totals["cost100"] = db_reader.cost_per_100km()
+    # …and what those same kilometres would have cost on a petrol/diesel car the owner names
+    # themselves — manual entry only, no external lookup (see db_reader.ice_comparison).
+    totals["ice_compare"] = db_reader.ice_comparison(totals["cost100"])
     # …and what Mate measured but refuses to attribute: the kilometres the car covered while the
     # cloud had nothing new to say. They are kept out of every figure above — both the distance and
     # the charge that went with it — so this is the only place they are ever stated.
@@ -3487,6 +3490,24 @@ async def save_prices(request: Request):
                 break
         if updated:
             _set_wallbox_profiles(profiles)
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("costs_saved")}</span>')
+
+
+@app.post("/api/settings/ice-compare", response_class=HTMLResponse)
+async def save_ice_compare(request: Request):
+    """The manually-entered petrol/diesel car the Statistics page compares against."""
+    form = await request.form()
+    db_reader.set_setting("ice_compare_enabled", "1" if form.get("ice_compare_enabled") else "0")
+    db_reader.set_setting("ice_compare_use_kml", "1" if form.get("ice_compare_use_kml") else "0")
+    db_reader.set_setting("ice_compare_name", (form.get("ice_compare_name") or "").strip())
+    for key in ("ice_compare_l_100km", "ice_compare_fuel_price"):
+        val = form.get(key)
+        if val:
+            try:
+                db_reader.set_setting(key, str(float(val)))
+            except ValueError:
+                pass
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("costs_saved")}</span>')
 

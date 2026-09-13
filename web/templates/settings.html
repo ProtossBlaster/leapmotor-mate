@@ -545,6 +545,76 @@
       </form>
     {% endcall %}
 
+    {# A petrol/diesel car the owner names, priced against its OWN fuel-label numbers — no
+       external "consumption by model" lookup. The one real candidate checked (RapidAPI's Cars
+       Fuel Consumption) turned out to be Canadian NRCan data, 1995-2022, missing exactly the
+       city cars (Panda, Ypsilon) an Italian owner is most likely to compare against. Settings is
+       read fresh on every Statistics load — same as every price on the Costs page — so a change
+       here is reflected the next time that card renders, never a stale cached figure. #}
+    {% call scard('ice_compare', '⛽ ' + t('ice_compare_title'), card_open.get('ice_compare')) %}
+      <p class="text-xs text-slate-400 mb-4">{{ t('ice_compare_desc') }}</p>
+      <form hx-post="api/settings/ice-compare" hx-trigger="change" hx-target="#ice-compare-feedback" hx-swap="innerHTML">
+        <label class="flex items-center gap-2 mb-4 cursor-pointer">
+          <input type="checkbox" name="ice_compare_enabled" value="1"
+                 {% if settings.get('ice_compare_enabled') == '1' %}checked{% endif %}
+                 class="w-4 h-4 accent-brand">
+          <span class="text-sm text-slate-200">{{ t('ice_compare_enable') }}</span>
+        </label>
+        {# One field per row, full width — three side by side in this column's narrow width
+           packed the consumption box down to a few illegible pixels (a real tester's screenshot
+           showed a value nobody could read next to its own label). #}
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">{{ t('ice_compare_name') }}</label>
+            <input type="text" name="ice_compare_name" maxlength="60"
+                   value="{{ settings.get('ice_compare_name', '') }}"
+                   placeholder="{{ t('ice_compare_name_placeholder') }}"
+                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-200 focus:border-brand focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">{{ t('ice_compare_consumption') }}</label>
+            <div class="flex items-center gap-2">
+              <input type="number" id="ice-compare-consumption-input" name="ice_compare_l_100km" step="0.01" min="0"
+                     value="{{ settings.get('ice_compare_l_100km', '') }}"
+                     class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-200 text-right focus:border-brand focus:outline-none">
+              <span id="ice-compare-unit-label" class="text-slate-500 text-xs whitespace-nowrap">
+                {{ 'km/L' if settings.get('ice_compare_use_kml') == '1' else 'L/100km' }}
+              </span>
+            </div>
+            {# A single checkbox, not two radios: the unit an Italian fuel label prints varies by
+               car (small petrol cars often quote km/l, not L/100km). Flipping it CONVERTS the
+               number already sitting in the field (100 / x either way — L/100km and km/l are
+               each other's reciprocal times 100) so the box keeps meaning the same real fuel
+               economy across the switch, rather than quietly reinterpreting "5.7" as a different
+               unit than the one it was typed in. #}
+            <label class="flex items-center gap-2 mt-1.5 cursor-pointer">
+              <input type="checkbox" name="ice_compare_use_kml" value="1"
+                     {% if settings.get('ice_compare_use_kml') == '1' %}checked{% endif %}
+                     class="w-3.5 h-3.5 accent-brand"
+                     onchange="
+                       var f = document.getElementById('ice-compare-consumption-input');
+                       var v = parseFloat(f.value);
+                       if (!isNaN(v) && v > 0) { f.value = (100.0 / v).toFixed(2); }
+                       document.getElementById('ice-compare-unit-label').textContent = this.checked ? 'km/L' : 'L/100km';
+                     ">
+              <span class="text-[11px] text-slate-500">{{ t('ice_compare_use_kml') }}</span>
+            </label>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">{{ t('ice_compare_fuel_price') }}</label>
+            <div class="flex items-center gap-2">
+              <span class="text-slate-500 text-sm">{{ currency.symbol }}</span>
+              <input type="number" name="ice_compare_fuel_price" step="0.001" min="0"
+                     value="{{ settings.get('ice_compare_fuel_price', '') }}"
+                     class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-200 text-right focus:border-brand focus:outline-none">
+              <span class="text-slate-500 text-xs">/L</span>
+            </div>
+          </div>
+        </div>
+        <div id="ice-compare-feedback" class="text-xs mt-3" style="color:#64748b"></div>
+      </form>
+    {% endcall %}
+
   </div>
 
   <!-- ── Column 2 (4): Integrations — ABRP, Geocoder, Wallbox, MQTT ──── -->

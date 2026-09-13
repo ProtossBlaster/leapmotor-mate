@@ -5411,6 +5411,61 @@ def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
     }
 
 
+def ice_comparison(cost100: Optional[dict]) -> Optional[dict]:
+    """What the same kilometres would have cost on a petrol/diesel car the owner names themselves.
+
+    No external "consumption by model" database backs this — the one real candidate found
+    (RapidAPI's Cars Fuel Consumption) turned out to be Canadian NRCan data, 1995-2022, so it
+    has none of the city cars (Panda, Ypsilon) an Italian owner is most likely to compare
+    against, and nothing built after 2022 either. So the comparison car is whatever the owner
+    types: a name for the label, and the two numbers already on ITS OWN fuel sticker (L/100km,
+    €/L) — no lookup, no guess.
+
+    None when the feature is off, when either number is missing or zero, or when `cost_per_100km`
+    has nothing to divide over (same floor as the card this sits beside — no kilometres, no
+    comparison).
+
+    The consumption number is stored EXACTLY as the owner typed it, in whichever unit they
+    picked — a small Italian petrol car's own fuel label is as likely to print km/l as L/100km,
+    and forcing a conversion into the box would only invite a wrong-unit entry. `ice_compare_use_kml`
+    says which one `ice_compare_l_100km` (the setting key kept its name; it holds either number)
+    actually is; the arithmetic below always runs on L/100km, converting first when it is not."""
+    if get_setting("ice_compare_enabled", "0") != "1":
+        return None
+    if not cost100 or not cost100.get("km") or cost100.get("total_100km") is None:
+        return None
+    use_kml = get_setting("ice_compare_use_kml", "0") == "1"
+    try:
+        entered = float(get_setting("ice_compare_l_100km", "0") or 0)
+        fuel_price = float(get_setting("ice_compare_fuel_price", "0") or 0)
+    except (TypeError, ValueError):
+        return None
+    if entered <= 0 or fuel_price <= 0:
+        return None
+    l_100km = 100.0 / entered if use_kml else entered
+
+    km = cost100["km"]
+    ice_100km = l_100km * fuel_price
+    ice_total = ice_100km * km / 100.0
+    actual_total = cost100["total_100km"] * km / 100.0
+    savings = ice_total - actual_total
+    return {
+        "name": get_setting("ice_compare_name", "") or None,
+        "l_100km": l_100km,
+        "fuel_price": fuel_price,
+        "ice_100km": round(ice_100km, 2),
+        "ice_total": round(ice_total, 2),
+        "actual_total": round(actual_total, 2),
+        "savings": round(savings, 2),
+        "savings_pct": round(savings / ice_total * 100, 1) if ice_total > 0 else None,
+        "km": km,
+        # What the owner actually typed, and in which unit — the Statistics card shows THIS,
+        # never a silently-converted L/100km they never entered.
+        "consumption_value": entered,
+        "consumption_unit": "km/L" if use_kml else "L/100km",
+    }
+
+
 def _energy_balance_kwh(db, km: float, basis: dict) -> tuple:
     """How many kWh those `km` took, as a closed-system BALANCE — never trip by trip.
 
