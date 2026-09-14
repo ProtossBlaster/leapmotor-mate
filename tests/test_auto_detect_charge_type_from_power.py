@@ -42,27 +42,30 @@ def test_never_assigns_ac(tmp_path, monkeypatch):
     assert _row(pdb, 2)["location_type"] is None
 
 
-def test_assigns_fast_between_the_two_thresholds(tmp_path, monkeypatch):
+def test_assigns_fast_above_the_threshold(tmp_path, monkeypatch):
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, max_power_kw=35.0)
     assert db_reader.auto_detect_charge_type_from_power() == 1
     assert _row(pdb, 1)["location_type"] == "FAST"
 
 
-def test_assigns_hpc_above_the_hpc_threshold(tmp_path, monkeypatch):
+def test_never_assigns_hpc_however_high_the_power(tmp_path, monkeypatch):
+    """Power is the CAR's own charging curve, not the charger's rating or tariff class — a car on a
+    genuine 300 kW HPC charger can still measure well under any threshold depending on where its
+    curve sits (SoC, battery temperature). So even a very high reading only ever means DC, never
+    HPC — that call stays a plain human judgement on the badge, exactly as it always has."""
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, max_power_kw=150.0)
     assert db_reader.auto_detect_charge_type_from_power() == 1
-    assert _row(pdb, 1)["location_type"] == "HPC"
+    assert _row(pdb, 1)["location_type"] == "FAST"
 
 
-def test_thresholds_are_user_configurable(tmp_path, monkeypatch):
+def test_threshold_is_user_configurable(tmp_path, monkeypatch):
     pdb = _setup(tmp_path, monkeypatch)
     db_reader.set_setting("charge_dc_min_kw", "22")
-    db_reader.set_setting("charge_hpc_min_kw", "100")
-    _charge(pdb, 1, max_power_kw=50.0)    # above the raised dc floor, below the raised hpc one
-    assert db_reader.auto_detect_charge_type_from_power() == 1
-    assert _row(pdb, 1)["location_type"] == "FAST"
+    _charge(pdb, 1, max_power_kw=15.0)    # above the default floor, below the raised one
+    assert db_reader.auto_detect_charge_type_from_power() == 0
+    assert _row(pdb, 1)["location_type"] is None
 
 
 def test_already_typed_charges_are_left_alone(tmp_path, monkeypatch):

@@ -1099,18 +1099,6 @@
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
-            <span class="text-sm text-white">{{ t('adv_hpc_label') }}</span>
-            <span class="font-bold text-brand"><span id="adv-hpc-val">{{ settings.get('charge_hpc_min_kw', '50') }}</span> kW</span>
-          </div>
-          <input type="range" name="charge_hpc_min_kw" min="32" max="350" step="1"
-                 value="{{ settings.get('charge_hpc_min_kw', '50') }}"
-                 oninput="document.getElementById('adv-hpc-val').textContent=this.value"
-                 class="w-full accent-brand cursor-pointer">
-          <div class="flex justify-between text-[10px] text-slate-600 mt-1"><span>32 kW</span><span>350 kW</span></div>
-          <div class="text-[11px] text-slate-500 mt-1">{{ t('adv_hpc_help') }}</div>
-        </div>
-        <div>
-          <div class="flex items-center justify-between mb-1">
             <span class="text-sm text-white">{{ t('adv_soh_temp_label') }}</span>
             <span class="font-bold text-brand"><span id="adv-soh-val">{{ settings.get('soh_temp_min_c', '15') }}</span> °C</span>
           </div>

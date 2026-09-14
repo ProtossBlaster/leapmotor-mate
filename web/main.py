@@ -2498,7 +2498,6 @@ async def settings_page(request: Request):
                 "vampire_min_drop_pct": db_reader.get_setting("vampire_min_drop_pct", "0.2"),
                 "vampire_min_hours": db_reader.get_setting("vampire_min_hours", "1"),
                 "charge_dc_min_kw": db_reader.get_setting("charge_dc_min_kw", "11"),
-                "charge_hpc_min_kw": db_reader.get_setting("charge_hpc_min_kw", "50"),
                 "wallbox_auto_home": db_reader.get_setting("wallbox_auto_home", "0"),
                 "default_drive_mode": db_reader.get_setting("default_drive_mode", ""),
                 "default_one_pedal": db_reader.get_setting("default_one_pedal", ""),
@@ -3131,16 +3130,24 @@ async def set_charge_cost(request: Request, charge_id: int):
     """The pencil-cost field: the REAL total paid, independent of the charge's type — what the
     'Manual' badge used to conflate. Unlike gross-kwh/solar-kwh below, the box opens PRE-FILLED
     with the current effective cost, so a genuinely empty submission is a deliberate CLEAR (back to
-    the computed default), not "leave it alone". See `set_charge_cost`'s docstring in db_reader."""
+    the computed default), not "leave it alone". See `set_charge_cost`'s docstring in db_reader.
+
+    ⚠️ Empty and UNPARSEABLE are not the same thing, and must not collapse into it: typing "18,45€"
+    (a stray currency symbol, a typo) is not a clear, and reading it as one silently deleted a price
+    the owner had already typed, replacing it with the computed estimate — found in review. Only a
+    field that is empty after stripping is a clear; anything else that fails to parse is REJECTED —
+    the charge is re-rendered exactly as it already was, nothing written."""
     form = await request.form()
-    cost = None
-    _c = str(form.get("cost", "")).strip().replace(",", ".")
-    if _c:
+    raw = str(form.get("cost", "")).strip()
+    if not raw:
+        charge = db_reader.set_charge_cost(charge_id, None)          # deliberate clear
+    else:
         try:
-            cost = max(0.0, float(_c))
+            cost = max(0.0, float(raw.replace(",", ".")))
         except (ValueError, TypeError):
-            cost = None
-    charge = db_reader.set_charge_cost(charge_id, cost)
+            charge = db_reader.get_charge(charge_id)                 # reject: leave it alone
+        else:
+            charge = db_reader.set_charge_cost(charge_id, cost)
     t = i18n.get_t(db_reader.get_language())
     return templates.TemplateResponse(request, "partials/charge_cost_manual.html", {
         "charge": charge,
@@ -4723,7 +4730,6 @@ _ADVANCED_DEFAULTS = {
     "vampire_min_drop_pct":       (0.2, 0.1, 2.0),
     "vampire_min_hours":          (1.0, 1.0, 12.0),
     "charge_dc_min_kw":           (11.0, 11.0, 32.0),
-    "charge_hpc_min_kw":          (50.0, 32.0, 350.0),
     "soh_temp_min_c":             (15.0, 0.0, 25.0),
 }
 

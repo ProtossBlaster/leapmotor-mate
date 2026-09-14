@@ -31,14 +31,17 @@ def _get(pdb, cid):
 
 
 def test_a_measured_charge_is_reclassified_from_its_peak_power(tmp_path, monkeypatch):
+    """Power can only ever tell AC from DC — never DC from HPC, since max_power_kw is the car's own
+    charging curve, not the charger's rating. A charge measured well above the DC floor still comes
+    back FAST, never HPC — that split has always been, and stays, a human judgement call on the badge."""
     pdb = _setup(tmp_path, monkeypatch)
     _row(pdb, 1, max_power_kw=7.4)    # ≤ 11 kW default charge_dc_min_kw
-    _row(pdb, 2, max_power_kw=22.0)   # between the two thresholds
-    _row(pdb, 3, max_power_kw=120.0)  # above the default 50 kW charge_hpc_min_kw
+    _row(pdb, 2, max_power_kw=22.0)   # above the threshold
+    _row(pdb, 3, max_power_kw=120.0)  # well above the threshold — still just FAST, never HPC
     assert db_reader.repair_manual_type_charges() == 3
     assert _get(pdb, 1)["location_type"] == "AC"
     assert _get(pdb, 2)["location_type"] == "FAST"
-    assert _get(pdb, 3)["location_type"] == "HPC"
+    assert _get(pdb, 3)["location_type"] == "FAST"
 
 
 def test_cost_is_never_touched(tmp_path, monkeypatch):
