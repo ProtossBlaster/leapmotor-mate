@@ -1,6 +1,7 @@
 """Persistent Leapmotor session — login once, reuse for all commands and status fetches."""
 import os
 import json
+import ssl
 import time
 import logging
 import threading
@@ -41,10 +42,39 @@ def cert_dir() -> str:
     return _FALLBACK_CERT_DIR
 
 
+def cert_pair_problem(crt_path: str, key_path: str) -> str | None:
+    """Why this certificate + key cannot open a TLS session, or None when they can.
+
+    #283: the wizard checked for the substring `-----BEGIN CERTIFICATE-----`, so a certificate cut
+    short, flattened onto one line or saved as the web page that shows it was stored, and every
+    login after died with `[SSL] PEM lib`. This loads the pair the way the login does (requests →
+    OpenSSL load_cert_chain), so "saved" and "usable" cannot disagree.
+
+    Returns 'cert_unreadable', 'key_unreadable' or 'key_mismatch'. The certificate is read on its
+    own first because OpenSSL reports a bad certificate and a bad key with the same message."""
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    try:
+        ctx.load_verify_locations(cafile=crt_path)
+    except (ssl.SSLError, OSError):
+        return "cert_unreadable"
+    try:
+        # A password-protected key makes OpenSSL ask for a pass phrase: with no terminal (the add-on)
+        # it prints "Enter PEM pass phrase:" into the log and fails; with one attached it would
+        # wait. Answering an empty password makes it a plain refusal either way.
+        ctx.load_cert_chain(crt_path, key_path, password=lambda: b"")
+    except ssl.SSLError as e:
+        return "key_mismatch" if e.reason == "KEY_VALUES_MISMATCH" else "key_unreadable"
+    except OSError:
+        return "key_unreadable"
+    return None
+
+
 def certs_present() -> bool:
+    """Both files there AND usable — the wizard skips its certificate step on True, so a broken
+    file that merely existed could never be replaced from the wizard again (#283)."""
     d = cert_dir()
-    return (os.path.exists(os.path.join(d, "app.crt"))
-            and os.path.exists(os.path.join(d, "app.key")))
+    crt, key = os.path.join(d, "app.crt"), os.path.join(d, "app.key")
+    return os.path.exists(crt) and os.path.exists(key) and cert_pair_problem(crt, key) is None
 
 
 # T03/EU status carries live data as named fields at the top level of `data` instead
@@ -61,6 +91,8 @@ _SIGNAL_TO_NAMED = {
     "1480": "parkingBrakeState", "6048": "speedLimit", "6047": "speedLimitUnit",
     "12054": "speedLimitActive",
     "3725": "latitude", "3724": "longitude",
+    # #282: signed on the T03 — see poller/client.py's copy, which this one had drifted from.
+    "3": "latitude", "2": "longitude",
     "1938": "acSwitch", "2183": "acSetting", "2184": "acSettingRight", "1349": "interiorTemp",
     "1943": "recirculationMode", "1945": "windshieldDefrost", "1946": "rearWindowHeating",
     "3713": "climateMode", "2669": "rapidCooling", "2681": "rapidHeating",

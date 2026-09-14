@@ -462,7 +462,12 @@ _SIGNAL_TO_NAMED = {
     "1480": "parkingBrakeState", "6048": "speedLimit", "6047": "speedLimitUnit",
     "12054": "speedLimitActive",
     "3725": "latitude", "3724": "longitude",
-    "3": "latitudeSigned", "2": "longitudeSigned",
+    # #282: the T03 has no separate signed pair — its `latitude`/`longitude` ARE signed, so they
+    # fill the signed slots too. These used to read `latitudeSigned`/`longitudeSigned`, names no
+    # response carries: 2/3 stayed empty on every T03, _resolve_coord took abs() of the only value
+    # and re-applied a remembered +1, and a T03 west of Greenwich was plotted east. Twin of
+    # web/command_client.py's copy — test_a_t03_west_of_greenwich_keeps_its_longitude.py.
+    "3": "latitude", "2": "longitude",
     "1938": "acSwitch", "2183": "acSetting", "2184": "acSettingRight", "1349": "interiorTemp",
     "1943": "recirculationMode", "1945": "windshieldDefrost", "1946": "rearWindowHeating",
     "3713": "climateMode", "2669": "rapidCooling", "2681": "rapidHeating",

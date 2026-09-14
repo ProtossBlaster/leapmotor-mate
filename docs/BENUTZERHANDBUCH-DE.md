@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.15.16 · **Sprache:** Deutsch
+> **Mate-Version:** v3.15.17 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -183,7 +183,10 @@ Mate fragt Sie nach dem TLS-Zertifikat der Leapmotor-App. Sie haben zwei Möglic
 - **Fügen Sie den PEM-Text** der beiden Dateien ein (Schaltfläche *„Stattdessen den PEM-Text einfügen"*).
 
 Laden Sie sie über den angezeigten Link herunter, laden Sie sie hoch und drücken Sie **Zertifikat speichern**.
-Dieser Schritt erscheint nur, wenn das Zertifikat nicht bereits im Image vorhanden ist.
+Mate öffnet die beiden Dateien, bevor es sie behält: Ist eine davon nicht lesbar — eine abgeschnittene
+Datei oder die Webseite, die sie anzeigt, anstelle der Datei gespeichert —, wird sie abgelehnt, und die
+rote Meldung sagt, welche. Dieser Schritt erscheint nur, wenn Mate noch kein Zertifikat hat, das es
+lesen kann: ein früher gespeichertes, beschädigtes zählt nicht.
 
 ### Schritt 2 — Anmeldung am Konto
 

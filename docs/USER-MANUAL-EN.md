@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.15.16 · **Language:** English
+> **Mate version:** v3.15.17 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -180,8 +180,11 @@ Mate asks you for the Leapmotor app's TLS certificate. You have two ways:
 - **Upload the files** `app.crt` and `app.key` (the default mode), or
 - **Paste the PEM text** of the two files (the *"Paste the PEM text instead"* button).
 
-Download them from the link shown, upload them and press **Save certificate**. This step only appears
-if the certificate isn't already present in the image.
+Download them from the link shown, upload them and press **Save certificate**. Mate opens the two
+files before keeping them: if one can't be read — a file cut short, or the web page that shows it
+saved instead of the file — it is refused, and the red message says which one. This step only
+appears if Mate doesn't already have a certificate it can read: a broken one saved earlier doesn't
+count.
 
 ### Step 2 — Account sign-in
 
