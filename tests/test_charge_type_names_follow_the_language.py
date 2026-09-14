@@ -22,7 +22,6 @@ different page: the dict in `db_reader`, a Jinja tuple in `costs.html`, and a Ja
 the same file. Translated at the source so the nine places that inject `charge_types` into a
 template need no change and cannot drift.
 """
-import json
 import pathlib
 import re
 
@@ -31,7 +30,6 @@ import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 COSTS = (ROOT / "web" / "templates" / "costs.html").read_text()
-LOCALES = sorted((ROOT / "web" / "locales").glob("*.json"))
 
 
 def _t(lang):
@@ -47,11 +45,18 @@ def test_home_reads_in_the_users_language(lang, home, monkeypatch):
     assert db_reader.charge_types_localised()["HOME"]["label"] == home
 
 
-def test_free_and_manual_follow_too(monkeypatch):
+def test_free_follows_too(monkeypatch):
     monkeypatch.setattr(db_reader, "get_language", lambda: "it")
     types = db_reader.charge_types_localised()
     assert types["FREE"]["label"] == "Gratis"
-    assert types["MANUAL"]["label"] not in ("Manual", "", None)
+
+
+def test_manual_is_no_longer_a_charge_type(monkeypatch):
+    """'MANUAL' used to be a seventh, pricing-basis entry wearing a location's name — it never
+    belonged among real types, and it is gone now that cost_manual carries that meaning instead."""
+    monkeypatch.setattr(db_reader, "get_language", lambda: "it")
+    assert "MANUAL" not in db_reader.charge_types_localised()
+    assert "MANUAL" not in db_reader.CHARGE_TYPES
 
 
 def test_the_acronyms_are_left_alone(monkeypatch):
@@ -105,13 +110,3 @@ def test_nothing_injects_the_raw_dict_into_a_template():
     main = (ROOT / "web" / "main.py").read_text()
     assert "db_reader.CHARGE_TYPES" not in main, \
         "a route still injects the untranslated dict"
-
-
-# ── and the word that had to be added exists everywhere ───────────────────────
-
-def test_the_manual_label_exists_in_all_seven_languages():
-    for path in LOCALES:
-        flat = {k: v for s in json.loads(path.read_text()).values()
-                if isinstance(s, dict) for k, v in s.items()}
-        assert "charge_manual" in flat, f"{path.name} is missing charge_manual"
-        assert flat["charge_manual"].strip(), f"{path.name}: charge_manual is empty"

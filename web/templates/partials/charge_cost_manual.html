@@ -1,0 +1,52 @@
+{# The REAL total the owner paid, independent of the charge's TYPE. This is what the old 'Manual'
+   badge conflated — picking it lost the charge's real type (Home/AC/FAST/HPC) for good, because
+   location_type doubled as the cost basis. Now the type badge is a plain type, and this pencil is
+   the only place a price is ever typed by hand. Expects `charge`, `t`, `currency`.
+
+   Opens PRE-FILLED with the current effective cost, on purpose — the OPPOSITE of gross-kwh/solar-kwh's
+   always-empty box. Those two must treat an accidental open-and-Enter as a no-op, because their box
+   never shows anything to lose. This one has to show what a bare submit would CLEAR: a genuinely
+   empty field here is a deliberate "go back to the computed default", not "leave it alone". #}
+{% set _billed = charge.cost_manual %}
+<div id="cm-{{ charge.id }}"{% if cm_oob %} hx-swap-oob="true"{% endif %}
+     style="display:inline-block;vertical-align:top;position:relative;margin-right:6px">
+  <button type="button" title="{{ t('cost_manual_label') }}"
+          onclick="var f=document.getElementById('cm-form-{{ charge.id }}');f.classList.toggle('hidden');if(!f.classList.contains('hidden'))document.getElementById('cm-in-{{ charge.id }}').focus()"
+          style="background:{% if _billed %}#94a3b822{% else %}transparent{% endif %};
+                 border:1px dashed #33415599;border-radius:6px;
+                 color:{% if _billed %}#cbd5e1{% else %}#64748b{% endif %};
+                 padding:1px 7px;font-size:10px;cursor:pointer;white-space:nowrap">
+    ✎{% if _billed %} {{ t('cost_basis_billed') }}{% endif %}
+  </button>
+
+  <div id="cm-form-{{ charge.id }}" class="hidden"
+       style="position:absolute;left:0;top:calc(100% + 4px);z-index:50;
+              background:#0b1220;border:1px solid #1e293b;border-radius:7px;padding:6px 7px;
+              min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+    <form hx-post="api/charges/{{ charge.id }}/cost" hx-target="#cm-{{ charge.id }}" hx-swap="outerHTML"
+          style="margin:0;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+      <span style="font-size:10px;color:#94a3b8">{{ currency.symbol }}</span>
+      {# Pre-filled with the CURRENT figure, default or billed — the whole point, see the note above. #}
+      <input type="number" id="cm-in-{{ charge.id }}" name="cost" step="0.01" min="0"
+             value="{% if charge.cost is not none %}{{ '%.2f'|format(charge.cost) }}{% endif %}"
+             placeholder="{{ currency.symbol }}" autocomplete="off" inputmode="decimal"
+             style="width:70px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;padding:2px 5px;font-size:11px">
+      <button type="submit"
+              style="background:#33415555;color:#cbd5e1;border:1px solid #47556955;border-radius:5px;padding:1px 7px;font-size:10px;cursor:pointer">OK</button>
+      <button type="button"
+              onclick="document.getElementById('cm-form-{{ charge.id }}').classList.add('hidden')"
+              style="background:transparent;color:#64748b;border:none;padding:1px 4px;font-size:10px;cursor:pointer">{{ t('cancel') }}</button>
+      {% if _billed %}
+      {# Explicit reset without having to select-all-and-delete the box first. #}
+      <button type="button" hx-post="api/charges/{{ charge.id }}/cost" hx-vals='{"cost": ""}'
+              hx-target="#cm-{{ charge.id }}" hx-swap="outerHTML"
+              style="background:transparent;color:#64748b;border:none;padding:1px 4px;font-size:10px;cursor:pointer;margin-left:auto">{{ t('cost_manual_reset') }}</button>
+      {% endif %}
+    </form>
+    <div style="font-size:9px;color:#475569;margin-top:4px;line-height:1.3">{{ t('cost_manual_label') }}</div>
+  </div>
+</div>
+{% if cost_oob %}
+{# The default/billed indicator lives on the cost cell — refresh it out-of-band. #}
+{% include "partials/charge_cost_cell.html" %}
+{% endif %}

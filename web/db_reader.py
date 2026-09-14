@@ -235,21 +235,23 @@ _OPT_TTL = 30
 
 # AC, DC and HPC are acronyms and mean the same in every language Mate speaks — those stay.
 # ⚠️ The comment that used to sit here said ALL of these were "intentionally language-neutral", and
-# that was the wrong half of the rule: **Home, FREE and Manual are ordinary English words**. On a
+# that was the wrong half of the rule: **Home and FREE are ordinary English words**. On a
 # Polish interface the charge badge read "Home" while the monthly report, using its own key, read
 # "Dom" — the app contradicting itself on one screen (@konrad300, #210).
 #
-# 🔑 Two of the three words already existed, translated by native speakers, so they are REUSED:
-# `report_home` is the very key whose "Dom" exposed the mismatch, and `charge_free` was already
-# there. Only "Manual" had to be added.
-_CHARGE_TYPE_LABEL_KEY = {"HOME": "report_home", "FREE": "charge_free", "MANUAL": "charge_manual"}
+# 🔑 Both already existed, translated by native speakers, so they are REUSED: `report_home` is the
+# very key whose "Dom" exposed the mismatch, and `charge_free` was already there.
+#
+# 'MANUAL' used to be a seventh member of this dict — a pricing-basis flag wearing a location's
+# name, not a real type. It no longer is: `location_type` is always one of the five below now, and
+# "was this priced by hand" lives in its own column, `cost_manual`. See db migration + charges.
+_CHARGE_TYPE_LABEL_KEY = {"HOME": "report_home", "FREE": "charge_free"}
 CHARGE_TYPES = {
     "HOME": {"label": "Home", "icon": "🏠", "color": "#22c55e"},
     "AC":   {"label": "AC",   "icon": "🔌", "color": "#60a5fa"},
     "FAST": {"label": "DC",   "icon": "⚡", "color": "#fb923c"},
     "HPC":  {"label": "HPC",  "icon": "🚀", "color": "#e879f9"},
     "FREE": {"label": "FREE", "icon": "🆓", "color": "#a3e635"},
-    "MANUAL": {"label": "Manual", "icon": "✎", "color": "#94a3b8"},
 }
 
 def charge_types_localised() -> dict:
@@ -821,8 +823,8 @@ def get_account_user() -> str:
 # a secret — the values are stored verbatim.
 AUDITED_SETTINGS = (
     "poll_parked", "poll_driving", "charge_detect_min_a", "charge_reconstruct_min_pct",
-    "vampire_min_drop_pct", "vampire_min_hours", "charge_dc_min_kw", "soh_temp_min_c",
-    "map_station_min_sessions", "positions_retention_days",
+    "vampire_min_drop_pct", "vampire_min_hours", "charge_dc_min_kw", "charge_hpc_min_kw",
+    "soh_temp_min_c", "map_station_min_sessions", "positions_retention_days",
 )
 
 
@@ -2105,7 +2107,8 @@ def update_charge_type(charge_id: int, location_type: str,
                        manual_cost: Optional[float] = None,
                        gross_kwh: Optional[float] = None,
                        solar_kwh: Optional[float] = None,
-                       *, _segment: bool = False,
+                       *, cost_manual: Optional[bool] = None,
+                       _segment: bool = False,
                        _free: Optional[int] = None,
                        _no_cost: bool = False) -> dict:
     """Set location_type and (re)compute the cost from the pricing config in effect now (flat or
@@ -2114,11 +2117,17 @@ def update_charge_type(charge_id: int, location_type: str,
     delta — exact, not estimated) when available; otherwise, and for every other type, on the
     battery (DC/SoC) energy.
 
-    `MANUAL` is the user-entered total actually paid (the public-charging jungle — subscriptions,
-    session/idle fees, pay-method rates — can't be modelled by a per-kWh tariff). It OVERRIDES the
-    automatic cost: `manual_cost` is stored verbatim and the automatic costers (auto-confirm and the
-    one-time repairs) leave a MANUAL charge's cost alone. It still feeds the WAC like any priced
-    charge (rate = cost ÷ billed DC energy)."""
+    `location_type` is ALWAYS the truthful physical type now (HOME/AC/FAST/HPC/FREE) — it used to
+    double as 'MANUAL', a pricing-basis flag wearing a location's name, which meant picking Manual
+    on a real HPC session lost its HPC tag for good. `cost_manual` (the charges.cost_manual column)
+    carries that second meaning instead, independent of type: `True` (from the pencil-cost field,
+    `set_charge_cost`) stores `manual_cost` verbatim and freezes it against every automatic
+    recompute; `False` clears a manual price back to the computed one; `None` (every OTHER caller —
+    a badge re-tag, a FREE toggle, a gross/solar edit) leaves it exactly as it was, so retagging a
+    manually-priced charge's TYPE can never silently touch its PRICE. It still feeds the WAC like
+    any priced charge (rate = cost ÷ billed DC energy)."""
+    if location_type not in CHARGE_TYPES:
+        return {}
     db = _conn_rw()
     row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
     if not row:
@@ -2138,44 +2147,63 @@ def update_charge_type(charge_id: int, location_type: str,
     # figure the row still holds and only the column would change.
     if solar_kwh is not None:
         charge["solar_kwh"] = solar_kwh
+    meter = charge.get("ac_energy_kwh")
+    # A public charger has no meter Mate can read, so the owner may type what its display said
+    # (#222 @ghuaywen-ai). It plays exactly the role the wallbox counter plays at home: you pay
+    # for what left the charger, conversion losses included, so it PRICES the charge here — and
+    # since 04/08 it is ALSO the energy Mate reports for that charge. `_billed_kwh` takes it
+    # over the battery figure; the reasoning for that change lives in its docstring, not here.
+    if location_type == "HOME" and meter and meter > 0:
+        billed = meter
+    elif gross and gross > 0:
+        billed = gross
+    else:
+        billed = None
+
     if _no_cost:
         # A piece of a group whose price is the GROUP's and already sits on the row that carries it
-        # (a MANUAL total, or a typed #222 meter reading). The page SUMS the pieces, so a second
-        # figure here would bill the same energy twice.
-        cost = None
-    elif location_type == "MANUAL":
-        # Keep the existing cost if no amount was supplied (e.g. re-tagging without re-typing it).
+        # (a manually-priced total, or a typed #222 meter reading). The page SUMS the pieces, so a
+        # second figure here would bill the same energy twice. The flag itself is untouched — this
+        # piece has no cost to freeze or thaw either way.
+        cost, new_cost_manual = None, charge.get("cost_manual")
+    elif manual_cost is not None or cost_manual is True:
+        # A new (or re-typed) manual total from the pencil-cost field.
         cost = round(manual_cost, 2) if manual_cost is not None else charge.get("cost")
+        new_cost_manual = 1
+    elif cost_manual is False:
+        # The pencil-cost field was cleared: fall back to the computed default.
+        cost, new_cost_manual = compute_cost(charge, ac_kwh=billed), 0
+    elif charge.get("cost_manual"):
+        # An ordinary re-tag (badge click, FREE toggle, gross/solar edit) on a charge that is
+        # ALREADY manually priced: the type may be wrong and worth fixing, the price the owner
+        # typed is not — leave both the cost and the flag exactly as they are.
+        cost, new_cost_manual = charge.get("cost"), 1
     else:
-        meter = charge.get("ac_energy_kwh")
-        # A public charger has no meter Mate can read, so the owner may type what its display said
-        # (#222 @ghuaywen-ai). It plays exactly the role the wallbox counter plays at home: you pay
-        # for what left the charger, conversion losses included, so it PRICES the charge here — and
-        # since 04/08 it is ALSO the energy Mate reports for that charge. `_billed_kwh` takes it
-        # over the battery figure; the reasoning for that change lives in its docstring, not here.
-        if location_type == "HOME" and meter and meter > 0:
-            billed = meter
-        elif gross and gross > 0:
-            billed = gross
-        else:
-            billed = None
         cost = compute_cost(charge, ac_kwh=billed)   # returns 0.0 when the charge is marked free
+        new_cost_manual = 0
 
-    # gross_kwh only joins the UPDATE when it is actually being set: a re-tag must not rewrite a
-    # column it is not changing, and the write then never assumes a column a caller's table may not
-    # have (the cost-floor tests build a minimal charges table by hand).
-    # ...and only where the column exists. The poller owns that migration, so between an update and
-    # its next start a typed figure would hit an UPDATE naming a column that is not there — a 500 on
-    # the form instead of a stored number. Not storing it for those few seconds is the lesser harm.
+    # Built as a column list rather than three hand-written SQL strings: gross_kwh and solar_kwh
+    # only join the UPDATE when actually being set (a re-tag must not rewrite a column it isn't
+    # changing, and never names one a caller's minimal test table doesn't have), and now
+    # cost_manual joins too — on every call, not just those two rare ones — so a fourth hardcoded
+    # branch per combination stops being the shape that fits.
+    # ...and each only where the column exists. The poller owns these migrations, so between an
+    # update and its next start a typed figure would hit an UPDATE naming a column that is not
+    # there — a 500 on the form instead of a stored number. Not storing it for those few seconds is
+    # the lesser harm.
+    set_cols = ["location_type=?", "cost=?", "is_free=?"]
+    params: list = [location_type, cost, free]
     if gross_kwh is not None and _charges_have_gross(db):
-        db.execute("UPDATE charges SET location_type=?, cost=?, is_free=?, gross_kwh=? WHERE id=?",
-                   (location_type, cost, free, gross_kwh, charge_id))
+        set_cols.append("gross_kwh=?")
+        params.append(gross_kwh)
     elif solar_kwh is not None and _charges_have_solar(db):
-        db.execute("UPDATE charges SET location_type=?, cost=?, is_free=?, solar_kwh=? WHERE id=?",
-                   (location_type, cost, free, solar_kwh, charge_id))
-    else:
-        db.execute("UPDATE charges SET location_type=?, cost=?, is_free=? WHERE id=?",
-                   (location_type, cost, free, charge_id))
+        set_cols.append("solar_kwh=?")
+        params.append(solar_kwh)
+    if _charges_have_cost_manual(db):
+        set_cols.append("cost_manual=?")
+        params.append(new_cost_manual)
+    params.append(charge_id)
+    db.execute(f"UPDATE charges SET {', '.join(set_cols)} WHERE id=?", params)
     db.commit()
     out = dict(db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
 
@@ -2185,9 +2213,10 @@ def update_charge_type(charge_id: int, location_type: str,
     #
     # Each piece is priced by THIS function, so there is one pricing rule and not a second copy of
     # it: a piece bills on its own wallbox delta or its own energy, exactly as it would unmerged.
-    # Two figures are the GROUP's rather than a piece's and must not be charged twice — a MANUAL
-    # total and a typed gross_kwh (#222) — so they stay on the row that carries them and the other
-    # pieces take no cost at all.
+    # Two figures are the GROUP's rather than a piece's and must not be charged twice — a manually
+    # typed total and a typed gross_kwh (#222) — so they stay on the row that carries them and the
+    # other pieces take no cost at all. `out["cost_manual"]` — the value THIS call just wrote, not
+    # the one `charge` held before it ran — is what decides that for the cascade below.
     #
     # What is NOT touched: the typed number itself. unmerge_charges promises the rows come back
     # exactly as they were, and splitting 30 kWh into 20 + 10 across two rows would break that
@@ -2198,7 +2227,7 @@ def update_charge_type(charge_id: int, location_type: str,
     if not _segment:
         for oid in _merged_piece_ids(db, charge_id):
             update_charge_type(oid, location_type, _segment=True, _free=free,
-                               _no_cost=(location_type == "MANUAL" or bool(gross and gross > 0)))
+                               _no_cost=(bool(out.get("cost_manual")) or bool(gross and gross > 0)))
     return out
 
 
@@ -2217,20 +2246,22 @@ def repair_merged_charge_pieces() -> int:
     at current prices would quietly rewrite a piece of history to patch an omission. And the parent
     itself is never written: only the children, only where they are missing.
 
-    A price that belongs to the GROUP and already sits on the parent — a MANUAL total, a typed
-    gross_kwh (#222) — gives the children the type and no cost, the same answer a fresh confirm
-    gives. Safe to run twice: the second pass finds nothing, because it selects on the absence it
-    fills."""
+    A price that belongs to the GROUP and already sits on the parent — a manually typed total, a
+    typed gross_kwh (#222) — gives the children the type and no cost, the same answer a fresh
+    confirm gives. Safe to run twice: the second pass finds nothing, because it selects on the
+    absence it fills."""
     db = _conn_rw()
     if not _charges_have_merge(db):
         return 0
     has_gross = _charges_have_gross(db)
     g = "p.gross_kwh" if has_gross else "NULL"
+    cm = "p.cost_manual" if _charges_have_cost_manual(db) else "NULL"
     try:
         rows = db.execute(
             f"""SELECT c.id AS cid, c.energy_added_kwh AS c_kwh, c.ac_energy_kwh AS c_meter,
                        p.id AS pid, p.location_type AS ptype, p.cost AS pcost,
-                       p.energy_added_kwh AS p_kwh, p.ac_energy_kwh AS p_meter, {g} AS p_gross
+                       p.energy_added_kwh AS p_kwh, p.ac_energy_kwh AS p_meter, {g} AS p_gross,
+                       {cm} AS p_cost_manual
                   FROM charges c JOIN charges p ON p.id = c.merged_into_id
                  WHERE c.location_type IS NULL AND p.location_type IS NOT NULL""").fetchall()
     except sqlite3.Error:
@@ -2238,7 +2269,7 @@ def repair_merged_charge_pieces() -> int:
     n = 0
     for r in rows:
         ptype = r["ptype"]
-        whole = ptype == "MANUAL" or bool(r["p_gross"] and r["p_gross"] > 0)
+        whole = bool(r["p_cost_manual"]) or bool(r["p_gross"] and r["p_gross"] > 0)
         cost = None
         if not whole and r["pcost"] is not None:
             # what the parent was billed ON, in _billed_kwh's own order
@@ -2252,6 +2283,73 @@ def repair_merged_charge_pieces() -> int:
         n += 1
     db.commit()
     return n
+
+
+def repair_manual_type_charges() -> int:
+    """One-time: give back a real type to every charge still stuck on `location_type='MANUAL'`
+    from before `cost_manual` existed — the poller's own migration already flagged every one of
+    them `cost_manual=1` (a MANUAL row's cost was typed by hand by construction), so this only has
+    location_type left to fix. `cost` is never touched. Returns how many rows were reclassified.
+
+    A MEASURED charge (manual_entry=0) is reclassified from its own `max_power_kw`, on the SAME
+    thresholds `auto_detect_charge_type_from_power` uses live — that figure was never touched by
+    the old MANUAL-badge flow, so it is still the truth. A HAND-TYPED charge (manual_entry=1) is
+    reclassified from its own `charge_type` (AC/DC) column instead — the one `add_manual_charge`'s
+    form has always collected separately, and now writes a real location_type from directly, going
+    forward.
+
+    🔴 KNOWN LIMITATION, not a defect to chase: a charge that was originally HOME and got manually
+    priced cannot be recovered as HOME here. Home/away has never been power-determined and no
+    geofencing exists anywhere in Mate — the best this can do is AC/FAST/HPC, which is a real
+    answer, just not necessarily the original one. Said here so it is a documented trade-off and
+    not a silent surprise on somebody's real history.
+
+    Safe to run twice: the second pass finds nothing, because it selects on the absence it fills."""
+    db = _conn_rw()
+    if not _charges_have_cost_manual(db):
+        return 0
+    dc_min = float(get_setting("charge_dc_min_kw", "11") or 11)
+    hpc_min = float(get_setting("charge_hpc_min_kw", "50") or 50)
+    try:
+        rows = db.execute(
+            "SELECT id, manual_entry, max_power_kw, charge_type FROM charges "
+            "WHERE location_type = 'MANUAL'").fetchall()
+    except sqlite3.Error:
+        return 0
+    n = 0
+    for r in rows:
+        if r["manual_entry"]:
+            new_type = "FAST" if r["charge_type"] == "DC" else "AC"
+        elif r["max_power_kw"] is not None:
+            new_type = "HPC" if r["max_power_kw"] > hpc_min else (
+                "FAST" if r["max_power_kw"] > dc_min else "AC")
+        else:
+            continue   # no telemetry and not hand-typed either — nothing to reclassify from
+        db.execute("UPDATE charges SET location_type=? WHERE id=?", (new_type, r["id"]))
+        n += 1
+    db.commit()
+    return n
+
+
+def set_charge_cost(charge_id: int, cost: Optional[float]) -> dict:
+    """The pencil-cost field: the REAL total the owner paid, independent of the charge's type. This
+    is what 'Manual' used to mean as a location_type — picking it lost the charge's real type
+    (HOME/AC/FAST/HPC) for good, which is the whole bug this column exists to fix. Now the type
+    stays whatever it truthfully is, and this is the only thing that changes.
+
+    ⚠️ Opposite convention from `set_charge_gross_kwh`/`set_charge_solar_kwh` — on PURPOSE, do not
+    align them. Those two fields always open EMPTY, so a stray open-and-Enter must be a no-op; this
+    one opens PRE-FILLED with the current effective cost, so an empty submission is a deliberate
+    CLEAR — it means "go back to the computed default", not "leave whatever's there". `cost=None`
+    here is that clear, routed through `update_charge_type(..., cost_manual=False)`, which
+    recomputes the normal price the same way a fresh badge confirm would."""
+    db = _conn_rw()
+    row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
+    if not row or not row["location_type"]:
+        return dict(row) if row else {}
+    if cost is None:
+        return update_charge_type(charge_id, row["location_type"], cost_manual=False)
+    return update_charge_type(charge_id, row["location_type"], manual_cost=cost, cost_manual=True)
 
 
 def set_charge_gross_kwh(charge_id: int, gross_kwh: Optional[float]) -> dict:
@@ -2306,7 +2404,12 @@ def set_charge_free(charge_id: int, free: bool) -> dict:
     meter), so this is a user declaration, not a measurement. The charge KEEPS its Home location
     (so it stays on the Home side of the Home-vs-Public split, unlike the FREE location_type which
     is 'free away') and its cost is pinned to 0. Unmarking recomputes the normal home cost. HOME-only:
-    a no-op on any other type (free-away is the FREE type)."""
+    a no-op on any other type (free-away is the FREE type).
+
+    `cost_manual=False` on the call below is deliberate, not the usual "ordinary re-tag preserves a
+    typed price" rule: a home charge someone had manually priced, then marks free, means free — the
+    mark is itself an explicit declaration and must win over a now-stale typed figure, in either
+    direction (free → 0.0, unmarked → the normal computed price, never the old manual one)."""
     db = _conn_rw()
     row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
     if not row:
@@ -2322,7 +2425,7 @@ def set_charge_free(charge_id: int, free: bool) -> dict:
     # row AND for every other piece of a merged group. Doing the arithmetic here instead left a
     # marked group costing its children's share: the page sums the pieces, and the mark stopped at
     # the row that was clicked.
-    return update_charge_type(charge_id, "HOME")
+    return update_charge_type(charge_id, "HOME", cost_manual=False)
 
 
 def auto_confirm_home_charges() -> int:
@@ -2391,6 +2494,39 @@ def price_default_home_charges() -> int:
         update_charge_type(r["id"], "HOME")
         fatte += 1
     return fatte
+
+
+def auto_detect_charge_type_from_power() -> int:
+    """Type a still-unconfirmed charge from its own measured peak power — no reason to make an
+    owner click ⚡ or 🚀 by hand when the car already told Mate which one it was. User-editable
+    afterward like any badge a person picked themselves.
+
+    ⚠️ Scoped to `max_power_kw > charge_dc_min_kw` ONLY — this never assigns AC (or HOME, which
+    isn't power-determined at all). A home wallbox's own power sits inside that same 11-32 kW
+    range, so guessing AC below it would silently steal untyped charges away from
+    `auto_confirm_home_charges`/`price_default_home_charges` and from the owner's own manual HOME
+    pick — on an install with no HA wallbox integration, the unconfirmed badge is the ONLY path a
+    home charge ever gets tagged HOME through. Above that threshold a charge can only be public DC,
+    so there is nothing left for power to be confused with.
+
+    Runs on every page render, like its HOME siblings (one SELECT, normally 0 rows), unconditionally
+    — unlike them, this reads a real measurement rather than an inferred proxy, so it carries no
+    opt-in setting. Must run AFTER both HOME sweeps in `_ctx()`: it only ever sees what they left
+    `location_type IS NULL`. Returns how many were typed."""
+    dc_min = float(get_setting("charge_dc_min_kw", "11") or 11)
+    hpc_min = float(get_setting("charge_hpc_min_kw", "50") or 50)
+    try:
+        rows = _get().execute(
+            "SELECT id, max_power_kw FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND location_type IS NULL AND ended_at IS NOT NULL "
+            "AND COALESCE(reconstructed, 0) = 0 AND max_power_kw > ?",
+            (_current_vehicle_id(), dc_min)
+        ).fetchall()
+    except sqlite3.Error:   # fresh install — charges table not created yet
+        return 0
+    for r in rows:
+        update_charge_type(r["id"], "HPC" if r["max_power_kw"] > hpc_min else "FAST")
+    return len(rows)
 
 
 # ── 📍 charging-station labels (resolved by web/charger_locator.py) ───────────
@@ -2588,35 +2724,41 @@ def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] 
     so the lifetime totals / monthly report reflect them (#87). Date + energy are the essentials;
     cost, AC/DC and — optionally — start/end SoC can be given (the latter drives the card's SoC-gain
     tile, requested by @rossiadobe on #67). It stays SoH-safe either way: a manual charge has no power
-    curve, so get_battery_health integrates ~0 energy and skips it regardless of SoC. location_type=
-    'MANUAL' keeps the automatic costers from overwriting the cost the user typed, and manual_entry=1
-    is what says the row was TYPED (#188) — the location_type alone can't, since it doubles as the
-    cost basis a user picks on a real charge."""
+    curve, so get_battery_health integrates ~0 energy and skips it regardless of SoC.
+
+    `location_type` is the real AC/FAST type from the form's own AC/DC choice — it used to be the
+    literal string 'MANUAL', which meant a hand-typed HPC-ish session could never be found by
+    searching HPC. `cost_manual=1` is what now keeps the automatic costers from overwriting the
+    cost the user typed (a hand-typed row's cost is manual by definition), and `manual_entry=1` is
+    still what says the row was TYPED at all (#188) — a question `cost_manual` can't answer, since
+    a REAL charge priced by hand is also `cost_manual=1`. Left as a plain INSERT rather than routed
+    through `update_charge_type`/`compute_cost`: a row with no cost typed must stay `cost=NULL`
+    exactly as it always has, not suddenly get auto-priced now that its type is a real one."""
     db = _conn_rw()
     try:
         vehicle_id = _selected_or_first(db)
         ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
+        loc_type = "FAST" if ct == "DC" else "AC"
         # #237 — the odometer only joins the INSERT where the column exists: the migration lives in
         # the poller and the web never alters the database (see `_charges_have_odometer`). Zero is
         # not stored, for the same reason the poller refuses it: an odometer of 0 would place the
-        # session at the factory gate rather than say nothing.
+        # session at the factory gate rather than say nothing. cost_manual joins the same way,
+        # guarded on its own migration.
         odo = float(odometer_km) if odometer_km else None
+        cols = ["vehicle_id", "started_at", "ended_at", "energy_added_kwh", "duration_min",
+                "charge_type", "location_type", "cost", "start_soc", "end_soc", "reconstructed",
+                "manual_entry"]
+        vals: list = [vehicle_id, started_at, ended_at or started_at, energy_kwh,
+                      _span_minutes(started_at, ended_at), ct, loc_type, cost, start_soc, end_soc,
+                      0, 1]
         if odo is not None and _charges_have_odometer(db):
-            cur = db.execute(
-                "INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, "
-                "duration_min, charge_type, location_type, cost, start_soc, end_soc, "
-                "odometer_km, reconstructed, manual_entry) "
-                "VALUES (?, ?, ?, ?, ?, ?, 'MANUAL', ?, ?, ?, ?, 0, 1)",
-                (vehicle_id, started_at, ended_at or started_at, energy_kwh,
-                 _span_minutes(started_at, ended_at), ct, cost, start_soc, end_soc, odo))
-            db.commit()
-            return cur.lastrowid  # type: ignore[return-value]
-        cur = db.execute(
-            "INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, duration_min, "
-            "charge_type, location_type, cost, start_soc, end_soc, reconstructed, manual_entry) "
-            "VALUES (?, ?, ?, ?, ?, ?, 'MANUAL', ?, ?, ?, 0, 1)",
-            (vehicle_id, started_at, ended_at or started_at, energy_kwh,
-             _span_minutes(started_at, ended_at), ct, cost, start_soc, end_soc))
+            cols.append("odometer_km")
+            vals.append(odo)
+        if _charges_have_cost_manual(db):
+            cols.append("cost_manual")
+            vals.append(1)
+        placeholders = ", ".join("?" * len(vals))
+        cur = db.execute(f"INSERT INTO charges ({', '.join(cols)}) VALUES ({placeholders})", vals)
         db.commit()
         # lastrowid is Optional only for a cursor that last ran something other than an INSERT;
         # this one just inserted into a table with an INTEGER PRIMARY KEY, so it is the new id.
@@ -2649,31 +2791,37 @@ def update_manual_charge(charge_id: int, started_at: str, energy_kwh: float,
     spreadsheet and could then change only its note, its AC/DC tag and its cost, while the times and
     the SoC (which the add form never even asked for) were frozen for good.
 
+    `location_type` is kept in step with the AC/DC tag here too (`"FAST" if ct=="DC" else "AC"`) —
+    it is the real, searchable type now, not the old 'MANUAL' placeholder, so editing the tag must
+    still move it. `cost_manual` is left untouched: this row was already manually priced the moment
+    it was typed in, and an edit to the amount doesn't change that.
+
     Guarded on manual_entry=1, and that guard is the point: on a MEASURED charge these fields are
     readings, and handing them to a form would let a typo overwrite what the car reported. Returns
     False — changing nothing — when the id isn't a typed-in charge."""
     db = _conn_rw()
     try:
         ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
+        loc_type = "FAST" if ct == "DC" else "AC"
         # #237 — the odometer is written only where the column exists, and clearing it is a real
         # answer: someone who realises they typed the wrong reading must be able to take it back
         # out, not be stuck with a wrong kilometre for ever.
         if _charges_have_odometer(db):
             cur = db.execute(
                 "UPDATE charges SET started_at=?, ended_at=?, energy_added_kwh=?, duration_min=?, "
-                "charge_type=?, cost=?, start_soc=?, end_soc=?, odometer_km=? "
+                "charge_type=?, location_type=?, cost=?, start_soc=?, end_soc=?, odometer_km=? "
                 "WHERE id=? AND manual_entry=1",
                 (started_at, ended_at or started_at, energy_kwh,
-                 _span_minutes(started_at, ended_at), ct, cost, start_soc, end_soc,
+                 _span_minutes(started_at, ended_at), ct, loc_type, cost, start_soc, end_soc,
                  (float(odometer_km) if odometer_km else None), charge_id))
             db.commit()
             return cur.rowcount > 0
         cur = db.execute(
             "UPDATE charges SET started_at=?, ended_at=?, energy_added_kwh=?, duration_min=?, "
-            "charge_type=?, cost=?, start_soc=?, end_soc=? "
+            "charge_type=?, location_type=?, cost=?, start_soc=?, end_soc=? "
             "WHERE id=? AND manual_entry=1",
             (started_at, ended_at or started_at, energy_kwh, _span_minutes(started_at, ended_at),
-             ct, cost, start_soc, end_soc, charge_id))
+             ct, loc_type, cost, start_soc, end_soc, charge_id))
         db.commit()
         return cur.rowcount > 0
     finally:
@@ -7747,6 +7895,16 @@ def _charges_have_gross(db) -> bool:
         return False
 
 
+def _charges_have_cost_manual(db) -> bool:
+    """Whether the charges table carries the cost_manual column yet (see poller/schema.py's
+    migration comment for what it splits apart). Same per-call reasoning as `_charges_have_gross` —
+    guarded rather than left bare like `is_free`, because this one gates money."""
+    try:
+        return any(r[1] == "cost_manual" for r in db.execute("PRAGMA table_info(charges)"))
+    except sqlite3.Error:
+        return False
+
+
 def _charges_have_solar(db) -> bool:
     """Whether the charges table carries the #272 column yet. Same reasoning as
     `_charges_have_gross`: the migration lives in the poller, the web only reads, so between an
@@ -8048,7 +8206,7 @@ def search_charges(text: str = "", charge_type: str = "",
                     station: str | None = None) -> list[dict]:
     """Flat, most-recent-first list of charges matching ALL given filters — the Ricariche
     search bar. `text` matches the station name OR the user note (substring, case-
-    insensitive); `charge_type` is a location_type key (AC/FAST/HPC/HOME/FREE/MANUAL);
+    insensitive); `charge_type` is a location_type key (AC/FAST/HPC/HOME/FREE);
     the kWh/cost filters compare against the SAME billed figure the card shows
     (_billed_kwh); `date_from`/`date_to` are inclusive "YYYY-MM-DD" LOCAL calendar dates.
     Loads the full history like get_charges_grouped (#67 — no default limit may hide

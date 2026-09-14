@@ -24,7 +24,7 @@ import db_reader
 
 
 def _old_style_group(tmp_path, monkeypatch, *, parent_type="HOME", parent_cost=2.00,
-                     gross=None, manual_entry=0):
+                     gross=None, manual_entry=0, cost_manual=0):
     """A group as the OLD code left it: parent typed and priced, child untouched."""
     path = str(tmp_path / "c.db")
     poller_db.Database(path)
@@ -32,8 +32,9 @@ def _old_style_group(tmp_path, monkeypatch, *, parent_type="HOME", parent_cost=2
     con.execute("INSERT INTO vehicles (id, vin) VALUES (1, 'V1')")
     con.execute("INSERT INTO charges (id,vehicle_id,started_at,ended_at,start_soc,end_soc,"
                 "energy_added_kwh,duration_min,charge_type,location_type,cost,gross_kwh,"
-                "merged_into_id) VALUES (1,1,'2026-08-12T12:00:00+00:00','2026-08-12T12:20:00+00:00',"
-                "40,50,10.0,20,'AC',?,?,?,NULL)", (parent_type, parent_cost, gross))
+                "cost_manual,merged_into_id) VALUES (1,1,'2026-08-12T12:00:00+00:00',"
+                "'2026-08-12T12:20:00+00:00',40,50,10.0,20,'AC',?,?,?,?,NULL)",
+                (parent_type, parent_cost, gross, cost_manual))
     con.execute("INSERT INTO charges (id,vehicle_id,started_at,ended_at,start_soc,end_soc,"
                 "energy_added_kwh,duration_min,charge_type,location_type,cost,gross_kwh,"
                 "merged_into_id) VALUES (2,1,'2026-08-12T12:22:00+00:00','2026-08-12T12:32:00+00:00',"
@@ -73,7 +74,12 @@ def test_it_uses_the_rate_the_group_was_priced_at_not_todays(tmp_path, monkeypat
 
 
 def test_a_manual_total_stays_the_whole_groups_price(tmp_path, monkeypatch):
-    path = _old_style_group(tmp_path, monkeypatch, parent_type="MANUAL", parent_cost=9.90)
+    """The parent carries BOTH markers a group confirmed before this refactor would — the old
+    'MANUAL' location_type string, and cost_manual=1, which the poller's own migration backfills
+    onto every such row before this repair ever runs (see poller/schema.py). The repair keys off
+    cost_manual now, not the string, for the whole-group-price decision."""
+    path = _old_style_group(tmp_path, monkeypatch, parent_type="MANUAL", parent_cost=9.90,
+                            cost_manual=1)
     db_reader.repair_merged_charge_pieces()
     after = _rows(path)
     assert after[2]["location_type"] == "MANUAL"

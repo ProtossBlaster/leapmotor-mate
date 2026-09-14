@@ -139,6 +139,21 @@ def _repair_merged_charge_pieces() -> None:
         pass
 
 
+def _repair_manual_type_charges() -> None:
+    """location_type='MANUAL' used to double as "this charge's cost was typed by hand", so picking
+    it on a real HPC/AC/FAST/HOME session lost that session's real type for good — unfindable by
+    type search, badge showing ✎ instead of its true icon. `cost_manual` now carries that second
+    meaning on its own column, and this puts every already-affected charge's location_type back to
+    the truth (from its own measured peak power, or its own AC/DC tag for a hand-typed row) — never
+    touching cost. Safe to run twice — it selects on the absence it fills."""
+    try:
+        n = db_reader.repair_manual_type_charges()
+        if n:
+            log.info("Charge-type repair: %d charge(s) reclassified from 'Manual' to their real type", n)
+    except Exception:  # noqa: BLE001 — never block startup over a repair
+        pass
+
+
 def _pin_auto_timezone() -> None:
     """Runs BEFORE the repair below, and the order is the point: the repair refuses to convert while
     the zone is Auto (it will not bake in a guess), so an install left on Auto could never have its
@@ -170,6 +185,7 @@ _check_secret_key()
 _pin_auto_timezone()
 _repair_manual_charge_timezones()
 _repair_merged_charge_pieces()
+_repair_manual_type_charges()
 
 app = FastAPI(title="LeapMotor Mate")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -452,6 +468,12 @@ def _ctx(**kwargs):
     # counting none of them. Same lazy sweep, same update_charge_type path, and it catches the
     # backlog of whoever turned that switch on weeks ago.
     db_reader.price_default_home_charges()
+    # Same piggyback, one power tier up: a charge whose own peak power clears the DC threshold can
+    # only be public fast/ultra-rapid DC, never AC/HOME — so it's typed from that measurement alone,
+    # no opt-in switch needed (unlike its two neighbours above, this reads a measurement rather than
+    # an inferred proxy). MUST run after both HOME sweeps: it only ever sees what they left
+    # untyped, so a charge either of them would have claimed never reaches it.
+    db_reader.auto_detect_charge_type_from_power()
     # Same piggyback for the 📍 station labels — settings probe + tiny SELECT per render,
     # the OSM lookups run in a background thread on a TTL (see charger_locator.maybe_sweep).
     charger_locator.maybe_sweep()
@@ -2476,6 +2498,7 @@ async def settings_page(request: Request):
                 "vampire_min_drop_pct": db_reader.get_setting("vampire_min_drop_pct", "0.2"),
                 "vampire_min_hours": db_reader.get_setting("vampire_min_hours", "1"),
                 "charge_dc_min_kw": db_reader.get_setting("charge_dc_min_kw", "11"),
+                "charge_hpc_min_kw": db_reader.get_setting("charge_hpc_min_kw", "50"),
                 "wallbox_auto_home": db_reader.get_setting("wallbox_auto_home", "0"),
                 "default_drive_mode": db_reader.get_setting("default_drive_mode", ""),
                 "default_one_pedal": db_reader.get_setting("default_one_pedal", ""),
@@ -3082,28 +3105,17 @@ async def wallbox_set_max_current(request: Request):
 
 @app.post("/api/charges/{charge_id}/type", response_class=HTMLResponse)
 async def set_charge_type(request: Request, charge_id: int):
+    """Re-tag a charge's physical type. What it costs is a SEPARATE question now — see
+    /api/charges/{id}/cost — so this never touches a manually-typed price, on purpose:
+    `update_charge_type` preserves it by itself whenever the charge is already cost_manual."""
     form = await request.form()
     location_type = form.get("location_type", "HOME")
-    # MANUAL = the user types the real total paid; it overrides the automatic cost (the
-    # public-charging jungle can't be modelled by a per-kWh tariff). Everything else is computed in
-    # update_charge_type: a HOME charge is billed on the wallbox energy the poller measured at charge
-    # start/stop (the counter delta — exact), if available, else on the battery (DC/SoC) energy.
-    manual_cost = None
-    if location_type == "MANUAL":
-        try:
-            manual_cost = float(str(form.get("cost", "")).strip().replace(",", "."))
-        except (ValueError, TypeError):
-            manual_cost = None
     # The charger's own kWh (#222) is NOT read here: it has its own endpoint below, so re-tagging a
     # charge can never touch a number the owner typed, and typing that number can never re-tag it.
-    charge = db_reader.update_charge_type(charge_id, location_type, manual_cost=manual_cost)
+    charge = db_reader.update_charge_type(charge_id, location_type)
     t = i18n.get_t(db_reader.get_language())
-    if location_type == "MANUAL":
-        cost_title = t("cost_basis_manual")
-    elif location_type == "HOME" and charge.get("ac_energy_kwh"):
-        cost_title = t("cost_basis_ac")
-    else:
-        cost_title = t("cost_basis_dc")
+    cost_title = t("cost_basis_ac") if (location_type == "HOME" and charge.get("ac_energy_kwh")) \
+        else t("cost_basis_dc")
     return templates.TemplateResponse(request, "partials/charge_type_badge.html", {
         "charge": charge,
         "charge_types": db_reader.charge_types_localised(),
@@ -3111,6 +3123,30 @@ async def set_charge_type(request: Request, charge_id: int):
         "t": t,                   # the partial's #120 free toggle (HOME) needs the translator
         "cost_oob": True,         # also refresh the cost cell (it changes with the type/basis)
         "cost_title": cost_title,
+    })
+
+
+@app.post("/api/charges/{charge_id}/cost", response_class=HTMLResponse)
+async def set_charge_cost(request: Request, charge_id: int):
+    """The pencil-cost field: the REAL total paid, independent of the charge's type — what the
+    'Manual' badge used to conflate. Unlike gross-kwh/solar-kwh below, the box opens PRE-FILLED
+    with the current effective cost, so a genuinely empty submission is a deliberate CLEAR (back to
+    the computed default), not "leave it alone". See `set_charge_cost`'s docstring in db_reader."""
+    form = await request.form()
+    cost = None
+    _c = str(form.get("cost", "")).strip().replace(",", ".")
+    if _c:
+        try:
+            cost = max(0.0, float(_c))
+        except (ValueError, TypeError):
+            cost = None
+    charge = db_reader.set_charge_cost(charge_id, cost)
+    t = i18n.get_t(db_reader.get_language())
+    return templates.TemplateResponse(request, "partials/charge_cost_manual.html", {
+        "charge": charge,
+        "t": t,
+        "currency": db_reader.get_currency(),
+        "cost_oob": True,   # the cost cell's default/billed indicator changes with this
     })
 
 
@@ -4687,6 +4723,7 @@ _ADVANCED_DEFAULTS = {
     "vampire_min_drop_pct":       (0.2, 0.1, 2.0),
     "vampire_min_hours":          (1.0, 1.0, 12.0),
     "charge_dc_min_kw":           (11.0, 11.0, 32.0),
+    "charge_hpc_min_kw":          (50.0, 32.0, 350.0),
     "soh_temp_min_c":             (15.0, 0.0, 25.0),
 }
 

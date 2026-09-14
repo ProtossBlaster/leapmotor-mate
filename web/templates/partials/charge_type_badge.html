@@ -1,5 +1,8 @@
 {% set ct = charge_types.get(charge.location_type) %}
 <div id="charge-type-{{ charge.id }}" class="charge-type-selector">
+  {# The real total paid, independent of the type badge next to it — sits BEFORE it, since the
+     price is typed once and never changes what the type dropdown offers. #}
+  {% with cost_oob=false %}{% include "partials/charge_cost_manual.html" %}{% endwith %}
   <!-- Current type badge + dropdown -->
   <div style="position:relative;display:inline-block">
     {% if ct %}
@@ -27,27 +30,6 @@
                   color:#fbbf24;border-bottom:1px solid #334155">{{ t('charge_confirm_q') }}</div>
       {% endif %}
       {% for key, info in charge_types.items() %}
-      {% if key == 'MANUAL' %}
-      <form hx-post="api/charges/{{ charge.id }}/type"
-            hx-target="#charge-type-{{ charge.id }}"
-            hx-swap="outerHTML"
-            hx-on::after-request="document.getElementById('ct-menu-{{ charge.id }}') && document.getElementById('ct-menu-{{ charge.id }}').classList.add('hidden')"
-            style="margin:0;border-top:1px solid #334155;margin-top:3px;padding-top:4px">
-        <input type="hidden" name="location_type" value="MANUAL">
-        <div style="display:flex;align-items:center;gap:6px;padding:5px 10px">
-          <span style="color:{{ info.color }};font-size:13px">{{ info.icon }}</span>
-          {# Same box, second copy — a reader in złoty was being told to type euros. #}
-          <input type="number" name="cost" step="0.01" min="0" placeholder="{{ currency.symbol }}"
-                 value="{% if charge.location_type == 'MANUAL' and charge.cost %}{{ '%.2f'|format(charge.cost) }}{% endif %}"
-                 onclick="event.stopPropagation()"
-                 style="width:72px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#fff;padding:4px 6px;font-size:13px">
-          <button type="submit"
-                  style="margin-left:auto;background:{{ info.color }}22;color:{{ info.color }};border:1px solid {{ info.color }}55;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer">
-            {% if charge.location_type == 'MANUAL' %}✓{% else %}OK{% endif %}
-          </button>
-        </div>
-      </form>
-      {% else %}
       <form hx-post="api/charges/{{ charge.id }}/type"
             hx-target="#charge-type-{{ charge.id }}"
             hx-swap="outerHTML"
@@ -62,7 +44,6 @@
           {% if charge.location_type == key %}<span style="margin-left:auto;font-size:10px">✓</span>{% endif %}
         </button>
       </form>
-      {% endif %}
       {% endfor %}
     </div>
   </div>

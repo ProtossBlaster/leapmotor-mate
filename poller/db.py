@@ -377,9 +377,9 @@ class Database:
                 continue
             new_cost = c["cost"]
             billed_on_ac = bool(c["ac_energy_kwh"]) and c["location_type"] == "HOME"
-            # MANUAL = a user-entered total paid → never rescale it (still recompute the energy,
-            # which only makes the manual €/kWh more accurate).
-            if not billed_on_ac and c["location_type"] != "MANUAL" and c["cost"] and old_e > 0:
+            # cost_manual = a user-entered total paid → never rescale it (still recompute the
+            # energy, which only makes the manual €/kWh more accurate).
+            if not billed_on_ac and not c["cost_manual"] and c["cost"] and old_e > 0:
                 new_cost = round(c["cost"] / old_e * new_e, 2)
             self._conn.execute("UPDATE charges SET energy_added_kwh=?, cost=? WHERE id=?",
                                (new_e, new_cost, c["id"]))
@@ -485,8 +485,8 @@ class Database:
             new_cost = c["cost"]
             # The cost was billed on the bogus AC energy → rescale onto the DC energy at the same
             # effective €/kWh (mirrors _repair_snap_to_full_charges). Untyped/zero-cost rows are left,
-            # and a MANUAL (user-entered) cost is never rescaled.
-            if c["location_type"] != "MANUAL" and c["cost"] and ac > 0:
+            # and a cost_manual (user-entered) cost is never rescaled.
+            if not c["cost_manual"] and c["cost"] and ac > 0:
                 new_cost = round(c["cost"] / ac * dc, 2)
             self._conn.execute("UPDATE charges SET ac_energy_kwh=NULL, cost=? WHERE id=?",
                                (new_cost, c["id"]))

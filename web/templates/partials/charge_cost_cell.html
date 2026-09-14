@@ -25,4 +25,12 @@
      style="font-size:16px;font-weight:700"
      class="{% if charge.cost is not none %}text-green-400{% else %}text-slate-600{% endif %}"
      {% if cost_title %}title="{{ cost_title }}"{% endif %}>{% if charge.cost is not none %}{{ charge.cost | money }}{% else %}—{% endif %}
+  {# Whether this figure is the computed default or a real total the owner typed — self-contained
+     here (not threaded through cost_title, which only two routes ever set and never on a plain
+     page load) so it is correct on every render, not just right after an htmx action. #}
+  {% if charge.cost is not none %}
+  <span style="font-size:10px;font-weight:400;color:{% if charge.cost_manual %}#cbd5e1{% else %}#64748b{% endif %}"
+        title="{{ t('cost_basis_billed_help') if charge.cost_manual else t('cost_basis_default_help') }}">
+    {{ t('cost_basis_billed') if charge.cost_manual else t('cost_basis_default') }}</span>
+  {% endif %}
   {% if charge.cost is not none and _billed > 0 %}<div style="font-size:11px;color:#94a3b8;font-weight:400">{{ (charge.cost / _billed) | money }}/kWh</div>{% endif %}</div>

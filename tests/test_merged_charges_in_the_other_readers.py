@@ -150,7 +150,7 @@ def test_a_manual_total_on_a_merged_pair_prices_the_WHOLE_group(tmp_path, monkey
     """6,00 € per 15 kWh fanno 0,40 €/kWh. Non 0,60, che sono 6,00 diviso i soli 10 kWh del padre."""
     p = _setup(tmp_path, monkeypatch); _manual_pair(p)
     db_reader.merge_charges(1, 2)
-    db_reader.update_charge_type(1, "MANUAL", manual_cost=6.00)
+    db_reader.update_charge_type(1, "AC", manual_cost=6.00, cost_manual=True)
 
     prezzo = db_reader.blended_price_at(1, "2026-08-13T00:00:00+00:00")
     assert prezzo == pytest.approx(0.40, rel=0.01), (
@@ -162,13 +162,13 @@ def test_merging_does_not_change_the_price_of_the_same_session(tmp_path, monkeyp
     allo stesso prezzo dà lo stesso €/kWh, che l'auto l'abbia riportata come una riga o come due."""
     p = _setup(tmp_path, monkeypatch)
     _charge(p, 1, "2026-08-12T20:00:00+00:00", "2026-08-12T23:00:00+00:00", 40.0, 55.0, 15.0)
-    db_reader.update_charge_type(1, "MANUAL", manual_cost=6.00)
+    db_reader.update_charge_type(1, "AC", manual_cost=6.00, cost_manual=True)
     intera = db_reader.blended_price_at(1, "2026-08-13T00:00:00+00:00")
 
     (tmp_path / "due").mkdir()
     p2 = _setup(tmp_path / "due", monkeypatch); _manual_pair(p2)
     db_reader.merge_charges(1, 2)
-    db_reader.update_charge_type(1, "MANUAL", manual_cost=6.00)
+    db_reader.update_charge_type(1, "AC", manual_cost=6.00, cost_manual=True)
     spezzata = db_reader.blended_price_at(1, "2026-08-13T00:00:00+00:00")
 
     assert spezzata == pytest.approx(intera, rel=0.01), (
@@ -181,7 +181,7 @@ def test_the_statistics_average_price_divides_by_the_whole_group(tmp_path, monke
     uscivano dal denominatore mentre tutti i loro euro restavano al numeratore."""
     p = _setup(tmp_path, monkeypatch); _manual_pair(p)
     db_reader.merge_charges(1, 2)
-    db_reader.update_charge_type(1, "MANUAL", manual_cost=6.00)
+    db_reader.update_charge_type(1, "AC", manual_cost=6.00, cost_manual=True)
 
     st = db_reader.get_charge_stats()
     assert st["total_cost"] == pytest.approx(6.00)
