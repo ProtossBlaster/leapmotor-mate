@@ -751,6 +751,8 @@
     "charges_search_no_results": "Ninguna carga coincide con tu búsqueda",
     "ac_dc_distribution": "Reparto CA / CC",
     "ac_charge": "CA",
+    "ac_charge_public": "CA pública",
+    "home_vs_public_title": "Casa vs pública",
     "dc_charge": "CC",
     "sessions_recorded": "sesiones registradas",
     "sessions": "Sesiones",

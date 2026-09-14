@@ -220,7 +220,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
   <h2 class="font-semibold text-white mb-3">{{ t('ac_dc_distribution') }}</h2>
   <div class="flex flex-col sm:flex-row items-center gap-6">
     <div id="acdc-chart" class="w-[190px] flex-shrink-0 mx-auto sm:mx-0"></div>
-    <div class="w-full flex-1 grid grid-cols-1 xs:grid-cols-2 gap-4">
+    <div class="w-full flex-1 grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
       <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
         <div class="flex items-center gap-2 mb-2">
           <span class="w-3 h-3 rounded-full" style="background:#38bdf8"></span>
@@ -245,6 +245,34 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
           {% if ac_dc.total %}· {{ (ac_dc.dc.count / ac_dc.total * 100) | round | int }}%{% endif %}
         </div>
       </div>
+      {# Home is a SUBSET of AC (every home wallbox charges on AC) — its own box, not a slice of
+         the ring above, so it can sit plainly beside AC/DC on the same row without needing a
+         second nested chart to explain what it's a share of. #}
+      {% if ac_dc.ac.count > 0 %}
+      {% set public_count = ac_dc.ac.count - ac_dc.ac.home_count %}
+      {% set public_kwh = (ac_dc.ac.kwh - ac_dc.ac.home_kwh) | round(2) %}
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
+        <div class="text-slate-300 text-sm font-medium mb-2">{{ t('home_vs_public_title') }}</div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="flex items-center gap-1.5 text-xs text-slate-400">
+            <span class="w-2.5 h-2.5 rounded-full" style="background:#22c55e"></span>
+            {{ t('report_home') }}
+          </span>
+          <span class="text-sm font-semibold text-white">{{ ac_dc.ac.home_count }}
+            <span class="text-xs font-normal text-slate-500">· {{ ac_dc.ac.home_kwh | nice }} kWh</span>
+          </span>
+        </div>
+        <div class="flex items-center justify-between gap-2 mt-2">
+          <span class="flex items-center gap-1.5 text-xs text-slate-400">
+            <span class="w-2.5 h-2.5 rounded-full" style="background:#7dd3fc"></span>
+            {{ t('ac_charge_public') }}
+          </span>
+          <span class="text-sm font-semibold text-white">{{ public_count }}
+            <span class="text-xs font-normal text-slate-500">· {{ public_kwh | nice }} kWh</span>
+          </span>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
   <script>

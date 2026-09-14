@@ -751,6 +751,8 @@
     "charges_search_no_results": "No charge matches your search",
     "ac_dc_distribution": "AC vs DC Distribution",
     "ac_charge": "AC",
+    "ac_charge_public": "Public AC",
+    "home_vs_public_title": "Home vs Public",
     "dc_charge": "DC",
     "sessions_recorded": "sessions recorded",
     "sessions": "Sessions",

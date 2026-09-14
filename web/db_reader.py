@@ -8491,12 +8491,18 @@ def offline_gaps_summary(year: Optional[int] = None, month: Optional[int] = None
 
 def get_ac_dc_stats() -> dict:
     """Count + energy of AC vs DC charge sessions. DC = charge_type 'DC', or (when not
-    set) a measured peak power above 11 kW (AC tops out at ~11 kW; DC is faster)."""
+    set) a measured peak power above 11 kW (AC tops out at ~11 kW; DC is faster).
+
+    Home is a SUBSET of AC, never a third bucket of its own here — every home wallbox charges on
+    AC, so `ac["home_count"]`/`ac["home_kwh"]` are how many of the AC sessions above were actually
+    at home (`location_type == 'HOME'`), for the donut's inner ring. Trustworthy now that
+    location_type is always the real type (see the MANUAL/cost_manual split) rather than sometimes
+    a pricing-basis placeholder."""
     # Read the composed charges, not the stored rows. Excluding merged children from a query here
     # would have counted right and lost their kilowatt-hours — the split pieces would simply stop
     # being AC or DC energy at all. The group carries both: one session, all the energy.
     rows = get_charges(limit=1_000_000)
-    ac = {"count": 0, "kwh": 0.0}
+    ac = {"count": 0, "kwh": 0.0, "home_count": 0, "home_kwh": 0.0}
     dc = {"count": 0, "kwh": 0.0}
     for r in rows:
         ct = r["charge_type"]
@@ -8507,8 +8513,13 @@ def get_ac_dc_stats() -> dict:
         # ENERGIA TOTALE right below summed the billed one — two totals on ONE screen that did not
         # add up, off by the whole conversion loss (19.4 kWh on the test data). Older than today's
         # change; it just became impossible to miss once the totals beside it agreed.
-        b["kwh"] += _billed_kwh(dict(r))
+        kwh = _billed_kwh(dict(r))
+        b["kwh"] += kwh
+        if not is_dc and r["location_type"] == "HOME":
+            ac["home_count"] += 1
+            ac["home_kwh"] += kwh
     ac["kwh"] = round(ac["kwh"], 2)
+    ac["home_kwh"] = round(ac["home_kwh"], 2)
     dc["kwh"] = round(dc["kwh"], 2)
     return {"ac": ac, "dc": dc, "total": ac["count"] + dc["count"]}
 
