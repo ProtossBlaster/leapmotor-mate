@@ -3,6 +3,29 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.17] — 2026-09-14
+
+**Fixed (#282, @Coooogz):** a T03 west of the Greenwich meridian was drawn on the east side of it — a
+drive from a home 30 km west of the line to work 100 m east of it showed as 30 km heading east. The
+T03 sends its coordinates as named fields that already carry their sign, and Mate filed them only in
+the slots it keeps for the bare *magnitudes* a C10 or B10 sends; the slots for signed coordinates
+were mapped to field names no T03 response contains. So every T03 position lost its minus and took
+the hemisphere Mate remembered, which it could only have learned from positions already stored
+without one. Both copies of that map — the poller's and the Refresh button's — now put `latitude`
+and `longitude` in the signed slots. Nothing changes for a car east of Greenwich, and a C10 or B10
+does not go through this code. Positions already recorded keep the side they were stored on: near
+the meridian there is no telling which of them were really west.
+
+**Fixed (#283, @fabiodim):** the setup wizard accepted a certificate it could not read, and the only
+symptom was a login that failed from then on with `[SSL] PEM lib`. The upload looked for the text
+`-----BEGIN CERTIFICATE-----`, which a file cut short, a certificate flattened onto one line and a
+saved web page showing it all contain. The two files are now opened the way the login opens them
+before they are kept. A pair that does not open is refused with a message, in the wizard's language,
+naming what is wrong — the certificate, the key, or a key that belongs to another certificate — and
+the pair already saved is left untouched. A certificate saved earlier that cannot be read no longer
+counts as present either, so the wizard offers the certificate step again instead of skipping
+straight to a login that cannot work.
+
 ## [3.15.16] — 2026-09-13
 
 **Added (beta #31, @michapr):** the trip's cost per distance, under the total it comes from —

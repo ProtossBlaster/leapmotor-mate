@@ -29,7 +29,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.15.16"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.15.17"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -5899,6 +5899,15 @@ async def cert_status_api():
     return JSONResponse({"present": command_client.certs_present()})
 
 
+_CERT_REFUSALS = {
+    "cert_unreadable": "app.crt is not a readable certificate. Download the file itself again "
+                       "(not the web page that shows it) and upload it.",
+    "key_unreadable":  "app.key is not a readable private key. Download the file itself again "
+                       "(not the web page that shows it) and upload it.",
+    "key_mismatch":    "app.key does not belong to this app.crt. Upload the two files that go together.",
+}
+
+
 @app.post("/api/setup/cert")
 async def setup_cert_api(request: Request):
     """Receive the Leapmotor app certificate + key (file upload or pasted PEM) and store
@@ -5917,19 +5926,31 @@ async def setup_cert_api(request: Request):
 
     if not crt or not key:
         return JSONResponse({"error": "Both the certificate and the key are required."}, status_code=400)
-    if "-----BEGIN CERTIFICATE-----" not in crt:
-        return JSONResponse({"error": "The certificate file is not a valid PEM (app.crt)."}, status_code=400)
-    if "-----BEGIN" not in key or "PRIVATE KEY" not in key:
-        return JSONResponse({"error": "The key file is not a valid PEM private key (app.key)."}, status_code=400)
 
+    # #283: the pair is written beside the real one and loaded exactly as the login will load it;
+    # only a pair that opens replaces what is there. A substring check used to let a broken
+    # certificate through, and the only symptom was "[SSL] PEM lib" at every login after.
+    # The wizard shows `code` in the page's language; `error` is the fallback it can always print.
+    crt_path = os.path.join(_DATA_CERT_DIR, "app.crt")
+    key_path = os.path.join(_DATA_CERT_DIR, "app.key")
+    pending = (crt_path + ".new", key_path + ".new")
     try:
         os.makedirs(_DATA_CERT_DIR, exist_ok=True)
-        with open(os.path.join(_DATA_CERT_DIR, "app.crt"), "w") as fh:
-            fh.write(crt + "\n")
-        with open(os.path.join(_DATA_CERT_DIR, "app.key"), "w") as fh:
-            fh.write(key + "\n")
+        for path, pem in zip(pending, (crt, key)):
+            with open(path, "w") as fh:
+                fh.write(pem + "\n")
+        problem = command_client.cert_pair_problem(*pending)
+        if not problem:
+            os.replace(pending[0], crt_path)
+            os.replace(pending[1], key_path)
     except OSError as e:
         return JSONResponse({"error": f"Could not save the certificate: {e}"}, status_code=500)
+    finally:
+        for path in pending:
+            if os.path.exists(path):
+                os.remove(path)
+    if problem:
+        return JSONResponse({"error": _CERT_REFUSALS[problem], "code": problem}, status_code=400)
 
     # Drop any half-built session so the next call picks up the new cert
     command_client._session._reset()
