@@ -27,7 +27,7 @@ def _render(cost):
     env.filters["dec"] = lambda v, n=1: f"{float(v):.{n}f}"
     charge = {"id": 1, "cost": cost, "ac_energy_kwh": 20.0, "energy_added_kwh": 18.0,
               "gross_kwh": None, "location_type": "HOME"}
-    return env.get_template("partials/charge_cost_cell.html").render(charge=charge)
+    return env.get_template("partials/charge_cost_cell.html").render(charge=charge, t=lambda k: k)
 
 
 def test_a_free_charge_shows_a_zero():

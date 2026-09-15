@@ -3082,28 +3082,17 @@ async def wallbox_set_max_current(request: Request):
 
 @app.post("/api/charges/{charge_id}/type", response_class=HTMLResponse)
 async def set_charge_type(request: Request, charge_id: int):
+    """Re-tag a charge's physical type. What it costs is a SEPARATE question now — see
+    /api/charges/{id}/cost — so this never touches a manually-typed price, on purpose:
+    `update_charge_type` preserves it by itself whenever the charge is already cost_manual."""
     form = await request.form()
     location_type = form.get("location_type", "HOME")
-    # MANUAL = the user types the real total paid; it overrides the automatic cost (the
-    # public-charging jungle can't be modelled by a per-kWh tariff). Everything else is computed in
-    # update_charge_type: a HOME charge is billed on the wallbox energy the poller measured at charge
-    # start/stop (the counter delta — exact), if available, else on the battery (DC/SoC) energy.
-    manual_cost = None
-    if location_type == "MANUAL":
-        try:
-            manual_cost = float(str(form.get("cost", "")).strip().replace(",", "."))
-        except (ValueError, TypeError):
-            manual_cost = None
     # The charger's own kWh (#222) is NOT read here: it has its own endpoint below, so re-tagging a
     # charge can never touch a number the owner typed, and typing that number can never re-tag it.
-    charge = db_reader.update_charge_type(charge_id, location_type, manual_cost=manual_cost)
+    charge = db_reader.update_charge_type(charge_id, location_type)
     t = i18n.get_t(db_reader.get_language())
-    if location_type == "MANUAL":
-        cost_title = t("cost_basis_manual")
-    elif location_type == "HOME" and charge.get("ac_energy_kwh"):
-        cost_title = t("cost_basis_ac")
-    else:
-        cost_title = t("cost_basis_dc")
+    cost_title = t("cost_basis_ac") if (location_type == "HOME" and charge.get("ac_energy_kwh")) \
+        else t("cost_basis_dc")
     return templates.TemplateResponse(request, "partials/charge_type_badge.html", {
         "charge": charge,
         "charge_types": db_reader.charge_types_localised(),
@@ -3111,6 +3100,38 @@ async def set_charge_type(request: Request, charge_id: int):
         "t": t,                   # the partial's #120 free toggle (HOME) needs the translator
         "cost_oob": True,         # also refresh the cost cell (it changes with the type/basis)
         "cost_title": cost_title,
+    })
+
+
+@app.post("/api/charges/{charge_id}/cost", response_class=HTMLResponse)
+async def set_charge_cost(request: Request, charge_id: int):
+    """The pencil-cost field: the REAL total paid, independent of the charge's type — what the
+    'Manual' badge used to conflate. Unlike gross-kwh/solar-kwh below, the box opens PRE-FILLED
+    with the current effective cost, so a genuinely empty submission is a deliberate CLEAR (back to
+    the computed default), not "leave it alone". See `set_charge_cost`'s docstring in db_reader.
+
+    ⚠️ Empty and UNPARSEABLE are not the same thing, and must not collapse into it: typing "18,45€"
+    (a stray currency symbol, a typo) is not a clear, and reading it as one silently deleted a price
+    the owner had already typed, replacing it with the computed estimate — found in review. Only a
+    field that is empty after stripping is a clear; anything else that fails to parse is REJECTED —
+    the charge is re-rendered exactly as it already was, nothing written."""
+    form = await request.form()
+    raw = str(form.get("cost", "")).strip()
+    if not raw:
+        charge = db_reader.set_charge_cost(charge_id, None)          # deliberate clear
+    else:
+        try:
+            cost = max(0.0, float(raw.replace(",", ".")))
+        except (ValueError, TypeError):
+            charge = db_reader.get_charge(charge_id)                 # reject: leave it alone
+        else:
+            charge = db_reader.set_charge_cost(charge_id, cost)
+    t = i18n.get_t(db_reader.get_language())
+    return templates.TemplateResponse(request, "partials/charge_cost_manual.html", {
+        "charge": charge,
+        "t": t,
+        "currency": db_reader.get_currency(),
+        "cost_oob": True,   # the cost cell's default/billed indicator changes with this
     })
 
 

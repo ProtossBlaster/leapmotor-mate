@@ -235,21 +235,23 @@ _OPT_TTL = 30
 
 # AC, DC and HPC are acronyms and mean the same in every language Mate speaks — those stay.
 # ⚠️ The comment that used to sit here said ALL of these were "intentionally language-neutral", and
-# that was the wrong half of the rule: **Home, FREE and Manual are ordinary English words**. On a
+# that was the wrong half of the rule: **Home and FREE are ordinary English words**. On a
 # Polish interface the charge badge read "Home" while the monthly report, using its own key, read
 # "Dom" — the app contradicting itself on one screen (@konrad300, #210).
 #
-# 🔑 Two of the three words already existed, translated by native speakers, so they are REUSED:
-# `report_home` is the very key whose "Dom" exposed the mismatch, and `charge_free` was already
-# there. Only "Manual" had to be added.
-_CHARGE_TYPE_LABEL_KEY = {"HOME": "report_home", "FREE": "charge_free", "MANUAL": "charge_manual"}
+# 🔑 Both already existed, translated by native speakers, so they are REUSED: `report_home` is the
+# very key whose "Dom" exposed the mismatch, and `charge_free` was already there.
+#
+# 'MANUAL' used to be a seventh member of this dict — a pricing-basis flag wearing a location's
+# name, not a real type. It no longer is: `location_type` is always one of the five below now, and
+# "was this priced by hand" lives in its own column, `cost_manual`. See db migration + charges.
+_CHARGE_TYPE_LABEL_KEY = {"HOME": "report_home", "FREE": "charge_free"}
 CHARGE_TYPES = {
     "HOME": {"label": "Home", "icon": "🏠", "color": "#22c55e"},
     "AC":   {"label": "AC",   "icon": "🔌", "color": "#60a5fa"},
     "FAST": {"label": "DC",   "icon": "⚡", "color": "#fb923c"},
     "HPC":  {"label": "HPC",  "icon": "🚀", "color": "#e879f9"},
     "FREE": {"label": "FREE", "icon": "🆓", "color": "#a3e635"},
-    "MANUAL": {"label": "Manual", "icon": "✎", "color": "#94a3b8"},
 }
 
 def charge_types_localised() -> dict:
@@ -821,8 +823,8 @@ def get_account_user() -> str:
 # a secret — the values are stored verbatim.
 AUDITED_SETTINGS = (
     "poll_parked", "poll_driving", "charge_detect_min_a", "charge_reconstruct_min_pct",
-    "vampire_min_drop_pct", "vampire_min_hours", "charge_dc_min_kw", "soh_temp_min_c",
-    "map_station_min_sessions", "positions_retention_days",
+    "vampire_min_drop_pct", "vampire_min_hours", "charge_dc_min_kw",
+    "soh_temp_min_c", "map_station_min_sessions", "positions_retention_days",
 )
 
 
@@ -2105,7 +2107,8 @@ def update_charge_type(charge_id: int, location_type: str,
                        manual_cost: Optional[float] = None,
                        gross_kwh: Optional[float] = None,
                        solar_kwh: Optional[float] = None,
-                       *, _segment: bool = False,
+                       *, cost_manual: Optional[bool] = None,
+                       _segment: bool = False,
                        _free: Optional[int] = None,
                        _no_cost: bool = False) -> dict:
     """Set location_type and (re)compute the cost from the pricing config in effect now (flat or
@@ -2114,11 +2117,17 @@ def update_charge_type(charge_id: int, location_type: str,
     delta — exact, not estimated) when available; otherwise, and for every other type, on the
     battery (DC/SoC) energy.
 
-    `MANUAL` is the user-entered total actually paid (the public-charging jungle — subscriptions,
-    session/idle fees, pay-method rates — can't be modelled by a per-kWh tariff). It OVERRIDES the
-    automatic cost: `manual_cost` is stored verbatim and the automatic costers (auto-confirm and the
-    one-time repairs) leave a MANUAL charge's cost alone. It still feeds the WAC like any priced
-    charge (rate = cost ÷ billed DC energy)."""
+    `location_type` is ALWAYS the truthful physical type now (HOME/AC/FAST/HPC/FREE) — it used to
+    double as 'MANUAL', a pricing-basis flag wearing a location's name, which meant picking Manual
+    on a real HPC session lost its HPC tag for good. `cost_manual` (the charges.cost_manual column)
+    carries that second meaning instead, independent of type: `True` (from the pencil-cost field,
+    `set_charge_cost`) stores `manual_cost` verbatim and freezes it against every automatic
+    recompute; `False` clears a manual price back to the computed one; `None` (every OTHER caller —
+    a badge re-tag, a FREE toggle, a gross/solar edit) leaves it exactly as it was, so retagging a
+    manually-priced charge's TYPE can never silently touch its PRICE. It still feeds the WAC like
+    any priced charge (rate = cost ÷ billed DC energy)."""
+    if location_type not in CHARGE_TYPES:
+        return {}
     db = _conn_rw()
     row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
     if not row:
@@ -2138,44 +2147,63 @@ def update_charge_type(charge_id: int, location_type: str,
     # figure the row still holds and only the column would change.
     if solar_kwh is not None:
         charge["solar_kwh"] = solar_kwh
+    meter = charge.get("ac_energy_kwh")
+    # A public charger has no meter Mate can read, so the owner may type what its display said
+    # (#222 @ghuaywen-ai). It plays exactly the role the wallbox counter plays at home: you pay
+    # for what left the charger, conversion losses included, so it PRICES the charge here — and
+    # since 04/08 it is ALSO the energy Mate reports for that charge. `_billed_kwh` takes it
+    # over the battery figure; the reasoning for that change lives in its docstring, not here.
+    if location_type == "HOME" and meter and meter > 0:
+        billed = meter
+    elif gross and gross > 0:
+        billed = gross
+    else:
+        billed = None
+
     if _no_cost:
         # A piece of a group whose price is the GROUP's and already sits on the row that carries it
-        # (a MANUAL total, or a typed #222 meter reading). The page SUMS the pieces, so a second
-        # figure here would bill the same energy twice.
-        cost = None
-    elif location_type == "MANUAL":
-        # Keep the existing cost if no amount was supplied (e.g. re-tagging without re-typing it).
+        # (a manually-priced total, or a typed #222 meter reading). The page SUMS the pieces, so a
+        # second figure here would bill the same energy twice. The flag itself is untouched — this
+        # piece has no cost to freeze or thaw either way.
+        cost, new_cost_manual = None, charge.get("cost_manual")
+    elif manual_cost is not None or cost_manual is True:
+        # A new (or re-typed) manual total from the pencil-cost field.
         cost = round(manual_cost, 2) if manual_cost is not None else charge.get("cost")
+        new_cost_manual = 1
+    elif cost_manual is False:
+        # The pencil-cost field was cleared: fall back to the computed default.
+        cost, new_cost_manual = compute_cost(charge, ac_kwh=billed), 0
+    elif charge.get("cost_manual"):
+        # An ordinary re-tag (badge click, FREE toggle, gross/solar edit) on a charge that is
+        # ALREADY manually priced: the type may be wrong and worth fixing, the price the owner
+        # typed is not — leave both the cost and the flag exactly as they are.
+        cost, new_cost_manual = charge.get("cost"), 1
     else:
-        meter = charge.get("ac_energy_kwh")
-        # A public charger has no meter Mate can read, so the owner may type what its display said
-        # (#222 @ghuaywen-ai). It plays exactly the role the wallbox counter plays at home: you pay
-        # for what left the charger, conversion losses included, so it PRICES the charge here — and
-        # since 04/08 it is ALSO the energy Mate reports for that charge. `_billed_kwh` takes it
-        # over the battery figure; the reasoning for that change lives in its docstring, not here.
-        if location_type == "HOME" and meter and meter > 0:
-            billed = meter
-        elif gross and gross > 0:
-            billed = gross
-        else:
-            billed = None
         cost = compute_cost(charge, ac_kwh=billed)   # returns 0.0 when the charge is marked free
+        new_cost_manual = 0
 
-    # gross_kwh only joins the UPDATE when it is actually being set: a re-tag must not rewrite a
-    # column it is not changing, and the write then never assumes a column a caller's table may not
-    # have (the cost-floor tests build a minimal charges table by hand).
-    # ...and only where the column exists. The poller owns that migration, so between an update and
-    # its next start a typed figure would hit an UPDATE naming a column that is not there — a 500 on
-    # the form instead of a stored number. Not storing it for those few seconds is the lesser harm.
+    # Built as a column list rather than three hand-written SQL strings: gross_kwh and solar_kwh
+    # only join the UPDATE when actually being set (a re-tag must not rewrite a column it isn't
+    # changing, and never names one a caller's minimal test table doesn't have), and now
+    # cost_manual joins too — on every call, not just those two rare ones — so a fourth hardcoded
+    # branch per combination stops being the shape that fits.
+    # ...and each only where the column exists. The poller owns these migrations, so between an
+    # update and its next start a typed figure would hit an UPDATE naming a column that is not
+    # there — a 500 on the form instead of a stored number. Not storing it for those few seconds is
+    # the lesser harm.
+    set_cols = ["location_type=?", "cost=?", "is_free=?"]
+    params: list = [location_type, cost, free]
     if gross_kwh is not None and _charges_have_gross(db):
-        db.execute("UPDATE charges SET location_type=?, cost=?, is_free=?, gross_kwh=? WHERE id=?",
-                   (location_type, cost, free, gross_kwh, charge_id))
+        set_cols.append("gross_kwh=?")
+        params.append(gross_kwh)
     elif solar_kwh is not None and _charges_have_solar(db):
-        db.execute("UPDATE charges SET location_type=?, cost=?, is_free=?, solar_kwh=? WHERE id=?",
-                   (location_type, cost, free, solar_kwh, charge_id))
-    else:
-        db.execute("UPDATE charges SET location_type=?, cost=?, is_free=? WHERE id=?",
-                   (location_type, cost, free, charge_id))
+        set_cols.append("solar_kwh=?")
+        params.append(solar_kwh)
+    if _charges_have_cost_manual(db):
+        set_cols.append("cost_manual=?")
+        params.append(new_cost_manual)
+    params.append(charge_id)
+    db.execute(f"UPDATE charges SET {', '.join(set_cols)} WHERE id=?", params)
     db.commit()
     out = dict(db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
 
@@ -2185,9 +2213,10 @@ def update_charge_type(charge_id: int, location_type: str,
     #
     # Each piece is priced by THIS function, so there is one pricing rule and not a second copy of
     # it: a piece bills on its own wallbox delta or its own energy, exactly as it would unmerged.
-    # Two figures are the GROUP's rather than a piece's and must not be charged twice — a MANUAL
-    # total and a typed gross_kwh (#222) — so they stay on the row that carries them and the other
-    # pieces take no cost at all.
+    # Two figures are the GROUP's rather than a piece's and must not be charged twice — a manually
+    # typed total and a typed gross_kwh (#222) — so they stay on the row that carries them and the
+    # other pieces take no cost at all. `out["cost_manual"]` — the value THIS call just wrote, not
+    # the one `charge` held before it ran — is what decides that for the cascade below.
     #
     # What is NOT touched: the typed number itself. unmerge_charges promises the rows come back
     # exactly as they were, and splitting 30 kWh into 20 + 10 across two rows would break that
@@ -2198,7 +2227,7 @@ def update_charge_type(charge_id: int, location_type: str,
     if not _segment:
         for oid in _merged_piece_ids(db, charge_id):
             update_charge_type(oid, location_type, _segment=True, _free=free,
-                               _no_cost=(location_type == "MANUAL" or bool(gross and gross > 0)))
+                               _no_cost=(bool(out.get("cost_manual")) or bool(gross and gross > 0)))
     return out
 
 
@@ -2217,20 +2246,22 @@ def repair_merged_charge_pieces() -> int:
     at current prices would quietly rewrite a piece of history to patch an omission. And the parent
     itself is never written: only the children, only where they are missing.
 
-    A price that belongs to the GROUP and already sits on the parent — a MANUAL total, a typed
-    gross_kwh (#222) — gives the children the type and no cost, the same answer a fresh confirm
-    gives. Safe to run twice: the second pass finds nothing, because it selects on the absence it
-    fills."""
+    A price that belongs to the GROUP and already sits on the parent — a manually typed total, a
+    typed gross_kwh (#222) — gives the children the type and no cost, the same answer a fresh
+    confirm gives. Safe to run twice: the second pass finds nothing, because it selects on the
+    absence it fills."""
     db = _conn_rw()
     if not _charges_have_merge(db):
         return 0
     has_gross = _charges_have_gross(db)
     g = "p.gross_kwh" if has_gross else "NULL"
+    cm = "p.cost_manual" if _charges_have_cost_manual(db) else "NULL"
     try:
         rows = db.execute(
             f"""SELECT c.id AS cid, c.energy_added_kwh AS c_kwh, c.ac_energy_kwh AS c_meter,
                        p.id AS pid, p.location_type AS ptype, p.cost AS pcost,
-                       p.energy_added_kwh AS p_kwh, p.ac_energy_kwh AS p_meter, {g} AS p_gross
+                       p.energy_added_kwh AS p_kwh, p.ac_energy_kwh AS p_meter, {g} AS p_gross,
+                       {cm} AS p_cost_manual
                   FROM charges c JOIN charges p ON p.id = c.merged_into_id
                  WHERE c.location_type IS NULL AND p.location_type IS NOT NULL""").fetchall()
     except sqlite3.Error:
@@ -2238,7 +2269,7 @@ def repair_merged_charge_pieces() -> int:
     n = 0
     for r in rows:
         ptype = r["ptype"]
-        whole = ptype == "MANUAL" or bool(r["p_gross"] and r["p_gross"] > 0)
+        whole = bool(r["p_cost_manual"]) or bool(r["p_gross"] and r["p_gross"] > 0)
         cost = None
         if not whole and r["pcost"] is not None:
             # what the parent was billed ON, in _billed_kwh's own order
@@ -2254,6 +2285,57 @@ def repair_merged_charge_pieces() -> int:
     return n
 
 
+def get_charge(charge_id: int) -> dict:
+    """One charge, read-only, exactly as stored — no join, no composition. For a route that needs
+    to re-render the CURRENT state without changing anything (e.g. rejecting an unparseable typed
+    value rather than silently treating it as a clear)."""
+    row = _get().execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
+    return dict(row) if row else {}
+
+
+def set_charge_cost(charge_id: int, cost: Optional[float]) -> dict:
+    """The pencil-cost field: the REAL total the owner paid, independent of the charge's type. This
+    is what 'Manual' used to mean as a location_type — picking it lost the charge's real type
+    (HOME/AC/FAST/HPC) for good, which is the whole bug this column exists to fix. Now the type
+    stays whatever it truthfully is, and this is the only thing that changes.
+
+    ⚠️ Opposite convention from `set_charge_gross_kwh`/`set_charge_solar_kwh` — on PURPOSE, do not
+    align them. Those two fields always open EMPTY, so a stray open-and-Enter must be a no-op; this
+    one opens PRE-FILLED with the current effective cost, so an empty submission is a deliberate
+    CLEAR — it means "go back to the computed default", not "leave whatever's there". `cost=None`
+    on an ALREADY-TYPED charge is that clear, routed through `update_charge_type(...,
+    cost_manual=False)`, which recomputes the normal price the same way a fresh badge confirm would.
+
+    A charge with no REAL type yet (`location_type IS NULL`, or the legacy `'MANUAL'` placeholder)
+    is a genuinely different case, not routed through `update_charge_type` at all: that function
+    needs a real type to compute a default FROM, and this field's own docstring promise —
+    "independent of the charge's type" — means the box the template offers unconditionally (it is
+    NOT gated on `location_type` the way gross_kwh/solar_kwh are) must actually work before a type
+    is picked, not silently swallow what was typed. First version of this fix (see git log) made it
+    a no-op instead of a 500 — quieter, but still wrong: 200 OK, the box closes, and the figure the
+    owner just typed never lands anywhere (found in review, PR #284). So here: write (or, on an
+    empty submission, clear) `cost`/`cost_manual` directly. There is no computed default without a
+    real type, so "clear" here just means "nothing typed" rather than "recompute" — the type badge,
+    confirmed later, is what actually prices the charge from scratch if nothing was hand-typed."""
+    db = _conn_rw()
+    row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
+    if not row:
+        return {}
+    location_type = row["location_type"]
+    if location_type in CHARGE_TYPES:
+        if cost is None:
+            return update_charge_type(charge_id, location_type, cost_manual=False)
+        return update_charge_type(charge_id, location_type, manual_cost=cost, cost_manual=True)
+    if not _charges_have_cost_manual(db):
+        return dict(row)
+    if cost is None:
+        db.execute("UPDATE charges SET cost=NULL, cost_manual=0 WHERE id=?", (charge_id,))
+    else:
+        db.execute("UPDATE charges SET cost=?, cost_manual=1 WHERE id=?", (round(cost, 2), charge_id))
+    db.commit()
+    return dict(db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
+
+
 def set_charge_gross_kwh(charge_id: int, gross_kwh: Optional[float]) -> dict:
     """#222 — store the kWh the charger's own display said it delivered, and NOTHING else about the
     charge. Its own type is handed back to update_charge_type unchanged, so the cost is recomputed on
@@ -2264,10 +2346,14 @@ def set_charge_gross_kwh(charge_id: int, gross_kwh: Optional[float]) -> dict:
     the field opens empty every time, so an accidental open followed by Enter has to be a no-op
     rather than an erasure. Zero is the deliberate way to take a wrong number back — every reader
     tests `gross_kwh > 0`, so a stored zero reads as never-typed and the cost falls straight back to
-    the measured basis."""
+    the measured basis.
+
+    `location_type not in CHARGE_TYPES`, not `not row["location_type"]` — a leftover `'MANUAL'` row
+    is truthy but not a real type, and update_charge_type now rejects anything outside CHARGE_TYPES
+    (see set_charge_cost's docstring for the 500 that bare truthiness check used to cause)."""
     db = _conn_rw()
     row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
-    if not row or not row["location_type"]:
+    if not row or row["location_type"] not in CHARGE_TYPES:
         return dict(row) if row else {}
     if gross_kwh is None:
         return dict(row)
@@ -2287,10 +2373,12 @@ def set_charge_solar_kwh(charge_id: int, solar_kwh: Optional[float]) -> dict:
     OPPOSITE number — what they bought instead of what the sun gave — and a silent clamp would
     price that mistake as a free charge without ever saying so. Equal to the measured energy is
     accepted: a charge entirely off the roof costs nothing, and that is a real case.
-    """
+
+    `location_type not in CHARGE_TYPES`, not `not row["location_type"]` — see set_charge_cost's
+    docstring: a leftover `'MANUAL'` row is truthy but not a real type."""
     db = _conn_rw()
     row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
-    if not row or not row["location_type"]:
+    if not row or row["location_type"] not in CHARGE_TYPES:
         return dict(row) if row else {}
     if solar_kwh is None:
         return dict(row)
@@ -2306,7 +2394,12 @@ def set_charge_free(charge_id: int, free: bool) -> dict:
     meter), so this is a user declaration, not a measurement. The charge KEEPS its Home location
     (so it stays on the Home side of the Home-vs-Public split, unlike the FREE location_type which
     is 'free away') and its cost is pinned to 0. Unmarking recomputes the normal home cost. HOME-only:
-    a no-op on any other type (free-away is the FREE type)."""
+    a no-op on any other type (free-away is the FREE type).
+
+    `cost_manual=False` on the call below is deliberate, not the usual "ordinary re-tag preserves a
+    typed price" rule: a home charge someone had manually priced, then marks free, means free — the
+    mark is itself an explicit declaration and must win over a now-stale typed figure, in either
+    direction (free → 0.0, unmarked → the normal computed price, never the old manual one)."""
     db = _conn_rw()
     row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
     if not row:
@@ -2322,7 +2415,7 @@ def set_charge_free(charge_id: int, free: bool) -> dict:
     # row AND for every other piece of a merged group. Doing the arithmetic here instead left a
     # marked group costing its children's share: the page sums the pieces, and the mark stopped at
     # the row that was clicked.
-    return update_charge_type(charge_id, "HOME")
+    return update_charge_type(charge_id, "HOME", cost_manual=False)
 
 
 def auto_confirm_home_charges() -> int:
@@ -2588,35 +2681,41 @@ def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] 
     so the lifetime totals / monthly report reflect them (#87). Date + energy are the essentials;
     cost, AC/DC and — optionally — start/end SoC can be given (the latter drives the card's SoC-gain
     tile, requested by @rossiadobe on #67). It stays SoH-safe either way: a manual charge has no power
-    curve, so get_battery_health integrates ~0 energy and skips it regardless of SoC. location_type=
-    'MANUAL' keeps the automatic costers from overwriting the cost the user typed, and manual_entry=1
-    is what says the row was TYPED (#188) — the location_type alone can't, since it doubles as the
-    cost basis a user picks on a real charge."""
+    curve, so get_battery_health integrates ~0 energy and skips it regardless of SoC.
+
+    `location_type` is the real AC/FAST type from the form's own AC/DC choice — it used to be the
+    literal string 'MANUAL', which meant a hand-typed HPC-ish session could never be found by
+    searching HPC. `cost_manual=1` is what now keeps the automatic costers from overwriting the
+    cost the user typed (a hand-typed row's cost is manual by definition), and `manual_entry=1` is
+    still what says the row was TYPED at all (#188) — a question `cost_manual` can't answer, since
+    a REAL charge priced by hand is also `cost_manual=1`. Left as a plain INSERT rather than routed
+    through `update_charge_type`/`compute_cost`: a row with no cost typed must stay `cost=NULL`
+    exactly as it always has, not suddenly get auto-priced now that its type is a real one."""
     db = _conn_rw()
     try:
         vehicle_id = _selected_or_first(db)
         ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
+        loc_type = "FAST" if ct == "DC" else "AC"
         # #237 — the odometer only joins the INSERT where the column exists: the migration lives in
         # the poller and the web never alters the database (see `_charges_have_odometer`). Zero is
         # not stored, for the same reason the poller refuses it: an odometer of 0 would place the
-        # session at the factory gate rather than say nothing.
+        # session at the factory gate rather than say nothing. cost_manual joins the same way,
+        # guarded on its own migration.
         odo = float(odometer_km) if odometer_km else None
+        cols = ["vehicle_id", "started_at", "ended_at", "energy_added_kwh", "duration_min",
+                "charge_type", "location_type", "cost", "start_soc", "end_soc", "reconstructed",
+                "manual_entry"]
+        vals: list = [vehicle_id, started_at, ended_at or started_at, energy_kwh,
+                      _span_minutes(started_at, ended_at), ct, loc_type, cost, start_soc, end_soc,
+                      0, 1]
         if odo is not None and _charges_have_odometer(db):
-            cur = db.execute(
-                "INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, "
-                "duration_min, charge_type, location_type, cost, start_soc, end_soc, "
-                "odometer_km, reconstructed, manual_entry) "
-                "VALUES (?, ?, ?, ?, ?, ?, 'MANUAL', ?, ?, ?, ?, 0, 1)",
-                (vehicle_id, started_at, ended_at or started_at, energy_kwh,
-                 _span_minutes(started_at, ended_at), ct, cost, start_soc, end_soc, odo))
-            db.commit()
-            return cur.lastrowid  # type: ignore[return-value]
-        cur = db.execute(
-            "INSERT INTO charges (vehicle_id, started_at, ended_at, energy_added_kwh, duration_min, "
-            "charge_type, location_type, cost, start_soc, end_soc, reconstructed, manual_entry) "
-            "VALUES (?, ?, ?, ?, ?, ?, 'MANUAL', ?, ?, ?, 0, 1)",
-            (vehicle_id, started_at, ended_at or started_at, energy_kwh,
-             _span_minutes(started_at, ended_at), ct, cost, start_soc, end_soc))
+            cols.append("odometer_km")
+            vals.append(odo)
+        if _charges_have_cost_manual(db):
+            cols.append("cost_manual")
+            vals.append(1)
+        placeholders = ", ".join("?" * len(vals))
+        cur = db.execute(f"INSERT INTO charges ({', '.join(cols)}) VALUES ({placeholders})", vals)
         db.commit()
         # lastrowid is Optional only for a cursor that last ran something other than an INSERT;
         # this one just inserted into a table with an INTEGER PRIMARY KEY, so it is the new id.
@@ -2649,31 +2748,37 @@ def update_manual_charge(charge_id: int, started_at: str, energy_kwh: float,
     spreadsheet and could then change only its note, its AC/DC tag and its cost, while the times and
     the SoC (which the add form never even asked for) were frozen for good.
 
+    `location_type` is kept in step with the AC/DC tag here too (`"FAST" if ct=="DC" else "AC"`) —
+    it is the real, searchable type now, not the old 'MANUAL' placeholder, so editing the tag must
+    still move it. `cost_manual` is left untouched: this row was already manually priced the moment
+    it was typed in, and an edit to the amount doesn't change that.
+
     Guarded on manual_entry=1, and that guard is the point: on a MEASURED charge these fields are
     readings, and handing them to a form would let a typo overwrite what the car reported. Returns
     False — changing nothing — when the id isn't a typed-in charge."""
     db = _conn_rw()
     try:
         ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
+        loc_type = "FAST" if ct == "DC" else "AC"
         # #237 — the odometer is written only where the column exists, and clearing it is a real
         # answer: someone who realises they typed the wrong reading must be able to take it back
         # out, not be stuck with a wrong kilometre for ever.
         if _charges_have_odometer(db):
             cur = db.execute(
                 "UPDATE charges SET started_at=?, ended_at=?, energy_added_kwh=?, duration_min=?, "
-                "charge_type=?, cost=?, start_soc=?, end_soc=?, odometer_km=? "
+                "charge_type=?, location_type=?, cost=?, start_soc=?, end_soc=?, odometer_km=? "
                 "WHERE id=? AND manual_entry=1",
                 (started_at, ended_at or started_at, energy_kwh,
-                 _span_minutes(started_at, ended_at), ct, cost, start_soc, end_soc,
+                 _span_minutes(started_at, ended_at), ct, loc_type, cost, start_soc, end_soc,
                  (float(odometer_km) if odometer_km else None), charge_id))
             db.commit()
             return cur.rowcount > 0
         cur = db.execute(
             "UPDATE charges SET started_at=?, ended_at=?, energy_added_kwh=?, duration_min=?, "
-            "charge_type=?, cost=?, start_soc=?, end_soc=? "
+            "charge_type=?, location_type=?, cost=?, start_soc=?, end_soc=? "
             "WHERE id=? AND manual_entry=1",
             (started_at, ended_at or started_at, energy_kwh, _span_minutes(started_at, ended_at),
-             ct, cost, start_soc, end_soc, charge_id))
+             ct, loc_type, cost, start_soc, end_soc, charge_id))
         db.commit()
         return cur.rowcount > 0
     finally:
@@ -7282,15 +7387,21 @@ def is_home_charge(charge_id: int) -> bool:
 
 
 def unconfirmed_charges_count() -> int:
-    """How many FINISHED charges still have no type set (location_type NULL) → need
-    confirming. In-progress charges (ended_at NULL) are excluded: they can't be
-    confirmed until they end, otherwise the banner would never clear while charging."""
+    """How many FINISHED charges still have no REAL type set → need confirming. In-progress
+    charges (ended_at NULL) are excluded: they can't be confirmed until they end, otherwise the
+    banner would never clear while charging.
+
+    "No real type" is `location_type IS NULL` OR the literal leftover `'MANUAL'` — a charge stuck
+    there (from before cost_manual existed) shows the same "❓ Da confermare" badge as a NULL one
+    (CHARGE_TYPES has no 'MANUAL' key either), so the banner counting only NULL silently missed it:
+    the badge said unconfirmed, the banner didn't count it. Same fix in newest_unconfirmed_charge_id
+    below."""
     db = _get()
     row = db.execute(
         # Only whole charges: a merged child is not a charge the user can confirm — the group
         # carries the parent's type, and counting the pieces would ask twice for one answer.
         "SELECT COUNT(*) n FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
-        "AND location_type IS NULL AND ended_at IS NOT NULL"
+        "AND (location_type IS NULL OR location_type = 'MANUAL') AND ended_at IS NOT NULL"
         + (" AND merged_into_id IS NULL" if _charges_have_merge(db) else ""),
         (_current_vehicle_id(),)
     ).fetchone()
@@ -7311,7 +7422,7 @@ def newest_unconfirmed_charge_id() -> int:
     db = _get()
     row = db.execute(
         "SELECT id FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
-        "AND location_type IS NULL AND ended_at IS NOT NULL "
+        "AND (location_type IS NULL OR location_type = 'MANUAL') AND ended_at IS NOT NULL "
         "ORDER BY started_at DESC LIMIT 1",
         (_current_vehicle_id(),)
     ).fetchone()
@@ -7753,6 +7864,16 @@ def _charges_have_gross(db) -> bool:
         return False
 
 
+def _charges_have_cost_manual(db) -> bool:
+    """Whether the charges table carries the cost_manual column yet (see poller/schema.py's
+    migration comment for what it splits apart). Same per-call reasoning as `_charges_have_gross` —
+    guarded rather than left bare like `is_free`, because this one gates money."""
+    try:
+        return any(r[1] == "cost_manual" for r in db.execute("PRAGMA table_info(charges)"))
+    except sqlite3.Error:
+        return False
+
+
 def _charges_have_solar(db) -> bool:
     """Whether the charges table carries the #272 column yet. Same reasoning as
     `_charges_have_gross`: the migration lives in the poller, the web only reads, so between an
@@ -8054,7 +8175,7 @@ def search_charges(text: str = "", charge_type: str = "",
                     station: str | None = None) -> list[dict]:
     """Flat, most-recent-first list of charges matching ALL given filters — the Ricariche
     search bar. `text` matches the station name OR the user note (substring, case-
-    insensitive); `charge_type` is a location_type key (AC/FAST/HPC/HOME/FREE/MANUAL);
+    insensitive); `charge_type` is a location_type key (AC/FAST/HPC/HOME/FREE);
     the kWh/cost filters compare against the SAME billed figure the card shows
     (_billed_kwh); `date_from`/`date_to` are inclusive "YYYY-MM-DD" LOCAL calendar dates.
     Loads the full history like get_charges_grouped (#67 — no default limit may hide
@@ -8339,13 +8460,47 @@ def offline_gaps_summary(year: Optional[int] = None, month: Optional[int] = None
 
 def get_ac_dc_stats() -> dict:
     """Count + energy of AC vs DC charge sessions. DC = charge_type 'DC', or (when not
-    set) a measured peak power above 11 kW (AC tops out at ~11 kW; DC is faster)."""
+    set) a measured peak power above 11 kW (AC tops out at ~11 kW; DC is faster). `total`
+    counts every finished charge regardless of confirmation — AC vs DC is a measured,
+    objective fact the poller already records for all of them, confirmed or not.
+
+    `home_count`/`home_kwh`, `public_count`/`public_kwh` and `unconfirmed_count`/`unconfirmed_kwh`
+    are the OTHER, independent axis this feeds (the "Home vs Public" card) — `location_type`, not
+    `charge_type`. `home_count + public_count + unconfirmed_count` always equals `total`, by
+    construction: every charge lands in exactly one.
+
+    ⚠️ NOT nested under `ac` any more, and NOT gated on `is_dc`. It used to be — "every home
+    wallbox charges on AC" — which is true almost always, but the type badge itself offers every
+    type on every charge regardless of its OWN measured current: pick "Casa" on a DC-measured
+    session (a fast home charger, a noisy reading, whatever the real reason) and it was HOME by
+    every other measure in Mate, yet vanished from this card entirely — not home, not public, not
+    unconfirmed, and the card's own total fell a charge short of the page header's (found in
+    review, PR #284: "Ricariche 5" here, "Ricariche 6" on the header, on real test data). Home vs
+    Public is answered purely by `location_type`; whether that same charge also happens to be AC or
+    DC-measured is a completely separate question, answered by `ac`/`dc` above.
+
+    `public_count`/`public_kwh` are NOT `total - home_count`: unlike AC/DC, "was this at home" is
+    unknown for anything not yet confirmed — a charge still `location_type IS NULL`, or stuck on
+    the legacy 'MANUAL' placeholder (see the MANUAL/cost_manual split), is neither known-home nor
+    known-public, so counting it as public by subtraction silently mislabelled it (found in review:
+    a MANUAL charge made at home showed up as "Pubblica"). Only a charge with a real, confirmed,
+    non-HOME type counts as public.
+
+    `unconfirmed_count`/`unconfirmed_kwh` are that same not-yet-known remainder, made explicit.
+    Without it the Home vs Public card's OWN donut (fed only `[home_count, public_count]`) silently
+    normalised its percentages against just those two numbers instead of `total`, so on real data
+    (1 confirmed public charge, 3 still unconfirmed) the ring showed "100% Pubblica" while the text
+    beside it, dividing by `total`, correctly said 25% — two disagreeing numbers on one card, and
+    the 3 unconfirmed charges nowhere in it at all (found in review, PR #284)."""
     # Read the composed charges, not the stored rows. Excluding merged children from a query here
     # would have counted right and lost their kilowatt-hours — the split pieces would simply stop
     # being AC or DC energy at all. The group carries both: one session, all the energy.
     rows = get_charges(limit=1_000_000)
     ac = {"count": 0, "kwh": 0.0}
     dc = {"count": 0, "kwh": 0.0}
+    home_count, home_kwh = 0, 0.0
+    public_count, public_kwh = 0, 0.0
+    unconfirmed_count, unconfirmed_kwh = 0, 0.0
     for r in rows:
         ct = r["charge_type"]
         is_dc = ct == "DC" or (ct is None and (r["max_power_kw"] or 0) > 11)
@@ -8355,10 +8510,24 @@ def get_ac_dc_stats() -> dict:
         # ENERGIA TOTALE right below summed the billed one — two totals on ONE screen that did not
         # add up, off by the whole conversion loss (19.4 kWh on the test data). Older than today's
         # change; it just became impossible to miss once the totals beside it agreed.
-        b["kwh"] += _billed_kwh(dict(r))
+        kwh = _billed_kwh(dict(r))
+        b["kwh"] += kwh
+        lt = r["location_type"]
+        if lt == "HOME":            # regardless of is_dc — a real, confirmed type either way
+            home_count += 1
+            home_kwh += kwh
+        elif lt in CHARGE_TYPES:    # a real, confirmed type other than HOME — genuinely public
+            public_count += 1
+            public_kwh += kwh
+        else:                       # NULL, or the legacy 'MANUAL' placeholder — not yet known
+            unconfirmed_count += 1
+            unconfirmed_kwh += kwh
     ac["kwh"] = round(ac["kwh"], 2)
     dc["kwh"] = round(dc["kwh"], 2)
-    return {"ac": ac, "dc": dc, "total": ac["count"] + dc["count"]}
+    return {"ac": ac, "dc": dc, "total": ac["count"] + dc["count"],
+            "home_count": home_count, "home_kwh": round(home_kwh, 2),
+            "public_count": public_count, "public_kwh": round(public_kwh, 2),
+            "unconfirmed_count": unconfirmed_count, "unconfirmed_kwh": round(unconfirmed_kwh, 2)}
 
 
 # ── Monthly report (driving + charging + cost, one month) ──────────────────────

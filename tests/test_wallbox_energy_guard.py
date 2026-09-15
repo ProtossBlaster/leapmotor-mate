@@ -161,6 +161,23 @@ def test_repair_cleans_bogus_and_rescales_cost(tmp_path):
     assert good["cost"] == 2.15
 
 
+def test_repair_never_rescales_a_manually_typed_cost(tmp_path):
+    """The guard used to be `location_type != 'MANUAL'` — now it's the cost_manual column, which
+    can sit on a charge of ANY real type (HOME here), not just the old placeholder string."""
+    db = D.Database(str(tmp_path / "t.db"))
+    con = db._conn
+    cols = ("vehicle_id, location_type, cost_manual, started_at, ended_at, start_soc, end_soc, "
+            "energy_added_kwh, ac_energy_kwh, cost, max_power_kw, duration_min")
+    con.execute(f"INSERT INTO charges (id, {cols}) VALUES (1,1,'HOME',1,?,?,38,40,0.7,10570.0,50.00,3.1,15)",
+                (_at(minutes=15), _at(minutes=0)))
+    con.execute("DELETE FROM settings WHERE key='charges_wb_energy_repair_v1'")
+    con.commit()
+    db._repair_bogus_wallbox_energy()
+    row = con.execute("SELECT ac_energy_kwh, cost FROM charges WHERE id=1").fetchone()
+    assert row["ac_energy_kwh"] is None      # the bogus energy is still dropped
+    assert row["cost"] == 50.00              # but the hand-typed total is never rescaled
+
+
 def test_repair_is_idempotent(tmp_path):
     db = D.Database(str(tmp_path / "t.db"))
     con = db._conn

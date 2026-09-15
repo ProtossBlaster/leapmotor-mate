@@ -383,6 +383,24 @@ def ensure_schema(conn) -> None:
             "WHERE location_type = 'MANUAL' AND COALESCE(reconstructed, 0) = 0 "
             "AND latitude IS NULL AND longitude IS NULL "
             "AND duration_min IS NULL AND max_power_kw IS NULL AND ac_energy_kwh IS NULL")
+    # migration: location_type='MANUAL' used to mean two different things at once — a charge type
+    # (HOME/AC/FAST/HPC) AND "the cost was typed by hand, don't auto-price this". Picking Manual on
+    # a real HPC session lost its HPC tag for good: unfindable by type search, badge showing ✎
+    # instead of 🚀. `cost_manual` splits the second meaning out into its own column, going
+    # forward, so new charges never conflate the two again — every row that is 'MANUAL' today had
+    # its cost typed by hand by construction, so the backfill is unconditional.
+    #
+    # Deliberately NOT also fixed here: a charge already stuck on 'MANUAL' stays exactly that —
+    # its real original type (was it HOME? HPC? plain DC?) cannot be recovered from anything still
+    # on the row, so guessing risks getting it wrong with real money attached (an HPC session
+    # silently priced at the DC rate, or a HOME session losing its Home status and getting
+    # repriced as public AC). The badge already renders any unrecognized location_type — 'MANUAL'
+    # included — as "❓ Unconfirmed", so the owner can put the ONE fact only they know right with a
+    # single click, and cost_manual=1 (just above) means that click never touches the price they
+    # already typed. Left to a human, not guessed at.
+    if "cost_manual" not in ccols:
+        conn.execute("ALTER TABLE charges ADD COLUMN cost_manual INTEGER DEFAULT 0")
+        conn.execute("UPDATE charges SET cost_manual = 1 WHERE location_type = 'MANUAL'")
     # migration: #237 — the car's own odometer at the moment the charge started. Written by the
     # poller from the same frame that opens the charge, TYPED by the owner on a charge they add by
     # hand, and back-filled once from `positions` for sessions already in the DB (see

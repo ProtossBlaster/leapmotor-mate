@@ -101,10 +101,11 @@ def test_the_typed_number_is_never_split_or_rewritten(tmp_path, monkeypatch):
 
 
 def test_a_manual_total_is_not_multiplied_by_the_pieces(tmp_path, monkeypatch):
-    """A hand-typed price is what the whole session cost."""
+    """A hand-typed price is what the whole session cost — on a REAL type now, not the old
+    'MANUAL' placeholder: cost_manual is what marks it a whole-group price for the cascade."""
     path = _two_pieces(tmp_path, monkeypatch)
     assert db_reader.merge_charges(1, 2)["ok"]
-    db_reader.update_charge_type(1, "MANUAL", manual_cost=9.90)
+    db_reader.update_charge_type(1, "AC", manual_cost=9.90, cost_manual=True)
     assert _group_cost() == pytest.approx(9.90)
     assert _rows(path)[2]["cost"] is None
 
@@ -121,13 +122,14 @@ def test_merging_into_an_unconfirmed_parent_leaves_a_confirmed_child_alone(tmp_p
 def test_a_charge_that_was_never_merged_keeps_its_typed_kwh(tmp_path, monkeypatch):
     """GUARD. Re-tagging must not wipe a column it is not changing (#222 on a lone charge)."""
     path = _two_pieces(tmp_path, monkeypatch, gross=30.0)
-    db_reader.update_charge_type(1, "MANUAL", manual_cost=9.90)
+    db_reader.update_charge_type(1, "AC", manual_cost=9.90, cost_manual=True)
     assert _rows(path)[1]["gross_kwh"] == pytest.approx(30.0)
 
 
 def test_a_table_without_the_gross_column_still_confirms(tmp_path, monkeypatch):
     """GUARD. The poller owns the migration; the web serves the same file and never alters it.
-    Naming gross_kwh unguarded is an OperationalError — a 500 on the Charges page."""
+    Naming gross_kwh — or cost_manual, also absent from this minimal table — unguarded is an
+    OperationalError — a 500 on the Charges page."""
     path = str(tmp_path / "min.db")
     con = sqlite3.connect(path)
     con.execute("CREATE TABLE charges (id INTEGER PRIMARY KEY, vehicle_id INTEGER, started_at TEXT,"
@@ -144,7 +146,8 @@ def test_a_table_without_the_gross_column_still_confirms(tmp_path, monkeypatch):
     monkeypatch.setattr(db_reader, "DB_PATH", path)
     monkeypatch.setattr(db_reader, "get_charge_prices", lambda: {"price_home_kwh": 0.20})
     monkeypatch.setattr(db_reader, "get_cost_config", lambda: {"mode": "flat"})
-    db_reader.update_charge_type(1, "MANUAL", manual_cost=9.90)   # must not raise
+    out = db_reader.update_charge_type(1, "HOME", manual_cost=9.90, cost_manual=True)   # must not raise
+    assert out["cost"] == pytest.approx(9.90)
 
 
 def test_marking_a_merged_home_charge_free_zeroes_the_whole_group(tmp_path, monkeypatch):
