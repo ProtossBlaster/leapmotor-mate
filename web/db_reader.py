@@ -6371,6 +6371,12 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     trip_d["charges"] = _trip_stop_charges(db, trip["vehicle_id"], trip_d.get("ended_at"))
     trip_d["started_at"] = _local_iso(trip_d.get("started_at"))
     trip_d["ended_at"] = _local_iso(trip_d.get("ended_at"))
+    # #279: the later pieces' notes print their times with the same [11:16] slice as the header, so
+    # they need the same conversion — left raw, they showed UTC under a local header (@pdifeo: 05:53
+    # on top, 04:04 → 04:28 below).
+    for _seg in trip_d["additional_segment_notes"]:
+        _seg["started_at"] = _local_iso(_seg["started_at"])
+        _seg["ended_at"] = _local_iso(_seg["ended_at"])
 
     # #107: per-trip user note + manual driving tags — read from the parent row (the detail page
     # always shows the parent, so the note/tags saved against it are the ones edited here).
