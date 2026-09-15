@@ -257,7 +257,14 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
      residential fast charger). Not `total - home_count` — that would also count anything not yet
      confirmed (location_type NULL, or the legacy 'MANUAL' placeholder) as public by subtraction,
      which mislabelled a home charge stuck on 'MANUAL' as public (found in review). Computed
-     server-side (get_ac_dc_stats) since it needs the same real-type check the badge itself uses. #}
+     server-side (get_ac_dc_stats) since it needs the same real-type check the badge itself uses.
+
+     A THIRD, explicit "Da confermare" tile/slice for whatever is neither — home_count + public_count
+     + unconfirmed_count always equals ac_dc.total. Without it the donut (fed only [home, public])
+     normalised its own percentages against just those two numbers while the text beside it divided
+     by the true total: on real data (1 confirmed public charge, 3 still unconfirmed) the ring said
+     "100% Pubblica", the text said 25%, and the 3 unconfirmed charges appeared nowhere in this card
+     at all (found in review, PR #284). #}
   <div class="card">
     <h2 class="font-semibold text-white mb-3">{{ t('home_public_distribution') }}</h2>
     <div class="flex flex-col sm:flex-row items-center gap-6">
@@ -287,6 +294,20 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
             {% if ac_dc.total %}· {{ (ac_dc.public_count / ac_dc.total * 100) | round | int }}%{% endif %}
           </div>
         </div>
+        {% if ac_dc.unconfirmed_count %}
+        <div class="xs:col-span-2" style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-3 h-3 rounded-full" style="background:#f59e0b"></span>
+            <span class="text-slate-300 text-sm font-medium">{{ t('charge_unconfirmed') }}</span>
+          </div>
+          <div class="text-2xl font-bold text-white">{{ ac_dc.unconfirmed_count }}
+            <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.unconfirmed_kwh | nice }} kWh
+            {% if ac_dc.total %}· {{ (ac_dc.unconfirmed_count / ac_dc.total * 100) | round | int }}%{% endif %}
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -320,16 +341,17 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
 })();
 (function () {
   // Same shape as the AC/DC ring above, for the SAME reason (#269) — the total's own centre
-  // value needs an explicit light colour or it vanishes on this dark card. Sums to the GRAND
-  // total (Home + every other charge, DC included) — never just the AC subtotal.
+  // value needs an explicit light colour or it vanishes on this dark card. A THIRD "unconfirmed"
+  // slice keeps this ring's own percentages agreeing with the text tiles beside it — both now
+  // always divide by the same ac_dc.total (found disagreeing in review, PR #284).
   var el = document.getElementById('homepublic-chart');
   if (!el || typeof ApexCharts === 'undefined') return;
   if (el._c) { try { el._c.destroy(); } catch (e) {} }
   el._c = new ApexCharts(el, {
     chart: { type: 'donut', height: 200, fontFamily: 'inherit', background: 'transparent' },
-    series: [{{ ac_dc.ac.home_count }}, {{ ac_dc.public_count }}],
-    labels: ['{{ t('report_home') }}', '{{ t('ac_charge_public') }}'],
-    colors: ['#22c55e', '#7dd3fc'],
+    series: [{{ ac_dc.ac.home_count }}, {{ ac_dc.public_count }}, {{ ac_dc.unconfirmed_count }}],
+    labels: ['{{ t('report_home') }}', '{{ t('ac_charge_public') }}', '{{ t('charge_unconfirmed') }}'],
+    colors: ['#22c55e', '#7dd3fc', '#f59e0b'],
     legend: { show: false },
     stroke: { width: 0 },
     dataLabels: { enabled: true, formatter: function (v) { return Math.round(v) + '%'; },

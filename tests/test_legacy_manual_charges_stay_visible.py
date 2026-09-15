@@ -57,12 +57,14 @@ def test_the_banner_link_can_reach_a_legacy_manual_charge_too(tmp_path, monkeypa
 
 def test_a_legacy_manual_charge_is_neither_home_nor_public(tmp_path, monkeypatch):
     """The actual bug: a home session stuck on 'MANUAL' must not be swept into "Pubblica" just
-    because it isn't literally 'HOME' — it isn't confirmed as anything yet."""
+    because it isn't literally 'HOME' — it isn't confirmed as anything yet. It counts as
+    unconfirmed instead, explicitly — see the invariant tests below."""
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, ctype="MANUAL", cost=6.0, cost_manual=1, charge_type="AC")
     stats = db_reader.get_ac_dc_stats()
     assert stats["ac"]["home_count"] == 0
     assert stats["public_count"] == 0
+    assert stats["unconfirmed_count"] == 1
     assert stats["total"] == 1   # still counted for AC vs DC — that axis IS known regardless
 
 
@@ -72,6 +74,7 @@ def test_a_confirmed_public_charge_still_counts_as_public(tmp_path, monkeypatch)
     stats = db_reader.get_ac_dc_stats()
     assert stats["public_count"] == 1
     assert stats["public_kwh"] == 10.0
+    assert stats["unconfirmed_count"] == 0
 
 
 def test_a_confirmed_home_charge_never_counts_as_public(tmp_path, monkeypatch):
@@ -80,6 +83,7 @@ def test_a_confirmed_home_charge_never_counts_as_public(tmp_path, monkeypatch):
     stats = db_reader.get_ac_dc_stats()
     assert stats["ac"]["home_count"] == 1
     assert stats["public_count"] == 0
+    assert stats["unconfirmed_count"] == 0
 
 
 def test_a_plain_unconfirmed_charge_is_also_neither_home_nor_public(tmp_path, monkeypatch):
@@ -88,3 +92,24 @@ def test_a_plain_unconfirmed_charge_is_also_neither_home_nor_public(tmp_path, mo
     stats = db_reader.get_ac_dc_stats()
     assert stats["ac"]["home_count"] == 0
     assert stats["public_count"] == 0
+    assert stats["unconfirmed_count"] == 1
+
+
+# ── the three buckets always add up to the grand total ─────────────────────────
+# The actual regression: the card's own donut summed only [home_count, public_count] and silently
+# normalised its percentages against that instead of `total`, disagreeing with the text beside it
+# (which divides by `total`) and showing the unconfirmed charges nowhere at all.
+
+def test_home_public_and_unconfirmed_always_sum_to_the_grand_total(tmp_path, monkeypatch):
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype="HOME", cost=2.5, charge_type="AC")
+    _charge(pdb, 2, ctype="FAST", cost=10.0, charge_type="DC", max_power_kw=50)
+    _charge(pdb, 3, ctype="MANUAL", cost=6.0, cost_manual=1, charge_type="AC")
+    _charge(pdb, 4, ctype=None, charge_type="DC", max_power_kw=60)
+    stats = db_reader.get_ac_dc_stats()
+    assert stats["total"] == 4
+    assert (stats["ac"]["home_count"] + stats["public_count"]
+            + stats["unconfirmed_count"]) == stats["total"]
+    assert stats["ac"]["home_count"] == 1
+    assert stats["public_count"] == 1
+    assert stats["unconfirmed_count"] == 2

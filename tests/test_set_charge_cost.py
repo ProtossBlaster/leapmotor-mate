@@ -47,27 +47,44 @@ def test_clearing_it_recomputes_the_default(tmp_path, monkeypatch):
     assert out["cost"] == 7.9   # 10 kWh × 0.79, the normal computed price
 
 
-def test_an_untyped_charge_is_left_alone(tmp_path, monkeypatch):
-    """The pencil field is only offered on a confirmed charge — same rule as the gross/solar
-    fields. An untyped one must not become typed by a side effect of pricing it."""
+def test_an_untyped_charge_can_still_be_priced_by_hand(tmp_path, monkeypatch):
+    """The field's own docstring promise — independent of the charge's type — means it has to
+    actually work before a type is picked, not just avoid crashing: the template offers the pencil
+    UNCONDITIONALLY (unlike gross/solar, which are gated on `location_type`). A first pass at the
+    500 fix (see git log) made this a silent no-op instead — 200 OK, the typed figure discarded,
+    no message — which is what was found wrong in review (PR #284)."""
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, ctype=None)
     out = db_reader.set_charge_cost(1, 18.45)
-    assert out["location_type"] is None
+    assert out["location_type"] is None      # still not typed — this field never types a charge
+    assert out["cost"] == 18.45
+    assert out["cost_manual"] == 1
+
+
+def test_clearing_an_untyped_charges_price_just_wipes_it(tmp_path, monkeypatch):
+    """No real type means no computed default to fall back to — "clear" here can only mean
+    "nothing typed", not "recompute"."""
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype=None, cost=18.45, cost_manual=1)
+    out = db_reader.set_charge_cost(1, None)
     assert out["cost"] is None
+    assert out["cost_manual"] == 0
 
 
-def test_a_legacy_manual_charge_is_left_alone_not_crashed(tmp_path, monkeypatch):
+def test_a_legacy_manual_charge_can_have_its_typed_price_corrected(tmp_path, monkeypatch):
     """A charge stuck on the pre-cost_manual 'MANUAL' placeholder is truthy but not a real type —
     routing it into update_charge_type (which rejects anything outside CHARGE_TYPES) used to
-    return {} and crash the template on charge.cost, a 500 found in review. Same "left alone"
-    contract as a NULL charge, not a crash: there's no real type to compute anything against."""
+    return {} and crash the template on charge.cost, a 500 found in review. The fix isn't to leave
+    it alone (that just swapped the crash for a silent no-op, still found wrong in review): the
+    owner can still correct the one thing they know — what they actually paid — before the type
+    itself is ever sorted out."""
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, ctype="MANUAL", cost=18.45, cost_manual=1)
     out = db_reader.set_charge_cost(1, 25.0)
     assert out != {}
-    assert out["location_type"] == "MANUAL"
-    assert out["cost"] == 18.45   # unchanged — no route to price a charge with no real type
+    assert out["location_type"] == "MANUAL"   # still not a real type — this field never sets one
+    assert out["cost"] == 25.0
+    assert out["cost_manual"] == 1
 
 
 def test_a_later_retag_preserves_the_manual_cost(tmp_path, monkeypatch):
