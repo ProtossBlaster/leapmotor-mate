@@ -2285,56 +2285,6 @@ def repair_merged_charge_pieces() -> int:
     return n
 
 
-def repair_manual_type_charges() -> int:
-    """One-time: give back a real type to every charge still stuck on `location_type='MANUAL'`
-    from before `cost_manual` existed — the poller's own migration already flagged every one of
-    them `cost_manual=1` (a MANUAL row's cost was typed by hand by construction), so this only has
-    location_type left to fix. `cost` is never touched. Returns how many rows were reclassified.
-
-    A MEASURED charge (manual_entry=0) is reclassified AC or DC from its own `max_power_kw` — that
-    figure was never touched by the old MANUAL-badge flow, so it is still the truth, but it is the
-    CAR's own charging curve, not the charger's rating or tariff, so it can only ever tell AC from
-    DC, never DC from HPC (a car on a 300 kW charger can still measure well under any DC/HPC split
-    depending on where its curve sits) — so DC is as far as this goes; HPC has never been
-    power-derived anywhere in Mate and this repair doesn't start guessing it now, same reasoning as
-    `auto_detect_charge_type_from_power`. A HAND-TYPED charge (manual_entry=1) is reclassified from
-    its own `charge_type` (AC/DC) column instead — the one `add_manual_charge`'s form has always
-    collected separately, and now writes a real location_type from directly, going forward.
-
-    🔴 KNOWN LIMITATIONS, not defects to chase:
-    - A charge that was originally HOME and got manually priced cannot be recovered as HOME here.
-      Home/away has never been power-determined and no geofencing exists anywhere in Mate — the
-      best this can do is AC/FAST, which is a real answer, just not necessarily the original one.
-    - A charge that was really HPC comes back as FAST/DC — the owner still knows which charger they
-      used and can re-tag it with one click on the badge, same as for any newly auto-detected DC
-      charge; this repair does not (cannot) do that guessing for them.
-    Said here so both are a documented trade-off and not a silent surprise on somebody's history.
-
-    Safe to run twice: the second pass finds nothing, because it selects on the absence it fills."""
-    db = _conn_rw()
-    if not _charges_have_cost_manual(db):
-        return 0
-    dc_min = float(get_setting("charge_dc_min_kw", "11") or 11)
-    try:
-        rows = db.execute(
-            "SELECT id, manual_entry, max_power_kw, charge_type FROM charges "
-            "WHERE location_type = 'MANUAL'").fetchall()
-    except sqlite3.Error:
-        return 0
-    n = 0
-    for r in rows:
-        if r["manual_entry"]:
-            new_type = "FAST" if r["charge_type"] == "DC" else "AC"
-        elif r["max_power_kw"] is not None:
-            new_type = "FAST" if r["max_power_kw"] > dc_min else "AC"
-        else:
-            continue   # no telemetry and not hand-typed either — nothing to reclassify from
-        db.execute("UPDATE charges SET location_type=? WHERE id=?", (new_type, r["id"]))
-        n += 1
-    db.commit()
-    return n
-
-
 def get_charge(charge_id: int) -> dict:
     """One charge, read-only, exactly as stored — no join, no composition. For a route that needs
     to re-render the CURRENT state without changing anything (e.g. rejecting an unparseable typed
@@ -2506,45 +2456,6 @@ def price_default_home_charges() -> int:
         update_charge_type(r["id"], "HOME")
         fatte += 1
     return fatte
-
-
-def auto_detect_charge_type_from_power() -> int:
-    """Type a still-unconfirmed charge AC or DC from its own measured peak power — no reason to
-    make an owner click ⚡ by hand when the car already told Mate which one it was. User-editable
-    afterward like any badge a person picked themselves.
-
-    ⚠️ Never HPC, and never AC either — two different reasons for two different types:
-
-    - **AC** is left alone entirely (see below), because a home wallbox's own power sits inside
-      that same 11-32 kW range `charge_dc_min_kw` spans, and guessing AC there would silently
-      steal untyped charges away from `auto_confirm_home_charges`/`price_default_home_charges`
-      and from the owner's own manual HOME pick — on an install with no HA wallbox integration,
-      the unconfirmed badge is the ONLY path a home charge ever gets tagged HOME through.
-    - **HPC** can never be told apart from plain DC by power at all, at any threshold — measured
-      power is the CAR's own charging curve, not the charger's rating or tariff class. A car
-      plugged into a genuine 300 kW HPC charger may, depending on where its curve sits (SoC,
-      battery temperature), be drawing only 45 kW at that moment, and the HPC price is still
-      what was billed. From power alone the only safe call is AC vs DC — Mate has never
-      auto-derived HPC from anything, and this sweep doesn't start now. DC → HPC stays a plain
-      human judgement call on the badge, exactly as it always has been.
-
-    Runs on every page render, like its HOME siblings (one SELECT, normally 0 rows), unconditionally
-    — unlike them, this reads a real measurement rather than an inferred proxy, so it carries no
-    opt-in setting. Must run AFTER both HOME sweeps in `_ctx()`: it only ever sees what they left
-    `location_type IS NULL`. Returns how many were typed."""
-    dc_min = float(get_setting("charge_dc_min_kw", "11") or 11)
-    try:
-        rows = _get().execute(
-            "SELECT id FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
-            "AND location_type IS NULL AND ended_at IS NOT NULL "
-            "AND COALESCE(reconstructed, 0) = 0 AND max_power_kw > ?",
-            (_current_vehicle_id(), dc_min)
-        ).fetchall()
-    except sqlite3.Error:   # fresh install — charges table not created yet
-        return 0
-    for r in rows:
-        update_charge_type(r["id"], "FAST")
-    return len(rows)
 
 
 # ── 📍 charging-station labels (resolved by web/charger_locator.py) ───────────

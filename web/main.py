@@ -139,21 +139,6 @@ def _repair_merged_charge_pieces() -> None:
         pass
 
 
-def _repair_manual_type_charges() -> None:
-    """location_type='MANUAL' used to double as "this charge's cost was typed by hand", so picking
-    it on a real HPC/AC/FAST/HOME session lost that session's real type for good — unfindable by
-    type search, badge showing ✎ instead of its true icon. `cost_manual` now carries that second
-    meaning on its own column, and this puts every already-affected charge's location_type back to
-    the truth (from its own measured peak power, or its own AC/DC tag for a hand-typed row) — never
-    touching cost. Safe to run twice — it selects on the absence it fills."""
-    try:
-        n = db_reader.repair_manual_type_charges()
-        if n:
-            log.info("Charge-type repair: %d charge(s) reclassified from 'Manual' to their real type", n)
-    except Exception:  # noqa: BLE001 — never block startup over a repair
-        pass
-
-
 def _pin_auto_timezone() -> None:
     """Runs BEFORE the repair below, and the order is the point: the repair refuses to convert while
     the zone is Auto (it will not bake in a guess), so an install left on Auto could never have its
@@ -185,7 +170,6 @@ _check_secret_key()
 _pin_auto_timezone()
 _repair_manual_charge_timezones()
 _repair_merged_charge_pieces()
-_repair_manual_type_charges()
 
 app = FastAPI(title="LeapMotor Mate")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -468,12 +452,6 @@ def _ctx(**kwargs):
     # counting none of them. Same lazy sweep, same update_charge_type path, and it catches the
     # backlog of whoever turned that switch on weeks ago.
     db_reader.price_default_home_charges()
-    # Same piggyback, one power tier up: a charge whose own peak power clears the DC threshold can
-    # only be public fast/ultra-rapid DC, never AC/HOME — so it's typed from that measurement alone,
-    # no opt-in switch needed (unlike its two neighbours above, this reads a measurement rather than
-    # an inferred proxy). MUST run after both HOME sweeps: it only ever sees what they left
-    # untyped, so a charge either of them would have claimed never reaches it.
-    db_reader.auto_detect_charge_type_from_power()
     # Same piggyback for the 📍 station labels — settings probe + tiny SELECT per render,
     # the OSM lookups run in a background thread on a TTL (see charger_locator.maybe_sweep).
     charger_locator.maybe_sweep()
