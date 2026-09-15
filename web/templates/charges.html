@@ -253,10 +253,11 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
   </div>
 
   {# Home is a subset of AC (every home wallbox charges on AC) — but PUBLIC here means every
-     charge that isn't Home, DC included: a DC/HPC session is never a home one (no residential
-     fast charger), so excluding it from "public" would undercount it, not just mislabel it. #}
-  {% set public_count = ac_dc.total - ac_dc.ac.home_count %}
-  {% set public_kwh = (ac_dc.ac.kwh + ac_dc.dc.kwh - ac_dc.ac.home_kwh) | round(2) %}
+     CONFIRMED charge that isn't Home, DC included: a DC/HPC session is never a home one (no
+     residential fast charger). Not `total - home_count` — that would also count anything not yet
+     confirmed (location_type NULL, or the legacy 'MANUAL' placeholder) as public by subtraction,
+     which mislabelled a home charge stuck on 'MANUAL' as public (found in review). Computed
+     server-side (get_ac_dc_stats) since it needs the same real-type check the badge itself uses. #}
   <div class="card">
     <h2 class="font-semibold text-white mb-3">{{ t('home_public_distribution') }}</h2>
     <div class="flex flex-col sm:flex-row items-center gap-6">
@@ -279,11 +280,11 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
             <span class="w-3 h-3 rounded-full" style="background:#7dd3fc"></span>
             <span class="text-slate-300 text-sm font-medium">{{ t('ac_charge_public') }}</span>
           </div>
-          <div class="text-2xl font-bold text-white">{{ public_count }}
+          <div class="text-2xl font-bold text-white">{{ ac_dc.public_count }}
             <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
           </div>
-          <div class="text-xs text-slate-500 mt-1">{{ public_kwh | nice }} kWh
-            {% if ac_dc.total %}· {{ (public_count / ac_dc.total * 100) | round | int }}%{% endif %}
+          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.public_kwh | nice }} kWh
+            {% if ac_dc.total %}· {{ (ac_dc.public_count / ac_dc.total * 100) | round | int }}%{% endif %}
           </div>
         </div>
       </div>
@@ -326,7 +327,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
   if (el._c) { try { el._c.destroy(); } catch (e) {} }
   el._c = new ApexCharts(el, {
     chart: { type: 'donut', height: 200, fontFamily: 'inherit', background: 'transparent' },
-    series: [{{ ac_dc.ac.home_count }}, {{ public_count }}],
+    series: [{{ ac_dc.ac.home_count }}, {{ ac_dc.public_count }}],
     labels: ['{{ t('report_home') }}', '{{ t('ac_charge_public') }}'],
     colors: ['#22c55e', '#7dd3fc'],
     legend: { show: false },

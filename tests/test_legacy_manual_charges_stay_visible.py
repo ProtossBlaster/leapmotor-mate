@@ -1,0 +1,90 @@
+"""A charge still stuck on the pre-cost_manual 'MANUAL' placeholder renders as "❓ Da confermare"
+on its own badge (CHARGE_TYPES has no 'MANUAL' key, same fallback as a NULL location_type) — but
+several OTHER features used to check `location_type IS NULL` specifically, or a bare truthiness of
+`location_type`, and so silently disagreed with what the badge itself shows: the "N to confirm"
+banner didn't count it, and the "Home vs Public" card counted it as public by construction (it
+isn't 'HOME', so `total - home_count` swept it in). Found in review (ProtossBlaster, PR #284):
+measured on real test data, a home charge stuck on 'MANUAL' showed up as "Pubblica".
+
+'MANUAL' is deliberately NEVER rewritten by any repair any more (see poller/schema.py's migration
+comment) — its real original type cannot be recovered from anything still on the row, so guessing
+risks getting it wrong with real money attached. These tests instead hold every OTHER feature to
+the one true definition of "not yet confirmed": `location_type IS NULL OR location_type = 'MANUAL'`,
+the same test the badge template already uses via `charge_types.get(charge.location_type)`.
+"""
+import db as D
+import db_reader
+
+
+def _setup(tmp_path, monkeypatch):
+    pdb = D.Database(str(tmp_path / "t.db"))
+    monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
+    return pdb
+
+
+def _charge(pdb, cid, *, ctype, cost=None, cost_manual=0, charge_type="AC", max_power_kw=None):
+    pdb._conn.execute(
+        "INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc,"
+        " energy_added_kwh, location_type, cost, cost_manual, charge_type, max_power_kw)"
+        " VALUES (?,1,'2026-06-02T16:00:00+00:00','2026-06-02T17:00:00+00:00',40,60,10.0,"
+        " ?,?,?,?,?)",
+        (cid, ctype, cost, cost_manual, charge_type, max_power_kw))
+    pdb._conn.commit()
+
+
+# ── the "N to confirm" banner ──────────────────────────────────────────────────
+
+def test_a_legacy_manual_charge_counts_toward_the_confirm_banner(tmp_path, monkeypatch):
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype="MANUAL", cost=6.0, cost_manual=1)
+    _charge(pdb, 2, ctype=None)
+    assert db_reader.unconfirmed_charges_count() == 2
+
+
+def test_the_banner_still_ignores_a_genuinely_confirmed_charge(tmp_path, monkeypatch):
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype="HOME", cost=6.0)
+    assert db_reader.unconfirmed_charges_count() == 0
+
+
+def test_the_banner_link_can_reach_a_legacy_manual_charge_too(tmp_path, monkeypatch):
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype="MANUAL", cost=6.0, cost_manual=1)
+    assert db_reader.newest_unconfirmed_charge_id() == 1
+
+
+# ── the "Home vs Public" card ──────────────────────────────────────────────────
+
+def test_a_legacy_manual_charge_is_neither_home_nor_public(tmp_path, monkeypatch):
+    """The actual bug: a home session stuck on 'MANUAL' must not be swept into "Pubblica" just
+    because it isn't literally 'HOME' — it isn't confirmed as anything yet."""
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype="MANUAL", cost=6.0, cost_manual=1, charge_type="AC")
+    stats = db_reader.get_ac_dc_stats()
+    assert stats["ac"]["home_count"] == 0
+    assert stats["public_count"] == 0
+    assert stats["total"] == 1   # still counted for AC vs DC — that axis IS known regardless
+
+
+def test_a_confirmed_public_charge_still_counts_as_public(tmp_path, monkeypatch):
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype="FAST", cost=10.0, charge_type="DC", max_power_kw=50)
+    stats = db_reader.get_ac_dc_stats()
+    assert stats["public_count"] == 1
+    assert stats["public_kwh"] == 10.0
+
+
+def test_a_confirmed_home_charge_never_counts_as_public(tmp_path, monkeypatch):
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype="HOME", cost=2.5, charge_type="AC")
+    stats = db_reader.get_ac_dc_stats()
+    assert stats["ac"]["home_count"] == 1
+    assert stats["public_count"] == 0
+
+
+def test_a_plain_unconfirmed_charge_is_also_neither_home_nor_public(tmp_path, monkeypatch):
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype=None, charge_type="AC")
+    stats = db_reader.get_ac_dc_stats()
+    assert stats["ac"]["home_count"] == 0
+    assert stats["public_count"] == 0

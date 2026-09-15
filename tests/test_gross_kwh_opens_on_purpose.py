@@ -269,6 +269,17 @@ def test_it_cannot_type_a_charge_nobody_has_typed(tmp_path, monkeypatch):
     assert row["location_type"] is None and not row["gross_kwh"]
 
 
+def test_a_legacy_manual_charge_is_left_alone_not_crashed(tmp_path, monkeypatch):
+    """'MANUAL' is truthy but not a real type — update_charge_type rejects anything outside
+    CHARGE_TYPES and used to hand this field an empty {} (a 500 on the template, found in review
+    on the sibling set_charge_cost). Same left-alone contract as a NULL charge, not a crash."""
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, ctype="MANUAL")
+    out = db_reader.set_charge_gross_kwh(1, 10.0)
+    assert out != {}
+    assert out["location_type"] == "MANUAL" and not out["gross_kwh"]
+
+
 def test_a_typo_is_read_as_empty_not_as_a_zero():
     """'1O.5' must leave a good figure standing, not wipe it."""
     body = MAIN.split("async def set_charge_gross_kwh(", 1)[1].split("\n@app.", 1)[0]

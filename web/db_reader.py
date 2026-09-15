@@ -2304,10 +2304,16 @@ def set_charge_cost(charge_id: int, cost: Optional[float]) -> dict:
     one opens PRE-FILLED with the current effective cost, so an empty submission is a deliberate
     CLEAR — it means "go back to the computed default", not "leave whatever's there". `cost=None`
     here is that clear, routed through `update_charge_type(..., cost_manual=False)`, which
-    recomputes the normal price the same way a fresh badge confirm would."""
+    recomputes the normal price the same way a fresh badge confirm would.
+
+    `location_type not in CHARGE_TYPES` (not `not row["location_type"]`) is the real "not yet
+    typed" test: a leftover `'MANUAL'` row is truthy but not a real type, and routing it into
+    update_charge_type — which now rejects anything outside CHARGE_TYPES — used to return `{}` and
+    crash the template on `charge.cost` (a 500, found in review). Same as a NULL charge, it's a
+    no-op here: there's no real type to compute anything against, so nothing changes."""
     db = _conn_rw()
     row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
-    if not row or not row["location_type"]:
+    if not row or row["location_type"] not in CHARGE_TYPES:
         return dict(row) if row else {}
     if cost is None:
         return update_charge_type(charge_id, row["location_type"], cost_manual=False)
@@ -2324,10 +2330,14 @@ def set_charge_gross_kwh(charge_id: int, gross_kwh: Optional[float]) -> dict:
     the field opens empty every time, so an accidental open followed by Enter has to be a no-op
     rather than an erasure. Zero is the deliberate way to take a wrong number back — every reader
     tests `gross_kwh > 0`, so a stored zero reads as never-typed and the cost falls straight back to
-    the measured basis."""
+    the measured basis.
+
+    `location_type not in CHARGE_TYPES`, not `not row["location_type"]` — a leftover `'MANUAL'` row
+    is truthy but not a real type, and update_charge_type now rejects anything outside CHARGE_TYPES
+    (see set_charge_cost's docstring for the 500 that bare truthiness check used to cause)."""
     db = _conn_rw()
     row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
-    if not row or not row["location_type"]:
+    if not row or row["location_type"] not in CHARGE_TYPES:
         return dict(row) if row else {}
     if gross_kwh is None:
         return dict(row)
@@ -2347,10 +2357,12 @@ def set_charge_solar_kwh(charge_id: int, solar_kwh: Optional[float]) -> dict:
     OPPOSITE number — what they bought instead of what the sun gave — and a silent clamp would
     price that mistake as a free charge without ever saying so. Equal to the measured energy is
     accepted: a charge entirely off the roof costs nothing, and that is a real case.
-    """
+
+    `location_type not in CHARGE_TYPES`, not `not row["location_type"]` — see set_charge_cost's
+    docstring: a leftover `'MANUAL'` row is truthy but not a real type."""
     db = _conn_rw()
     row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
-    if not row or not row["location_type"]:
+    if not row or row["location_type"] not in CHARGE_TYPES:
         return dict(row) if row else {}
     if solar_kwh is None:
         return dict(row)
@@ -7353,15 +7365,21 @@ def is_home_charge(charge_id: int) -> bool:
 
 
 def unconfirmed_charges_count() -> int:
-    """How many FINISHED charges still have no type set (location_type NULL) → need
-    confirming. In-progress charges (ended_at NULL) are excluded: they can't be
-    confirmed until they end, otherwise the banner would never clear while charging."""
+    """How many FINISHED charges still have no REAL type set → need confirming. In-progress
+    charges (ended_at NULL) are excluded: they can't be confirmed until they end, otherwise the
+    banner would never clear while charging.
+
+    "No real type" is `location_type IS NULL` OR the literal leftover `'MANUAL'` — a charge stuck
+    there (from before cost_manual existed) shows the same "❓ Da confermare" badge as a NULL one
+    (CHARGE_TYPES has no 'MANUAL' key either), so the banner counting only NULL silently missed it:
+    the badge said unconfirmed, the banner didn't count it. Same fix in newest_unconfirmed_charge_id
+    below."""
     db = _get()
     row = db.execute(
         # Only whole charges: a merged child is not a charge the user can confirm — the group
         # carries the parent's type, and counting the pieces would ask twice for one answer.
         "SELECT COUNT(*) n FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
-        "AND location_type IS NULL AND ended_at IS NOT NULL"
+        "AND (location_type IS NULL OR location_type = 'MANUAL') AND ended_at IS NOT NULL"
         + (" AND merged_into_id IS NULL" if _charges_have_merge(db) else ""),
         (_current_vehicle_id(),)
     ).fetchone()
@@ -7382,7 +7400,7 @@ def newest_unconfirmed_charge_id() -> int:
     db = _get()
     row = db.execute(
         "SELECT id FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
-        "AND location_type IS NULL AND ended_at IS NOT NULL "
+        "AND (location_type IS NULL OR location_type = 'MANUAL') AND ended_at IS NOT NULL "
         "ORDER BY started_at DESC LIMIT 1",
         (_current_vehicle_id(),)
     ).fetchone()
@@ -8420,19 +8438,27 @@ def offline_gaps_summary(year: Optional[int] = None, month: Optional[int] = None
 
 def get_ac_dc_stats() -> dict:
     """Count + energy of AC vs DC charge sessions. DC = charge_type 'DC', or (when not
-    set) a measured peak power above 11 kW (AC tops out at ~11 kW; DC is faster).
+    set) a measured peak power above 11 kW (AC tops out at ~11 kW; DC is faster). `total`
+    counts every finished charge regardless of confirmation — AC vs DC is a measured,
+    objective fact the poller already records for all of them, confirmed or not.
 
     Home is a SUBSET of AC, never a third bucket of its own here — every home wallbox charges on
     AC, so `ac["home_count"]`/`ac["home_kwh"]` are how many of the AC sessions above were actually
-    at home (`location_type == 'HOME'`), for the donut's inner ring. Trustworthy now that
-    location_type is always the real type (see the MANUAL/cost_manual split) rather than sometimes
-    a pricing-basis placeholder."""
+    at home (`location_type == 'HOME'`), for the donut's inner ring.
+
+    `public_count`/`public_kwh` are the OTHER axis this feeds (the "Home vs Public" card) and are
+    NOT `total - home_count`: unlike AC/DC, "was this at home" is unknown for anything not yet
+    confirmed — a charge still `location_type IS NULL`, or stuck on the legacy 'MANUAL' placeholder
+    (see the MANUAL/cost_manual split), is neither known-home nor known-public, so counting it as
+    public by subtraction silently mislabelled it (found in review: a MANUAL charge made at home
+    showed up as "Pubblica"). Only a charge with a real, confirmed, non-HOME type counts here."""
     # Read the composed charges, not the stored rows. Excluding merged children from a query here
     # would have counted right and lost their kilowatt-hours — the split pieces would simply stop
     # being AC or DC energy at all. The group carries both: one session, all the energy.
     rows = get_charges(limit=1_000_000)
     ac = {"count": 0, "kwh": 0.0, "home_count": 0, "home_kwh": 0.0}
     dc = {"count": 0, "kwh": 0.0}
+    public_count, public_kwh = 0, 0.0
     for r in rows:
         ct = r["charge_type"]
         is_dc = ct == "DC" or (ct is None and (r["max_power_kw"] or 0) > 11)
@@ -8444,13 +8470,19 @@ def get_ac_dc_stats() -> dict:
         # change; it just became impossible to miss once the totals beside it agreed.
         kwh = _billed_kwh(dict(r))
         b["kwh"] += kwh
-        if not is_dc and r["location_type"] == "HOME":
-            ac["home_count"] += 1
-            ac["home_kwh"] += kwh
+        lt = r["location_type"]
+        if lt == "HOME":
+            if not is_dc:
+                ac["home_count"] += 1
+                ac["home_kwh"] += kwh
+        elif lt in CHARGE_TYPES:   # a real, confirmed type other than HOME — genuinely public
+            public_count += 1
+            public_kwh += kwh
     ac["kwh"] = round(ac["kwh"], 2)
     ac["home_kwh"] = round(ac["home_kwh"], 2)
     dc["kwh"] = round(dc["kwh"], 2)
-    return {"ac": ac, "dc": dc, "total": ac["count"] + dc["count"]}
+    return {"ac": ac, "dc": dc, "total": ac["count"] + dc["count"],
+            "public_count": public_count, "public_kwh": round(public_kwh, 2)}
 
 
 # ── Monthly report (driving + charging + cost, one month) ──────────────────────

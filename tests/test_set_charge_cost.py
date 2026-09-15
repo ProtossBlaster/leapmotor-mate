@@ -57,6 +57,19 @@ def test_an_untyped_charge_is_left_alone(tmp_path, monkeypatch):
     assert out["cost"] is None
 
 
+def test_a_legacy_manual_charge_is_left_alone_not_crashed(tmp_path, monkeypatch):
+    """A charge stuck on the pre-cost_manual 'MANUAL' placeholder is truthy but not a real type —
+    routing it into update_charge_type (which rejects anything outside CHARGE_TYPES) used to
+    return {} and crash the template on charge.cost, a 500 found in review. Same "left alone"
+    contract as a NULL charge, not a crash: there's no real type to compute anything against."""
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype="MANUAL", cost=18.45, cost_manual=1)
+    out = db_reader.set_charge_cost(1, 25.0)
+    assert out != {}
+    assert out["location_type"] == "MANUAL"
+    assert out["cost"] == 18.45   # unchanged — no route to price a charge with no real type
+
+
 def test_a_later_retag_preserves_the_manual_cost(tmp_path, monkeypatch):
     """End-to-end: set the pencil, then correct the badge — the price set through the pencil must
     survive a plain type change, the entire reason the two are separate fields now."""
