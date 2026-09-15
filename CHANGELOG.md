@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.15.18] — 2026-09-15
+
+**Fixed (#279, @pdifeo):** in a joined trip, the notes of the pieces after the first showed their
+start and end times in UTC, while the time of the trip above them was local. For an owner in Italy, a
+trip starting at 05:53 listed its later notes at 04:04 → 04:28 and 04:30 → 04:37, two hours early.
+Those notes, added in v3.15.10, reached the page with the times exactly as stored; they now go through
+the same conversion as the trip's own time, in whatever zone Mate is set to. Nothing stored changes.
+
 ## [3.15.17] — 2026-09-14
 
 **Fixed (#282, @Coooogz):** a T03 west of the Greenwich meridian was drawn on the east side of it — a

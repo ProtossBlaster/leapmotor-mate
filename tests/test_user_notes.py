@@ -116,6 +116,7 @@ def test_trip_note_saved_on_parent(tmp_path, monkeypatch):
 
 def test_merged_trip_keeps_later_segment_notes_visible_and_reversible(tmp_path, monkeypatch):
     pdb = _setup(tmp_path, monkeypatch)
+    db_reader.set_setting("timezone", "Europe/Rome")
     parent = _insert_trip(pdb, note="First automatic note")
     child = _insert_trip(
         pdb,
@@ -127,11 +128,13 @@ def test_merged_trip_keeps_later_segment_notes_visible_and_reversible(tmp_path, 
 
     detail = db_reader.get_trip_detail(parent)
     assert detail["note"] == "First automatic note"
+    # Local time, like the header: this asserted the raw UTC string until #279 showed it on screen
+    # two hours early — see test_a_merged_trip_prints_every_note_in_local_time.py.
     assert detail["additional_segment_notes"] == [
         {
             "id": child,
-            "started_at": "2026-05-01T08:35:00",
-            "ended_at": "2026-05-01T09:00:00",
+            "started_at": "2026-05-01T10:35:00+02:00",
+            "ended_at": "2026-05-01T11:00:00+02:00",
             "note": "Second automatic note",
         }
     ]
