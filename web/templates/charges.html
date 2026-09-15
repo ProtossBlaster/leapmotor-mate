@@ -275,11 +275,11 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
             <span class="w-3 h-3 rounded-full" style="background:#22c55e"></span>
             <span class="text-slate-300 text-sm font-medium">{{ t('report_home') }}</span>
           </div>
-          <div class="text-2xl font-bold text-white">{{ ac_dc.ac.home_count }}
+          <div class="text-2xl font-bold text-white">{{ ac_dc.home_count }}
             <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
           </div>
-          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.ac.home_kwh | nice }} kWh
-            {% if ac_dc.total %}· {{ (ac_dc.ac.home_count / ac_dc.total * 100) | round | int }}%{% endif %}
+          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.home_kwh | nice }} kWh
+            {% if ac_dc.total %}· {{ (ac_dc.home_count / ac_dc.total * 100) | round | int }}%{% endif %}
           </div>
         </div>
         <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
@@ -349,7 +349,7 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
   if (el._c) { try { el._c.destroy(); } catch (e) {} }
   el._c = new ApexCharts(el, {
     chart: { type: 'donut', height: 200, fontFamily: 'inherit', background: 'transparent' },
-    series: [{{ ac_dc.ac.home_count }}, {{ ac_dc.public_count }}, {{ ac_dc.unconfirmed_count }}],
+    series: [{{ ac_dc.home_count }}, {{ ac_dc.public_count }}, {{ ac_dc.unconfirmed_count }}],
     labels: ['{{ t('report_home') }}', '{{ t('ac_charge_public') }}', '{{ t('charge_unconfirmed') }}'],
     colors: ['#22c55e', '#7dd3fc', '#f59e0b'],
     legend: { show: false },

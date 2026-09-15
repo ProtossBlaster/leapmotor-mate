@@ -8464,30 +8464,41 @@ def get_ac_dc_stats() -> dict:
     counts every finished charge regardless of confirmation — AC vs DC is a measured,
     objective fact the poller already records for all of them, confirmed or not.
 
-    Home is a SUBSET of AC, never a third bucket of its own here — every home wallbox charges on
-    AC, so `ac["home_count"]`/`ac["home_kwh"]` are how many of the AC sessions above were actually
-    at home (`location_type == 'HOME'`), for the donut's inner ring.
+    `home_count`/`home_kwh`, `public_count`/`public_kwh` and `unconfirmed_count`/`unconfirmed_kwh`
+    are the OTHER, independent axis this feeds (the "Home vs Public" card) — `location_type`, not
+    `charge_type`. `home_count + public_count + unconfirmed_count` always equals `total`, by
+    construction: every charge lands in exactly one.
 
-    `public_count`/`public_kwh` are the OTHER axis this feeds (the "Home vs Public" card) and are
-    NOT `total - home_count`: unlike AC/DC, "was this at home" is unknown for anything not yet
-    confirmed — a charge still `location_type IS NULL`, or stuck on the legacy 'MANUAL' placeholder
-    (see the MANUAL/cost_manual split), is neither known-home nor known-public, so counting it as
-    public by subtraction silently mislabelled it (found in review: a MANUAL charge made at home
-    showed up as "Pubblica"). Only a charge with a real, confirmed, non-HOME type counts here.
+    ⚠️ NOT nested under `ac` any more, and NOT gated on `is_dc`. It used to be — "every home
+    wallbox charges on AC" — which is true almost always, but the type badge itself offers every
+    type on every charge regardless of its OWN measured current: pick "Casa" on a DC-measured
+    session (a fast home charger, a noisy reading, whatever the real reason) and it was HOME by
+    every other measure in Mate, yet vanished from this card entirely — not home, not public, not
+    unconfirmed, and the card's own total fell a charge short of the page header's (found in
+    review, PR #284: "Ricariche 5" here, "Ricariche 6" on the header, on real test data). Home vs
+    Public is answered purely by `location_type`; whether that same charge also happens to be AC or
+    DC-measured is a completely separate question, answered by `ac`/`dc` above.
 
-    `unconfirmed_count`/`unconfirmed_kwh` are that same not-yet-known remainder, made explicit —
-    `home_count + public_count + unconfirmed_count` always equals `total`. Without this the Home
-    vs Public card's OWN donut (fed only `[home_count, public_count]`) silently normalised its
-    percentages against just those two numbers instead of `total`, so on real data (1 confirmed
-    public charge, 3 still unconfirmed) the ring showed "100% Pubblica" while the text beside it,
-    dividing by `total`, correctly said 25% — two disagreeing numbers on one card, and the 3
-    unconfirmed charges nowhere in it at all (found in review, PR #284)."""
+    `public_count`/`public_kwh` are NOT `total - home_count`: unlike AC/DC, "was this at home" is
+    unknown for anything not yet confirmed — a charge still `location_type IS NULL`, or stuck on
+    the legacy 'MANUAL' placeholder (see the MANUAL/cost_manual split), is neither known-home nor
+    known-public, so counting it as public by subtraction silently mislabelled it (found in review:
+    a MANUAL charge made at home showed up as "Pubblica"). Only a charge with a real, confirmed,
+    non-HOME type counts as public.
+
+    `unconfirmed_count`/`unconfirmed_kwh` are that same not-yet-known remainder, made explicit.
+    Without it the Home vs Public card's OWN donut (fed only `[home_count, public_count]`) silently
+    normalised its percentages against just those two numbers instead of `total`, so on real data
+    (1 confirmed public charge, 3 still unconfirmed) the ring showed "100% Pubblica" while the text
+    beside it, dividing by `total`, correctly said 25% — two disagreeing numbers on one card, and
+    the 3 unconfirmed charges nowhere in it at all (found in review, PR #284)."""
     # Read the composed charges, not the stored rows. Excluding merged children from a query here
     # would have counted right and lost their kilowatt-hours — the split pieces would simply stop
     # being AC or DC energy at all. The group carries both: one session, all the energy.
     rows = get_charges(limit=1_000_000)
-    ac = {"count": 0, "kwh": 0.0, "home_count": 0, "home_kwh": 0.0}
+    ac = {"count": 0, "kwh": 0.0}
     dc = {"count": 0, "kwh": 0.0}
+    home_count, home_kwh = 0, 0.0
     public_count, public_kwh = 0, 0.0
     unconfirmed_count, unconfirmed_kwh = 0, 0.0
     for r in rows:
@@ -8502,26 +8513,19 @@ def get_ac_dc_stats() -> dict:
         kwh = _billed_kwh(dict(r))
         b["kwh"] += kwh
         lt = r["location_type"]
-        is_home = lt == "HOME"
-        if is_home and not is_dc:
-            ac["home_count"] += 1
-            ac["home_kwh"] += kwh
-        # `is_home` is checked on its own (not just "did home_count above increment") so a HOME
-        # charge somehow measured DC — no residential fast charger exists, but the outer Home vs
-        # Public split must still never call it public or unconfirmed just because it didn't also
-        # land in the AC-only inner-ring subset.
-        if is_home:
-            pass
-        elif lt in CHARGE_TYPES:   # a real, confirmed type other than HOME — genuinely public
+        if lt == "HOME":            # regardless of is_dc — a real, confirmed type either way
+            home_count += 1
+            home_kwh += kwh
+        elif lt in CHARGE_TYPES:    # a real, confirmed type other than HOME — genuinely public
             public_count += 1
             public_kwh += kwh
-        else:                      # NULL, or the legacy 'MANUAL' placeholder — not yet known
+        else:                       # NULL, or the legacy 'MANUAL' placeholder — not yet known
             unconfirmed_count += 1
             unconfirmed_kwh += kwh
     ac["kwh"] = round(ac["kwh"], 2)
-    ac["home_kwh"] = round(ac["home_kwh"], 2)
     dc["kwh"] = round(dc["kwh"], 2)
     return {"ac": ac, "dc": dc, "total": ac["count"] + dc["count"],
+            "home_count": home_count, "home_kwh": round(home_kwh, 2),
             "public_count": public_count, "public_kwh": round(public_kwh, 2),
             "unconfirmed_count": unconfirmed_count, "unconfirmed_kwh": round(unconfirmed_kwh, 2)}
 
