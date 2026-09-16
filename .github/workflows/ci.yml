@@ -46,29 +46,10 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           fetch-depth: 0        # the seed is a tag, and a shallow clone cannot see one
-      - name: Compare requirements against the published shell
-        run: |
-          API=https://api.github.com/repos/ProtossBlaster/MateDesktop/releases/latest
-          URL=$(curl -sfL -H "Accept: application/vnd.github+json" "$API" \
-                | jq -r '.assets[]? | select(.name=="payload-seed.txt") | .browser_download_url' || true)
-          if [ -z "${URL:-}" ] || [ "$URL" = "null" ]; then
-            echo "No published shell carrying a seed marker — there is nothing out there to strand."
-            exit 0
-          fi
-          SEED=$(curl -sfL "$URL" | tr -d '[:space:]' || true)
-          if [ -z "${SEED:-}" ] || ! git rev-parse -q --verify "$SEED^{commit}" >/dev/null; then
-            echo "::notice::the shell reports seed '${SEED:-?}', which this repo cannot resolve — skipping"
-            exit 0
-          fi
-          if git diff --quiet "$SEED"..HEAD -- web/requirements.txt poller/requirements.txt; then
-            echo "OK — the shell built from $SEED carries everything this code asks for."
-            exit 0
-          fi
-          echo "What changed since the shell was built ($SEED):"
-          git diff "$SEED"..HEAD -- web/requirements.txt poller/requirements.txt
-          MSG="the dependency list has moved since the desktop shell was built ($SEED). The app will refuse this payload and hold every desktop user on an older Mate until a new shell is published. Build and release MateDesktop together with this one."
-          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
-            echo "::error::$MSG"
-            exit 1
-          fi
-          echo "::warning::$MSG"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: '3.12'   # what the shipped shell runs, so the reproduction matches it
+      - name: Can the published shell satisfy this payload?
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python .github/scripts/shell_compat.py --head .
