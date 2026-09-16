@@ -3,6 +3,38 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.16.0] — 2026-09-16
+
+**Changed (PR #284, @hubcasale):** a price typed by hand no longer costs a charge its type. Until now
+the real total paid was entered by picking **Manual** on the type badge, and that value took the
+place of Home, AC, Fast or HPC in the same field: the charge stopped being findable by type, and its
+badge read *✎ Manual* instead of what it had been. The two are separate now — the total goes into a
+**✎** beside the badge and is kept in a column of its own (`cost_manual`, added on the first start),
+and the badge answers only "what kind of charge was this". Confirming a type no longer recomputes a
+price that was typed, and the cost on the card says which of the two figures it is showing: **est.**
+for the computed one, **billed** for the one you typed, with *Reset* to go back to the estimate.
+
+**Changed (PR #284, @hubcasale):** a charge left on the old **Manual** type reads **❓ To confirm**
+and keeps the price typed on it; one click on its badge puts back the type it really had, without
+touching that price. Mate does not guess that type: what the charge was before cannot be recovered
+from the row, and guessing it wrong would silently reprice real money.
+
+**Added (PR #284, @hubcasale):** a **Home vs Public** card on the Charges page, beside *AC vs DC* —
+Home, Public and To confirm, as a donut and three tiles which always add up to the number of charges
+written above them. A charge still waiting for its type is shown as waiting instead of being counted
+as public.
+
+**Fixed (#289, @juan-conca):** a charge could stay open all night and be booked at nineteen hours
+instead of four. When a car goes to sleep the Leapmotor cloud does not say so — it hands back the
+last frame it holds, over and over. If the current had just stopped with the cable still in, that
+repeated frame goes on reading "cable connected", which is what deliberately keeps a session open
+across a wallbox pause, so the charge stayed open until the car woke up the next morning — and it
+was not in the list at all until it closed. Mate now gives up on a charge held open only by a frame
+the cloud has repeated for thirty minutes, and dates it from the last reading taken while current
+was actually flowing. A pause arrives on fresh frames and is untouched, and so is a car still
+charging out of reach, whose frame keeps reporting current. Energy, SoC and peak power were always
+right and do not change; charges already recorded keep the duration they were given.
+
 ## [3.15.18] — 2026-09-15
 
 **Fixed (#279, @pdifeo):** in a joined trip, the notes of the pieces after the first showed their

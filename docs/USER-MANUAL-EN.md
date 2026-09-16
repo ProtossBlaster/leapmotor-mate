@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.15.18 · **Language:** English
+> **Mate version:** v3.16.0 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -433,15 +433,33 @@ label:
   after the page opens. If one of them fails, it now **says so under itself**, with the error and a
   **Try again**, rather than leaving an empty space with no explanation.
 - **Home** (your wallbox **or a domestic socket**), **AC** (public alternating current), **Fast/DC**,
-  **HPC** (ultra-fast charging) and **✎ Manual**.
+  **HPC** (ultra-fast charging) and **Free**. A charge nobody has confirmed yet reads **❓ To
+  confirm** until someone picks one.
 - **Home does not mean wallbox.** *Home* is where you charged, not what you charged from — a
   three-pin socket in the garage is a Home charge too. It matters because of what gets billed: with a
   wallbox meter mapped (see *Wallbox* below), the charge is billed on the **energy the meter
   delivered**; without one, it is billed on the **energy that reached the battery**, exactly like a
   public charge. Between the two there is the charger's own loss as heat, typically 10–15 %.
-- **✎ Manual**: for public charging points with complicated tariffs (subscriptions, session fees…)
-  you can **write in the total you actually paid by hand**; this value overrides the automatic
-  estimate.
+- **✎ the total you paid 🆕** — for public charging points with complicated tariffs
+  (subscriptions, session fees…) you **write in the total you actually paid by hand**, in the
+  **✎** beside the type badge. It overrides the automatic estimate and **leaves the charge's type
+  alone**: the cost on the card then carries a small **billed** tag instead of **est.**, and
+  *Reset* brings the computed figure back. Until v3.15.18 that total was typed by picking a
+  *Manual* type, which took the place of Home, AC, Fast or HPC for good; price and type are two
+  separate things now. A charge left on that old *Manual* type reads **❓ To confirm**, keeps the
+  price typed on it, and one click on the badge puts its real type back without touching that
+  price.
+- **Home vs Public 🆕** — beside the *AC vs DC Distribution* card there is a second one:
+  **Home**, **Public** and **To confirm**, as a donut and three tiles. The three always add up to
+  the number of charges written above them, so a charge still waiting for its type is shown as
+  waiting instead of counted as public.
+- **A charge abandoned by the cloud ends when current last flowed 🆕** (#289) — when the car falls
+  asleep with the cable in, the cloud does not say so: it keeps repeating the last news it has, and
+  in that news the cable still reads connected. The charge used to stay open until the car next woke
+  up — four hours booked as nineteen, and nothing in the list until it closed. After half an hour
+  with no fresh news Mate now closes it by itself and dates it at the **last reading with real
+  current**: the duration no longer holds the night of silence. A wallbox pause is untouched —
+  there the car is awake and the news keeps coming.
 - **The charger's own kWh 🆕** (#222) — on a public charger Mate **has no meter**: it reads only what
   went into the battery, while the charger bills you for what came out of its own. You can type that
   figure in: on the charge card, under the three tiles, there is a **✎**; the box **opens only if you
@@ -960,7 +978,8 @@ Mate has protections against impossible values (e.g. wallbox meters that report 
 The opposite case is covered too: if the wallbox meter **stops** mid-charge while the car goes on
 drawing power, Mate stops trusting its total for that session and bills on the energy that reached
 the battery instead — the meter's figure would be short by whatever it missed while frozen.
-If a public charge has a complicated tariff, use the **✎ Manual** type and enter the total paid.
+If a public charge has a complicated tariff, type the total paid in the **✎** beside its type
+badge.
 
 **The vampire-drain chart is empty.**
 You need at least one **long stop** with a measurable drop in charge in the last few days. If the car
@@ -995,8 +1014,8 @@ its `secret.key`**.
 - **SoH** (*State of Health*) — the battery's state of health: capacity remaining compared to new.
 - **AC / DC** — alternating current (slow charging, from home/AC stations) / direct current (fast and
   ultra-fast charging).
-- **Home / AC / Fast (DC) / HPC / Manual** — the charge types that Mate recognizes or that you can
-  assign; "HPC" is very-high-power charging.
+- **Home / AC / Fast (DC) / HPC / Free** — the charge types that Mate recognizes or that you can
+  assign; a charge without one reads **❓ To confirm**; "HPC" is very-high-power charging.
 - **TOU** (*Time-of-Use*) — a **time-band** tariff (different prices by day/hour).
 - **Regen** — energy **recovered** in braking/lift-off and put back into the battery.
 - **Vampire drain** — what the car consumes while **completely switched off**, measured from power‑off

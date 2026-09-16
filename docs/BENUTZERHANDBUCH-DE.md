@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.15.18 · **Sprache:** Deutsch
+> **Mate-Version:** v3.16.0 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -439,15 +439,35 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   Öffnen der Seite. Scheitert einer davon, **sagt er es jetzt darunter**, mit dem Fehler und einem
   **Erneut versuchen**, statt eine leere Fläche ohne Erklärung zu hinterlassen.
 - **Zuhause** (Ihre Wallbox **oder eine Haushaltssteckdose**), **AC** (öffentlicher Wechselstrom),
-  **Schnell/FAST** (DC), **HPC** (Ultraschnellladung) und **✎ Manuell**.
+  **Schnell/FAST** (DC), **HPC** (Ultraschnellladung) und **Gratis**. Ein Ladevorgang, den noch
+  niemand bestätigt hat, steht auf **❓ Zu bestätigen**, bis jemand einen Typ wählt.
 - **Zuhause bedeutet nicht Wallbox.** *Zuhause* sagt, **wo** Sie geladen haben, nicht woraus — auch
   eine gewöhnliche Steckdose in der Garage ist ein Ladevorgang zuhause. Für die Abrechnung macht das
   einen Unterschied: Ist der Zähler einer Wallbox eingebunden (siehe *Wallbox* weiter unten), wird
   der Ladevorgang über die **vom Zähler gelieferte Energie** abgerechnet; ohne ihn über die **in der
   Batterie angekommene Energie**, genau wie ein öffentlicher Ladevorgang. Dazwischen liegt der
   Wärmeverlust des Ladegeräts, typischerweise 10–15 %.
-- **✎ Manuell**: Für öffentliche Ladesäulen mit komplizierten Tarifen (Abonnements, Sitzungskosten…) können Sie
-  **den tatsächlich gezahlten Gesamtbetrag von Hand eintragen**; dieser Wert überschreibt die automatische Schätzung.
+- **✎ der gezahlte Gesamtbetrag 🆕** — für öffentliche Ladesäulen mit komplizierten Tarifen
+  (Abonnements, Sitzungskosten…) tragen Sie **den tatsächlich gezahlten Gesamtbetrag von Hand
+  ein**, im **✎** neben dem Typ. Er überschreibt die automatische Schätzung und **lässt den Typ
+  des Ladevorgangs unangetastet**: Die Kosten auf der Karte tragen dann den Vermerk
+  **eingegeben** statt **geschätzt**, und *Zurücksetzen* holt den berechneten Wert zurück. Bis
+  v3.15.18 wurde dieser Betrag über den Typ *Manuell* eingetragen, der Zuhause, AC, Schnell oder
+  HPC endgültig ersetzte; Preis und Typ sind jetzt zwei getrennte Dinge. Ein Ladevorgang, der auf
+  diesem alten Typ *Manuell* steht, liest sich als **❓ Zu bestätigen**, behält den eingetragenen
+  Preis, und ein Klick auf den Typ gibt ihm den echten zurück, ohne diesen Preis anzurühren.
+- **Zuhause / Öffentlich 🆕** — neben der Karte *AC-/DC-Verteilung* steht eine zweite:
+  **Zuhause**, **Öffentlich** und **Zu bestätigen**, als Ring und drei Kacheln. Die drei ergeben
+  immer die Zahl der Ladevorgänge darüber, sodass ein Ladevorgang, der noch auf seinen Typ
+  wartet, als wartend erscheint statt als öffentlich gezählt zu werden.
+- **Ein von der Cloud verlassener Ladevorgang endet, wenn zuletzt Strom floss 🆕** (#289) — schläft
+  das Auto mit gestecktem Kabel ein, sagt die Cloud das nicht: Sie wiederholt weiter die letzte
+  Nachricht, die sie hat, und darin gilt das Kabel nach wie vor als gesteckt. Der Ladevorgang blieb
+  offen, bis das Auto wieder aufwachte — vier Stunden als neunzehn verbucht, und in der Liste war
+  bis zum Abschluss nichts zu sehen. Nach einer halben Stunde ohne neue Nachricht schließt Mate ihn
+  nun selbst und datiert ihn auf die **letzte Messung mit tatsächlichem Strom**: Die Dauer enthält
+  die Nacht des Schweigens nicht mehr. Eine Pause der Wallbox bleibt unangetastet — dort ist das
+  Auto wach, und die Nachrichten kommen weiter.
 - **Die kWh der Ladesäule 🆕** (#222) — an einer öffentlichen Ladesäule hat Mate **keinen Zähler**: es
   liest nur, was in die Batterie ging, während die Säule abrechnet, was aus ihrem eigenen Zähler kam.
   Diesen Wert können Sie eintragen: auf der Ladekarte, unter den drei Kacheln, gibt es ein **✎**; das
@@ -985,8 +1005,8 @@ melden). Auch der umgekehrte Fall ist abgedeckt: Bleibt der Wallbox-Zähler mitt
 während das Auto weiter Strom zieht, vertraut Mate seinem Gesamtwert für diesen Ladevorgang nicht mehr und
 rechnet über die in der Batterie angekommene Energie ab — der Zählerwert wäre um alles zu niedrig, was er im
 Stillstand versäumt hat.
-Wenn ein öffentlicher Ladevorgang einen komplizierten Tarif hat, verwenden Sie den Typ **✎ Manuell** und
-tragen Sie den gezahlten Gesamtbetrag ein.
+Wenn ein öffentlicher Ladevorgang einen komplizierten Tarif hat, tragen Sie den gezahlten
+Gesamtbetrag im **✎** neben seinem Typ ein.
 
 **Das Diagramm des Ruhestromverlusts (Vampire Drain) ist leer.**
 Es braucht in den letzten Tagen mindestens eine **lange Parkphase** mit einem messbaren Ladungsrückgang. Wenn das
@@ -1022,8 +1042,8 @@ Unter *Einstellungen → Export/Backup* laden Sie die Datenbank (und die CSVs) h
 - **SoH** (*State of Health*) — Gesundheitszustand der Batterie: verbleibende Kapazität gegenüber dem Neuzustand.
 - **AC / DC** — Wechselstrom (langsames Laden, zu Hause/an AC-Säulen) / Gleichstrom (Schnell- und
   Ultraschnellladen).
-- **Zuhause / AC / Schnell (FAST) / HPC / Manuell** — die Ladetypen, die Mate erkennt oder die Sie zuweisen können;
-  „HPC" ist das Laden mit sehr hoher Leistung.
+- **Zuhause / AC / Schnell (FAST) / HPC / Gratis** — die Ladetypen, die Mate erkennt oder die Sie zuweisen können;
+  ein Ladevorgang ohne Typ liest sich als **❓ Zu bestätigen**; „HPC" ist das Laden mit sehr hoher Leistung.
 - **TOU** (*Time-of-Use*) — Tarif mit **Zeitfenstern** (unterschiedliche Preise je Tag/Stunde).
 - **Regen** (Rekuperation) — Energie, die beim Bremsen/Vom-Gas-Gehen **zurückgewonnen** und wieder in die Batterie
   gespeist wird.

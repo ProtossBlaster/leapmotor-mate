@@ -511,6 +511,13 @@ class Recorder:
                                  "attributed to this charge", self._active_charge_id)
 
         elif frm == State.CHARGING and to in _PARKED_STATES:
+            if event.frozen and self._active_charge_id and data:
+                # Given up on because the cloud kept re-serving one frame (#289). This frame is a
+                # photograph, so it is not the end of the charge: dating the row from it would bury
+                # half an hour of pure silence inside it — the same mistake `trip_end_from_last_seen`
+                # was written to undo on the trip side. The close that already knows better owns it.
+                self._close_dangling_charge(data)
+                return
             if self._active_charge_id and data:
                 if self._charge_at_wallbox:
                     end_wb = self._read_wallbox_energy()          # final reading → capture the last rise

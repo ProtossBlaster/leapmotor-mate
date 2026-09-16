@@ -26,7 +26,10 @@ Transitions (all independent of HA and phone):
   ANY_PARKED          → CHARGING       charging_status > 0  (REAL current / 1149==2; NOT the cable alone)
   CHARGING            → PARKED_ACTIVE  no current AND the cable reads gone (1149→0) — a dip with the
                                        cable still connected won't close. NB: a modulating wallbox
-                                       makes the car report the cable gone too (see is_charging)
+                                       makes the car report the cable gone too (see is_charging).
+                                       OR: no current and the cloud has repeated one frame for
+                                       30 min (#289 — the cable is being read off a photograph,
+                                       see FROZEN_CHARGE_LIMIT_S)
   ANY                 → OFFLINE        3 consecutive API errors
 """
 import logging
@@ -84,6 +87,23 @@ PARKED_CONFIRM  = 6      # consecutive gear-P readings to end a trip (~1 min @ 1
 # merge — against a trip that stays open all day, which it cannot.
 FROZEN_DRIVE_LIMIT_S = 1800
 
+# …and the same escape for a CHARGE (#289, @juan-conca). The cable term in `is_charging` below is
+# what deliberately holds a session open across a wallbox pause — but a sleeping car makes the cloud
+# repeat the frame that was true when the current stopped, so that term goes on reading "connected"
+# off a photograph. His charge stayed open on ONE frame for just under fifteen hours and closed only
+# when the car woke: 1 138 minutes booked for four hours of charging, and no row in the list until
+# it closed, because the list filters on `ended_at IS NOT NULL`.
+#
+# Measured on his bundle, 12 days, 38 412 polls: while current is genuinely flowing the frame is 2 s
+# old (median), 5 s at the 95th, 44 s at the 99th and 832 s — 13.9 min — at its worst. Thirty
+# minutes sits twice beyond that, and is the same number as the trip guard above.
+#
+# Only when the frozen frame itself reads NO current: of the 9 224 frozen polls taken while the
+# state was CHARGING, not one claimed current. A frozen frame that still reads current is a car
+# charging out of reach, whose SoC jumps when it returns — the reconstruction owns that case, and
+# this guard leaves it exactly as it is.
+FROZEN_CHARGE_LIMIT_S = 1800
+
 
 class State(Enum):
     UNKNOWN       = "unknown"
@@ -109,6 +129,10 @@ class StateEvent:
     from_state: State
     to_state: State
     data: Optional[VehicleData]
+    # This transition was made on a frame the cloud had been repeating, so the frame that triggered
+    # it is NOT the moment the thing ended. Whoever writes the row has to date it from the last real
+    # reading instead (#289).
+    frozen: bool = False
 
 
 @dataclass
@@ -292,6 +316,14 @@ class StateMachine:
         elif self.state == State.CHARGING:
             if not is_charging:
                 events.append(self._go(State.PARKED_ACTIVE, data))
+            elif not charge_active and frozen_s >= FROZEN_CHARGE_LIMIT_S:
+                # Nothing but the cable term is holding this open, and it is reading a frame the
+                # cloud has repeated for half an hour. A paused wallbox arrives on FRESH frames —
+                # the car is awake and pushing — so identity, not age, is what separates them.
+                log.warning("Charge left open on a frame the cloud has repeated for %.0f min — the "
+                            "cable reads connected in a photograph, not now; closing the charge",
+                            frozen_s / 60)
+                events.append(self._go(State.PARKED_ACTIVE, data, frozen=True))
 
         return events
 
@@ -305,8 +337,8 @@ class StateMachine:
         self._error_count = 0
         return []
 
-    def _go(self, new_state: State, data) -> StateEvent:
-        event = StateEvent(from_state=self.state, to_state=new_state, data=data)
+    def _go(self, new_state: State, data, *, frozen: bool = False) -> StateEvent:
+        event = StateEvent(from_state=self.state, to_state=new_state, data=data, frozen=frozen)
         self.state = new_state
         log.info(
             "State: %-14s → %-14s  (poll: %ds)",

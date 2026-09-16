@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v3.15.18 · **Idioma:** Español
+> **Versión de Mate:** v3.16.0 · **Idioma:** Español
 > Este manual está escrito para quien *usa* Mate, no para quien lo desarrolla. Explica cómo
 > configurarlo desde cero y qué hace cada página. Para los detalles técnicos internos está `ARCHITECTURE.md`.
 
@@ -456,16 +456,34 @@ etiqueta:
   instante después de abrir la página. Si uno falla, ahora **lo dice debajo de sí mismo**, con el
   error y un **Volver a intentarlo**, en lugar de dejar un hueco vacío sin explicación.
 - **En casa** (tu wallbox **o un enchufe doméstico**), **AC** (corriente alterna pública), **DC
-  rápida**, **HPC** (carga ultrarrápida) y **✎ Manual**.
+  rápida**, **HPC** (carga ultrarrápida) y **Gratis**. Una carga que nadie ha confirmado todavía
+  se queda en **❓ Por confirmar** hasta que elijas uno.
 - **«En casa» no significa wallbox.** *En casa* es dónde cargaste, no con qué cargaste — un enchufe
   del garaje también es una carga en casa. Importa por lo que se factura: con un contador de wallbox
   asignado (ver *Wallbox* más abajo), la carga se factura sobre la **energía que entregó el
   contador**; sin él, se factura sobre la **energía que llegó a la batería**, exactamente igual que
   una carga pública. Entre las dos está la pérdida en calor del propio cargador, normalmente del 10 al
   15 %.
-- **✎ Manual**: para puntos de recarga públicos con tarifas complicadas (suscripciones, coste por
-  sesión…) puedes **escribir a mano el total que pagaste de verdad**; ese valor sustituye a la
-  estimación automática.
+- **✎ el total pagado 🆕** — para puntos de recarga públicos con tarifas complicadas
+  (suscripciones, coste por sesión…) **escribes a mano el total que pagaste de verdad**, en el
+  **✎** que hay junto al tipo. Sustituye a la estimación automática y **no toca el tipo de la
+  carga**: el coste de la tarjeta lleva entonces la marca **introducido** en lugar de
+  **estim.**, y *Restablecer* devuelve la cifra calculada. Hasta la v3.15.18 ese total se
+  escribía eligiendo el tipo *Manual*, que ocupaba el sitio de En casa, AC, DC rápida o HPC para
+  siempre; ahora precio y tipo son dos cosas separadas. Una carga que se quedó en aquel viejo
+  tipo *Manual* se lee **❓ Por confirmar**, conserva el precio que escribiste, y un clic en el
+  tipo le devuelve el verdadero sin tocar ese precio.
+- **Casa y pública 🆕** — junto a la tarjeta *Reparto CA / CC* hay una segunda: **En casa**,
+  **Pública** y **Por confirmar**, en forma de rosco y tres casillas. Las tres suman siempre el
+  número de cargas escrito encima, así que una carga que espera su tipo se ve como tal en vez de
+  contarse como pública.
+- **Una carga abandonada por la nube termina cuando pasó corriente por última vez 🆕** (#289) —
+  cuando el coche se duerme con el cable puesto, la nube no lo dice: sigue repitiendo la última
+  noticia que tiene, y ahí el cable consta todavía como conectado. La carga se quedaba abierta
+  hasta que el coche despertaba — cuatro horas contadas como diecinueve, y en la lista no se veía
+  nada hasta que se cerraba. Ahora, tras media hora sin noticias nuevas, Mate la cierra sola y la
+  fecha en la **última lectura con corriente de verdad**: la duración ya no contiene la noche de
+  silencio. La pausa de una wallbox no se toca — allí el coche está despierto y las noticias llegan.
 - **Los kWh del propio cargador 🆕** (#222) — en un cargador público Mate **no tiene contador**: lee
   solo lo que entró en la batería, mientras que el cargador te factura lo que salió del suyo. Puedes
   escribir esa cifra: en la tarjeta de la carga, bajo las tres casillas, hay un **✎**; el campo **solo
@@ -1016,7 +1034,8 @@ total histórico). El caso contrario también está cubierto: si el contador del
 media carga mientras el coche sigue consumiendo, Mate deja de fiarse de su total para esa sesión y
 factura sobre la energía que llegó a la batería — la cifra del contador se quedaría corta en todo lo que
 se perdió mientras estuvo congelado.
-Si una carga pública tiene una tarifa complicada, usa el tipo **✎ Manual** y escribe el total pagado.
+Si una carga pública tiene una tarifa complicada, escribe el total pagado en el **✎** que hay
+junto a su tipo.
 
 **El gráfico de descarga pasiva está vacío.**
 Hace falta al menos una **parada larga** con una caída de carga medible en los últimos días. Si el coche
@@ -1053,8 +1072,8 @@ Desde *Ajustes → Exportar/Copia de seguridad* descargas la base de datos (y lo
   nueva.
 - **CA / CC** — corriente alterna (carga lenta, desde casa o puntos de CA) / corriente continua (carga
   rápida y ultrarrápida).
-- **En casa / AC / DC rápida / HPC / Manual** — los tipos de carga que Mate reconoce o que puedes
-  asignar tú; «HPC» es la carga de potencia muy alta.
+- **En casa / AC / DC rápida / HPC / Gratis** — los tipos de carga que Mate reconoce o que puedes
+  asignar tú; una carga sin tipo se lee **❓ Por confirmar**; «HPC» es la carga de potencia muy alta.
 - **TOU** (*Time-of-Use*) — una tarifa por **franjas horarias** (precios distintos según el día y la
   hora).
 - **Regeneración** — energía **recuperada** al frenar o al levantar el pie y devuelta a la batería.
