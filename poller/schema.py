@@ -348,6 +348,14 @@ def ensure_schema(conn) -> None:
     # cloud during the charge, so it was never seen live — recorded from the SoC delta instead).
     if "reconstructed" not in ccols:
         conn.execute("ALTER TABLE charges ADD COLUMN reconstructed INTEGER DEFAULT 0")
+    # migration: WHY the charge stopped (#289). Reading a duration cannot tell a cable that came
+    # out from a car that fell asleep with Mate still watching — and on the bundle that started
+    # this, 9 of 13 charges are the second. One word, written at the close; diagnostic only, so
+    # nothing prices or counts on it. NULL means the row predates this column and nothing else:
+    # every path that writes a charge names its reason.
+    # → tests/test_a_charge_records_why_it_closed.py
+    if "close_reason" not in ccols:
+        conn.execute("ALTER TABLE charges ADD COLUMN close_reason TEXT DEFAULT NULL")
     # migration: public charging-station label, resolved by the web layer from OSM
     # (web/charger_locator.py; '' = looked up, nothing found). Display-only — it never
     # feeds charge detection, costs or the HOME/AC/FAST/HPC location_type.

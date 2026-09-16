@@ -322,7 +322,7 @@ class Recorder:
         for e in events:
             self._handle_event(e, None)
 
-    def _close_dangling_charge(self, data: VehicleData) -> None:
+    def _close_dangling_charge(self, data: VehicleData, reason: str) -> None:
         """Close a charge the car has plainly finished — on the right reading, not this one.
 
         Called from two places, and the second is why the name is no longer "driven away": a car
@@ -357,7 +357,8 @@ class Recorder:
                  "charging (%s)", self._active_charge_id,
                  "SoC %.1f%% at %s" % end if end else "none available, using the live frame")
         self._db.finalize_charge(self._active_charge_id, data,
-                                 max_power_kw=self._max_charge_kw, end_override=end)
+                                 max_power_kw=self._max_charge_kw, end_override=end,
+                                 reason=reason)
         self._auto_note_charge(self._active_charge_id)
         self._active_charge_id = None
         self._max_charge_kw = 0.0
@@ -452,7 +453,7 @@ class Recorder:
             # CHARGING → OFFLINE (three refused logins) → DRIVING left its charge open forever,
             # and an open charge appears in no calendar and in no AC count.
             if self._active_charge_id:
-                self._close_dangling_charge(data)
+                self._close_dangling_charge(data, "drove_away")
             self._regen_kwh = 0.0
             # Before the trip is created, so both baselines still hold the last poll's reading:
             # anything the odometer gained while the cloud was quiet is declared on its own instead
@@ -472,7 +473,7 @@ class Recorder:
             # Gated on the cable being GONE, not merely on "not charging": with the cable still in,
             # a flat frame is a pause (a modulating wallbox does exactly this), and the live path
             # owns that. Same condition the state machine leaves CHARGING on.
-            self._close_dangling_charge(data)
+            self._close_dangling_charge(data, "outage")
 
         elif frm == State.DRIVING and to in _PARKED_STATES:
             if self._active_trip_id and data:
@@ -516,7 +517,7 @@ class Recorder:
                 # photograph, so it is not the end of the charge: dating the row from it would bury
                 # half an hour of pure silence inside it — the same mistake `trip_end_from_last_seen`
                 # was written to undo on the trip side. The close that already knows better owns it.
-                self._close_dangling_charge(data)
+                self._close_dangling_charge(data, "car_quiet")
                 return
             if self._active_charge_id and data:
                 if self._charge_at_wallbox:
@@ -525,8 +526,13 @@ class Recorder:
                         self._db.accumulate_wallbox_energy(self._active_charge_id, end_wb)
                         log.info("Charge #%d: wallbox counter at stop = %.3f kWh",
                                  self._active_charge_id, end_wb)
+                # The cable read gone is the ordinary end; the car declaring the charge
+                # postponed to its programmed window (1149==4, #243) is the other way this
+                # branch is reached, and triage wants them apart.
                 self._db.finalize_charge(
                     self._active_charge_id, data, max_power_kw=self._max_charge_kw,
+                    reason=("deferred" if (data.plug_connected and data.charge_deferred)
+                            else "unplugged"),
                 )
                 self._auto_note_charge(self._active_charge_id)
             self._active_charge_id = None

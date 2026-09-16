@@ -73,14 +73,18 @@ def _recorder_charge(db, lat, lon, wb_start, wb_end):
     rec = R.Recorder(db, vehicle_id=1)
     readings = iter([wb_start, wb_end])
     rec._read_wallbox_energy = lambda: next(readings)
-    data = types.SimpleNamespace(soc=30, latitude=lat, longitude=lon, charge_power_kw=7.0)
+    # plug/deferred are on the fake because the close now reads them to record WHY the charge
+    # stopped (#289) — a real VehicleData always carries both, so the fake has to as well.
+    data = types.SimpleNamespace(soc=30, latitude=lat, longitude=lon, charge_power_kw=7.0,
+                                 plug_connected=True, charge_deferred=False)
     rec._handle_event(StateEvent(State.PARKED_ACTIVE, State.CHARGING, data), data)
     cid = rec._active_charge_id
     # A real charge spans hours; push started_at back so the #46 anti-glitch ceiling admits the
     # end-of-charge rise (with started_at=now the ceiling is ~1 kWh and would reject +8 kWh).
     db._conn.execute("UPDATE charges SET started_at='2026-07-01T02:00:00+00:00' WHERE id=?", (cid,))
     db._conn.commit()
-    end = types.SimpleNamespace(soc=55, latitude=lat, longitude=lon, charge_power_kw=0.0)
+    end = types.SimpleNamespace(soc=55, latitude=lat, longitude=lon, charge_power_kw=0.0,
+                                plug_connected=False, charge_deferred=False)
     rec._handle_event(StateEvent(State.CHARGING, State.PARKED_ACTIVE, end), end)
     return cid
 

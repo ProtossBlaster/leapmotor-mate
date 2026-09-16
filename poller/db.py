@@ -1481,8 +1481,9 @@ class Database:
         cur = self._conn.execute(
             """INSERT INTO charges
                (vehicle_id, started_at, ended_at, start_soc, end_soc, energy_added_kwh,
-                duration_min, latitude, longitude, charge_type, odometer_km, reconstructed)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,1)""",
+                duration_min, latitude, longitude, charge_type, odometer_km, reconstructed,
+                close_reason)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,1,'reconstructed')""",
             (vehicle_id, started_at, ended_at, start_soc, data.soc, round(energy_added, 3),
              duration_min, data.latitude, data.longitude, "AC", _odo_or_none(data)),
         )
@@ -1648,9 +1649,15 @@ class Database:
         return self._charging_end_in_window(charge["vehicle_id"], charge["started_at"])
 
     def finalize_charge(self, charge_id: int, data, max_power_kw: float = 0.0,
-                        price_per_kwh: float = 0.0, end_override=None) -> None:
+                        price_per_kwh: float = 0.0, end_override=None,
+                        reason: Optional[str] = None) -> None:
         """`end_override` = (soc, ended_at) closes the charge on a reading other than `data` —
-        used when the car drove away and the live frame is no longer the end of the charge."""
+        used when the car drove away and the live frame is no longer the end of the charge.
+
+        `reason` is the one word that says WHY this charge stopped (#289) — see
+        `charges.close_reason`. Every caller names it; the default exists only so an old call
+        site fails a test rather than silently writing NULL, which is reserved for rows older
+        than the column."""
         charge = self._conn.execute("SELECT * FROM charges WHERE id = ?", (charge_id,)).fetchone()
         start_soc    = charge["start_soc"]
         end_soc, end_at = (end_override if end_override else (data.soc, _now_iso()))
@@ -1696,11 +1703,11 @@ class Database:
         self._conn.execute(
             """UPDATE charges
                SET ended_at=?, end_soc=?, energy_added_kwh=?, duration_min=?,
-                   charge_type=?, max_power_kw=?, cost=?
+                   charge_type=?, max_power_kw=?, cost=?, close_reason=?
                WHERE id=?""",
             (
                 end_at, end_soc, round(energy_added, 3), round(duration_min, 1),
-                charge_type, round(max_power_kw, 2), cost,
+                charge_type, round(max_power_kw, 2), cost, reason,
                 charge_id,
             ),
         )
