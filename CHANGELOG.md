@@ -3,6 +3,25 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.17.0] — 2026-09-17
+
+**Added (#292, @Kuli1111):** **A/C Auto** in Home Assistant. The Commands page has always had the
+plain "turn the climate on" — the car decides cool or heat itself and works toward the target
+temperature — but the MQTT bridge never carried it: an automation could only start the climate in
+Quick Cool, Quick Heat or Quick Ventilation, each of which pins a mode. The button is published as
+**A/C Auto** and sends exactly what the page sends, target temperature included, taken from that
+car's own last reading. On a T03 it falls back to manual cooling, the one mode that firmware honours.
+
+**Added:** **Preheat Battery** in Home Assistant. The same gap, on the Quick action the Commands page
+has had all along and nobody had reported: it is now a button like the others, so an automation can
+warm the battery before a fast charge.
+
+**Added:** every charge now records **why it stopped** — cable unplugged, charge deferred to its
+programmed window, car gone quiet, driven away, cloud outage, or reconstructed after a blackout. The
+word is written when the charge closes and appears in the diagnostics bundle beside `recon=`, which
+is where a report like #289 has to be answered from. Nothing changes in the pages: charges already
+recorded keep an empty reason, and the column is filled from this version on.
+
 ## [3.16.0] — 2026-09-16
 
 **Changed (PR #284, @hubcasale):** a price typed by hand no longer costs a charge its type. Until now
