@@ -302,6 +302,7 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
             elif cmd == "open_sunshade":  api.open_sunshade(vin)
             elif cmd == "close_sunshade": api.close_sunshade(vin)
             elif cmd == "find_car":    api.find_vehicle(vin)
+            elif cmd == "battery_preheat": api.battery_preheat(vin)
             elif cmd == "unlock_charger": api.unlock_charger(vin)
             elif cmd == "charge_limit":   # writable HA number (#77): value = target SoC %
                 try:

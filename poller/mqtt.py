@@ -657,6 +657,7 @@ class MqttService:
             ("open_sunshade", "Open Sunshade", "mdi:window-shutter-open"),
             ("close_sunshade", "Close Sunshade", "mdi:window-shutter"),
             ("find_car", "Find Car", "mdi:car-search"),
+            ("battery_preheat", "Preheat Battery", "mdi:radiator"),
             ("unlock_charger", "Unlock Charge Cable", "mdi:ev-plug-type2"),
             # Climate is exposed as momentary buttons (not a switch): the API has no single
             # on/off toggle, only distinct mode commands + ac_switch to deactivate. A/C Auto
