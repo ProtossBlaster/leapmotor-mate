@@ -350,6 +350,27 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                     api.close_trunk(vin);  optimistic = ("trunk_open", False)
                 else:
                     return
+            elif cmd == "climate_auto":
+                # Plain "turn the climate on", the web UI's A/C AUTO tile (ac_on): operate=auto +
+                # mode=nohotcold tells the car to self-manage cool/heat toward the target temp
+                # (climate mode 3713=0), so NO manual mode is engaged. Target temp from THIS car's
+                # last panel reading. Same body as web/command_client.ac_on — #292 asked for it
+                # from an automation and the bridge had neither a button nor this branch.
+                _m, _c, _f, _tmp = _climate_ctx_from_db(db, vin)
+                try:
+                    _tmp = max(18, min(int(float(_tmp)), 32))
+                except (TypeError, ValueError):
+                    _tmp = 24
+                operate, mode = "auto", "nohotcold"
+                if _mqtt_car_type(client, vin) == "T03":
+                    # #67: the T03 silently ignores operate=auto, and 'nohotcold' has no manual
+                    # twin — fall back to cold, the one mode confirmed to start its A/C on-car.
+                    operate, mode = "manual", "cold"
+                api._remote_control(vin=vin, action="ac_on", cmd_content=json.dumps(
+                    {"circle": "in", "mode": mode, "operate": operate, "position": "all",
+                     "temperature": str(_tmp), "windlevel": "5", "wshld": "0"},
+                    separators=(",", ":")))
+                optimistic = ("climate_on", True)
             elif cmd == "climate_cool":
                 api.quick_cool(vin);         optimistic = ("climate_on", True)
             elif cmd == "climate_heat":

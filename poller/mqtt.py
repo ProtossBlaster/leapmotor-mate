@@ -658,8 +658,11 @@ class MqttService:
             ("close_sunshade", "Close Sunshade", "mdi:window-shutter"),
             ("find_car", "Find Car", "mdi:car-search"),
             ("unlock_charger", "Unlock Charge Cable", "mdi:ev-plug-type2"),
-            # Climate is exposed as momentary buttons (not a switch): the API has no
-            # single on/off toggle, only distinct mode commands + ac_switch to deactivate.
+            # Climate is exposed as momentary buttons (not a switch): the API has no single
+            # on/off toggle, only distinct mode commands + ac_switch to deactivate. A/C Auto
+            # is the plain "on" (operate=auto: the car picks cool or heat itself) — the web
+            # UI always had it, the bridge did not until #292 asked for it.
+            ("climate_auto", "A/C Auto", "mdi:air-conditioner"),
             ("climate_cool", "Quick Cool", "mdi:snowflake"),
             ("climate_heat", "Quick Heat", "mdi:fire"),
             ("climate_vent", "Quick Ventilation", "mdi:fan"),
