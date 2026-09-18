@@ -294,9 +294,12 @@ class Recorder:
         if charge_id is not None:
             self._auto_note_charge(charge_id)
 
-    # HA's leapmotor_trip ignores movements shorter than 0.5 km ("spostamento breve
-    # ignorato"). Match it: finalize the trip, then drop it if it was a short hop.
-    _MIN_TRIP_KM = 0.5
+    # Below this a movement is a manoeuvre, not a trip: finalize it, then drop it. It was 0.5 km
+    # from v1.0.4 to match HA's leapmotor_trip ("spostamento breve ignorato"), which deleted real
+    # short drives — a 330 m trip to the bakery vanished from the kilometres and the list (beta
+    # D #47, @michapr). 200 m still covers moving the car to another space (Silvio, 18/09/2026).
+    # Not the 0.5 in db.trip_distance_km, which answers a different question — see there.
+    _MIN_TRIP_KM = 0.2
 
     def _finalize_trip(self, data: VehicleData) -> None:
         # End the trip when the car was last HEARD, not when we noticed. On a healthy link the two

@@ -192,9 +192,13 @@ def trip_distance_km(gps_km: float, has_gps: bool, start_odo: float, end_odo: fl
     shuffle was logged as a 1.0 km trip). So:
       Δodo >= 2          → odometer (quantization error ≤ ±1 over ≥2 km, acceptable)
       Δodo == 1          → ambiguous (true distance is anywhere in 0–2 km): if the GPS
-                           track says it was a sub-0.5 km manoeuvre, trust the GPS —
-                           the recorder then drops it as a short hop; otherwise keep
-                           the odometer's 1 km (GPS slightly underestimates real bends)
+                           track says well under a km (< 0.5), trust the GPS — a 330 m
+                           hop that crosses a km boundary is 330 m, not 1 km; the
+                           recorder then keeps or drops it on its own floor
+                           (Recorder._MIN_TRIP_KM, 0.2 km). Otherwise keep the
+                           odometer's 1 km (GPS slightly underestimates real bends).
+                           🔴 This 0.5 is NOT the trip floor: lowering it with the floor
+                           would book those hops at a full kilometre.
       Δodo == 0 / bogus  → GPS track (the integer odometer can't resolve short hops;
                            a 0 start would log the car's entire mileage)
       nothing valid      → None (distance unknown → trip preserved, not dropped)
@@ -1417,7 +1421,7 @@ class Database:
         return distance_km
 
     def delete_trip(self, trip_id: int) -> None:
-        """Remove a trip and its GPS points (used to drop sub-0.5 km hops)."""
+        """Remove a trip and its GPS points (used to drop hops under Recorder._MIN_TRIP_KM)."""
         self._conn.execute("DELETE FROM trip_positions WHERE trip_id = ?", (trip_id,))
         self._conn.execute("DELETE FROM trips WHERE id = ?", (trip_id,))
         self._conn.commit()
