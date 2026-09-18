@@ -3,6 +3,27 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.17.1] — 2026-09-18
+
+**Fixed (#294, @synvoll):** a wrong Home Assistant URL could lock you out of Settings. With a URL that
+carries a path — a dashboard link, say — the wallbox card's connection test reached Home Assistant's web
+page instead of its API, took that page for a success and put it into Settings, scripts included: the
+page turned into "Could not load Home Assistant", and the field to correct the URL was on that page. A
+URL that answers with a web page is now reported as *not the Home Assistant API*, with the base address
+to use instead, and nothing that comes back from that address reaches the page as code any more — which
+also closes a way for whatever answered there to run scripts inside Mate.
+
+**Changed (@michapr):** a trip is kept from **200 metres**, no longer from 500. Shorter drives were
+deleted outright, so a 330 m trip to the bakery disappeared from the kilometres and from the list. Below
+200 m a movement is still a manoeuvre and is still dropped. A short trip keeps its distance and shows no
+average consumption, which over a few hundred metres would only be noise. Trips deleted before this
+version are not recovered.
+
+**Fixed:** a command left *retained* on the MQTT broker is no longer executed. Home Assistant sends its
+commands unretained, but anything else on the broker — a script, an automation publishing with retain —
+could leave one there, and Mate ran it again every time it restarted or reconnected: an unlock, a trunk,
+a climate start. A command now runs only when it is sent.
+
 ## [3.17.0] — 2026-09-17
 
 **Added (#292, @Kuli1111):** **A/C Auto** in Home Assistant. The Commands page has always had the
