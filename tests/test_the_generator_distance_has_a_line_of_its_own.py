@@ -31,7 +31,9 @@ import re
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 HTML = (ROOT / "web" / "templates" / "trip_detail.html").read_text()
-GUARD = "{% if trip.engine_km %}"
+# 📍 18/09/2026 (beta D #31): a full-width line of the boxed trip summary, under the ⛽ box — still
+# behind a guard of its own, which now also names the tank.
+GUARD = "{% if is_reev and trip.engine_km %}"
 
 
 def _engine_block() -> str:

@@ -8,11 +8,13 @@ its ideas introduce NO new number and are simply better, so they come across:
   2. the secondary readings folded into a native disclosure instead of always-open rows.
 
 His third — the electricity and the fuel as two COLUMNS instead of two stacked blocks — was built,
-measured on the rendered page and reverted. It is right on his screen and wrong on ours: his card is
-the full width of a phone, while this page is `lg:grid-cols-3` and the card sits in the first column.
-A two-column rule inside it measured **87px per column at a 1024px viewport and 148px at 1600px**,
-and area 3 splits its own width again into two cells — about 70px for "5.4 L/100km". The last test
-below holds that decision so it is not re-taken without measuring again.
+measured on the rendered page and reverted on 13/09: this page is `lg:grid-cols-3` and the card sits
+in the first column, and with our 13–24px figures and a second split inside area 3 it did not fit
+(**87px per column at a 1024px viewport, 148px at 1600px**, ~70px for "5.4 L/100km").
+📍 It was TAKEN on 18/09/2026 in his own compact form (beta D #31, approved by Silvio), after
+measuring again on the rendered page: 73px per box at a 1024px window, enough for his 10–16px type
+with one figure per line — see test_the_trip_summary_is_in_boxes_for_every_car. The last test below
+still holds the part that stands: no viewport breakpoint around the pair.
 
 Rendered, not grepped: a source-level check would pass on a template that prints
 ``{'name': 'Euro'…}`` or resolves ``cost100_val`` to nothing.
@@ -163,13 +165,12 @@ def test_the_folded_rows_keep_their_spacing_and_their_content():
 
 # ── 3 · the one that was measured and NOT taken ───────────────────────────────────────────────
 def test_the_two_energy_areas_are_not_put_side_by_side_at_a_viewport_breakpoint():
-    """⛔ Built, measured on the rendered page, reverted — and held here so it is not re-taken on
-    the strength of how good it looks on a phone screenshot.
-
-    The card is the first column of an `lg:grid-cols-3` page, so a viewport-width rule inside it
-    measured 87px per column at 1024px and 148px at 1600px, and area 3 halves its own width again:
-    ~70px for "5.4 L/100km". @michapr's version is right on HIS screen because his card is the full
-    width of a phone.
+    """The card is the first column of an `lg:grid-cols-3` page, so a VIEWPORT rule says nothing
+    about the room a box inside it has: the page is at its widest exactly where the column is at its
+    narrowest (73px per box at a 1024px window, measured 18/09/2026). The pair is side by side at
+    every width since then, sized for that column — which is why no breakpoint belongs around it.
+    On 13/09 the same pair behind a breakpoint, with our larger type, measured 87px per column at
+    1024px and ~70px for "5.4 L/100km", and was reverted.
 
     The assertion is deliberately narrow — a VIEWPORT breakpoint (`md:`/`lg:`/`xl:` + grid-cols-2)
     around these two areas. A future version driven by the CARD's own width (a container query),

@@ -1,16 +1,16 @@
-"""Values in the trip-detail stat grid line up across a row — GitHub #199 follow-up.
+"""The values of a row in the trip summary line up — GitHub #199 follow-up, carried into the boxes.
 
-The cells are 130px wide, so whether a label wraps depends on the language: "Energia consumata",
-"Verbrauchte Energie" and "Verbruikte energie" take two lines while "Consumo medio" beside them
-takes one. The value simply follows its label, so one value sat 18px below its neighbour while the
-rows above and below lined up perfectly — measured on a running instance before the fix.
+The label is what varies: whether it wraps depends on the language and on the width, and a value
+that simply follows its label ends up a line below its neighbour when only one of the two labels
+wraps — measured at 18px on a running instance for #199, in the stat grid this card used to be.
 
-`.stat-pairs .stat-label { min-height: 3em }` reserves the two-line height for every label in that
-grid, which is what puts the values back on a shared baseline. 3em is two lines at this font-size
-and line-height, so it tracks the type instead of a hard-coded pixel count.
+Until 18/09/2026 that grid reserved two lines for every label (`.stat-pairs .stat-label { min-height:
+3em }`). The grid became boxes (beta D #31), and the boxes of a row are the same height, so the
+values now sit at the FOOT of their boxes: level whatever the labels do, and no empty line reserved
+when nothing wraps. The old rule had no user left and went with it.
 
-Both halves are pinned because either one alone is inert: the class without the rule, or the rule
-without the class, and the values drift apart again with nothing failing.
+Both halves are pinned — the box being a flex column, and the value pushed to its foot — because
+either one alone is inert.
 """
 import pathlib
 import re
@@ -19,23 +19,18 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 TPLS = ROOT / "web" / "templates"
 
 
-def test_the_grid_carries_the_class():
+def test_the_values_sit_at_the_foot_of_their_boxes():
     html = (TPLS / "trip_detail.html").read_text(encoding="utf-8")
-    assert re.search(r'class="grid grid-cols-2 gap-4 stat-pairs"', html), (
-        "the trip-detail stat grid must keep the stat-pairs class, or its labels stop reserving "
-        "two lines and the values drift out of line by however much a label wraps"
-    )
+    for key in ("distance", "duration"):
+        m = re.search(r'<div class="([^"]*)">\s*<div class="stat-label">\{\{ t\(\'' + key
+                      + r'\'\) \}\}</div>\s*<div class="([^"]*)">', html)
+        assert m, f"the {key} box is not a label followed by its value"
+        box, value = m.group(1).split(), m.group(2).split()
+        assert "flex" in box and "flex-col" in box, f"the {key} box is not a column"
+        assert "mt-auto" in value, f"the {key} value follows its label instead of sitting at the foot"
 
 
-def test_the_rule_exists_and_is_scoped():
-    css = (TPLS / "base.html").read_text(encoding="utf-8")
-    m = re.search(r"\.stat-pairs\s+\.stat-label\s*\{[^}]*min-height:\s*([^;}]+)", css)
-    assert m, ".stat-pairs .stat-label { min-height } is missing from base.html"
-    assert "em" in m.group(1), (
-        "the reserved height must be in em so it follows the label's font-size and line-height; "
-        "a pixel value silently stops covering two lines if the type ever changes"
-    )
-    assert not re.search(r"^\s*\.stat-label\s*\{[^}]*min-height", css, re.M), (
-        ".stat-label is used all over the app — reserving two lines globally would add slack "
-        "everywhere nothing wraps. The rule must stay scoped to .stat-pairs."
-    )
+def test_the_retired_rule_left_with_its_last_user():
+    """A rule nothing uses is a trap: the next grid to borrow the class inherits a 3em label."""
+    for p in TPLS.rglob("*.html"):
+        assert "stat-pairs" not in p.read_text(encoding="utf-8"), f"{p.name} still refers to stat-pairs"

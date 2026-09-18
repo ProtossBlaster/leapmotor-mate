@@ -149,8 +149,12 @@ def _figure(page):
         // so the search starts from the label and looks inside its tile. Before, it looked for the
         // smallest element carrying ⛽ AND a distance, because the figure was glued to the end of
         // the getEC paragraph and had no label of its own to start from.
+        // Since 18/09/2026 (beta D #31, the boxed summary) label and figure share ONE line under the
+        // ⛽ box — "⛽ With the generator: 25 km" — so the label is the innermost element that
+        // CONTAINS the words, not one that holds nothing else; its parent is the block with the
+        // floor note, and the figure is searched inside it exactly as before.
         const labels = [...document.querySelectorAll('*')].filter(
-            el => (el.textContent || '').trim() === 'With the generator');
+            el => (el.textContent || '').includes('With the generator'));
         if (!labels.length) return null;
         const label = labels[labels.length - 1];          // the innermost element holding the text
         const tile = label.parentElement;

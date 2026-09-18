@@ -46,231 +46,126 @@
   <!-- Stats -->
   <div class="space-y-4">
     <div class="card">
-      {# stat-pairs: reserves two lines for every label in this grid. These cells are narrow (130px),
-         so whether a label wraps depends on the language — "Energia consumata" and "Verbruikte
-         energie" take two lines while "Consumo medio" beside them takes one, which pushed one
-         value 18px below its neighbour while the rows above and below lined up perfectly. #}
-      <div class="grid grid-cols-2 gap-4 stat-pairs">
-        <div>
+      {# ── The trip summary, in boxes, on every car — beta D #31 ────────────────────────────────────
+         @michapr's layout of 14/09 (from @gm27271's request of 15/08), approved by Silvio on 18/09/2026
+         for EVERY car: distance and duration, then the electricity and — only on a car with a tank —
+         the fuel beside it, then the total. What changed is where the figures sit, not the figures:
+         each box prints what the stacked areas printed, from the same fields and behind the same gates.
+         Two things of his card stay out. The driving-mode bar: its electric share is the distance minus
+         the generator's FLOOR, a ceiling that a coloured proportion draws as a fact (Silvio's no of
+         13/09). And the electric rate on a generator trip on the official build (below).
+         ⚠️ The pair is side by side at EVERY width, and that was measured before it was taken: this card
+         is the first column of an `lg:grid-cols-3` page, and at a 1024px window each box has 73px of
+         room. Hence the small type, `min-w-0` + `truncate` as a safety net, the price per litre on a
+         line of its own ("4.82 € · 1.912 €/L" needs 83px, "1.912 €/L" 43) and the generator's distance
+         on a full-width line under the boxes (112px with its words). Re-measure on the rendered page
+         before adding anything to a box. #}
+      <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-3">📍 {{ t('trip_summary_title') }}</h2>
+
+      {# 24px wrapped at 1024px ("112.0" over "km", "2h" over "03m"): 18px only while the page is three
+         narrow columns (lg), back to 24px from 1280px (xl), where the column has room again.
+         The values sit at the FOOT of their boxes (flex column + mt-auto), not right under the label:
+         whether a label wraps depends on the language and the width, and a value that follows its
+         label drops one line below its neighbour when only one of the two wraps (GitHub #199). The
+         boxes of a row are the same height, so the values stay level with no line reserved. #}
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div class="rounded-lg border border-slate-700 px-3 py-2.5 min-w-0 flex flex-col">
           <div class="stat-label">{{ t('distance') }}</div>
-          <div class="stat-value">{{ (dist_val(trip.distance_km or 0))|dec(1) }}<span class="text-base font-normal text-slate-400"> {{ dist_unit() }}</span></div>
+          <div class="mt-auto text-2xl lg:text-lg xl:text-2xl font-bold text-white whitespace-nowrap">{{ (dist_val(trip.distance_km or 0))|dec(1) }}<span class="text-base lg:text-xs xl:text-base font-normal text-slate-400"> {{ dist_unit() }}</span></div>
         </div>
-        <div>
+        <div class="rounded-lg border border-slate-700 px-3 py-2.5 min-w-0 flex flex-col">
           <div class="stat-label">{{ t('duration') }}</div>
-          <div class="stat-value">{{ fmt_dur(trip.duration_min) }}</div>
+          <div class="mt-auto text-2xl lg:text-lg xl:text-2xl font-bold text-white whitespace-nowrap">{{ fmt_dur(trip.duration_min) }}</div>
         </div>
-      </div>
-      {# The total, on a line of its own and the biggest figure on the card — @gm27271's point 4. It
-         used to be one tile among six, and on a range extender it sat in the row whose other cell is
-         empty (regen is hidden there), so the card showed a hole beside the number that matters most. #}
-      <div class="mt-3 pt-3" style="border-top:1px solid #33415560">
-        <div class="stat-label">{{ t('cost') }}</div>
-        {# What the trip actually cost = electricity drawn from the pack + petrol burned getting
-           there. On a BEV there is no fuel line, so cost_total IS cost and nothing changes. On a
-           REEV it is the difference between "—" and "24,63 €": the tile used to key off the
-           ELECTRIC figure alone, so a trip run on a tank of petrol showed no cost at all while
-           the fuel € sat in the block below (@michapr, beta #11). #}
-        {% if trip.cost_total is not none %}
-        <div class="stat-value text-green-400">{{ trip.cost_total | money }}</div>
-        {% if trip.fuel_cost is not none and trip.cost is not none %}
-        <div class="mt-1 text-[11px] leading-none text-slate-400">⚡ {{ trip.cost | money }} · ⛽ {{ trip.fuel_cost | money }}</div>
-        {% endif %}
-        {# #200 — the rate the € above was worked out at. It has been computed all along (get_trip_detail
-           sets it on the line beside the cost) and simply never printed, so the only way to check the
-           figure was to redo the arithmetic by hand. #}
-        {# `is not none`, not truthiness: 0.000 €/kWh is the real rate for an owner who charges
-           only from his own roof, and hiding it leaves a 0.00 € with nothing explaining it. #}
-        {% if trip.cost_per_kwh is not none %}
-        <div class="mt-1 text-[11px] leading-none text-slate-400" title="{{ t('blended_price_help') }}">
-          {{ trip.cost_per_kwh | price3 }} {{ currency.symbol }}/kWh
-        </div>
-        {% endif %}
-        {# What the trip cost per distance — @michapr's own layout, beta #31. The card carried the
-           total and the rate the electricity was billed at, but not the figure that lets two trips
-           of different lengths be compared, which is the one a running cost is usually read for.
-           Same denominator and same helpers as the Statistics card (cost100_val + dist100_unit), so
-           the two pages state it identically and imperial readers get it per 100 mi. On a range
-           extender it spans BOTH sources, because cost_total does. #}
-        {% if trip.distance_km %}
-        <div class="mt-1 text-[11px] leading-none text-slate-400">
-          {{ cost100_val(trip.cost_total / trip.distance_km * 100) | money }}/{{ dist100_unit() }}
-        </div>
-        {% endif %}
-        {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
       </div>
 
-      {# ⛔ Areas 2 and 3 are NOT put side by side, and the reason is geometry, not taste.
-         @michapr built exactly that on beta #31 and it is right on his screen: his card is the full
-         width of a phone. Ours is not — this page is `lg:grid-cols-3` and the card sits in the
-         first column, so measured on the rendered page a two-column rule inside it gives 87px per
-         column at a 1024px viewport and 148px at 1600px, and area 3 then splits ITS width again
-         into two cells. At 1600px that is ~70px for "5.4 L/100km". Tried, measured, reverted:
-         the arrangement would only fit on a viewport around 1900px and be broken on every other.
-         The two areas stay stacked, each using the full width of the column. #}
-      {# ── 2 · The electricity ─────────────────────────────────────────────────────────────────
-         Everything that came out of the pack, under one heading. Same figures as before, no longer
-         interleaved with the petrol: on a range extender the energy tile carried the kWh, the
-         kWh/100km AND the litres, three quantities in one 130px cell. #}
-      <div class="mt-4 pt-3" style="border-top:1px solid #33415560">
-        {# The heading earns its place only where there are two sources to tell apart: paired with
-           the ⛽ section below, so either the trip burned something and both headings appear, or it
-           did not and neither does. On a car with no tank everything here is electricity, and
-           naming it says nothing.
-           ⚠️ Written tank-first on purpose, and do not "tidy" it. Three test files locate the energy
-           tile by searching this file for the bare range-extender gate, and one locates the fuel
-           section by its own gate, which names the tank second. A gate spelled like either of them
-           — here or in a COMMENT, which is how this was broken once already — silently moves those
-           slices onto the wrong block, and the tests then measure something else and still pass. #}
-        {% if trip.fuel_used_l and is_reev %}
-        <div class="text-[11px] uppercase tracking-wide text-slate-400 mb-2">⚡ {{ t('trip_area_electric') }}</div>
-        {% endif %}
-        {# One column when the only tile is the energy one: two columns with a single occupant is
-           the empty cell this rearrangement is meant to remove, not move. #}
-        <div class="grid {% if is_reev and trip.engine_ran %}grid-cols-1{% else %}grid-cols-2{% endif %} gap-4 stat-pairs">
-        {# 🔴 Not printed on a generator trip, and this is the hole @gm27271 was looking at: the
-           poller WITHHOLDS `efficiency_kwh_100km` when the range-extender ran — a ΔSoC figure means
-           nothing once the generator refills the pack mid-drive — so the biggest tile on the card
-           was a dash, and the electric rate that does exist sat next door in 13px blue. A label
-           over a value that cannot exist is not information. The rate takes the cell instead,
-           under a label that says what it measures (below), and the tile comes back the moment
-           there is a consumption to put in it. #}
-        {% if not (is_reev and trip.engine_ran) %}
-        <div>
-          <div class="stat-label">{{ t('avg_efficiency') }}</div>
-          {% if trip.efficiency_kwh_100km %}
-          {# number big, unit small — and one step smaller HERE than in the tiles beside it. These
-             cells are 130px: "16.5 kWh/100km" needs 138 at the shared 16px, so the unit dropped
-             under the number and left this tile a line taller than its neighbour, which is the
-             same orphaned-unit look reported on Statistics (#199). 12px keeps it inline with room
-             for a three-digit consumption and for mi/kWh in imperial. #}
-          <div class="stat-value {% if trip.efficiency_kwh_100km < 18 %}text-green-400{% elif trip.efficiency_kwh_100km < 22 %}text-yellow-400{% else %}text-red-400{% endif %}">
-            {{ eff_val(trip.efficiency_kwh_100km)|nice }}<span class="text-xs font-normal text-slate-400"> {{ eff_unit() }}</span>
-          </div>
-          {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
-        </div>
-        {% endif %}
-        <div>
-          {# On a range extender this tile shows getEC and NOTHING derived from SoC (@michapr,
-             beta #11). Both of the branches below are SoC arithmetic: `battery_net_kwh` is
-             ΔSoC × capacity outright, and `energy_kwh` is efficiency × distance, where the
-             efficiency itself was computed from ΔSoC when the trip closed (poller/db.py). On a
-             series hybrid the generator refills the pack mid-drive, so neither says what the
-             driving used — and neither is what the money beside them is billed on: a REEV trip is
-             priced by drawing the paid stock down by `ec_kwh` (reev_trip_electric_cost). His words:
-             *"we should only show the getEC value that is actually used for the calculation"*.
-             `is_reev` alone, no research gate — same as the regen tile below, and because a SoC
-             number on a range extender is wrong on every build, not only the beta one. #}
+      <div class="grid {% if is_reev %}grid-cols-2 gap-2{% else %}grid-cols-1{% endif %} mb-3">
+        {# ⚡ The energy is the one the old ENERGY USED tile printed, from the same source: on a range
+           extender getEC — what left the pack, and what the money is billed on (@michapr, beta #11: a
+           SoC number there is wrong on every build) — and on an electric car the SoC-based energy, or
+           the NET gain under its own label when the pack ended fuller (beta #11). #}
+        <div class="rounded-lg border border-green-800/60 bg-green-500/5 px-2 py-2 min-w-0">
+          <div class="text-[10px] font-medium text-green-400 mb-1 truncate">⚡ {{ t('trip_area_electric') }}</div>
           {% if is_reev %}
-          <div class="stat-label">{{ t('energy_used') }}</div>
-          {% if trip.ec_kwh %}
-          <div class="stat-value text-amber-400">{{ trip.ec_kwh|dec(1) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
-          {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
-          {# …and the rate that completes it. 🔴 The trips LIST has printed this for a generator trip
-             since Phase D (partials/trip_row.html) while THIS page printed a dash in AVG CONSUMPTION
-             for the same trip — one car, one drive, two pages disagreeing (@michapr, beta #27,
-             07/08/26). The value was already in hand: get_trip_detail calls `_reev_trip_elec` and the
-             template simply never used it.
-
-             It stays HERE, beside the litres, and NOT in the AVG CONSUMPTION tile. Over the whole
-             distance this is what left the pack per 100 km — the electric half of what the drive
-             cost, whose other half is the ⛽ line below. It is NOT the car's appetite: the generator
-             feeds the wheels without passing through the pack, so 1.8 here and 13.1 on an electric
-             trip are different quantities, and putting it under the same label would compare them.
-             Marked instead — blue, ⚡, outside the tile — which is his own suggestion: *«in brackets
-             or in other color to show that it is a calculated value only»*.
-
-             The rate alone, never the kWh: that number is the stat-value directly above, and
-             reprinting it is the three-times-in-one-column duplication beta #27 opened with.
-             `research`-gated to match the list exactly — gating one and not the other would only
-             move the disagreement to the other build. #}
-          {% if research and trip.reev_elec_kwh_100km is not none %}
-          <div class="mt-1 text-[13px] font-semibold text-blue-400/90 leading-none">
-            ⚡ {{ trip.reev_elec_kwh_100km|nice }} kWh/100km
-          </div>
-          {% endif %}
-          {# The litres used to be printed right here, under the kWh (@michapr, beta #27, whose point
-             was that they belonged in the header rather than in a warning box below). They are still
-             in the header — in their OWN section now, three lines down: this tile was carrying the
-             kWh, the kWh/100km and the petrol, three quantities in one 130px cell, which is the
-             stacking @gm27271 called not user-friendly (beta #31). #}
-          {# When the pack ended fuller than it started there is no consumption to print — the poller
-             withholds it on purpose — and the tile used to sit empty (beta #11). Show the NET gain
-             instead, under its own label: this is the battery's net change, not what the trip used. #}
+            {% if trip.ec_kwh %}<div class="text-base font-bold text-white leading-tight truncate">{{ trip.ec_kwh|dec(1) }}<span class="text-[10px] font-normal text-slate-400"> kWh</span></div>
+            {% else %}<div class="text-base font-bold text-slate-500">—</div>{% endif %}
           {% elif trip.battery_net_kwh is not none %}
-          <div class="stat-label">{{ t('battery_net') }}</div>
-          <div class="stat-value text-green-400">{{ trip.battery_net_kwh|dec(1) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
-          {% else %}
-          <div class="stat-label">{{ t('energy_used') }}</div>
-          {% if trip.energy_kwh %}
-          <div class="stat-value text-amber-400">{{ trip.energy_kwh|dec(1) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
-          {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
+            <div class="text-[10px] text-slate-400 truncate">{{ t('battery_net') }}</div>
+            <div class="text-base font-bold text-green-400 leading-tight truncate">{{ trip.battery_net_kwh|dec(1) }}<span class="text-[10px] font-normal text-slate-400"> kWh</span></div>
+          {% elif trip.energy_kwh %}<div class="text-base font-bold text-white leading-tight truncate">{{ trip.energy_kwh|dec(1) }}<span class="text-[10px] font-normal text-slate-400"> kWh</span></div>
+          {% else %}<div class="text-base font-bold text-slate-500">—</div>{% endif %}
+          {# The consumption, under the rules of the tile it replaces. The poller WITHHOLDS the ΔSoC
+             efficiency when the range-extender ran, because the generator refilled the pack mid-drive;
+             the rate that does exist (getEC over the whole distance) is NOT the car's appetite — the
+             generator feeds the wheels without passing through the pack — and measured on real trips it
+             reads 46, 82.7, even 386 kWh/100km. So: the research line in blue on the beta build, to be
+             checked against the dashboard, and nothing on the official one (@michapr, beta #27). #}
+          {% if not (is_reev and trip.engine_ran) and trip.efficiency_kwh_100km %}
+          <div class="text-[10px] font-semibold mt-0.5 truncate {% if trip.efficiency_kwh_100km < 18 %}text-green-400{% elif trip.efficiency_kwh_100km < 22 %}text-yellow-400{% else %}text-red-400{% endif %}">{{ eff_val(trip.efficiency_kwh_100km)|nice }} {{ eff_unit() }}</div>
+          {% elif is_reev and research and trip.engine_ran and trip.reev_elec_kwh_100km is not none %}
+          <div class="text-[10px] font-semibold text-blue-400/90 mt-0.5 truncate">⚡ {{ trip.reev_elec_kwh_100km|nice }} kWh/100km</div>
+          {% endif %}
+          {# The electric half of the money only where there are two halves: on an electric car it IS the
+             total, printed once below. #}
+          {% if is_reev and trip.cost is not none %}
+          <div class="text-[10px] text-slate-300 mt-1 truncate">{{ trip.cost | money }}</div>
+          {% endif %}
+          {# #200 — the rate the € was worked out at. `is not none`: 0.000 €/kWh is the real rate of an
+             owner who charges from his own roof, and hiding it leaves a 0.00 € with nothing explaining it. #}
+          {% if trip.cost_per_kwh is not none %}
+          <div class="text-[10px] text-slate-400 truncate" title="{{ t('blended_price_help') }}">{{ trip.cost_per_kwh | price3 }} {{ currency.symbol }}/kWh</div>
+          {% endif %}
+          {# Regen only on an electric car: with a generator on board, charging while driving cannot be
+             told apart from braking (no regen sensor), so the number would be unreliable. #}
+          {% if not is_reev %}
+          <div class="text-[10px] text-slate-400 mt-1 truncate">{{ t('regen') }} {{ (trip.regen_kwh or 0)|dec(2) }} kWh</div>
           {% endif %}
         </div>
-        {% if not is_reev %}
-        <!-- Regen is hidden for REEVs: with a generator on board, "battery charging while driving" can't be
-             told apart from real braking regen (no dedicated regen sensor), so the number is unreliable. -->
-        <div>
-          <div class="stat-label">{{ t('regen') }}</div>
-          <div class="stat-value text-green-400">{{ (trip.regen_kwh or 0)|dec(2) }}<span class="text-base font-normal text-slate-400"> kWh</span></div>
+        {% if is_reev %}
+        {# ⛽ Only on a car with a tank — and always there on one, with a dash when nothing burned, which
+           is @michapr's layout. The price per litre is back on a line of its own (Silvio, 18/09). #}
+        <div class="rounded-lg border border-amber-800/60 bg-amber-500/5 px-2 py-2 min-w-0">
+          <div class="text-[10px] font-medium text-amber-400 mb-1 truncate">⛽ {{ t('trip_area_fuel') }}</div>
+          {% if trip.fuel_used_l %}
+          <div class="text-base font-bold text-white leading-tight truncate">{{ trip.fuel_used_l|nice }}<span class="text-[10px] font-normal text-slate-400"> L</span></div>
+          {% if trip.fuel_l_100km is not none %}<div class="text-[10px] text-slate-400 mt-0.5 truncate">{{ trip.fuel_l_100km|nice }} L/100km</div>{% endif %}
+          {% if trip.fuel_cost is not none %}<div class="text-[10px] text-slate-300 mt-1 truncate">{{ trip.fuel_cost | money }}</div>{% endif %}
+          {% if trip.fuel_price_per_l %}<div class="text-[10px] text-slate-400 truncate">{{ trip.fuel_price_per_l | price3 }} {{ currency.symbol }}/L</div>{% endif %}
+          {% else %}<div class="text-base font-bold text-slate-500">—</div>{% endif %}
         </div>
         {% endif %}
-        </div>
       </div>
 
-      {# ── 3 · The fuel ────────────────────────────────────────────────────────────────────────
-         Only on a car that has a tank, and only once it has burned something: a pure-electric drive
-         on a range extender shows no section at all rather than a row of dashes.
-         ⚠️ Each figure is ATOMIC. The cell used to be 130px and the pair needed 140 at 13px, so it
-         wrapped MID-FIGURE, leaving "L/100km" alone on the second line under a bare "6.8" — the
-         orphaned-unit look of #199, shipped since v3.8.5. The section is full width now, so it does
-         not wrap at all at 375px, but the two halves stay unbreakable: the wrap, if a longer
-         language ever forces one, falls BETWEEN them and never inside a figure. #}
-      {% if is_reev and trip.fuel_used_l %}
-      <div class="mt-4 pt-3" style="border-top:1px solid #33415560">
-        <div class="text-[11px] uppercase tracking-wide text-slate-400 mb-2">⛽ {{ t('trip_area_fuel') }}</div>
-        <div class="grid grid-cols-2 gap-4 stat-pairs">
-          <div>
-            <div class="stat-label">{{ t('fuel_used') }}</div>
-            <div class="stat-value text-amber-300">
-              <span class="whitespace-nowrap">{{ trip.fuel_used_l|nice }}<span class="text-base font-normal text-slate-400"> L</span></span>
-            </div>
-            {% if trip.fuel_l_100km is not none %}
-            <div class="mt-1 text-[13px] font-semibold text-amber-300/90 leading-snug">
-              <span class="whitespace-nowrap">{{ trip.fuel_l_100km|nice }} L/100km</span>
-            </div>
-            {% endif %}
-          </div>
-          <div>
-            {# The generator's distance. It was a line inside the block below — promoted there in
-               v3.14.24 after @gm27271 called it "a crappy comment after loads of text" — and it
-               belongs with the petrol that produced it, not with the tank readings.
-               ⚠️ Promoting it again means carrying its limit with it. There is no "generator on"
-               signal in the cloud — all 89 were checked, and the best separates at 61% once the car
-               is already moving. These kilometres are counted from the samples where the odometer
-               rises AND the fuel falls, so half the stretches cannot be judged and land on the other
-               side: the count is short in one direction only, 54.0 against the 60.2 km @pdifeo's own
-               dashboard showed. Hence the floor note under it, at every size it is printed. #}
-            {% if trip.engine_km %}
-            <div class="stat-label">{{ t('reev_engine_km_label') }}</div>
-            <div class="stat-value text-white">{{ trip.engine_km | dist(1) }}</div>
-            <div class="text-[10px] text-slate-500 leading-snug mt-0.5">{{ t('reev_engine_km_floor') }}</div>
-            {% elif trip.fuel_cost is not none %}
-            <div class="stat-label">{{ t('cost') }}</div>
-            <div class="stat-value text-amber-300">{{ trip.fuel_cost | money }}</div>
-            {% if trip.fuel_price_per_l %}
-            <div class="mt-1 text-[11px] leading-none text-slate-400">{{ trip.fuel_price_per_l | price3 }} {{ currency.symbol }}/L</div>
-            {% endif %}
-            {% endif %}
-          </div>
-        </div>
-        {# When the generator's distance took the second cell, the petrol's money goes on its own
-           line rather than being dropped: it is the half of the total the ⚡ line above does not
-           explain. #}
-        {% if trip.engine_km and trip.fuel_cost is not none %}
-        <div class="mt-2 text-[13px] font-semibold text-amber-200">💶 {{ trip.fuel_cost | money }}{% if trip.fuel_price_per_l %} <span class="font-normal text-amber-300/70">· {{ trip.fuel_price_per_l | price3 }} {{ currency.symbol }}/L</span>{% endif %}</div>
-        {% endif %}
+      {# The generator's distance, with the words that say it is a floor, wherever it is printed
+         (v3.14.24, @gm27271). There is no "generator on" signal in the cloud — all 89 were checked, the
+         best separates at 61% once the car is moving — so these kilometres are counted from the samples
+         where the odometer rises AND the fuel falls, short in one direction only: 54.0 against the
+         60.2 km @pdifeo's dashboard showed. Full width: no box has room for it at 1024px. #}
+      {% if is_reev and trip.engine_km %}
+      <div class="rounded-lg border border-slate-700 px-3 py-2 mb-3">
+        <div class="text-xs text-slate-300">⛽ {{ t('reev_engine_km_label') }}: <span class="font-semibold text-white">{{ trip.engine_km | dist(1) }}</span></div>
+        <div class="text-[10px] text-slate-500 leading-snug mt-0.5">{{ t('reev_engine_km_floor') }}</div>
       </div>
       {% endif %}
+
+      {# The total: electricity drawn from the pack + petrol burned (@michapr, beta #11 — a trip run on a
+         tank of petrol used to show no cost at all), and what it cost per distance (@michapr, beta #31),
+         with the helpers Statistics uses, so an imperial reader gets it per 100 mi. Gated on the
+         distance: a reconstructed trip can close with 0 km, and the division would take the page down. #}
+      <div class="flex items-center justify-between gap-2 rounded-lg border border-slate-700 px-3 py-2.5">
+        <div class="min-w-0">
+          <div class="stat-label">{{ t('total_cost') }}</div>
+          {% if trip.cost_total is not none %}<div class="stat-value text-green-400">{{ trip.cost_total | money }}</div>
+          {% else %}<div class="stat-value text-slate-500">—</div>{% endif %}
+        </div>
+        {# The label beside it may wrap (the Italian "COSTO TOTALE" and the Polish "ŁĄCZNY KOSZT" do at a
+           1024px window); the figure may not — it broke as "1,40 €/100" over "km", the orphaned
+           unit of #199. #}
+        {% if trip.cost_total is not none and trip.distance_km %}
+        <div class="text-xs text-slate-400 text-right whitespace-nowrap">{{ cost100_val(trip.cost_total / trip.distance_km * 100) | money }}/{{ dist100_unit() }}</div>
+        {% endif %}
+      </div>
+
       {% if is_reev and research and trip.engine_ran %}
       <!-- REEV Phase C+D — the range-extender ran (fuel dropped). Dual energy for this trip: 🔋 electric
            from the cloud's METERED getEC and ⛽ fuel from the tank % drop (over the generator-on km).

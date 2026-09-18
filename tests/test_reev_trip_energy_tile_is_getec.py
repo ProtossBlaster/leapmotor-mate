@@ -19,6 +19,10 @@ and it is the one the cost agrees with.
 
 Silvio's rule behind it, the same day: *«sulle REEV non possiamo basarci sul SoC perché varia e sale
 e scende in base se parte o meno il generatore»*.
+
+📍 18/09/2026 (beta D #31): the tile became the first line of the ⚡ box of the boxed trip summary,
+on every car. The box names the energy, so the "Energy used" label went; which figure is printed —
+getEC on a range extender and nothing derived from SoC — is exactly what the tests below hold.
 """
 import pathlib
 import re
@@ -51,10 +55,12 @@ def _render_tile(trip, *, is_reev):
     guard that lives in Jinja."""
     jinja2 = pytest.importorskip("jinja2", reason="needs jinja2 to render the partial")
     src = TEMPLATE.read_text()
-    start = src.index("{% if is_reev %}")
-    end = src.index("{% endif %}\n        </div>", start) + len("{% endif %}")  # from `start`:
-    # that marker also closes an earlier tile, and slicing on the first hit yields an empty block
-    # that renders to "" — every assertion below would then compare "" to "" and pass.
+    # The figure opens the ⚡ box: from its `{% if is_reev %}` down to the comment that opens the
+    # consumption line under it. Asserted non-empty — an empty slice renders to "" and every
+    # assertion below would compare "" with "" and pass.
+    start = src.index("{% if is_reev %}", src.index("⚡ {{ t('trip_area_electric') }}"))
+    end = src.index("{# The consumption", start)
+    assert "trip.ec_kwh" in src[start:end], "the slice missed the energy figure"
     env = jinja2.Environment()
     env.filters["dec"] = lambda v, n=1: "—" if v is None else f"{float(v):.{n}f}"
     out = env.from_string(src[start:end]).render(
@@ -66,7 +72,7 @@ def _render_tile(trip, *, is_reev):
 def test_a_reev_trip_shows_the_getec_figure(tmp_path, monkeypatch):
     """His 28 July trip: 2.0 kWh metered, and that is the number the 0.50 € came from."""
     trip = _trip(tmp_path, monkeypatch, start_soc=80.0, end_soc=55.0, eff=20.0, ec=2.0)
-    assert _render_tile(trip, is_reev=True) == "Energy used 2.0 kWh"
+    assert _render_tile(trip, is_reev=True) == "2.0 kWh"
 
 
 def test_a_reev_trip_never_shows_the_soc_derived_energy(tmp_path, monkeypatch):
@@ -84,7 +90,7 @@ def test_a_reev_trip_that_ended_fuller_shows_getec_not_the_gain(tmp_path, monkey
     trip = _trip(tmp_path, monkeypatch, start_soc=69.7, end_soc=74.0, ec=2.0)
     assert trip["battery_net_kwh"] == pytest.approx(-2.89, abs=0.01)   # still derived, just not shown
     visible = _render_tile(trip, is_reev=True)
-    assert visible == "Energy used 2.0 kWh"
+    assert visible == "2.0 kWh"
     assert "Battery change" not in visible
 
 
@@ -93,20 +99,20 @@ def test_a_reev_trip_with_no_reading_yet_shows_a_dash_not_a_substitute(tmp_path,
     quietly fall back to the SoC figure, which is the whole defect wearing a fallback."""
     trip = _trip(tmp_path, monkeypatch, start_soc=80.0, end_soc=55.0, eff=20.0, ec=None)
     visible = _render_tile(trip, is_reev=True)
-    assert visible == "Energy used —", visible
+    assert visible == "—", visible
 
 
 def test_a_reev_reading_of_zero_is_a_reading(tmp_path, monkeypatch):
     """0.0 kWh out of the pack on a trip the generator drove is a fact, not a missing value. It
     prints as a dash today — recorded here so the behaviour is a decision, not an accident."""
     trip = _trip(tmp_path, monkeypatch, start_soc=80.0, end_soc=80.0, ec=0.0)
-    assert _render_tile(trip, is_reev=True) == "Energy used —"
+    assert _render_tile(trip, is_reev=True) == "—"
 
 
 # ── the plain electric car is untouched ───────────────────────────────────────
 def test_a_bev_still_shows_its_consumption(tmp_path, monkeypatch):
     trip = _trip(tmp_path, monkeypatch, start_soc=80.0, end_soc=55.0, eff=20.0, ec=2.0)
-    assert _render_tile(trip, is_reev=False) == "Energy used 25.8 kWh"
+    assert _render_tile(trip, is_reev=False) == "25.8 kWh"
 
 
 def test_a_bev_that_ended_fuller_still_shows_the_net_gain(tmp_path, monkeypatch):
@@ -118,7 +124,7 @@ def test_a_bev_that_ended_fuller_still_shows_the_net_gain(tmp_path, monkeypatch)
 
 def test_a_bev_with_nothing_to_show_still_shows_a_dash(tmp_path, monkeypatch):
     trip = _trip(tmp_path, monkeypatch, start_soc=80.0, end_soc=80.0)
-    assert _render_tile(trip, is_reev=False) == "Energy used —"
+    assert _render_tile(trip, is_reev=False) == "—"
 
 
 # ── the page as a whole ───────────────────────────────────────────────────────
@@ -134,7 +140,7 @@ def test_the_soc_branches_are_out_of_reach_on_a_reev():
     """Read on the source: the two SoC branches must sit behind `is_reev` being false. An edit that
     reorders them back could still satisfy the renders above on the sample data used there."""
     src = TEMPLATE.read_text()
-    _a = src.index("{% if is_reev %}")
-    tile = src[_a:src.index("{% endif %}\n        </div>", _a)]
+    _a = src.index("{% if is_reev %}", src.index("⚡ {{ t('trip_area_electric') }}"))
+    tile = src[_a:src.index("{# The consumption", _a)]
     assert tile.index("{% if is_reev %}") < tile.index("{% elif trip.battery_net_kwh is not none %}")
     assert "trip.ec_kwh" in tile.split("{% elif")[0], "the REEV branch stopped reading getEC"

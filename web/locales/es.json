@@ -1247,6 +1247,7 @@
     "stats_efftemp_trend_fuel": "≈{val} L/100 km cada 10 °C (gasolina)",
     "trip_area_electric": "Electricidad",
     "trip_area_fuel": "Combustible",
+    "trip_summary_title": "Resumen del viaje",
     "trip_details_section": "Detalles del viaje",
     "fuel_used": "Combustible usado",
     "reev_engine_km_label": "Con el generador"

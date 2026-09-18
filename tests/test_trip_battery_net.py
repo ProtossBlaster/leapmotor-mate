@@ -76,8 +76,10 @@ def test_the_tile_renders_the_net_instead_of_the_empty_consumption(tmp_path, mon
     # The tile now opens on `{% if is_reev %}` \u2014 the SoC branches moved behind it (beta #11, a
     # range-extender must show getEC and nothing derived from SoC). Rendered whole, with is_reev
     # false, so this keeps asserting the plain-electric behaviour it was written for.
-    start = src.index("{% if is_reev %}")
-    block = src[start:src.index("{% endif %}\n        </div>", start) + len("{% endif %}")]
+    # 📍 18/09/2026 (beta D #31): the figure opens the ⚡ box of the boxed summary — sliced from the
+    # box's `{% if is_reev %}` down to the comment that opens the consumption line under it.
+    start = src.index("{% if is_reev %}", src.index("⚡ {{ t('trip_area_electric') }}"))
+    block = src[start:src.index("{# The consumption", start)]
     env = jinja2.Environment()
     env.filters["dec"] = lambda v, n=1: "\u2014" if v is None else f"{float(v):.{n}f}"
     out = env.from_string(block).render(

@@ -45,16 +45,24 @@ def _header():
 
 
 def _fuel_section():
-    """The ⛽ section of the card — area 3 of the three @gm27271 asked for (beta #31).
+    """The ⛽ box of the trip summary — area 3 of the three @gm27271 asked for (beta #31), a box
+    beside the ⚡ one since 18/09/2026 (beta D #31).
 
-    Sliced from its own gate down to the range-extender block that follows it, and asserted
-    non-empty: a slice that silently came back blank would make every count below read zero and
-    pass for the wrong reason."""
-    start = HTML.find("{% if is_reev and trip.fuel_used_l %}")
-    assert start > 0, "the fuel section is gone entirely"
-    end = HTML.find("{% if is_reev and research and trip.engine_ran %}", start)
-    assert end > start, "the fuel section has swallowed the block below it"
+    Sliced from its heading down to the generator's line that follows it, and asserted non-empty:
+    a slice that silently came back blank would make every count below read zero and pass for the
+    wrong reason."""
+    start = HTML.find("⛽ {{ t('trip_area_fuel') }}")
+    assert start > 0, "the fuel box is gone entirely"
+    end = HTML.find("{# The generator's distance", start)
+    assert end > start, "the fuel box has swallowed the line below it"
     return HTML[start:end]
+
+
+def _engine_line():
+    """The generator's distance: its own guard down to the `{% endif %}` that closes it."""
+    start = HTML.find("{% if is_reev and trip.engine_km %}")
+    assert start > 0, "the generator's distance lost its guard"
+    return HTML[start:HTML.index("{% endif %}", start)]
 
 
 # ── the litres move up ────────────────────────────────────────────────────────
@@ -85,14 +93,20 @@ def test_neither_fuel_figure_can_be_torn_from_its_unit():
     📍 The two figures now sit in the FUEL section (beta #31, three areas) instead of stacked under
     the kWh, which is why this reads the section rather than the old tile. The section is full width
     so neither wraps at 375px today — but the guard stays: a longer language will want the wrap to
-    fall between the figures, not inside one."""
+    fall between the figures, not inside one.
+
+    📍 18/09/2026: in the ⛽ box (beta D #31) each figure is a line of its own that cannot break
+    (`truncate` carries the nowrap), measured to fit the box at a 1024px window."""
     section = _fuel_section()
     # The two FIGURES only — the €/L line further down is its own single figure and may set its own
     # leading. Slicing wider made this fail on that line, which is not what it is asking about.
-    figures = section[section.index("t('fuel_used')"):section.index("trip.engine_km")]
-    assert figures.count("whitespace-nowrap") == 2, \
-        "the litres and the L/100km are not both unbreakable — one can still lose its unit"
-    assert "leading-none" not in figures, \
+    lines = [ln for ln in section.splitlines()
+             if "trip.fuel_used_l|nice" in ln or "trip.fuel_l_100km|nice" in ln]
+    assert len(lines) == 2, "the litres and the L/100km are no longer two figures of the fuel box"
+    for ln in lines:
+        assert "truncate" in ln or "whitespace-nowrap" in ln, \
+            "a fuel figure can break — it can lose its unit: " + ln.strip()[:80]
+    assert "leading-none" not in "\n".join(lines), \
         "leading-none makes the two lines touch once it wraps"
 
 
@@ -120,10 +134,10 @@ def test_the_four_things_that_live_nowhere_else_survive():
     """🔑 The reason this was not done blind. Each of these has exactly one home on the page;
     reorganising the card without a home for them loses them.
 
-    📍 The generator's distance moved OUT of this block in the three-area rearrangement: it is a
-    labelled figure in the ⛽ section now, beside the litres that produced it, which is one step
-    further along the road @gm27271 asked for in beta #31. So it is checked there, not here — and
-    checked it is, because dropping it is exactly what this test exists to catch."""
+    📍 The generator's distance moved OUT of this block in the three-area rearrangement, and since
+    18/09/2026 (beta D #31) it is a full-width line of the boxed summary, right under the ⛽ box —
+    no box has room for it at 1024px. So it is checked there, not here — and checked it is,
+    because dropping it is exactly what this test exists to catch."""
     body = _block()
     for needle, what in (
             ("trip.start_soc", "the SoC start→end"),
@@ -131,9 +145,9 @@ def test_the_four_things_that_live_nowhere_else_survive():
             ("trip.paid_kwh", "the kWh actually paid for at the plug"),
             ("reev_elec_source_note", "the note on what getEC measures")):
         assert needle in body, f"{what} was dropped"
-    assert "trip.engine_km" in _fuel_section(), \
-        "the kilometres the generator drove were dropped on the way to the fuel section"
-    assert "reev_engine_km_floor" in _fuel_section(), \
+    assert "trip.engine_km" in _engine_line(), \
+        "the kilometres the generator drove were dropped on the way to the summary"
+    assert "reev_engine_km_floor" in _engine_line(), \
         "the figure moved without the line that says it is a floor"
 
 
@@ -142,20 +156,23 @@ def test_the_fuel_money_is_still_shown_somewhere():
     assert "fuel_price_per_l" in HTML and "trip.fuel_cost" in HTML
 
 
-def test_a_plain_electric_car_is_untouched():
+def test_a_car_with_no_tank_gets_no_fuel():
     """A car with no tank must not gain a fuel line.
 
-    📍 The litres used to live inside the energy tile's `{% if is_reev %}` branch; they are their own
-    section now, so what has to hold is that the SECTION is gated — and gated on the tank having
-    been used, so a pure-electric drive on a range extender shows no empty section either.
+    📍 18/09/2026 (beta D #31, Silvio): the plain electric car gets the SAME boxed summary as a range
+    extender — that change to its card is deliberate — minus the fuel. So what has to hold is that
+    the ⛽ box is gated on the car having a tank, and that the ⚡ box carries no litres. On a range
+    extender the ⛽ box is always there, with a dash when nothing burned: @michapr's layout, approved
+    with it — so the gate no longer asks whether the tank was used.
 
     ⚠️ Checked by slicing the gate out, not by counting braces — the first version compared
     `{% if is_reev` against `{% endif %}` totals across the whole header and failed on arithmetic
     that meant nothing."""
     head = _header()
-    assert "{% if is_reev and trip.fuel_used_l %}" in head, \
-        "the fuel section is not gated on a range extender that actually burned something"
-    # …and nothing prints litres outside it: the energy tile must be clean of them.
-    tile = head[head.index("{% if is_reev %}"):head.index("{% elif", head.index("{% if is_reev %}"))]
-    assert "fuel_used_l" not in tile, \
-        "the litres are back inside the energy tile, which is the stacking beta #31 was about"
+    gate = head.index("{% if is_reev %}\n        {# ⛽")
+    assert head.index("⛽ {{ t('trip_area_fuel') }}") > gate, \
+        "the fuel box is not behind the tank's gate"
+    # …and nothing prints litres outside it: the ⚡ box must be clean of them.
+    elec = head[head.index("⚡ {{ t('trip_area_electric') }}"):gate]
+    assert "fuel_used_l" not in elec, \
+        "the litres are back inside the electricity, which is the stacking beta #31 was about"

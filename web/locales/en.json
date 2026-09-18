@@ -1247,6 +1247,7 @@
     "stats_efftemp_trend_fuel": "≈{val} L/100 km every 10 °C (petrol)",
     "trip_area_electric": "Electricity",
     "trip_area_fuel": "Fuel",
+    "trip_summary_title": "Trip summary",
     "trip_details_section": "Trip details",
     "fuel_used": "Fuel used",
     "reev_engine_km_label": "With the generator"
