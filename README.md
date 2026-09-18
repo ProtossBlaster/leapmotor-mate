@@ -47,7 +47,7 @@ LeapMotor Mate is free and open-source, developed in my spare time. If it's usef
 - **Vehicle software updates** — the Overview tells you when the car has an **OTA update** waiting, without opening the official app.
 
 **On the road**
-- **Trips** — automatic detection with route map, distance, energy, efficiency and regen; every trip carries its own kWh and its cost.
+- **Trips** — automatic detection with route map, distance, energy, efficiency and regen; every trip carries its own kWh and its cost, and opens on a **summary in boxes**: distance and duration, the electricity it used and its price, and the total.
 - **Consumption measured by the car** — energy, efficiency and cost come from Leapmotor's own figure (the real **driving / A·C / other** split) whenever the cloud has it, with the battery-% estimate kept as a marked, reversible fallback and a **Vehicle Cumulative Total** card for the lifetime numbers.
 - **Elevation and outside temperature** — an altitude line under the SoC & speed chart, the metres climbed and descended, and the temperature at departure and on arrival ([Open-Meteo](https://open-meteo.com) — no key, no account).
 - **Calendar, search and merging** — browse trips by month, open a day, or search a date range. Trips that a short stop split apart can be **merged** from that day's list with a gap slider and a route preview, and unmerged whenever you like.
@@ -370,7 +370,7 @@ LeapMotor Mate è gratuito e open-source, sviluppato nel tempo libero. Se ti è 
 - **Aggiornamenti software dell'auto** — la Panoramica ti dice quando l'auto ha un **aggiornamento OTA** in attesa, senza aprire l'app ufficiale.
 
 **In strada**
-- **Viaggi** — rilevamento automatico con mappa del percorso, distanza, energia, efficienza e recupero; ogni viaggio porta i suoi kWh e il suo costo.
+- **Viaggi** — rilevamento automatico con mappa del percorso, distanza, energia, efficienza e recupero; ogni viaggio porta i suoi kWh e il suo costo, e si apre con un **riepilogo a riquadri**: distanza e durata, l'elettricità usata col suo prezzo, e il totale.
 - **Consumo misurato dall'auto** — energia, efficienza e costo arrivano dal dato ufficiale Leapmotor (la ripartizione vera fra **guida / clima / altro**) quando il cloud ce l'ha, con la stima dal SoC come ripiego segnalato e reversibile, e una scheda **Totale cumulativo del veicolo** per i numeri di sempre.
 - **Altimetria e temperatura esterna** — il profilo dell'altitudine sotto il grafico SoC e velocità, i metri saliti e scesi, e la temperatura alla partenza e all'arrivo ([Open-Meteo](https://open-meteo.com) — senza chiave e senza account).
 - **Calendario, ricerca e unione** — sfogli i viaggi per mese, apri un giorno, o cerchi un intervallo di date. I viaggi che una sosta breve ha spezzato si **uniscono** dall'elenco di quel giorno, con un cursore per la pausa e l'anteprima del percorso, e si separano quando vuoi.

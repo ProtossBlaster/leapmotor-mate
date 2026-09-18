@@ -3,6 +3,20 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.17.2] — 2026-09-19
+
+**Changed (@michapr, @gm27271, beta #31):** a trip's summary is laid out in **boxes**, on every car:
+distance and duration, then the electricity the trip used — energy, consumption and the price per kWh
+it was billed at — and, on a range extender, the fuel beside it with the litres, the L/100 km, what
+they cost and the **price per litre**, then the total with its cost per 100 km. It is the layout
+@michapr built on the beta, and the figures are the same ones from the same sources: only where they
+sit changes. On an electric car it is the same card without the fuel. On a generator trip the
+kilometres the generator drove keep the line that says they are a floor, and the electric rate stays
+off the card as before, because getEC over the whole distance is not what the car consumed. The
+electric-vs-generator bar of that layout is not included: its electric share would be the distance
+minus a floor, a ceiling drawn as a fact. The card fits the narrow column a 1024 px window gives it, in
+every language.
+
 ## [3.17.1] — 2026-09-18
 
 **Fixed (#294, @synvoll):** a wrong Home Assistant URL could lock you out of Settings. With a URL that
