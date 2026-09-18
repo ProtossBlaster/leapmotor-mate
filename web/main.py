@@ -2595,7 +2595,12 @@ async def save_wallbox(request: Request):
 
 
 def _ha_test_html() -> str:
-    """Small inline status snippet for the HA connection test."""
+    """Small inline status snippet for the HA connection test.
+
+    htmx swaps this into Settings on every load once a token is saved, and it carries text that
+    came back from whatever answers at the configured URL — so that text is escaped, always. A
+    raw page here once replaced the whole Settings view with HA's own shell (#294)."""
+    from html import escape as _esc
     if os.environ.get("SUPERVISOR_TOKEN"):
         src = "Supervisor (add-on)"
     else:
@@ -2603,11 +2608,11 @@ def _ha_test_html() -> str:
     res = ha_client.test_connection()
     if res.get("ok"):
         return (f'<span style="color:#22c55e;font-size:13px">✓ Connected via {src}'
-                f' — {res.get("message", "API running")}</span>')
+                f' — {_esc(str(res.get("message", "API running")))}</span>')
     err = res.get("error", "unknown")
     if err == "not_configured":
         return '<span style="color:#64748b;font-size:13px">Enter the HA URL and token, then test</span>'
-    return f'<span style="color:#f87171;font-size:13px">✗ {err}</span>'
+    return f'<span style="color:#f87171;font-size:13px">✗ {_esc(str(err))}</span>'
 
 
 @app.post("/api/settings/ha", response_class=HTMLResponse)

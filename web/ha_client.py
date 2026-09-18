@@ -100,8 +100,15 @@ def test_connection() -> dict:
     try:
         status, body = _request("/api/")
         if status == 200:
-            msg = body.get("message") if isinstance(body, dict) else str(body)
-            return {"ok": True, "message": msg or "API running"}
+            if not isinstance(body, dict):
+                # HA's /api/ always answers JSON. A page here means the URL is not the API root —
+                # typically a dashboard link, whose `/api/` falls through to the frontend's
+                # catch-all and gets HA's own HTML shell back (#294). Never a success, and never
+                # the page itself as the message: that text goes straight into Settings.
+                return {"ok": False, "error": "not the Home Assistant API — the URL answered with "
+                                              "a web page; use the base address, e.g. "
+                                              "http://192.168.1.10:8123"}
+            return {"ok": True, "message": body.get("message") or "API running"}
         return {"ok": False, "error": f"HTTP {status}"}
     except urllib.error.HTTPError as e:
         # 401 = bad/expired token, the most common real-world failure
