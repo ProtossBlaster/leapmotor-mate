@@ -147,6 +147,16 @@ class MqttService:
                 return
             if not self.on_command:
                 return
+            # A command is an action for NOW. The broker hands a RETAINED message to every new
+            # subscription, and these topics are re-subscribed on every connect — so a command left
+            # retained by anything on the broker (HA sends them unretained; a script or an automation
+            # publishing with retain does not) ran again at every restart: an unlock, a trunk, a
+            # climate start, wherever the car was parked.
+            if msg.retain and (msg.topic.endswith("/command") or msg.topic.endswith("/set")):
+                log.warning("MQTT: ignoring a RETAINED command on %s (%r) — a command is only run "
+                            "when it is sent, not replayed from the broker. Clear it with an empty "
+                            "retained publish on that topic.", msg.topic, payload)
+                return
             # The command topics are wildcards — `<prefix>/+/command` takes ANY vin — and the vin was
             # handed straight to the cloud API. Two installs sharing a prefix therefore each executed
             # the other's commands, and against a car that is not theirs. Only ours, only now.

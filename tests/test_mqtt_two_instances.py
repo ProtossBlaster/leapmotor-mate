@@ -191,9 +191,10 @@ def test_it_listens_for_the_others(monkeypatch):
 # ── and refusing a command that is not ours ───────────────────────────────────
 
 class _Msg:
-    def __init__(self, topic, payload=""):
+    def __init__(self, topic, payload="", retain=False):
         self.topic = topic
         self.payload = payload.encode()
+        self.retain = retain            # a real paho MQTTMessage always carries it
 
 
 def test_a_command_for_another_car_is_refused():

@@ -61,7 +61,7 @@ def test_set_topic_routes_to_on_command():
     svc = _service()
     seen = []
     svc.on_command = lambda vin, cmd, val: seen.append((vin, cmd, val))
-    msg = types.SimpleNamespace(topic="leapmotor/VIN9/trunk/set", payload=b"ON")
+    msg = types.SimpleNamespace(topic="leapmotor/VIN9/trunk/set", payload=b"ON", retain=False)
     svc._on_message(None, None, msg)
     assert seen == [("VIN9", "trunk", "ON")]
 
