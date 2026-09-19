@@ -1,16 +1,19 @@
-"""A charge still stuck on the pre-cost_manual 'MANUAL' placeholder renders as "❓ Da confermare"
-on its own badge (CHARGE_TYPES has no 'MANUAL' key, same fallback as a NULL location_type) — but
-several OTHER features used to check `location_type IS NULL` specifically, or a bare truthiness of
-`location_type`, and so silently disagreed with what the badge itself shows: the "N to confirm"
-banner didn't count it, and the "Home vs Public" card counted it as public by construction (it
-isn't 'HOME', so `total - home_count` swept it in). Found in review (ProtossBlaster, PR #284):
-measured on real test data, a home charge stuck on 'MANUAL' showed up as "Pubblica".
+"""A charge still on the pre-cost_manual 'MANUAL' placeholder — every one of them carries the price
+its owner typed, and the migration marked it `cost_manual=1`.
 
-'MANUAL' is deliberately NEVER rewritten by any repair any more (see poller/schema.py's migration
-comment) — its real original type cannot be recovered from anything still on the row, so guessing
-risks getting it wrong with real money attached. These tests instead hold every OTHER feature to
-the one true definition of "not yet confirmed": `location_type IS NULL OR location_type = 'MANUAL'`,
-the same test the badge template already uses via `charge_types.get(charge.location_type)`.
+Two stories, both still guarded here:
+
+  · PR #284 review (ProtossBlaster): the "Home vs Public" card counted such a charge as public by
+    construction (it isn't 'HOME', so `total - home_count` swept it in) — measured on real test
+    data, a home charge stuck on 'MANUAL' showed up as "Pubblica". It is never public.
+  · v3.16.0 then showed it as "❓ Da confermare" and put it in the banner count — a regression for
+    everyone who had used Manual (add-on #2, @termy91it, 19/09/2026): the price WAS the answer. It
+    reads "✎ Manual" again, and every count agrees with that badge through ONE definition,
+    `db_reader.is_manual_charge` — see tests/test_the_manual_price_is_back_where_it_was.py.
+
+'MANUAL' is deliberately NEVER rewritten by any repair (see poller/schema.py's migration comment):
+its real original type cannot be recovered from anything still on the row, so guessing risks
+getting it wrong with real money attached. The owner can still pick the type; the price stays.
 """
 import db as D
 import db_reader
@@ -34,11 +37,11 @@ def _charge(pdb, cid, *, ctype, cost=None, cost_manual=0, charge_type="AC", max_
 
 # ── the "N to confirm" banner ──────────────────────────────────────────────────
 
-def test_a_legacy_manual_charge_counts_toward_the_confirm_banner(tmp_path, monkeypatch):
+def test_a_legacy_manual_charge_is_not_asked_for_again(tmp_path, monkeypatch):
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, ctype="MANUAL", cost=6.0, cost_manual=1)
     _charge(pdb, 2, ctype=None)
-    assert db_reader.unconfirmed_charges_count() == 2
+    assert db_reader.unconfirmed_charges_count() == 1
 
 
 def test_the_banner_still_ignores_a_genuinely_confirmed_charge(tmp_path, monkeypatch):
@@ -47,24 +50,25 @@ def test_the_banner_still_ignores_a_genuinely_confirmed_charge(tmp_path, monkeyp
     assert db_reader.unconfirmed_charges_count() == 0
 
 
-def test_the_banner_link_can_reach_a_legacy_manual_charge_too(tmp_path, monkeypatch):
+def test_the_banner_link_does_not_lead_to_a_legacy_manual_charge(tmp_path, monkeypatch):
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, ctype="MANUAL", cost=6.0, cost_manual=1)
-    assert db_reader.newest_unconfirmed_charge_id() == 1
+    assert db_reader.newest_unconfirmed_charge_id() == 0
 
 
 # ── the "Home vs Public" card ──────────────────────────────────────────────────
 
 def test_a_legacy_manual_charge_is_neither_home_nor_public(tmp_path, monkeypatch):
-    """The actual bug: a home session stuck on 'MANUAL' must not be swept into "Pubblica" just
-    because it isn't literally 'HOME' — it isn't confirmed as anything yet. It counts as
-    unconfirmed instead, explicitly — see the invariant tests below."""
+    """The PR #284 bug: a home session stuck on 'MANUAL' must not be swept into "Pubblica" just
+    because it isn't literally 'HOME'. Nor is it waiting (add-on #2): it counts as Manual,
+    explicitly — see the invariant tests below."""
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, ctype="MANUAL", cost=6.0, cost_manual=1, charge_type="AC")
     stats = db_reader.get_ac_dc_stats()
     assert stats["home_count"] == 0
     assert stats["public_count"] == 0
-    assert stats["unconfirmed_count"] == 1
+    assert stats["manual_count"] == 1
+    assert stats["unconfirmed_count"] == 0
     assert stats["total"] == 1   # still counted for AC vs DC — that axis IS known regardless
 
 
@@ -112,12 +116,12 @@ def test_a_plain_unconfirmed_charge_is_also_neither_home_nor_public(tmp_path, mo
     assert stats["unconfirmed_count"] == 1
 
 
-# ── the three buckets always add up to the grand total ─────────────────────────
+# ── the four buckets always add up to the grand total ──────────────────────────
 # The actual regression: the card's own donut summed only [home_count, public_count] and silently
 # normalised its percentages against that instead of `total`, disagreeing with the text beside it
 # (which divides by `total`) and showing the unconfirmed charges nowhere at all.
 
-def test_home_public_and_unconfirmed_always_sum_to_the_grand_total(tmp_path, monkeypatch):
+def test_home_public_manual_and_unconfirmed_always_sum_to_the_grand_total(tmp_path, monkeypatch):
     pdb = _setup(tmp_path, monkeypatch)
     _charge(pdb, 1, ctype="HOME", cost=2.5, charge_type="AC")
     _charge(pdb, 2, ctype="FAST", cost=10.0, charge_type="DC", max_power_kw=50)
@@ -126,8 +130,9 @@ def test_home_public_and_unconfirmed_always_sum_to_the_grand_total(tmp_path, mon
     _charge(pdb, 5, ctype="HOME", cost=3.0, charge_type="DC", max_power_kw=55)   # DC-measured HOME
     stats = db_reader.get_ac_dc_stats()
     assert stats["total"] == 5
-    assert (stats["home_count"] + stats["public_count"]
+    assert (stats["home_count"] + stats["public_count"] + stats["manual_count"]
             + stats["unconfirmed_count"]) == stats["total"]
     assert stats["home_count"] == 2
     assert stats["public_count"] == 1
-    assert stats["unconfirmed_count"] == 2
+    assert stats["manual_count"] == 1
+    assert stats["unconfirmed_count"] == 1

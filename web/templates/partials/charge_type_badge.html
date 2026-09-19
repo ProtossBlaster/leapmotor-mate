@@ -12,6 +12,16 @@
                    display:flex;align-items:center;gap:5px">
       {{ ct.icon }} {{ ct.label }} <span style="font-size:9px;opacity:.7">▼</span>
     </button>
+    {% elif charge.cost_manual %}
+    {# Priced by hand, no type: "✎ Manual", as it read until v3.15.18 — the owner already answered,
+       with the price, so this is not a charge waiting to be confirmed (db_reader.is_manual_charge;
+       add-on #2). #}
+    <button onclick="document.getElementById('ct-menu-{{ charge.id }}').classList.toggle('hidden')"
+            style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b855;
+                   padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
+                   display:flex;align-items:center;gap:5px">
+      ✎ {{ t('charge_manual') }} <span style="font-size:9px;opacity:.7">▼</span>
+    </button>
     {% else %}
     <button onclick="document.getElementById('ct-menu-{{ charge.id }}').classList.toggle('hidden')"
             style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b88;
@@ -25,7 +35,7 @@
          style="position:absolute;right:0;top:calc(100% + 4px);z-index:50;
                 background:#1e293b;border:1px solid #334155;border-radius:10px;
                 padding:4px;min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
-      {% if not ct %}
+      {% if not ct and not charge.cost_manual %}
       <div style="padding:5px 10px 7px;margin-bottom:3px;font-size:11px;font-weight:700;
                   color:#fbbf24;border-bottom:1px solid #334155">{{ t('charge_confirm_q') }}</div>
       {% endif %}
@@ -45,6 +55,28 @@
         </button>
       </form>
       {% endfor %}
+      {# ✎ Manual — the row where the receipt's total was typed until v3.15.18, back where people look
+         for it (add-on #2, @termy91it: "non è più possibile impostare un prezzo manuale"). It sets the
+         PRICE, never the type: it posts to the pencil's own /cost endpoint and is answered with this
+         whole selector, so a charge with no type reads "✎ Manual" the moment the price goes in, and a
+         typed one keeps its type. Pre-filled only with a price typed by hand — an estimate is not a
+         figure to confirm with OK. `required`: an empty OK here would be the pencil's deliberate
+         CLEAR, which reprices the charge; from a menu row it can only be a slip, so htmx does not
+         send it. Taking a typed price back is the pencil's Reset. #}
+      <form hx-post="api/charges/{{ charge.id }}/cost"
+            hx-target="#charge-type-{{ charge.id }}"
+            hx-swap="outerHTML"
+            style="margin:0;border-top:1px solid #334155;margin-top:3px;padding-top:4px">
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 10px">
+          <span style="color:#94a3b8;font-size:13px;white-space:nowrap">✎ {{ t('charge_manual') }}</span>
+          <input type="number" name="cost" step="0.01" min="0" required placeholder="{{ currency.symbol }}"
+                 value="{% if charge.cost_manual and charge.cost is not none %}{{ '%.2f'|format(charge.cost) }}{% endif %}"
+                 onclick="event.stopPropagation()" autocomplete="off" inputmode="decimal"
+                 style="width:72px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#fff;padding:4px 6px;font-size:13px">
+          <button type="submit"
+                  style="margin-left:auto;background:#94a3b822;color:#94a3b8;border:1px solid #94a3b855;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer">OK</button>
+        </div>
+      </form>
     </div>
   </div>
   {% if charge.location_type == 'HOME' %}

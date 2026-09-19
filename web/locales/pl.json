@@ -382,6 +382,7 @@
     "wb_profile_name_taken": "Profil o tej nazwie już istnieje",
     "wb_profile_charging_blocked": "Nie można przełączać profili podczas aktywnego ładowania",
     "charge_unconfirmed": "Do potwierdzenia",
+    "charge_manual": "Ręcznie",
     "charge_free": "Za darmo",
     "charge_free_hint": "Oznacz to ładowanie w domu jako darmowe — np. samodzielnie wyprodukowana energia słoneczna. Pozostaje w kategorii Dom, koszt 0. Mate nie mierzy udziału słońca vs sieć — to Twoja decyzja.",
     "charge_to_confirm_one": "ładowanie do potwierdzenia",

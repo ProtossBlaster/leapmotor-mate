@@ -382,6 +382,7 @@
     "wb_profile_name_taken": "A profile with that name already exists",
     "wb_profile_charging_blocked": "Cannot switch profiles while a charge is active",
     "charge_unconfirmed": "To confirm",
+    "charge_manual": "Manual",
     "charge_free": "Free",
     "charge_free_hint": "Mark this home charge as free — e.g. self-produced solar. It stays under Home, at cost 0. Mate can't measure the solar/grid split, so this is your call.",
     "charge_to_confirm_one": "charge to confirm",

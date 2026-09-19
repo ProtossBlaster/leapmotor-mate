@@ -3132,8 +3132,11 @@ async def set_charge_cost(request: Request, charge_id: int):
         else:
             charge = db_reader.set_charge_cost(charge_id, cost)
     t = i18n.get_t(db_reader.get_language())
-    return templates.TemplateResponse(request, "partials/charge_cost_manual.html", {
+    # The WHOLE type selector — pencil, badge and menu — not the pencil alone: a price typed on a
+    # charge with no type turns it "✎ Manual" (add-on #2), and the menu's Manual row posts here too.
+    return templates.TemplateResponse(request, "partials/charge_type_badge.html", {
         "charge": charge,
+        "charge_types": db_reader.charge_types_localised(),
         "t": t,
         "currency": db_reader.get_currency(),
         "cost_oob": True,   # the cost cell's default/billed indicator changes with this

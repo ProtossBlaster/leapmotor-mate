@@ -382,6 +382,7 @@
     "wb_profile_name_taken": "Ya existe un perfil con ese nombre",
     "wb_profile_charging_blocked": "No se puede cambiar de perfil mientras hay una carga en marcha",
     "charge_unconfirmed": "Por confirmar",
+    "charge_manual": "Manual",
     "charge_free": "Gratis",
     "charge_free_hint": "Marca esta carga en casa como gratuita — por ejemplo, solar de autoconsumo. Se queda como «En casa», con coste 0. Mate no puede medir el reparto entre solar y red, así que esto lo decides tú.",
     "charge_to_confirm_one": "carga por confirmar",

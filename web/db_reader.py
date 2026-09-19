@@ -273,6 +273,26 @@ def charge_types_localised() -> dict:
     return out
 
 
+def is_manual_charge(charge) -> bool:
+    """A charge the owner priced by hand and never gave a real type — "✎ Manual" on its badge, and
+    NOT a charge waiting to be confirmed.
+
+    Until v3.15.18 Manual was a type in the menu: pick it, type the receipt's total, done. v3.16.0
+    moved the price into its own column (`cost_manual`), which was right, and let every charge with
+    no real type read "❓ To confirm" — which was a regression for everyone who had used Manual:
+    their old charges came back asking to be confirmed, and a price typed on a new one no longer
+    settled it (add-on #2, @termy91it; measured on a v3.15.18 database opened by v3.17.2). The
+    owner already answered, with the price: this is what they said.
+
+    One definition for the badge, the banner, the Home vs Public card, the monthly report and the
+    search — a count that disagrees with the badge is the bug #240 was. Both the legacy 'MANUAL'
+    placeholder and NULL qualify; a charge with a real type is that type, priced by hand or not.
+    Works on a dict or a sqlite3.Row; a row read before the poller's migration has no cost_manual
+    and is not Manual."""
+    return (charge["location_type"] not in CHARGE_TYPES
+            and "cost_manual" in charge.keys() and bool(charge["cost_manual"]))
+
+
 PRICE_KEYS = {
     "HOME": "price_home_kwh",
     "AC":   "price_ac_kwh",
@@ -7395,17 +7415,28 @@ def unconfirmed_charges_count() -> int:
     there (from before cost_manual existed) shows the same "❓ Da confermare" badge as a NULL one
     (CHARGE_TYPES has no 'MANUAL' key either), so the banner counting only NULL silently missed it:
     the badge said unconfirmed, the banner didn't count it. Same fix in newest_unconfirmed_charge_id
-    below."""
+    below.
+
+    Minus the charges priced by hand (`is_manual_charge`): those read "✎ Manual", and the owner
+    already answered for them — asking again was the regression of add-on #2."""
     db = _get()
     row = db.execute(
         # Only whole charges: a merged child is not a charge the user can confirm — the group
         # carries the parent's type, and counting the pieces would ask twice for one answer.
         "SELECT COUNT(*) n FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
         "AND (location_type IS NULL OR location_type = 'MANUAL') AND ended_at IS NOT NULL"
+        + _and_not_priced_by_hand(db)
         + (" AND merged_into_id IS NULL" if _charges_have_merge(db) else ""),
         (_current_vehicle_id(),)
     ).fetchone()
     return row["n"] if row else 0
+
+
+def _and_not_priced_by_hand(db) -> str:
+    """The SQL half of `is_manual_charge`, for the two queries that count what is left to confirm.
+    Empty before the poller's migration, when there is no cost_manual to read and no Manual charge
+    can be told apart from an untyped one."""
+    return " AND COALESCE(cost_manual, 0) = 0" if _charges_have_cost_manual(db) else ""
 
 
 def newest_unconfirmed_charge_id() -> int:
@@ -7422,8 +7453,9 @@ def newest_unconfirmed_charge_id() -> int:
     db = _get()
     row = db.execute(
         "SELECT id FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
-        "AND (location_type IS NULL OR location_type = 'MANUAL') AND ended_at IS NOT NULL "
-        "ORDER BY started_at DESC LIMIT 1",
+        "AND (location_type IS NULL OR location_type = 'MANUAL') AND ended_at IS NOT NULL"
+        + _and_not_priced_by_hand(db)
+        + " ORDER BY started_at DESC LIMIT 1",
         (_current_vehicle_id(),)
     ).fetchone()
     return row["id"] if row else 0
@@ -8175,7 +8207,7 @@ def search_charges(text: str = "", charge_type: str = "",
                     station: str | None = None) -> list[dict]:
     """Flat, most-recent-first list of charges matching ALL given filters — the Ricariche
     search bar. `text` matches the station name OR the user note (substring, case-
-    insensitive); `charge_type` is a location_type key (AC/FAST/HPC/HOME/FREE);
+    insensitive); `charge_type` is a location_type key (AC/FAST/HPC/HOME/FREE), or MANUAL;
     the kWh/cost filters compare against the SAME billed figure the card shows
     (_billed_kwh); `date_from`/`date_to` are inclusive "YYYY-MM-DD" LOCAL calendar dates.
     Loads the full history like get_charges_grouped (#67 — no default limit may hide
@@ -8199,7 +8231,10 @@ def search_charges(text: str = "", charge_type: str = "",
         if q and q not in (c.get("location_name") or "").lower() \
              and q not in (c.get("note") or "").lower():
             continue
-        if ctype and (c.get("location_type") or "") != ctype:
+        # MANUAL is not a type any more but it is still a filter: the charges priced by hand with
+        # no type, the ones the badge calls "✎ Manual" (add-on #2) — old placeholder and new alike.
+        if ctype and not (is_manual_charge(c) if ctype == "MANUAL"
+                          else (c.get("location_type") or "") == ctype):
             continue
         kwh = _billed_kwh(c)
         if kwh_min is not None and kwh < kwh_min:
@@ -8466,7 +8501,7 @@ def get_ac_dc_stats() -> dict:
 
     `home_count`/`home_kwh`, `public_count`/`public_kwh` and `unconfirmed_count`/`unconfirmed_kwh`
     are the OTHER, independent axis this feeds (the "Home vs Public" card) — `location_type`, not
-    `charge_type`. `home_count + public_count + unconfirmed_count` always equals `total`, by
+    `charge_type`. `home_count + public_count + manual_count + unconfirmed_count` always equals `total`, by
     construction: every charge lands in exactly one.
 
     ⚠️ NOT nested under `ac` any more, and NOT gated on `is_dc`. It used to be — "every home
@@ -8486,6 +8521,10 @@ def get_ac_dc_stats() -> dict:
     a MANUAL charge made at home showed up as "Pubblica"). Only a charge with a real, confirmed,
     non-HOME type counts as public.
 
+    `manual_count`/`manual_kwh` are the charges priced by hand with no type (`is_manual_charge`):
+    not public — a Manual charge made at home is not — and not waiting either, because the owner
+    already answered with the price (add-on #2).
+
     `unconfirmed_count`/`unconfirmed_kwh` are that same not-yet-known remainder, made explicit.
     Without it the Home vs Public card's OWN donut (fed only `[home_count, public_count]`) silently
     normalised its percentages against just those two numbers instead of `total`, so on real data
@@ -8500,6 +8539,7 @@ def get_ac_dc_stats() -> dict:
     dc = {"count": 0, "kwh": 0.0}
     home_count, home_kwh = 0, 0.0
     public_count, public_kwh = 0, 0.0
+    manual_count, manual_kwh = 0, 0.0
     unconfirmed_count, unconfirmed_kwh = 0, 0.0
     for r in rows:
         ct = r["charge_type"]
@@ -8519,7 +8559,10 @@ def get_ac_dc_stats() -> dict:
         elif lt in CHARGE_TYPES:    # a real, confirmed type other than HOME — genuinely public
             public_count += 1
             public_kwh += kwh
-        else:                       # NULL, or the legacy 'MANUAL' placeholder — not yet known
+        elif is_manual_charge(r):   # priced by hand, no type: answered, but not where (add-on #2)
+            manual_count += 1
+            manual_kwh += kwh
+        else:                       # NULL, or the legacy 'MANUAL' placeholder unpriced — not yet known
             unconfirmed_count += 1
             unconfirmed_kwh += kwh
     ac["kwh"] = round(ac["kwh"], 2)
@@ -8527,6 +8570,7 @@ def get_ac_dc_stats() -> dict:
     return {"ac": ac, "dc": dc, "total": ac["count"] + dc["count"],
             "home_count": home_count, "home_kwh": round(home_kwh, 2),
             "public_count": public_count, "public_kwh": round(public_kwh, 2),
+            "manual_count": manual_count, "manual_kwh": round(manual_kwh, 2),
             "unconfirmed_count": unconfirmed_count, "unconfirmed_kwh": round(unconfirmed_kwh, 2)}
 
 
@@ -8567,6 +8611,10 @@ def _report_bucket() -> dict:
         "refuel_count": 0, "refuel_l": 0.0, "refuel_cost": 0.0,
         "home":   {"count": 0, "kwh": 0.0, "cost": 0.0},
         "public": {"count": 0, "kwh": 0.0, "cost": 0.0},
+        # Priced by hand with no type (`is_manual_charge`) — the same fourth count as the Home vs
+        # Public card. It used to split in two here: the old Manual type fell into "public" (any
+        # truthy location_type did) and a price typed with the pencil into "unconfirmed" (add-on #2).
+        "manual": {"count": 0, "kwh": 0.0, "cost": 0.0},
         "_days": {},   # day-of-month -> {"km": float, "cost": float}
     }
 
@@ -8640,7 +8688,10 @@ def _collect_monthly_buckets() -> dict:
             b["has_cost"]     = True
             b["charge_count_priced"] += 1
             b["charge_kwh_priced"]   += kwh
-        grp = b["home"] if lt == "HOME" else (b["public"] if lt else None)
+        # Only the Manual charges move; everything else splits exactly as it always has, any
+        # non-empty type other than HOME on the public side.
+        grp = (b["home"] if lt == "HOME" else b["manual"] if is_manual_charge(c)
+               else b["public"] if lt else None)
         if grp is not None:
             grp["count"] += 1
             grp["kwh"]   += kwh
@@ -8687,7 +8738,7 @@ def _collect_monthly_buckets() -> dict:
                   "charge_kwh_priced", "fuel_cost_burned", "elec_cost_driven"):
             b[k] = round(b[k], 2)
         b["drive_min"] = int(round(b["drive_min"]))
-        for g in ("home", "public"):
+        for g in ("home", "public", "manual"):
             b[g]["kwh"]  = round(b[g]["kwh"], 2)
             b[g]["cost"] = round(b[g]["cost"], 2)
     return buckets

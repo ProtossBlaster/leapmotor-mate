@@ -203,11 +203,15 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
   <div class="card">
     <div class="stat-label mb-3">{{ t('report_split_title') }}</div>
-    {% set split_kwh = (c.home.kwh + c.public.kwh) %}
+    {# ✎ Manual — the charges priced by hand with no type, the same fourth count as the Charges
+       page's Home vs Public card (add-on #2). They used to sit in "public" here while the card
+       asked for them to be confirmed; now both pages say the same thing. #}
+    {% set split_kwh = (c.home.kwh + c.public.kwh + c.manual.kwh) %}
     {% if split_kwh > 0 %}
     <div class="flex h-2.5 rounded-full overflow-hidden bg-slate-800 mb-4">
       <div style="width: {{ (c.home.kwh / split_kwh * 100) }}%; background:#22c55e"></div>
       <div style="width: {{ (c.public.kwh / split_kwh * 100) }}%; background:#60a5fa"></div>
+      <div style="width: {{ (c.manual.kwh / split_kwh * 100) }}%; background:#94a3b8"></div>
     </div>
     {% endif %}
     <div class="space-y-2">
@@ -219,6 +223,12 @@
         <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#60a5fa"></span><span class="text-slate-200">🌐 {{ t('report_public') }}</span></span>
         <span class="text-slate-400">{{ c.public.count }} · {{ c.public.kwh | nice }} kWh · <span class="text-white font-medium">{{ c.public.cost | money }}</span></span>
       </div>
+      {% if c.manual.count %}
+      <div class="flex items-center justify-between text-sm">
+        <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#94a3b8"></span><span class="text-slate-200">✎ {{ t('charge_manual') }}</span></span>
+        <span class="text-slate-400">{{ c.manual.count }} · {{ c.manual.kwh | nice }} kWh · <span class="text-white font-medium">{{ c.manual.cost | money }}</span></span>
+      </div>
+      {% endif %}
       {% if c.unconfirmed > 0 %}
       <div class="text-xs text-slate-500 pt-1">+{{ c.unconfirmed }} {{ t('report_unconfirmed') }}</div>
       {% endif %}

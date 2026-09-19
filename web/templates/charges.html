@@ -294,8 +294,26 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
             {% if ac_dc.total %}· {{ (ac_dc.public_count / ac_dc.total * 100) | round | int }}%{% endif %}
           </div>
         </div>
+        {# Priced by hand with no type (db_reader.is_manual_charge): not public — a Manual charge made
+           at home is not — and not waiting either, the owner answered with the price (add-on #2).
+           The two last tiles share a row when both are there, and span it when alone. #}
+        {% set _extra = (1 if ac_dc.manual_count else 0) + (1 if ac_dc.unconfirmed_count else 0) %}
+        {% if ac_dc.manual_count %}
+        <div class="{% if _extra == 1 %}xs:col-span-2{% endif %}" style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-3 h-3 rounded-full" style="background:#94a3b8"></span>
+            <span class="text-slate-300 text-sm font-medium">✎ {{ t('charge_manual') }}</span>
+          </div>
+          <div class="text-2xl font-bold text-white">{{ ac_dc.manual_count }}
+            <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.manual_kwh | nice }} kWh
+            {% if ac_dc.total %}· {{ (ac_dc.manual_count / ac_dc.total * 100) | round | int }}%{% endif %}
+          </div>
+        </div>
+        {% endif %}
         {% if ac_dc.unconfirmed_count %}
-        <div class="xs:col-span-2" style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
+        <div class="{% if _extra == 1 %}xs:col-span-2{% endif %}" style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
           <div class="flex items-center gap-2 mb-2">
             <span class="w-3 h-3 rounded-full" style="background:#f59e0b"></span>
             <span class="text-slate-300 text-sm font-medium">{{ t('charge_unconfirmed') }}</span>
@@ -349,9 +367,9 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
   if (el._c) { try { el._c.destroy(); } catch (e) {} }
   el._c = new ApexCharts(el, {
     chart: { type: 'donut', height: 200, fontFamily: 'inherit', background: 'transparent' },
-    series: [{{ ac_dc.home_count }}, {{ ac_dc.public_count }}, {{ ac_dc.unconfirmed_count }}],
-    labels: ['{{ t('report_home') }}', '{{ t('ac_charge_public') }}', '{{ t('charge_unconfirmed') }}'],
-    colors: ['#22c55e', '#7dd3fc', '#f59e0b'],
+    series: [{{ ac_dc.home_count }}, {{ ac_dc.public_count }}, {{ ac_dc.manual_count }}, {{ ac_dc.unconfirmed_count }}],
+    labels: ['{{ t('report_home') }}', '{{ t('ac_charge_public') }}', '✎ {{ t('charge_manual') }}', '{{ t('charge_unconfirmed') }}'],
+    colors: ['#22c55e', '#7dd3fc', '#94a3b8', '#f59e0b'],
     legend: { show: false },
     stroke: { width: 0 },
     dataLabels: { enabled: true, formatter: function (v) { return Math.round(v) + '%'; },
@@ -439,6 +457,8 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
         {% for key, info in charge_types.items() %}
         <option value="{{ key }}">{{ info.icon }} {{ info.label }}</option>
         {% endfor %}
+        {# Not a type any more, still a filter: the charges priced by hand with no type (add-on #2). #}
+        <option value="MANUAL">✎ {{ t('charge_manual') }}</option>
       </select>
       <input type="date" name="date_from" title="{{ t('charges_search_date_from') }}"
              class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">

@@ -52,69 +52,10 @@
         {% endif %}
       </div>
     </div>
-    <!-- Charge type selector (HTMX) -->
-    {% set ct = charge_types.get(c.location_type) %}
-    <div id="charge-type-{{ c.id }}" class="charge-type-selector">
-      {# The real total paid, independent of the type badge next to it. #}
-      {% with charge=c, cost_oob=false %}{% include "partials/charge_cost_manual.html" %}{% endwith %}
-      <div style="position:relative;display:inline-block">
-        {% if ct %}
-        <button onclick="document.getElementById('ct-menu-{{ c.id }}').classList.toggle('hidden')"
-                style="background:{{ ct.color }}22;color:{{ ct.color }};border:1px solid {{ ct.color }}55;
-                       padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
-                       display:flex;align-items:center;gap:5px">
-          {{ ct.icon }} {{ ct.label }} <span style="font-size:9px;opacity:.7">▼</span>
-        </button>
-        {% else %}
-        <button onclick="document.getElementById('ct-menu-{{ c.id }}').classList.toggle('hidden')"
-                style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b88;
-                       padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
-                       display:flex;align-items:center;gap:5px">
-          ❓ {{ t('charge_unconfirmed') }} <span style="font-size:9px;opacity:.7">▼</span>
-        </button>
-        {% endif %}
-        <div id="ct-menu-{{ c.id }}" class="hidden"
-             style="position:absolute;right:0;top:calc(100% + 4px);z-index:50;
-                    background:#1e293b;border:1px solid #334155;border-radius:10px;
-                    padding:4px;min-width:155px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
-          {% if not ct %}
-          <div style="padding:5px 10px 7px;margin-bottom:3px;font-size:11px;font-weight:700;
-                      color:#fbbf24;border-bottom:1px solid #334155">{{ t('charge_confirm_q') }}</div>
-          {% endif %}
-          {% for key, info in charge_types.items() %}
-          <form hx-post="api/charges/{{ c.id }}/type"
-                hx-target="#charge-type-{{ c.id }}"
-                hx-swap="outerHTML"
-                hx-on::after-request="document.getElementById('ct-menu-{{ c.id }}') && document.getElementById('ct-menu-{{ c.id }}').classList.add('hidden')"
-                style="margin:0">
-            <input type="hidden" name="location_type" value="{{ key }}">
-            <button type="submit"
-                    style="width:100%;text-align:left;padding:7px 12px;border-radius:7px;font-size:13px;
-                           cursor:pointer;background:{% if c.location_type == key %}{{ info.color }}22{% else %}transparent{% endif %};
-                           color:{{ info.color }};border:none;display:flex;align-items:center;gap:8px">
-              {{ info.icon }} {{ info.label }}
-              {% if c.location_type == key %}<span style="margin-left:auto;font-size:10px">✓</span>{% endif %}
-            </button>
-          </form>
-          {% endfor %}
-        </div>
-      </div>
-      {% if c.location_type == 'HOME' %}
-      {# #120: mark a home charge as free (e.g. self-produced solar). Stays HOME, cost 0. #}
-      <form hx-post="api/charges/{{ c.id }}/free" hx-target="#charge-type-{{ c.id }}" hx-swap="outerHTML"
-            style="margin:0;display:inline-block;vertical-align:top;margin-left:6px">
-        <input type="hidden" name="is_free" value="{% if c.is_free %}0{% else %}1{% endif %}">
-        <button type="submit" title="{{ t('charge_free_hint') }}"
-                style="background:{% if c.is_free %}#a3e63522{% else %}transparent{% endif %};
-                       color:{% if c.is_free %}#a3e635{% else %}#64748b{% endif %};
-                       border:1px solid {% if c.is_free %}#a3e63566{% else %}#334155{% endif %};
-                       padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
-                       display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
-          🆓 {{ t('charge_free') }}{% if c.is_free %} ✓{% endif %}
-        </button>
-      </form>
-      {% endif %}
-    </div>
+    {# The type selector — pencil, badge, menu, the #120 free tick — is ONE partial, drawn here and
+       redrawn by every route that changes it. The card used to carry its own copy of it, and a fix
+       to one copy is a fix the other forgets (the Manual row of add-on #2 had to go into both). #}
+    {% with charge=c, cost_oob=false %}{% include "partials/charge_type_badge.html" %}{% endwith %}
   </div>
 
   <!-- SOC bar -->

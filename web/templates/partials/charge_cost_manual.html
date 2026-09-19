@@ -23,7 +23,9 @@
        style="position:absolute;left:0;top:calc(100% + 4px);z-index:50;
               background:#0b1220;border:1px solid #1e293b;border-radius:7px;padding:6px 7px;
               min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
-    <form hx-post="api/charges/{{ charge.id }}/cost" hx-target="#cm-{{ charge.id }}" hx-swap="outerHTML"
+    {# Answered with the WHOLE type selector, not just this box: a price typed on a charge with no
+       type turns its badge "✎ Manual" (add-on #2), so the badge has to be redrawn with it. #}
+    <form hx-post="api/charges/{{ charge.id }}/cost" hx-target="#charge-type-{{ charge.id }}" hx-swap="outerHTML"
           style="margin:0;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
       <span style="font-size:10px;color:#94a3b8">{{ currency.symbol }}</span>
       {# Pre-filled with the CURRENT figure, default or billed — the whole point, see the note above. #}
@@ -39,7 +41,7 @@
       {% if _billed %}
       {# Explicit reset without having to select-all-and-delete the box first. #}
       <button type="button" hx-post="api/charges/{{ charge.id }}/cost" hx-vals='{"cost": ""}'
-              hx-target="#cm-{{ charge.id }}" hx-swap="outerHTML"
+              hx-target="#charge-type-{{ charge.id }}" hx-swap="outerHTML"
               style="background:transparent;color:#64748b;border:none;padding:1px 4px;font-size:10px;cursor:pointer;margin-left:auto">{{ t('cost_manual_reset') }}</button>
       {% endif %}
     </form>
