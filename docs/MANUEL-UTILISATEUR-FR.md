@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v3.17.2 · **Langue :** Français
+> **Version de Mate :** v3.17.3 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 
@@ -451,27 +451,28 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   instant après l'ouverture de la page. Si l'un d'eux échoue, il **le dit désormais en dessous**,
   avec l'erreur et un **Réessayer**, au lieu de laisser un vide sans explication.
 - **Domicile** (votre wallbox **ou une prise domestique**), **AC** (courant alternatif public),
-  **Rapide/FAST** (DC), **HPC** (recharge ultra-rapide) et **Gratuit**. Une recharge que personne
-  n'a encore confirmée reste **❓ À confirmer** tant que vous n'en choisissez pas un.
+  **Rapide/FAST** (DC), **HPC** (recharge ultra-rapide) et **Gratuit** ; en bas du menu, **✎ Manuel**
+  pour le total payé (voir plus bas). Une recharge que personne n'a encore confirmée reste
+  **❓ À confirmer** tant que vous n'en choisissez pas un.
 - **Domicile ne veut pas dire wallbox.** *Domicile* désigne **où** vous avez rechargé, pas à partir
   de quoi : une prise ordinaire dans le garage est aussi une recharge à domicile. La différence
   compte pour le calcul : si le compteur d'une wallbox est relié (voir *Wallbox* plus bas), la
   recharge est facturée sur l'**énergie délivrée par le compteur** ; sinon, elle l'est sur
   l'**énergie arrivée à la batterie**, exactement comme une recharge publique. Entre les deux se
   trouve la perte en chaleur du chargeur, typiquement 10 à 15 %.
-- **✎ le total payé 🆕** — pour les bornes publiques aux tarifs compliqués (abonnements, frais de
-  session…), vous **saisissez à la main le total réellement payé**, dans le **✎** à côté du type.
-  Cette valeur remplace l'estimation automatique et **ne touche pas au type de la recharge** : le
-  coût sur la fiche porte alors la mention **facturé** au lieu de **est.**, et *Réinitialiser*
-  ramène la valeur calculée. Jusqu'à la v3.15.18, ce total se saisissait en choisissant le type
-  *Manuel*, qui prenait la place de Domicile, AC, Rapide ou HPC pour de bon ; prix et type sont
-  désormais deux choses distinctes. Une recharge restée sur cet ancien type *Manuel* se lit
-  **❓ À confirmer**, garde le prix qui y a été saisi, et un clic sur le type lui rend le vrai
-  sans toucher à ce prix.
+- **✎ Manuel — le total payé** — pour les bornes publiques aux tarifs compliqués (abonnements,
+  frais de session…), vous **saisissez à la main le total réellement payé** : ouvrez le menu du
+  type, tapez-le dans la ligne **✎ Manuel** en bas, puis **OK** (le **✎** à côté du type est le même
+  champ). Cette valeur remplace l'estimation automatique et **ne touche pas au type de la
+  recharge** : une recharge sans type se lit alors **✎ Manuel** et n'attend plus d'être confirmée,
+  une recharge qui a un type le garde. Le coût sur la fiche porte la mention **facturé** au lieu de
+  **est.**, et *Réinitialiser*, dans le ✎, ramène la valeur calculée. Les recharges saisies ainsi
+  avant la v3.16.0 se lisent de nouveau **✎ Manuel**, avec leur prix : il n'y a rien à faire.
 - **Domicile / Public 🆕** — à côté de la carte *Répartition AC / DC*, il y en a une deuxième :
-  **Domicile**, **Publique** et **À confirmer**, en anneau et en trois tuiles. Les trois font
-  toujours le nombre de recharges écrit au-dessus : une recharge qui attend son type se voit
-  comme telle au lieu d'être comptée comme publique.
+  **Domicile**, **Publique**, **✎ Manuel** et **À confirmer**, en anneau et une tuile chacune (les
+  deux dernières seulement s'il y en a). Elles font toujours le nombre de recharges écrit au-dessus :
+  une recharge au prix saisi à la main n'est pas comptée comme publique, et une recharge qui attend
+  son type se voit comme telle.
 - **Une recharge abandonnée par le cloud se termine au dernier passage de courant 🆕** (#289) —
   quand la voiture s'endort câble branché, le cloud ne le dit pas : il répète les dernières
   nouvelles qu'il détient, et le câble y est toujours donné pour branché. La recharge restait
@@ -1023,8 +1024,8 @@ cumulé à vie). Le cas inverse est couvert aussi : si le compteur de la wallbox
 alors que la voiture continue de tirer du courant, Mate cesse de se fier à son total pour cette session et
 facture sur l'énergie arrivée à la batterie — le total du compteur serait amputé de tout ce qu'il a manqué
 pendant l'arrêt.
-Si une recharge publique a un tarif compliqué, saisissez le total payé dans le **✎** à côté de
-son type.
+Si une recharge publique a un tarif compliqué, saisissez le total payé dans **✎ Manuel**, en bas du
+menu de son type.
 
 **Le graphique de décharge à l'arrêt (vampire drain) est vide.**
 Il faut au moins un **arrêt long** avec une baisse de charge mesurable au cours des derniers jours. Si la
@@ -1061,7 +1062,8 @@ données **avec sa `secret.key`**.
 - **AC / DC** — courant alternatif (recharge lente, à domicile/bornes AC) / continu (recharge rapide et
   ultra-rapide).
 - **Domicile / AC / Rapide (FAST) / HPC / Gratuit** — les types de recharge que Mate reconnaît ou que vous
-  pouvez assigner ; une recharge sans type se lit **❓ À confirmer** ; « HPC » est la recharge à très haute puissance.
+  pouvez assigner ; une recharge sans type se lit **✎ Manuel** si vous avez saisi son prix,
+  **❓ À confirmer** sinon ; « HPC » est la recharge à très haute puissance.
 - **TOU** (*Time-of-Use*) — tarif à **plages horaires** (prix différents selon le jour/l'heure).
 - **Régén** — énergie **récupérée** au freinage/au lâcher de l'accélérateur et remise en batterie.
 - **Vampire drain** — ce que la voiture consomme **complètement éteinte**, mesuré de l'extinction au

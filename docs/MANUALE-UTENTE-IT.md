@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v3.17.2 · **Lingua:** Italiano
+> **Versione di Mate:** v3.17.3 · **Lingua:** Italiano
 > Questo manuale è pensato per chi *usa* Mate, non per chi lo sviluppa. Spiega come configurarlo
 > dall'inizio e cosa fa ogni pagina. Per i dettagli tecnici interni c'è `ARCHITECTURE.md`.
 
@@ -440,27 +440,28 @@ un'etichetta:
   istante dopo l'apertura della pagina. Se uno non ci riesce, adesso **lo dice sotto di sé**, con
   l'errore e un **Riprova**, invece di lasciare uno spazio vuoto senza spiegazione.
 - **Casa** (la tua wallbox **o una presa domestica**), **AC** (corrente alternata pubblica),
-  **Veloce/FAST** (DC), **HPC** (ricarica ultraveloce) e **Gratis**. Una ricarica che nessuno ha
-  ancora confermato resta **❓ Da confermare** finché non scegli tu.
+  **Veloce/FAST** (DC), **HPC** (ricarica ultraveloce) e **Gratis**; in fondo al menu, **✎ Manuale**
+  per il totale pagato (vedi sotto). Una ricarica che nessuno ha ancora confermato resta
+  **❓ Da confermare** finché non scegli tu.
 - **Casa non vuol dire wallbox.** *Casa* è **dove** hai caricato, non da cosa: anche una presa
   normale in garage è una ricarica di casa. La differenza conta per il conteggio: se hai collegato
   il contatore di una wallbox (vedi *Wallbox* più sotto), la ricarica si fattura sull'**energia
   erogata dal contatore**; se non l'hai collegato, si fattura sull'**energia arrivata in batteria**,
   esattamente come una ricarica pubblica. Fra le due c'è la perdita in calore del caricabatterie,
   tipicamente il 10-15%.
-- **✎ il totale pagato 🆕** — per le colonnine pubbliche con tariffe complicate (abbonamenti,
-  costi di sessione…) **scrivi a mano il totale realmente pagato**, nella **✎** accanto al tipo.
-  Scavalca la stima automatica e **non tocca il tipo della ricarica**: il costo sulla scheda
-  porta allora la scritta **fatturato** al posto di **stima**, e *Ripristina* rimette il valore
-  calcolato. Fino alla v3.15.18 quel totale si scriveva scegliendo il tipo *Manuale*, che
-  prendeva il posto di Casa, AC, Veloce o HPC per sempre; adesso prezzo e tipo sono due cose
-  separate. Una ricarica rimasta su quel vecchio tipo *Manuale* si legge **❓ Da confermare**,
-  tiene il prezzo che ci hai scritto, e un clic sul tipo le rimette quello vero senza toccare
-  quel prezzo.
+- **✎ Manuale — il totale pagato** — per le colonnine pubbliche con tariffe complicate
+  (abbonamenti, costi di sessione…) **scrivi a mano il totale realmente pagato**: apri il menu del
+  tipo, scrivilo nella riga **✎ Manuale** in fondo e premi **OK** (la **✎** accanto al tipo è lo
+  stesso campo). Scavalca la stima automatica e **non tocca il tipo della ricarica**: una ricarica
+  senza tipo diventa **✎ Manuale** e non è più da confermare, una con il suo tipo lo tiene. Il
+  costo sulla scheda porta la scritta **fatturato** al posto di **stima**, e *Ripristina*, nella ✎,
+  rimette il valore calcolato. Le ricariche che avevi scritto così prima della v3.16.0 si leggono di
+  nuovo **✎ Manuale**, con il loro prezzo: non c'è niente da fare.
 - **Casa vs Pubblica 🆕** — accanto alla card *Distribuzione AC vs DC* ce n'è una seconda:
-  **Casa**, **Pubblica** e **Da confermare**, con una ciambella e tre mattonelle. Le tre fanno
-  sempre il numero di ricariche scritto sopra, così una ricarica che aspetta il suo tipo si vede
-  come tale invece di finire fra le pubbliche.
+  **Casa**, **Pubblica**, **✎ Manuale** e **Da confermare**, con una ciambella e una mattonella
+  ciascuna (le ultime due solo se ce ne sono). Fanno sempre il numero di ricariche scritto sopra,
+  così una ricarica col prezzo scritto a mano non finisce fra le pubbliche, e una che aspetta il suo
+  tipo si vede come tale.
 - **Una ricarica abbandonata dal cloud finisce quando passava corrente l'ultima volta 🆕** (#289) —
   se l'auto si addormenta col cavo attaccato, il cloud non lo dice: continua a ripetere l'ultima
   notizia che ha, e lì dentro il cavo risulta ancora collegato. Prima la ricarica restava aperta
@@ -1018,8 +1019,8 @@ vita). Vale anche il caso opposto: se il contatore della wallbox **si ferma** du
 mentre l'auto continua a tirare corrente, Mate smette di fidarsi del suo totale per quella sessione
 e fattura sull'energia arrivata in batteria — il totale del contatore sarebbe corto di tutto quello
 che si è perso mentre era fermo.
-Se una ricarica pubblica ha una tariffa complicata, scrivi il totale pagato nella **✎** accanto
-al suo tipo.
+Se una ricarica pubblica ha una tariffa complicata, scrivi il totale pagato in **✎ Manuale**, in
+fondo al menu del suo tipo.
 
 **Il grafico del consumo da fermo (vampire drain) è vuoto.**
 Serve almeno una **sosta lunga** con un calo di carica misurabile negli ultimi giorni. Se l'auto è
@@ -1056,8 +1057,8 @@ Da *Impostazioni → Esporta/backup* scarichi il database (e i CSV). Conserva il
 - **AC / DC** — corrente alternata (ricarica lenta, da casa/colonnine AC) / continua (ricarica
   veloce e ultraveloce).
 - **Casa / AC / Veloce (FAST) / HPC / Gratis** — i tipi di ricarica che Mate riconosce o che puoi
-  assegnare; una ricarica senza tipo si legge **❓ Da confermare**; "HPC" è la ricarica ad
-  altissima potenza.
+  assegnare; una ricarica senza tipo si legge **✎ Manuale** se ci hai scritto il prezzo,
+  **❓ Da confermare** se no; "HPC" è la ricarica ad altissima potenza.
 - **TOU** (*Time-of-Use*) — tariffa a **fasce orarie** (prezzi diversi per giorno/ora).
 - **Regen** — energia **recuperata** in frenata/rilascio e rimessa in batteria.
 - **Vampire drain** — quello che l'auto consuma da **completamente spenta**, misurato dallo spegnimento

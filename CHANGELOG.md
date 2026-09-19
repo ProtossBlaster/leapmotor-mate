@@ -3,6 +3,22 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.17.3] — 2026-09-19
+
+**Fixed (add-on #2, @termy91it):** the price typed by hand is back where it was, and the charges priced
+that way are no longer asked for again. v3.16.0 moved the total you paid out of the *Manual* type into
+a ✎ of its own — so that it no longer took the place of Home, AC, DC or HPC — and in doing so took away
+the way people used it: the type menu lost its *Manual* row, every charge already priced by hand came
+back as **❓ To confirm** and into the count at the top of the Charges page, and a price typed on a new
+charge no longer settled it. That was a regression. Now a charge whose price was typed by hand and that
+has no type reads **✎ Manual** again, as it did until v3.15.18, and it is not a charge to confirm: not
+on its badge, not in the count at the top, not in the Home vs Public card, not in the monthly report.
+The type menu has its **✎ Manual** row again, with the box for the total paid. Nothing to do after the
+update: the charges priced before v3.16.0 read ✎ Manual again with their price, which was never lost.
+The price stays separate from the type: picking a type keeps the price typed, and typing a price on a
+charge that has a type keeps the type. The Home vs Public card and the monthly report give the Manual
+charges a line of their own, and the search can filter them again.
+
 ## [3.17.2] — 2026-09-19
 
 **Changed (@michapr, @gm27271, beta #31):** a trip's summary is laid out in **boxes**, on every car:
