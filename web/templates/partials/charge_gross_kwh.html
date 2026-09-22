@@ -11,14 +11,18 @@
    an empty field as "leave it alone"), so an accidental open costs nothing. Taking a wrong number
    back is its own button, which writes a zero — and every reader tests `gross_kwh > 0`, so a zero
    reads as never-typed and the cost falls back to the measured basis on its own. #}
-{% set _g = charge.gross_kwh or 0 %}
-{% set _lost = _g - (charge.energy_added_kwh or 0) %}
+{# The figure, the efficiency and the loss come from db_reader.charge_energy_view — the card's
+   rule, in one place. `_g` stays the switch between "what was typed" and "the way in", and it is
+   the TYPED figure whichever number the card leads with: re-tag a metered charge to Home after
+   typing one and the box the owner still has open must keep saying what it holds. #}
+{% set _e = charge_energy(charge) %}
+{% set _g = _e.gross_kwh or 0 %}
 <div id="gk-{{ charge.id }}"{% if gross_oob %} hx-swap-oob="true"{% endif %} style="margin-top:6px">
 
   {# ── closed: what was typed, and the way in ─────────────────────────────────────────────── #}
   <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
     {% if _g > 0 %}
-    <span style="font-size:10px;color:#94a3b8" title="{{ t('gross_kwh_help') }}">🔌 {{ _g|dec(2) }} kWh {{ t('gross_kwh_short') }}{% if charge.energy_added_kwh and _lost > 0 %} · {{ t('efficiency') }} {{ (100 * charge.energy_added_kwh / _g)|dec(0) }}% ({{ t('gross_kwh_lost') }} {{ _lost|dec(1) }} kWh){% endif %}</span>
+    <span style="font-size:10px;color:#94a3b8" title="{{ t('gross_kwh_help') }}">🔌 {{ _g|dec(2) }} kWh {{ t('gross_kwh_short') }}{% if _e.gross_eff is not none %} · {{ t('efficiency') }} {{ _e.gross_eff|dec(0) }}% ({{ t('gross_kwh_lost') }} {{ _e.gross_lost_kwh|dec(1) }} kWh){% endif %}</span>
     {% endif %}
     <button type="button" title="{{ t('gross_kwh_help') }}"
             onclick="var f=document.getElementById('gk-form-{{ charge.id }}');f.classList.toggle('hidden');if(!f.classList.contains('hidden'))document.getElementById('gk-in-{{ charge.id }}').focus()"

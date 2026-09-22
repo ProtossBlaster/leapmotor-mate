@@ -86,20 +86,23 @@
 
   <!-- Stats -->
   <div class="grid grid-cols-3 gap-2 mt-3">
-    {% set show_wb = c.ac_energy_kwh and c.location_type == 'HOME' %}
+    {# Which figure leads, and whether the efficiency under it is worth showing, is decided in
+       db_reader.charge_energy_view — the same rule the Overview's Last-charge tile reads.
+       `show_wb` is that decision's name on the card: the gross and solar fields below key on it. #}
+    {% set e = charge_energy(c) %}
+    {% set show_wb = e.headline == 'wallbox' %}
     <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
       <div class="stat-label" style="font-size:10px">{{ t('energy') }}</div>
       <div style="font-size:16px;font-weight:700;color:#fbbf24">
-        +{{ ((c.ac_energy_kwh if show_wb else c.energy_added_kwh) or 0)|dec(1) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span>
+        +{{ e.headline_kwh|dec(1) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span>
         {% if show_wb %}<span style="font-size:10px;color:#60a5fa;font-weight:400" title="{{ t('wallbox_billed_help') }}"> 🔌 {{ t('wallbox_billed') }}</span>{% else %}<span style="font-size:10px;color:#94a3b8;font-weight:400" title="{{ t('energy_in_battery_help') }}"> 🔋 {{ t('energy_in_battery') }} (DC)</span>{% endif %}
       </div>
       {% if show_wb %}
       <div style="font-size:10px;color:#94a3b8;margin-top:3px" title="{{ t('wallbox_billed_help') }}">
-        {# Efficiency >100% is physically impossible — the rule lives in db_reader.charge_efficiency
-           (#295), which returns nothing rather than a number no page may claim. This card used to
-           decide it alone, while the Wallbox page printed the same impossible ratio in green. #}
-        {% set _eff = charge_eff(c.ac_energy_kwh, c.energy_added_kwh) %}
-        🔋 {{ (c.energy_added_kwh or 0)|dec(1) }} kWh {{ t('energy_in_battery') }} (DC){% if _eff is not none %} · {{ t('efficiency') }} {{ _eff|dec(0) }}%{% endif %}
+        {# Efficiency >100% is physically impossible: e.wallbox_eff comes from
+           db_reader.charge_efficiency (#295), which returns nothing rather than a number no page
+           may claim. #}
+        🔋 {{ e.battery_kwh|dec(1) }} kWh {{ t('energy_in_battery') }} (DC){% if e.wallbox_eff is not none %} · {{ t('efficiency') }} {{ e.wallbox_eff|dec(0) }}%{% endif %}
       </div>
       {% endif %}
     </div>

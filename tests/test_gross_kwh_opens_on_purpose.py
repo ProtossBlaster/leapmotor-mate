@@ -42,7 +42,8 @@ def _render(gross=None, energy=8.0, cost=None, cost_oob=False, location="AC"):
     return env.get_template("partials/charge_gross_kwh.html").render(
         charge={"id": 7, "gross_kwh": gross, "energy_added_kwh": energy, "cost": cost,
                 "location_type": location, "ac_energy_kwh": None},
-        t=lambda k: k, cost_oob=cost_oob)
+        # the same global the app registers, for the same reason as `gross_kwh_ok` elsewhere
+        charge_energy=db_reader.charge_energy_view, t=lambda k: k, cost_oob=cost_oob)
 
 
 def _open_panel(html):

@@ -12,12 +12,15 @@ one helper now, `charge_energy_view`, and the card, its gross line and the Overv
 it. Pinned here: the helper's truth table, the card's render before and after (word for word, from
 the render on `main` before the move), and the tile.
 """
+import json
 import pathlib
 
+import db as D
 import db_reader
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+TEMPLATES = ROOT / "web" / "templates"
 
 
 # ── the helper's truth table ───────────────────────────────────────────────────
@@ -109,3 +112,151 @@ def test_the_card_can_reach_it_from_every_context_it_is_rendered_in():
     value threaded through `_ctx` reaches the page and vanishes from the day drawer. A global."""
     main = (ROOT / "web" / "main.py").read_text()
     assert "charge_energy=db_reader.charge_energy_view," in main
+
+
+# ── the pages, rendered ────────────────────────────────────────────────────────
+
+@pytest.fixture
+def mate(tmp_path, monkeypatch):
+    """A real Mate over a database of our own. The pages are asked through the app, not the
+    partial alone: the card's energy tile depends on a template GLOBAL, and a test environment
+    of its own would pass with the page broken."""
+    pytest.importorskip("httpx", reason="Starlette's TestClient is built on httpx")
+    import main
+    from starlette.testclient import TestClient
+    path = str(tmp_path / "t.db")
+    pdb = D.Database(path)
+    monkeypatch.setattr(db_reader, "DB_PATH", path)
+    pdb._conn.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (1,'V','C10')")
+    pdb._conn.commit()
+    monkeypatch.setattr(db_reader, "_lang_memo", [None])
+    return pdb, TestClient(main.app)
+
+
+def _charge(pdb, cid, day, batt, *, ac=None, gross=None, ctype="HOME", cost=None):
+    pdb._conn.execute(
+        "INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc,"
+        " energy_added_kwh, ac_energy_kwh, gross_kwh, location_type, cost)"
+        f" VALUES (?,1,'2026-07-{day:02d}T09:00:00+00:00','2026-07-{day:02d}T11:00:00+00:00',"
+        "20,70,?,?,?,?,?)", (cid, batt, ac, gross, ctype, cost))
+    pdb._conn.commit()
+
+
+def _day(client, day):
+    """One day's cards, the way the Month view's drawer loads them."""
+    return client.get(f"/api/charges/calendar/day?year=2026&month=7&day={day}").text
+
+
+def _energy_tile(html):
+    """The card's ENERGY tile, whitespace collapsed — from the Stats comment to the next tile."""
+    i = html.index("<!-- Stats -->")
+    j = html.index('<div style="background:#0f172a;border-radius:8px;padding:8px 12px">', i + 200)
+    return " ".join(html[i:j].split())
+
+
+# The tile as the card rendered it on v3.17.4, before the rule moved into the helper. Word for word:
+# the move is a refactor, and a refactor that changes the page is not one.
+_TILE_HOME_METER = (
+    '<!-- Stats --> <div class="grid grid-cols-3 gap-2 mt-3"> '
+    '<div style="background:#0f172a;border-radius:8px;padding:8px 12px"> '
+    '<div class="stat-label" style="font-size:10px">Energy</div> '
+    '<div style="font-size:16px;font-weight:700;color:#fbbf24"> '
+    '+14.9<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span> '
+    '<span style="font-size:10px;color:#60a5fa;font-weight:400" title="Home charges are billed on the '
+    'energy the wallbox drew (AC, conversion losses included), never less than what reached the '
+    'battery."> 🔌 wallbox (billed)</span> </div> '
+    '<div style="font-size:10px;color:#94a3b8;margin-top:3px" title="Home charges are billed on the '
+    'energy the wallbox drew (AC, conversion losses included), never less than what reached the '
+    'battery."> 🔋 12.6 kWh In battery (DC) · efficiency 85% </div> </div>')
+_BATTERY_HELP = ('The energy that actually entered the battery (DC). What you draw from the grid is '
+                 '~10–15% higher (AC→DC conversion losses); without a wallbox reading, Mate can only '
+                 'show this figure.')
+_TILE_BATTERY = (
+    '<!-- Stats --> <div class="grid grid-cols-3 gap-2 mt-3"> '
+    '<div style="background:#0f172a;border-radius:8px;padding:8px 12px"> '
+    '<div class="stat-label" style="font-size:10px">Energy</div> '
+    '<div style="font-size:16px;font-weight:700;color:#fbbf24"> '
+    '+{kwh}<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span> '
+    '<span style="font-size:10px;color:#94a3b8;font-weight:400" title="' + _BATTERY_HELP + '"> '
+    '🔋 In battery (DC)</span> </div> </div>')
+_GROSS_LINE = (
+    '<span style="font-size:10px;color:#94a3b8" title="What the charger&#39;s display said: the gross '
+    'kWh, conversion losses included. You type it, because Mate has no meter on a public charger. It '
+    'becomes the charge&#39;s energy, and the cost is computed on it.">🔌 41.50 kWh delivered by the '
+    'charger · efficiency 91% (lost 3.9 kWh)</span>')
+
+
+def test_the_card_at_home_with_a_meter_renders_as_before(mate):
+    pdb, client = mate
+    _charge(pdb, 1, 3, 12.6, ac=14.87, cost=8.71)
+    html = _day(client, 3)
+    assert _energy_tile(html) == _TILE_HOME_METER
+    assert 'id="gk-form-1"' not in html, "a metered home charge offers no gross field"
+
+
+def test_the_card_with_a_typed_figure_renders_as_before(mate):
+    pdb, client = mate
+    _charge(pdb, 2, 4, 37.6, gross=41.5, ctype="AC")
+    html = _day(client, 4)
+    assert _energy_tile(html) == _TILE_BATTERY.format(kwh="37.6")
+    assert _GROSS_LINE in " ".join(html.split())
+    assert 'id="gk-form-2"' in html
+
+
+def test_the_card_with_the_battery_figure_alone_renders_as_before(mate):
+    pdb, client = mate
+    _charge(pdb, 3, 5, 20.0, ctype="AC")
+    html = _day(client, 5)
+    assert _energy_tile(html) == _TILE_BATTERY.format(kwh="20.0")
+    closed = html.split('id="gk-3"', 1)[1].split('id="gk-form-3"', 1)[0]
+    assert "🔌" not in closed, "nothing typed, nothing to read — only the way in"
+
+
+def test_under_solar_pricing_a_metered_home_charge_offers_the_solar_field_not_the_gross_one(mate):
+    """#272: the two fields are exclusive by construction, keyed on the same decision the helper
+    now makes. The helper knows nothing of solar mode; the card still does."""
+    pdb, client = mate
+    db_reader.set_setting("cost_modes", json.dumps({"HOME": "solar_manual"}))
+    _charge(pdb, 1, 3, 12.6, ac=14.87, cost=8.71)
+    html = _day(client, 3)
+    assert _energy_tile(html) == _TILE_HOME_METER
+    assert 'id="sk-1"' in html and 'id="gk-form-1"' not in html
+
+
+def test_under_solar_pricing_an_unmetered_home_charge_says_so_and_offers_neither_field(mate):
+    pdb, client = mate
+    db_reader.set_setting("cost_modes", json.dumps({"HOME": "solar_manual"}))
+    _charge(pdb, 4, 6, 12.6, ctype="HOME")
+    html = _day(client, 6)
+    assert _energy_tile(html) == _TILE_BATTERY.format(kwh="12.6")
+    assert "the wallbox did not measure this charge" in html
+    assert 'id="sk-4"' not in html and 'id="gk-form-4"' not in html
+
+
+def test_a_typed_figure_survives_being_re_tagged_to_home(mate):
+    """A charge the wallbox measured, typed as AC, gets the charger's figure typed in; the owner
+    then re-tags it to Home. Re-tagging refreshes only the badge and the cost, so the gross box is
+    still on screen — and saving it again must answer with what it holds and the way to take it
+    back, not with an empty offer. That is what the stored template did; the first version of the
+    helper hid both, because it dropped the typed figure whenever the counter led."""
+    pdb, client = mate
+    _charge(pdb, 1, 3, 12.6, ac=14.87, ctype="AC")
+    first = client.post("/api/charges/1/gross-kwh", data={"gross_kwh": "16"}).text
+    assert "16.00 kWh delivered by the charger · efficiency 79% (lost 3.4 kWh)" in first
+    assert client.post("/api/charges/1/type", data={"location_type": "HOME"}).status_code == 200
+    again = client.post("/api/charges/1/gross-kwh", data={"gross_kwh": "16"}).text
+    assert "16.00 kWh delivered by the charger · efficiency 79% (lost 3.4 kWh)" in again
+    assert 'hx-vals=\'{"gross_kwh": "0"}\'' in again, "the way to take the figure back is gone"
+
+
+# ── the rule lives in one place ────────────────────────────────────────────────
+
+@pytest.mark.parametrize("rel", ["partials/charge_card.html", "partials/charge_gross_kwh.html"])
+def test_no_template_computes_the_energy_on_its_own(rel):
+    """The rule (which figure leads, whether the efficiency is shown) was inline in two partials
+    and drifted between them at exactly 100 %. A template that divides the two columns or tests the
+    meter itself is a third copy."""
+    src = (TEMPLATES / rel).read_text()
+    assert "charge_energy(" in src
+    assert "energy_added_kwh /" not in src
+    assert "ac_energy_kwh and" not in src
