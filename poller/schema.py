@@ -131,6 +131,12 @@ CREATE TABLE IF NOT EXISTS charges (
                                    -- figures: it prices the charge (like a wallbox meter does at
                                    -- home) and shows the conversion loss. The energy Mate reports
                                    -- and totals stays the battery (DC) one — see _billed_kwh.
+    gross_kwh_from   INTEGER,      -- the row whose gross_kwh covers THIS row: its own id, or the
+                                   -- merged charge's parent when the figure was typed on the merged
+                                   -- card. Merging rewrites no row, so this is the only record of
+                                   -- which pieces a typed figure was typed for; a merged charge's
+                                   -- energy counts that figure once for those pieces and every
+                                   -- other piece on its own. Written by the web with the figure.
     solar_kwh        REAL,         -- #272: kWh of this charge that came off the owner's own roof,
                                    -- TYPED BY THE OWNER. Subtracted from the measured wallbox
                                    -- energy before pricing, so only the grid share is billed.
@@ -348,6 +354,16 @@ def ensure_schema(conn) -> None:
     # migration: #222 — the charger's own kWh, typed in for a public charge
     if "gross_kwh" not in ccols:
         conn.execute("ALTER TABLE charges ADD COLUMN gross_kwh REAL")
+    # migration: which rows that figure covers. Until this column a figure on a row with children
+    # was read as the whole plug-in's by the calendar and priced as such (the group once, the pieces
+    # at no cost) — the backfill says so on those pieces rather than silently turning it into one
+    # row's figure; a figure on any other row covers that row.
+    if "gross_kwh_from" not in ccols:
+        conn.execute("ALTER TABLE charges ADD COLUMN gross_kwh_from INTEGER")
+        conn.execute("UPDATE charges SET gross_kwh_from=id WHERE gross_kwh > 0")
+        if "merged_into_id" in ccols:
+            conn.execute("UPDATE charges SET gross_kwh_from=merged_into_id WHERE merged_into_id IN "
+                         "(SELECT id FROM charges WHERE gross_kwh > 0)")
     # migration: #272 — the owner's own solar kWh, subtracted from the wallbox energy before pricing
     if "solar_kwh" not in ccols:
         conn.execute("ALTER TABLE charges ADD COLUMN solar_kwh REAL")
