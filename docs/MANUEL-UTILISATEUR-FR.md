@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v3.17.3 · **Langue :** Français
+> **Version de Mate :** v3.17.4 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 
@@ -1023,7 +1023,7 @@ Mate dispose de protections contre les valeurs impossibles (ex. compteurs de wal
 cumulé à vie). Le cas inverse est couvert aussi : si le compteur de la wallbox **s'arrête** en cours de recharge
 alors que la voiture continue de tirer du courant, Mate cesse de se fier à son total pour cette session et
 facture sur l'énergie arrivée à la batterie — le total du compteur serait amputé de tout ce qu'il a manqué
-pendant l'arrêt.
+pendant l'arrêt. Un troisième cas s'y ajoute : si une recharge reste ouverte plus de dix minutes **sans qu'aucune lecture du compteur soit faite** — Home Assistant éteint, Mate redémarré en cours de recharge —, le total n'est pas non plus une mesure de cette recharge, et il se passe la même chose. (Le compteur continue d'être lu pendant que le cloud **de la voiture** ne répond pas : il est chez vous, pas derrière lui.) Et un rendement supérieur à 100 % est impossible, il n'est donc jamais affiché.
 Si une recharge publique a un tarif compliqué, saisissez le total payé dans **✎ Manuel**, en bas du
 menu de son type.
 

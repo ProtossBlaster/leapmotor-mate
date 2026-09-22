@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v3.17.3 · **Idioma:** Español
+> **Versión de Mate:** v3.17.4 · **Idioma:** Español
 > Este manual está escrito para quien *usa* Mate, no para quien lo desarrolla. Explica cómo
 > configurarlo desde cero y qué hace cada página. Para los detalles técnicos internos está `ARCHITECTURE.md`.
 
@@ -1033,7 +1033,7 @@ Mate tiene protecciones contra valores imposibles (por ejemplo, contadores de wa
 total histórico). El caso contrario también está cubierto: si el contador del wallbox **se para** a
 media carga mientras el coche sigue consumiendo, Mate deja de fiarse de su total para esa sesión y
 factura sobre la energía que llegó a la batería — la cifra del contador se quedaría corta en todo lo que
-se perdió mientras estuvo congelado.
+se perdió mientras estuvo congelado. A esos dos se suma un tercero: si una carga permanece abierta más de diez minutos **sin que se lea el contador** — Home Assistant apagado, Mate reiniciado a media carga —, el total tampoco es una medida de esa carga y ocurre lo mismo. (El contador se sigue leyendo mientras la nube **del coche** no responde: está en tu casa, no detrás de ella.) Y un rendimiento superior al 100 % es imposible, así que nunca se muestra.
 Si una carga pública tiene una tarifa complicada, escribe el total pagado en **✎ Manual**, al final
 del menú de su tipo.
 

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v3.17.3 · **Lingua:** Italiano
+> **Versione di Mate:** v3.17.4 · **Lingua:** Italiano
 > Questo manuale è pensato per chi *usa* Mate, non per chi lo sviluppa. Spiega come configurarlo
 > dall'inizio e cosa fa ogni pagina. Per i dettagli tecnici interni c'è `ARCHITECTURE.md`.
 
@@ -1018,7 +1018,7 @@ Mate ha protezioni contro i valori impossibili (es. contatori wallbox che riport
 vita). Vale anche il caso opposto: se il contatore della wallbox **si ferma** durante la ricarica
 mentre l'auto continua a tirare corrente, Mate smette di fidarsi del suo totale per quella sessione
 e fattura sull'energia arrivata in batteria — il totale del contatore sarebbe corto di tutto quello
-che si è perso mentre era fermo.
+che si è perso mentre era fermo. A questi due se ne aggiunge un terzo: se una ricarica resta aperta più di dieci minuti **senza che il contatore venga letto** — Home Assistant spento, Mate riavviato a metà ricarica — il totale non è una misura di quella ricarica e succede la stessa cosa. (Il contatore continua a essere letto mentre il cloud **dell'auto** non risponde: sta in casa tua, non dietro di lui.) E un rendimento sopra il 100 % è impossibile, quindi non viene mai mostrato.
 Se una ricarica pubblica ha una tariffa complicata, scrivi il totale pagato in **✎ Manuale**, in
 fondo al menu del suo tipo.
 

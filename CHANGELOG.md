@@ -3,6 +3,31 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.17.4] — 2026-09-23
+
+### Fixed (#295, @gm27271)
+
+- **The home wallbox meter is read for as long as a charge is open, not only while the car's cloud
+  answers.** A charge opened at 20:35, the Leapmotor cloud failed at 20:38 and came back at 22:04;
+  the meter is in the house and never went away, but the per-poll read sat behind the charging
+  state, which a failed poll never reaches. 86 minutes of metering arrived as one step at the end,
+  where a counter that resets looks exactly like one that rose, and the session came out at
+  7.69 kWh from the wall against 10.03 kWh into the battery.
+- **A wallbox total measured through a blind spell is dropped, and the charge bills on its battery
+  energy.** The minutes a charge spends open at the wallbox with no reading taken are counted;
+  past ten minutes the meter figure is not a measurement of that charge. Home Assistant
+  unreachable, a poller restarted mid-charge while the cloud is dark, or a container stopped for
+  hours all land here. It is the same answer a runaway (#46) or a frozen (#215) counter already
+  gets, and it is decided on the clock, never by comparing the meter against the battery figure.
+- **A charging efficiency above 100 % is no longer shown anywhere.** A charge cannot put into the
+  battery more than the wall gave it. The charge card had hidden such a ratio since it was
+  written; the Wallbox page printed 130.4 % and coloured it green. One rule now serves the card,
+  the session rows and the rolled-up totals. Both kWh figures stay on screen — comparing them is
+  how this was reported — and only the ratio is withheld.
+
+Nothing stored changes and there is nothing to do after the update. Charges already recorded keep
+their figures; they only stop showing a ratio no page can claim.
+
 ## [3.17.3] — 2026-09-19
 
 **Fixed (add-on #2, @termy91it):** the price typed by hand is back where it was, and the charges priced

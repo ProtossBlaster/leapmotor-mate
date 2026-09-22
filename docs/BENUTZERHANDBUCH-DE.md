@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.17.3 · **Sprache:** Deutsch
+> **Mate-Version:** v3.17.4 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -1006,7 +1006,7 @@ Mate hat Schutzmechanismen gegen unmögliche Werte (z. B. Wallbox-Zähler, die d
 melden). Auch der umgekehrte Fall ist abgedeckt: Bleibt der Wallbox-Zähler mitten im Ladevorgang **stehen**,
 während das Auto weiter Strom zieht, vertraut Mate seinem Gesamtwert für diesen Ladevorgang nicht mehr und
 rechnet über die in der Batterie angekommene Energie ab — der Zählerwert wäre um alles zu niedrig, was er im
-Stillstand versäumt hat.
+Stillstand versäumt hat. Dazu kommt ein dritter Fall: Bleibt ein Ladevorgang länger als zehn Minuten offen, **ohne dass der Zähler überhaupt gelesen wurde** — Home Assistant aus, Mate mitten im Ladevorgang neu gestartet —, ist der Gesamtwert ebenfalls keine Messung dieses Ladevorgangs, und es geschieht dasselbe. (Der Zähler wird weiter gelesen, während die Cloud **des Autos** nicht antwortet: Er steht in Ihrem Haus, nicht dahinter.) Und ein Wirkungsgrad über 100 % ist unmöglich und wird deshalb nie angezeigt.
 Wenn ein öffentlicher Ladevorgang einen komplizierten Tarif hat, tragen Sie den gezahlten
 Gesamtbetrag in **✎ Manuell** ein, ganz unten im Menü seines Typs.
 

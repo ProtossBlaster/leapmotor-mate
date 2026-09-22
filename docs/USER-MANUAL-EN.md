@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v3.17.3 · **Language:** English
+> **Mate version:** v3.17.4 · **Language:** English
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
@@ -978,7 +978,7 @@ recorded.
 Mate has protections against impossible values (e.g. wallbox meters that report the lifetime total).
 The opposite case is covered too: if the wallbox meter **stops** mid-charge while the car goes on
 drawing power, Mate stops trusting its total for that session and bills on the energy that reached
-the battery instead — the meter's figure would be short by whatever it missed while frozen.
+the battery instead — the meter's figure would be short by whatever it missed while frozen. A third case joins those two: if a charge stays open for more than ten minutes with **no reading taken at all** — Home Assistant down, Mate restarted mid-charge — the total is not a measurement of that charge either, and the same thing happens. (The meter itself keeps being read while the **car's** cloud is unreachable: it is in your house, not behind it.) And an efficiency above 100 % is impossible, so it is never shown.
 If a public charge has a complicated tariff, type the total paid in **✎ Manual**, at the bottom of
 its type menu.
 
