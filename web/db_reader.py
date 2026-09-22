@@ -7333,6 +7333,46 @@ def charge_efficiency(ac, dc):
     return eff if eff <= 100 else None
 
 
+def charge_energy_view(c) -> dict:
+    """Which kWh ONE charge leads with, and what stands under it — the charge card's rule, in the
+    one place the card and the Overview's Last-charge tile both read it from.
+
+        headline_kwh    the wallbox counter on a HOME charge that has one (`show_wb` on the card),
+                        else the battery figure
+        headline        'wallbox' | 'battery'
+        battery_kwh     the battery figure, shown under the counter in the wallbox variant
+        wallbox_eff     `charge_efficiency(counter, battery)` in the wallbox variant — the one
+                        definition the Wallbox page reads too (#295) — or None
+        gross_kwh       the charger's own kWh (#222) where the owner typed one — whichever figure
+                        leads: the field that holds it keeps showing what was typed even on a home
+                        charge the meter measured (re-tagged after typing), it is the CARD that
+                        decides not to offer the field there
+        gross_eff       100 × battery ÷ typed figure, unrounded, or None
+        gross_lost_kwh  typed figure − battery, when `gross_eff` is shown
+
+    An efficiency is hidden when it would be nonsense: `wallbox_eff` above 100 % (charge_efficiency
+    decides that) and `gross_eff` when the typed figure is not above the battery one. The two thresholds differ at
+    exactly 100 % (the wallbox shows it, the gross hides it): that is how the two partials behaved
+    before the rule moved here, kept as found; levelling them is a separate change.
+
+    Not `wallbox_session_energy`: that one rounds, returns None on a zero battery figure and serves
+    the Wallbox page's own colour thresholds. Not `_billed_kwh` either: the middle branch here is
+    the OTHER number on the card, not a substitute for the headline."""
+    ac = c.get("ac_energy_kwh")
+    dc = c.get("energy_added_kwh") or 0
+    out = {"headline_kwh": dc, "headline": "battery", "battery_kwh": dc, "wallbox_eff": None,
+           "gross_kwh": None, "gross_eff": None, "gross_lost_kwh": None}
+    if ac and c.get("location_type") == "HOME":
+        out["headline_kwh"], out["headline"] = ac, "wallbox"
+        out["wallbox_eff"] = charge_efficiency(ac, dc)
+    g = c.get("gross_kwh")
+    if g and g > 0:
+        out["gross_kwh"] = g
+        if dc and g - dc > 0:
+            out["gross_eff"], out["gross_lost_kwh"] = 100 * dc / g, g - dc
+    return out
+
+
 def wallbox_ac_dc_totals(charges) -> dict:
     """AC delivered vs DC into the battery over a set of charges, from the STORED columns.
 

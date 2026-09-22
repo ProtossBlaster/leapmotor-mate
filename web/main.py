@@ -334,6 +334,10 @@ templates.env.globals.update(
     # the field is only meaningful under that mode; a callable so switching the mode in Settings
     # shows the field without a restart.
     solar_mode_on=db_reader.home_prices_by_solar,
+    # Which kWh a charge leads with, and what stands under it. A GLOBAL for the reason its
+    # neighbours are: the charge card is rendered from three hand-built contexts, and the Overview
+    # tile reads the same rule.
+    charge_energy=db_reader.charge_energy_view,
     # #144 — the temperature sensors this car has never once reported, so the status card can leave
     # them out instead of promising a number that will never arrive. A GLOBAL for exactly the reason
     # above: `status_card.html` is rendered by the Overview AND by partials that build their own
