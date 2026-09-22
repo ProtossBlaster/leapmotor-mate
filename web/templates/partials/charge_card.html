@@ -95,11 +95,11 @@
       </div>
       {% if show_wb %}
       <div style="font-size:10px;color:#94a3b8;margin-top:3px" title="{{ t('wallbox_billed_help') }}">
-        {# Efficiency >100% is physically impossible — it means the ΔSoC-based DC figure is
-           inflated (BMS snap-to-full on 100%-ending charges recorded before the fix), so
-           hide the % rather than show nonsense. #}
-        {% set _eff = (100 * c.energy_added_kwh / c.ac_energy_kwh) if c.energy_added_kwh else 0 %}
-        🔋 {{ (c.energy_added_kwh or 0)|dec(1) }} kWh {{ t('energy_in_battery') }} (DC){% if c.energy_added_kwh and _eff <= 100 %} · {{ t('efficiency') }} {{ _eff|dec(0) }}%{% endif %}
+        {# Efficiency >100% is physically impossible — the rule lives in db_reader.charge_efficiency
+           (#295), which returns nothing rather than a number no page may claim. This card used to
+           decide it alone, while the Wallbox page printed the same impossible ratio in green. #}
+        {% set _eff = charge_eff(c.ac_energy_kwh, c.energy_added_kwh) %}
+        🔋 {{ (c.energy_added_kwh or 0)|dec(1) }} kWh {{ t('energy_in_battery') }} (DC){% if _eff is not none %} · {{ t('efficiency') }} {{ _eff|dec(0) }}%{% endif %}
       </div>
       {% endif %}
     </div>

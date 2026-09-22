@@ -314,6 +314,11 @@ templates.env.globals.update(
     eff_val=units.eff_val, elev_val=units.elev_val, unit_system=units.get_unit_system,
     dist100_unit=units.dist100_unit, cost100_val=units.cost100_val,
     eff_cls=_eff_cls,
+    # #295 — the charging-efficiency ratio, from the ONE definition in db_reader. A global for the
+    # same reason as the two below: the charge card is rendered by the page and by two partials
+    # that build their context by hand. It used to compute the ratio itself and hide it above
+    # 100 %, while the Wallbox page printed the same impossible number in green.
+    charge_eff=db_reader.charge_efficiency,
     # #222 — whether the charger's-own-kWh field can be offered at all. A GLOBAL, not a per-route
     # value: the charge card is rendered by the page AND by two partials that build their context by
     # hand, so a flag passed through _ctx reached the page and silently vanished from the day drawer

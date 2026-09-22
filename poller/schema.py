@@ -122,6 +122,10 @@ CREATE TABLE IF NOT EXISTS charges (
     ac_energy_kwh    REAL,         -- wallbox energy a HOME charge is billed on = sum of the counter's rises
     wallbox_energy_start_kwh REAL, -- last wallbox counter reading seen (running baseline for that sum)
     wb_stuck_kwh     REAL,         -- #215: kWh the CAR reported drawing while the counter never moved
+    wb_dark_min      REAL,         -- #295: minutes this charge was open at the wallbox with NO counter
+                                   -- reading taken — time nobody measured, so the AC total is short
+                                   -- by an unknown amount. Counted in minutes, never in kWh: with
+                                   -- no reading there is nothing to count kWh from.
     gross_kwh        REAL,         -- #222: kWh the CHARGER says it delivered, TYPED BY THE OWNER.
                                    -- Never measured by Mate and never mixed with the measured
                                    -- figures: it prices the charge (like a wallbox meter does at
@@ -338,6 +342,9 @@ def ensure_schema(conn) -> None:
     # migration: #215 — energy the car reported drawing while the wallbox counter stood still
     if "wb_stuck_kwh" not in ccols:
         conn.execute("ALTER TABLE charges ADD COLUMN wb_stuck_kwh REAL")
+    # migration: #295 — minutes a charge sat open at the wallbox with no counter reading taken
+    if "wb_dark_min" not in ccols:
+        conn.execute("ALTER TABLE charges ADD COLUMN wb_dark_min REAL")
     # migration: #222 — the charger's own kWh, typed in for a public charge
     if "gross_kwh" not in ccols:
         conn.execute("ALTER TABLE charges ADD COLUMN gross_kwh REAL")

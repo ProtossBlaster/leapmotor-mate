@@ -187,6 +187,10 @@ class Recorder:
                                if not stale and data.charge_power_kw >= _WB_STUCK_MIN_KW else 0.0)
                     self._db.accumulate_wallbox_energy(self._active_charge_id, wb, car_kwh)
                     log.debug("Charge #%d: wallbox counter %.3f kWh", self._active_charge_id, wb)
+                else:
+                    # Home Assistant had no answer: this poll measured nothing, and a total summed
+                    # across time nobody measured is not a total (#295). Counted, not guessed.
+                    self._db.note_wallbox_unread(self._active_charge_id, self._sm.poll_interval / 60)
 
         # Order matters: trip reconstruction reads the SoC baseline (for the energy delta) BEFORE the
         # charge reconstruction advances it. Trip advances its OWN odometer baseline.
@@ -314,6 +318,31 @@ class Recorder:
                      self._active_trip_id, distance_km, self._MIN_TRIP_KM)
             return
         self._auto_note_trip(self._active_trip_id)
+
+    def sample_wallbox_meter(self) -> None:
+        """Read the home wallbox counter on a cycle where the CAR said nothing (#295 @gm27271).
+
+        The counter lives in Home Assistant, on the same network as this process — it is not behind
+        the Leapmotor cloud and does not go away when the cloud does. But the per-poll read in
+        `process()` sits inside `state == CHARGING`, and a poll that raises never reaches it, so an
+        outage used to stop the measuring too: his meter went unread for 86 minutes while the car
+        charged on, and everything it did in the dark arrived as ONE step at the end. A single step
+        hides what a sequence shows — a reset reads as a rise, and the #46 ceiling (22 kW × hours)
+        is far too wide to object to either.
+
+        The condition is the CHARGE, not the state: an open charge survives an offline gap by
+        design (see the resume comment in `_handle_event`), which is exactly the span to keep
+        measuring across. `car_kwh_since_last` is deliberately 0: with no frame we do not know what
+        the car was drawing, and inventing it would feed the #215 stuck guard energy nobody
+        measured — the guard exists to compare two MEASUREMENTS, never a measurement and a guess.
+        """
+        if self._active_charge_id is None or not self._charge_at_wallbox:
+            return
+        wb = self._read_wallbox_energy()
+        if wb is not None:
+            self._db.accumulate_wallbox_energy(self._active_charge_id, wb, 0.0)
+        else:
+            self._db.note_wallbox_unread(self._active_charge_id, self.poll_interval / 60)
 
     def mark_offline(self) -> None:
         events = self._sm.mark_offline()

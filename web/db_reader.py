@@ -7310,7 +7310,27 @@ def wallbox_session_energy(charge) -> dict:
     dc = dc if (dc and dc > 0) else None
     return {"ac_kwh": round(ac, 2) if ac else None,
             "dc_kwh": round(dc, 2) if dc else None,
-            "eff": round(100 * dc / ac, 1) if (ac and dc) else None}
+            "eff": charge_efficiency(ac, dc)}
+
+
+def charge_efficiency(ac, dc):
+    """DC into the battery over AC from the wall, as a percentage — or None when that ratio would
+    be a claim nobody can make (#295 @gm27271).
+
+    The one definition, because there were two: the charge card hid a ratio above 100 % from the
+    day it was written, the Wallbox page printed his 130.4 % and — the macro asking only whether
+    the number is ≥ 88 — coloured it GREEN. A charge cannot put into the battery more than the wall
+    gave it, so above 100 % the two figures are not comparable and the honest output is nothing.
+    100 % itself stays: a coarse meter and a small charge land there legitimately.
+
+    ⚠️ This withholds a RATIO. It never decides which of the two figures is wrong and never
+    discards one — `poller/db.py` is deliberate that a DC figure resting on a battery capacity the
+    owner types in must not be allowed to discredit a measured one. Both kWh stay on screen.
+    """
+    if not ac or not dc or ac <= 0 or dc <= 0:
+        return None
+    eff = round(100 * dc / ac, 1)
+    return eff if eff <= 100 else None
 
 
 def wallbox_ac_dc_totals(charges) -> dict:
@@ -7345,7 +7365,7 @@ def wallbox_ac_dc_totals(charges) -> dict:
     if not counted:
         return {"ac": None, "dc": None, "eff": None, "counted": 0, "skipped": skipped}
     return {"ac": round(ac, 2), "dc": round(dc, 2),
-            "eff": round(100 * dc / ac, 1) if ac else None,
+            "eff": charge_efficiency(ac, dc),
             "counted": counted, "skipped": skipped}
 
 

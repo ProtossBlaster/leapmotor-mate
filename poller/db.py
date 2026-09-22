@@ -78,6 +78,19 @@ ABSENT_TEMP_WINDOW = 500      # how many recent polls the question is asked over
 _WB_STUCK_KWH = 3.0        # car-reported energy drawn while the counter never moved → meter dead
 _WB_STUCK_MIN_KW = 1.0     # below this the car isn't really charging, so a flat counter proves nothing
 
+# The THIRD way the meter figure goes wrong (#295 @gm27271): the counter was fine and nobody read
+# it. His charge was open for twelve hours and read for nineteen minutes of them, so its 7.69 kWh
+# was never a measurement of that charge. Watching the meter through a cloud outage closes the door
+# that let this happen; Home Assistant itself unreachable, a poller restarted mid-charge while the
+# cloud is dark, or a container stopped for hours leave it open, and all three are silent.
+#
+# Counted in MINUTES, because with no reading there is nothing to count kWh from — and measured
+# against our own clock and our own reads, never against the charge's DC energy, for the reason
+# spelled out above _WB_STUCK_KWH. Ten minutes is twenty consecutive missed reads at the default
+# parked cadence — far past any hiccup — and at a home wallbox's realistic power it hides more
+# energy than any meter's resolution could explain.
+_WB_DARK_MIN = 10.0        # minutes open at the wallbox with no reading → the total is not one
+
 # A reachable home wallbox answers a counter reading even while the car charges elsewhere — and if
 # an energy meter also sees the wallbox's few watts of standby, that counter slowly RISES with the
 # car far away, so its per-poll creep can accumulate past the 0.05 kWh floor and mislabel a public
@@ -1530,6 +1543,22 @@ class Database:
             "UPDATE charges SET wallbox_energy_start_kwh=?, ac_energy_kwh=0 WHERE id=?", (kwh, charge_id))
         self._conn.commit()
 
+    def note_wallbox_unread(self, charge_id: int, minutes: float) -> None:
+        """Count time this charge was open AT THE WALLBOX with no counter reading taken (#295).
+
+        The third way the meter figure goes wrong, after running away (#46) and standing still
+        (#215): the counter was fine and nobody looked. @gm27271's charge was open for twelve hours
+        and read for nineteen minutes of them.
+
+        Deliberately NOT cleared by a later reading, unlike the #215 stall: a counter that starts
+        answering again proves it is alive, and says nothing whatever about what it missed while we
+        were not asking. The minutes stay on the row until the charge is finalized.
+        """
+        self._conn.execute(
+            "UPDATE charges SET wb_dark_min = COALESCE(wb_dark_min, 0) + ? WHERE id=?",
+            (round(minutes, 2), charge_id))
+        self._conn.commit()
+
     def accumulate_wallbox_energy(self, charge_id: int, reading: float,
                                   car_kwh_since_last: float = 0.0) -> None:
         """Add the wallbox counter's POSITIVE rise since the last reading to the charge's running total
@@ -1735,6 +1764,13 @@ class Database:
             log.warning("Charge #%d: wallbox counter stood still through %.1f kWh the car reported "
                         "drawing — dropped its %.1f kWh total (kept DC billing)",
                         charge_id, row_stuck, ac_kwh)
+        # The third one (#295): the counter never misbehaved — we stopped reading it. A total summed
+        # across time nobody measured is short by an unknown amount, so it is not a total.
+        elif (row_dark := (charge["wb_dark_min"] or 0.0)) >= _WB_DARK_MIN and ac_kwh:
+            self._conn.execute("UPDATE charges SET ac_energy_kwh=NULL WHERE id=?", (charge_id,))
+            self._conn.commit()
+            log.warning("Charge #%d: the wallbox counter went unread for %.0f min of this charge — "
+                        "dropped its %.1f kWh total (kept DC billing)", charge_id, row_dark, ac_kwh)
         log.info(
             "Charge #%d ended — SOC %.1f→%.1f%% | +%.1f kWh | %.0f min | %s | peak %.1f kW",
             charge_id, start_soc, end_soc, energy_added, duration_min,

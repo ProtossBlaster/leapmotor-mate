@@ -960,6 +960,9 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         # cycle: a parked car can stay asleep for hours and an ever-climbing
         # "after N tries" warning reads like an escalating failure when it isn't.
         ctx.empty_status_count += 1
+        # The car said nothing, but the wallbox counter is in the house and still has something to
+        # say about a charge that is still open (#295) — measure it before backing off.
+        ctx.recorder.sample_wallbox_meter()
         if ctx.empty_status_count >= 3:
             ctx.recorder.mark_offline()
         ctx.interval = ctx.recorder.poll_interval
@@ -973,6 +976,10 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         # already backed off (count > 3): stay quiet so a sleeping car can't spam the log
     except Exception as exc:
         ctx.poll_error_count += 1
+        # Same as above, and this is the branch his outage took (#295): three API errors put the
+        # state machine OFFLINE, and the per-poll read in process() is never reached again. The
+        # charge stays open across the gap, so the counter that measures it stays worth reading.
+        ctx.recorder.sample_wallbox_meter()
         ctx.recorder.mark_offline()
         ctx.interval = ctx.recorder.poll_interval
         # With no long offline backoff we keep polling at the user's cadence, so log the first
