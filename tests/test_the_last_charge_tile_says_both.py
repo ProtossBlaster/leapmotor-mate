@@ -497,3 +497,74 @@ def test_the_price_per_kwh_on_the_card_is_the_one_the_totals_give(mate):
     s = db_reader.get_charge_stats()
     assert (s["total_cost"], s["priced_kwh"], s["avg_price"]) == (7.65, 17.0, 0.45)
     assert _price_per_kwh(_day(client, 3), 1) == "0.45 €"
+
+
+# ── the totals: "delivered", with the battery figure beside it ─────────────────
+
+def _tile(html, label):
+    """One summary tile's markup, whitespace collapsed: from its label to the next tile."""
+    i = html.index(">" + label + "<")
+    j = html.find('text-align:center"', i)
+    return " ".join(html[i:j if j > 0 else i + 1500].split())
+
+
+def test_the_charges_total_carries_the_battery_figure(mate):
+    pdb, _ = mate
+    _charge(pdb, 1, 3, 27.5, ac=30.0, cost=9.0)
+    _charge(pdb, 2, 9, 37.6, gross=41.5, ctype="AC", cost=20.0)
+    _charge(pdb, 3, 11, 20.0, ctype="AC")
+    _charge(pdb, 4, 15, 20.0, ac=22.0, gross=25.0, cost=7.0)
+    s = db_reader.get_charge_stats()
+    assert (s["total_kwh"], s["battery_kwh"]) == (113.5, 105.1)
+
+
+def test_a_merged_charge_with_a_typed_figure_is_delivered_once_and_in_battery_on_every_piece(mate):
+    """10 + 5 kWh in the battery, 30 typed for the whole plug-in: 30 delivered, 15 in battery —
+    the pair the card and the calendar show. Summed row by row it came out as 35."""
+    pdb, _ = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, gross=30.0)
+    s = db_reader.get_charge_stats()
+    assert (s["total_kwh"], s["battery_kwh"]) == (30.0, 15.0)
+    assert db_reader.get_charges_calendar_month(2026, 7)["total"] | {"kwh": 30.0, "battery_kwh": 15.0} \
+        == db_reader.get_charges_calendar_month(2026, 7)["total"]
+
+
+def test_a_merged_home_charge_the_meter_only_half_measured_is_delivered_piece_by_piece(mate):
+    """12 kWh on the meter for the first piece, none for the second, 10 + 5 in the battery: 17
+    delivered and 15 in battery, as before the merge. The group's summed columns said 12."""
+    pdb, _ = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, ac=12.0, ctype="HOME", cost=3.4)
+    s = db_reader.get_charge_stats()
+    assert (s["total_kwh"], s["battery_kwh"]) == (17.0, 15.0)
+
+
+@pytest.mark.parametrize("lang, total, delivered, in_battery", [
+    ("en", "71.5", "delivered", "65.1 kWh in battery"),
+    ("pl", "71,5", "dostarczone", "65,1 kWh w baterii")])
+def test_the_charges_page_says_delivered_and_in_battery(mate, lang, total, delivered, in_battery):
+    """Rendered through the app, in two languages: the macro takes the translator as an argument
+    because an imported macro does not see the render context, and the wrong way to fix that
+    passes in English and raises UndefinedError everywhere else.
+
+    The word sits UNDER the number, not in its unit: with a four-digit total, "kWh delivered"
+    broke onto a second line in a ~170 px tile, on a phone and in the desktop grid alike."""
+    pdb, client = mate
+    db_reader.set_setting("language", lang)
+    _charge(pdb, 1, 3, 27.5, ac=30.0, cost=9.0)
+    _charge(pdb, 2, 9, 37.6, gross=41.5, ctype="AC")
+    html = client.get("/charges").text
+    tile = _tile(html, {"en": "Total energy", "pl": "Łączna energia"}[lang])
+    assert f"{total}<span" in tile and "> kWh</span>" in tile, \
+        "both figures of the pair take the reader's decimal separator"
+    assert f">{delivered}</span> · <span title=" in tile and f"{in_battery}</span>" in tile, \
+        "the macro's markup must reach the page as HTML, not escaped"
+    assert "&lt;span" not in tile
+
+
+def test_the_charges_page_hides_the_battery_figure_when_it_would_repeat_the_total(mate):
+    pdb, client = mate
+    _charge(pdb, 3, 11, 20.0, ctype="AC")
+    _charge(pdb, 4, 12, 15.0, ctype="AC")
+    tile = _tile(client.get("/charges").text, "Total energy")
+    assert "35<span" in tile and ">delivered</span>" in tile
+    assert "in battery" not in tile and " · " not in tile

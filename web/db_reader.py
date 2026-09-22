@@ -8535,6 +8535,8 @@ def get_charge_stats() -> dict:
     row = db.execute(
         """SELECT
                COUNT(*)                            AS session_count,
+               -- what reached the battery, said beside the billed total (the month strip's pair)
+               ROUND(SUM(energy_added_kwh), 2)    AS battery_kwh,
                ROUND(AVG(duration_min / 60.0), 1) AS avg_duration_h,
                ROUND(SUM(cost), 2)                AS total_cost,
                COUNT(cost)                        AS priced_count,

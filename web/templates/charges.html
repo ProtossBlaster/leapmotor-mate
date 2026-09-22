@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import 'partials/_icons.html' as ico %}
+{% import 'partials/_energy.html' as energy %}
 {% block autorefresh %}0{% endblock %}{# own reload-on-charge-end + live panel poll #}
 {% block title %}{{ t('nav_charges') }} — LeapMotor Mate{% endblock %}
 
@@ -401,7 +402,11 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
   {% endmacro %}
 
   {{ scard(t('sessions'),     stats.session_count,                        '',    'text-yellow-400') }}
-  {{ scard(t('total_energy'), stats.total_kwh or 0,                       'kWh', 'text-yellow-400') }}
+  {# The billed energy, said so — the month strip below this tile says "delivered" beside the
+     same number, and the battery figure stands beside it the same way. #}
+  {{ scard(t('total_energy'), (stats.total_kwh or 0)|nice, 'kWh', 'text-yellow-400',
+      note=energy.delivered_line(t, stats.total_kwh, stats.battery_kwh),
+      help=t('cal_kwh_delivered_help')) }}
   {# The reconstructed charges are out of this average — their "duration" is the blackout they were
      found across. Said out loud, because the sessions tile beside it still counts them. #}
   {{ scard(t('avg_duration'),

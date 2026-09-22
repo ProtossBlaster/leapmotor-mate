@@ -488,6 +488,10 @@ label:
 - **The month says both 🆕** — above the calendar: *"154.93 kWh delivered · 142.57 in battery"*. The
   first is what came out of the meters (the wallbox, or the kWh you typed); the second is what
   reached the pack. Between them sits the conversion loss you pay for.
+- **The totals say both too 🆕** — the **Total energy** tile at the top of the page is the same
+  *delivered* figure, with *in battery* under it when the two differ. One rule for every total: the
+  wallbox counter where there is one, the charger's own kWh where you typed it, otherwise the
+  battery figure.
 - Charges that happened while the car was off/offline are **reconstructed** too, from the jump in the
   state of charge.
 - **Your note 🆕** (#107) — each charge has a **free-text note** (just above *Delete charge*) for the
