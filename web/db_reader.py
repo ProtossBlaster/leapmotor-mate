@@ -8504,7 +8504,7 @@ def get_stats_summary() -> dict:
     charges = db.execute(
         """SELECT
                COUNT(*)                         AS charge_count,
-               ROUND(SUM(energy_added_kwh), 2)  AS total_kwh_charged,
+               ROUND(SUM(energy_added_kwh), 2)  AS total_kwh_battery,
                ROUND(SUM(cost), 2)              AS total_cost,
                MIN(ended_at)                    AS _since_charge
            FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL""",
@@ -8517,6 +8517,12 @@ def get_stats_summary() -> dict:
     # Driving time/excluded reconstructed durations and total regen stay per-segment:
     # merging must not turn a reconstructed segment's blackout into measured driving.
     c = dict(charges) if charges else {}
+    # The energy charged is the BILLED one — `_billed_kwh`, the rule every other total on every
+    # other page sums by — with what reached the battery beside it. It was the battery sum alone
+    # here, the one total in Mate computed by a rule of its own. Over the merged sessions, not the
+    # stored rows, for the reason get_charge_stats gives: a typed figure covers the whole plug-in.
+    groups = get_charges(limit=1_000_000)
+    c["total_kwh_charged"] = round(sum(_billed_kwh(g) for g in groups), 2) if groups else None
     total_kwh = t.get("total_kwh_used") or 0
     total_regen = t.get("total_regen_kwh") or 0
     t["regen_pct"] = round(total_regen / total_kwh * 100, 1) if total_kwh > 0 else None

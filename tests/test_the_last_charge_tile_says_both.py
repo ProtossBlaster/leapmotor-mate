@@ -568,3 +568,117 @@ def test_the_charges_page_hides_the_battery_figure_when_it_would_repeat_the_tota
     tile = _tile(client.get("/charges").text, "Total energy")
     assert "35<span" in tile and ">delivered</span>" in tile
     assert "in battery" not in tile and " · " not in tile
+
+
+def _four_kinds(pdb):
+    """One charge of each kind, and the meter beating a typed figure at home."""
+    _charge(pdb, 1, 3, 27.5, ac=30.0, cost=9.0)
+    _charge(pdb, 2, 9, 37.6, gross=41.5, ctype="AC", cost=20.0)
+    _charge(pdb, 3, 11, 20.0, ctype="AC")
+    _charge(pdb, 4, 15, 20.0, ac=22.0, gross=25.0, cost=7.0)
+
+
+def test_the_statistics_total_is_the_billed_energy_with_the_battery_figure_beside_it(mate):
+    """Energy Charged summed the battery column alone — the one total in Mate computed by a rule
+    of its own. It is `_billed_kwh` now, like the Charges page, the month strip and the search."""
+    pdb, _ = mate
+    _four_kinds(pdb)
+    rows = db_reader.get_charges(limit=1_000_000)
+    s = db_reader.get_stats_summary()
+    assert s["total_kwh_charged"] == round(sum(db_reader._billed_kwh(r) for r in rows), 2) == 113.5
+    assert s["total_kwh_charged"] == db_reader.get_charge_stats()["total_kwh"]
+    assert s["total_kwh_battery"] == 105.1
+
+
+@pytest.mark.parametrize("kw, delivered", [
+    ({"gross": 30.0}, 30.0),                       # typed for the whole plug-in: once
+    ({"ac": 12.0, "ctype": "HOME"}, 17.0),         # metered on one piece only: piece by piece
+    ({"ac": 12.0, "ctype": "HOME", "gross": 30.0}, 30.0),   # …and the typed figure covers the rest
+])
+def test_the_statistics_total_reads_a_merged_charge_like_the_charges_page(mate, kw, delivered):
+    pdb, _ = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, **kw)
+    s = db_reader.get_stats_summary()
+    assert (s["total_kwh_charged"], s["total_kwh_battery"]) == (delivered, 15.0)
+    assert s["total_kwh_charged"] == db_reader.get_charge_stats()["total_kwh"]
+
+
+def test_the_statistics_total_bills_a_fully_metered_merged_charge_on_its_meter(mate):
+    """12 + 6 on the meter, 30 typed, re-tagged to Home: 18, the same as the Charges page."""
+    pdb, _ = mate
+    _charge(pdb, 1, 3, 10.0, ac=12.0, ctype="AC")
+    pdb._conn.execute(
+        "INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc,"
+        " energy_added_kwh, ac_energy_kwh, location_type) VALUES"
+        " (2,1,'2026-07-03T11:10:00+00:00','2026-07-03T12:00:00+00:00',70,80,5.0,6.0,'AC')")
+    pdb._conn.commit()
+    assert db_reader.merge_charges(1, 2)["ok"]
+    db_reader.set_charge_gross_kwh(1, 30.0)
+    db_reader.update_charge_type(1, "HOME")
+    s = db_reader.get_stats_summary()
+    assert (s["total_kwh_charged"], s["total_kwh_battery"]) == (18.0, 15.0)
+    assert s["total_kwh_charged"] == db_reader.get_charge_stats()["total_kwh"]
+
+
+def test_the_statistics_total_keeps_a_figure_typed_before_the_merge_as_that_pieces(mate):
+    """12 typed on the first piece's card, then merged with a 5 kWh piece: 17, like the Charges
+    page and like before the merge."""
+    pdb, _ = mate
+    _charge(pdb, 1, 3, 10.0, ctype="AC")
+    db_reader.set_charge_gross_kwh(1, 12.0)
+    pdb._conn.execute(
+        "INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc,"
+        " energy_added_kwh, location_type) VALUES"
+        " (2,1,'2026-07-03T11:10:00+00:00','2026-07-03T12:00:00+00:00',70,80,5.0,'AC')")
+    pdb._conn.commit()
+    assert db_reader.merge_charges(1, 2)["ok"]
+    s = db_reader.get_stats_summary()
+    assert (s["total_kwh_charged"], s["total_kwh_battery"]) == (17.0, 15.0)
+    assert s["total_kwh_charged"] == db_reader.get_charge_stats()["total_kwh"]
+
+
+@pytest.mark.parametrize("lang, total, delivered, in_battery", [
+    ("en", "113.5", "delivered", "105.1 kWh in battery"),
+    ("pl", "113,5", "dostarczone", "105,1 kWh w baterii")])
+def test_the_statistics_page_says_delivered_and_in_battery(mate, lang, total, delivered, in_battery):
+    pdb, client = mate
+    db_reader.set_setting("language", lang)
+    _four_kinds(pdb)
+    html = client.get("/statistics").text
+    i = html.index({"en": "Energy Charged", "pl": "Naładowana energia"}[lang])
+    tile = " ".join(html[i:html.index({"en": "Charge Sessions", "pl": "Sesje ładowania"}[lang], i)].split())
+    assert f"{total}</span> <span class=\"text-slate-400 text-sm\">kWh</span>" in tile
+    assert f">{delivered}</span> · <span title=" in tile and f"{in_battery}</span>" in tile
+    assert "&lt;span" not in tile
+
+
+def test_the_statistics_page_hides_the_battery_figure_when_it_would_repeat_the_total(mate):
+    pdb, client = mate
+    _charge(pdb, 3, 11, 20.0, ctype="AC")
+    html = client.get("/statistics").text
+    tile = html[html.index("Energy Charged"):html.index("Charge Sessions")]
+    assert ">delivered</span>" in tile and "in battery" not in tile and " · " not in tile
+
+
+def test_the_statistics_total_survives_a_database_the_poller_has_not_migrated(mate):
+    """The web serves the poller's database and never alters it; between an update and the
+    poller's next start the #222 column is absent, and a query that names it is a 500. The billed
+    rule reaches Statistics through the same guard the Charges page has always had."""
+    pdb, client = mate
+    pdb._conn.execute("ALTER TABLE charges DROP COLUMN gross_kwh")
+    pdb._conn.commit()
+    _charge_no_gross(pdb, 1, 3, 27.5, ac=30.0)
+    _charge_no_gross(pdb, 2, 9, 20.0, ctype="AC")
+    assert db_reader._charges_have_gross(db_reader._get()) is False
+    s = db_reader.get_stats_summary()
+    assert (s["total_kwh_charged"], s["total_kwh_battery"]) == (50.0, 47.5)
+    assert client.get("/statistics").status_code == 200
+
+
+def _charge_no_gross(pdb, cid, day, batt, *, ac=None, ctype="HOME"):
+    pdb._conn.execute(
+        "INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc,"
+        " energy_added_kwh, ac_energy_kwh, location_type)"
+        f" VALUES (?,1,'2026-07-{day:02d}T09:00:00+00:00','2026-07-{day:02d}T11:00:00+00:00',"
+        "20,70,?,?,?)", (cid, batt, ac, ctype))
+    pdb._conn.commit()

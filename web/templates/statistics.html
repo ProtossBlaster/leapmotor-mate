@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import 'partials/_energy.html' as energy %}
 {# 0 = no idle reload — same reason as trips.html (#236, @michapr). The period you picked is held in
    the page, not the address, so a reload silently threw it away and put you back on the default
    while you were reading the numbers. Nothing here is live; the header's refresh button covers it. #}
@@ -402,10 +403,13 @@
   </div>
   <div class="card">
     <div class="stat-label">{{ t('energy_charged') }}</div>
-    <div class="flex items-baseline gap-1">
+    {# The billed energy, the same pair of words as every other total: "delivered" beside it, and
+       what reached the battery under it when the two differ. #}
+    <div class="flex items-baseline gap-1" title="{{ t('cal_kwh_delivered_help') }}">
       <span class="stat-value">{{ (totals.total_kwh_charged or 0) | nice }}</span>
       <span class="text-slate-400 text-sm">kWh</span>
     </div>
+    <div class="text-slate-500 text-xs">{{ energy.delivered_line(t, totals.total_kwh_charged, totals.total_kwh_battery) }}</div>
     {% if totals.charge_count %}<div class="text-slate-500 text-xs mt-1">{{ totals.charge_count }} {{ t('charge_sessions') }}</div>{% endif %}
   </div>
 </div>
