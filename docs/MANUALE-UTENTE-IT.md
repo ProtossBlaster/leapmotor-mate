@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v3.17.4 · **Lingua:** Italiano
+> **Versione di Mate:** v3.18.0 · **Lingua:** Italiano
 > Questo manuale è pensato per chi *usa* Mate, non per chi lo sviluppa. Spiega come configurarlo
 > dall'inizio e cosa fa ogni pagina. Per i dettagli tecnici interni c'è `ARCHITECTURE.md`.
 
@@ -313,6 +313,13 @@ dall'auto (cambio in P + un dispositivo collegato), non da Mate. È accurato da 
 Più in basso trovi mini-statistiche e un **indicatore di "reattività auto"** (un pallino
 🟢/🟡/🔴, ⚪ se non ci sono dati): riassume quanto l'auto ha risposto agli ultimi comandi inviati.
 
+**L'ultima ricarica dice tutte e due le cose 🆕** — il riquadro **Ultima ricarica** mostra in primo
+piano la stessa cifra della card: a casa, con un contatore wallbox, i kWh **🔌 wallbox (da pagare)**,
+e sotto quel che è arrivato nel pacco — *🔋 12,0 kWh in batteria (DC) · rendimento 81%*; altrove la
+cifra della batteria, con i kWh della colonnina su una riga a parte dove li hai scritti. Il costo
+sotto è il costo del numero sopra. Prima mostrava la sola cifra della batteria, accanto a un costo
+calcolato sull'altra.
+
 **L'autonomia al tuo limite di ricarica, e al 100% 🆕** — sotto l'autonomia stimata Mate mostra quanto
 farebbe l'auto **al limite a cui la carichi davvero** (per dire, l'80%), con accanto il valore al
 100%. Se l'auto non dichiara un limite sotto il 100 la riga è una sola, così lo stesso numero non
@@ -476,7 +483,13 @@ un'etichetta:
   non cambia niente, e premere OK a vuoto lascia tutto com'era. *Rimuovi* toglie un valore
   sbagliato. Da lì in poi quel numero **prezza la ricarica**, esattamente come fa il contatore della
   wallbox a casa, e ti mostra l'**efficienza** (quanto ne ha trasformato in calore il caricabatterie
-  di bordo). L'energia che Mate riporta resta quella **misurata in batteria**.
+  di bordo). L'energia che Mate riporta resta quella **misurata in batteria**. Su una **ricarica
+  unita** la cifra che scrivi copre i pezzi per cui l'hai scritta — una sessione unita dopo conta per
+  conto suo — e quando i pezzi si fatturano su cifre diverse (il contatore ha preso un pezzo e non
+  l'altro, oppure hai scritto la cifra su un pezzo prima di unire) la card e la Panoramica mostrano
+  la somma, sotto la parola *erogati*, e il €/kWh divide per quella 🆕. Rendimento e perdita accanto
+  alle cifre scritte a mano compaiono solo se quelle cifre coprono ogni pezzo della ricarica unita.
+  Un contatore che ha preso solo una parte ti lascia comunque vedere e correggere il solare inserito.
 - **Cosa entra nel conto e cosa no 🆕** — una ricarica entra in questi confronti solo se ha
   **tutti e due** i numeri, quello del contatore e quello della batteria. Una con uno solo dei due
   spingerebbe il rapporto sopra il 100 %, cosa che nessuna colonnina può fare. **Le ricariche in
@@ -485,6 +498,10 @@ un'etichetta:
 - **Il mese dice tutte e due le cose 🆕** — sopra il calendario: *«154,93 kWh erogati · 142,57 in
   batteria»*. Il primo è ciò che è uscito dai contatori (wallbox, o i kWh che hai scritto tu); il
   secondo è ciò che è arrivato nel pacco. Fra i due c'è la perdita di conversione, che paghi.
+  **Energia totale** sulla pagina Ricariche ed **Energia caricata** su Statistiche sono la stessa
+  cifra *erogata*, con *in batteria* sotto quando le due differiscono. Una regola sola per tutti i
+  totali: il contatore della wallbox dove c'è, i kWh della colonnina dove li hai scritti, altrimenti
+  la cifra della batteria.
 - Anche le ricariche avvenute mentre l'auto era spenta/offline vengono **ricostruite** dal salto di
   percentuale di carica.
 - **La tua nota 🆕** (#107) — ogni ricarica ha una **nota libera** (subito sopra *Elimina ricarica*) per
@@ -566,7 +583,8 @@ costo dei viaggi (calcolato sul prezzo "medio" dell'energia in batteria al momen
 (si chiamava *distanza totale*, ma è sempre stata la somma dei viaggi conclusi — non il
 contachilometri dell'auto) e numero di viaggi,
 **distanza media per viaggio**, **tempo di guida**, **consumo medio** (pesato sulla distanza) e
-**migliore**, **energia usata e ricaricata**, **recupero** totale e medio, numero di **sessioni di
+**migliore**, **energia usata e ricaricata** (l'energia caricata è quella che le colonnine hanno
+**erogato**, con sotto la cifra **in batteria** — la stessa coppia della pagina Ricariche 🆕), **recupero** totale e medio, numero di **sessioni di
 ricarica**, con le relative **tendenze** (efficienza e recupero nel tempo). Tra i totali c'è anche una
 scheda **Totale V2L** con l'energia cumulativa prelevata via V2L in tutto lo storico. C'è anche la
 **ricerca consumo per intervallo** (date libere + preset) e la scheda **"Cumulativo Totale del

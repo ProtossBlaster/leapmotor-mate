@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v3.17.4 · **Langue :** Français
+> **Version de Mate :** v3.18.0 · **Langue :** Français
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 
@@ -329,6 +329,13 @@ avec une barre 0–3500 W — et l'**énergie soutirée durant la session** ; il
 sur P + un appareil branché), pas depuis Mate. Il est précis à partir d'environ **42 W** (la résolution du
 capteur de courant de la voiture — une petite charge de ~10 W reste invisible).
 
+**La dernière recharge dit les deux 🆕** — la tuile **Dernière recharge** met en avant le même chiffre
+que la carte : à la maison, avec un compteur de wallbox, les kWh **🔌 wallbox (à payer)**, et en
+dessous ce qui est arrivé dans le pack — *🔋 12,0 kWh dans la batterie (DC) · rendement 81 %* ;
+ailleurs le chiffre de la batterie, avec les kWh de la borne sur une ligne à part là où vous les avez
+saisis. Le coût en dessous est le coût du nombre au-dessus. Avant, seul le chiffre de la batterie
+s'affichait, à côté d'un coût calculé sur l'autre.
+
 **L'autonomie à votre limite de charge, et à 100 % 🆕** — sous l'autonomie estimée, Mate indique
 combien la voiture ferait **à la limite à laquelle vous la chargez vraiment** (80 %, par exemple),
 avec à côté la valeur à 100 %. Si la voiture n'annonce aucune limite en dessous de 100, la ligne est
@@ -488,7 +495,14 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   trop ne change donc rien, et valider à vide laisse tout en l'état. *Retirer* enlève une valeur
   erronée. Dès lors, ce nombre **tarife la recharge**, exactement comme le compteur de la wallbox à
   la maison, et affiche le **rendement** (ce que le chargeur embarqué a transformé en chaleur).
-  L'énergie affichée par Mate reste celle **mesurée à la batterie**.
+  L'énergie affichée par Mate reste celle **mesurée à la batterie**. Sur une **recharge fusionnée**, le
+  chiffre que vous saisissez couvre les morceaux pour lesquels il a été saisi — une session fusionnée
+  ensuite compte pour elle-même — et quand les morceaux se facturent sur des chiffres différents (le
+  compteur a pris un morceau et pas l'autre, ou vous avez saisi le chiffre sur un morceau avant la
+  fusion), la carte et l'Aperçu affichent la somme, sous le mot *délivrés*, et le €/kWh divise par
+  elle 🆕. Le rendement et la perte à côté des chiffres saisis n'apparaissent que si ces chiffres
+  couvrent chaque morceau. Un compteur qui n'a pris qu'une partie vous laisse quand même voir et
+  corriger l'énergie solaire saisie.
 - **Ce qui est compté et ce qui ne l'est pas 🆕** — une recharge n'entre dans ces comparaisons que
   si elle a **les deux** chiffres, celui du compteur et celui de la batterie. Avec un seul des deux,
   le rapport dépasserait 100 %, ce qu'aucune borne ne peut faire. **Les recharges en cours restent
@@ -498,6 +512,10 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   batterie »*. Le premier, c'est ce qui est sorti des compteurs (la wallbox, ou les kWh que vous avez
   saisis) ; le second, ce qui est arrivé dans le pack. Entre les deux, la perte de conversion que
   vous payez.
+  **Énergie totale** sur la page Recharges et **Énergie chargée** dans les Statistiques sont le même
+  chiffre *délivré*, avec *dans la batterie* en dessous quand les deux diffèrent. Une seule règle pour
+  chaque total : le compteur de la wallbox là où il y en a un, les kWh de la borne là où vous les avez
+  saisis, sinon le chiffre de la batterie.
 - Même les recharges effectuées pendant que la voiture était éteinte/hors ligne sont **reconstruites** à
   partir du saut de pourcentage de charge.
 - **Votre note 🆕** (#107) — chaque recharge a une **note libre** (juste au-dessus de *Supprimer la
@@ -581,7 +599,8 @@ trajets (calculé sur le prix « moyen » de l'énergie en batterie au moment du
 enregistrés** 🆕 (elle s'appelait *distance totale*, mais c'était toujours la somme des trajets
 terminés — pas le compteur de la voiture) et nombre de trajets,
 **distance moyenne par trajet**, **temps de conduite**, **consommation moyenne** (pondérée sur la distance) et
-**meilleure**, **énergie consommée et rechargée**, **récupération** totale et moyenne, nombre de **sessions de
+**meilleure**, **énergie consommée et rechargée** (l'énergie rechargée est ce que les bornes ont
+**délivré**, avec le chiffre **dans la batterie** en dessous — la même paire que la page Recharges 🆕), **récupération** totale et moyenne, nombre de **sessions de
 recharge**, avec les **tendances** correspondantes (efficacité et récupération dans le temps). Les totaux
 incluent désormais une carte **Total V2L** avec l'énergie cumulée soutirée via V2L sur tout l'historique.
 

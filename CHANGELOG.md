@@ -3,6 +3,41 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.18.0] — 2026-09-23
+
+### Changed (#297, @arekm)
+
+- **A charge's energy reads the same on every screen.** The charge card has long said both figures —
+  what the charger delivered (the wallbox counter at home, the charger's own kWh typed in elsewhere:
+  the basis of the cost) and what reached the battery. Three places said something else, and now
+  read like the card and the month strip: the Overview's **Last charge** tile, **Total energy** on
+  the Charges page, and **Energy Charged** on Statistics.
+- ⚠️ **Energy Charged on Statistics changes meaning**: it is the energy the chargers *delivered*,
+  with the *in battery* figure beside it. It used to be the battery figure alone.
+- The rule that picks which figure leads moved out of the card's template into one helper,
+  `charge_energy_view`, which the card, its typed-figure line and the Overview tile all read.
+
+### Fixed (#297, @arekm)
+
+- **Totals over a joined charge were wrong.** They applied the rule to the group's summed columns,
+  so a plug-in the car reported in pieces was billed on whatever the meter caught: 12 kWh for a
+  12 + 5 session, and 30 counted where 35 was typed. The sum now runs over the pieces, each on its
+  own rule, and a typed figure counts once for the pieces it covers. New column
+  `charges.gross_kwh_from` records that scope — merging rewrites no row, so nothing else could —
+  with a migration that reads a legacy figure's scope from the costs it left behind.
+- On a joined charge the card leads with what it bills, under the word the totals use for that sum,
+  so the €/kWh beside it divides by the number above it.
+
+### Fixed (#295, @arekm)
+
+- **The charging efficiency was rounded twice, and its own 100 % check read the rounded number.**
+  25.01 kWh into the battery for 25.00 from the wall is 100.04 % — impossible, and exactly what the
+  check exists to withhold — but rounded to a tenth it became 100.0 and passed. And 85.48 % became
+  85.5, then 86 on the card, where v3.17.3 read 85. The ratio is returned unrounded now, the check
+  reads it unrounded, and each page rounds once for display.
+
+Charges already recorded are not recomputed. The figures that move are the ones listed above.
+
 ## [3.17.4] — 2026-09-23
 
 ### Fixed (#295, @gm27271)

@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v3.17.4 · **Idioma:** Español
+> **Versión de Mate:** v3.18.0 · **Idioma:** Español
 > Este manual está escrito para quien *usa* Mate, no para quien lo desarrolla. Explica cómo
 > configurarlo desde cero y qué hace cada página. Para los detalles técnicos internos está `ARCHITECTURE.md`.
 
@@ -328,6 +328,13 @@ queda invisible).
 Más abajo encontrarás miniestadísticas y un indicador de **«Respuesta del coche»** (un punto 🟢/🟡/🔴,
 ⚪ si no hay datos): resume con qué fiabilidad ha respondido el coche a los últimos comandos enviados.
 
+**La última carga dice las dos 🆕** — el recuadro **Última carga** lleva por delante la misma cifra
+que la tarjeta: en casa, con un contador de wallbox, los kWh **🔌 wallbox (a pagar)**, y debajo lo
+que llegó al paquete — *🔋 12,0 kWh en la batería (DC) · rendimiento 81 %*; en otro sitio la cifra de
+la batería, con los kWh del cargador en una línea propia donde los escribiste. El coste de debajo es
+el coste del número de arriba. Antes mostraba solo la cifra de la batería, junto a un coste
+calculado sobre la otra.
+
 **La autonomía en tu límite de carga, y al 100 % 🆕** — bajo la autonomía estimada Mate muestra cuánto
 haría el coche **con el límite al que lo cargas de verdad** (el 80 %, por ejemplo), y al lado la
 cifra al 100 %. Si el coche no declara ningún límite por debajo de 100 la línea es una sola, para que
@@ -491,7 +498,13 @@ etiqueta:
   Aceptar con el campo vacío lo deja todo como estaba. *Quitar* deshace un número mal puesto. A partir
   de ahí **le pone precio a la carga**, exactamente igual que hace en casa un contador de wallbox, y
   muestra el **rendimiento** (cuánto convirtió en calor el cargador de a bordo). La energía que
-  declara Mate sigue siendo la **medida en la batería**.
+  declara Mate sigue siendo la **medida en la batería**. En una **carga unida**, la cifra que escribes
+  cubre las piezas para las que la escribiste — una sesión unida después cuenta por su cuenta — y
+  cuando las piezas se facturan sobre cifras distintas (el contador cogió una pieza y la otra no, o
+  escribiste la cifra en una pieza antes de unir), la tarjeta y la Vista general llevan la suma, bajo
+  la palabra *entregados*, y el €/kWh divide por ella 🆕. El rendimiento y la pérdida junto a las
+  cifras escritas aparecen solo si esas cifras cubren todas las piezas. Un contador que solo cogió
+  una parte te deja ver y corregir igualmente la energía solar que introdujiste.
 - **Qué se cuenta y qué no 🆕** — una carga aparece en estas comparaciones solo cuando tiene **las
   dos** cifras, la del contador y la de la batería. Una sesión con una sola llevaría la proporción por
   encima del 100 %, cosa que ningún cargador puede hacer. **Las cargas todavía en marcha quedan
@@ -500,6 +513,10 @@ etiqueta:
 - **El mes dice las dos 🆕** — encima del calendario: *«154,93 kWh entregados · 142,57 en la
   batería»*. La primera es lo que salió de los contadores (el wallbox, o los kWh que escribiste tú); la
   segunda es lo que llegó al paquete. Entre ambas está la pérdida de conversión que pagas.
+  **Energía total** en la página de Cargas y **Energía cargada** en Estadísticas son la misma cifra
+  *entregada*, con *en la batería* debajo cuando las dos difieren. Una sola regla para cada total: el
+  contador de la wallbox donde lo haya, los kWh del cargador donde los escribiste, y si no la cifra
+  de la batería.
 - Las cargas ocurridas con el coche apagado o sin conexión también se **reconstruyen**, a partir del
   salto del estado de carga.
 - **Tu nota 🆕** (#107) — cada carga tiene una **nota libre** (justo encima de *Eliminar la carga*)
@@ -583,7 +600,8 @@ del trayecto).
 trayectos registrados** 🆕 (antes ponía *distancia total*, pero siempre ha sido la suma de los
 trayectos terminados — no el cuentakilómetros del coche) y número de trayectos, **distancia media por
 trayecto**, **tiempo al volante**, **consumo medio** (ponderado por distancia) y **el mejor**,
-**energía consumida y cargada**, **regeneración** total y media, número de **sesiones de carga**, con
+**energía consumida y cargada** (la energía cargada es la que los cargadores **entregaron**, con la
+cifra **en la batería** debajo — el mismo par que muestra la página de Cargas 🆕), **regeneración** total y media, número de **sesiones de carga**, con
 sus **evoluciones** correspondientes (consumo y regeneración a lo largo del tiempo). Los totales
 incluyen además una tarjeta **Total V2L** con la energía acumulada consumida por V2L en todo el
 histórico.

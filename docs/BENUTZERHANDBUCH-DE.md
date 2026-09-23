@@ -1,6 +1,6 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v3.17.4 · **Sprache:** Deutsch
+> **Mate-Version:** v3.18.0 · **Sprache:** Deutsch
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 
@@ -319,6 +319,13 @@ Weiter unten finden Sie Ministatistiken und einen **Indikator für die „Fahrze
 🟢/🟡/🔴, ⚪ wenn keine Daten vorliegen): Er fasst zusammen, wie zuverlässig das Auto auf die zuletzt gesendeten
 Befehle reagiert hat.
 
+**Der letzte Ladevorgang nennt beides 🆕** — die Kachel **Letzter Ladevorgang** führt dieselbe Zahl
+wie die Ladekarte: zu Hause, mit einem Wallbox-Zähler, die kWh **🔌 Wallbox (zu zahlen)**, darunter
+das, was im Akku ankam — *🔋 12,0 kWh in der Batterie (DC) · Wirkungsgrad 81 %*; anderswo die Zahl
+der Batterie, mit den kWh der Ladesäule in einer eigenen Zeile, wo Sie sie eingetragen haben. Die
+Kosten darunter sind die Kosten der Zahl darüber. Früher stand dort nur die Zahl der Batterie,
+neben Kosten, die auf der anderen gerechnet waren.
+
 **Die Reichweite bei Ihrem Ladelimit — und bei 100 % 🆕** — unter der geschätzten Reichweite zeigt
 Mate, wie weit das Auto **bei dem Limit käme, auf das Sie wirklich laden** (etwa 80 %), daneben den
 Wert bei 100 %. Meldet das Auto kein Limit unter 100, steht dort nur eine Zeile, damit dieselbe Zahl
@@ -477,7 +484,14 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   ändert also nichts, und ein leeres OK lässt alles wie es war. *Entfernen* nimmt einen falschen Wert
   zurück. Von da an **bepreist** diese Zahl die Ladung, genau wie der Wallbox-Zähler zu Hause, und
   zeigt den **Wirkungsgrad** (wie viel das Bordladegerät in Wärme umgewandelt hat). Die Energie, die
-  Mate ausweist, bleibt die **an der Batterie gemessene**.
+  Mate ausweist, bleibt die **an der Batterie gemessene**. Bei einem **zusammengefügten Ladevorgang**
+  deckt die eingetragene Zahl die Teile ab, für die sie eingetragen wurde — eine später hinzugefügte
+  Sitzung zählt für sich — und wenn die Teile auf unterschiedlichen Zahlen abgerechnet werden (der
+  Zähler erfasste einen Teil und den anderen nicht, oder Sie trugen die Zahl vor dem Zusammenfügen
+  auf einem Teil ein), führen die Karte und die Übersicht die Summe, unter dem Wort *geliefert*, und
+  das €/kWh teilt durch sie 🆕. Wirkungsgrad und Verlust neben den eingetragenen Zahlen erscheinen
+  nur, wenn diese Zahlen jeden Teil abdecken. Ein Zähler, der nur einen Teil erfasst hat, lässt Sie
+  die eingetragene Solarenergie weiterhin sehen und korrigieren.
 - **Was gezählt wird und was nicht 🆕** — eine Ladung erscheint in diesen Vergleichen nur, wenn sie
   **beide** Werte hat, den des Zählers und den der Batterie. Mit nur einem von beiden käme das
   Verhältnis über 100 %, was keine Ladestation kann. **Laufende Ladungen bleiben außen vor**: eine
@@ -485,6 +499,10 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
 - **Der Monat nennt beides 🆕** — über dem Kalender: *„154,93 kWh geliefert · 142,57 in der Batterie"*.
   Das Erste kam aus den Zählern (Wallbox oder die von Ihnen eingetragenen kWh), das Zweite kam im
   Akku an. Dazwischen liegt der Umwandlungsverlust, den Sie bezahlen.
+  **Gesamtenergie** auf der Ladeseite und **Geladene Energie** in der Statistik sind dieselbe
+  *gelieferte* Zahl, mit *in der Batterie* darunter, wenn die beiden sich unterscheiden. Eine Regel
+  für jede Summe: der Wallbox-Zähler, wo es einen gibt, die eingetragenen kWh der Ladesäule, wo Sie
+  sie eingetragen haben, sonst die Zahl der Batterie.
 - Auch Ladevorgänge, die stattgefunden haben, während das Auto ausgeschaltet/offline war, werden aus dem Sprung des
   Ladestands **rekonstruiert**.
 - **Ihre Notiz 🆕** (#107) — jeder Ladevorgang hat eine **freie Notiz** (direkt über *Ladevorgang löschen*) für das,
@@ -568,7 +586,9 @@ auf dem „durchschnittlichen" Energiepreis in der Batterie zum Zeitpunkt der Fa
 Fahrten** 🆕 (früher *Gesamtstrecke*, war aber immer schon die Summe der abgeschlossenen Fahrten —
 nicht der Kilometerzähler des Autos) und Anzahl der Fahrten,
 **durchschnittliche Strecke pro Fahrt**, **Fahrzeit**, **durchschnittlicher Verbrauch** (gewichtet nach der
-Strecke) und **bester**, **verbrauchte und geladene Energie**, **Rekuperation** insgesamt und im Durchschnitt,
+Strecke) und **bester**, **verbrauchte und geladene Energie** (die geladene Energie ist das, was die Ladesäulen
+**geliefert** haben, mit der Zahl **in der Batterie** darunter — dasselbe Paar wie auf der
+Ladeseite 🆕), **Rekuperation** insgesamt und im Durchschnitt,
 Anzahl der **Ladesitzungen**, mit den entsprechenden **Trends** (Effizienz und Rekuperation über die Zeit). Die
 Summen enthalten jetzt auch eine Karte **V2L gesamt** mit der über die gesamte Historie via V2L entnommenen
 kumulierten Energie.
