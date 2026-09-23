@@ -36,7 +36,10 @@ def _public(dc, gross=None):
 def test_at_home_with_a_meter_the_counter_leads_and_the_battery_stands_under_it():
     e = db_reader.charge_energy_view(_home(14.87, 12.6))
     assert (e["headline"], e["headline_kwh"], e["battery_kwh"], e["gross_kwh"]) == ("wallbox", 14.87, 12.6, None)
-    assert e["wallbox_eff"] == 84.7
+    # The unrounded ratio, because the card and the tile each round once for display (dec(0) → 85).
+    # This pinned 84.7 while `charge_efficiency` still rounded to a tenth first — the very defect
+    # @arekm reported on v3.17.4, fixed in de255e8: rounding before the 100 % check moved the check.
+    assert e["wallbox_eff"] == pytest.approx(100 * 12.6 / 14.87)
     assert e["gross_eff"] is None and e["gross_lost_kwh"] is None
 
 
