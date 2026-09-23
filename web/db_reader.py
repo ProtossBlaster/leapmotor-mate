@@ -3952,13 +3952,28 @@ _READY_MATCH_SLACK_S = 90
 _READY_CARRY_MIN_S = 900
 
 
-def _parked_poll_seconds() -> int:
-    """The user's parked poll interval, clamped to the same 10–600 s the settings form allows so a
-    hand-edited row can't stretch the carry window without limit."""
+# The poller's cadence as Settings ▸ Poll stores it: the default and the range the form accepts.
+# One definition for the form that writes it and every reader here; the poller keeps its own copy of
+# the defaults, because it cannot import the web.
+POLL_PARKED_DEFAULT_S, POLL_PARKED_RANGE_S = 30, (10, 600)
+POLL_DRIVING_DEFAULT_S, POLL_DRIVING_RANGE_S = 10, (10, 60)
+
+
+def poll_seconds(driving: bool) -> int:
+    """The user's poll interval for a parked or a driving car, clamped to the range the settings
+    form allows so a hand-edited row cannot stretch anything that depends on it without limit."""
+    key, default, (lo, hi) = (("poll_driving", POLL_DRIVING_DEFAULT_S, POLL_DRIVING_RANGE_S)
+                              if driving else
+                              ("poll_parked", POLL_PARKED_DEFAULT_S, POLL_PARKED_RANGE_S))
     try:
-        return max(10, min(int(float(get_setting("poll_parked", "30") or 30)), 600))
-    except (TypeError, ValueError):
-        return 30
+        return max(lo, min(int(float(get_setting(key, str(default)) or default)), hi))
+    except (TypeError, ValueError, OverflowError):          # OverflowError: "inf", "1e999"
+        return default
+
+
+def _parked_poll_seconds() -> int:
+    """The parked interval, which bounds the READY carry window below."""
+    return poll_seconds(driving=False)
 _READY_LOOKBACK_S = 6 * 3600  # how far around the trip to scan positions for the session bounds
 
 
