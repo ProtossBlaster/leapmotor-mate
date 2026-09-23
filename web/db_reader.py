@@ -3710,6 +3710,19 @@ def save_fresh_signals(signals: dict) -> None:
     db.commit()
 
 
+# A poll that comes back without a GPS fix is stored as (0, 0): a missing coordinate parses to 0.0.
+# Only the PAIR means "no fix": a car on the equator or the prime meridian keeps the other coordinate,
+# and a real position. The bound is one unit of the sixth decimal the cloud reports coordinates in
+# (~11 cm): anything smaller is zero at the data's own resolution.
+_NO_FIX_DEG = 1e-6
+
+
+def has_gps_fix(lat, lon) -> bool:
+    """Whether a stored coordinate pair is a real position, not the (0, 0) of a poll without a fix."""
+    return (lat is not None and lon is not None
+            and not (abs(lat) < _NO_FIX_DEG and abs(lon) < _NO_FIX_DEG))
+
+
 def get_latest_status() -> Optional[dict]:
     db = _get()
     row = db.execute(
@@ -3727,13 +3740,12 @@ def get_latest_status() -> Optional[dict]:
     # map (or reset Navigation's start point) — fall back to the last position that had a real
     # fix and flag it stale, so the last known location keeps showing. Only a true (0,0)/null is
     # treated as "no fix" (a car genuinely on the prime meridian at lon 0 is kept).
-    _lat, _lon = d.get("latitude"), d.get("longitude")
-    if _lat is None or _lon is None or (abs(_lat) < 1e-6 and abs(_lon) < 1e-6):
+    if not has_gps_fix(d.get("latitude"), d.get("longitude")):
         last = db.execute(
             "SELECT latitude, longitude FROM positions "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) "
             "AND latitude IS NOT NULL AND longitude IS NOT NULL "
-            "AND NOT (ABS(latitude) < 1e-6 AND ABS(longitude) < 1e-6) "
+            f"AND NOT (ABS(latitude) < {_NO_FIX_DEG} AND ABS(longitude) < {_NO_FIX_DEG}) "
             "ORDER BY id DESC LIMIT 1", (_current_vehicle_id(),)).fetchone()
         if last:
             d["latitude"], d["longitude"] = last["latitude"], last["longitude"]
