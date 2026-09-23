@@ -27,6 +27,9 @@ def _render(cost):
     env.filters["dec"] = lambda v, n=1: f"{float(v):.{n}f}"
     charge = {"id": 1, "cost": cost, "ac_energy_kwh": 20.0, "energy_added_kwh": 18.0,
               "gross_kwh": None, "location_type": "HOME"}
+    # the €/kWh divides by the app's billed rule, registered as a template global there
+    import db_reader
+    env.globals["billed_kwh"] = db_reader._billed_kwh
     return env.get_template("partials/charge_cost_cell.html").render(charge=charge, t=lambda k: k)
 
 

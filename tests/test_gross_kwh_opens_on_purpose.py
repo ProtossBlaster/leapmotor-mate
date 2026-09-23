@@ -42,6 +42,8 @@ def _render(gross=None, energy=8.0, cost=None, cost_oob=False, location="AC"):
     return env.get_template("partials/charge_gross_kwh.html").render(
         charge={"id": 7, "gross_kwh": gross, "energy_added_kwh": energy, "cost": cost,
                 "location_type": location, "ac_energy_kwh": None},
+        # the same global the app registers, for the same reason as `gross_kwh_ok` elsewhere
+        charge_energy=db_reader.charge_energy_view, billed_kwh=db_reader._billed_kwh,
         t=lambda k: k, cost_oob=cost_oob)
 
 
@@ -165,7 +167,7 @@ def test_it_is_not_offered_on_a_wallbox_charge_or_an_untyped_one():
     """...and, since #272, not on a home charge whose owner prices Casa by subtracting solar: that
     mode has its own field on the same card, and two boxes that both read "type the kWh" is exactly
     the confusion each of them was shaped to avoid."""
-    assert ("{% if not show_wb and c.location_type and gross_kwh_ok() "
+    assert ("{% if not e.has_home_meter and c.location_type and gross_kwh_ok() "
             "and not (solar_mode_on() and c.location_type == 'HOME') %}") in CARD
     assert '{% with charge=c %}{% include "partials/charge_gross_kwh.html" %}{% endwith %}' in CARD
 
@@ -298,15 +300,15 @@ def test_the_cost_cell_is_written_once():
 
 
 def test_the_price_per_kwh_divides_by_the_energy_mate_shows():
-    """It mirrors _billed_kwh() — the declared single source of truth for the energy shown for a
+    """It calls _billed_kwh() — the declared single source of truth for the energy shown for a
     charge — because the period totals, get_charge_stats and the calendar divide by that same rule.
-    Same three branches, same order, or this card prints a €/kWh no other page agrees with."""
-    assert "charge.ac_energy_kwh if (charge.location_type == 'HOME' and charge.ac_energy_kwh)" in CELL
-    assert "charge.gross_kwh if charge.gross_kwh else charge.energy_added_kwh" in CELL
-    body = (ROOT / "web" / "db_reader.py").read_text()
-    billed = body.split("def _billed_kwh(", 1)[1].split("\ndef ", 1)[0]
-    for branch in ("ac_energy_kwh", "gross_kwh", "energy_added_kwh"):
-        assert branch in billed and branch in CELL, f"{branch} missing on one side of the mirror"
+    It used to MIRROR the rule in Jinja, three branches in the same order, and the mirror held for
+    one row and not for a merged charge, whose pieces bill on their own figures. The call, and no
+    copy of a branch beside it, or this card prints a €/kWh no other page agrees with."""
+    assert "billed_kwh(charge)" in CELL
+    for branch in ("charge.ac_energy_kwh if", "charge.gross_kwh if", "charge.energy_added_kwh"):
+        assert branch not in CELL, f"a copy of the rule is back: {branch}"
+    assert "billed_kwh=db_reader._billed_kwh," in MAIN, "the cell reads it as a template global"
 
 
 def test_the_cost_is_refreshed_when_the_figure_changes():

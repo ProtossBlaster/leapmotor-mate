@@ -111,9 +111,11 @@ def test_the_mode_is_home_only():
 
 # ── and the card never shows two boxes that both say "type the kWh" ─────────────
 def test_the_two_fields_are_exclusive_on_the_card():
-    """`show_wb` decides: it shows the solar box and hides the typed-charger one. A card carrying
+    """A stored home-meter reading enables solar and excludes gross, independently of the headline.
+    A card carrying
     both would ask for two different numbers in two identical-looking boxes."""
-    assert "{% if show_wb %}" in CARD
+    assert "{% if e.has_home_meter %}" in CARD
+    assert "{% if not e.has_home_meter and" in CARD
     assert "partials/charge_solar_kwh.html" in CARD
     assert "not (solar_mode_on() and c.location_type == 'HOME')" in CARD
 

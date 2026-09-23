@@ -314,11 +314,6 @@ templates.env.globals.update(
     eff_val=units.eff_val, elev_val=units.elev_val, unit_system=units.get_unit_system,
     dist100_unit=units.dist100_unit, cost100_val=units.cost100_val,
     eff_cls=_eff_cls,
-    # #295 — the charging-efficiency ratio, from the ONE definition in db_reader. A global for the
-    # same reason as the two below: the charge card is rendered by the page and by two partials
-    # that build their context by hand. It used to compute the ratio itself and hide it above
-    # 100 %, while the Wallbox page printed the same impossible number in green.
-    charge_eff=db_reader.charge_efficiency,
     # #222 — whether the charger's-own-kWh field can be offered at all. A GLOBAL, not a per-route
     # value: the charge card is rendered by the page AND by two partials that build their context by
     # hand, so a flag passed through _ctx reached the page and silently vanished from the day drawer
@@ -334,6 +329,12 @@ templates.env.globals.update(
     # the field is only meaningful under that mode; a callable so switching the mode in Settings
     # shows the field without a restart.
     solar_mode_on=db_reader.home_prices_by_solar,
+    # Which kWh a charge leads with, and what stands under it. A GLOBAL for the reason its
+    # neighbours are: the charge card is rendered from three hand-built contexts, and the Overview
+    # tile reads the same rule.
+    charge_energy=db_reader.charge_energy_view,
+    # …and the figure the €/kWh on the cost cell divides by, the same one the totals sum.
+    billed_kwh=db_reader._billed_kwh,
     # #144 — the temperature sensors this car has never once reported, so the status card can leave
     # them out instead of promising a number that will never arrive. A GLOBAL for exactly the reason
     # above: `status_card.html` is rendered by the Overview AND by partials that build their own

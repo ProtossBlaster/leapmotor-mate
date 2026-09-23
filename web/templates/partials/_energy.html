@@ -1,0 +1,19 @@
+{# The line under an energy total: "delivered", and "Y kWh in battery" beside it when it differs.
+
+   `delivered` is the billed figure (`_billed_kwh`: the wallbox counter, else the charger's own
+   kWh where typed, else the battery); the battery figure is the SoC-based one. The pair is what
+   the Ricariche month strip and the search results already say, and the rule for hiding the
+   second number is theirs too: a set of public charges with no meter and nothing typed has ONE
+   number, not two identical ones.
+
+   Under the number, not in its unit: a summary tile is ~170 px wide on a phone and in the
+   six-column desktop grid alike, and "1296.0 kWh delivered" broke the word onto its own line.
+
+   `t` is an argument: the translator lives in the render context, not in the globals, and an
+   {% import %} without `with context` does not see it. Usage:
+     {% import 'partials/_energy.html' as energy %}
+     {{ energy.delivered_line(t, stats.total_kwh, stats.battery_kwh) }}   #}
+{% macro delivered_line(t, kwh, battery_kwh) -%}
+<span title="{{ t('cal_kwh_delivered_help') }}">{{ t('cal_kwh_delivered') }}</span>
+{%- if battery_kwh and battery_kwh != kwh %} · <span title="{{ t('energy_in_battery_help') }}">{{ battery_kwh|nice }} kWh {{ t('cal_kwh_in_battery') }}</span>{% endif -%}
+{%- endmacro %}

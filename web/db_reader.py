@@ -2146,9 +2146,23 @@ def update_charge_type(charge_id: int, location_type: str,
     a badge re-tag, a FREE toggle, a gross/solar edit) leaves it exactly as it was, so retagging a
     manually-priced charge's TYPE can never silently touch its PRICE. It still feeds the WAC like
     any priced charge (rate = cost ÷ billed DC energy)."""
+    with _conn_rw() as db:
+        return _update_charge_type(db, charge_id, location_type, manual_cost, solar_kwh=solar_kwh,
+                                   cost_manual=cost_manual, _segment=_segment, _free=_free,
+                                   _no_cost=_no_cost, gross_kwh=gross_kwh)
+
+
+def _update_charge_type(db, charge_id: int, location_type: str,
+                        manual_cost: float | None = None,
+                        gross_kwh: float | None = None,
+                        solar_kwh: float | None = None,
+                        *, cost_manual: bool | None = None,
+                        _segment: bool = False,
+                        _free: int | None = None,
+                        _no_cost: bool = False) -> dict:
+    """Write the parent and its pieces within the caller's transaction."""
     if location_type not in CHARGE_TYPES:
         return {}
-    db = _conn_rw()
     row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
     if not row:
         return {}
@@ -2224,7 +2238,6 @@ def update_charge_type(charge_id: int, location_type: str,
         params.append(new_cost_manual)
     params.append(charge_id)
     db.execute(f"UPDATE charges SET {', '.join(set_cols)} WHERE id=?", params)
-    db.commit()
     out = dict(db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
 
     # A merged charge is drawn as ONE row and its figures are the SUM of its pieces. Writing only
@@ -2242,12 +2255,11 @@ def update_charge_type(charge_id: int, location_type: str,
     # exactly as they were, and splitting 30 kWh into 20 + 10 across two rows would break that
     # promise for a figure the owner typed by hand.
     #
-    # After the commit, never before: these calls open their own write connection, and SQLite would
-    # be waiting on a transaction this one has not closed yet.
+    # All pieces share the parent's transaction so a failed child cannot leave a partial price.
     if not _segment:
         for oid in _merged_piece_ids(db, charge_id):
-            update_charge_type(oid, location_type, _segment=True, _free=free,
-                               _no_cost=(bool(out.get("cost_manual")) or bool(gross and gross > 0)))
+            _update_charge_type(db, oid, location_type, _segment=True, _free=free,
+                                _no_cost=(bool(out.get("cost_manual")) or bool(gross and gross > 0)))
     return out
 
 
@@ -2371,13 +2383,22 @@ def set_charge_gross_kwh(charge_id: int, gross_kwh: Optional[float]) -> dict:
     `location_type not in CHARGE_TYPES`, not `not row["location_type"]` — a leftover `'MANUAL'` row
     is truthy but not a real type, and update_charge_type now rejects anything outside CHARGE_TYPES
     (see set_charge_cost's docstring for the 500 that bare truthiness check used to cause)."""
-    db = _conn_rw()
-    row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
-    if not row or row["location_type"] not in CHARGE_TYPES:
-        return dict(row) if row else {}
-    if gross_kwh is None:
-        return dict(row)
-    return update_charge_type(charge_id, row["location_type"], gross_kwh=gross_kwh)
+    with _conn_rw() as db:
+        # The value, its scope and all affected costs must describe the same edit.
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
+        if not row or row["location_type"] not in CHARGE_TYPES:
+            return dict(row) if row else {}
+        if gross_kwh is None:
+            return dict(row)
+        if _charges_have_gross_from(db):
+            # A replacement may cover fewer pieces after an unmerge; retire its old scope first.
+            db.execute("UPDATE charges SET gross_kwh_from=NULL WHERE gross_kwh_from=?", (charge_id,))
+            if gross_kwh > 0:
+                ids = [charge_id, *_merged_piece_ids(db, charge_id)]
+                db.execute(f"UPDATE charges SET gross_kwh_from=? WHERE id IN ({','.join('?' * len(ids))})",
+                           (charge_id, *ids))
+        return _update_charge_type(db, charge_id, row["location_type"], gross_kwh=gross_kwh)
 
 
 def set_charge_solar_kwh(charge_id: int, solar_kwh: Optional[float]) -> dict:
@@ -4430,9 +4451,14 @@ def _charge_group_stats(parent: dict, children: list) -> dict:
     d["ended_at"], d["end_soc"] = last.get("ended_at"), last.get("end_soc")
     # A figure NOBODY reported stays missing: gross_kwh is typed by the owner, and summing None as 0
     # would turn "never entered" into a perfectly credible zero. → [[signal-absent-is-not-signal-zero]]
-    for f in ("energy_added_kwh", "cost", "ac_energy_kwh", "gross_kwh", "wb_stuck_kwh"):
+    for f in ("energy_added_kwh", "cost", "ac_energy_kwh", "wb_stuck_kwh"):
         vals = [c[f] for c in pieces if c.get(f) is not None]
         d[f] = sum(vals) if vals else None
+    # The typed figures IN EFFECT, not every figure a piece ever carried: one typed on the merged
+    # card covers the pieces, and a figure a piece was typed before that stays on its row (never
+    # rewritten, so an unmerge gives it back) without counting — see `_gross_figures`.
+    figures = _gross_figures(pieces)[0]
+    d["gross_kwh"] = sum(f["gross_kwh"] for f in figures.values()) if figures else None
     peaks = [c["max_power_kw"] for c in pieces if c.get("max_power_kw") is not None]
     d["max_power_kw"] = max(peaks) if peaks else None
     # The type follows the piece that carried the most energy: a DC stop inside an AC night must not
@@ -4440,6 +4466,10 @@ def _charge_group_stats(parent: dict, children: list) -> dict:
     d["charge_type"] = max(pieces, key=lambda c: c.get("energy_added_kwh") or 0).get("charge_type")
     d["duration_min"] = _minutes_between(d["started_at"], d["ended_at"])
     d["child_ids"] = [c["id"] for c in children]
+    # The pieces themselves, for `_billed_kwh`: the sums above lose which piece the meter measured,
+    # and the billed figure of a group is decided piece by piece. Private, and a list, so the CSV
+    # export drops it like `child_ids`.
+    d["_pieces"] = pieces
     return d
 
 
@@ -7345,6 +7375,66 @@ def charge_efficiency(ac, dc):
     return eff if eff <= 100 else None
 
 
+def charge_energy_view(c) -> dict:
+    """Which kWh ONE charge leads with, and what stands under it — the charge card's rule, in the
+    one place the card and the Overview's Last-charge tile both read it from.
+
+        headline_kwh    the wallbox counter on a HOME charge that has one (`show_wb` on the card),
+                        else the battery figure — or, on a merged charge whose pieces bill on
+                        different figures, what they bill (`_billed_kwh`)
+        headline        'wallbox' | 'battery' | 'delivered'
+        has_home_meter  a stored home-meter reading, even if it covers only part of a group;
+                        keeps the solar/gross editors independent of the headline variant
+        battery_kwh     the battery figure, shown under the headline in the other two variants
+        wallbox_eff     `charge_efficiency(counter, battery)` in the wallbox variant — the one
+                        definition the Wallbox page reads too (#295) — or None
+        gross_kwh       the charger's own kWh (#222) where the owner typed one — whichever figure
+                        leads: the field that holds it keeps showing what was typed even on a home
+                        charge the meter measured (re-tagged after typing), it is the CARD that
+                        decides not to offer the field there
+        gross_eff       100 × battery ÷ typed figure, unrounded, only when the typed figures
+                        cover the whole charge, or None
+        gross_lost_kwh  typed figure − battery, when `gross_eff` is shown
+
+    A merged charge leads with the counter only when the counter measured EVERY piece: on 12 kWh
+    metered for the first piece and nothing for the second, the group's summed columns read as
+    "HOME with a counter" and the card said "12.0 kWh wallbox (billed)" over a cost computed on 17.
+    Such a charge — a meter or a typed figure covering some pieces and not others — leads with the
+    figure it bills, under the word the totals use for the same sum, and the battery figure under
+    it; the gross line stays what it is on any card, the typed figure and the way to type one.
+    A single charge never takes that variant: its billed figure IS the counter, the typed figure
+    or the battery one.
+
+    An efficiency is hidden when it would be nonsense: `wallbox_eff` above 100 % (charge_efficiency
+    decides that) and `gross_eff` when the typed figure is not above the battery one. The two thresholds differ at
+    exactly 100 % (the wallbox shows it, the gross hides it): that is how the two partials behaved
+    before the rule moved here, kept as found; levelling them is a separate change.
+
+    Not `wallbox_session_energy`: that one rounds, returns None on a zero battery figure and serves
+    the Wallbox page's own colour thresholds."""
+    ac = c.get("ac_energy_kwh")
+    dc = c.get("energy_added_kwh") or 0
+    g = c.get("gross_kwh")
+    out = {"headline_kwh": dc, "headline": "battery", "battery_kwh": dc, "wallbox_eff": None,
+           "gross_kwh": None, "gross_eff": None, "gross_lost_kwh": None,
+           "has_home_meter": _metered_at_home(c)}
+    if all(_metered_at_home(p) for p in c.get("_pieces") or [c]):
+        out["headline_kwh"], out["headline"] = ac, "wallbox"
+        out["wallbox_eff"] = charge_efficiency(ac, dc)
+    else:
+        billed = _billed_kwh(c)
+        if abs(billed - (g if g and g > 0 else dc)) > 1e-9:
+            out["headline_kwh"], out["headline"] = billed, "delivered"
+    if g and g > 0:
+        out["gross_kwh"] = g
+        pieces = c.get("_pieces")
+        # The battery sum covers the whole charge; a partial gross cannot measure its losses.
+        covers_charge = not pieces or None not in _gross_figures(pieces)[1]
+        if covers_charge and dc and g - dc > 0:
+            out["gross_eff"], out["gross_lost_kwh"] = 100 * dc / g, g - dc
+    return out
+
+
 def wallbox_ac_dc_totals(charges) -> dict:
     """AC delivered vs DC into the battery over a set of charges, from the STORED columns.
 
@@ -7928,6 +8018,15 @@ def _charges_have_gross(db) -> bool:
         return False
 
 
+def _charges_have_gross_from(db) -> bool:
+    """Whether the charges table says which rows a typed gross_kwh covers (see `_gross_figures`).
+    Same per-call reasoning as `_charges_have_gross`."""
+    try:
+        return any(r[1] == "gross_kwh_from" for r in db.execute("PRAGMA table_info(charges)"))
+    except sqlite3.Error:
+        return False
+
+
 def _charges_have_cost_manual(db) -> bool:
     """Whether the charges table carries the cost_manual column yet (see poller/schema.py's
     migration comment for what it splits apart). Same per-call reasoning as `_charges_have_gross` —
@@ -7965,14 +8064,45 @@ def _charges_have_odometer(db) -> bool:
         return False
 
 
+def _metered_at_home(c) -> bool:
+    """The home wallbox measured this row: the figure a HOME charge is billed on, and the one the
+    card leads with. One test, because the billing rule and the card must agree on it."""
+    return c.get("location_type") == "HOME" and (c.get("ac_energy_kwh") or 0) > 0
+
+
+def _gross_figures(pieces) -> tuple[dict, dict]:
+    """Which typed figure (#222) covers which piece of a merged charge.
+
+    A figure typed on the merged card is the whole plug-in's; one typed on a row's own card before
+    the merge is that row's, and a piece merged in afterwards is covered by neither. The rows cannot
+    tell these apart by themselves, so `set_charge_gross_kwh` writes it down at the only moment it
+    is known: `gross_kwh_from` on every row a figure covers names the row that holds it. Merging
+    and unmerging rewrite nothing, so the scope survives both, in either direction.
+
+    Returns ({holder id: holder row}, {holder id or None: [pieces it covers]}). A row whose
+    `gross_kwh_from` names a row that is here and holds a figure is covered by that figure — even
+    when it holds a figure of its own (typed before the merge, then superseded by one typed on the
+    merged card: the older figure stays on its row, so an unmerge gives it back, and counts for
+    nothing while it is covered). Otherwise a row holding a figure is covered by its own, and a row
+    holding none is covered by none — it bills on its own rule, like before it was merged."""
+    holders = {p.get("id"): p for p in pieces if (p.get("gross_kwh") or 0) > 0}
+    covered: dict = {}
+    for p in pieces:
+        src = p.get("gross_kwh_from")
+        if src not in holders:
+            src = p.get("id") if p.get("id") in holders else None
+        covered.setdefault(src, []).append(p)
+    return {src: holders[src] for src in covered if src is not None}, covered
+
+
 def _billed_kwh(c) -> float:
     """The energy figure SHOWN (and billed) for a charge — what came OUT of the charger:
 
         wallbox counter (measured)  →  the charger's own kWh (#222, typed)  →  battery kWh
 
     Single source of truth so the per-charge card, the period totals, get_charge_stats and the
-    Ricariche calendar all agree. Mirrors the SQL CASE in get_charge_stats and the card's `show_wb`
-    condition (charges.html). Same order as update_charge_type prices a charge, deliberately: the
+    Ricariche calendar all agree. The card leads with the same figure (charge_energy_view), and the
+    €/kWh on it divides by this. Same order as update_charge_type prices a charge, deliberately: the
     thing that billed you is the thing that delivered.
 
     ⚠️ The third branch is not a gross figure at all; it is the only number that exists for a charge
@@ -7984,10 +8114,28 @@ def _billed_kwh(c) -> float:
     Ricariche calendar had started saying "delivered" with the typed figure in it while this one
     still ignored it, and two totals under two words that mean the same thing is worse than one
     total that can be mistyped. It stays out of `_wac_blend`, which divides by the energy that
-    actually reached the battery — a trip consumes that, not what the meter saw."""
-    ac = c.get("ac_energy_kwh")
-    if c.get("location_type") == "HOME" and ac and ac > 0:
-        return ac
+    actually reached the battery — a trip consumes that, not what the meter saw.
+
+    ⚠️ A plug-in the car reported in PIECES (merged, `_charge_group_stats`) is the sum of the rule
+    over its pieces, NOT the rule over the group's summed columns: the meter may have measured one
+    piece and dropped the next as implausible (the poller does that), or the pieces may carry
+    different types (merging never changes them), and on the summed columns "HOME with a counter"
+    billed the metered piece alone — 12 kWh for 12 + 5, the same charge that read 17 before it was
+    merged. A typed figure counts once for the pieces it covers (`_gross_figures` says which) —
+    unless a home meter measured every one of them, which beats a typed figure exactly as on a
+    single charge — and every piece no figure covers counts on its own rule beside it."""
+    pieces = c.get("_pieces")
+    if pieces:
+        holders, covered = _gross_figures(pieces)
+        total = 0.0
+        for src, ps in covered.items():
+            if src is None or all(_metered_at_home(p) for p in ps):
+                total += sum(_billed_kwh(p) for p in ps)
+            else:
+                total += holders[src]["gross_kwh"]
+        return total
+    if _metered_at_home(c):
+        return c["ac_energy_kwh"]
     g = c.get("gross_kwh")
     if g and g > 0:
         return g
@@ -8368,7 +8516,7 @@ def get_stats_summary() -> dict:
     charges = db.execute(
         """SELECT
                COUNT(*)                         AS charge_count,
-               ROUND(SUM(energy_added_kwh), 2)  AS total_kwh_charged,
+               ROUND(SUM(energy_added_kwh), 2)  AS total_kwh_battery,
                ROUND(SUM(cost), 2)              AS total_cost,
                MIN(ended_at)                    AS _since_charge
            FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL""",
@@ -8381,6 +8529,12 @@ def get_stats_summary() -> dict:
     # Driving time/excluded reconstructed durations and total regen stay per-segment:
     # merging must not turn a reconstructed segment's blackout into measured driving.
     c = dict(charges) if charges else {}
+    # The energy charged is the BILLED one — `_billed_kwh`, the rule every other total on every
+    # other page sums by — with what reached the battery beside it. It was the battery sum alone
+    # here, the one total in Mate computed by a rule of its own. Over the merged sessions, not the
+    # stored rows, for the reason get_charge_stats gives: a typed figure covers the whole plug-in.
+    groups = get_charges(limit=1_000_000)
+    c["total_kwh_charged"] = round(sum(_billed_kwh(g) for g in groups), 2) if groups else None
     total_kwh = t.get("total_kwh_used") or 0
     total_regen = t.get("total_regen_kwh") or 0
     t["regen_pct"] = round(total_regen / total_kwh * 100, 1) if total_kwh > 0 else None
@@ -8396,28 +8550,14 @@ def get_stats_summary() -> dict:
 
 def get_charge_stats() -> dict:
     db = _get()
-    # The middle branch only exists where the column does — see _charges_have_gross.
-    _g = ("WHEN gross_kwh IS NOT NULL AND gross_kwh > 0 THEN gross_kwh "
-          if _charges_have_gross(db) else "")
     row = db.execute(
-        f"""SELECT
+        """SELECT
                COUNT(*)                            AS session_count,
-               -- billed energy, in _billed_kwh's own order: the wallbox counter, then the
-               -- charger's own kWh where the owner typed it (#222), then the battery
-               ROUND(SUM(CASE WHEN location_type='HOME' AND ac_energy_kwh IS NOT NULL AND ac_energy_kwh > 0
-                              THEN ac_energy_kwh
-                              {_g}
-                              ELSE energy_added_kwh END), 2)  AS total_kwh,
+               -- what reached the battery, said beside the billed total (the month strip's pair)
+               ROUND(SUM(energy_added_kwh), 2)    AS battery_kwh,
                ROUND(AVG(duration_min / 60.0), 1) AS avg_duration_h,
                ROUND(SUM(cost), 2)                AS total_cost,
-               -- the SAME billed energy, but only over the charges that HAVE a cost: the €/kWh
-               -- divides by this, never by total_kwh (see price_coverage)
                COUNT(cost)                        AS priced_count,
-               ROUND(SUM(CASE WHEN cost IS NOT NULL THEN
-                              CASE WHEN location_type='HOME' AND ac_energy_kwh IS NOT NULL AND ac_energy_kwh > 0
-                                   THEN ac_energy_kwh
-                                   {_g}
-                                   ELSE energy_added_kwh END END), 2) AS priced_kwh,
                ROUND(AVG(end_soc - start_soc), 1) AS avg_soc_delta,
                ROUND(MAX(max_power_kw), 2)        AS peak_power_kw
            FROM charges
@@ -8427,19 +8567,26 @@ def get_charge_stats() -> dict:
     if not row:
         return {}
     d = dict(row)
-    # Four of those figures COUNT or AVERAGE charges, and a plug-in the car split into several rows
-    # would count several times: the session tally, the €/kWh denominator, and the two averages.
-    # They are recomputed over the composed groups. The plain SUMs above are left alone — a group's
-    # pieces sum to the group, so including the children is not just harmless, it is required.
+    # Several of those figures are wrong over the stored rows once a plug-in the car split into
+    # several rows has been merged, so they are computed over the composed groups instead: the
+    # session tally and the two averages would count the pieces several times, and the two billed
+    # sums are not plain sums at all. The plain SUMs above are the ones a group's pieces really add
+    # up to (the battery kWh, the money), so there the children are not just harmless, they are
+    # required.
     #
-    # ⚠️ `priced_kwh` is NOT a plain SUM: it is conditional on `cost IS NOT NULL`, and that
-    # condition does not survive the split. A group priced by a MANUAL total (or a typed #222 gross)
-    # keeps the whole cost on the parent and writes cost=NULL on the children by design — so the
-    # children's kWh were dropped from the denominator while all their euros stayed in the
-    # numerator, and the "€/kWh actually paid" card read 0,60 for 15 kWh bought at 0,40. Recomputed
-    # over the groups with `_billed_kwh`, which is the same rule the SQL CASE above encodes.
+    # ⚠️ `total_kwh`: the charger's own kWh (#222) is typed for the WHOLE plug-in and stored on the
+    # parent alone, so applying `_billed_kwh` row by row adds the children's battery kWh to a figure
+    # that already covers them — 10 + 5 kWh in the battery and 30 typed came out as 35, while the
+    # card, the calendar and the AC/DC split (all over the groups) said 30. Same rule, over the
+    # same groups.
+    # ⚠️ `priced_kwh` is conditional on `cost IS NOT NULL`, and that condition does not survive the
+    # split either. A group priced by a MANUAL total (or a typed #222 gross) keeps the whole cost on
+    # the parent and writes cost=NULL on the children by design — so the children's kWh were dropped
+    # from the denominator while all their euros stayed in the numerator, and the "€/kWh actually
+    # paid" card read 0,60 for 15 kWh bought at 0,40.
     groups = get_charges(limit=1_000_000)
     d["session_count"] = len(groups)
+    d["total_kwh"] = round(sum(_billed_kwh(g) for g in groups), 2) if groups else None
     d["priced_count"] = sum(1 for g in groups if g.get("cost") is not None)
     prezzati = [_billed_kwh(g) for g in groups if g.get("cost") is not None]
     d["priced_kwh"] = round(sum(prezzati), 2) if prezzati else None
