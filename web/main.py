@@ -447,6 +447,21 @@ def _fmt_dur(minutes) -> str:
     return f"{m // 60}h {m % 60:02d}m"
 
 
+def _ago(t, seconds) -> str:
+    """"How long ago", in the reader's own language. db_reader computes the seconds and can't
+    translate them (no request, no locale there), so every "…ago" on screen goes through here.
+    Until #178 put an Italian phrase next to it, the Overview's `last seen` was English for
+    everyone and nobody noticed it standing alone."""
+    if seconds is None:
+        return "—"
+    s = max(int(seconds), 0)
+    if s < 60:
+        return t("ago_s").format(n=s)
+    if s < 3600:
+        return t("ago_m").format(n=s // 60)
+    return t("ago_h").format(n=s // 3600)
+
+
 def _ctx(**kwargs):
     """Add shared helpers + i18n to every template context."""
     # Lazy auto-confirm sweep (like update_check: piggybacks on page renders, no bg loop).
@@ -478,18 +493,7 @@ def _ctx(**kwargs):
         return t("state_parked")
 
     def ago(seconds) -> str:
-        """"How long ago", in the reader's own language. db_reader computes the seconds and can't
-        translate them (no request, no locale there), so every "…ago" on screen goes through here.
-        Until #178 put an Italian phrase next to it, the Overview's `last seen` was English for
-        everyone and nobody noticed it standing alone."""
-        if seconds is None:
-            return "—"
-        s = max(int(seconds), 0)
-        if s < 60:
-            return t("ago_s").format(n=s)
-        if s < 3600:
-            return t("ago_m").format(n=s // 60)
-        return t("ago_h").format(n=s // 3600)
+        return _ago(t, seconds)
 
     wallbox_enabled = db_reader.get_setting("wallbox_enabled", "0") == "1"
     # Active wallbox profile: shown in sidebar + page title + profiles panel.
