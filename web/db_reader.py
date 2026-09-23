@@ -7310,7 +7310,12 @@ def wallbox_session_energy(charge) -> dict:
     dc = dc if (dc and dc > 0) else None
     return {"ac_kwh": round(ac, 2) if ac else None,
             "dc_kwh": round(dc, 2) if dc else None,
-            "eff": charge_efficiency(ac, dc)}
+            "eff": _round1(charge_efficiency(ac, dc))}
+
+
+def _round1(x):
+    """A tenth, for the pages whose contract is a tenth — None passes through."""
+    return None if x is None else round(x, 1)
 
 
 def charge_efficiency(ac, dc):
@@ -7326,10 +7331,17 @@ def charge_efficiency(ac, dc):
     ⚠️ This withholds a RATIO. It never decides which of the two figures is wrong and never
     discards one — `poller/db.py` is deliberate that a DC figure resting on a battery capacity the
     owner types in must not be allowed to discredit a measured one. Both kWh stay on screen.
+
+    ⚠️ Returned UNROUNDED, and the threshold reads the unrounded number. Rounding first made the
+    function wrong twice over (@arekm, found on the v3.17.4 code while rebasing #297): 25.01 kWh
+    into the battery for 25.00 from the wall is 100.04 %, impossible, but rounds to exactly 100.0
+    and slipped through its own test; and the card, which rounds again for display, turned 85.48 %
+    into 85.5 and then into 86 — a point higher than the same charge read in v3.17.3. Callers that
+    publish a tenth round it themselves.
     """
     if not ac or not dc or ac <= 0 or dc <= 0:
         return None
-    eff = round(100 * dc / ac, 1)
+    eff = 100 * dc / ac
     return eff if eff <= 100 else None
 
 
@@ -7365,7 +7377,7 @@ def wallbox_ac_dc_totals(charges) -> dict:
     if not counted:
         return {"ac": None, "dc": None, "eff": None, "counted": 0, "skipped": skipped}
     return {"ac": round(ac, 2), "dc": round(dc, 2),
-            "eff": charge_efficiency(ac, dc),
+            "eff": _round1(charge_efficiency(ac, dc)),
             "counted": counted, "skipped": skipped}
 
 

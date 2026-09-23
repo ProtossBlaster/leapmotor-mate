@@ -19,6 +19,7 @@ types in must never discredit a measured one. This is about what a page may asse
 import pathlib
 
 import db_reader
+import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -77,3 +78,34 @@ def test_the_wallbox_page_shows_a_withheld_ratio_as_a_dash():
     macro = (ROOT / "web/templates/partials/wallbox_sessions.html").read_text()
     assert "{% if eff is none %}text-slate-600" in macro
     assert "{% if eff is not none %}{{ eff | nice }}%{% else %}—{% endif %}" in macro
+
+
+# ── the ratio is rounded once, and the threshold reads the real number ───────
+# Both found by @arekm while rebasing #297, on the v3.17.4 code: the function rounded to a tenth
+# BEFORE its own 100 % check and the card rounded again, so a charge could read one point higher
+# than in v3.17.3 and an impossible ratio could survive by rounding down onto the threshold.
+
+def test_the_threshold_reads_the_unrounded_ratio():
+    """25.01 kWh into the battery for 25.00 from the wall is impossible. Rounded to a tenth it
+    becomes exactly 100.0 and slips through a `<= 100` test — the docstring says it must not."""
+    assert db_reader.charge_efficiency(ac=25.0, dc=25.01) is None
+
+
+def test_exactly_100_still_passes():
+    assert db_reader.charge_efficiency(ac=25.0, dc=25.0) == 100.0
+
+
+def test_the_ratio_is_not_rounded_twice():
+    """85.48 % must reach the card as 85.48, so its own dec(0) shows 85 as it did in v3.17.3 —
+    not 85.5 rounded again to 86."""
+    assert db_reader.charge_efficiency(ac=25.0, dc=21.37) == pytest.approx(85.48, abs=1e-9)
+
+
+def test_the_pages_that_round_to_a_tenth_still_do():
+    """The Wallbox page's own contract: one decimal, unchanged."""
+    assert db_reader.wallbox_session_energy(_row(ac=25.0, dc=21.37))["eff"] == 85.5
+    assert db_reader.wallbox_ac_dc_totals([_row(ac=25.0, dc=21.37)])["eff"] == 85.5
+
+
+def test_a_session_impossible_only_before_rounding_is_withheld_there_too():
+    assert db_reader.wallbox_session_energy(_row(ac=25.0, dc=25.01))["eff"] is None
