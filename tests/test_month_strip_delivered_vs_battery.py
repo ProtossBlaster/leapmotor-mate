@@ -343,11 +343,9 @@ def test_a_figure_typed_on_one_row_covers_that_row(env):
     assert tuple(row) == (12.0, 1)
 
 
-def test_the_column_is_added_to_an_existing_database_and_old_figures_keep_their_meaning(tmp_path):
-    """Before the column, a figure on a row with children was read as the whole plug-in's by the
-    calendar and priced as such. The migration says so on those pieces, rather than turning it
-    into one row's figure overnight; a figure on any other row covers that row, as it always did;
-    a row with no figure is covered by nothing."""
+def test_legacy_pieces_without_readings_or_costs_keep_the_parents_scope(tmp_path):
+    """Retain the legacy group interpretation when the child has no reading or price of its own;
+    standalone rows keep their own readings."""
     import sqlite3
     path = str(tmp_path / "old.db")
     D.Database(path)                                   # today's schema…

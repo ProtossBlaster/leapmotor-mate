@@ -354,16 +354,22 @@ def ensure_schema(conn) -> None:
     # migration: #222 — the charger's own kWh, typed in for a public charge
     if "gross_kwh" not in ccols:
         conn.execute("ALTER TABLE charges ADD COLUMN gross_kwh REAL")
-    # migration: which rows that figure covers. Until this column a figure on a row with children
-    # was read as the whole plug-in's by the calendar and priced as such (the group once, the pieces
-    # at no cost) — the backfill says so on those pieces rather than silently turning it into one
-    # row's figure; a figure on any other row covers that row.
+    # Backfill which pieces a legacy reading covers, without repricing stored costs. A group entry
+    # cleared its children's costs: infer that scope when the parent has an automatic price.
+    # With no parent price or a manual total, entry order is ambiguous; retain own positive readings.
+    # Pieces with their own costs stay independent; unpriced pieces without readings use the parent.
     if "gross_kwh_from" not in ccols:
         conn.execute("ALTER TABLE charges ADD COLUMN gross_kwh_from INTEGER")
         conn.execute("UPDATE charges SET gross_kwh_from=id WHERE gross_kwh > 0")
         if "merged_into_id" in ccols:
+            # Older schemas encode manual pricing in the type, before cost_manual is added below.
+            automatic = "COALESCE(location_type, '') != 'MANUAL'"
+            if "cost_manual" in ccols:
+                automatic += " AND COALESCE(cost_manual, 0) = 0"
             conn.execute("UPDATE charges SET gross_kwh_from=merged_into_id WHERE merged_into_id IN "
-                         "(SELECT id FROM charges WHERE gross_kwh > 0)")
+                         "(SELECT id FROM charges WHERE gross_kwh > 0) AND cost IS NULL "
+                         "AND (COALESCE(gross_kwh, 0) <= 0 OR merged_into_id IN "
+                         f"(SELECT id FROM charges WHERE cost IS NOT NULL AND {automatic}))")
     # migration: #272 — the owner's own solar kWh, subtracted from the wallbox energy before pricing
     if "solar_kwh" not in ccols:
         conn.execute("ALTER TABLE charges ADD COLUMN solar_kwh REAL")
