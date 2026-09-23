@@ -123,20 +123,23 @@ def test_every_language_carries_the_new_strings():
 
 
 def test_both_places_that_show_a_time_ago_go_through_the_translator():
-    """find-every-copy: `last seen` is rendered in TWO templates — the status card and the map
-    popup. Translating one and forgetting the other is exactly how the Overview ends up speaking
-    two languages at once, which is what this whole change is here to stop."""
+    """find-every-copy: `last seen` is shown in TWO places — the status card and the map popup.
+    Translating one and forgetting the other is exactly how the Overview ends up speaking two
+    languages at once, which is what this whole change is here to stop. The card is checked here.
+    The popup's words are built by main._last_position since the map started following the car,
+    and the map's own tests check them in the reader's language
+    (test_the_overview_map_follows_the_car.py)."""
     import pathlib
     root = pathlib.Path(__file__).resolve().parent.parent / "web" / "templates"
-    for rel in ("partials/status_card.html", "overview.html"):
-        html = (root / rel).read_text(encoding="utf-8")
-        # ⚠️ This asserted the literal `ago(status.last_seen_s)` until v3.8.8, and went red the day
-        # #232 changed WHICH seconds go in — the frame's age instead of the row's. The rule it
-        # exists for is unchanged and is the one pinned here: the figure goes through the
-        # translator. Pinning the argument as well made it a test of a decision it has no opinion
-        # about. Which seconds are correct is test_last_seen_is_when_the_car_spoke.py's job.
-        assert re.search(r"\bago\(\s*status\.", html), f"{rel} still renders a raw English string"
-        assert "status.last_seen }}" not in html, f"{rel} still prints the untranslated last_seen"
+    assert "status.last_seen }}" not in (root / "overview.html").read_text(encoding="utf-8")
+    html = (root / "partials" / "status_card.html").read_text(encoding="utf-8")
+    # ⚠️ This asserted the literal `ago(status.last_seen_s)` until v3.8.8, and went red the day
+    # #232 changed WHICH seconds go in — the frame's age instead of the row's. The rule it
+    # exists for is unchanged and is the one pinned here: the figure goes through the
+    # translator. Pinning the argument as well made it a test of a decision it has no opinion
+    # about. Which seconds are correct is test_last_seen_is_when_the_car_spoke.py's job.
+    assert re.search(r"\bago\(\s*status\.", html), "the status card renders a raw English string"
+    assert "status.last_seen }}" not in html, "the status card prints the untranslated last_seen"
 
 
 def test_a_car_clock_ahead_of_the_host_is_not_staleness(tmp_path, monkeypatch):

@@ -133,40 +133,122 @@
 
   <!-- Map (last known position) -->
   <div class="card md:col-span-1 lg:col-span-1 min-h-64">
-    {% if status and status.latitude and status.longitude %}
-    <div class="stat-label mb-3">{{ t('last_position') }}</div>
-    <div id="map" class="w-full rounded-lg" style="height:280px"></div>
     <link rel="stylesheet" href="static/vendor/leaflet/leaflet.css"/>
     <script src="static/vendor/leaflet/leaflet.js"></script>
-    <script>
-      const map = L.map('map').setView([{{ status.latitude }}, {{ status.longitude }}], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-        // OSM blocks tiles with no Referer; send the page origin so they load in privacy-strict Firefox.
-        referrerPolicy: 'origin'
-      }).addTo(map);
-      const icon = L.divIcon({
-        html: '<div style="background:#14b8a6;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5)"></div>',
-        iconSize: [14,14], iconAnchor: [7,7]
-      });
-      {# When the CAR last reported this position, not when we last wrote a row. The poller records
-         a row every 30 s while parked even when the cloud is re-serving one frozen frame, so
-         last_seen_s said "22 seconds ago" over a marker that had not moved in sixteen hours —
-         which is exactly what @rop12770 was looking at in #232 while asking why his car was in the
-         sea. data_age_s comes from the frame's own timestamp and is always measured (see
-         _data_age); it is None only for a car that reports no clock at all, and there
-         last_seen_s is the best we have. #}
-      L.marker([{{ status.latitude }}, {{ status.longitude }}], {icon}).addTo(map)
-        .bindPopup('{{ vehicle.car_type if vehicle else "Leapmotor" }} — {{ ago(status.data_age_s if status.data_age_s is not none else status.last_seen_s) }}').openPopup();
-    </script>
-    {% else %}
-    <div class="flex items-center justify-center h-64 text-slate-500">
-      <div class="text-center">
-        <div class="text-4xl mb-2">🗺</div>
-        <div>{{ t('last_position') }}</div>
+    <div id="map-box"{% if last_position.lat is none %} style="display:none"{% endif %}>
+      <div class="stat-label mb-3">{{ t('last_position') }}</div>
+      <div id="map" class="w-full rounded-lg" style="height:280px"></div>
+    </div>
+    <div id="map-empty"{% if last_position.lat is not none %} style="display:none"{% endif %}>
+      <div class="flex items-center justify-center h-64 text-slate-500">
+        <div class="text-center">
+          <div class="text-4xl mb-2">🗺</div>
+          <div>{{ t('last_position') }}</div>
+        </div>
       </div>
     </div>
-    {% endif %}
+    {# The marker follows the car. It was drawn once, at page load, beside a status card that
+       refreshes itself — so the page said "6 s ago" over a position from whenever it was opened.
+       The page embeds main._last_position for its first paint, and the map polls the same builder
+       at /api/last-position, as often as it says. One request at a time, and none while the tab is
+       hidden: a reply can never arrive after a newer one and move the marker back. A request is
+       given one interval, body included, and aborted after it — a reply that late is older than
+       the next one would be, and a connection a proxy left hanging must not stop the map for good.
+       A reply without a usable interval keeps the last one; a reply that says there is no
+       position brings the placeholder back, and anything else that is not a position is treated
+       like a failed poll. The map pans only when the car moves — further than a parked car's GPS
+       wanders — and then recentres on it once it comes within a quarter of the view from an edge,
+       before it reaches the edge and its popup is cut off. Never under the owner's hand: a move
+       that arrives while the map is being dragged, flung or zoomed waits until it settles; and
+       never because the owner panned away from a car standing still. The popup opens once and
+       never pans the map (autoPan is off). Local data only; nothing here reaches Leapmotor. #}
+    <script>
+      (function () {
+        const START_ZOOM = 15;
+        const FOLLOW_EDGE = 0.25;   // recentre once the car is within a quarter of the view from an edge
+        const STILL_M = 5;          // a parked car's GPS wanders under a metre; less is not the car moving
+        const MAX_TIMER_MS = 2 ** 31 - 1;   // setTimeout fires a longer delay at once
+        const box = document.getElementById('map-box');
+        const empty = document.getElementById('map-empty');
+        const label = document.createElement('span');   // text, never HTML: the car's name is data
+        let map = null, marker = null, refreshS = null, timer = null, busy = false;
+        let gesture = false, follow = false;   // the owner is moving the map; a car move waits for it
+
+        function show(pos) {
+          if (pos === null || typeof pos !== 'object') return;   // not a reply: as if the poll failed
+          // Keep the last good interval: a missing or broken one would make the timer and the
+          // deadline fire at once, and the map would ask without pause.
+          const s = Number(pos.refresh_s);
+          if (Number.isInteger(s) && s > 0 && s * 1000 <= MAX_TIMER_MS) refreshS = s;
+          if (pos.lat === null || pos.lon === null) {             // no position (yet): the placeholder
+            box.style.display = 'none';
+            empty.style.display = '';
+            return;
+          }
+          if (typeof pos.lat !== 'number' || typeof pos.lon !== 'number') return;   // as if it failed
+          const reappears = box.style.display === 'none';
+          box.style.display = '';
+          empty.style.display = 'none';
+          const at = L.latLng(pos.lat, pos.lon);
+          label.textContent = pos.label;
+          if (!map) {
+            map = L.map('map').setView(at, START_ZOOM);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap',
+              // OSM blocks tiles with no Referer; send the page origin so they load in privacy-strict Firefox.
+              referrerPolicy: 'origin'
+            }).addTo(map);
+            const icon = L.divIcon({
+              html: '<div style="background:#14b8a6;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5)"></div>',
+              iconSize: [14,14], iconAnchor: [7,7]
+            });
+            marker = L.marker(at, {icon}).addTo(map).bindPopup(label, {autoPan: false}).openPopup();
+            map.on('movestart', function () { gesture = true; });
+            map.on('moveend', function () { gesture = false; followCar(); });
+            return;
+          }
+          if (reappears) map.invalidateSize();   // a resize while it was hidden measured it as 0×0
+          if (marker.getLatLng().distanceTo(at) >= STILL_M) follow = true;
+          marker.setLatLng(at);
+          marker.getPopup().update();
+          followCar();
+        }
+
+        // Recentre on a car that moved and now sits near an edge — once the map is still: a panTo
+        // while the owner drags, flings or zooms would fight the gesture or be dropped by it.
+        function followCar() {
+          if (!follow || gesture) return;
+          follow = false;
+          const at = marker.getLatLng();
+          if (!map.getBounds().pad(-FOLLOW_EDGE).contains(at)) map.panTo(at);
+        }
+
+        function schedule() {
+          clearTimeout(timer);
+          timer = setTimeout(refresh, refreshS * 1000);
+        }
+
+        function refresh() {
+          clearTimeout(timer);
+          // Hidden: visibilitychange picks it up again. Busy: the request in flight reschedules.
+          if (document.hidden || busy) return;
+          busy = true;
+          const ctl = new AbortController();
+          const deadline = setTimeout(function () { ctl.abort(); }, refreshS * 1000);
+          fetch('api/last-position', { cache: 'no-store', signal: ctl.signal })
+            .then(function (r) { return r.ok ? r.json() : null; })   // an abort rejects this too
+            .then(function (pos) { if (pos) show(pos); })
+            .catch(function () {})
+            .finally(function () { clearTimeout(deadline); busy = false; schedule(); });
+        }
+
+        document.addEventListener('visibilitychange', function () {
+          if (!document.hidden) refresh();
+        });
+        show({{ last_position | tojson }});
+        schedule();
+      })();
+    </script>
   </div>
 
   <!-- Recent trips -->

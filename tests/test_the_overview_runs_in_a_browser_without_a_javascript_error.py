@@ -51,10 +51,9 @@ def _free_port() -> int:
 def _seed(db_path: pathlib.Path) -> None:
     """The smallest database that reaches the code under test.
 
-    A latitude and a longitude are not decoration here: they are what puts the Overview down the
-    `{% if status.latitude and status.longitude %}` branch, and that branch is where the Leaflet
-    script lives. Seed a car with no fix and this test would pass over a page that never ran the
-    half we care about.
+    A latitude and a longitude are not decoration here: the Overview's map, and the Leaflet code
+    that draws it, is created only from a real position. Seed a car with no fix and this test would
+    pass over a page that never ran the half we care about.
 
     `speed_kmh` is written explicitly, and 0.0 rather than left out, because leaving it out is a
     500: main._driving does `pos.get("speed_kmh", 0) > 1`, and a default only answers for a key
