@@ -88,7 +88,7 @@ def test_a_typed_figure_equal_to_the_battery_one_shows_no_efficiency():
 def test_a_battery_figure_alone_is_just_that():
     e = db_reader.charge_energy_view(_public(20.0))
     assert e == {"headline_kwh": 20.0, "headline": "battery", "battery_kwh": 20.0, "wallbox_eff": None,
-                 "gross_kwh": None, "gross_eff": None, "gross_lost_kwh": None}
+                 "gross_kwh": None, "gross_eff": None, "gross_lost_kwh": None, "has_home_meter": False}
 
 
 def test_the_meter_leads_over_a_typed_figure_at_home_and_the_typed_figure_is_kept():
@@ -129,6 +129,7 @@ def mate(tmp_path, monkeypatch):
     monkeypatch.setattr(db_reader, "DB_PATH", path)
     pdb._conn.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (1,'V','C10')")
     pdb._conn.commit()
+    db_reader.set_setting("setup_complete", "1")     # or "/" is the setup wizard, not the Overview
     monkeypatch.setattr(db_reader, "_lang_memo", [None])
     return pdb, TestClient(main.app)
 
@@ -233,6 +234,61 @@ def test_under_solar_pricing_an_unmetered_home_charge_says_so_and_offers_neither
     assert 'id="sk-4"' not in html and 'id="gk-form-4"' not in html
 
 
+# ── the Overview's Last-charge tile ────────────────────────────────────────────
+
+def _last_charge_tile(html):
+    i = html.index("<!-- Last charge -->")
+    return " ".join(html[i:html.index("</div>\n  </div>", i)].split())
+
+
+def test_the_tile_at_home_with_a_meter_says_what_was_billed_and_what_reached_the_battery(mate):
+    pdb, client = mate
+    _charge(pdb, 1, 3, 12.6, ac=14.87, cost=8.71)
+    tile = _last_charge_tile(client.get("/").text)
+    assert "+14.9 kWh" in tile and "🔌 wallbox (billed)" in tile
+    assert "🔋 12.6 kWh In battery (DC) · efficiency 85%" in tile
+    assert ">Energy<" in tile and "Energy added" not in tile
+
+
+def test_the_tile_and_the_card_print_the_same_efficiency(mate):
+    """Both read `charge_efficiency` through the helper and print it with dec(0) — AC 25 / DC 21.37
+    is a charge where two roundings of the same ratio could disagree."""
+    pdb, client = mate
+    _charge(pdb, 1, 3, 21.37, ac=25.0)
+    shown = f"efficiency {db_reader.charge_efficiency(25.0, 21.37):.0f}%"
+    assert shown in _last_charge_tile(client.get("/").text)
+    assert shown in _energy_tile(_day(client, 3))
+
+
+def test_the_tile_with_a_typed_figure_says_it_on_its_own_line(mate):
+    pdb, client = mate
+    _charge(pdb, 2, 4, 37.6, gross=41.5, ctype="AC")
+    tile = _last_charge_tile(client.get("/").text)
+    assert "+37.6 kWh" in tile and "🔋 In battery (DC)" in tile
+    assert "🔌 41.50 kWh delivered by the charger · efficiency 91% (lost 3.9 kWh)" in tile
+    assert "wallbox (billed)" not in tile
+
+
+def test_the_tile_with_the_battery_figure_alone_says_just_that(mate):
+    pdb, client = mate
+    _charge(pdb, 3, 5, 20.0, ctype="AC")
+    tile = _last_charge_tile(client.get("/").text)
+    assert "+20.0 kWh" in tile and "🔋 In battery (DC)" in tile
+    assert "efficiency" not in tile and "delivered by the charger" not in tile
+
+
+def test_the_tile_has_no_pencil():
+    """Typing the charger's figure stays on the Charges page, beside the charge it belongs to."""
+    src = (TEMPLATES / "overview.html").read_text()
+    assert "charge_gross_kwh.html" not in src and "✎" not in src.split("<!-- Last charge -->")[1].split("{% else %}")[0]
+
+
+def test_an_empty_database_still_renders_the_overview(mate):
+    _, client = mate
+    r = client.get("/")
+    assert r.status_code == 200 and "No charges recorded yet" in r.text
+
+
 def test_a_typed_figure_survives_being_re_tagged_to_home(mate):
     """A charge the wallbox measured, typed as AC, gets the charger's figure typed in; the owner
     then re-tags it to Home. Re-tagging refreshes only the badge and the cost, so the gross box is
@@ -251,7 +307,8 @@ def test_a_typed_figure_survives_being_re_tagged_to_home(mate):
 
 # ── the rule lives in one place ────────────────────────────────────────────────
 
-@pytest.mark.parametrize("rel", ["partials/charge_card.html", "partials/charge_gross_kwh.html"])
+@pytest.mark.parametrize("rel", ["partials/charge_card.html", "partials/charge_gross_kwh.html",
+                                 "overview.html"])
 def test_no_template_computes_the_energy_on_its_own(rel):
     """The rule (which figure leads, whether the efficiency is shown) was inline in two partials
     and drifted between them at exactly 100 %. A template that divides the two columns or tests the
@@ -260,3 +317,183 @@ def test_no_template_computes_the_energy_on_its_own(rel):
     assert "charge_energy(" in src
     assert "energy_added_kwh /" not in src
     assert "ac_energy_kwh and" not in src
+
+
+# ── a merged charge leads with what it bills ───────────────────────────────────
+
+def _merged(pdb, parent, child, day, batt_parent, batt_child, *, gross=None, ac=None, ctype="AC",
+            cost=None):
+    """One plug-in the car reported in two pieces, merged the way the owner does it: a meter
+    reading (`ac`) on the FIRST piece only — the poller drops an implausible one, and the second
+    piece is left with the battery — and a figure (`gross`) typed on the merged card afterwards,
+    so it is the whole plug-in's."""
+    _charge(pdb, parent, day, batt_parent, ac=ac, ctype=ctype, cost=cost)
+    pdb._conn.execute(
+        "INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc,"
+        " energy_added_kwh, location_type)"
+        f" VALUES (?,1,'2026-07-{day:02d}T11:10:00+00:00','2026-07-{day:02d}T12:00:00+00:00',"
+        "70,80,?,?)", (child, batt_child, ctype))
+    pdb._conn.commit()
+    assert db_reader.merge_charges(parent, child)["ok"]
+    if gross is not None:
+        db_reader.set_charge_gross_kwh(parent, gross)
+
+
+def _the_charge():
+    return db_reader.get_charges(limit=5)[0]
+
+
+def test_a_merged_charge_the_meter_measured_throughout_leads_with_the_counter(mate):
+    """12 + 6 on the meter for 10 + 5 in the battery: the counter, 18, as on one charge."""
+    pdb, _ = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, ac=12.0, ctype="HOME")
+    pdb._conn.execute("UPDATE charges SET ac_energy_kwh=6.0 WHERE id=2")
+    pdb._conn.commit()
+    e = db_reader.charge_energy_view(_the_charge())
+    assert (e["headline"], e["headline_kwh"], e["battery_kwh"]) == ("wallbox", 18.0, 15.0)
+    assert e["wallbox_eff"] == db_reader.charge_efficiency(18.0, 15.0)
+
+
+def test_a_merged_charge_the_meter_half_measured_leads_with_what_it_bills(mate):
+    """The meter caught the first piece (12) and not the second: 17 is billed — 12 from the meter,
+    5 from the battery — and 17 leads, under the totals' word for that sum. On the group's summed
+    columns it read as "HOME with a counter": "12.0 kWh wallbox (billed)" over the cost of 17."""
+    pdb, _ = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, ac=12.0, ctype="HOME", cost=3.4)
+    e = db_reader.charge_energy_view(_the_charge())
+    assert (e["headline"], e["headline_kwh"], e["battery_kwh"]) == ("delivered", 17.0, 15.0)
+    assert e["wallbox_eff"] is None and e["gross_kwh"] is None
+
+
+def test_a_figure_typed_on_the_merged_card_keeps_the_cards_usual_shape(mate):
+    """Typed for every piece, it is the billed figure, and the card says it the way it says a typed
+    figure on any charge: the battery figure leads, the typed one on its own line."""
+    pdb, _ = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, gross=30.0)
+    e = db_reader.charge_energy_view(_the_charge())
+    assert (e["headline"], e["headline_kwh"], e["battery_kwh"]) == ("battery", 15.0, 15.0)
+    assert (e["gross_kwh"], e["gross_eff"], e["gross_lost_kwh"]) == (30.0, 50.0, 15.0)
+
+
+def test_a_session_merged_in_after_the_figure_was_typed_shows_beside_it(mate):
+    """30 typed for two pieces, a third session of 5 kWh merged in afterwards: 35 is billed and 35
+    leads; the typed figure stays on its line, as typed."""
+    pdb, _ = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, gross=30.0)
+    pdb._conn.execute(
+        "INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc,"
+        " energy_added_kwh, location_type) VALUES"
+        " (3,1,'2026-07-03T12:10:00+00:00','2026-07-03T13:00:00+00:00',80,90,5.0,'AC')")
+    pdb._conn.commit()
+    assert db_reader.merge_charges(1, 3)["ok"]
+    e = db_reader.charge_energy_view(_the_charge())
+    assert (e["headline"], e["headline_kwh"], e["battery_kwh"]) == ("delivered", 35.0, 20.0)
+    assert e["gross_kwh"] == 30.0
+    assert e["gross_eff"] is None and e["gross_lost_kwh"] is None
+    html = _day(mate[1], 3)
+    gross_line = html.split('id="gk-1"')[1].split('id="gk-form-1"')[0]
+    assert "30.00 kWh delivered by the charger" in gross_line
+    assert "efficiency" not in gross_line and "lost" not in gross_line
+
+
+def test_separate_gross_readings_covering_every_piece_have_a_combined_efficiency(mate):
+    pdb, client = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0)
+    assert db_reader.unmerge_charges(1)["ok"]
+    db_reader.set_charge_gross_kwh(1, 12.0)
+    db_reader.set_charge_gross_kwh(2, 6.0)
+    assert db_reader.merge_charges(1, 2)["ok"]
+    e = db_reader.charge_energy_view(_the_charge())
+    assert e["gross_kwh"] == 18.0
+    assert e["gross_eff"] == pytest.approx(100 * 15 / 18)
+    assert e["gross_lost_kwh"] == 3.0
+    assert "18.00 kWh delivered by the charger · efficiency 83% (lost 3.0 kWh)" in _day(client, 3)
+
+
+def test_the_card_and_overview_show_only_the_gross_reading_in_effect(mate):
+    pdb, client = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0)
+    assert db_reader.unmerge_charges(1)["ok"]
+    db_reader.set_charge_gross_kwh(2, 12.0)
+    assert db_reader.merge_charges(1, 2)["ok"]
+    db_reader.set_charge_gross_kwh(1, 17.0)
+    for html in (_day(client, 3), _last_charge_tile(client.get("/").text)):
+        assert "17.00 kWh delivered by the charger · efficiency 88% (lost 2.0 kWh)" in html
+        assert "29.00 kWh" not in html
+
+
+@pytest.mark.parametrize("solar_kwh", [0.0, 2.0])
+def test_a_partial_home_meter_keeps_its_solar_editor(mate, solar_kwh):
+    pdb, client = mate
+    db_reader.set_setting("cost_modes", json.dumps({"HOME": "solar_manual"}))
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, ac=12.0, ctype="HOME")
+    db_reader.set_charge_solar_kwh(1, solar_kwh)
+    html = _day(client, 3)
+    assert "+17.0<span" in _energy_tile(html)
+    assert 'id="sk-form-1"' in html and 'id="gk-form-1"' not in html
+    assert "the wallbox did not measure this charge" not in html
+    if solar_kwh:
+        assert 'hx-vals=\'{"solar_kwh": "0"}\'' in html
+        response = client.post("/api/charges/1/solar-kwh", data={"solar_kwh": "0"})
+        assert response.status_code == 200
+        assert db_reader.get_charge(1)["solar_kwh"] == 0.0
+        assert 'id="sk-form-1"' in _day(client, 3)
+
+
+def test_a_partial_home_meter_does_not_offer_a_new_gross_edit(mate):
+    pdb, client = mate
+    db_reader.set_setting("price_home_kwh", "0.20")
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, ac=12.0, ctype="HOME")
+    db_reader.update_charge_type(1, "HOME")
+    html = _day(client, 3)
+    assert "+17.0<span" in _energy_tile(html)
+    assert 'id="gk-form-1"' not in html and 'id="sk-form-1"' not in html
+    assert db_reader.get_charge_stats()["total_cost"] == 3.4
+
+
+def test_a_single_charge_never_takes_that_variant():
+    """Its billed figure IS the counter, the typed figure or the battery one."""
+    for c in (_home(14.87, 12.6), _home(0, 12.6, 16.0), _public(37.6, 41.5), _public(20.0)):
+        assert db_reader.charge_energy_view(c)["headline"] in ("wallbox", "battery")
+
+
+def test_the_card_of_a_half_measured_merged_charge_says_delivered(mate):
+    pdb, client = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, ac=12.0, ctype="HOME", cost=3.4)
+    tile = _energy_tile(_day(client, 3))
+    assert "+17.0<span" in tile and "> 🔌 delivered</span>" in tile
+    assert "🔋 15.0 kWh In battery (DC) </div>" in tile
+    assert "wallbox (billed)" not in tile and "efficiency" not in tile
+
+
+def test_the_tile_of_a_half_measured_merged_charge_says_the_same(mate):
+    pdb, client = mate
+    _merged(pdb, 1, 2, 3, 10.0, 5.0, ac=12.0, ctype="HOME", cost=3.4)
+    tile = _last_charge_tile(client.get("/").text)
+    assert "+17.0 kWh" in tile and "🔌 delivered</span>" in tile
+    assert "🔋 15.0 kWh In battery (DC)" in tile
+    assert "wallbox (billed)" not in tile and "efficiency" not in tile
+
+
+def _price_per_kwh(html, charge_id):
+    cell = html[html.index(f'id="cost-{charge_id}"'):]
+    return " ".join(cell[:cell.index("/kWh")].split()).rsplit(">", 1)[1]
+
+
+def test_the_price_per_kwh_on_the_card_is_the_one_the_totals_give(mate):
+    """12 typed on the first piece's card at 0.45 (5.40), the second piece 5 kWh at 0.45 (2.25),
+    then merged: 7.65 for 17 — 0.45 on the Charges page's summary, and 0.45 on the card. The card
+    carried its own copy of the rule, for one row, and divided by 12: 0.64."""
+    pdb, client = mate
+    db_reader.set_setting("price_ac_kwh", "0.45")
+    _charge(pdb, 1, 3, 10.0, ctype="AC")
+    db_reader.set_charge_gross_kwh(1, 12.0)          # priced on it: 5.40
+    pdb._conn.execute(
+        "INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc,"
+        " energy_added_kwh, location_type, cost) VALUES"
+        " (2,1,'2026-07-03T11:10:00+00:00','2026-07-03T12:00:00+00:00',70,80,5.0,'AC',2.25)")
+    pdb._conn.commit()
+    assert db_reader.merge_charges(1, 2)["ok"]
+    s = db_reader.get_charge_stats()
+    assert (s["total_cost"], s["priced_kwh"], s["avg_price"]) == (7.65, 17.0, 0.45)
+    assert _price_per_kwh(_day(client, 3), 1) == "0.45 €"

@@ -65,9 +65,28 @@
     </div>
     {% if last_charge %}
     <div class="space-y-3">
-      <div class="flex justify-between items-center">
-        <span class="stat-label">{{ t('energy_added') }}</span>
-        <span class="text-xl font-bold text-yellow-400">+{{ (last_charge.energy_added_kwh or 0)|dec(1) }} kWh</span>
+      {# The same figure the charge card leads with, and the same second line under it — decided
+         in db_reader.charge_energy_view for both. It used to say the battery figure alone, beside
+         a cost computed on the wallbox counter: a €/kWh that exists on no other screen. #}
+      {% set e = charge_energy(last_charge) %}
+      <div>
+        <div class="flex justify-between items-center">
+          <span class="stat-label">{{ t('energy') }}</span>
+          <span class="text-xl font-bold text-yellow-400">+{{ e.headline_kwh|dec(1) }} kWh
+            {% if e.headline == 'wallbox' %}<span class="text-[10px] font-normal text-blue-400" title="{{ t('wallbox_billed_help') }}">🔌 {{ t('wallbox_billed') }}</span>
+            {% elif e.headline == 'delivered' %}<span class="text-[10px] font-normal text-blue-400" title="{{ t('cal_kwh_delivered_help') }}">🔌 {{ t('cal_kwh_delivered') }}</span>
+            {% else %}<span class="text-[10px] font-normal text-slate-400" title="{{ t('energy_in_battery_help') }}">🔋 {{ t('energy_in_battery') }} (DC)</span>{% endif %}
+          </span>
+        </div>
+        {% if e.headline != 'battery' %}
+        <div class="text-right text-[10px] text-slate-400" title="{{ t('wallbox_billed_help') if e.headline == 'wallbox' else t('energy_in_battery_help') }}">
+          🔋 {{ e.battery_kwh|dec(1) }} kWh {{ t('energy_in_battery') }} (DC){% if e.wallbox_eff is not none %} · {{ t('efficiency') }} {{ e.wallbox_eff|dec(0) }}%{% endif %}
+        </div>
+        {% elif e.gross_kwh %}
+        <div class="text-right text-[10px] text-slate-400" title="{{ t('gross_kwh_help') }}">
+          🔌 {{ e.gross_kwh|dec(2) }} kWh {{ t('gross_kwh_short') }}{% if e.gross_eff is not none %} · {{ t('efficiency') }} {{ e.gross_eff|dec(0) }}% ({{ t('gross_kwh_lost') }} {{ e.gross_lost_kwh|dec(1) }} kWh){% endif %}
+        </div>
+        {% endif %}
       </div>
       <div class="flex justify-between text-sm">
         <span class="text-slate-400">{{ t('soc') }}</span>

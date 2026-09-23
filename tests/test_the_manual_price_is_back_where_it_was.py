@@ -135,6 +135,7 @@ def _env():
     env.filters["dist"] = lambda v, n=1: "—" if v is None else f"{float(v):.{n}f} km"
     env.globals["gross_kwh_ok"] = lambda: True
     env.globals["charge_energy"] = db_reader.charge_energy_view
+    env.globals["billed_kwh"] = db_reader._billed_kwh
     env.globals["solar_kwh_ok"] = lambda: True
     env.globals["solar_mode_on"] = lambda: False
     env.globals["dist_unit"] = lambda: "km"

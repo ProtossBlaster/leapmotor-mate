@@ -173,7 +173,7 @@ def _card(**over):
         # environment has to mirror it, or the card renders against a Jinja that does not
         # have it.
         gross_kwh_ok=lambda: True,
-        charge_energy=db_reader.charge_energy_view,
+        charge_energy=db_reader.charge_energy_view, billed_kwh=db_reader._billed_kwh,
         solar_kwh_ok=lambda: True, solar_mode_on=lambda: False,
         # The price box is labelled in the reader's own money, so every context that
         # renders this card carries the currency — including the four routes that did not.

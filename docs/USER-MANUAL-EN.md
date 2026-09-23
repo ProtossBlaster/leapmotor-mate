@@ -315,6 +315,12 @@ resolution — a tiny ~10 W load stays invisible).
 Further down you'll find mini-statistics and a **"Car responsiveness" indicator** (a 🟢/🟡/🔴 dot, ⚪
 if there's no data): it summarizes how well the car has responded to the latest commands sent.
 
+**The last charge says both 🆕** — the **Last charge** tile leads with the same figure as the charge
+card: at home, with a wallbox counter, the **🔌 wallbox (billed)** kWh, and under it what reached the
+pack — *🔋 12.0 kWh in battery (DC) · efficiency 81%*; elsewhere the battery figure, with the charger's
+own kWh on a line of its own where you typed it. The cost under it is the cost of the number above
+it. It used to show the battery figure alone, beside a cost computed on the other one.
+
 **The range at your charge limit, and at 100% 🆕** — under the estimated range Mate shows how far the
 car would go **at the limit you actually charge to** (80%, say), with the figure at 100% beside it.
 When the car reports no limit below 100 there is a single line, so the same number is never printed
@@ -468,7 +474,13 @@ label:
   box leaves everything as it was. *Remove* takes a wrong number back. From then on it **prices the
   charge**, exactly as a wallbox counter does at home, and shows the **efficiency** (how much the
   on-board charger turned into heat). The energy Mate reports stays the one **measured at the
-  battery**.
+  battery**. On a **joined charge** the figure you type covers the pieces it was typed for — a session
+  joined to it later counts on its own — and when the pieces bill on different figures (the wallbox
+  caught one piece and not the other, or you typed the figure on one piece before joining) the card
+  and the Overview lead with the sum, under the word *delivered*, and the €/kWh divides by it 🆕.
+  Efficiency and loss beside the typed readings are shown only when those readings cover every
+  piece of the joined charge. A partial wallbox reading still lets you view and correct the solar
+  energy you entered.
 - **What is counted, and what is not 🆕** — a charge appears in these comparisons only when it has
   **both** figures, the meter's and the battery's. A session with only one of them would push the
   ratio above 100 %, which no charger can do. **Charges still in progress are left out**: a session

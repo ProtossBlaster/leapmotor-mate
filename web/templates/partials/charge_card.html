@@ -88,17 +88,20 @@
   <div class="grid grid-cols-3 gap-2 mt-3">
     {# Which figure leads, and whether the efficiency under it is worth showing, is decided in
        db_reader.charge_energy_view — the same rule the Overview's Last-charge tile reads.
-       `show_wb` is that decision's name on the card: the gross and solar fields below key on it. #}
+       `show_wb` selects the headline; the editors use the presence of a stored home-meter reading.
+       A merged charge whose pieces bill on different figures leads with what it bills, under the
+       word the totals use for that sum ('delivered'), so the €/kWh beside it divides by the number
+       above it. #}
     {% set e = charge_energy(c) %}
     {% set show_wb = e.headline == 'wallbox' %}
     <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
       <div class="stat-label" style="font-size:10px">{{ t('energy') }}</div>
       <div style="font-size:16px;font-weight:700;color:#fbbf24">
         +{{ e.headline_kwh|dec(1) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span>
-        {% if show_wb %}<span style="font-size:10px;color:#60a5fa;font-weight:400" title="{{ t('wallbox_billed_help') }}"> 🔌 {{ t('wallbox_billed') }}</span>{% else %}<span style="font-size:10px;color:#94a3b8;font-weight:400" title="{{ t('energy_in_battery_help') }}"> 🔋 {{ t('energy_in_battery') }} (DC)</span>{% endif %}
+        {% if show_wb %}<span style="font-size:10px;color:#60a5fa;font-weight:400" title="{{ t('wallbox_billed_help') }}"> 🔌 {{ t('wallbox_billed') }}</span>{% elif e.headline == 'delivered' %}<span style="font-size:10px;color:#60a5fa;font-weight:400" title="{{ t('cal_kwh_delivered_help') }}"> 🔌 {{ t('cal_kwh_delivered') }}</span>{% else %}<span style="font-size:10px;color:#94a3b8;font-weight:400" title="{{ t('energy_in_battery_help') }}"> 🔋 {{ t('energy_in_battery') }} (DC)</span>{% endif %}
       </div>
-      {% if show_wb %}
-      <div style="font-size:10px;color:#94a3b8;margin-top:3px" title="{{ t('wallbox_billed_help') }}">
+      {% if e.headline != 'battery' %}
+      <div style="font-size:10px;color:#94a3b8;margin-top:3px" title="{{ t('wallbox_billed_help') if show_wb else t('energy_in_battery_help') }}">
         {# Efficiency >100% is physically impossible: e.wallbox_eff comes from
            db_reader.charge_efficiency (#295), which returns nothing rather than a number no page
            may claim. #}
@@ -127,7 +130,7 @@
 
      Under the three tiles rather than inside the ENERGY one: on a phone those tiles stay three
      columns, so a box in there is ~110 px wide and the panel unrolls into a thirty-line ribbon. #}
-  {% if not show_wb and c.location_type and gross_kwh_ok() and not (solar_mode_on() and c.location_type == 'HOME') %}
+  {% if not e.has_home_meter and c.location_type and gross_kwh_ok() and not (solar_mode_on() and c.location_type == 'HOME') %}
   {% with charge=c %}{% include "partials/charge_gross_kwh.html" %}{% endwith %}
   {% endif %}
 
@@ -135,10 +138,10 @@
      Offered only under the solar pricing mode, and only on a home charge the wallbox actually
      measured: a subtraction needs a minuend that was measured, and the battery estimate is not one.
 
-     The two fields are exclusive by construction — `show_wb` shows this one and hides its twin —
-     so a card never carries two boxes that both look like "type the kWh". #}
+     A partial home-meter reading still supports the same editor even when the headline is the
+     combined delivered figure. The two fields remain exclusive. #}
   {% if solar_mode_on() and c.location_type == 'HOME' and solar_kwh_ok() %}
-    {% if show_wb %}
+    {% if e.has_home_meter %}
     {% with charge=c %}{% include "partials/charge_solar_kwh.html" %}{% endwith %}
     {% else %}
     {# The wallbox is how this owner prices Casa, but it did not measure THIS charge (counter
