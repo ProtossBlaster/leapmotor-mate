@@ -4979,7 +4979,23 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int,
     # @michapr). When nothing here was measured the branch is simply not taken and the getEC/
     # distance basis below answers, with its own wording, rather than a battery-only claim about
     # numbers the cloud never saw.
+    #
+    # ⚠️ And the energy divided is the one THOSE kilometres carry, not the window's (#303
+    # @arzthilfe). beta #40 moved the denominator to `ec_km` while the numerator stayed the cloud's
+    # total for the whole window — an endpoint that answers on DATES and knows nothing about Mate's
+    # trips. The two agreed on his bundle (the window total was exactly the sum of his months'
+    # getEC) and part ways as soon as coverage thins: a trip keeps its kilometres in `distance_km`
+    # but carries no `ec_kwh` when it started before the feature's cutoff, missed the 6-hour
+    # re-fetch window, was never reached by the 4-trips-per-sweep batch, or had its reading refused
+    # as implausible (`get_trips_needing_ec`, `ec_enrich._ec_implausible`). His C10: 30.3 kWh over
+    # the 54 km of 156 that carried a figure — 56.1 kWh/100 km printed for a car doing 20.3, beside
+    # a Distance of 156 km. The error scales as 1/coverage with no ceiling: on this same code, 100
+    # trips with 2 covered print 900.0.
+    # So the pair is `SUM(ec_kwh)` over `ec_km`, one set of trips above and below the line — what
+    # the month and day strips have always divided (`_totals_seal`). Where coverage is whole the
+    # two numerators are the same number, so beta #40 still reads 10.7.
     ec_km = tot.get("ec_km") or 0
+    ec_kwh = tot.get("ec_kwh_sum") or 0
     eff_km = tot.get("measured_eff_km") or 0
     if (battery_only and db_reader.is_reev_car() and eff_km > 0
             and (tot.get("measured_energy_kwh") or 0) > 0):
@@ -4987,9 +5003,13 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int,
         eb["avg_kwh100_km"] = eff_km
         eb["avg_kwh100_basis"] = "battery"
     else:
-        basis_km = ec_km if ec_km > 0 else dist_km
+        # ONE guard: `ec_km` and `ec_kwh` are summed under the SAME predicate (`ec_kwh > 0`), so a
+        # covered distance cannot exist without the energy that produced it. A second `ec_kwh > 0`
+        # here said nothing — a mutation removing it survived every test, which is how a guard
+        # announces it has no behaviour of its own.
+        basis_kwh, basis_km = (ec_kwh, ec_km) if ec_km > 0 else (eb["total_kwh"], dist_km)
         if basis_km > 0:
-            eb["avg_kwh100"] = round(eb["total_kwh"] / basis_km * 100, 1)
+            eb["avg_kwh100"] = round(basis_kwh / basis_km * 100, 1)
             eb["avg_kwh100_km"] = basis_km
             eb["avg_kwh100_basis"] = "getec"
     # The petrol half of the SAME window (@michapr, beta #11). getPlugIn gives both energies

@@ -7087,6 +7087,11 @@ def _merged_trip_statistics(db, begin=None, end=None):
         "measured_eff_km": total(g.get("distance_km") for g in measured),
         "ec_km": (total(g.get("distance_km") if (g.get("ec_kwh") or 0) > 0 else 0
                          for g in groups) if has_ec else None),
+        # The energy behind those kilometres, for the average that divides them (#303). A merged
+        # group's `ec_kwh` already covers the whole group — convert-on-merge stores it on the
+        # parent over the combined distance — so it pairs with the `ec_km` above as it stands.
+        "ec_kwh_sum": (total(g.get("ec_kwh") if (g.get("ec_kwh") or 0) > 0 else 0
+                             for g in groups) if has_ec else None),
     }
     average_trips = measured if is_reev_car() else efficient
     # Match the existing choice: trip efficiency first; stable cloud EC only as fallback
@@ -7150,6 +7155,12 @@ def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
     # distance known" and falls back to the whole distance — the behaviour before beta #40.
     ec_km_expr = ("ROUND(SUM(CASE WHEN ec_kwh IS NOT NULL AND ec_kwh > 0 THEN distance_km ELSE 0 END), 2)"
                   if _trips_have_ec(db) else "NULL")
+    # …and the energy those same trips carry. The caller divides the two (#303): a cloud window
+    # total describes every kilometre the cloud saw, `ec_km` only the ones Mate attached a figure
+    # to, and pairing them inflates the average by exactly the coverage ratio. Same predicate as
+    # `ec_km_expr`, so the two can never describe different trips.
+    ec_kwh_expr = ("ROUND(SUM(CASE WHEN ec_kwh IS NOT NULL AND ec_kwh > 0 THEN ec_kwh ELSE 0 END), 2)"
+                   if _trips_have_ec(db) else "NULL")
     # `measured_*` is the same pair as `energy_kwh`/`eff_km` with the estimates taken out, and it
     # is a SEPARATE pair on purpose (beta #43 @michapr). `efficiency_kwh_100km` is not a
     # measurement by default: the poller writes it at trip end from ΔSoC × capacity
@@ -7176,7 +7187,8 @@ def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
                                  ELSE 0 END), 2) AS measured_energy_kwh,
                   ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{measured}
                                  THEN distance_km END), 2) AS measured_eff_km,
-                  {ec_km_expr} AS ec_km
+                  {ec_km_expr} AS ec_km,
+                  {ec_kwh_expr} AS ec_kwh_sum
            FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
              AND started_at >= ? AND started_at <= ?""",
         (_current_vehicle_id(), b, e),
