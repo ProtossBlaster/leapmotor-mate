@@ -3,6 +3,37 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.19.0] — 2026-09-24
+
+### Added (PR #310, @arekm)
+
+- **The Overview map follows the car.** It was drawn once, at page load: on a drive the status card
+  beside it said *"last seen 6 s ago"* while the marker stayed wherever the car had been when the
+  page was opened, until a reload. The map now asks a new local endpoint, `GET /api/last-position`,
+  at the poller's driving cadence and moves the marker. It reads only what the poller already
+  stored — **nothing here reaches Leapmotor's servers**, whatever the car is doing. One request at
+  a time, given one interval and abandoned after it, and none at all while the tab is hidden.
+- **It recentres on the car, and never under your hand.** The map pans only once the car comes
+  within a quarter of the view from an edge — before it reaches the edge, not after. A move that
+  arrives while you are dragging, flinging or zooming waits until the map settles, and a parked
+  car's GPS wander (under 5 m) never moves anything.
+- **The age is in the card's heading** — *"LAST KNOWN POSITION (8s ago)"* — instead of a popup that
+  covered the map above the car and was clipped near the edges.
+
+### Fixed (PR #310, @arekm)
+
+- **A position the map falls back to is dated by itself, not by the poll that had no fix.** When a
+  poll comes back without GPS the map keeps showing the last real position; its age, however, came
+  from the fix-less poll, so a position hours old was labelled *"0s ago"*.
+- **The `(0, 0)` of a poll without a fix is told from a real position in one place.** A car on the
+  equator or on the prime meridian keeps its coordinates: only the pair of zeros means "no fix".
+
+### Unchanged
+
+- Nothing stored changes: no trip, charge, cost or position is recomputed or rewritten.
+- The status card's own *"last seen"* and every other figure on the Overview read as before.
+- No command is sent to any vehicle, and the map's polling adds no cloud traffic of any kind.
+
 ## [3.18.3] — 2026-09-24
 
 ### Fixed (#307, @arzthilfe · #308, @adoewa)
