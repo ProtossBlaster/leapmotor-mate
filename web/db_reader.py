@@ -1265,6 +1265,15 @@ def boost_selected_car(seconds: float = 60.0) -> None:
     set_setting(key, str(_t.time() + seconds))
 
 
+def boost_every_car(seconds: float) -> None:
+    """Poll every car quickly for a while — for a caller that cannot say which car it means: the
+    "getting in the car" shortcut behind /api/boost. Same per-car key as boost_selected_car."""
+    import time as _t
+    until = str(_t.time() + seconds)
+    for v in get_vehicles():
+        set_setting(f"boost_until_{v['vin'].lower()}", until)
+
+
 def per_car_pin_keys() -> list:
     """The per-car PIN settings that exist, so the boot decryption check can name them (#227)."""
     try:

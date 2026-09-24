@@ -4846,11 +4846,9 @@ async def boost(seconds: int = _BOOST_DEFAULT_S):
     """Trigger fast (10s) polling for a window, so the poller catches a trip start that
     would otherwise be missed during deep sleep. Meant to be called when you get in the
     car (e.g. an iPhone Bluetooth shortcut, relayed by HA on the LAN — Mate stays local).
-    Coordinated with the poller via settings['boost_until']."""
-    import time
+    It can't tell which car you got into, so every car is sped up (db_reader.boost_every_car)."""
     seconds = max(30, min(int(seconds or _BOOST_DEFAULT_S), 1800))
-    until = time.time() + seconds
-    db_reader.set_setting("boost_until", str(until))
+    db_reader.boost_every_car(seconds)
     return {"status": "boost on", "seconds": seconds}
 
 
@@ -5832,7 +5830,7 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
     _last_command_at = time.time()
     # Boost the poller so the car's REAL state is re-polled within a few seconds (not up to 30s).
     # We no longer fake an optimistic state, so the UI must catch up to reality quickly.
-    db_reader.set_setting("boost_until", str(time.time() + 60))
+    db_reader.boost_selected_car(60)
     global _command_epoch
     _command_epoch += 1
     epoch = _command_epoch
