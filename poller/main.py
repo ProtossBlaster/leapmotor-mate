@@ -1176,9 +1176,6 @@ def main():
     # connection is the account's, not a car's. ⚠️ What the MQTT bridge PUBLISHES is per-car
     # (abilities and model are read single-car at construction) — that is its own piece of work,
     # not this one.
-    last_relogin = 0.0   # rate-limit guard for session recovery
-    mqtt_service = None   # optional MQTT → HA bridge, created lazily when enabled
-
     acct = AccountState()
 
     while True:
