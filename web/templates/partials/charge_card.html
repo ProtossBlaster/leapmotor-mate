@@ -268,9 +268,14 @@
         </span>
       </label>
       <label class="text-xs text-slate-400">{{ t('manual_charge_type') }}
+        {# #309 — the same five types the rest of Mate uses. With AC and DC alone a charge typed
+           as Home, HPC or Free lost its type on every save, and the type is what the cost, the
+           statistics and the Charges filter are keyed on. Preselected from `location_type`, which
+           is what the badge on this card shows. #}
         <select name="charge_type" class="block mt-1 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
-          <option value="AC" {% if c.charge_type != 'DC' %}selected{% endif %}>AC</option>
-          <option value="DC" {% if c.charge_type == 'DC' %}selected{% endif %}>DC</option>
+          {% for key, meta in charge_types.items() %}
+          <option value="{{ key }}" {% if c.location_type == key %}selected{% endif %}>{{ meta.icon }} {{ meta.label }}</option>
+          {% endfor %}
         </select>
       </label>
       {# #237 — correcting a mistyped odometer has to be possible, or the wrong kilometre is in the

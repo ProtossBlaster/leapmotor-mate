@@ -171,9 +171,12 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
                class="block mt-1 w-24 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
       </label>
       <label class="text-xs text-slate-400">{{ t('manual_charge_type') }}
+        {# #309 — the add form offers the same five types as the edit panel; offering two here
+           and five there would let a charge be typed as something it could not be created as. #}
         <select name="charge_type" class="block mt-1 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
-          <option value="AC">AC</option>
-          <option value="DC">DC</option>
+          {% for key, meta in charge_types.items() %}
+          <option value="{{ key }}">{{ meta.icon }} {{ meta.label }}</option>
+          {% endfor %}
         </select>
       </label>
       {# #237 — the car's total distance at that charge. It is offered ONLY where the poller has
