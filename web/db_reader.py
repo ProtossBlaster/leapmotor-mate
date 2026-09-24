@@ -254,6 +254,25 @@ CHARGE_TYPES = {
     "FREE": {"label": "FREE", "icon": "🆓", "color": "#a3e635"},
 }
 
+def manual_charge_type(charge_type) -> tuple:
+    """(location_type, charge_type) for a charge the user types in or edits — #309.
+
+    Both halves used to fold every answer into AC or FAST, because both forms could only offer AC
+    and DC: a charge typed as Home, HPC or Free came back **AC** the moment its owner corrected a
+    cost or a time. The type is what the price (`PRICE_KEYS`), the statistics and the Charges
+    filter are all keyed on, so that is a charge moving from one column of the accounts to another
+    because somebody fixed a typo.
+
+    Any of the five real types is kept. "DC" is still accepted and still means FAST, so an older
+    page or a script keeps working, and anything unknown falls back to AC as it always did. The
+    AC/DC tag stays DERIVED — it describes the socket, not the place: Home and Free are AC, HPC and
+    DC are DC.
+    """
+    chosen = {"DC": "FAST"}.get(str(charge_type or "").upper(), str(charge_type or "").upper())
+    loc = chosen if chosen in CHARGE_TYPES else "AC"
+    return loc, ("DC" if loc in ("FAST", "HPC") else "AC")
+
+
 def charge_types_localised() -> dict:
     """CHARGE_TYPES with the three English WORDS in the reader's language (#210).
 
@@ -2735,8 +2754,7 @@ def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] 
     db = _conn_rw()
     try:
         vehicle_id = _selected_or_first(db)
-        ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
-        loc_type = "FAST" if ct == "DC" else "AC"
+        loc_type, ct = manual_charge_type(charge_type)
         # #237 — the odometer only joins the INSERT where the column exists: the migration lives in
         # the poller and the web never alters the database (see `_charges_have_odometer`). Zero is
         # not stored, for the same reason the poller refuses it: an odometer of 0 would place the
@@ -2799,8 +2817,7 @@ def update_manual_charge(charge_id: int, started_at: str, energy_kwh: float,
     False — changing nothing — when the id isn't a typed-in charge."""
     db = _conn_rw()
     try:
-        ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
-        loc_type = "FAST" if ct == "DC" else "AC"
+        loc_type, ct = manual_charge_type(charge_type)
         # #237 — the odometer is written only where the column exists, and clearing it is a real
         # answer: someone who realises they typed the wrong reading must be able to take it back
         # out, not be stuck with a wrong kilometre for ever.
@@ -3790,6 +3807,22 @@ def get_latest_status() -> Optional[dict]:
             d["last_seen"] = f"{delta // 3600}h ago"
     except Exception:
         d["last_seen"] = "unknown"
+    # A charge already running does not vanish from the screen because the current dipped (#307).
+    # `charging` on a position row is the poll's own answer, and it comes from `_is_charging`, which
+    # refuses a pack current below `charge_detect_min_a`. That threshold exists to notice a charge
+    # has STARTED; asked whether an open one is still running it says no, and every charge block on
+    # the Overview reads this flag. @arzthilfe turns his wallbox from 11 A down to 8 A, the pack
+    # draws 1.6 A against his 2.0 A floor, and the screen empties while the battery keeps rising —
+    # on a frame two seconds old, with the session open and the state machine still in CHARGING.
+    # The same "one threshold, two jobs" as the 0.00 kW power reading (v3.18.3); this is its half.
+    # The cable is the guard: unplugged, the answer is the poll's again, so a session left open by
+    # any other defect cannot print "charging" for ever.
+    if not d.get("charging") and d.get("plug_connected"):
+        open_charge = db.execute(
+            "SELECT 1 FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND ended_at IS NULL LIMIT 1", (_current_vehicle_id(),)).fetchone()
+        if open_charge:
+            d["charging"] = 1
     _data_age(d)
     # How old the POSITION is: the fix's own, when the map falls back to one — the poll without a
     # fix is seconds old, the position it falls back to may be days old.
