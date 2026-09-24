@@ -478,8 +478,10 @@ def _last_position(status, vehicle, t) -> dict:
     map that waited out the parked interval could sit ten minutes behind a car already moving. The
     read is local, so asking at the pace the owner chose for a moving car costs Leapmotor nothing.
 
-    The age is the FRAME's, not the row's (#232): a parked car's cloud re-serves one frozen frame,
-    and a fresh row over it once said "22 seconds ago" at a marker that had not moved in hours.
+    The age is the position's own (get_latest_status's position_age_s): its FRAME's, not its row's
+    (#232) — a parked car's cloud re-serves one frozen frame, and a fresh row over it once said
+    "22 seconds ago" at a marker that had not moved in hours — and, when a poll came back without a
+    fix, the age of the fix the map falls back to, not of that poll.
 
     Always the same keys — lat/lon/label are None while no position is known — so the page and the
     map never branch on the shape, and the map still learns when to ask again."""
@@ -487,11 +489,9 @@ def _last_position(status, vehicle, t) -> dict:
     refresh_s = db_reader.poll_seconds(driving=True)
     if not db_reader.has_gps_fix(status.get("latitude"), status.get("longitude")):
         return {"lat": None, "lon": None, "label": None, "refresh_s": refresh_s}
-    age = status.get("data_age_s")
-    if age is None:
-        age = status.get("last_seen_s")
     return {"lat": status["latitude"], "lon": status["longitude"],
-            "label": f"{(vehicle or {}).get('car_type') or 'Leapmotor'} — {_ago(t, age)}",
+            "label": f"{(vehicle or {}).get('car_type') or 'Leapmotor'} — "
+                     f"{_ago(t, status.get('position_age_s'))}",
             "refresh_s": refresh_s}
 
 

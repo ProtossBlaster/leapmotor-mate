@@ -3740,15 +3740,17 @@ def get_latest_status() -> Optional[dict]:
     # map (or reset Navigation's start point) — fall back to the last position that had a real
     # fix and flag it stale, so the last known location keeps showing. Only a true (0,0)/null is
     # treated as "no fix" (a car genuinely on the prime meridian at lon 0 is kept).
+    fix = d          # the row whose position is shown, and so the one its age is read from
     if not has_gps_fix(d.get("latitude"), d.get("longitude")):
         last = db.execute(
-            "SELECT latitude, longitude FROM positions "
+            "SELECT * FROM positions "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) "
             "AND latitude IS NOT NULL AND longitude IS NOT NULL "
             f"AND NOT (ABS(latitude) < {_NO_FIX_DEG} AND ABS(longitude) < {_NO_FIX_DEG}) "
             "ORDER BY id DESC LIMIT 1", (_current_vehicle_id(),)).fetchone()
         if last:
-            d["latitude"], d["longitude"] = last["latitude"], last["longitude"]
+            fix = dict(last)
+            d["latitude"], d["longitude"] = fix["latitude"], fix["longitude"]
             d["position_stale"] = True
     # Charge power: positions stores current/voltage, not a power column. Compute it
     # (|I×V|), only when the charge current is meaningful (>=3A). Signal 49 is NOT a
@@ -3789,6 +3791,9 @@ def get_latest_status() -> Optional[dict]:
     except Exception:
         d["last_seen"] = "unknown"
     _data_age(d)
+    # How old the POSITION is: the fix's own, when the map falls back to one — the poll without a
+    # fix is seconds old, the position it falls back to may be days old.
+    d["position_age_s"] = _position_age_s(fix.get("frame_ts"), fix.get("recorded_at"))
     # OTA / software-update status (the poller scans the account message inbox for an update notice).
     d["ota"] = get_ota_status()
     return d
@@ -3797,6 +3802,31 @@ def get_latest_status() -> Optional[dict]:
 # How far the data must fall BEHIND THE ROW before the Overview says so. Comfortably above every
 # poll cadence (10s driving, 60s charging), so a slow-but-genuine update is never called stale.
 DATA_AGE_STALE_S = 300
+
+
+def _frame_age_s(frame_ts) -> Optional[int]:
+    """Seconds since the car's own clock stamped a frame, or None when there is nothing honest to
+    say: no clock reported, or a car clock ahead of the host (not a staleness signal)."""
+    if not frame_ts:
+        return None
+    try:
+        stamped = datetime.fromtimestamp(int(frame_ts) / 1000, timezone.utc)
+        age = int((datetime.now(timezone.utc) - stamped).total_seconds())
+    except Exception:  # noqa: BLE001
+        return None
+    return age if age >= 0 else None
+
+
+def _position_age_s(frame_ts, recorded_at) -> Optional[int]:
+    """How old a position is: its frame's age (#232), else the time since Mate wrote its row — a
+    car that reports no clock has nothing better."""
+    age = _frame_age_s(frame_ts)
+    if age is not None:
+        return age
+    try:
+        return int((datetime.now(timezone.utc) - datetime.fromisoformat(recorded_at)).total_seconds())
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _data_age(d: dict) -> None:
@@ -3822,15 +3852,8 @@ def _data_age(d: dict) -> None:
     """
     d["data_age"] = None
     d["data_age_s"] = None
-    ts = d.get("frame_ts")
-    if not ts:
-        return                       # car doesn't report its own clock → nothing honest to say
-    try:
-        age = int((datetime.now(timezone.utc) - datetime.fromtimestamp(int(ts) / 1000, timezone.utc))
-                  .total_seconds())
-    except Exception:  # noqa: BLE001
-        return
-    if age < 0:                      # car clock ahead of the host — not a staleness signal
+    age = _frame_age_s(d.get("frame_ts"))
+    if age is None:
         return
     d["data_age_s"] = age
     moving = bool(d.get("charging")) or (d.get("gear") == "D") or float(d.get("speed_kmh") or 0) > 0

@@ -95,11 +95,14 @@ def test_a_first_poll_without_a_fix_is_not_a_position(mate):
     assert (_served(client)["lat"], _served(client)["lon"]) == (52.40, 16.90)
 
 
-def test_a_poll_without_a_fix_keeps_the_last_real_one(mate):
+def test_a_poll_without_a_fix_keeps_the_last_real_one_and_its_age(mate):
+    """The poll without a fix is seconds old; the position the map falls back to is not, and the
+    popup dates the position it shows."""
     pdb, client = mate
-    _position(pdb, 52.40, 16.90)
-    _position(pdb, 0.0, 0.0)
+    _position(pdb, 52.40, 16.90, frame_age_ms=3 * HOUR_MS)
+    _position(pdb, 0.0, 0.0, frame_age_ms=0)
     assert (_served(client)["lat"], _served(client)["lon"]) == (52.40, 16.90)
+    assert _served(client)["label"] == "B10 — 3h ago"
 
 
 def test_a_car_on_the_prime_meridian_is_drawn(mate):
