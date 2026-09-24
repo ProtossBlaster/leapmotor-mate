@@ -3,6 +3,23 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.18.1] — 2026-09-24
+
+### Fixed (#303, @arzthilfe)
+
+- **The all-trips consumption average divided an energy wider than the kilometres beneath it.** On
+  the Trips page, the Monthly report and the period views, the *Consumption · all trips* card
+  divided the energy the cloud reports **for the whole period** by the kilometres of the trips that
+  carry a cloud figure **of their own** — and those are not the same driving. A trip keeps its
+  kilometres while carrying no cloud figure whenever it started before that feature was switched on,
+  did not settle within its six-hour re-fetch window, was not reached by the background sweep, or
+  had its reading refused as implausible. On the reporter's C10 the card printed **56.1 kWh/100 km**
+  — 30.3 kWh over 54 of the 156 km recorded — beside a tile that said 20.3 for the same driving, and
+  the error grows as coverage thins with nothing to stop it. The average now divides the energy of
+  **the same trips it counts the kilometres of**, which is what the month and day strips have always
+  done, and the line underneath still names the kilometres it speaks for. Where every trip carries a
+  cloud figure — nearly always — the number is unchanged. Nothing stored is recomputed.
+
 ## [3.18.0] — 2026-09-23
 
 ### Changed (#297, @arekm)
