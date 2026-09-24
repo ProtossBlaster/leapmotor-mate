@@ -15,8 +15,12 @@
 {% include "partials/cmd_grid.html" %}
 {# Dummy request-source OUTSIDE #cmd-grid: htmx puts the `htmx-request` class on the source, and the
    command ⏳ indicators only light up when that class is on one of THEIR ancestors. Refreshing with
-   this span as source (instead of defaulting to <body>) keeps every spinner from flashing. #}
-<span id="cmd-refresh-src" class="hidden"></span>
+   this span as source (instead of defaulting to <body>) keeps every spinner from flashing.
+   hx-sync: a refetch asked for while another is out is dropped — that one brings the state in. Queued
+   (htmx's default) it would keep the #cmd-grid it was asked for, which the one before swaps out; in htmx 1.x
+   swapping into that detached element throws, and htmx then never releases this source: no refetch at all
+   until a reload. #}
+<span id="cmd-refresh-src" class="hidden" hx-sync="this:drop"></span>
 
 <script>
 function refreshCmdGrid() {
