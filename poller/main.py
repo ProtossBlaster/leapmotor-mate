@@ -786,6 +786,10 @@ class VehicleContext:
         self.next_due = 0.0           # monotonic; 0 = due now, so the first round polls every car
 
 
+_RELOGIN_MIN_S = 60          # the gap today, and still the gap for the first retry
+_RELOGIN_MAX_S = 30 * 60     # a refusal lasting days must not push recovery out of reach
+
+
 class AccountState:
     """What belongs to the ACCOUNT rather than to any one car.
 
@@ -797,11 +801,29 @@ class AccountState:
     construction, read single-car. Splitting that is its own piece of work, not this one.
     """
 
-    __slots__ = ("last_relogin", "mqtt_service")
+    __slots__ = ("last_relogin", "relogin_failures", "mqtt_service")
 
     def __init__(self):
         self.last_relogin = 0.0
+        self.relogin_failures = 0
         self.mqtt_service = None
+
+    @property
+    def relogin_wait_s(self) -> int:
+        """How long to leave the login endpoint alone before asking again.
+
+        Measured on three installs (beta #49 + #295, #296, and a beta bundle) whose logs reach
+        17–18/09/2026: the cloud starts refusing logins while the account is perfectly valid —
+        it keeps letting one through now and then — and a fixed one-minute retry then asks 1 440
+        times a day. @gm27271 made 5 271 failed attempts in four days for ~79 accepted.
+
+        So the gap doubles per consecutive refusal and stops at half an hour: four days cost ~196
+        attempts instead of 5 271, and the user's log keeps the shape of an outage instead of a
+        wall. The first retry stays at 60 s — this path also heals a vanished /tmp cert or one
+        dropped token, which the first or second attempt fixes, and those installs must not slow
+        down. One success puts it back (see the reset in `_poll_vehicle`).
+        """
+        return min(_RELOGIN_MIN_S * 2 ** max(0, self.relogin_failures - 1), _RELOGIN_MAX_S)
 
 
 def _persist_charge_limit(db, vin: str, pct) -> None:
@@ -991,21 +1013,23 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
                         "recovers automatically when it responds.", ctx.interval)
         # Self-heal: a vanished /tmp account-cert file (or an auth/token/connection
         # drop) makes every poll fail forever — the poller used to just keep erroring.
-        # Force a fresh login to re-create the cert. Guarded to ~once/min so a rapid
-        # double login can't trip Leapmotor's rate limiter.
+        # Force a fresh login to re-create the cert. The first retry is a minute out, and
+        # the gap then grows while the cloud keeps refusing (AccountState.relogin_wait_s).
         msg = str(exc).lower()
         recoverable = any(s in msg for s in (
             "certificate", "cert", "unauthorized", "token", "login",
             "verification", "connection", "timed out", "timeout", "ssl",
         ))
-        if recoverable and time.time() - acct.last_relogin > 60:
+        if recoverable and time.time() - acct.last_relogin > acct.relogin_wait_s:
             acct.last_relogin = time.time()
             try:
                 log.info("Attempting session recovery (re-login)…")
                 client.relogin()
+                acct.relogin_failures = 0
                 log.info("Session recovered after re-login")
             except Exception as e2:  # noqa: BLE001
-                log.warning("Re-login failed, will retry next cycle: %s", e2)
+                acct.relogin_failures += 1
+                log.warning("Re-login failed, next attempt in %ds: %s", acct.relogin_wait_s, e2)
 
 
 
@@ -1152,9 +1176,6 @@ def main():
     # connection is the account's, not a car's. ⚠️ What the MQTT bridge PUBLISHES is per-car
     # (abilities and model are read single-car at construction) — that is its own piece of work,
     # not this one.
-    last_relogin = 0.0   # rate-limit guard for session recovery
-    mqtt_service = None   # optional MQTT → HA bridge, created lazily when enabled
-
     acct = AccountState()
 
     while True:
