@@ -534,10 +534,21 @@ def set_charge_current_min(amps: float) -> None:
 def _charge_power_kw(sig: dict) -> float:
     """Charge/regen power from current (1178) × voltage (1177). Signal 49 is NOT a
     power — in the Leapmotor app it's the left-mirror-heating flag. Magnitude only;
-    the recorder decides charge vs regen from the current sign."""
+    the recorder decides charge vs regen from the current sign.
+
+    🔑 NO current floor here, and that is the point (#307, @arzthilfe). This used to refuse below
+    `_CHARGE_CURRENT_MIN_A` — the user's CHARGE-DETECTION setting, 2.0 A by default — so his C10
+    on a wallbox turned down to 8 A, tapering near 87 % SoC, reported 718.2 V × 1.599 A as
+    **0.00 kW**. One threshold cannot both decide WHETHER the car is charging (where a floor
+    belongs, and still lives — see `_is_charging`) and measure HOW MUCH flows (where it prints a
+    zero over a real figure). Zero current already gives zero power without a floor to say so.
+
+    Nothing downstream loses a guard by this: regen has its own (`charge_current_a < -3.0`, in the
+    recorder), the stuck-counter sum has `_WB_STUCK_MIN_KW`, and `max_power_kw` is a maximum, so a
+    small reading can only lose to a bigger one."""
     current = _sf(sig, "1178")
     voltage = _sf(sig, "1177")
-    if current is None or voltage is None or abs(current) < _CHARGE_CURRENT_MIN_A:
+    if current is None or voltage is None:
         return 0.0
     return round(abs(current * voltage) / 1000.0, 3)
 
