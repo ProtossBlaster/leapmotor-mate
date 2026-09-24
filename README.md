@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v3.18.2:** session recovery stops hammering the cloud while it refuses logins, and the Charge Schedule JSON is documented in full.
-See [release notes and upgrade impact](docs/releases/v3.18.2.md).
+**v3.18.3:** the charging power is shown again on a slow charge, and a four-decimal electricity tariff can be typed.
+See [release notes and upgrade impact](docs/releases/v3.18.3.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -359,8 +359,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v3.18.2:** il recupero della sessione smette di martellare il cloud mentre rifiuta i login, e il JSON della programmazione ricarica è documentato per intero.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v3.18.2.md#italiano).
+**v3.18.3:** la potenza di ricarica torna a vedersi su una ricarica lenta, e una tariffa elettrica a quattro decimali si può scrivere.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v3.18.3.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

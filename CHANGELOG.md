@@ -3,6 +3,24 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.18.3] — 2026-09-24
+
+### Fixed (#307, @arzthilfe · #308, @adoewa)
+
+- **A slow charge showed 0.00 kW while it was charging.** The power reading refused to compute
+  below the *charge-detection* floor — the Settings value whose help text talks about the ~11 A of
+  a home AC charge — so one threshold both decided whether the car was charging, where a floor
+  belongs, and measured how much power flowed, where it printed a zero over a real figure. On
+  @arzthilfe's C10, turned down from 11 A to 8 A and tapering near 87 % SoC, 718.2 V × 1.599 A =
+  **1.148 kW** read as 0.00. The floor stays where it decides; the measurement is now the
+  measurement. Regen, the stuck-counter sum and the peak-power figure each keep their own guards.
+
+- **A four-decimal electricity tariff could not be typed.** The €/kWh field on the Costs page
+  stepped in whole cents, so a browser rejected 0.3024 €/kWh on submit and the price fell back to
+  0.30 — pricing every home charge about half a percent low, silently. @adoewa's charge cost him
+  18.10 € and Mate wrote 17.95. The field no longer rounds; `min` stays, and there is still no
+  maximum, which would block currencies that price a kWh in tens or hundreds.
+
 ## [3.18.2] — 2026-09-24
 
 ### Fixed (beta #49 @gm27271 · #296 @adoewa · #295)
