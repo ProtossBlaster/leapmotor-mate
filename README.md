@@ -307,7 +307,29 @@ Forward the car's live data to **A Better Route Planner** for live route plannin
 
 ### MQTT → Home Assistant
 
-Publish the car to Home Assistant as **native entities** (in parallel to the Mate UI), via MQTT Discovery. In **Settings → MQTT**, enable it and enter your broker (host, port, username/password; TLS optional). Home Assistant then auto‑creates a *Leapmotor Mate* device with sensors (SOC, range, individual tyres, temperatures, charge…), binary sensors (doors/windows/lock/charging), a GPS tracker, a writable **Charge Limit** (target SoC) `number`, a writable **Charge Schedule** `text` that takes a JSON plan for automations (`{"start":"23:00","soc":90}` — every key optional, and whatever you omit keeps its current value), a read-only **V2L** group (`V2L Active` / `V2L Power` / `V2L Session Energy`), a **`Ready`** binary sensor that turns on as soon as the car is powered up — before it moves, while an automation still has time to act — and command buttons (lock/unlock, trunk, find car, preheat battery, unlock charge cable, climate — A/C Auto / Quick Cool / Quick Heat / Quick Ventilation / Defrost / A/C Off — and comfort: heated/ventilated seats, steering-wheel & mirror heating). Turning the A/C fully **off** now works on the B10 (using the `operate=off` command found by on‑car testing); the comfort commands use the payloads captured by [@kerniger](https://github.com/kerniger/leapmotor-ha). Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection** to verify the broker before saving. After a command the state now updates in Home Assistant immediately (no waiting for the next poll), and the **topic prefix** scopes the device — so you can run a second instance on a different prefix without it clashing with the first.
+MQTT Discovery publishes the car as **native entities** — sensors, binary sensors, GPS tracker — plus command buttons. Two installs on one broker are noticed: sharing a topic prefix makes them **one device** to Home Assistant and runs **every command twice**, so the BetaTester build steps aside onto a prefix of its own and says so. *(Optional.)*
+
+  - **Charge Limit** — a writable `number` (target SoC).
+
+  - **Charge Schedule** — a writable `text` entity that takes a JSON plan for automations. Full accepted schema:
+
+    | Key | Type | Meaning |
+    | --- | --- | --- |
+    | `start` | `"HH:MM"` | Window start |
+    | `stop` | `"HH:MM"` | Window end |
+    | `soc` | `50`–`100` | Target charge limit % |
+    | `active` | `true`/`false` | Whether the schedule is enabled at all |
+    | `days` | `"d,d,d,d,d,d,d"` | 7 comma-separated 0/1 flags, **Monday-first** (position 0 = Monday … 6 = Sunday) — note the official app *displays* the week Sunday-first, so its on-screen order differs from this mask |
+
+    Any other key is silently ignored. Sending fewer than five keys **merges** into the car's current plan — everything you omit keeps its value, with one exception: an omitted `soc` is read from the car's last-reported charge limit rather than the stored plan (in practice the same number, since setting the charge limit also writes the plan's `soc`); if the car has never reported one, the write is refused. Any invalid value (a `soc` outside 50–100, a malformed time, invalid JSON, or JSON that isn't an object) is refused too — **nothing is written**, the existing plan is left untouched. On a successful write the entity echoes the applied plan back as its state, always with all five keys. Note: two plan fields the car's cloud stores — repeat mode and an auto-recharge flag — aren't exposed through this JSON at all; Mate reads and re-writes them unchanged.
+
+  - **V2L** — a read-only group (`V2L Active` / `V2L Power` / `V2L Session Energy`).
+
+  - **`Ready`** — a binary sensor that turns on as soon as the car is powered up, before it moves, while an automation still has time to act.
+
+  - **Command buttons** — lock/unlock, trunk, find car, preheat battery, unlock charge cable, climate (A/C Auto / Quick Cool / Quick Heat / Quick Ventilation / Defrost / A/C Off) and comfort (heated/ventilated seats, steering-wheel & mirror heating). Turning the A/C fully **off** now works on the B10 (using the `operate=off` command found by on‑car testing); the comfort commands use the payloads captured by [@kerniger](https://github.com/kerniger/leapmotor-ha).
+
+  Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection** to verify the broker before saving. After a command the state now updates in Home Assistant immediately (no waiting for the next poll), and the **topic prefix** scopes the device — so you can run a second instance on a different prefix without it clashing with the first.
 
 ---
 
