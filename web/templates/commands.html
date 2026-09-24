@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ t('nav_commands') }} — LeapMotor Mate{% endblock %}
+{% block autorefresh %}0{% endblock %}{# own 30 s grid poll below; a reload mid-command would drop the ⏳ and the wait for the car #}
 
 {% block content %}
 <style>

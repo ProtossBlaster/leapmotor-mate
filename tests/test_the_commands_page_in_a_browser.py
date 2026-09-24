@@ -126,11 +126,17 @@ def commands(mate):
             page = browser.new_page()
             if fake_clock:
                 page.clock.install()
-            errors, sent = [], []
+            errors, sent, held = [], [], []
+
+            def command(route):
+                sent.append(route.request.url.rsplit("/", 1)[1])
+                if page.hold:                 # the cloud is still working on it
+                    held.append(route)
+                else:
+                    route.fulfill(status=200, content_type="text/html", body=answer)
+            page.hold, page.held = False, held
             page.on("pageerror", lambda e: errors.append(str(e)))
-            page.route("**/api/command/**", lambda route: (
-                sent.append(route.request.url.rsplit("/", 1)[1]),
-                route.fulfill(status=200, content_type="text/html", body=answer)))
+            page.route("**/api/command/**", command)
             response = page.goto(mate.url + "/commands")
             assert response.status == 200, mate.log.read_text()[-3000:]
             page.wait_for_selector("#cmd-grid")
@@ -243,3 +249,24 @@ def test_a_comfort_tile_shows_a_refusal_as_a_refusal(commands):
     assert "Not sent" in _status(page, MIRROR)
     _tick(page, 5_000)                   # and it clears on its own
     assert "Not sent" not in _status(page, MIRROR)
+
+
+def test_the_page_does_not_reload_itself_while_a_slow_command_is_completing(commands):
+    """The layout reloads an idle page every 30 s, and a command the cloud is slow to answer makes the
+    page look idle: no interaction for 20 s, and the refetch after the answer takes the focus off the
+    control pressed. The reload would drop the busy state, so the page opts out of it."""
+    page, _ = commands(0, fake_clock=True)
+    page.clock.pause_at(page.evaluate("Date.now()") / 1000)   # seconds, not ms; from here on time moves only when ticked
+    page.evaluate("window.samePage = true")
+    page.hold = True                     # the cloud is still on it
+    page.click(MIRROR)
+    page.wait_for_timeout(300)
+    _tick(page, 22_000)                  # longer than an interaction counts for
+    page.hold = False
+    page.held[0].fulfill(status=200, content_type="text/html", body=DONE)
+    page.wait_for_timeout(300)
+    for ms in (2_000, 3_500, 2_600):     # the refetches after the answer (+1.5 s, +5 s) rebuild the grid one
+        _tick(page, ms)                  # at a time, and none is out when the layout's 30 s come round
+    page.wait_for_timeout(300)
+    assert page.evaluate("window.samePage") is True, "the page reloaded"
+    assert "Command in progress" in _status(page, MIRROR)
