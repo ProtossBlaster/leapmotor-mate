@@ -6178,7 +6178,12 @@ def _web_listen_host() -> str:
     return "127.0.0.1" if os.environ.get("MATE_DESKTOP") == "1" else "0.0.0.0"
 
 
+# The Supervisor proxies Ingress over a pooled aiohttp client that reuses an idle connection for 15 s;
+# uvicorn's default drops one after 5 s, and a request landing on that mark met a closing socket: 502,
+# command lost. The server has to outlive the client's pool.
+_KEEP_ALIVE_S = 30
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("WEB_PORT", 4000))
-    uvicorn.run("main:app", host=_web_listen_host(), port=port, reload=False)
+    uvicorn.run("main:app", host=_web_listen_host(), port=port, reload=False, timeout_keep_alive=_KEEP_ALIVE_S)
