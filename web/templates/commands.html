@@ -149,6 +149,9 @@ document.addEventListener('htmx:afterRequest', function(e) {
 
 // Re-apply the ⏳+message + disabled state right after a grid refetch (the swap rebuilt every tile).
 document.addEventListener('htmx:afterSwap', function() { cmdBusyTick(); climReapply(); });
+// …and again once htmx has settled it: 20 ms after the swap it puts the fresh attributes back on every element
+// with an id, the class and style that make #spin- read "Command in progress" among them.
+document.addEventListener('htmx:afterSettle', cmdBusyTick);
 
 // === Window slider — snaps to the stops the car actually actuates (#62). Blocked while a command runs. ===
 var WINS_STOPS = {{ wins_stops | tojson }};

@@ -32,6 +32,7 @@ sync_api = pytest.importorskip(
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 VIN = "LVIN0000000000001"
+MIRROR = 'form[hx-post="api/command/mirror_heat_on"] button'
 DONE = '<span style="color:#22c55e">✓ Done</span>'                  # what run_command answers on success
 
 
@@ -118,9 +119,11 @@ def commands(mate):
     with sync_api.sync_playwright() as pw:
         browser = pw.chromium.launch()
 
-        def open_with(raw):
+        def open_with(raw, fake_clock=False):
             _report(mate.db, raw)
             page = browser.new_page()
+            if fake_clock:
+                page.clock.install()
             errors, sent = [], []
             page.on("pageerror", lambda e: errors.append(str(e)))
             page.route("**/api/command/**", lambda route: (
@@ -151,6 +154,13 @@ def _grid_back(page):
     assert page.evaluate("window.gridOut") == 0, "a grid refetch never came back"
 
 
+def _tick(page, ms):
+    """Advance the page's clock, let the refetches it fired come back, then let htmx settle them."""
+    page.clock.run_for(ms)
+    _grid_back(page)
+    page.clock.run_for(100)
+
+
 def test_a_refetch_asked_for_while_another_is_out_does_not_stop_the_grid(commands):
     """Two refetches overlap whenever one is asked for before the last is back. htmx queued the second
     with the #cmd-grid the first swapped out of the page; the swap into that detached element threw,
@@ -169,3 +179,24 @@ def test_a_refetch_asked_for_while_another_is_out_does_not_stop_the_grid(command
     page.evaluate("refreshCmdGrid()")              # and the grid still refreshes after it
     _grid_back(page)
     assert page.errors == []
+
+
+def test_a_busy_tile_keeps_saying_so_through_a_refetch(commands):
+    """htmx settles a swap 20 ms later by putting an id'd element's fresh attributes back, the busy
+    look of #spin- among them. Re-applied only on the page's next 300 ms tick, the "Command in
+    progress" blinked off at every refetch."""
+    page, sent = commands(0, fake_clock=True)
+    page.evaluate("""() => {
+        window.gaps = 0;
+        new MutationObserver(() => {
+            const sp = document.getElementById('spin-mirror_heat_left');
+            if ((sending || isBusy()) && sp && sp.classList.contains('htmx-indicator')) window.gaps++;
+        }).observe(document.body, {subtree: true, childList: true, attributes: true});
+    }""")
+    page.click(MIRROR)
+    page.wait_for_timeout(300)
+    assert sent == ["mirror_heat_on"]
+    _tick(page, 1_600)                   # the 1.5 s refetch
+    _tick(page, 3_500)                   # the 5 s one
+    assert page.evaluate("isBusy()"), "the busy floor should still be on"
+    assert page.evaluate("window.gaps") == 0
