@@ -3,6 +3,65 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.18.3] — 2026-09-24
+
+### Fixed (#307, @arzthilfe · #308, @adoewa)
+
+- **A slow charge showed 0.00 kW while it was charging.** The power reading refused to compute
+  below the *charge-detection* floor — the Settings value whose help text talks about the ~11 A of
+  a home AC charge — so one threshold both decided whether the car was charging, where a floor
+  belongs, and measured how much power flowed, where it printed a zero over a real figure. On
+  @arzthilfe's C10, turned down from 11 A to 8 A and tapering near 87 % SoC, 718.2 V × 1.599 A =
+  **1.148 kW** read as 0.00. The floor stays where it decides; the measurement is now the
+  measurement. Regen, the stuck-counter sum and the peak-power figure each keep their own guards.
+
+- **A four-decimal electricity tariff could not be typed.** The €/kWh field on the Costs page
+  stepped in whole cents, so a browser rejected 0.3024 €/kWh on submit and the price fell back to
+  0.30 — pricing every home charge about half a percent low, silently. @adoewa's charge cost him
+  18.10 € and Mate wrote 17.95. The field no longer rounds; `min` stays, and there is still no
+  maximum, which would block currencies that price a kWh in tens or hundreds.
+
+## [3.18.2] — 2026-09-24
+
+### Fixed (beta #49 @gm27271 · #296 @adoewa · #295)
+
+- **Session recovery retried every 60 seconds for as long as the cloud kept refusing.** Three
+  installs whose logs reach 17–18/09 break the same way, line for line: the cloud drops a poll,
+  Mate asks for a new token — the right move — and the cloud refuses it. It is not a blocked
+  account; logins keep being accepted now and then right through the outage. What the account
+  loses is the rate: the cloud took ~310 logins a day from one install until 16/09 and 5–12 a day
+  from the 17th. Against that, a fixed one-minute retry asked 1 440 times a day — 5 271 failed
+  attempts in four days for ~79 accepted on one install, 4 204 for 14 on another. The gap now
+  doubles per consecutive refusal and stops at half an hour (60s, 120, 240, 480, 960, 1800), so
+  four days cost ~196 attempts instead of 5 271 and the log keeps the shape of an outage instead
+  of a wall. One success puts it straight back to 60s. **The first retry is unchanged at 60
+  seconds**: this path also heals a vanished `/tmp` certificate or one dropped token, which the
+  first or second attempt fixes, and those installs behave exactly as before.
+
+  This does not bring a refused car back online — the refusal is the cloud's and stays the cloud's.
+  It stops Mate making it worse and stops the real cause being buried.
+
+### Documentation (#302 · PR #304 and PR #305, @jcconca · discussion #306, @juan-conca)
+
+- **The Charge Schedule JSON is documented in full**, in English and Italian: the five accepted
+  keys with their types, `days` as a Monday-first mask (the official app displays the week
+  Sunday-first), what merging does to the keys you omit, the one exception for `soc`, and what a
+  refused command leaves untouched. Each line was checked by running the handler, not by reading
+  it. Raised by [@jcconca](https://github.com/jcconca) in PR #304.
+- **The plan field behind the app's "keep charging past the window" checkbox is named.** Mate has
+  always read it and written it back unchanged, and it is still not settable through the JSON;
+  until now the documentation could not say which field it was.
+  [@juan-conca](https://github.com/juan-conca) identified it on a real car in discussion #306.
+- **The README's version banner is current again.** It had stood at v3.15.9 for eight releases —
+  no test covers it, so nothing went red. Spotted by [@jcconca](https://github.com/jcconca) in
+  PR #305.
+
+### Internal
+
+- Two dead locals in the poll loop's setup removed: they were assigned and never read after the
+  per-account state moved onto its own object, and the first of them carried a comment describing
+  the retry guard that this release changes.
+
 ## [3.18.1] — 2026-09-24
 
 ### Fixed (#303, @arzthilfe)
