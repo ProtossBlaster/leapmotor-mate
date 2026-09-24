@@ -462,8 +462,9 @@ def _ago(t, seconds) -> str:
     return t("ago_h").format(n=s // 3600)
 
 
-def _last_position(status, vehicle, t) -> dict:
-    """The Overview map's marker: where the car is, the popup under it, and when to ask again.
+def _last_position(status, t) -> dict:
+    """The Overview map's marker: where the car is, how old that position is (the map card's
+    heading says it), and when to ask again.
 
     ONE builder for the page's first paint and for /api/last-position, which the map polls — so the
     marker can only ever move to a position the page itself would have drawn. It reads what the
@@ -483,15 +484,14 @@ def _last_position(status, vehicle, t) -> dict:
     "22 seconds ago" at a marker that had not moved in hours — and, when a poll came back without a
     fix, the age of the fix the map falls back to, not of that poll.
 
-    Always the same keys — lat/lon/label are None while no position is known — so the page and the
+    Always the same keys — lat/lon/ago are None while no position is known — so the page and the
     map never branch on the shape, and the map still learns when to ask again."""
     status = status or {}
     refresh_s = db_reader.poll_seconds(driving=True)
     if not db_reader.has_gps_fix(status.get("latitude"), status.get("longitude")):
-        return {"lat": None, "lon": None, "label": None, "refresh_s": refresh_s}
+        return {"lat": None, "lon": None, "ago": None, "refresh_s": refresh_s}
     return {"lat": status["latitude"], "lon": status["longitude"],
-            "label": f"{(vehicle or {}).get('car_type') or 'Leapmotor'} — "
-                     f"{_ago(t, status.get('position_age_s'))}",
+            "ago": _ago(t, status.get("position_age_s")),
             "refresh_s": refresh_s}
 
 
@@ -681,7 +681,7 @@ async def overview(request: Request):
     return templates.TemplateResponse(request, "overview.html", _ctx(
         page="overview", vehicle=vehicle, settings=settings,
         status=status, recent_trips=trips,
-        last_position=_last_position(status, vehicle, t),
+        last_position=_last_position(status, t),
         last_charge=charges[0] if charges else None,
         v2l=db_reader.get_v2l_status(),
         charge_limit=_configured_charge_limit((vehicle or {}).get("vin") or ""),
@@ -4382,9 +4382,7 @@ async def last_position():
     never moved: the status card beside it refreshes every 30 s, so "last seen 6 s ago" stood next
     to a marker left wherever the car was when the page was opened. Local data only — see
     _last_position."""
-    vehicle, _ = db_reader.get_vehicle()
-    pos = _last_position(db_reader.get_latest_status(), vehicle,
-                         i18n.get_t(db_reader.get_language()))
+    pos = _last_position(db_reader.get_latest_status(), i18n.get_t(db_reader.get_language()))
     return JSONResponse(pos, headers={"Cache-Control": "no-store"})
 
 

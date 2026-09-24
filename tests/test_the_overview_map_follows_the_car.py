@@ -36,7 +36,7 @@ def mate(tmp_path, monkeypatch):
 
 
 def _position(pdb, lat, lon, *, driving=False, frame_age_ms=2 * HOUR_MS):
-    """A row the poller would write. The frame is hours old by default, so the popup's "…ago"
+    """A row the poller would write. The frame is hours old by default, so the heading's "…ago"
     cannot tick between two reads in one test."""
     now = datetime.datetime.now(datetime.timezone.utc)
     pdb._conn.execute(
@@ -80,7 +80,7 @@ def test_it_asks_at_the_pollers_driving_cadence_whatever_the_car_is_doing(mate, 
 
 def test_before_any_position_it_says_so_and_still_when_to_ask(mate):
     _, client = mate
-    assert _served(client) == {"lat": None, "lon": None, "label": None,
+    assert _served(client) == {"lat": None, "lon": None, "ago": None,
                                "refresh_s": db_reader.POLL_DRIVING_DEFAULT_S}
 
 
@@ -97,12 +97,12 @@ def test_a_first_poll_without_a_fix_is_not_a_position(mate):
 
 def test_a_poll_without_a_fix_keeps_the_last_real_one_and_its_age(mate):
     """The poll without a fix is seconds old; the position the map falls back to is not, and the
-    popup dates the position it shows."""
+    map dates the position it shows."""
     pdb, client = mate
     _position(pdb, 52.40, 16.90, frame_age_ms=3 * HOUR_MS)
     _position(pdb, 0.0, 0.0, frame_age_ms=0)
     assert (_served(client)["lat"], _served(client)["lon"]) == (52.40, 16.90)
-    assert _served(client)["label"] == "B10 — 3h ago"
+    assert _served(client)["ago"] == "3h ago"
 
 
 def test_a_car_on_the_prime_meridian_is_drawn(mate):
@@ -122,10 +122,13 @@ def test_the_refresh_button_moves_the_marker(mate):
 
 
 def test_the_page_draws_the_same_marker_the_map_is_served(mate):
+    """…and the card's heading says the same age before any script has run."""
     pdb, client = mate
     _position(pdb, 52.40, 16.90)
-    assert _drawn(client.get("/").text) == _served(client)
-    assert _served(client)["label"] == "B10 — 2h ago"
+    html = client.get("/").text
+    assert _drawn(html) == _served(client)
+    assert _served(client)["ago"] == "2h ago"
+    assert re.search(r'id="map-when"[^>]*>\(2h ago\)</span>', html)
 
 
 def test_with_no_position_the_placeholder_shows_and_the_map_waits_for_one(mate):
@@ -137,19 +140,8 @@ def test_with_no_position_the_placeholder_shows_and_the_map_waits_for_one(mate):
     assert _drawn(html)["lat"] is None
 
 
-def test_the_popup_speaks_the_readers_language(mate):
+def test_the_age_speaks_the_readers_language(mate):
     pdb, client = mate
     db_reader.set_setting("language", "pl")
     _position(pdb, 52.40, 16.90)
-    assert _served(client)["label"] == "B10 — 2 godz. temu"
-
-
-def test_a_car_name_cannot_break_out_of_the_page(mate):
-    """The name is data from the car's profile; the payload sits inside a <script>."""
-    pdb, client = mate
-    pdb._conn.execute("UPDATE vehicles SET car_type='</script><b>x</b>' WHERE id=1")
-    pdb._conn.commit()
-    _position(pdb, 52.40, 16.90)
-    html = client.get("/").text
-    assert "</script><b>x</b>" not in html
-    assert _drawn(html)["label"].startswith("</script><b>x</b> — ")
+    assert _served(client)["ago"] == "2 godz. temu"

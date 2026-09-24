@@ -136,7 +136,9 @@
     <link rel="stylesheet" href="static/vendor/leaflet/leaflet.css"/>
     <script src="static/vendor/leaflet/leaflet.js"></script>
     <div id="map-box"{% if last_position.lat is none %} style="display:none"{% endif %}>
-      <div class="stat-label mb-3">{{ t('last_position') }}</div>
+      {# The heading, not a popup on the map, says how old the position is: a popup covered the
+         map above the car and was cut off near an edge. The car's name is at the top of the page. #}
+      <div class="stat-label mb-3">{{ t('last_position') }} <span id="map-when" class="normal-case whitespace-nowrap">{% if last_position.ago %}({{ last_position.ago }}){% endif %}</span></div>
       <div id="map" class="w-full rounded-lg" style="height:280px"></div>
     </div>
     <div id="map-empty"{% if last_position.lat is not none %} style="display:none"{% endif %}>
@@ -158,10 +160,9 @@
        position brings the placeholder back, and anything else that is not a position is treated
        like a failed poll. The map pans only when the car moves — further than a parked car's GPS
        wanders — and then recentres on it once it comes within a quarter of the view from an edge,
-       before it reaches the edge and its popup is cut off. Never under the owner's hand: a move
-       that arrives while the map is being dragged, flung or zoomed waits until it settles; and
-       never because the owner panned away from a car standing still. The popup opens once and
-       never pans the map (autoPan is off). Local data only; nothing here reaches Leapmotor. #}
+       before it reaches the edge. Never under the owner's hand: a move that arrives while the map
+       is being dragged, flung or zoomed waits until it settles; and never because the owner panned
+       away from a car standing still. Local data only; nothing here reaches Leapmotor. #}
     <script>
       (function () {
         const START_ZOOM = 15;
@@ -170,7 +171,7 @@
         const MAX_TIMER_MS = 2 ** 31 - 1;   // setTimeout fires a longer delay at once
         const box = document.getElementById('map-box');
         const empty = document.getElementById('map-empty');
-        const label = document.createElement('span');   // text, never HTML: the car's name is data
+        const when = document.getElementById('map-when');
         let map = null, marker = null, refreshS = null, timer = null, busy = false;
         let gesture = false, follow = false;   // the owner is moving the map; a car move waits for it
 
@@ -190,7 +191,7 @@
           box.style.display = '';
           empty.style.display = 'none';
           const at = L.latLng(pos.lat, pos.lon);
-          label.textContent = pos.label;
+          when.textContent = '(' + pos.ago + ')';
           if (!map) {
             map = L.map('map').setView(at, START_ZOOM);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -202,7 +203,8 @@
               html: '<div style="background:#14b8a6;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5)"></div>',
               iconSize: [14,14], iconAnchor: [7,7]
             });
-            marker = L.marker(at, {icon}).addTo(map).bindPopup(label, {autoPan: false}).openPopup();
+            // Nothing to open on it any more: not a button, not a tab stop.
+            marker = L.marker(at, {icon, interactive: false, keyboard: false}).addTo(map);
             map.on('movestart', function () { gesture = true; });
             map.on('moveend', function () { gesture = false; followCar(); });
             return;
@@ -210,7 +212,6 @@
           if (reappears) map.invalidateSize();   // a resize while it was hidden measured it as 0×0
           if (marker.getLatLng().distanceTo(at) >= STILL_M) follow = true;
           marker.setLatLng(at);
-          marker.getPopup().update();
           followCar();
         }
 

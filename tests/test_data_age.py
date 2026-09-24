@@ -123,11 +123,11 @@ def test_every_language_carries_the_new_strings():
 
 
 def test_both_places_that_show_a_time_ago_go_through_the_translator():
-    """find-every-copy: `last seen` is shown in TWO places — the status card and the map popup.
+    """find-every-copy: `last seen` is shown in TWO places — the status card and the map card.
     Translating one and forgetting the other is exactly how the Overview ends up speaking two
     languages at once, which is what this whole change is here to stop. The card is checked here.
-    The popup's words are built by main._last_position since the map started following the car,
-    and the map's own tests check them in the reader's language
+    The map's age is built by main._last_position since the map started following the car, and
+    the map's own tests check it in the reader's language
     (test_the_overview_map_follows_the_car.py)."""
     import pathlib
     root = pathlib.Path(__file__).resolve().parent.parent / "web" / "templates"

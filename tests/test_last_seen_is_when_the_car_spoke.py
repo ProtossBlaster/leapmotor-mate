@@ -26,9 +26,9 @@ WEB = pathlib.Path(__file__).parents[1] / "web"
 CARD = (WEB / "templates" / "partials" / "status_card.html").read_text()
 
 
-def _popup(monkeypatch, *, frame_age_s, row_age_s) -> str:
-    """What the map popup says over a position whose frame and row are this old. Built in Python
-    since the marker follows the car: the page's first paint and every refresh come from
+def _map_age(monkeypatch, *, frame_age_s, row_age_s) -> str:
+    """How old the map says a position is whose frame and row are this old. Built in Python since
+    the marker follows the car: the page's first paint and every refresh come from
     main._last_position, so its words are checked, not markup."""
     import db_reader
     import main
@@ -40,7 +40,7 @@ def _popup(monkeypatch, *, frame_age_s, row_age_s) -> str:
     t = {"ago_s": "{n}s ago", "ago_m": "{n}m ago", "ago_h": "{n}h ago"}.get
     status = {"latitude": 45.0, "longitude": 9.0,
               "position_age_s": db_reader._position_age_s(frame_ts, recorded_at)}
-    return main._last_position(status, {"car_type": "C10"}, t)["label"]
+    return main._last_position(status, t)["ago"]
 
 
 def _last_seen_block() -> str:
@@ -51,14 +51,14 @@ def _last_seen_block() -> str:
 
 # ── the figure itself ─────────────────────────────────────────────────────────
 
-def test_the_map_popup_dates_the_frame_not_the_row(monkeypatch):
+def test_the_map_dates_the_frame_not_the_row(monkeypatch):
     """@rop12770's popup, reproduced: the row is 22 s old, the frame behind it 16 hours."""
-    assert _popup(monkeypatch, frame_age_s=57_600, row_age_s=22) == "C10 — 16h ago"
+    assert _map_age(monkeypatch, frame_age_s=57_600, row_age_s=22) == "16h ago"
 
 
-def test_the_map_popup_falls_back_to_the_row_time(monkeypatch):
+def test_the_map_falls_back_to_the_row_time(monkeypatch):
     """A car that reports no clock has no frame timestamp; the row time is all there is."""
-    assert _popup(monkeypatch, frame_age_s=None, row_age_s=45) == "C10 — 45s ago"
+    assert _map_age(monkeypatch, frame_age_s=None, row_age_s=45) == "45s ago"
 
 
 def test_the_status_card_dates_the_frame_not_the_row():
@@ -69,7 +69,7 @@ def test_the_status_card_dates_the_frame_not_the_row():
 def test_the_row_time_survives_only_as_the_fallback():
     """A car that reports no clock has no frame timestamp, and there the row time is all we have —
     dropping it would turn a slightly wrong answer into no answer. (The map's fallback is checked
-    on what it says: test_the_map_popup_falls_back_to_the_row_time.)"""
+    on what it says: test_the_map_falls_back_to_the_row_time.)"""
     block = _last_seen_block()
     assert "status.last_seen_s" in block, "keep the fallback"
     assert re.search(r"data_age_s[^}]*if[^}]*else[^}]*last_seen_s", block), \
