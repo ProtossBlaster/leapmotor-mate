@@ -127,14 +127,17 @@ document.addEventListener('htmx:afterRequest', function(e) {
   if (isCmd) {
     sending = false;
     var name = (path.split('api/command/')[1] || '').replace(/\/$/, '');
-    var el = document.getElementById('result-' + name);
-    if (e.detail.successful && (!el || !el.querySelector('[data-warn]'))) {
-      if (el) el.innerHTML = '';                              // drop the "✓ Done" — the in-tile ⏳+message is the feedback
+    // The answer is where the request put it: #result-<command> for most tiles, a comfort tile's own #tg-
+    // (the two mirrors share one command). Read there, and cleaned up there.
+    var el = e.detail.target;
+    var took = e.detail.successful && !!el.querySelector('[data-ok]');   // taken by the cloud: not a warning, not an error
+    if (e.detail.successful && !el.querySelector('[data-warn]')) {
+      if (took) el.innerHTML = '';                            // drop the "✓ Done" — the in-tile ⏳+message is the feedback
       busyCmd = name; busyUntil = Date.now() + BUSY_MS; busyStart = Date.now();
       pendingExpect = CONFIRM[name] || null;                  // movement toggle → wait for the real flip too
-    } else if (el && el.querySelector('[data-warn]')) {
+    } else if (el.querySelector('[data-warn]')) {
       setBusyUI(busyCmd, false); busyCmd = null;              // refused (e.g. driving) → drop the ⏳, keep the notice
-      setTimeout(function () { var n = document.getElementById('result-' + name); if (n) n.innerHTML = ''; }, 6000);
+      setTimeout(function () { var n = document.getElementById(el.id); if (n) n.innerHTML = ''; }, 6000);
       cmdBusyTick(); return;                                  // nothing changed on the car → no grid refetch
     }
     cmdBusyTick();

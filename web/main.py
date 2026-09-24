@@ -5872,7 +5872,7 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
             _veh, _ = db_reader.get_vehicle()
             _optimistic_comfort(_veh.get("vin") if _veh else None, _COMFORT_CMD_OPTIMISTIC[name])
         return _cmd_response(request, payload={"ok": True, "status": "done"},
-                             html='<span style="color:#22c55e">✓ Done</span>')
+                             html='<span data-ok="1" style="color:#22c55e">✓ Done</span>')
 
     import asyncio
     ok, msg = await asyncio.get_event_loop().run_in_executor(None, fn)
@@ -5890,7 +5890,7 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
             return _cmd_response(request, payload={"ok": True, "status": "pending"},
                 html='<span data-slow="1" style="color:#60a5fa;display:inline-flex;align-items:center;gap:4px"><svg style="animation:spin 1s linear infinite;width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span><style>@keyframes spin{to{transform:rotate(360deg)}}</style>')
         return _cmd_response(request, payload={"ok": True, "status": "done"},
-                             html='<span style="color:#22c55e">✓ Done</span>')
+                             html='<span data-ok="1" style="color:#22c55e">✓ Done</span>')
     return _cmd_response(request, payload={"ok": False, "error": msg},
                          html=_cmd_error_html(msg))
 
