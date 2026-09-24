@@ -430,7 +430,7 @@
             <span class="text-sm text-white">{{ t('poll_parked_label') }}</span>
             <span class="font-bold text-brand"><span id="pp-val">{{ settings.get('poll_parked', '30') }}</span>s</span>
           </div>
-          <input type="range" name="poll_parked" min="10" max="300" step="10"
+          <input type="range" name="poll_parked" min="10" max="600" step="10"
                  value="{{ settings.get('poll_parked', '30') }}"
                  oninput="document.getElementById('pp-val').textContent=this.value"
                  class="w-full accent-brand cursor-pointer">
