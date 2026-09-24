@@ -255,7 +255,20 @@ class Recorder:
         if (data.odometer_km - prev_odo) < self._reconstruct_min_km:
             return                                              # sub-1 km blip, not a trip
         if data.soc - prev_soc > 0.5:
-            return                                              # SoC rose → a charge, not a pure drive
+            # The SoC went UP, so this is not a pure drive and a trip rebuilt from it would carry
+            # an impossible consumption. The kilometres, though, were really driven: throwing them
+            # away with the trip is how 80 km disappeared off a real car over nine days of poller
+            # downtime (24/09/2026) — one reconstructed charge written for the SoC, and nothing at
+            # all for the distance. They are exactly what offline_gaps holds: measured, and
+            # attributable to no trip. The energy is deliberately left out — how much of the rise
+            # was the charge and how much the drive cannot be told apart, and half a fraction is
+            # worse than none.
+            self._db.record_offline_gap(
+                self._vehicle_id,
+                started_at=fresh_ts_before or prev_ts, ended_at=_now_iso(),
+                odo_start=prev_odo, odo_end=data.odometer_km or 0,
+                soc_start=prev_soc, soc_end=data.soc)
+            return
         # Start where the news stopped, not where the last poll happened. The two are the same on a
         # healthy link and hours apart behind a frozen frame — and it is the second case that
         # produced 4 km "in 30 seconds", an implied 480 km/h, and a trip with no duration at all.
