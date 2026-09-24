@@ -2163,11 +2163,10 @@ _COMFORT_ROWS = (
     ("steering_heat",        "steering_heat", "comfort_steering_heat",        "steering",  "heat"),  # last → mirrors stay paired on mobile
 )
 
-# Comfort rows controllable as a simple on/off toggle (steering/mirror — no level on the car).
+# Comfort rows controllable as a simple on/off toggle (mirrors — no level on the car).
 # skey -> (gating command feature, on-command key, off-command key). Both mirror tiles share the
-# single mirror command. Seats are handled separately (level slider).
+# single mirror command. Seats and the steering wheel are handled separately (level sliders).
 _COMFORT_TOGGLE = {
-    "steering_heat":     ("steering_heat_cmd", "steering_heat_on", "steering_heat_off"),
     "mirror_heat_left":  ("mirror_heat_cmd",   "mirror_heat_on",   "mirror_heat_off"),
     "mirror_heat_right": ("mirror_heat_cmd",   "mirror_heat_on",   "mirror_heat_off"),
 }
@@ -2198,6 +2197,11 @@ def _comfort_rows(vin, car_type=""):
             if capability_profile.is_shown(vin, f"seat_{func}_cmd", car_type=car_type):
                 row.update(control="slider", func=func,
                            position=("driver" if side == "driver" else "copilot"))
+        elif skey == "steering_heat":
+            # 1816 on a B10 from software 3.41.30: 0 off, 1 level I, 2 level II, 3 level II switched on remotely.
+            row.update(value=min(v, 2), remote=(v == 3))
+            if capability_profile.is_shown(vin, "steering_heat_cmd", car_type=car_type):
+                row.update(control="steering", cmd_on="steering_heat_on", cmd_off="steering_heat_off")
         elif skey in _COMFORT_TOGGLE:
             cfeat, cmd_on, cmd_off = _COMFORT_TOGGLE[skey]
             if capability_profile.is_shown(vin, cfeat, car_type=car_type):
@@ -2211,7 +2215,7 @@ def _comfort_rows(vin, car_type=""):
 # making them appear to "revert". After a web comfort command we merge the expected sensor values
 # so the refresh shows the action immediately; the next poll overwrites with the real values.
 _COMFORT_CMD_OPTIMISTIC = {
-    "steering_heat_on":  {"steering_heat": 2},
+    "steering_heat_on":  {"steering_heat": 3},   # what 1816 reads after a remote "on" (see _comfort_rows)
     "steering_heat_off": {"steering_heat": 0},
     "mirror_heat_on":    {"mirror_heat_left": 1, "mirror_heat_right": 1},
     "mirror_heat_off":   {"mirror_heat_left": 0, "mirror_heat_right": 0},
@@ -2265,7 +2269,8 @@ async def commands(request: Request):
     status = db_reader.get_latest_status()
     comfort = _comfort_rows(vehicle.get("vin") if vehicle else None, (vehicle or {}).get("car_type", ""))
     return templates.TemplateResponse(request, "commands.html", _ctx(
-        page="commands", vehicle=vehicle, status=status, comfort=comfort, **_wins_ctx(),
+        page="commands", vehicle=vehicle, vin=vehicle.get("vin") if vehicle else None,
+        status=status, comfort=comfort, **_wins_ctx(),
         ac_off_shown=capability_profile.command_shown(vehicle.get("vin") if vehicle else None, "climate_off"),
         is_t03=(vehicle.get("car_type") or "").upper() == "T03" if vehicle else False,
     ))
@@ -4634,7 +4639,7 @@ async def cmd_grid(request: Request):
     vin = vehicle.get("vin") if vehicle else None
     comfort = _comfort_rows(vin, (vehicle or {}).get("car_type", ""))
     return templates.TemplateResponse(request, "partials/cmd_grid.html", _ctx(
-        status=status, comfort=comfort, **_wins_ctx(),
+        vin=vin, status=status, comfort=comfort, **_wins_ctx(),
         ac_off_shown=capability_profile.command_shown(vin, "climate_off"),
         is_t03=(vehicle.get("car_type") or "").upper() == "T03" if vehicle else False,
     ))
