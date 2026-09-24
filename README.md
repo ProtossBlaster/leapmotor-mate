@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v3.15.9:** fixed B05 live vehicle and charge-plan reads through the working status path.
-See [release notes and upgrade impact](docs/releases/v3.15.9.md).
+**v3.18.2:** session recovery stops hammering the cloud while it refuses logins, and the Charge Schedule JSON is documented in full.
+See [release notes and upgrade impact](docs/releases/v3.18.2.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -307,7 +307,29 @@ Forward the car's live data to **A Better Route Planner** for live route plannin
 
 ### MQTT → Home Assistant
 
-Publish the car to Home Assistant as **native entities** (in parallel to the Mate UI), via MQTT Discovery. In **Settings → MQTT**, enable it and enter your broker (host, port, username/password; TLS optional). Home Assistant then auto‑creates a *Leapmotor Mate* device with sensors (SOC, range, individual tyres, temperatures, charge…), binary sensors (doors/windows/lock/charging), a GPS tracker, a writable **Charge Limit** (target SoC) `number`, a writable **Charge Schedule** `text` that takes a JSON plan for automations (`{"start":"23:00","soc":90}` — every key optional, and whatever you omit keeps its current value), a read-only **V2L** group (`V2L Active` / `V2L Power` / `V2L Session Energy`), a **`Ready`** binary sensor that turns on as soon as the car is powered up — before it moves, while an automation still has time to act — and command buttons (lock/unlock, trunk, find car, preheat battery, unlock charge cable, climate — A/C Auto / Quick Cool / Quick Heat / Quick Ventilation / Defrost / A/C Off — and comfort: heated/ventilated seats, steering-wheel & mirror heating). Turning the A/C fully **off** now works on the B10 (using the `operate=off` command found by on‑car testing); the comfort commands use the payloads captured by [@kerniger](https://github.com/kerniger/leapmotor-ha). Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection** to verify the broker before saving. After a command the state now updates in Home Assistant immediately (no waiting for the next poll), and the **topic prefix** scopes the device — so you can run a second instance on a different prefix without it clashing with the first.
+Publish the car to Home Assistant as **native entities** (in parallel to the Mate UI), via MQTT Discovery. In **Settings → MQTT**, enable it and enter your broker (host, port, username/password; TLS optional). Home Assistant then auto‑creates a *Leapmotor Mate* device with sensors (SOC, range, individual tyres, temperatures, charge…), binary sensors (doors/windows/lock/charging), a GPS tracker, and:
+
+- **Charge Limit** — a writable `number` (target SoC).
+
+- **Charge Schedule** — a writable `text` entity that takes a JSON plan for automations, e.g. `{"start":"23:00","soc":90}`. The five accepted keys:
+
+  | Key | Type | Meaning |
+  | --- | --- | --- |
+  | `start` | `"HH:MM"` | Window start |
+  | `stop` | `"HH:MM"` | Window end |
+  | `soc` | `50`–`100` | Target charge limit % |
+  | `active` | `true` / `false` | Whether the schedule is enabled at all |
+  | `days` | `"d,d,d,d,d,d,d"` | Seven comma-separated 0/1 flags, **Monday-first** (position 0 = Monday … 6 = Sunday). The official app *displays* the week Sunday-first, so its on-screen order differs from this mask |
+
+  Any other key is silently ignored. Sending fewer than five keys **merges** into the car's current plan: everything you omit keeps its value, with one exception — an omitted `soc` is taken from the charge limit the car last reported rather than from the stored plan (in practice the same number, since setting the charge limit also writes the plan's `soc`), and if the car has never reported one the command is refused. An invalid value is refused too — a `soc` outside 50–100, a malformed time, invalid JSON, or JSON that isn't an object — and **nothing is written**: the existing plan is left exactly as it was. `days` is the exception to that check: it is handed to the car as written, so a mask that isn't seven flags is not caught here. On a successful write the entity echoes the applied plan back as its state, always with all five keys. Two plan fields the car's cloud stores are not exposed through this JSON at all — the repeat mode, and the flag behind the app's "keep charging past the window" checkbox (identified on a real car by [@juan-conca](https://github.com/juan-conca)); Mate reads both and writes them back unchanged.
+
+- **V2L** — a read-only group (`V2L Active` / `V2L Power` / `V2L Session Energy`).
+
+- **`Ready`** — a binary sensor that turns on as soon as the car is powered up, before it moves, while an automation still has time to act.
+
+- **Command buttons** — lock/unlock, trunk, find car, preheat battery, unlock charge cable, climate (A/C Auto / Quick Cool / Quick Heat / Quick Ventilation / Defrost / A/C Off) and comfort (heated/ventilated seats, steering-wheel & mirror heating). Turning the A/C fully **off** now works on the B10 (using the `operate=off` command found by on‑car testing); the comfort commands use the payloads captured by [@kerniger](https://github.com/kerniger/leapmotor-ha).
+
+Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection** to verify the broker before saving. After a command the state now updates in Home Assistant immediately (no waiting for the next poll), and the **topic prefix** scopes the device — so you can run a second instance on a different prefix without it clashing with the first.
 
 ---
 
@@ -337,8 +359,8 @@ Publish the car to Home Assistant as **native entities** (in parallel to the Mat
 
 # LeapMotor Mate · Italiano
 
-**v3.15.9:** corrette le letture live del veicolo e del piano di ricarica sulle B05.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v3.15.9.md#italiano).
+**v3.18.2:** il recupero della sessione smette di martellare il cloud mentre rifiuta i login, e il JSON della programmazione ricarica è documentato per intero.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v3.18.2.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
@@ -616,7 +638,29 @@ Invia i dati live dell'auto ad **A Better Route Planner** per la pianificazione 
 
 ### MQTT → Home Assistant
 
-Pubblica l'auto a Home Assistant come **entità native** (in parallelo all'interfaccia di Mate), via MQTT Discovery. In **Impostazioni → MQTT**, attivala e inserisci il tuo broker (host, porta, utente/password; TLS opzionale). Home Assistant crea automaticamente un dispositivo *Leapmotor Mate* con sensori (SOC, autonomia, gomme singole, temperature, carica…), binary sensor (porte/finestrini/serratura/ricarica), un tracker GPS, un **limite di carica** (target SoC) `number` scrivibile, una **Programmazione ricarica** (`text` scrivibile) che accetta un piano in JSON pensato per le automazioni (`{"start":"23:00","soc":90}` — ogni campo è opzionale, e quello che ometti resta com'è), un binary sensor **`Ready`** che si accende appena l'auto viene accesa — prima che si muova, cioè finché un'automazione fa ancora in tempo ad agire — e pulsanti comando (lock/unlock, baule, trova auto, preriscaldamento batteria, sblocco cavo di ricarica, clima — A/C Auto / Quick Cool / Quick Heat / Ventilazione / Sbrinamento / A/C Off — e comfort: sedili riscaldati/ventilati, riscaldamento volante e specchietti). Lo spegnimento **completo** dell'A/C ora funziona sulla B10 (usa il comando `operate=off`, individuato con i test sull'auto); i comandi comfort usano i payload catturati da [@kerniger](https://github.com/kerniger/leapmotor-ha). Funziona con qualsiasi broker MQTT (es. l'add‑on Mosquitto). Usa **Prova connessione** per verificare il broker prima di salvare. Dopo un comando lo stato ora si aggiorna in Home Assistant all'istante (senza aspettare il polling successivo), e il **prefisso topic** delimita il dispositivo — così puoi far girare una seconda istanza con un prefisso diverso senza che entri in conflitto con la prima.
+Pubblica l'auto a Home Assistant come **entità native** (in parallelo all'interfaccia di Mate), via MQTT Discovery. In **Impostazioni → MQTT**, attivala e inserisci il tuo broker (host, porta, utente/password; TLS opzionale). Home Assistant crea automaticamente un dispositivo *Leapmotor Mate* con sensori (SOC, autonomia, gomme singole, temperature, carica…), binary sensor (porte/finestrini/serratura/ricarica), un tracker GPS, e:
+
+- **Limite di carica** — un `number` scrivibile (target SoC).
+
+- **Programmazione ricarica** — un'entità `text` scrivibile che accetta un piano in JSON pensato per le automazioni, es. `{"start":"23:00","soc":90}`. Le cinque chiavi accettate:
+
+  | Chiave | Tipo | Significato |
+  | --- | --- | --- |
+  | `start` | `"HH:MM"` | Inizio della finestra |
+  | `stop` | `"HH:MM"` | Fine della finestra |
+  | `soc` | `50`–`100` | Limite di carica da raggiungere, in % |
+  | `active` | `true` / `false` | Se la programmazione è attiva o no |
+  | `days` | `"g,g,g,g,g,g,g"` | Sette valori 0/1 separati da virgola, **lunedì per primo** (posizione 0 = lunedì … 6 = domenica). L'app ufficiale *mostra* la settimana con la domenica per prima, quindi l'ordine a schermo è diverso da questa maschera |
+
+  Qualsiasi altra chiave viene ignorata in silenzio. Mandandone meno di cinque il piano si **fonde** con quello attuale dell'auto: tutto ciò che ometti resta com'è, con un'eccezione — un `soc` omesso viene preso dal limite di carica che l'auto ha riportato per ultimo e non dal piano salvato (in pratica lo stesso numero, perché impostare il limite di carica scrive anche il `soc` del piano), e se l'auto non ne ha mai riportato uno il comando viene rifiutato. Anche un valore non valido viene rifiutato — un `soc` fuori da 50–100, un orario malformato, un JSON non valido o un JSON che non è un oggetto — e **non viene scritto niente**: il piano esistente resta esattamente com'era. L'eccezione a questo controllo è `days`: viene passato all'auto così com'è, quindi una maschera che non sia di sette valori non viene intercettata qui. A scrittura riuscita l'entità riporta come proprio stato il piano applicato, sempre con tutte e cinque le chiavi. Due campi del piano che il cloud dell'auto conserva non passano affatto da questo JSON — la modalità di ripetizione e il flag dietro la casella «continua a caricare oltre la finestra» dell'app (individuato su un'auto vera da [@juan-conca](https://github.com/juan-conca)); Mate li legge entrambi e li riscrive invariati.
+
+- **V2L** — un gruppo in sola lettura (`V2L Active` / `V2L Power` / `V2L Session Energy`).
+
+- **`Ready`** — un binary sensor che si accende appena l'auto viene accesa, prima che si muova, cioè finché un'automazione fa ancora in tempo ad agire.
+
+- **Pulsanti comando** — lock/unlock, baule, trova auto, preriscaldamento batteria, sblocco cavo di ricarica, clima (A/C Auto / Quick Cool / Quick Heat / Ventilazione / Sbrinamento / A/C Off) e comfort (sedili riscaldati/ventilati, riscaldamento volante e specchietti). Lo spegnimento **completo** dell'A/C ora funziona sulla B10 (usa il comando `operate=off`, individuato con i test sull'auto); i comandi comfort usano i payload catturati da [@kerniger](https://github.com/kerniger/leapmotor-ha).
+
+Funziona con qualsiasi broker MQTT (es. l'add‑on Mosquitto). Usa **Prova connessione** per verificare il broker prima di salvare. Dopo un comando lo stato ora si aggiorna in Home Assistant all'istante (senza aspettare il polling successivo), e il **prefisso topic** delimita il dispositivo — così puoi far girare una seconda istanza con un prefisso diverso senza che entri in conflitto con la prima.
 
 ## Note e disclaimer
 
