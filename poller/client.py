@@ -213,10 +213,28 @@ class LeapmotorMateClient:
                      extra.vin, extra.car_type, getattr(extra, "is_shared", False))
 
     def relogin(self):
-        """Force a fresh login to self-heal a broken session. The account TLS cert
-        lives in a /tmp temp file; if it vanishes, every request fails forever with
-        'Could not find the TLS certificate file'. Dropping the shared-session blob
-        and re-logging in re-creates the cert. Also recovers auth/token drops."""
+        """Self-heal a broken session — spending a token REFRESH first, and a full login only
+        if that does not hold.
+
+        The account TLS cert lives in a /tmp temp file; if it vanishes, every request fails
+        forever with 'Could not find the TLS certificate file'. Dropping the shared-session blob
+        and re-logging in re-creates the cert. Also recovers auth/token drops.
+
+        ⚠️ But this path is reached from an ORDINARY poll error too — a read timeout, a dropped
+        connection — and those are blips, not dead sessions. Three bundles from 17-18/09/2026
+        (beta #49 + #295 @gm27271, #296 @adoewa, @ebagnoli) show the same three lines over and
+        over: a `Read timed out`, a re-login, a refusal. From 17/09 the cloud takes 5-12 logins a
+        day from an account where it used to take ~310, so each blip spent one of the few left and
+        threw away a refresh token that was most likely still good. The refresh is one signed
+        request against a different endpoint; when the cause really is the vanished cert it fails
+        as well, and the full login below runs exactly as it does today."""
+        if getattr(self._api, "refresh_token", None):
+            try:
+                self._api.token_refresh()
+                log.info("Session refreshed — no login spent")
+                return
+            except Exception as e:  # noqa: BLE001 — any failure just means: do the full login
+                log.info("Token refresh did not hold (%s) — falling back to a full login", e)
         try:
             import sqlite3
             c = sqlite3.connect(os.environ.get("DB_PATH", "leapmotor_mate.db"), timeout=5)
