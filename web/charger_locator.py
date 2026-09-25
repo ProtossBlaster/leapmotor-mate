@@ -403,31 +403,82 @@ def _ocm_stations(lat: float, lon: float, radius_m: int, limit: int = 100):
         return None
     out = []
     for p in pois:
-        a = p.get("AddressInfo") or {}
-        la, lo = a.get("Latitude"), a.get("Longitude")
-        if la is None or lo is None:
+        st = _ocm_poi(p)
+        if st is None:
             continue
-        d = _dist_m(lat, lon, la, lo)
+        d = _dist_m(lat, lon, st["lat"], st["lon"])
         if d > radius_m:
             continue
-        conns = p.get("Connections") or []
-        kw = max((c.get("PowerKW") or 0) for c in conns) if conns else 0
-        cur = sorted({_OCM_CUR[c["CurrentTypeID"]] for c in conns
-                      if _OCM_CUR.get(c.get("CurrentTypeID"))})
-        parts = (["/".join(cur)] if cur else []) + ([f"{_fmt_kw(kw)} kW"] if kw else [])
-        name = ((a.get("Title") or "").strip()
-                or ((p.get("OperatorInfo") or {}).get("Title") or "").strip() or None)
-        addr_parts = [(a.get("AddressLine1") or "").strip(), (a.get("Town") or "").strip()]
-        address = ", ".join(p2 for p2 in addr_parts if p2) or None
-        poi_id = p.get("ID")
-        # NB: /poi/details/{id} — NOT /site/poi/details/{id}. The old /site/ prefix
-        # 404s and gets redirected into a forced sign-in (looked exactly like a
-        # login-gate on this route specifically); the plain path shows the station
-        # publicly, no account needed — verified live against a real ID.
-        url = f"https://openchargemap.org/poi/details/{poi_id}" if poi_id else None
-        out.append({"name": name, "lat": la, "lon": lo, "dist_m": int(d),
-                    "info": " · ".join(parts), "address": address, "url": url})
+        st["dist_m"] = int(d)
+        out.append(st)
     return out
+
+
+def _ocm_poi(p: dict):
+    """One OCM POI → station dict (no dist_m: that depends on who's asking). None when
+    OCM has no position for it. Shared by the radius search and the by-ID lookup, so a
+    station reads the same whichever way it was reached."""
+    a = p.get("AddressInfo") or {}
+    la, lo = a.get("Latitude"), a.get("Longitude")
+    if la is None or lo is None:
+        return None
+    conns = p.get("Connections") or []
+    kw = max((c.get("PowerKW") or 0) for c in conns) if conns else 0
+    cur = sorted({_OCM_CUR[c["CurrentTypeID"]] for c in conns
+                  if _OCM_CUR.get(c.get("CurrentTypeID"))})
+    parts = (["/".join(cur)] if cur else []) + ([f"{_fmt_kw(kw)} kW"] if kw else [])
+    name = ((a.get("Title") or "").strip()
+            or ((p.get("OperatorInfo") or {}).get("Title") or "").strip() or None)
+    addr_parts = [(a.get("AddressLine1") or "").strip(), (a.get("Town") or "").strip()]
+    address = ", ".join(p2 for p2 in addr_parts if p2) or None
+    poi_id = p.get("ID")
+    # NB: /poi/details/{id} — NOT /site/poi/details/{id}. The old /site/ prefix
+    # 404s and gets redirected into a forced sign-in (looked exactly like a
+    # login-gate on this route specifically); the plain path shows the station
+    # publicly, no account needed — verified live against a real ID.
+    url = f"https://openchargemap.org/poi/details/{poi_id}" if poi_id else None
+    return {"name": name, "lat": la, "lon": lo,
+            "info": " · ".join(parts), "address": address, "url": url}
+
+
+# An OCM identifier the user already HAS — pasted from the OCM page, or typed as they
+# see it there. Exact by construction: nothing is searched, nothing is guessed (#301).
+# A bare number only counts when it is the WHOLE input — "Station 12" is a name.
+_OCM_URL_ID = re.compile(r"openchargemap\.(?:org|io)/(?:site/)?poi/details/(\d+)", re.I)
+_OCM_TAG_ID = re.compile(r"\bOCM[-\s#]?(\d+)\b", re.I)
+_OCM_BARE_ID = re.compile(r"#?(\d{1,9})")
+
+
+def parse_ocm_id(text: str):
+    """The OCM POI id inside `text`, or None when it holds no identifier."""
+    text = (text or "").strip()
+    m = (_OCM_URL_ID.search(text) or _OCM_TAG_ID.search(text)
+         or _OCM_BARE_ID.fullmatch(text))
+    return int(m.group(1)) if m and int(m.group(1)) > 0 else None
+
+
+def ocm_station_by_id(poi_id: int):
+    """(station, reason) for one OCM POI fetched by its id — no coordinates involved.
+    reason is None on success, else 'missing_key' (OCM's API needs one), 'not_found'
+    (OCM answered and has no such POI) or 'error' (transient: network, rate limit)."""
+    key = _ocm_key()
+    if not key:
+        return None, "missing_key"
+    params = urllib.parse.urlencode({
+        "output": "json", "chargepointid": str(int(poi_id)), "maxresults": 1,
+        "compact": "false", "verbose": "false", "key": key})
+    req = urllib.request.Request(f"{_OCM_URL}?{params}", headers={"User-Agent": _UA})
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            pois = json.load(resp)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("charger locator: Open Charge Map by-id error: %s", exc)
+        return None, "error"
+    # OCM ignores an unknown filter rather than failing — only trust a POI that IS this id.
+    st = next((_ocm_poi(p) for p in (pois or []) if p.get("ID") == int(poi_id)), None)
+    if not st or not st.get("name"):
+        return None, "not_found"
+    return st, None
 
 
 _KEY_TEST_POINT = (45.4642, 9.19)   # Milan — dense enough that a working key gets a real 200

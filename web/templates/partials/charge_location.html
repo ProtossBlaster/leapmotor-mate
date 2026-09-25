@@ -15,6 +15,9 @@
   {% elif not_found %}
   <span class="text-[11px] text-amber-400">⚠️ {{ t('charger_locator_relocate_kept') if charge.location_name
                                                 else t('charger_locator_relocate_none') }}</span>
+  {% elif ocm_error %}
+  {# #301: an OCM id typed into ✏️ that could not be fetched. Nothing was written. #}
+  <span class="text-[11px] {{ 'text-red-400' if ocm_error == 'error' else 'text-amber-400' }}">⚠️ {{ t('charger_locator_ocm_' ~ ocm_error) }}</span>
   {% endif %}
   {# The LOOKUP needs a point to search around — without coordinates there is nothing to ask OSM
      or OCM about, so the button would only ever produce a failure. The falsy test is deliberate:

@@ -3335,16 +3335,34 @@ async def set_manual_charge_location(request: Request, charge_id: int):
     set_charge_location_name exactly like a picked candidate would — location_name
     IS NOT NULL either way, so the background sweep (_LOCATION_CANDIDATES_WHERE) never
     revisits this charge. An empty submission changes nothing (closes the input with
-    whatever was already saved, same as clicking away)."""
+    whatever was already saved, same as clicking away).
+    #301: an Open Charge Map identifier in the field — a pasted OCM link, "OCM-280221", or
+    the bare number — is not a name: that exact POI is fetched by id and saved with its own
+    name and link, same as a pick from 🔄. Nothing is searched, so nothing can be guessed
+    wrong. Its coordinates are NOT written: a charge without them is how a hand-typed one is
+    recognised, and the station's position is not where the car was. When the fetch fails
+    nothing is written either — the id is not a label, and saving it as one would bury it."""
+    import asyncio
     form = await request.form()
     name = (form.get("name") or "").strip()[:200]
     charge = db_reader.get_charge_location(charge_id)
     if not charge:
         return HTMLResponse("", status_code=404)
+    t = i18n.get_t(db_reader.get_language())
+    poi_id = charger_locator.parse_ocm_id(name)
+    if poi_id:
+        st, reason = await asyncio.get_event_loop().run_in_executor(
+            None, charger_locator.ocm_station_by_id, poi_id)
+        if reason:
+            return templates.TemplateResponse(request, "partials/charge_location.html",
+                                              {"charge": charge, "t": t, "ocm_error": reason})
+        db_reader.set_charge_location_name(charge_id, st["name"][:200], st["url"])
+        charge["location_name"], charge["location_url"] = st["name"][:200], st["url"]
+        return templates.TemplateResponse(request, "partials/charge_location.html",
+                                          {"charge": charge, "t": t})
     if name:
         db_reader.set_charge_location_name(charge_id, name, None)
         charge["location_name"], charge["location_url"] = name, None
-    t = i18n.get_t(db_reader.get_language())
     return templates.TemplateResponse(request, "partials/charge_location.html",
                                       {"charge": charge, "t": t})
 
