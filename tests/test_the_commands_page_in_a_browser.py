@@ -140,12 +140,17 @@ def commands(mate):
             response = page.goto(mate.url + "/commands")
             assert response.status == 200, mate.log.read_text()[-3000:]
             page.wait_for_selector("#cmd-grid")
-            # How many grid refetches are out: the page's clock can be fake, the network never is (_grid_back).
+            # How many grid refetches are out (the page's clock can be fake, the network never is: _grid_back),
+            # how many came back with the grid, and how many command answers the page heard.
             page.evaluate("""() => {
-                window.gridOut = 0;
-                const grid = e => ((e.detail.pathInfo || {}).requestPath || '').indexOf('cmd-grid') !== -1;
+                window.gridOut = window.gridsIn = window.cmdAnswers = 0;
+                const path = e => (e.detail.pathInfo || {}).requestPath || '';
+                const grid = e => path(e).indexOf('cmd-grid') !== -1, cmd = e => path(e).indexOf('api/command/') !== -1;
                 document.addEventListener('htmx:beforeRequest', e => { if (grid(e)) window.gridOut++; });
-                document.addEventListener('htmx:afterRequest', e => { if (grid(e)) window.gridOut--; });
+                document.addEventListener('htmx:afterRequest', e => {
+                    if (grid(e)) { window.gridOut--; if (e.detail.successful) window.gridsIn++; }
+                    if (cmd(e)) window.cmdAnswers++;
+                });
             }""")
             page.errors = errors
             return page, sent
@@ -233,6 +238,54 @@ def test_a_comfort_tile_says_one_thing_while_its_command_completes(commands, anc
 
     _tick(page, 10_000)                  # the floor is over
     assert "Command in progress" not in _status(page, anchor)
+
+
+def test_a_refetch_does_not_land_while_a_command_is_out(commands):
+    """htmx reports the end of a request on the tile that sent it. A refetch landing meanwhile replaced the
+    grid, tile included, and the answer reached a tile no longer in the page: "Command in progress" stayed
+    for the watchdog's 60 s, no refetch followed the answer, and the car's state sat stale under it."""
+    page, sent = commands(0, fake_clock=True)
+    page.click(MIRROR)                   # taken: refetches follow at 1.5, 5, 9, 15, 23 and 31 s
+    page.wait_for_timeout(300)
+    _tick(page, 12_000)                  # past the busy floor
+    page.hold = True
+    page.click(MIRROR)                   # the cloud slow on this one
+    page.wait_for_timeout(300)
+    assert sent == ["mirror_heat_on", "mirror_heat_on"]
+    _tick(page, 4_000)                   # the first command's 15 s refetch comes round
+    page.hold = False
+    page.held[0].fulfill(status=200, content_type="text/html", body=DONE)
+    page.wait_for_timeout(500)
+    assert (page.evaluate("sending"), page.evaluate("window.cmdAnswers")) == (False, 2), "the page never heard the answer"
+    _tick(page, 11_000)                  # the floor after the answer is over; the wait was not 60 s
+    assert "Command in progress" not in _status(page, MIRROR)
+
+
+def test_a_refetch_already_out_when_a_command_leaves_does_not_land_either(commands):
+    """The refetch may be out before the command leaves; its swap would land during the request the same
+    way. The page aborts it, and refetches again once the answer is in."""
+    page, _ = commands(0, fake_clock=True)
+    held = []
+    page.route("**/api/cmd-grid", lambda route: held.append(route))
+    page.evaluate("refreshCmdGrid()")
+    page.wait_for_timeout(300)
+    page.hold = True
+    page.click(MIRROR)                   # while the refetch is out
+    page.wait_for_timeout(300)
+    page.unroute("**/api/cmd-grid")
+    for route in held:
+        try:
+            route.continue_()            # too late: the page has let go of it
+        except sync_api.Error:
+            pass
+    page.wait_for_timeout(300)
+    page.hold = False
+    page.held[0].fulfill(status=200, content_type="text/html", body=DONE)
+    page.wait_for_timeout(500)
+    assert (page.evaluate("sending"), page.evaluate("window.cmdAnswers")) == (False, 1), "the page never heard the answer"
+    assert page.errors == []             # the aborted refetch's promise rejected, and that was handled
+    _tick(page, 2_000)                   # and the grid is refetched after the answer
+    assert page.evaluate("window.gridsIn") >= 1
 
 
 def test_a_comfort_tile_shows_a_refusal_as_a_refusal(commands):

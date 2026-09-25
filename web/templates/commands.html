@@ -24,9 +24,24 @@
 <span id="cmd-refresh-src" class="hidden" hx-sync="this:drop"></span>
 
 <script>
-function refreshCmdGrid() {
-  htmx.ajax('GET', 'api/cmd-grid', {source: '#cmd-refresh-src', target: '#cmd-grid', swap: 'outerHTML'});
+// Not while a command's request is out — the request itself (cmdsOut), which outlives the page's 60 s lock
+// on a slow cloud. htmx reports the end of a request on the tile that sent it, and a tile the swap has
+// replaced never does (htmx falls back to an ancestor still in the page, and the swap leaves none): the page
+// would wait the watchdog's 60 s for an answer it had, and never refetch after it. A refetch asked for
+// meanwhile runs once the answer is in (refetchWaited) — not after an error, whose "Try again" the swap
+// would take with it. One already out when a command leaves is aborted (htmx:beforeRequest below): its
+// promise then rejects, which is expected there; any other rejection is thrown on as before.
+var refetchWaits = false, refetchAborted = false, cmdsOut = [];
+function cmdOut() {
+  cmdsOut = cmdsOut.filter(function (x) { return x.readyState > 0 && x.readyState < 4; });   // opened, not done, not aborted
+  return cmdsOut.length > 0;
 }
+function refreshCmdGrid() {
+  if (sending || cmdOut()) { refetchWaits = true; return; }
+  htmx.ajax('GET', 'api/cmd-grid', {source: '#cmd-refresh-src', target: '#cmd-grid', swap: 'outerHTML'})
+      .catch(function (err) { if (!refetchAborted) throw err; refetchAborted = false; });
+}
+function refetchWaited() { if (refetchWaits) { refetchWaits = false; refreshCmdGrid(); } }
 
 // Climate temp/fan sliders post their own routes (api/climate-temp|fan); the car reports the new value
 // only a few seconds later. Keep the value the user JUST set visible across grid refetches until the
@@ -111,6 +126,11 @@ document.addEventListener('htmx:beforeRequest', function(e) {
     if (sending || isBusy()) { e.preventDefault(); return; }   // a command is already in progress — block (no popup)
     sending = true; sendingSince = Date.now();
     busyCmd = (path.split('api/command/')[1] || '').replace(/\/$/, '');
+    cmdsOut.push(e.detail.xhr);
+    var src = document.getElementById('cmd-refresh-src');
+    if (src && src.classList.contains('htmx-request')) {      // a refetch out: its swap would land during this request
+      refetchAborted = true; htmx.trigger(src, 'htmx:abort'); refetchWaits = true;
+    }
     cmdBusyTick(); return;
   }
 });
@@ -138,7 +158,7 @@ document.addEventListener('htmx:afterRequest', function(e) {
       pendingExpect = CONFIRM[name] || null;                  // movement toggle → wait for the real flip too
     } else if (el.querySelector('[data-warn]')) {
       setBusyUI(busyCmd, false); busyCmd = null;              // refused (e.g. driving) → drop the ⏳, keep the notice
-      setTimeout(function () { var n = document.getElementById(el.id); if (n) n.innerHTML = ''; }, 6000);
+      setTimeout(function () { var n = document.getElementById(el.id); if (n) n.innerHTML = ''; refetchWaited(); }, 6000);
       cmdBusyTick(); return;                                  // nothing changed on the car → no grid refetch
     }
     cmdBusyTick();
@@ -148,7 +168,7 @@ document.addEventListener('htmx:afterRequest', function(e) {
     if (path === 'api/climate-fan')  climMarkPending('clim-fan-slider', 'clim-fan-val');
   }
   // Refetch the grid so the real state — and the toggled button that ends the wait — lands.
-  if (e.detail.successful) [1500, 5000, 9000, 15000, 23000, 31000].forEach(function (ms) { setTimeout(refreshCmdGrid, ms); });
+  if (e.detail.successful) { refetchWaits = false; [1500, 5000, 9000, 15000, 23000, 31000].forEach(function (ms) { setTimeout(refreshCmdGrid, ms); }); }
 });
 
 // Re-apply the ⏳+message + disabled state right after a grid refetch (the swap rebuilt every tile).
