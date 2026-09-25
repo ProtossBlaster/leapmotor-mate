@@ -254,6 +254,25 @@ CHARGE_TYPES = {
     "FREE": {"label": "FREE", "icon": "🆓", "color": "#a3e635"},
 }
 
+def manual_charge_type(charge_type) -> tuple:
+    """(location_type, charge_type) for a charge the user types in or edits — #309.
+
+    Both halves used to fold every answer into AC or FAST, because both forms could only offer AC
+    and DC: a charge typed as Home, HPC or Free came back **AC** the moment its owner corrected a
+    cost or a time. The type is what the price (`PRICE_KEYS`), the statistics and the Charges
+    filter are all keyed on, so that is a charge moving from one column of the accounts to another
+    because somebody fixed a typo.
+
+    Any of the five real types is kept. "DC" is still accepted and still means FAST, so an older
+    page or a script keeps working, and anything unknown falls back to AC as it always did. The
+    AC/DC tag stays DERIVED — it describes the socket, not the place: Home and Free are AC, HPC and
+    DC are DC.
+    """
+    chosen = {"DC": "FAST"}.get(str(charge_type or "").upper(), str(charge_type or "").upper())
+    loc = chosen if chosen in CHARGE_TYPES else "AC"
+    return loc, ("DC" if loc in ("FAST", "HPC") else "AC")
+
+
 def charge_types_localised() -> dict:
     """CHARGE_TYPES with the three English WORDS in the reader's language (#210).
 
@@ -2735,8 +2754,7 @@ def add_manual_charge(started_at: str, energy_kwh: float, cost: Optional[float] 
     db = _conn_rw()
     try:
         vehicle_id = _selected_or_first(db)
-        ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
-        loc_type = "FAST" if ct == "DC" else "AC"
+        loc_type, ct = manual_charge_type(charge_type)
         # #237 — the odometer only joins the INSERT where the column exists: the migration lives in
         # the poller and the web never alters the database (see `_charges_have_odometer`). Zero is
         # not stored, for the same reason the poller refuses it: an odometer of 0 would place the
@@ -2799,8 +2817,7 @@ def update_manual_charge(charge_id: int, started_at: str, energy_kwh: float,
     False — changing nothing — when the id isn't a typed-in charge."""
     db = _conn_rw()
     try:
-        ct = "DC" if str(charge_type).upper() in ("DC", "FAST", "HPC") else "AC"
-        loc_type = "FAST" if ct == "DC" else "AC"
+        loc_type, ct = manual_charge_type(charge_type)
         # #237 — the odometer is written only where the column exists, and clearing it is a real
         # answer: someone who realises they typed the wrong reading must be able to take it back
         # out, not be stuck with a wrong kilometre for ever.
@@ -3710,6 +3727,19 @@ def save_fresh_signals(signals: dict) -> None:
     db.commit()
 
 
+# A poll that comes back without a GPS fix is stored as (0, 0): a missing coordinate parses to 0.0.
+# Only the PAIR means "no fix": a car on the equator or the prime meridian keeps the other coordinate,
+# and a real position. The bound is one unit of the sixth decimal the cloud reports coordinates in
+# (~11 cm): anything smaller is zero at the data's own resolution.
+_NO_FIX_DEG = 1e-6
+
+
+def has_gps_fix(lat, lon) -> bool:
+    """Whether a stored coordinate pair is a real position, not the (0, 0) of a poll without a fix."""
+    return (lat is not None and lon is not None
+            and not (abs(lat) < _NO_FIX_DEG and abs(lon) < _NO_FIX_DEG))
+
+
 def get_latest_status() -> Optional[dict]:
     db = _get()
     row = db.execute(
@@ -3727,16 +3757,17 @@ def get_latest_status() -> Optional[dict]:
     # map (or reset Navigation's start point) — fall back to the last position that had a real
     # fix and flag it stale, so the last known location keeps showing. Only a true (0,0)/null is
     # treated as "no fix" (a car genuinely on the prime meridian at lon 0 is kept).
-    _lat, _lon = d.get("latitude"), d.get("longitude")
-    if _lat is None or _lon is None or (abs(_lat) < 1e-6 and abs(_lon) < 1e-6):
+    fix = d          # the row whose position is shown, and so the one its age is read from
+    if not has_gps_fix(d.get("latitude"), d.get("longitude")):
         last = db.execute(
-            "SELECT latitude, longitude FROM positions "
+            "SELECT * FROM positions "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) "
             "AND latitude IS NOT NULL AND longitude IS NOT NULL "
-            "AND NOT (ABS(latitude) < 1e-6 AND ABS(longitude) < 1e-6) "
+            f"AND NOT (ABS(latitude) < {_NO_FIX_DEG} AND ABS(longitude) < {_NO_FIX_DEG}) "
             "ORDER BY id DESC LIMIT 1", (_current_vehicle_id(),)).fetchone()
         if last:
-            d["latitude"], d["longitude"] = last["latitude"], last["longitude"]
+            fix = dict(last)
+            d["latitude"], d["longitude"] = fix["latitude"], fix["longitude"]
             d["position_stale"] = True
     # Charge power: positions stores current/voltage, not a power column. Compute it
     # (|I×V|), only when the charge current is meaningful (>=3A). Signal 49 is NOT a
@@ -3776,7 +3807,26 @@ def get_latest_status() -> Optional[dict]:
             d["last_seen"] = f"{delta // 3600}h ago"
     except Exception:
         d["last_seen"] = "unknown"
+    # A charge already running does not vanish from the screen because the current dipped (#307).
+    # `charging` on a position row is the poll's own answer, and it comes from `_is_charging`, which
+    # refuses a pack current below `charge_detect_min_a`. That threshold exists to notice a charge
+    # has STARTED; asked whether an open one is still running it says no, and every charge block on
+    # the Overview reads this flag. @arzthilfe turns his wallbox from 11 A down to 8 A, the pack
+    # draws 1.6 A against his 2.0 A floor, and the screen empties while the battery keeps rising —
+    # on a frame two seconds old, with the session open and the state machine still in CHARGING.
+    # The same "one threshold, two jobs" as the 0.00 kW power reading (v3.18.3); this is its half.
+    # The cable is the guard: unplugged, the answer is the poll's again, so a session left open by
+    # any other defect cannot print "charging" for ever.
+    if not d.get("charging") and d.get("plug_connected"):
+        open_charge = db.execute(
+            "SELECT 1 FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND ended_at IS NULL LIMIT 1", (_current_vehicle_id(),)).fetchone()
+        if open_charge:
+            d["charging"] = 1
     _data_age(d)
+    # How old the POSITION is: the fix's own, when the map falls back to one — the poll without a
+    # fix is seconds old, the position it falls back to may be days old.
+    d["position_age_s"] = _position_age_s(fix.get("frame_ts"), fix.get("recorded_at"))
     # OTA / software-update status (the poller scans the account message inbox for an update notice).
     d["ota"] = get_ota_status()
     return d
@@ -3785,6 +3835,31 @@ def get_latest_status() -> Optional[dict]:
 # How far the data must fall BEHIND THE ROW before the Overview says so. Comfortably above every
 # poll cadence (10s driving, 60s charging), so a slow-but-genuine update is never called stale.
 DATA_AGE_STALE_S = 300
+
+
+def _frame_age_s(frame_ts) -> Optional[int]:
+    """Seconds since the car's own clock stamped a frame, or None when there is nothing honest to
+    say: no clock reported, or a car clock ahead of the host (not a staleness signal)."""
+    if not frame_ts:
+        return None
+    try:
+        stamped = datetime.fromtimestamp(int(frame_ts) / 1000, timezone.utc)
+        age = int((datetime.now(timezone.utc) - stamped).total_seconds())
+    except Exception:  # noqa: BLE001
+        return None
+    return age if age >= 0 else None
+
+
+def _position_age_s(frame_ts, recorded_at) -> Optional[int]:
+    """How old a position is: its frame's age (#232), else the time since Mate wrote its row — a
+    car that reports no clock has nothing better."""
+    age = _frame_age_s(frame_ts)
+    if age is not None:
+        return age
+    try:
+        return int((datetime.now(timezone.utc) - datetime.fromisoformat(recorded_at)).total_seconds())
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _data_age(d: dict) -> None:
@@ -3810,15 +3885,8 @@ def _data_age(d: dict) -> None:
     """
     d["data_age"] = None
     d["data_age_s"] = None
-    ts = d.get("frame_ts")
-    if not ts:
-        return                       # car doesn't report its own clock → nothing honest to say
-    try:
-        age = int((datetime.now(timezone.utc) - datetime.fromtimestamp(int(ts) / 1000, timezone.utc))
-                  .total_seconds())
-    except Exception:  # noqa: BLE001
-        return
-    if age < 0:                      # car clock ahead of the host — not a staleness signal
+    age = _frame_age_s(d.get("frame_ts"))
+    if age is None:
         return
     d["data_age_s"] = age
     moving = bool(d.get("charging")) or (d.get("gear") == "D") or float(d.get("speed_kmh") or 0) > 0
@@ -3952,13 +4020,28 @@ _READY_MATCH_SLACK_S = 90
 _READY_CARRY_MIN_S = 900
 
 
-def _parked_poll_seconds() -> int:
-    """The user's parked poll interval, clamped to the same 10–600 s the settings form allows so a
-    hand-edited row can't stretch the carry window without limit."""
+# The poller's cadence as Settings ▸ Poll stores it: the default and the range the form accepts.
+# One definition for the form that writes it and every reader here; the poller keeps its own copy of
+# the defaults, because it cannot import the web.
+POLL_PARKED_DEFAULT_S, POLL_PARKED_RANGE_S = 30, (10, 600)
+POLL_DRIVING_DEFAULT_S, POLL_DRIVING_RANGE_S = 10, (10, 60)
+
+
+def poll_seconds(driving: bool) -> int:
+    """The user's poll interval for a parked or a driving car, clamped to the range the settings
+    form allows so a hand-edited row cannot stretch anything that depends on it without limit."""
+    key, default, (lo, hi) = (("poll_driving", POLL_DRIVING_DEFAULT_S, POLL_DRIVING_RANGE_S)
+                              if driving else
+                              ("poll_parked", POLL_PARKED_DEFAULT_S, POLL_PARKED_RANGE_S))
     try:
-        return max(10, min(int(float(get_setting("poll_parked", "30") or 30)), 600))
-    except (TypeError, ValueError):
-        return 30
+        return max(lo, min(int(float(get_setting(key, str(default)) or default)), hi))
+    except (TypeError, ValueError, OverflowError):          # OverflowError: "inf", "1e999"
+        return default
+
+
+def _parked_poll_seconds() -> int:
+    """The parked interval, which bounds the READY carry window below."""
+    return poll_seconds(driving=False)
 _READY_LOOKBACK_S = 6 * 3600  # how far around the trip to scan positions for the session bounds
 
 

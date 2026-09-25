@@ -29,7 +29,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.18.3"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "3.19.1"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -447,6 +447,54 @@ def _fmt_dur(minutes) -> str:
     return f"{m // 60}h {m % 60:02d}m"
 
 
+def _ago(t, seconds) -> str:
+    """"How long ago", in the reader's own language. db_reader computes the seconds and can't
+    translate them (no request, no locale there), so every "…ago" on screen goes through here.
+    Until #178 put an Italian phrase next to it, the Overview's `last seen` was English for
+    everyone and nobody noticed it standing alone."""
+    if seconds is None:
+        return "—"
+    s = max(int(seconds), 0)
+    if s < 60:
+        return t("ago_s").format(n=s)
+    if s < 3600:
+        return t("ago_m").format(n=s // 60)
+    return t("ago_h").format(n=s // 3600)
+
+
+def _last_position(status, t) -> dict:
+    """The Overview map's marker: where the car is, how old that position is (the map card's
+    heading says it), and when to ask again.
+
+    ONE builder for the page's first paint and for /api/last-position, which the map polls — so the
+    marker can only ever move to a position the page itself would have drawn. It reads what the
+    poller already stored (get_latest_status: the last real fix when a poll came back without one);
+    polling it never reaches Leapmotor's servers. A position is shown only when it is one
+    (has_gps_fix): a first poll without a fix stores (0, 0), and there is no earlier fix to fall
+    back on.
+
+    `refresh_s` is the poller's DRIVING cadence (Settings ▸ poll_driving), whatever the car is doing
+    now. The poller's real schedule depends on state this process cannot see — a parked car about to
+    drive and V2L poll at that pace, a boost every 10 s, and a boost can start at any moment — so a
+    map that waited out the parked interval could sit ten minutes behind a car already moving. The
+    read is local, so asking at the pace the owner chose for a moving car costs Leapmotor nothing.
+
+    The age is the position's own (get_latest_status's position_age_s): its FRAME's, not its row's
+    (#232) — a parked car's cloud re-serves one frozen frame, and a fresh row over it once said
+    "22 seconds ago" at a marker that had not moved in hours — and, when a poll came back without a
+    fix, the age of the fix the map falls back to, not of that poll.
+
+    Always the same keys — lat/lon/ago are None while no position is known — so the page and the
+    map never branch on the shape, and the map still learns when to ask again."""
+    status = status or {}
+    refresh_s = db_reader.poll_seconds(driving=True)
+    if not db_reader.has_gps_fix(status.get("latitude"), status.get("longitude")):
+        return {"lat": None, "lon": None, "ago": None, "refresh_s": refresh_s}
+    return {"lat": status["latitude"], "lon": status["longitude"],
+            "ago": _ago(t, status.get("position_age_s")),
+            "refresh_s": refresh_s}
+
+
 def _ctx(**kwargs):
     """Add shared helpers + i18n to every template context."""
     # Lazy auto-confirm sweep (like update_check: piggybacks on page renders, no bg loop).
@@ -478,18 +526,7 @@ def _ctx(**kwargs):
         return t("state_parked")
 
     def ago(seconds) -> str:
-        """"How long ago", in the reader's own language. db_reader computes the seconds and can't
-        translate them (no request, no locale there), so every "…ago" on screen goes through here.
-        Until #178 put an Italian phrase next to it, the Overview's `last seen` was English for
-        everyone and nobody noticed it standing alone."""
-        if seconds is None:
-            return "—"
-        s = max(int(seconds), 0)
-        if s < 60:
-            return t("ago_s").format(n=s)
-        if s < 3600:
-            return t("ago_m").format(n=s // 60)
-        return t("ago_h").format(n=s // 3600)
+        return _ago(t, seconds)
 
     wallbox_enabled = db_reader.get_setting("wallbox_enabled", "0") == "1"
     # Active wallbox profile: shown in sidebar + page title + profiles panel.
@@ -640,9 +677,11 @@ async def overview(request: Request):
         tr["started_at"] = db_reader._local_iso(tr.get("started_at"))
         tr["ended_at"] = db_reader._local_iso(tr.get("ended_at"))
     charges = db_reader.get_charges(limit=1)
+    t = i18n.get_t(db_reader.get_language())
     return templates.TemplateResponse(request, "overview.html", _ctx(
         page="overview", vehicle=vehicle, settings=settings,
         status=status, recent_trips=trips,
+        last_position=_last_position(status, t),
         last_charge=charges[0] if charges else None,
         v2l=db_reader.get_v2l_status(),
         charge_limit=_configured_charge_limit((vehicle or {}).get("vin") or ""),
@@ -4337,6 +4376,16 @@ async def status_card(request: Request):
     ))
 
 
+@app.get("/api/last-position", response_class=JSONResponse)
+async def last_position():
+    """The Overview map's marker, polled by the map itself. It was drawn once, at page load, and
+    never moved: the status card beside it refreshes every 30 s, so "last seen 6 s ago" stood next
+    to a marker left wherever the car was when the page was opened. Local data only — see
+    _last_position."""
+    pos = _last_position(db_reader.get_latest_status(), i18n.get_t(db_reader.get_language()))
+    return JSONResponse(pos, headers={"Cache-Control": "no-store"})
+
+
 @app.get("/api/v2l-card", response_class=HTMLResponse)
 async def v2l_card(request: Request):
     """The Overview's V2L block, refreshed live (every 10 s, matching the V2L poll cadence) so the
@@ -4692,8 +4741,10 @@ async def poll_settings(request: Request):
     these up live on its next cycle."""
     form = await request.form()
     try:
-        parked = max(10, min(int(form.get("poll_parked", 30)), 600))
-        driving = max(10, min(int(form.get("poll_driving", 10)), 60))
+        lo, hi = db_reader.POLL_PARKED_RANGE_S
+        parked = max(lo, min(int(form.get("poll_parked", db_reader.POLL_PARKED_DEFAULT_S)), hi))
+        lo, hi = db_reader.POLL_DRIVING_RANGE_S
+        driving = max(lo, min(int(form.get("poll_driving", db_reader.POLL_DRIVING_DEFAULT_S)), hi))
     except (ValueError, TypeError):
         return HTMLResponse('<span style="color:#ef4444">Invalid value</span>', status_code=400)
     db_reader.set_setting("poll_parked", str(parked))

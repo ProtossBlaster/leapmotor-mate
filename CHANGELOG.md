@@ -3,6 +3,82 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.19.1] — 2026-09-25
+
+### Fixed
+
+- **A charge in progress stays on screen when you turn the current down**
+  ([#307](https://github.com/ProtossBlaster/leapmotor-mate/issues/307),
+  [@arzthilfe](https://github.com/arzthilfe)). Turning a wallbox from 11 A down to 8 A mid-charge
+  emptied the Overview: only *"cable connected"*, no remaining time, no power, until the session
+  ended. His log holds the moment — the frame is **two seconds old**, so nothing was stale. What
+  flipped was the per-poll charging flag, because the charge-**detection** floor (his, the default
+  2.0 A) refuses a pack current of 1.6 A. That floor exists to notice a charge has *started*; asked
+  whether an open one is still running it answered no, and every charge block reads that flag. The
+  same "one threshold, two jobs" as the 0.00 kW power reading fixed in v3.18.3 — this is its other
+  half. The state machine and the database were right throughout: the session stayed open and kept
+  collecting. The cable is the guard: unplugged, the answer is the poll's again.
+- **Correcting a charge you typed in no longer retypes it**
+  ([#309](https://github.com/ProtossBlaster/leapmotor-mate/issues/309),
+  [@arzthilfe](https://github.com/arzthilfe)). A charge marked **Home** came back **AC** the moment
+  its owner edited a cost, a time or the SoC — and the type is what the price, the statistics and
+  the Charges filter are all keyed on. Both forms offered AC and DC only, so Home, HPC and Free
+  could neither be chosen on the way back in nor created in the first place. Both now offer the
+  five types Mate actually uses, and the type you pick is the type that is kept. The AC/DC tag
+  stays derived, because it describes the socket and not the place.
+- **Kilometres driven while the poller was down are declared instead of dropped.** Measured on a
+  real car: nine days of downtime in which it drove 80 km **and** charged. Mate wrote a
+  reconstructed charge for the battery and nothing at all for the distance — no trip, no offline
+  gap, the odometer simply higher than before. A drive whose SoC went up cannot be rebuilt as a
+  trip (the consumption would be impossible), but the kilometres were real: they are now recorded
+  as an offline gap, which is what that table exists for. The energy is left out on purpose —
+  charge and drive cannot be separated inside one SoC rise.
+
+### Internal
+
+- **Three things nothing was watching now have tests**: the README's version banner (the sixth
+  place a release touches — it read v3.15.9 for eight releases without a single red test, spotted
+  by [@jcconca](https://github.com/jcconca)), the parked-cadence slider, which stopped at 300 s
+  while the form accepted 600 and is now raised to meet it (noticed by
+  [@arekm](https://github.com/arekm)), and the bound that tells a real position from the `(0, 0)`
+  of a poll without a GPS fix.
+
+### Unchanged
+
+- Nothing stored is recomputed or rewritten by this release.
+- No command is sent to any vehicle.
+
+## [3.19.0] — 2026-09-24
+
+### Added (PR #310, @arekm)
+
+- **The Overview map follows the car.** It was drawn once, at page load: on a drive the status card
+  beside it said *"last seen 6 s ago"* while the marker stayed wherever the car had been when the
+  page was opened, until a reload. The map now asks a new local endpoint, `GET /api/last-position`,
+  at the poller's driving cadence and moves the marker. It reads only what the poller already
+  stored — **nothing here reaches Leapmotor's servers**, whatever the car is doing. One request at
+  a time, given one interval and abandoned after it, and none at all while the tab is hidden.
+- **It recentres on the car, and never under your hand.** The map pans only once the car comes
+  within a quarter of the view from an edge — before it reaches the edge, not after. A move that
+  arrives while you are dragging, flinging or zooming waits until the map settles, and a parked
+  car's GPS wander (under 5 m) never moves anything.
+- **The age is in the card's heading** — *"LAST KNOWN POSITION (8s ago)"* — instead of a popup that
+  covered the map above the car and was clipped near the edges.
+
+### Fixed (PR #310, @arekm)
+
+- **A position the map falls back to is dated by itself, not by the poll that had no fix.** When a
+  poll comes back without GPS the map keeps showing the last real position; its age, however, came
+  from the fix-less poll, so a position hours old was labelled *"0s ago"*.
+- **The `(0, 0)` of a poll without a fix is told from a real position in one place.** A car on the
+  equator or on the prime meridian keeps its coordinates: only the pair of zeros means "no fix".
+
+### Unchanged
+
+- Nothing stored changes: no trip, charge, cost or position is recomputed or rewritten.
+- The status card's own *"last seen"* and every other figure on the Overview read as before.
+- No command is sent to any vehicle, and the map's polling adds no cloud traffic of any kind.
+
 ## [3.18.3] — 2026-09-24
 
 ### Fixed (#307, @arzthilfe · #308, @adoewa)
