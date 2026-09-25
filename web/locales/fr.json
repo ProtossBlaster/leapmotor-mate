@@ -531,6 +531,7 @@
     "data_age": "données d’il y a {age}",
     "data_age_hint": "La voiture ne joint plus le cloud : ce que vous voyez est la dernière trame reçue par le cloud, pas l’état actuel.",
     "cmd_timeout_car": "Envoyé — la voiture n'a pas confirmé à temps (signal faible ou en veille). Ça a peut-être marché ; réessayez bientôt.",
+    "cmd_no_answer": "Pas de réponse de Mate à temps. La voiture peut encore exécuter la commande ; relecture de son état.",
     "cmd_ready": "Prêt pour une nouvelle commande",
     "cmd_sending": "Commande en cours… (pas encore terminée)",
     "cmd_cloud_unreach": "Impossible de joindre le cloud Leapmotor — vérifiez la connexion et réessayez.",

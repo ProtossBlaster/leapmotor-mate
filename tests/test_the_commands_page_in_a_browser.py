@@ -288,6 +288,49 @@ def test_a_refetch_already_out_when_a_command_leaves_does_not_land_either(comman
     assert page.evaluate("window.gridsIn") >= 1
 
 
+def test_a_command_whose_answer_never_comes_lets_the_page_go(commands):
+    """A request the browser neither answers nor fails held the request lock past the watchdog, and the grid
+    was never refetched again. The page gives up on it, says the outcome is unknown, does not resend, and
+    re-reads the car's state."""
+    page, sent = commands(0, fake_clock=True)
+    page.hold = True
+    page.click(MIRROR)
+    page.wait_for_timeout(300)
+    _tick(page, 181_000)                 # past the watchdog, past the page's own limit
+    page.wait_for_timeout(300)
+    assert sent == ["mirror_heat_on"]    # not resent
+    assert (page.evaluate("sending"), page.evaluate("window.gridsIn")) == (False, 0)
+    status = _status(page, MIRROR)
+    assert "No answer from Mate" in status and "Command in progress" not in status, status
+    assert page.errors == []
+    _tick(page, 7_000)                   # the notice clears, and the grid is re-read
+    assert "No answer from Mate" not in _status(page, MIRROR)
+    assert page.evaluate("window.gridsIn") >= 1
+
+
+def test_a_retry_the_page_gives_up_on_raises_no_error(commands):
+    """The layout's "Try again" replays a failed request through htmx.ajax, whose promise rejects when the
+    page gives up on the replay: an unhandled rejection, reported as a page error, for an outcome the tile
+    already shows."""
+    page, sent = commands(0, fake_clock=True)
+    page.hold = True
+    page.click(MIRROR)
+    page.wait_for_timeout(300)
+    page.hold = False
+    page.held[0].fulfill(status=500, content_type="text/html", body="boom")
+    page.wait_for_timeout(300)
+    page.hold = True
+    page.click(".lm-load-error button")
+    page.wait_for_timeout(300)
+    assert sent == ["mirror_heat_on", "mirror_heat_on"]
+    _tick(page, 181_000)                 # the page gives up on the replay
+    page.wait_for_timeout(300)
+    assert "No answer from Mate" in _status(page, MIRROR)
+    assert page.errors == []
+    _tick(page, 7_000)
+    assert page.evaluate("window.gridsIn") >= 1
+
+
 def test_a_comfort_tile_shows_a_refusal_as_a_refusal(commands):
     """A refusal (data-warn) was looked for in #result-<command>, which a comfort tile does not have: the
     tile said "Command in progress" for a command the cloud refused, and the refetch that followed wiped

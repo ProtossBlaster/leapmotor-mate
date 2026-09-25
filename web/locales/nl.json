@@ -531,6 +531,7 @@
     "data_age": "gegevens van {age} geleden",
     "data_age_hint": "De auto bereikt de cloud niet: wat je ziet is het laatste beeld dat de cloud ontvangen heeft, niet de auto op dit moment.",
     "cmd_timeout_car": "Verstuurd — de auto heeft niet op tijd bevestigd (zwak signaal of in slaapstand). Het kan alsnog gelukt zijn; probeer het zo meteen opnieuw.",
+    "cmd_no_answer": "Geen antwoord van Mate op tijd. De auto voert de opdracht mogelijk nog uit; status wordt opnieuw gelezen.",
     "cmd_ready": "Klaar voor een nieuwe opdracht",
     "cmd_sending": "Opdracht loopt… (nog niet afgerond)",
     "cmd_cloud_unreach": "Kon de Leapmotor-cloud niet bereiken — controleer je verbinding en probeer het opnieuw.",

@@ -531,6 +531,7 @@
     "data_age": "dane sprzed {age}",
     "data_age_hint": "Samochód nie łączy się z chmurą: widzisz ostatnią ramkę, którą chmura otrzymała, a nie stan bieżący.",
     "cmd_timeout_car": "Wysłano — samochód nie potwierdził w czasie (słaby sygnał lub śpi). Może jednak zadziałało; spróbuj ponownie za chwilę.",
+    "cmd_no_answer": "Brak odpowiedzi od Mate w wyznaczonym czasie. Auto może jeszcze wykonać polecenie — odczytuję jego stan.",
     "cmd_ready": "Gotowy na nowe polecenie",
     "cmd_sending": "Polecenie w toku… (jeszcze nie zakończone)",
     "cmd_cloud_unreach": "Nie można dotrzeć do chmury Leapmotor — sprawdź połączenie i ponów próbę.",

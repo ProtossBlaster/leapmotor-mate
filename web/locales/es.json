@@ -531,6 +531,7 @@
     "data_age": "datos de hace {age}",
     "data_age_hint": "El coche no está llegando a la nube: lo que ves es el último fotograma que la nube recibió, no el coche ahora mismo.",
     "cmd_timeout_car": "Enviado — el coche no ha confirmado a tiempo (poca cobertura o dormido). Puede que aun así haya funcionado; vuelve a probar dentro de un momento.",
+    "cmd_no_answer": "Mate no respondió a tiempo. Puede que el coche aún ejecute la orden; releyendo su estado.",
     "cmd_ready": "Listo para un comando nuevo",
     "cmd_sending": "Comando en curso… (todavía sin terminar)",
     "cmd_cloud_unreach": "No se ha podido contactar con la nube de Leapmotor — comprueba tu conexión y vuelve a intentarlo.",

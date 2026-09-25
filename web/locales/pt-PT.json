@@ -531,6 +531,7 @@
     "data_age": "dados de há {age}",
     "data_age_hint": "O carro não está a alcançar a cloud: vê a última trama que a cloud recebeu, não o estado atual.",
     "cmd_timeout_car": "Enviado — o carro não confirmou a tempo (sinal fraco ou adormecido). Pode ainda assim ter funcionado; tenta de novo em breve.",
+    "cmd_no_answer": "Sem resposta do Mate a tempo. O carro ainda pode executar o comando; a reler o seu estado.",
     "cmd_ready": "Pronto para novo comando",
     "cmd_sending": "Comando em curso… (ainda não concluído)",
     "cmd_cloud_unreach": "Não foi possível contactar a cloud da Leapmotor — verifica a ligação e tenta novamente.",

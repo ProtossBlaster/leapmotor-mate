@@ -42,6 +42,25 @@ function refreshCmdGrid() {
       .catch(function (err) { if (!refetchAborted) throw err; refetchAborted = false; });
 }
 function refetchWaited() { if (refetchWaits) { refetchWaits = false; refreshCmdGrid(); } }
+var NOTICE_MS = 6000;                // how long a refusal, or the notice below, stays in the tile
+function noticeGone(el) {            // ...then the grid is re-read, if a refetch waited for the notice
+  setTimeout(function () { var n = document.getElementById(el.id); if (n) n.innerHTML = ''; refetchWaited(); }, NOTICE_MS);
+}
+// A request the browser neither answers nor fails — a connection hung somewhere between the browser and Mate —
+// would hold the page for good: no refetch while it is out. So the page stops waiting after CMD_TIMEOUT_MS. That
+// is the page's own limit, not the server's: a real answer takes well under a minute (a 30 s call to the cloud
+// and the confirmation window the cloud names, about 30 s), but the server may still be at work — retrying,
+// logging in again — when the page lets go. Hence the outcome is unknown: the car may still act on it, so the
+// command is not resent, and the car's state is re-read once the notice is gone.
+var CMD_TIMEOUT_MS = 180000, CMD_NO_ANSWER_MSG = {{ t('cmd_no_answer')|tojson }}, cmdTimedOut = null;
+document.addEventListener('htmx:sendAbort', function (e) {
+  if (e.detail.xhr !== cmdTimedOut) return;   // the lock is already off (htmx:afterRequest fired first)
+  cmdTimedOut = null;
+  var el = e.detail.target;
+  el.innerHTML = '<span data-warn="1" style="color:#fbbf24">⏱ ' + CMD_NO_ANSWER_MSG + '</span>';
+  refetchWaits = true;
+  noticeGone(el);
+});
 
 // Climate temp/fan sliders post their own routes (api/climate-temp|fan); the car reports the new value
 // only a few seconds later. Keep the value the user JUST set visible across grid refetches until the
@@ -127,6 +146,10 @@ document.addEventListener('htmx:beforeRequest', function(e) {
     sending = true; sendingSince = Date.now();
     busyCmd = (path.split('api/command/')[1] || '').replace(/\/$/, '');
     cmdsOut.push(e.detail.xhr);
+    var xhr = e.detail.xhr, elt = e.detail.elt;
+    setTimeout(function () {                                   // no answer, no error: the page gives up (htmx:sendAbort above)
+      if (xhr.readyState > 0 && xhr.readyState < 4) { cmdTimedOut = xhr; htmx.trigger(elt, 'htmx:abort'); }
+    }, CMD_TIMEOUT_MS);
     var src = document.getElementById('cmd-refresh-src');
     if (src && src.classList.contains('htmx-request')) {      // a refetch out: its swap would land during this request
       refetchAborted = true; htmx.trigger(src, 'htmx:abort'); refetchWaits = true;
@@ -158,7 +181,7 @@ document.addEventListener('htmx:afterRequest', function(e) {
       pendingExpect = CONFIRM[name] || null;                  // movement toggle → wait for the real flip too
     } else if (el.querySelector('[data-warn]')) {
       setBusyUI(busyCmd, false); busyCmd = null;              // refused (e.g. driving) → drop the ⏳, keep the notice
-      setTimeout(function () { var n = document.getElementById(el.id); if (n) n.innerHTML = ''; refetchWaited(); }, 6000);
+      noticeGone(el);
       cmdBusyTick(); return;                                  // nothing changed on the car → no grid refetch
     }
     cmdBusyTick();

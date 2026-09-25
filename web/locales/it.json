@@ -531,6 +531,7 @@
     "data_age": "dati di {age} fa",
     "data_age_hint": "L’auto non sta raggiungendo il cloud: quello che vedi è l’ultimo frame che il cloud ha ricevuto, non lo stato di adesso.",
     "cmd_timeout_car": "Inviato — l'auto non ha confermato in tempo (segnale debole o in standby). Potrebbe aver funzionato lo stesso; riprova tra poco.",
+    "cmd_no_answer": "Nessuna risposta da Mate in tempo. L'auto potrebbe ancora eseguire il comando; rilettura dello stato.",
     "cmd_ready": "Pronto per un nuovo comando",
     "cmd_sending": "Comando in corso… (non ancora completato)",
     "cmd_cloud_unreach": "Impossibile raggiungere il cloud Leapmotor — controlla la connessione e riprova.",
