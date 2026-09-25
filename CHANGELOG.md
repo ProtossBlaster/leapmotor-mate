@@ -3,6 +3,43 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.19.2] — 2026-09-25
+
+### Fixed
+
+- **A dropped poll no longer spends one of the few logins the cloud is still granting.** Three
+  bundles reaching 17-18/09/2026 (beta #49 and
+  [#295](https://github.com/ProtossBlaster/leapmotor-mate/issues/295) from
+  [@gm27271](https://github.com/gm27271),
+  [#296](https://github.com/ProtossBlaster/leapmotor-mate/issues/296) from
+  [@adoewa](https://github.com/adoewa), and one from
+  [@ebagnoli](https://github.com/ebagnoli)) carry the same three lines over and over: a
+  `Read timed out`, a session recovery, a refusal. The recovery was a **full login** — it dropped
+  the shared session, refresh token included, and knocked on the one endpoint the cloud started
+  rationing on 17/09: 5-12 accepted a day from an account it used to take ~310 from. A read
+  timeout is a blip, not a dead session. Recovery now spends the **refresh token** first: one
+  signed request against a different endpoint, the session kept, no login used. The full login
+  still runs when the refresh does not hold — which is also the case the recovery was written for,
+  a vanished account certificate, since the refresh is signed with that same certificate and fails
+  with it. This does not make the cloud answer: it stops spending a login on every network blip.
+  A brand-new account was refused identically (@gm27271, 24/09), so what is rationed is the
+  install and not whoever signs in.
+
+### Internal
+
+- **The price box that is on every charge now has a test.**
+  [@adoewa](https://github.com/adoewa) was told on
+  [#308](https://github.com/ProtossBlaster/leapmotor-mate/issues/308) that a charge's cost can only
+  be corrected on one entered by hand. That is true of the edit panel, and it left out the ✎ next
+  to the type badge, which has been on every charge card since v3.16.0 — a measured charge
+  included. Two tests now read the rendered card rather than the template, because what was wrong
+  was a claim about what the owner can see.
+
+### Unchanged
+
+- Nothing stored is recomputed or rewritten by this release.
+- No command is sent to any vehicle.
+
 ## [3.19.1] — 2026-09-25
 
 ### Fixed

@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v3.19.1:** a charge stays on screen when you turn the current down, and correcting a typed-in charge no longer retypes it.
-See [release notes and upgrade impact](docs/releases/v3.19.1.md).
+**v3.19.2:** a network blip no longer spends one of the few logins the Leapmotor cloud is still granting.
+See [release notes and upgrade impact](docs/releases/v3.19.2.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -359,8 +359,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v3.19.1:** una ricarica resta sullo schermo quando abbassi la corrente, e correggere una ricarica scritta a mano non la ri-etichetta più.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v3.19.1.md#italiano).
+**v3.19.2:** un singhiozzo di rete non spende più uno dei pochi accessi che il cloud Leapmotor concede ancora.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v3.19.2.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
