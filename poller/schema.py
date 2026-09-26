@@ -246,6 +246,17 @@ def ensure_schema(conn) -> None:
     Idempotent by construction (every step is `IF NOT EXISTS` or `if column not in ...`) and cheap:
     a handful of PRAGMAs on a database that is already up to date."""
     conn.executescript(SCHEMA)
+    conn.execute("""CREATE TABLE IF NOT EXISTS charging_places (
+        id INTEGER PRIMARY KEY, vehicle_id INTEGER NOT NULL,
+        name TEXT NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL,
+        radius_m REAL NOT NULL, rate REAL NOT NULL, enabled INTEGER NOT NULL DEFAULT 1
+    )""")
+    place_cols = {r[1] for r in conn.execute("PRAGMA table_info(charges)")}
+    for column, kind in (("charging_place_id", "INTEGER"), ("charging_place_name", "TEXT"),
+                         ("charging_place_rate", "REAL"), ("charging_place_source", "TEXT")):
+        if column not in place_cols:
+            conn.execute(f"ALTER TABLE charges ADD COLUMN {column} {kind}")
+
     # migration: add battery_min_temp if missing (existing DBs)
     cols = {r[1] for r in conn.execute("PRAGMA table_info(positions)").fetchall()}
     if "climate_target_temp" not in cols:

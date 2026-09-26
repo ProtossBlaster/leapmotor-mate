@@ -1271,7 +1271,25 @@
     "cloud_import_saved": "Preference saved",
     "cloud_import_save": "Save",
     "cloud_import_title": "Cloud trip history",
-    "cloud_import_enabled": "Import trips from Leapmotor cloud"
+    "cloud_import_enabled": "Import trips from Leapmotor cloud",
+    "places_title": "Lieux de recharge",
+    "places_help": "Lieux privés avec tarif fixe par véhicule. Attribution automatique aux nouvelles recharges AC avec GPS récent et une seule zone correspondante. Les modifications ne changent pas les sessions précédentes.",
+    "places_estimate": "Sans énergie mesurée au chargeur, le coût est estimé à partir de la batterie ; les pertes ne sont pas mesurées.",
+    "place_add": "Ajouter un lieu",
+    "place_name": "Nom",
+    "place_lat": "Latitude",
+    "place_lon": "Longitude",
+    "place_radius": "Rayon (m)",
+    "place_rate": "Prix / kWh",
+    "place_auto": "Automatique",
+    "place_map_hint": "Cliquez sur la carte ou saisissez les coordonnées. Désactivez Automatique pour une attribution uniquement manuelle.",
+    "places_totals": "Dépenses enregistrées par lieu (tout l’historique)",
+    "place_unpriced": "sans coût",
+    "place_assign": "Lieu de recharge",
+    "place_none": "Sans tarif du lieu",
+    "place_invalid": "Vérifiez le nom, les coordonnées, le rayon (25–500 m) et le prix (0–100).",
+    "place_closed_only": "Attribuez le lieu après la fin de la recharge.",
+    "place_unmerge_first": "Séparez les recharges fusionnées avant de changer leur lieu."
   },
   "months": {
     "full": [

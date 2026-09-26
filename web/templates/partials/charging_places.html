@@ -1,0 +1,53 @@
+<section id="charging-places" class="card space-y-3">
+  <h2 class="font-semibold">{{ t('places_title') }}</h2>
+  <p class="text-sm text-slate-400">{{ t('places_help') }}</p>
+  <p class="text-xs text-amber-300">{{ t('places_estimate') }}</p>
+  {% for p in charging_places %}
+  <form method="post" action="api/settings/charging-places" class="flex flex-wrap gap-2 border-b border-slate-700 pb-3">
+    <input type="hidden" name="id" value="{{ p.id }}">
+    {% include 'partials/charging_place_fields.html' %}
+    <button style="background:#14b8a6;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;align-self:end" type="submit">{{ t('note_save') }}</button>
+  </form>
+  {% endfor %}
+  <details>
+    <summary class="cursor-pointer font-medium">{{ t('place_add') }}</summary>
+    <form id="new-place" method="post" action="api/settings/charging-places" class="flex flex-wrap gap-2 mt-3">
+      {% set p = {'name':'', 'latitude':'', 'longitude':'', 'radius_m':100, 'rate':'', 'enabled':true} %}
+      {% include 'partials/charging_place_fields.html' %}
+      <button style="background:#14b8a6;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;align-self:end" type="submit">{{ t('note_save') }}</button>
+      <p class="w-full text-xs text-slate-400">{{ t('place_map_hint') }}</p>
+      <div id="charging-place-map" style="height:260px;width:100%"></div>
+    </form>
+  </details>
+  {% if charging_place_totals %}
+  <h3 class="font-medium">{{ t('places_totals') }}</h3>
+  <ul class="text-sm space-y-1">
+    {% for row in charging_place_totals %}<li>{{ row.name }}: {{ row.cost|money if row.cost is not none else '—' }}{% if row.unpriced %} · {{ row.unpriced }} {{ t('place_unpriced') }}{% endif %}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+<link rel="stylesheet" href="static/vendor/leaflet/leaflet.css">
+<script src="static/vendor/leaflet/leaflet.js"></script>
+<script>
+(function () {
+  const form = document.getElementById('new-place');
+  const details = form.closest('details');
+  let placeMap, marker;
+  details.addEventListener('toggle', function () {
+    if (!details.open) return;
+    if (!placeMap) {
+      placeMap = L.map('charging-place-map').setView([45, 10], 4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:'© OpenStreetMap', referrerPolicy:'origin'
+      }).addTo(placeMap);
+      placeMap.on('click', function (e) {
+        form.elements.latitude.value=e.latlng.lat.toFixed(6);
+        form.elements.longitude.value=e.latlng.lng.toFixed(6);
+        if (marker) marker.setLatLng(e.latlng);
+        else marker=L.marker(e.latlng).addTo(placeMap);
+      });
+    }
+    placeMap.invalidateSize();
+  });
+})();
+</script>

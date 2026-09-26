@@ -51,12 +51,17 @@
     });
 
     // Frequent places: bubble sized by visit count, on top of the routes.
+    const placesLayer = L.layerGroup();
+    const placesVisibilityKey = 'mate.map.frequentPlacesVisible';
+    let showPlaces = true;
+    try { showPlaces = localStorage.getItem(placesVisibilityKey) !== 'false'; } catch (_) {}
+    if (showPlaces) placesLayer.addTo(map);
     const maxV = places.reduce(function (m, p) { return Math.max(m, p.visits); }, 1);
     places.forEach(function (p) {
       const r = 8 + 18 * (p.visits / maxV);
       L.circleMarker([p.latitude, p.longitude], {
         radius: r, color: '#14b8a6', weight: 2, fillColor: '#14b8a6', fillOpacity: 0.45
-      }).addTo(map).bindPopup('{{ t('map_visits') }}: <b>' + p.visits + '</b>');
+      }).addTo(placesLayer).bindPopup('{{ t('map_visits') }}: <b>' + p.visits + '</b>');
     });
 
     // Charging stations: a small fixed-size marker per station (NOT scaled by session count —
@@ -119,7 +124,12 @@
 <div class="mt-4 flex items-center gap-x-5 gap-y-1 flex-wrap text-xs text-slate-500">
   {% if track %}
   <span><span style="color:#2563eb">—</span> {{ t('map_routes') }} ({{ track|length }})</span>
-  {% if places %}<span><span style="color:#14b8a6">●</span> {{ t('map_frequent_places') }} ({{ places|length }})</span>{% endif %}
+  {% if places %}
+  <label class="inline-flex items-center gap-1.5 cursor-pointer">
+    <input id="map-show-places" type="checkbox" checked style="accent-color:#14b8a6">
+    <span><span style="color:#14b8a6">●</span> {{ t('map_frequent_places') }} ({{ places|length }})</span>
+  </label>
+  {% endif %}
   {% if stations %}<span><span style="color:#f59e0b">●</span> {{ t('map_charging_stations') }} ({{ stations|length }})</span>{% endif %}
   {# Counted here rather than by the map script: that line ran while the page was still being
      parsed and looked for `#map-pts`, an element that appears further DOWN this same document,
@@ -149,4 +159,15 @@
                   color:#e2e8f0;padding:2px 6px;font-size:11px">
   </form>
 </div>
+{% if track and places %}
+<script>
+  const placesToggle = document.getElementById('map-show-places');
+  placesToggle.checked = showPlaces;
+  placesToggle.addEventListener('change', function () {
+    if (this.checked) placesLayer.addTo(map);
+    else map.removeLayer(placesLayer);
+    try { localStorage.setItem(placesVisibilityKey, String(this.checked)); } catch (_) {}
+  });
+</script>
+{% endif %}
 {% endblock %}

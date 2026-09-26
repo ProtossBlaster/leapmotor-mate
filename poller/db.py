@@ -12,6 +12,7 @@ from typing import Optional
 
 import crypto
 import geohash
+import charging_places
 
 log = logging.getLogger(__name__)
 
@@ -1459,8 +1460,12 @@ class Database:
             (vehicle_id, _now_iso(), data.soc, data.latitude, data.longitude,
              _odo_or_none(data), location_type),
         )
-        self._conn.commit()
         charge_id = cur.lastrowid
+        place = charging_places.match(self._conn, vehicle_id, data)
+        if place:
+            charging_places.snapshot(self._conn, charge_id, place, 'gps')
+            self._conn.execute("UPDATE charges SET location_type='HOME' WHERE id=?", (charge_id,))
+        self._conn.commit()
         log.info("Charge #%d started — SOC %.1f%%", charge_id, data.soc)
         # lastrowid: Optional only for a cursor that last ran a non-INSERT — see insert_energy_snapshot.
         return charge_id  # type: ignore[return-value]
@@ -1771,6 +1776,16 @@ class Database:
             self._conn.commit()
             log.warning("Charge #%d: the wallbox counter went unread for %.0f min of this charge — "
                         "dropped its %.1f kWh total (kept DC billing)", charge_id, row_dark, ac_kwh)
+        # Price only this session from its frozen place tariff, after meter guards.
+        final = dict(self._conn.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone())
+        if final.get('charging_place_rate') is not None:
+            if charge['cost_manual']:
+                place_cost = charge['cost']
+            else:
+                billed = (final.get('ac_energy_kwh') if final.get('location_type') == 'HOME' else None)
+                place_cost = charging_places.cost(final, billed or final.get('gross_kwh'))
+            self._conn.execute("UPDATE charges SET cost=? WHERE id=?", (place_cost, charge_id))
+            self._conn.commit()
         log.info(
             "Charge #%d ended — SOC %.1f→%.1f%% | +%.1f kWh | %.0f min | %s | peak %.1f kW",
             charge_id, start_soc, end_soc, energy_added, duration_min,

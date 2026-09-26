@@ -1271,7 +1271,25 @@
     "cloud_import_saved": "Preference saved",
     "cloud_import_save": "Save",
     "cloud_import_title": "Cloud trip history",
-    "cloud_import_enabled": "Import trips from Leapmotor cloud"
+    "cloud_import_enabled": "Import trips from Leapmotor cloud",
+    "places_title": "Locais de carregamento",
+    "places_help": "Locais privados com tarifa fixa por veículo. Associação automática apenas para novas sessões AC com GPS recente e uma única zona correspondente. As alterações não modificam sessões anteriores.",
+    "places_estimate": "Sem energia medida pelo carregador, o custo é estimado pela energia da bateria; as perdas não são medidas.",
+    "place_add": "Adicionar local",
+    "place_name": "Nome",
+    "place_lat": "Latitude",
+    "place_lon": "Longitude",
+    "place_radius": "Raio (m)",
+    "place_rate": "Preço / kWh",
+    "place_auto": "Automático",
+    "place_map_hint": "Clique no mapa ou introduza coordenadas. Desative Automático para associar o local apenas manualmente.",
+    "places_totals": "Despesa registada por local (todo o histórico)",
+    "place_unpriced": "sem custo",
+    "place_assign": "Local de carregamento",
+    "place_none": "Sem tarifa do local",
+    "place_invalid": "Verifique nome, coordenadas, raio (25–500 m) e preço (0–100).",
+    "place_closed_only": "Associe o local após terminar o carregamento.",
+    "place_unmerge_first": "Separe as sessões unidas antes de alterar o local."
   },
   "months": {
     "full": [

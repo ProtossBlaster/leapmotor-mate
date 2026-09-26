@@ -1,0 +1,7 @@
+<input type="hidden" name="vehicle_id" value="{{ charging_place_vehicle_id }}">
+<label class="text-xs">{{ t('place_name') }}<input required maxlength="80" name="name" value="{{ p.name }}" class="block bg-slate-900 rounded p-2 w-40"></label>
+<label class="text-xs">{{ t('place_lat') }}<input required type="number" step="any" min="-90" max="90" name="latitude" value="{{ p.latitude }}" class="block bg-slate-900 rounded p-2 w-28"></label>
+<label class="text-xs">{{ t('place_lon') }}<input required type="number" step="any" min="-180" max="180" name="longitude" value="{{ p.longitude }}" class="block bg-slate-900 rounded p-2 w-28"></label>
+<label class="text-xs">{{ t('place_radius') }}<input required type="number" min="25" max="500" name="radius_m" value="{{ p.radius_m }}" class="block bg-slate-900 rounded p-2 w-20"></label>
+<label class="text-xs">{{ t('place_rate') }}<input required type="number" step="any" min="0" max="100" name="rate" value="{{ p.rate }}" class="block bg-slate-900 rounded p-2 w-24"></label>
+<label class="text-xs inline-flex items-center gap-1"><input type="checkbox" name="enabled" {% if p.enabled %}checked{% endif %}>{{ t('place_auto') }}</label>
