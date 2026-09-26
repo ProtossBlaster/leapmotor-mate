@@ -2582,6 +2582,7 @@ async def settings_page(request: Request):
         timezones=db_reader.timezone_options(),
         timezone_code=db_reader.get_timezone(),
         diag=diagnostics.build_system_info(MATE_VERSION),
+        polling=db_reader.polling_summary(),
         measured_capacity=db_reader.get_battery_health().get("latest_capacity_kwh"),
         # The capacity actually in use, and the SoH reference. The form used to carry its own
         # default (67.1) while the code read another (65.0) — two defaults for one value, and
