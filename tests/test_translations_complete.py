@@ -137,3 +137,23 @@ def test_the_allowed_language_list_agrees_with_itself_and_with_disk():
     parsed = [tuple(re.findall(r'"([\w-]+)"', l)) for l in lists]
     assert len(set(parsed)) == 1, f"main.py disagrees with itself about languages: {set(parsed)}"
     assert set(parsed[0]) == set(LANGS), f"main.py accepts {parsed[0]}, files on disk are {LANGS}"
+
+
+@pytest.mark.parametrize('lang', LANGS)
+def test_locale_strings_are_inside_the_runtime_translation_dictionary(lang):
+    data = json.loads((LOCALES / f'{lang}.json').read_text())
+    assert set(data) == {'translations', 'months', 'weekdays'}, (
+        f'{lang}: root-level strings are silently ignored by i18n.get_t')
+
+
+@pytest.mark.parametrize('lang', LANGS)
+def test_cloud_history_strings_resolve_through_the_real_translator(lang):
+    from i18n import get_t
+    t = get_t(lang)
+    for key in ('cloud_import_title', 'cloud_import_enabled', 'cloud_import_help',
+                'cloud_import_save', 'cloud_import_saved', 'trip_energy_source_cloud',
+                'cloud_zero_hint', 'gps_unavailable', 'soc_unavailable'):
+        assert t(key) != key, (lang, key)
+    if lang == 'it':
+        assert t('cloud_import_title') == 'Storico viaggi cloud'
+        assert t('cloud_import_save') == 'Salva'

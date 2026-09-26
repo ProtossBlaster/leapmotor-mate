@@ -1,13 +1,4 @@
 {
-  "trip_energy_source_cloud": "Cloud Leapmotor",
-  "trip_energy_source_getec": "getEC",
-  "trip_energy_source_mate": "Estimation Mate",
-  "cloud_zero_segments": "segments cloud de 0 km",
-  "cloud_zero_hint": "Les enregistrements originaux sont conserves separement. Utilisez les options de fusion du jour : chaque fusion demande confirmation et peut etre annulee.",
-  "cloud_source": "Historique cloud Leapmotor",
-  "gps_unavailable": "GPS indisponible",
-  "soc_unavailable": "SoC indisponible",
-  "data_unavailable": "Indisponible",
   "translations": {
     "command_accepted_unconfirmed": "Demande acceptée par le cloud ; exécution sur le véhicule pas encore confirmée",
     "reev_export_waiting": "Préparation du bundle complet. Les requêtes cloud peuvent prendre quelques minutes ; vous pouvez continuer à utiliser Mate.",
@@ -1266,7 +1257,21 @@
     "trip_summary_title": "Résumé du trajet",
     "trip_details_section": "Détails du trajet",
     "fuel_used": "Carburant consommé",
-    "reev_engine_km_label": "Avec le générateur"
+    "reev_engine_km_label": "Avec le générateur",
+    "trip_energy_source_cloud": "Cloud Leapmotor",
+    "trip_energy_source_getec": "getEC",
+    "trip_energy_source_mate": "Estimation Mate",
+    "cloud_zero_segments": "segments cloud de 0 km",
+    "cloud_zero_hint": "Les enregistrements originaux sont conserves separement. Utilisez les options de fusion du jour : chaque fusion demande confirmation et peut etre annulee.",
+    "cloud_source": "Historique cloud Leapmotor",
+    "gps_unavailable": "GPS indisponible",
+    "soc_unavailable": "SoC indisponible",
+    "data_unavailable": "Indisponible",
+    "cloud_import_help": "Adds trips that do not overlap local recordings. Disabling keeps previously imported trips. Cloud energy lookup remains available. Changes apply at the next history synchronization.",
+    "cloud_import_saved": "Preference saved",
+    "cloud_import_save": "Save",
+    "cloud_import_title": "Cloud trip history",
+    "cloud_import_enabled": "Import trips from Leapmotor cloud"
   },
   "months": {
     "full": [
@@ -1308,10 +1313,5 @@
       "Sam",
       "Dim"
     ]
-  },
-  "cloud_import_help": "Adds trips that do not overlap local recordings. Disabling keeps previously imported trips. Cloud energy lookup remains available. Changes apply at the next history synchronization.",
-  "cloud_import_saved": "Preference saved",
-  "cloud_import_save": "Save",
-  "cloud_import_title": "Cloud trip history",
-  "cloud_import_enabled": "Import trips from Leapmotor cloud"
+  }
 }

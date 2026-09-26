@@ -3,6 +3,12 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.0.1] — 2026-09-26
+
+- Fix cloud-history settings and trip labels displaying raw translation keys: move 14 misplaced strings into the runtime translation dictionary in all eight locales.
+- Validate locale structure and exercise the real translator to prevent the same regression.
+- No changes to cloud commands, migration decisions or stored data.
+
 ## [4.0.0] — 2026-09-26
 
 - Automatic application-profile provisioning using existing certificates and verified public parameters.
