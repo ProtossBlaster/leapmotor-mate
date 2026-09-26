@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / 'poller' / 'mate_api_runtime'
 DECISION = 'mate_api_migration_decision'
 SESSION = 'api_v2_shared_session'
-NEW_KEY = b'a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2traw='
+NEW_KEY = b'a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2s='
 
 CHILD = r'''
 import json, os, pathlib, sqlite3, sys, time
@@ -40,7 +40,7 @@ def qualify(database, stage):
         dst.execute('INSERT OR REPLACE INTO settings VALUES (?, ?)', ('api_v2_access_synthetic', 'synthetic-rights'))
         dst.execute('UPDATE trips SET distance=999')
     (stage / 'secret.key').write_bytes((root / 'secret.key').read_bytes() if (root / 'secret.key').exists()
-                                    else b'a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2traw=')
+                                    else b'a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2s=')
     return {'state': 'qualified', 'capabilities': ['B10']}
 preflight.qualify_installation = qualify
 phase = os.environ.get('TEST_CRASH')
