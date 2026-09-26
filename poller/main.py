@@ -11,6 +11,7 @@ _PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 
 import abrp
 import energy_snapshots
+import quirks
 import ready_automation
 from client import (LeapmotorMateClient, set_charge_current_min, EmptyStatusError,
                     seed_coord_signs, get_coord_signs)
@@ -863,6 +864,8 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
             pass
         with _API_LOCK:
             data = client.get_status(ctx.vehicle)
+        # what this car is known to misreport is corrected here, before anyone reads the frame
+        data = quirks.fix_frame(data, ctx.vehicle)
         # Live outside-air temperature for the car's spot (Open-Meteo; the cloud carries none — see
         # client.py). Opt-in and cached hard, so a parked car makes no calls. Set BEFORE the recorder
         # runs, so it lands on the position row (positions.outside_temp) and flows on to MQTT, ABRP
