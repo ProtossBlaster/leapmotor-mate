@@ -1,6 +1,10 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.0.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.1.0 · **Sprache:** Deutsch
+
+## Neu in Version 4.1.0
+
+Häufige Orte lassen sich auf der Karte ein- und ausblenden; die Auswahl wird im Browser gespeichert. Unter Kosten können private Ladeorte pro Fahrzeug mit Koordinaten, Radius und festem Preis pro kWh eingerichtet werden. Neue AC-Ladevorgänge werden nur bei aktueller GPS-Position, stehendem Fahrzeug und genau einem passenden Ort automatisch zugeordnet. Jeder Vorgang behält seinen Tarif. Abgeschlossene, nicht zusammengeführte Ladevorgänge können manuell zugeordnet werden. Ohne gemessene Ladeenergie sind die Kosten Schätzwerte.
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 

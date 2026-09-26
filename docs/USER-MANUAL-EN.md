@@ -1,6 +1,10 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.0.1 · **Language:** English
+> **Mate version:** v4.1.0 · **Language:** English
+
+## New in 4.1.0
+
+On Map, show or hide frequent places; the choice is saved in this browser. In Costs → Charging places, add private places per vehicle with coordinates, radius and a fixed price per kWh. New live AC sessions use fresh, stationary, unambiguous GPS. Each session keeps its tariff; editing places does not reprice history. Manual assignment is available for closed, unmerged charges. Without measured charger energy, costs are estimates.
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
