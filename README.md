@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.0.0:** automatic migration with existing credentials and certificates, isolated verification and automatic compatibility fallback. Includes the current PR fixes and preserves Beta/REEV support. See the [migration contract](docs/MIGRATION-4.md).
-See [release notes and upgrade impact](docs/releases/v4.0.0.md).
+**v4.0.1:** automatic migration with existing credentials and certificates, isolated verification and automatic compatibility fallback. Includes the current PR fixes and preserves Beta/REEV support. See the [migration contract](docs/MIGRATION-4.md).
+See [release notes and upgrade impact](docs/releases/v4.0.1.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -359,8 +359,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.0.0:** migrazione automatica con credenziali e certificati esistenti, verifica isolata e mantenimento automatico della compatibilità. Include le correzioni delle PR e conserva Beta/REEV. Vedi il [contratto di migrazione](docs/MIGRATION-4.md).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.0.0.md#italiano).
+**v4.0.1:** migrazione automatica con credenziali e certificati esistenti, verifica isolata e mantenimento automatico della compatibilità. Include le correzioni delle PR e conserva Beta/REEV. Vedi il [contratto di migrazione](docs/MIGRATION-4.md).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.0.1.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
