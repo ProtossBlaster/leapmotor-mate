@@ -47,7 +47,5 @@ certificati della sessione sono private e restano disponibili per i processi che
 le usano. Il recupero ordinario consiste nella selezione automatica del client
 precedente, senza ripristinare un vecchio database e perdere i dati più recenti.
 
-Le release candidate rimangono escluse dai canali stabili. La presenza di questo
-codice nel repository non significa che il canale stabile sia già stato promosso;
-la versione effettiva è indicata nelle release e nell'add-on. I test nativi non
-sostituiscono una prova su ogni hardware o su un Supervisor HA reale.
+La versione effettivamente distribuita è indicata nelle release e nell'add-on.
+I test nativi non sostituiscono una prova su ogni hardware o su un Supervisor HA reale.

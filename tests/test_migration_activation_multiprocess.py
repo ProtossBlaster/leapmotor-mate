@@ -39,6 +39,8 @@ def qualify(database, stage):
         dst.execute('INSERT OR REPLACE INTO settings VALUES (?, ?)', ('api_v2_shared_session', 'synthetic-qualified-session'))
         dst.execute('INSERT OR REPLACE INTO settings VALUES (?, ?)', ('api_v2_access_synthetic', 'synthetic-rights'))
         dst.execute('UPDATE trips SET distance=999')
+    src.close()
+    dst.close()
     (stage / 'secret.key').write_bytes((root / 'secret.key').read_bytes() if (root / 'secret.key').exists()
                                     else b'a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2s=')
     return {'state': 'qualified', 'capabilities': ['B10']}

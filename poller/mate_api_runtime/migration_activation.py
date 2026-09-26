@@ -15,7 +15,7 @@ import tempfile
 from process_lock import exclusive
 from leapmotor_cloud.private_storage import ensure_private_directory
 
-RELEASE = '4.0.0-rc.2'
+RELEASE = '4.0.0'
 DECISION_KEY = 'mate_api_migration_decision'
 
 

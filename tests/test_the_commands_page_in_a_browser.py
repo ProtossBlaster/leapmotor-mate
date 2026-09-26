@@ -84,7 +84,8 @@ def mate(tmp_path_factory):
            "WEB_PORT": str(port),
            "PYTHONPATH": str(ROOT / "web"),
            "MATE_RESEARCH": "0"}
-    for leak in ("MATE_AUTH_PASSWORD", "MATE_DEMO", "SUPERVISOR_TOKEN", "HASSIO_TOKEN"):
+    for leak in ("MATE_AUTH_PASSWORD", "MATE_DEMO", "SUPERVISOR_TOKEN", "HASSIO_TOKEN",
+                 "LEAPMOTOR_USER", "LEAPMOTOR_PASSWORD", "LEAPMOTOR_PIN"):
         env.pop(leak, None)
 
     log = data / "web.log"
@@ -138,12 +139,16 @@ def commands(mate):
     """Open the Commands page with the wheel reporting `raw` on 1816. Returns (page, sent commands)."""
     # Explicit synthetic owner snapshots satisfy the independent client's rights gate.
     # All command requests remain intercepted below; no cloud calls are made.
-    from cloud_access_fixture import settings
-    from ui_command_access import snapshot_key
+    from cloud_access_fixture import ABILITIES
+    from ui_command_access import account_hash, snapshot_key
+    # This is an invented account name, not a secret. Keep it plaintext so the
+    # subprocess can read it: the parent test runner uses a DIFFERENT secret.key.
+    user = 'synthetic-layout-account'
+    _setting(mate.db, 'leapmotor_user', user)
     for vin in (VIN, VIN_B):
-        access = settings(vin)
-        for key in ('leapmotor_user', snapshot_key(vin)):
-            _setting(mate.db, key, access(key))
+        _setting(mate.db, snapshot_key(vin), json.dumps({
+            'account': account_hash(user), 'at': time.time(), 'shared': False,
+            'vehicle': {'vin': vin, 'carType': 'B10', 'abilities': ABILITIES}}))
     with sync_api.sync_playwright() as pw:
         browser = pw.chromium.launch()
 
@@ -166,6 +171,10 @@ def commands(mate):
             response = page.goto(mate.url + "/commands")
             assert response.status == 200, mate.log.read_text()[-3000:]
             page.wait_for_selector("#cmd-grid")
+            # Fail promptly at the authorization seam instead of timing out on
+            # every later click when a fixture accidentally hides the controls.
+            assert page.locator(SLIDER).is_visible(), mate.log.read_text()[-3000:]
+            assert page.locator(MIRROR).is_visible(), mate.log.read_text()[-3000:]
             # How many grid refetches are out (the page's clock can be fake, the network never is: _grid_back),
             # how many came back with the grid, and how many command answers the page heard.
             page.evaluate("""() => {

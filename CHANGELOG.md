@@ -3,7 +3,7 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [4.0.0-rc.2] — 2026-09-26
+## [4.0.0] — 2026-09-26
 
 - Automatic application-profile provisioning using existing certificates and verified public parameters.
 - Bounded staged qualification; shared account-wide backend selection and automatic compatibility fallback.
