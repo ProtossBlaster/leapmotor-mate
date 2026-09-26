@@ -56,3 +56,19 @@ def test_a_resting_car_reports_zero_power_not_silence():
 def test_without_a_pack_voltage_there_is_no_power_to_report():
     tlm = _tlm(**{"1178": 0.0})
     assert "power" not in tlm
+
+
+# ── utc: the time of the data, not of the send ───────────────────────────────
+# A sleeping car answers every poll with the same frame for hours; the frame carries its own
+# timestamp (`sts`) and Mate prints its age on every poll line. ABRP was given the send time, so
+# a reading from Tuesday night arrived on Wednesday morning dated Wednesday morning.
+
+def test_abrp_gets_the_frames_own_timestamp():
+    tlm = _tlm(sts=1790423669401)
+    assert tlm["utc"] == 1790423669
+
+
+def test_a_frame_without_a_timestamp_is_dated_now():
+    import time
+    tlm = _tlm()
+    assert abs(tlm["utc"] - time.time()) < 5

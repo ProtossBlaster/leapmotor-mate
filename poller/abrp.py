@@ -41,7 +41,8 @@ def send(token: str, data) -> None:
 def _build_tlm(data) -> dict:
     """Map VehicleData → ABRP telemetry payload (null fields filtered out)."""
     tlm = {
-        "utc": int(time.time()),
+        # the time of the reading (a sleeping car repeats one frame for hours), not of the send
+        "utc": data.timestamp_ms // 1000 if data.timestamp_ms else int(time.time()),
         "soc": data.soc,
         "speed": data.speed_kmh,
         "lat": data.latitude,
