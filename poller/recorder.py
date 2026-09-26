@@ -161,7 +161,7 @@ class Recorder:
         # never mistaking driving discharge for regen.
         if self._sm.state == State.DRIVING and self._active_trip_id and not stale:
             self._db.add_trip_position(self._active_trip_id, data)
-            if not data.plug_connected and data.charge_current_a < -3.0:
+            if not data.plug_connected and (data.charge_current_a or 0) < -3.0:
                 self._regen_kwh += data.charge_power_kw * (self._sm.poll_driving / 3600)
 
         # During active charge: track peak power, and sum the wallbox counter's rises so the billed

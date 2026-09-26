@@ -46,8 +46,8 @@ class VehicleData:
     any_door_open: bool       # driver/passenger/rear doors or trunk
     plug_connected: bool      # cable inserted (signal 1149)
     remaining_charge_min: int # minutes to full (signal 1200), 0 when not charging
-    charge_voltage_v: float   # charging voltage (signal 1177)
-    charge_current_a: float   # charging current (signal 1178)
+    charge_voltage_v: float | None   # pack voltage (signal 1177); None = the car did not say
+    charge_current_a: float | None   # pack current (signal 1178), + discharge / − charge; None = not said
     is_reev: bool = False     # car reports a fuel tank (signal 3235) → range-extender model
     fuel_level_pct: float = None  # REEV fuel tank level % (signal 3235); None on a BEV
     # Litres actually in the tank — signal 3263, reported in MILLILITRES. Decoded by @gm27271
@@ -864,8 +864,8 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         plug_connected=_is_plugged_in(sig),
         charge_deferred=_is_deferred_charge(sig),
         remaining_charge_min=int(sig.get("1200") or 0),
-        charge_voltage_v=float(sig.get("1177") or 0),
-        charge_current_a=float(sig.get("1178") or 0),
+        charge_voltage_v=_sf(sig, "1177"),   # absent is None, not 0 V (same rule as the temperatures)
+        charge_current_a=_sf(sig, "1178"),
         ac_port_mode=int(sig.get("47") or 0),    # 47 acInputSlowCharge: 0 idle / 1 AC charge / 2 V2L
         seat_heat_driver=int(sig.get("2100") or 0),
         seat_heat_passenger=int(sig.get("2118") or 0),
