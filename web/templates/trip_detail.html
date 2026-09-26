@@ -85,11 +85,13 @@
            SoC number there is wrong on every build) — and on an electric car the SoC-based energy, or
            the NET gain under its own label when the pack ended fuller (beta #11). #}
         <div class="rounded-lg border border-green-800/60 bg-green-500/5 px-2 py-2 min-w-0">
-          <div class="text-[10px] font-medium text-green-400 mb-1 truncate">⚡ {{ t('trip_area_electric') }}</div>
+          <div class="text-[10px] font-medium text-green-400 mb-1 truncate">⚡ {{ t('trip_area_electric') }}{% if trip.energy_source %}<span class="text-xs text-slate-400 ml-2">{{ t('trip_energy_source_' ~ trip.energy_source) }}</span>{% endif %}</div>
           {% if is_reev %}
             {% if trip.ec_kwh %}<div class="text-base font-bold text-white leading-tight truncate">{{ trip.ec_kwh|dec(1) }}<span class="text-[10px] font-normal text-slate-400"> kWh</span></div>
             {% else %}<div class="text-base font-bold text-slate-500">—</div>{% endif %}
-          {% elif trip.battery_net_kwh is not none %}
+          {% elif trip.energy_source and trip.energy_kwh is not none %}
+          {{ '%.2f'|format(trip.energy_kwh) }} <span class="text-sm">kWh</span>
+        {% elif trip.battery_net_kwh is not none %}
             <div class="text-[10px] text-slate-400 truncate">{{ t('battery_net') }}</div>
             <div class="text-base font-bold text-green-400 leading-tight truncate">{{ trip.battery_net_kwh|dec(1) }}<span class="text-[10px] font-normal text-slate-400"> kWh</span></div>
           {% elif trip.energy_kwh %}<div class="text-base font-bold text-white leading-tight truncate">{{ trip.energy_kwh|dec(1) }}<span class="text-[10px] font-normal text-slate-400"> kWh</span></div>
@@ -100,7 +102,7 @@
              generator feeds the wheels without passing through the pack — and measured on real trips it
              reads 46, 82.7, even 386 kWh/100km. So: the research line in blue on the beta build, to be
              checked against the dashboard, and nothing on the official one (@michapr, beta #27). #}
-          {% if not (is_reev and trip.engine_ran) and trip.efficiency_kwh_100km %}
+          {% if not (is_reev and trip.engine_ran) and trip.efficiency_kwh_100km is not none %}
           <div class="text-[10px] font-semibold mt-0.5 truncate {% if trip.efficiency_kwh_100km < 18 %}text-green-400{% elif trip.efficiency_kwh_100km < 22 %}text-yellow-400{% else %}text-red-400{% endif %}">{{ eff_val(trip.efficiency_kwh_100km)|nice }} {{ eff_unit() }}</div>
           {% elif is_reev and research and trip.engine_ran and trip.reev_elec_kwh_100km is not none %}
           <div class="text-[10px] font-semibold text-blue-400/90 mt-0.5 truncate">⚡ {{ trip.reev_elec_kwh_100km|nice }} kWh/100km</div>
@@ -257,11 +259,11 @@
       <div class="space-y-3 text-sm mt-3">
       <div class="flex justify-between">
         <span class="text-slate-400">{{ t('start_soc') }}</span>
-        <span class="text-white font-medium">{{ (trip.start_soc or 0)|dec(1) }}%</span>
+        <span class="text-white font-medium">{% if trip.start_soc is not none %}{{ trip.start_soc|dec(1) }}%{% else %}{{ t('data_unavailable') }}{% endif %}</span>
       </div>
       <div class="flex justify-between">
         <span class="text-slate-400">{{ t('end_soc') }}</span>
-        <span class="text-white font-medium">{{ (trip.end_soc or 0)|dec(1) }}%</span>
+        <span class="text-white font-medium">{% if trip.end_soc is not none %}{{ trip.end_soc|dec(1) }}%{% else %}{{ t('data_unavailable') }}{% endif %}</span>
       </div>
       {% if is_reev and research and trip.engine_ran and (trip.end_soc or 0) > (trip.start_soc or 0) %}
       <!-- REEV engine-on trip where the generator OUT-produced the motor → the pack ended fuller than it
@@ -273,7 +275,7 @@
       {% else %}
       <div class="flex justify-between">
         <span class="text-slate-400">{{ t('soc_used') }}</span>
-        <span class="text-white font-medium">{{ ((trip.start_soc or 0) - (trip.end_soc or 0))|dec(1) }}%</span>
+        <span class="text-white font-medium">{% if trip.start_soc is not none and trip.end_soc is not none %}{{ (trip.start_soc - trip.end_soc)|dec(1) }}%{% else %}{{ t('data_unavailable') }}{% endif %}</span>
       </div>
       {% endif %}
       <div class="flex justify-between">
@@ -799,7 +801,7 @@
     <div class="flex items-center justify-center h-64 text-slate-500">
       <div class="text-center px-4">
         <div class="text-4xl mb-2">{% if trip.reconstructed %}✨{% else %}📍{% endif %}</div>
-        <div>{{ t('trip_no_route') if trip.reconstructed else t('not_enough_gps') }}</div>
+        <div>{{ t('gps_unavailable') if trip.is_cloud else (t('trip_no_route') if trip.reconstructed else t('not_enough_gps')) }}</div>
         {% if trip.reconstructed %}
         <div class="text-xs text-slate-600 mt-1 max-w-xs mx-auto">{{ t('trip_reconstructed_hint') }}</div>
         {% endif %}

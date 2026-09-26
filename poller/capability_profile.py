@@ -222,11 +222,11 @@ def window_open_states(signals: dict, use_pct: bool) -> list:
 # bundle). Unlike MODEL_ABSENT this needs NO per-model table: any car that doesn't declare the code
 # hides the button, present and future models alike — the car is the source of truth about itself.
 # WHITELIST ONLY, and only where the declaration is proven RELIABLE. `unlock_charger` qualifies on
-# three concordant signals: the T03 omits code 53, the official app hides the option, and the button
+# three concordant signals: the T03 omits code 48, the official app hides the option, and the button
 # no-ops there (#142). ⚠️ Climate is deliberately NOT gated this way — the T03 omits AC_ON (6) yet
 # cools, so its declarations lie there (#67); gating A/C on the ability would wrongly hide it.
 COMMAND_ABILITY = {
-    "unlock_charger": 53,   # VehicleAbility.UNLOCK_CHARGE_GUN
+    "unlock_charger": 48,   # VehicleAbility.UNLOCK_CHARGE_GUN
 }
 
 

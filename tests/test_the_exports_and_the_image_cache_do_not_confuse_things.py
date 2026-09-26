@@ -69,9 +69,9 @@ def test_two_packages_of_the_same_size_are_not_the_same_car(monkeypatch):
             return f"pkg-{b[:1].hex()}"
 
     import sys, types
-    mod = types.ModuleType("leapmotor_api.image")
+    mod = types.ModuleType("mate_cloud_image")
     mod.CarImagePackage = _Pkg
-    monkeypatch.setitem(sys.modules, "leapmotor_api.image", mod)
+    monkeypatch.setitem(sys.modules, "mate_cloud_image", mod)
     car_image.clear_cache()
 
     a, b = b"\xaa" + b"\x00" * 999, b"\xbb" + b"\x00" * 999
@@ -94,9 +94,9 @@ def test_the_same_package_is_still_decoded_only_once(monkeypatch):
             return "pkg"
 
     import sys, types
-    mod = types.ModuleType("leapmotor_api.image")
+    mod = types.ModuleType("mate_cloud_image")
     mod.CarImagePackage = _Pkg
-    monkeypatch.setitem(sys.modules, "leapmotor_api.image", mod)
+    monkeypatch.setitem(sys.modules, "mate_cloud_image", mod)
     car_image.clear_cache()
 
     same = b"\xcc" * 500

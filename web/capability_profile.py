@@ -28,6 +28,7 @@ poller pass their own get/set via `accessor=`). Accumulates across sessions.
 """
 from __future__ import annotations
 import json
+import os
 from typing import Callable, Optional
 
 # feature_key -> {label, kind, signals(status-signal ids whose live value proves a sensor works),
@@ -234,11 +235,11 @@ def window_open_states(signals: dict, use_pct: bool) -> list:
 # bundle). Unlike MODEL_ABSENT this needs NO per-model table: any car that doesn't declare the code
 # hides the button, present and future models alike — the car is the source of truth about itself.
 # WHITELIST ONLY, and only where the declaration is proven RELIABLE. `unlock_charger` qualifies on
-# three concordant signals: the T03 omits code 53, the official app hides the option, and the button
+# three concordant signals: the T03 omits code 48, the official app hides the option, and the button
 # no-ops there (#142). ⚠️ Climate is deliberately NOT gated this way — the T03 omits AC_ON (6) yet
 # cools, so its declarations lie there (#67); gating A/C on the ability would wrongly hide it.
 COMMAND_ABILITY = {
-    "unlock_charger": 53,   # VehicleAbility.UNLOCK_CHARGE_GUN
+    "unlock_charger": 48,   # VehicleAbility.UNLOCK_CHARGE_GUN
 }
 
 
@@ -274,6 +275,9 @@ def command_shown(vin: str, command_key: str, get_setting: Optional[Callable] = 
     feature is known-absent on this model (`car_type` → MODEL_ABSENT, e.g. heated-seat commands on a
     T03 — #144); otherwise mapped to its gating feature (COMMAND_FEATURE), and commands with neither
     are always shown."""
+    if os.environ.get("MATE_API_V2") == "1" and os.environ.get("MATE_DEMO", "").lower() not in ("1", "true"):
+        from ui_command_access import command_allowed
+        return command_allowed(vin,command_key,get_setting or _default_get_setting())
     if not ability_supported(command_key, abilities):
         return False
     feat = COMMAND_FEATURE.get(command_key)

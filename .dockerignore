@@ -20,3 +20,6 @@ certs/*.pem
 tests/
 docker-compose*.yml
 .dockerignore
+
+.venv*
+.pytest_cache

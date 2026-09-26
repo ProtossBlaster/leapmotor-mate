@@ -16,6 +16,12 @@ from fastapi import BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 
 
+@pytest.fixture(autouse=True)
+def permitted_test_command(monkeypatch):
+    monkeypatch.setattr(main.capability_profile, 'command_shown', lambda *args, **kwargs: True)
+    monkeypatch.setattr(main.db_reader, 'get_vehicle', lambda: ({'vin':'SYNTHETIC'}, {}))
+
+
 def _req(accept):
     """Minimal stand-in for a Request — run_command only reads request.headers.get('accept')."""
     return types.SimpleNamespace(headers={"accept": accept})

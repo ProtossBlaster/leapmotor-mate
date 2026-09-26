@@ -3,6 +3,24 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.0.0-rc.1] — 2026-09-26
+
+### Italiano
+
+Release candidata della migrazione al client indipendente MATE-API. Comandi V3,
+login coordinato, importazione cloud opzionale, consumi EV coerenti e backup prima
+dell'aggiornamento. Docker e add-on usano la stessa immagine; Desktop lo stesso
+payload. I comandi sono qualificati solo per B10. Non aggiornare automaticamente
+installazioni stabili: seguire docs/MIGRATION-4.md e conservare il backup.
+
+### English
+
+Candidate migration to the independent MATE-API client: V3 commands, coordinated
+login, optional cloud trip import, consistent EV energy and pre-upgrade backup.
+Docker/add-on share the image; Desktop shares the payload. Command qualification
+is B10 only. Stable installations require an explicit migration and rollback plan.
+
+
 ## [3.19.2] — 2026-09-25
 
 ### Fixed

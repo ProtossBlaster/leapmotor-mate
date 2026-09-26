@@ -124,8 +124,9 @@ document.addEventListener('htmx:afterRequest', function(e) {
     sending = false;
     var name = (path.split('api/command/')[1] || '').replace(/\/$/, '');
     var el = document.getElementById('result-' + name);
-    if (e.detail.successful && (!el || !el.querySelector('[data-warn]'))) {
-      if (el) el.innerHTML = '';                              // drop the "✓ Done" — the in-tile ⏳+message is the feedback
+    var accepted = el && el.querySelector('[data-accepted]');
+    if (e.detail.successful && (accepted || !el || !el.querySelector('[data-warn]'))) {
+      if (el && !accepted) el.innerHTML = '';                 // retain the unconfirmed acceptance notice
       busyCmd = name; busyUntil = Date.now() + BUSY_MS; busyStart = Date.now();
       pendingExpect = CONFIRM[name] || null;                  // movement toggle → wait for the real flip too
     } else if (el && el.querySelector('[data-warn]')) {

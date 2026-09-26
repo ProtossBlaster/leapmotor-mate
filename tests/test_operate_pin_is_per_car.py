@@ -114,6 +114,8 @@ class _Api:
 
     def lock_vehicle(self, vin):
         self.seen.append((vin, self.operation_password))
+        from types import SimpleNamespace
+        self.last_new_command_receipt = SimpleNamespace(outcome='accepted')
 
 
 @pytest.mark.parametrize("picked,expected", [(C10, "9876"), (T03, "1234")])

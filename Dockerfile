@@ -8,7 +8,7 @@ LABEL \
     io.hass.name="LeapMotor Mate" \
     io.hass.description="Trip tracking and remote control for Leapmotor vehicles" \
     io.hass.type="addon" \
-    io.hass.version="3.19.2"
+    io.hass.version="4.0.0-rc.1"
 
 WORKDIR /app
 
@@ -25,7 +25,9 @@ COPY run.sh  /run.sh
 RUN chmod a+x /run.sh
 
 ENV PYTHONUNBUFFERED=1
-ENV CERT_DIR=/app/certs
+ENV CERT_DIR=/data/certs
+ENV DATA_CERT_DIR=/data/certs
+ENV MATE_API_V2=1
 ENV DB_PATH=/data/leapmotor_mate.db
 
 # MateBetaTesterOnly flag. 0 in the official image (the research code stays inert); the CI

@@ -5,10 +5,13 @@
    its own day. BOTH include paths must pass them — a header that only appears down one of
    the two is the classic way this template has broken before. #}
 {% if trips %}
+{% set micro_count = trips|selectattr('cloud_zero_segment')|list|length %}
+{% set main_count = trips|length - micro_count %}
 <div class="mb-3 flex items-center justify-between flex-wrap gap-2">
   <div class="flex items-center gap-2 flex-wrap">
     <span class="text-white font-semibold">{{ day_label }}</span>
-    <span class="text-slate-500 text-xs">{{ trips|length }} {{ t('trip_singular') if trips|length == 1 else t('trips_plural') }}</span>
+    <span class="text-slate-500 text-xs">{{ main_count }} {{ t('trip_singular') if main_count == 1 else t('trips_plural') }}</span>
+    {% if micro_count %}<span class="text-slate-500 text-xs">+ {{ micro_count }} {{ t('cloud_zero_segments') }}</span>{% endif %}
     {# 🔗 lives HERE, beside the date, and only exists once a day is open: merging is something you
        do to two trips of one day, and this heading is the only place on the page that says which
        day that is (#204 @riri19). The same button toggles back — ✕ with the same noun, so no new
@@ -110,11 +113,7 @@
 {% endif %}
 
 {% else %}
-<div class="space-y-1">
-  {% for trip in trips %}
-  {% include "partials/trip_row.html" %}
-  {% endfor %}
-</div>
+{% include "partials/trips_grouped_rows.html" %}
 {% endif %}
 
 {% else %}

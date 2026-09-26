@@ -3,7 +3,6 @@ getPlugInLastNweeks100kmEC body: fuel L/100km (`oc100km`) + electric kWh/100km (
 per-week series carries only `ec100km` and must be ignored. Defensive against unknown nesting."""
 import pytest
 
-pytest.importorskip("leapmotor_api")   # command_client imports it at module load
 
 import command_client as cc
 

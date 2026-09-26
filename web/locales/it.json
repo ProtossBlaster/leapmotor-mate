@@ -1,5 +1,15 @@
 {
+  "trip_energy_source_cloud": "Cloud Leapmotor",
+  "trip_energy_source_getec": "getEC",
+  "trip_energy_source_mate": "Stima Mate",
+  "cloud_zero_segments": "segmenti cloud da 0 km",
+  "cloud_zero_hint": "Record originali conservati separatamente. Per proporre un'unione, apri Unibili nella giornata: ogni unione richiede conferma ed e reversibile.",
+  "cloud_source": "Storico cloud Leapmotor",
+  "gps_unavailable": "GPS non disponibile",
+  "soc_unavailable": "SoC non disponibile",
+  "data_unavailable": "Non disponibile",
   "translations": {
+    "command_accepted_unconfirmed": "Richiesta accettata dal cloud; esecuzione sull'auto non ancora confermata",
     "reev_export_waiting": "Preparazione del bundle completo. Le richieste cloud possono richiedere alcuni minuti; puoi continuare a usare Mate.",
     "reev_export_busy": "Un bundle è già in preparazione. Attendi e riprova.",
     "reev_export_error": "Download non riuscito. Riprova.",
@@ -1293,5 +1303,10 @@
       "Sab",
       "Dom"
     ]
-  }
+  },
+  "cloud_import_title": "Storico viaggi cloud",
+  "cloud_import_enabled": "Importa viaggi dal cloud Leapmotor",
+  "cloud_import_help": "Aggiunge i viaggi che non si sovrappongono alle registrazioni locali. Disattivando restano i viaggi già importati. La lettura dei consumi cloud resta disponibile. La modifica si applica alla prossima sincronizzazione dello storico.",
+  "cloud_import_save": "Salva",
+  "cloud_import_saved": "Preferenza salvata"
 }

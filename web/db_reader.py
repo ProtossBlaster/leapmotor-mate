@@ -4832,10 +4832,12 @@ def unmerge_trip(parent_id: int) -> dict:
     # The parent may hold the COMBINED cloud EC (from a convert-on-merge); once split it no longer
     # matches the standalone trip → drop it and restore the SoC efficiency (the user can re-convert
     # the standalone trip). Only touches a parent that actually carries an EC override.
-    db.execute(
-        "UPDATE trips SET efficiency_kwh_100km=COALESCE(efficiency_soc, efficiency_kwh_100km), "
-        "efficiency_soc=NULL, ec_kwh=NULL, ec_driving=NULL, ec_ac=NULL, ec_other=NULL, ec_stable=0 "
-        "WHERE id=? AND ec_kwh IS NOT NULL", (parent_id,))
+    # Imported cloud energy is original data, not a convert-on-merge override.
+    if parent_id not in _cloud_trip_ids(db):
+        db.execute(
+            "UPDATE trips SET efficiency_kwh_100km=COALESCE(efficiency_soc, efficiency_kwh_100km), "
+            "efficiency_soc=NULL, ec_kwh=NULL, ec_driving=NULL, ec_ac=NULL, ec_other=NULL, ec_stable=0 "
+            "WHERE id=? AND ec_kwh IS NOT NULL", (parent_id,))
     db.commit()
     return {"ok": True, "restored": cur.rowcount}
 
@@ -4962,6 +4964,19 @@ def get_merge_preview_route(a_id: int, b_id: int, max_points: int = 120) -> list
     return out
 
 
+def _cloud_trip_ids(db) -> set:
+    if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='api_lab_cloud_trip_links'").fetchone():
+        return set()
+    return {r[0] for r in db.execute("SELECT trip_id FROM api_lab_cloud_trip_links")}
+
+
+def _trip_display_source(trip, segment_ids, cloud_ids, gps_ids):
+    trip["is_cloud"] = bool(segment_ids) and all(i in cloud_ids for i in segment_ids)
+    trip["cloud_zero_segment"] = (trip["is_cloud"] and not trip.get("is_merged")
+                                  and trip.get("distance_km") == 0)
+    trip["has_gps"] = any(i in gps_ids for i in segment_ids)
+
+
 def get_trips(limit: int = 500) -> list[dict]:
     db = _get()
     kids = _children_by_parent(db)
@@ -4975,10 +4990,14 @@ def get_trips(limit: int = 500) -> list[dict]:
     # Built ONCE for the whole list — the fuel twin of the electric rate timeline. Per trip it would
     # replay every refuel from the beginning, which is quadratic down a long list.
     _fuel_rate_at = _trip_fuel_rate_fn()
+    cloud_ids = _cloud_trip_ids(db)
+    gps_ids = {r[0] for r in db.execute(
+        "SELECT DISTINCT trip_id FROM trip_positions WHERE latitude IS NOT NULL AND longitude IS NOT NULL")}
     out = []
     for r in rows:
         kids_r = kids.get(r["id"], [])
         td = _trip_group_stats(dict(r), kids_r)
+        _trip_display_source(td, [r["id"]] + [k["id"] for k in kids_r], cloud_ids, gps_ids)
         # REEV Phase C — per-trip fuel so the list can flag engine-on trips (⛽) at a glance. Same
         # generator-on basis as the detail page; the positions walk runs only for trips that actually
         # burned fuel (a REEV drives mostly electric), so the list stays cheap.
@@ -5009,7 +5028,7 @@ def get_trips(limit: int = 500) -> list[dict]:
         # costs a dict lookup, not a cloud call.
         td.update(_reev_trip_elec(td.get("ec_kwh"), td.get("distance_km"), td.get("engine_ran")))
         out.append(td)
-    return out
+    return _select_ev_energy(out)
 
 
 def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
@@ -5789,25 +5808,28 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
             # BEV: the blended €/kWh — every kWh in the pack has an invoice. UNCHANGED from before.
             km = t.get("distance_km") or 0
             eff = t.get("efficiency_kwh_100km")
-            energy = (eff * km / 100) if (eff and km) else 0
+            energy = (t["energy_kwh"] if t.get("energy_source") else ((eff * km / 100) if (eff and km) else 0))
             rate = rate_at(t.get("vehicle_id"), raw_start) if energy else None
             t["cost"] = (energy * rate) if (energy and rate) else 0
         t["_dt"] = dt
         out.append(t)
-    return out
+    return _clear_cloud_pending(out)
 
 
 def _totals_node() -> dict:
-    return {"count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "fuel_l": 0.0,
+    return {"count": 0, "cloud_zero_count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "fuel_l": 0.0,
             "_eff_wsum": 0.0, "_eff_wdist": 0.0, "_ec_kwh": 0.0, "_ec_km": 0.0}
 
 
 def _totals_add(node: dict, trip: dict) -> None:
     """Fold one trip into a totals node. Efficiency is a DISTANCE-WEIGHTED mean, never a plain
     average of the per-trip figures — a 2 km hop and a 200 km drive must not count the same."""
+    if trip.get("energy_source"):
+        trip = dict(trip, ec_kwh=trip["energy_kwh"])
     km = trip.get("distance_km") or 0
     eff = trip.get("efficiency_kwh_100km")
     node["count"] += 1
+    node["cloud_zero_count"] = node.get("cloud_zero_count", 0) + int(bool(trip.get("cloud_zero_segment")))
     node["km"] = round(node["km"] + km, 2)
     node["regen"] = round(node["regen"] + (trip.get("regen_kwh") or 0), 3)
     # `cost_total`, not `cost`: the latter is the ELECTRIC line by design (see get_trip_detail — the
@@ -5842,10 +5864,10 @@ def _totals_add(node: dict, trip: dict) -> None:
     # driven would have printed a consumption not far off HALF the truth, and printed it in confident
     # black and white. A missing signal is not a zero → [[signal-absent-is-not-signal-zero]].
     _ec = trip.get("ec_kwh")
-    if _ec and km > 0:
+    if (_ec is not None) and km > 0:
         node["_ec_kwh"] += _ec
         node["_ec_km"] += km
-    if eff and km > 0:
+    if (eff is not None) and km > 0:
         node["_eff_wsum"] += km * eff
         node["_eff_wdist"] += km
 
@@ -6107,12 +6129,17 @@ def get_trips_summary() -> dict:
            FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL""",
         (_current_vehicle_id(),)
     ).fetchone()
-    return {
+    return _ev_energy_summary({
+        "cloud_zero_count": sum(1 for row in db.execute(
+            "SELECT id FROM trips t WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND ended_at IS NOT NULL AND merged_into_id IS NULL AND distance_km=0 "
+            "AND NOT EXISTS (SELECT 1 FROM trips c WHERE c.merged_into_id=t.id)",
+            (_current_vehicle_id(),)) if row[0] in _cloud_trip_ids(db)),
         "count":    r["n"],
         "km":       r["km"] or 0,
         "regen":    r["regen"] or 0,
         "avg_eff":  (r["eff_wsum"] / r["eff_wdist"]) if r["eff_wdist"] else None,
-    }
+    })
 
 
 def get_first_trip_date() -> Optional[str]:
@@ -6580,6 +6607,9 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     # would break that alignment.
     route_segments = _split_track_gaps(positions)
     trip_d = _trip_group_stats(dict(trip), children)
+    _trip_display_source(trip_d, seg_ids, _cloud_trip_ids(db),
+                         set(seg_ids) if any(p.get("latitude") is not None and p.get("longitude") is not None
+                                             for p in positions) else set())
     trip_d["route_segments"] = route_segments
     trip_d["elevation_profile_available"] = elevation_profile_available
     # The stops INSIDE a joined journey. The chart draws every segment's points in one row, so a
@@ -6634,7 +6664,8 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     # Energy consumed = efficiency × distance / 100 (consistent with the stored efficiency).
     eff = trip_d.get("efficiency_kwh_100km")
     dist = trip_d.get("distance_km") or 0
-    trip_d["energy_kwh"] = round(eff * dist / 100, 2) if (eff and dist) else None
+    _select_ev_energy([trip_d])
+    trip_d["energy_kwh"] = (trip_d["energy_kwh"] if trip_d.get("energy_source") else (round(eff * dist / 100, 2) if (eff and dist) else None))
 
     # NET change in the pack over the trip, signed — and only kept when the pack ended FULLER than it
     # started (beta #11, @michapr + @gm27271). On a range-extender the generator can put back more
@@ -6702,7 +6733,7 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     # say. Same defect as #218 seen from the other end: there free energy left the price too HIGH,
     # here it erases it. `is None` is the only "unknown" (no priced charge yet); negatives can't
     # reach here, `_wac_blend` drops them.
-    if trip_d["energy_kwh"]:
+    if trip_d["energy_kwh"] is not None:
         rate = blended_price_at(trip["vehicle_id"], trip["started_at"])
         if rate is not None and rate >= 0:
             trip_d["cost_per_kwh"] = round(rate, 4)
@@ -6743,10 +6774,10 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     except Exception:  # noqa: BLE001
         pass
 
-    return {
+    return _finish_ev_detail({
         **trip_d,
         "positions": positions,
-    }
+    })
 
 
 def _downsample(pts: list[dict], max_points: int) -> list[dict]:
@@ -7123,7 +7154,8 @@ def _trips_have_ec(db) -> bool:
 def _merged_trip_statistics(db, begin=None, end=None):
     """Overrides for beta #44: aggregate logical trips, not their stored segments.
 
-    None keeps the existing SQL path for old schemas and vehicles without merges. Groups
+    None keeps the existing SQL path for old schemas and REEV without merges.
+    EV totals apply the same read-only source selection as the trip list. Groups
     belong to the parent's start date, like the Trips list; children are loaded BEFORE
     applying the window so a midnight boundary cannot split a group's energy/distance.
     This is read-only: conversion and unmerge still own the original rows.
@@ -7131,7 +7163,8 @@ def _merged_trip_statistics(db, begin=None, end=None):
     if not any(r[1] == "merged_into_id" for r in db.execute("PRAGMA table_info(trips)")):
         return None
     kids = _children_by_parent(db)
-    if not kids:
+    ev = not is_reev_car()
+    if not kids and not ev:
         return None
     sql = ("SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
            "AND ended_at IS NOT NULL AND merged_into_id IS NULL")
@@ -7141,6 +7174,11 @@ def _merged_trip_statistics(db, begin=None, end=None):
         args.extend((begin, end))
     groups = [_trip_group_stats(dict(r), kids.get(r["id"], []))
               for r in db.execute(sql, args).fetchall()]
+
+    if ev:
+        _select_ev_energy(groups)
+        groups = [dict(g, ec_kwh=g["energy_kwh"]) if g.get("energy_source") else g
+                  for g in groups]
 
     def rounded(value, digits):
         # Keep SQLite's rounding, not Python's ties-to-even, at the old SQL boundary.
@@ -7152,6 +7190,8 @@ def _merged_trip_statistics(db, begin=None, end=None):
         return rounded(sum(values), digits) if values else None
 
     def energy(g):
+        if g.get("energy_source"):
+            return g["energy_kwh"]
         km, eff = g.get("distance_km"), g.get("efficiency_kwh_100km")
         return km * eff / 100.0 if km is not None and eff is not None else None
 
@@ -7163,7 +7203,7 @@ def _merged_trip_statistics(db, begin=None, end=None):
         "trip_count": len(groups),
         "distance_km": total(g.get("distance_km") for g in groups),
         "duration_min": total((g.get("duration_min") for g in groups), 0),
-        "energy_kwh": total((g["distance_km"] * (g.get("efficiency_kwh_100km") or 0) / 100.0
+        "energy_kwh": total((g["energy_kwh"] if g.get("energy_source") else g["distance_km"] * (g.get("efficiency_kwh_100km") or 0) / 100.0
                              if g.get("distance_km") is not None else None) for g in groups),
         "eff_km": total(g.get("distance_km") for g in efficient),
         "measured_energy_kwh": total(energy(g) if g["id"] in measured_ids else 0 for g in groups),
@@ -7179,7 +7219,7 @@ def _merged_trip_statistics(db, begin=None, end=None):
     average_trips = measured if is_reev_car() else efficient
     # Match the existing choice: trip efficiency first; stable cloud EC only as fallback
     # (notably for REEV generator trips). Never override the owner's energy-source setting.
-    covered = [g for g in groups if g.get("efficiency_kwh_100km") is not None
+    covered = [g for g in groups if g.get("energy_source") or g.get("efficiency_kwh_100km") is not None
                or (g.get("ec_kwh") is not None and g.get("ec_stable") == 1)]
     best = [g["efficiency_kwh_100km"] for g in efficient
             if g["efficiency_kwh_100km"] > 0 and (g.get("distance_km") or 0) >= 15]
@@ -7189,7 +7229,7 @@ def _merged_trip_statistics(db, begin=None, end=None):
     summary = {
         "trip_count": len(groups),
         "total_km": period["distance_km"],
-        "total_kwh_used": total(energy(g) if g.get("efficiency_kwh_100km") is not None
+        "total_kwh_used": total(energy(g) if g.get("energy_source") or g.get("efficiency_kwh_100km") is not None
                                 else g.get("ec_kwh") for g in covered),
         "energy_trips": len(covered) if groups else None,
         "energy_km": total((g.get("distance_km") for g in covered), 1),
@@ -10135,3 +10175,34 @@ def trip_local_start_hhmm(trip_id: int) -> Optional[str]:
         return None
     dt = _local_dt(row["started_at"])
     return dt.strftime("%H:%M") if dt else None
+
+
+# EV source selection is read-only: historical GPS, SoC, getEC and estimates
+# remain in the database unchanged. REEV calculations are deliberately excluded.
+def _select_ev_energy(rows):
+    from trip_energy import select_energy
+    return select_energy(_get(), rows)
+
+
+def _clear_cloud_pending(rows):
+    for row in rows:
+        if row.get("energy_source") == "cloud":
+            row["ec_pending"] = False
+    return rows
+
+
+def _finish_ev_detail(row):
+    if row is not None and row.get("energy_source") == "cloud":
+        row["ec_pending"] = False
+    return row
+
+
+def _ev_energy_summary(summary):
+    if is_reev_car():
+        return summary
+    rows = get_trips(limit=1000000)
+    weighted = [(row.get("efficiency_kwh_100km"), row.get("distance_km") or 0) for row in rows]
+    eligible = [(eff, km) for eff, km in weighted if eff is not None and km > 0]
+    distance = sum(km for _, km in eligible)
+    summary["avg_eff"] = sum(eff * km for eff, km in eligible) / distance if distance else None
+    return summary

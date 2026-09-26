@@ -18,7 +18,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 def _released_version() -> str:
     main = (ROOT / "web" / "main.py").read_text(encoding="utf-8")
-    m = re.search(r'^MATE_VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"', main, re.M)
+    m = re.search(r'^MATE_VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+(?:-rc\.[0-9]+)?)"', main, re.M)
     assert m, "MATE_VERSION is not where every release expects it"
     return m.group(1)
 
@@ -26,7 +26,7 @@ def _released_version() -> str:
 def _banners() -> list:
     """Every `**vX.Y.Z:**` line in the README — the English one near the top and the Italian one."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    return re.findall(r"^\*\*v([0-9]+\.[0-9]+\.[0-9]+):\*\*", readme, re.M)
+    return re.findall(r"^\*\*v([0-9]+\.[0-9]+\.[0-9]+(?:-rc\.[0-9]+)?):\*\*", readme, re.M)
 
 
 def test_the_readme_says_the_version_that_is_released():
@@ -44,7 +44,7 @@ def test_the_banner_links_the_notes_of_that_same_release():
     """A banner with the right number and last release's link is still wrong."""
     v = _released_version()
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    links = re.findall(r"docs/releases/v([0-9]+\.[0-9]+\.[0-9]+)\.md", readme)
+    links = re.findall(r"docs/releases/v([0-9]+\.[0-9]+\.[0-9]+(?:-rc\.[0-9]+)?)\.md", readme)
     assert links, "the banner no longer links the release notes"
     assert set(links) == {v}, f"the README links notes for {sorted(set(links))}, released is {v}"
 

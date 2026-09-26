@@ -69,7 +69,7 @@ def test_abilities_section_lists_unmapped_codes(monkeypatch):
     # local lib (CI / the container run 0.3.1 where the enum exists).
     import pytest
     try:
-        from leapmotor_api.models import VehicleAbility  # noqa: F401
+        from mate_vehicle_abilities import VehicleAbility  # noqa: F401
     except ImportError:
         pytest.skip("VehicleAbility enum not present in this leapmotor_api version")
     monkeypatch.setattr(db_reader, "get_vehicle",
@@ -81,7 +81,7 @@ def test_abilities_section_lists_unmapped_codes(monkeypatch):
 def test_abilities_section_unmapped_none_when_all_known(monkeypatch):
     import pytest
     try:
-        from leapmotor_api.models import VehicleAbility  # noqa: F401
+        from mate_vehicle_abilities import VehicleAbility  # noqa: F401
     except ImportError:
         pytest.skip("VehicleAbility enum not present in this leapmotor_api version")
     monkeypatch.setattr(db_reader, "get_vehicle",

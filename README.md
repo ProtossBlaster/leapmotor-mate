@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v3.19.2:** a network blip no longer spends one of the few logins the Leapmotor cloud is still granting.
-See [release notes and upgrade impact](docs/releases/v3.19.2.md).
+**v4.0.0-rc.1:** opt-in migration to independent MATE-API 0.1.0a8, with V3 commands, private provisioning and automatic pre-upgrade backup. Read the [migration and rollback guide](docs/MIGRATION-4.md) before installing.
+See [release notes and upgrade impact](docs/releases/v4.0.0-rc.1.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -15,7 +15,7 @@ See [release notes and upgrade impact](docs/releases/v3.19.2.md).
 
 **Trip tracking, charge logging and remote control for Leapmotor vehicles** — a self‑hosted companion (think *TeslaMate* for Leapmotor). Runs as a **Home Assistant add‑on** or as a **standalone Docker** container.
 
-Supported models: **B05 · B10 · C10 · T03** — full‑electric (BEV) only, European spec (the Leapmotor lineup distributed by Stellantis/Leapmotor). Not for REEV / range‑extender versions.
+Candidate command qualification: **B10**. Previous stable releases supported **B05 · B10 · C10 · T03**; those other models still require qualification with this new client — full‑electric (BEV) only, European spec (the Leapmotor lineup distributed by Stellantis/Leapmotor). Not for REEV / range‑extender versions.
 
 > 🇮🇹 [Versione italiana più sotto.](#leapmotor-mate--italiano)
 
@@ -359,12 +359,12 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v3.19.2:** un singhiozzo di rete non spende più uno dei pochi accessi che il cloud Leapmotor concede ancora.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v3.19.2.md#italiano).
+**v4.0.0-rc.1:** migrazione volontaria a MATE-API 0.1.0a8 indipendente, con comandi V3, configurazione del materiale privato e backup automatico. Prima di installare leggere la [guida a migrazione e rollback](docs/MIGRATION-4.md).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.0.0-rc.1.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
-Modelli supportati: **B05 · B10 · C10 · T03** — solo full‑electric (BEV), spec. europea (gamma Leapmotor distribuita da Stellantis/Leapmotor). NON per le versioni REEV / range‑extender.
+Comandi qualificati nella candidata: **B10**. Le precedenti versioni stabili supportavano **B05 · B10 · C10 · T03**; gli altri modelli richiedono ancora qualifica con il nuovo client — solo full‑electric (BEV), spec. europea (gamma Leapmotor distribuita da Stellantis/Leapmotor). NON per le versioni REEV / range‑extender.
 
 ## ☕ Sostieni il progetto
 

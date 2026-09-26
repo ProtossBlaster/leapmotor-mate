@@ -1,4 +1,5 @@
 """LeapMotor Mate — vehicle data poller."""
+import mate_api  # explicit independent runtime; no sitecustomize hook
 import json
 import logging
 import os
@@ -1035,6 +1036,8 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
 
 
 def main():
+    from runtime_paths import prepare_installation
+    prepare_installation()
     db_path = os.environ.get("DB_PATH", "leapmotor_mate.db")
     log.info("Starting LeapMotor Mate poller")
 
@@ -1112,7 +1115,7 @@ def main():
 
     # Every car on the account is registered and gets its own context. `ensure_vehicle` is keyed by
     # VIN, so a car that has been here before keeps its id and its whole history.
-    from leapmotor_api import LeapmotorApiClient
+    from api_v2_bridge import NewAPIClient as LeapmotorApiClient
     v = client._vehicle
     contexts = []
     for veh in (client._vehicles or [v]):
@@ -1128,6 +1131,9 @@ def main():
     if _moved:
         log.info("ABRP: install-wide token assigned to %s (a second car was registered); "
                  "other cars send nothing until they get their own token", _moved[-6:])
+    # Start only after reset, successful authentication and vehicle registration.
+    from history_service import start_history_worker
+    start_history_worker()
     ctx = contexts[0]
     vehicle_id = ctx.vehicle_id
 

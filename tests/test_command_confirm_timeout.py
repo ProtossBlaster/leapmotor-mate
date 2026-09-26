@@ -14,7 +14,7 @@ import types
 
 import pytest
 
-pytest.importorskip("leapmotor_api", reason="command_client imports leapmotor_api")
+
 import command_client as cc
 
 
@@ -71,7 +71,7 @@ def test_confirm_timeout_classified_timeout_car():
 
 # ── no regression: a genuine socket timeout still resets + retries ───────────────
 
-def test_genuine_socket_timeout_still_retries(monkeypatch):
+def test_genuine_socket_timeout_is_not_retried(monkeypatch):
     api = _FakeAPI()
     sess = _session_with(monkeypatch, api)
     n = {"c": 0}
@@ -82,8 +82,8 @@ def test_genuine_socket_timeout_still_retries(monkeypatch):
 
     ok, msg = sess.execute(action)
     assert ok is False
-    assert n["c"] == 2            # genuine stale connection → reset + one retry (unchanged)
-    assert api.closed >= 1        # session was reset
+    assert n["c"] == 1            # ambiguous transport outcome must not replay a command
+    assert api.closed == 0        # no automatic reset/replay
 
 
 def test_genuine_socket_timeout_classified_unreachable():
@@ -99,8 +99,10 @@ def test_success_sends_once(monkeypatch):
     n = {"c": 0}
 
     def action(_api, _vin):
+        from types import SimpleNamespace
         n["c"] += 1
+        _api.last_new_command_receipt = SimpleNamespace(outcome='accepted')
 
     ok, msg = sess.execute(action)
-    assert ok is True and msg == "OK"
+    assert ok is True and "physical execution not confirmed" in msg
     assert n["c"] == 1 and api.closed == 0

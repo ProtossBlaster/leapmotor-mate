@@ -78,6 +78,14 @@
   <button type="button" id="back-link" onclick="backToChoice()" style="display:none"
           class="mb-4 text-sm text-slate-400 hover:text-white">← <span id="back-label">Back</span></button>
 
+  <div id="application-bundle-step" style="display:none" class="rounded-xl bg-slate-800 p-5 mb-4">
+    <h2 class="font-semibold text-white">Application bundle / Pacchetto applicativo</h2>
+    <p class="text-sm text-slate-300 my-3">Carica il pacchetto applicativo fornito per questa installazione. Non contiene il tuo account o lo storico. / Upload the application bundle supplied for this installation. It does not contain your account or history.</p>
+    <input id="application-bundle" type="file" accept=".zip" class="w-full text-slate-300">
+    <button type="button" onclick="saveApplicationBundle()" class="mt-3 px-4 py-2 rounded-xl bg-brand text-white">Installa / Install</button>
+    <p id="application-bundle-result" role="status" class="mt-2 text-sm text-slate-300"></p>
+  </div>
+
   <!-- ── Step 1: App certificate ──────────────────────────────────────────── -->
   <div id="cert-step" style="display:none">
     <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:18px 18px 20px">
@@ -1078,24 +1086,61 @@ setLang('{{ prefill.language if prefill else "" }}' || initLang);
 // ── Landing choice ────────────────────────────────────────────────────────────
 // "Set up my car" reveals the cert/login form (cert step first unless already present);
 // the account form is never shown to a demo-curious user until they choose to configure.
+async function saveApplicationBundle() {
+  const file = document.getElementById('application-bundle').files[0];
+  const result = document.getElementById('application-bundle-result');
+  if (!file) { result.textContent = 'Seleziona un file ZIP / Select a ZIP file'; return; }
+  const form = new FormData(); form.append('bundle', file);
+  try {
+    const response = await fetch('api/setup/application-bundle', {method:'POST', body:form});
+    const data = await response.json();
+    if (!response.ok) { result.textContent = data.error || 'Install failed'; return; }
+    document.getElementById('application-bundle-step').style.display = 'none';
+    await chooseSetup();
+  } catch { result.textContent = 'Connessione non disponibile / Connection unavailable'; }
+}
+
 async function chooseSetup() {
   document.getElementById('choice-step').style.display = 'none';
   document.getElementById('back-link').style.display = 'inline-block';
   try {
     const r = await fetch('api/setup/cert-status');
     const d = await r.json();
+    if (!r.ok) throw new Error('Setup readiness unavailable');
     if (d.present) {
       document.getElementById('setup-form').style.display = 'block';
+    } else if (d.managed) {
+      document.getElementById('application-bundle-step').style.display = 'block';
     } else {
       document.getElementById('cert-step').style.display = 'block';
     }
   } catch {
-    // On error, fall back to showing the login form (cert may be bundled)
-    document.getElementById('setup-form').style.display = 'block';
+    showManagedSetupError('unavailable');
   }
 }
 
+function showManagedSetupError(state) {
+  document.getElementById('cert-step').style.display = 'none';
+  document.getElementById('setup-form').style.display = 'none';
+  let box = document.getElementById('managed-setup-error');
+  if (!box) {
+    box = document.createElement('p');
+    box.id = 'managed-setup-error';
+    box.setAttribute('role', 'alert');
+    box.className = 'text-amber-300 text-sm mb-4';
+    document.getElementById('back-link').insertAdjacentElement('afterend', box);
+  }
+  const italian = (document.documentElement.lang || navigator.language || '').startsWith('it');
+  box.textContent = italian
+    ? 'Configurazione automatica non disponibile. La distribuzione deve fornire materiale applicativo valido prima del login. Non caricare certificati personali. Stato: ' + state
+    : 'Automatic setup unavailable. The distribution must provide valid application material before login. Do not upload personal certificates. Status: ' + state;
+  box.style.display = 'block';
+}
+
 function backToChoice() {
+  document.getElementById('application-bundle-step').style.display = 'none';
+  const managedError = document.getElementById('managed-setup-error');
+  if (managedError) managedError.style.display = 'none';
   document.getElementById('cert-step').style.display = 'none';
   document.getElementById('setup-form').style.display = 'none';
   document.getElementById('back-link').style.display = 'none';

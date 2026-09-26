@@ -1,4 +1,5 @@
 {% import 'partials/_icons.html' as ico %}
+{% if api_v2_command_css %}<style>{{ api_v2_command_css|safe }}</style>{% endif %}
 {% set locked   = status.is_locked      if status and status.is_locked      is not none else none %}
 {% set trunk    = status.trunk_open     if status and status.trunk_open     is not none else none %}
 {% set wins     = status.windows_open   if status and status.windows_open   is not none else none %}

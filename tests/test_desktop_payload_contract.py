@@ -57,7 +57,7 @@ def _top_level_imports(path: pathlib.Path) -> set[str]:
                     reason=f"MateDesktop checkout not found at {DESKTOP} — set MATE_DESKTOP_REPO")
 def test_no_import_here_is_missing_from_the_desktop_shell_contract():
     files = [p for d in ("web", "poller") for p in (ROOT / d).rglob("*.py")]
-    local = {p.stem for p in files}                       # the payload's own modules
+    local = {p.stem for p in files} | {p.parent.name for p in files if p.name == "__init__.py"}                       # the payload's own modules
     used: set[str] = set()
     for p in files:
         used |= _top_level_imports(p)

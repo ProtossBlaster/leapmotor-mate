@@ -42,25 +42,13 @@ def test_charge_schedule_merge_preserves_car_fields(monkeypatch):
     assert captured["recharge"] == 0
 
 
-def test_charge_schedule_defaults_when_no_existing(monkeypatch):
-    captured = {}
-
-    class FakeApi:
-        def set_charge_schedule(self, vin, **kw):
-            captured.update(kw)
-
+def test_charge_schedule_without_current_state_is_not_sent(monkeypatch):
     class FakeSession:
-        def get_charge_schedule(self):
-            return {}  # car has no schedule yet
-
-        def execute(self, fn):
-            fn(FakeApi(), "VIN")
-            return True, "OK"
-
-    monkeypatch.setattr(cc, "_session", FakeSession())
-    cc.save_charge_schedule(enabled=False, soc_limit=80, start_time="00:00", end_time="06:00")
-    # falls back to all-days mask, never empty/None
-    assert captured["cycles"] == "1,1,1,1,1,1,1"
+        def get_charge_schedule(self): return {}
+        def execute(self, fn): raise AssertionError('Incomplete state must not be sent')
+    monkeypatch.setattr(cc, '_session', FakeSession())
+    ok, message = cc.save_charge_schedule(enabled=False, soc_limit=80, start_time='00:00', end_time='06:00')
+    assert not ok and 'complete current charging configuration' in message
 
 
 def test_cycles_from_day_flags_position_order():
@@ -92,7 +80,8 @@ def test_save_charge_schedule_uses_provided_cycles(monkeypatch):
 
     class FakeSession:
         def get_charge_schedule(self):
-            return {"cycles": "1,1,1,1,1,1,1", "circulation": 1, "recharge": 0}
+            return {"cycles": "1,1,1,1,1,1,1", "circulation": 1, "recharge": 0,
+                    "chargeEnable": 1, "chargesoc": 80, "starttime": "22:00", "endtime": "07:00"}
 
         def execute(self, fn):
             fn(FakeApi(), "VIN")
@@ -107,22 +96,23 @@ def test_save_charge_schedule_uses_provided_cycles(monkeypatch):
 
 
 def _fake_session_returning(schedule, captured):
-    class FakeApi:
-        def set_charge_schedule(self, vin, **kw):
-            captured.update(kw)
-
+    from api_v2_bridge import NewAPIClient
+    class FakeApi(NewAPIClient):
+        def __init__(self): pass
+        def _get_charge_appointment(self, vin): return dict(schedule)
+        def _remote_control_raw(self, **kwargs):
+            import json
+            state=json.loads(kwargs['cmd_content'])
+            captured.update(soc_limit=state['chargesoc'], enabled=bool(state['chargeEnable']),
+                            start_time=state['starttime'], end_time=state['endtime'], cycles=state['cycles'])
     class FakeSession:
-        def get_charge_schedule(self):
-            return dict(schedule)
-
         def execute(self, fn):
-            fn(FakeApi(), "VIN")
-            return True, "OK"
-
+            fn(FakeApi(), 'VIN')
+            return True, 'OK'
     return FakeSession()
 
 
-def test_set_charge_limit_preserves_enabled_start_time_only_plan(monkeypatch):
+def test_set_charge_limit_preserves_complete_enabled_plan(monkeypatch):
     """#18 regression: setting the charge limit on an ENABLED, start-time-only plan (the cloud
     omits cycles/endtime/recharge) must change ONLY the SoC — never disable the plan or reset the
     start time. The lib's api.set_charge_limit guarded on `cycles` and wiped both; Mate now
@@ -131,7 +121,7 @@ def test_set_charge_limit_preserves_enabled_start_time_only_plan(monkeypatch):
     # enabled, only a start time — the exact shape that tripped the lib's `cycles` guard
     monkeypatch.setattr(cc, "_session",
                         _fake_session_returning({"chargeEnable": 1, "chargesoc": 80,
-                                                 "starttime": "22:00"}, captured))
+                                                 "starttime": "22:00", "endtime":"08:00", "cycles":"1,1,1,1,1,1,1", "circulation":1, "recharge":0}, captured))
     ok, _ = cc.set_charge_limit(90)
     assert ok
     assert captured["soc_limit"] == 90            # the one field we meant to change
@@ -146,7 +136,7 @@ def test_set_charge_limit_keeps_a_disabled_plan_disabled(monkeypatch):
     monkeypatch.setattr(cc, "_session",
                         _fake_session_returning({"chargeEnable": 0, "chargesoc": 80,
                                                  "cycles": "1,0,1,0,1,0,1", "starttime": "01:00",
-                                                 "endtime": "06:00"}, captured))
+                                                 "endtime": "06:00", "circulation":1, "recharge":0}, captured))
     cc.set_charge_limit(70)
     assert captured["soc_limit"] == 70
     assert captured["enabled"] is False           # stays off

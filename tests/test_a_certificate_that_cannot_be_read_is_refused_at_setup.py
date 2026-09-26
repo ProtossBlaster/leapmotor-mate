@@ -93,7 +93,7 @@ def test_a_good_pair_is_saved_and_the_wizard_counts_it_as_present(web):
     response = _paste(client, CRT, KEY_PEM)
     assert response.status_code == 200, response.text
     assert (data / "app.crt").exists() and (data / "app.key").exists()
-    assert client.get("/api/setup/cert-status").json() == {"present": True}
+    assert client.get("/api/setup/cert-status").json()["state"] == "application_parameters_required"
 
 
 def test_a_web_page_saved_in_place_of_the_certificate_is_refused(web):
@@ -152,7 +152,7 @@ def test_a_windows_file_is_accepted(web):
         "crt_file": ("app.crt", ("﻿" + CRT.replace("\n", "\r\n")).encode(), "application/x-x509-ca-cert"),
         "key_file": ("app.key", ("﻿" + KEY_PEM.replace("\n", "\r\n")).encode(), "application/octet-stream")})
     assert response.status_code == 200, response.text
-    assert client.get("/api/setup/cert-status").json() == {"present": True}
+    assert client.get("/api/setup/cert-status").json()["state"] == "application_parameters_required"
 
 
 def test_the_wizard_offers_the_certificate_step_again_when_the_saved_one_cannot_be_read(web):
@@ -162,7 +162,7 @@ def test_the_wizard_offers_the_certificate_step_again_when_the_saved_one_cannot_
     data.mkdir(parents=True)
     (data / "app.crt").write_text(" ".join(CRT_LINES) + "\n")
     (data / "app.key").write_text(KEY_PEM)
-    assert client.get("/api/setup/cert-status").json() == {"present": False}
+    assert client.get("/api/setup/cert-status").json()["present"] is False
 
 
 def test_the_wizard_shows_each_refusal_in_the_owner_language(tmp_path):
