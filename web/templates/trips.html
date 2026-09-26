@@ -43,7 +43,8 @@
   <div class="hero-tile t-trips">
     <div class="hero-ico">🗺️</div>
     <div>
-      <div class="hero-val">{{ summary.count }}</div>
+      <div class="hero-val">{{ summary.count - (summary.cloud_zero_count or 0) }}</div>
+      {% if summary.cloud_zero_count %}<div class="text-xs text-slate-400">+ {{ summary.cloud_zero_count }} {{ t('cloud_zero_segments') }}</div>{% endif %}
       <div class="hero-label">{{ t('total_trips') }}</div>
     </div>
   </div>
@@ -190,6 +191,9 @@ if (HIGHLIGHT) {
     if (!e.target || e.target.id !== 'trips-calendar-month-wrap') return;
     const row = document.querySelector(`[data-trip-id="${HIGHLIGHT}"]`);
     if (row) {
+      for (let parent = row.parentElement; parent; parent = parent.parentElement) {
+        if (parent.tagName === 'DETAILS') parent.open = true;
+      }
       row.style.background = '#1a2e1a';
       row.style.border     = '1px solid #22c55e55';
       row.style.boxShadow  = 'inset 3px 0 0 #22c55e';

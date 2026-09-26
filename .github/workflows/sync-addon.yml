@@ -25,13 +25,14 @@ permissions:
 
 jobs:
   sync-addon:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false }}
     runs-on: ubuntu-latest
     steps:
       - name: Resolve version
         id: ver
         run: |
           REF="${{ github.event.release.tag_name || github.event.inputs.ref }}"
-          if [[ ! "$REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.]+)?$ ]]; then
+          if [[ ! "$REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::'$REF' is not a vX.Y.Z tag — refusing to sync."
             exit 1
           fi

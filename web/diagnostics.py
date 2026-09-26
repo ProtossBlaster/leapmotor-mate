@@ -758,7 +758,7 @@ def _abilities_section() -> str:
         return f"(unparseable abilities value: {raw!r})"
     known = None
     try:
-        from leapmotor_api.models import VehicleAbility
+        from mate_vehicle_abilities import VehicleAbility
         known = {int(m) for m in VehicleAbility}     # the codes the library can actually name
 
         def _name(c: int) -> str:

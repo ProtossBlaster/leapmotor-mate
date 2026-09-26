@@ -46,7 +46,7 @@ def session(monkeypatch):
     s._vehicle = _FakeVehicle()
     monkeypatch.setattr(s, "_connect", lambda: None)
     # The signature helper is the library's; the probe only has to feed it the right arguments.
-    monkeypatch.setattr("leapmotor_api.crypto.build_signed_headers",
+    monkeypatch.setattr("leapmotor_cloud.mate_compat.adapter_owned_headers",
                         lambda **kw: type("H", (), {"to_dict": lambda self: {"sig": kw}})())
     return s
 

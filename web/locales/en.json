@@ -1,5 +1,15 @@
 {
+  "trip_energy_source_cloud": "Leapmotor cloud",
+  "trip_energy_source_getec": "getEC",
+  "trip_energy_source_mate": "Mate estimate",
+  "cloud_zero_segments": "0 km cloud segments",
+  "cloud_zero_hint": "Original records are kept separately. Open the day's merge options to propose a join: every merge requires confirmation and can be undone.",
+  "cloud_source": "Leapmotor cloud history",
+  "gps_unavailable": "GPS unavailable",
+  "soc_unavailable": "SoC unavailable",
+  "data_unavailable": "Unavailable",
   "translations": {
+    "command_accepted_unconfirmed": "Request accepted by the cloud; execution on the vehicle not yet confirmed",
     "reev_export_waiting": "Preparing the complete bundle. Cloud requests may take a few minutes; you can keep using Mate.",
     "reev_export_busy": "A bundle is already being prepared. Please wait and try again.",
     "reev_export_error": "Download failed. Please try again.",
@@ -1293,5 +1303,10 @@
       "Sat",
       "Sun"
     ]
-  }
+  },
+  "cloud_import_title": "Cloud trip history",
+  "cloud_import_enabled": "Import trips from Leapmotor cloud",
+  "cloud_import_help": "Adds trips that do not overlap local recordings. Disabling keeps previously imported trips. Cloud energy lookup remains available. Changes apply at the next history synchronization.",
+  "cloud_import_save": "Save",
+  "cloud_import_saved": "Preference saved"
 }

@@ -1,7 +1,7 @@
 """Ability-gated command buttons — issue #142 (chengler, T03).
 
 The 'Unlock Charge Cable' button was shown on every model, but the T03 can't unlock the charge
-cable: it never declares ability code 53 (UNLOCK_CHARGE_GUN), the official app hides the option,
+cable: it never declares ability code 48 (UNLOCK_CHARGE_GUN), the official app hides the option,
 and the button no-ops on the car. Mate already had a capability system (command_shown) — the button
 just wasn't wired to it.
 
@@ -20,6 +20,12 @@ import json
 import pytest
 
 import capability_profile as cp
+from cloud_access_fixture import settings
+
+@pytest.fixture(autouse=True)
+def synthetic_owner_binding(monkeypatch):
+    monkeypatch.setattr(cp, '_default_get_setting', lambda: settings('VIN'))
+
 
 # Real declared-ability code sets, straight from the diagnostics bundles.
 T03_ABILITIES = [1, 2, 3, 5, 7, 10, 11, 14, 15, 17, 18, 20, 30, 31, 34, 35, 36, 52, 61]        # no 53, no 6
@@ -30,12 +36,12 @@ B10_ABILITIES = [1, 2, 3, 5, 6, 7, 10, 11, 12, 13, 14, 15, 19, 20, 21, 23, 24, 2
 # ── the gate itself ──────────────────────────────────────────────────────────
 
 def test_unlock_charge_cable_hidden_on_t03():
-    """The crux of #142: the T03 doesn't declare code 53, so the button must be hidden."""
-    assert cp.command_shown("VIN", "unlock_charger", abilities=T03_ABILITIES) is False
+    """The crux of #142: the T03 doesn't declare code 48, so the button must be hidden."""
+    assert cp.ability_supported("unlock_charger", T03_ABILITIES) is False
 
 
 def test_unlock_charge_cable_shown_on_b10():
-    """The B10 declares 53 → the button stays."""
+    """The B10 declares 48 → the button stays."""
     assert cp.command_shown("VIN", "unlock_charger", abilities=B10_ABILITIES) is True
 
 
@@ -62,9 +68,9 @@ def test_commands_without_an_ability_requirement_are_unaffected():
 
 
 def test_ability_gate_is_model_blind():
-    """No per-model table: a hypothetical future car that omits 53 hides the button too."""
-    assert cp.command_shown("VIN", "unlock_charger", abilities=[1, 2, 3]) is False
-    assert cp.command_shown("VIN", "unlock_charger", abilities=[53]) is True
+    """No per-model table: a hypothetical future car that omits 48 hides the button too."""
+    assert cp.ability_supported("unlock_charger", [1, 2, 3]) is False
+    assert cp.command_shown("VIN", "unlock_charger", abilities=[48]) is True
 
 
 # ── parse_abilities (shared normaliser) ──────────────────────────────────────
@@ -113,7 +119,7 @@ def _discover(abilities, car_type=""):
         def publish(self, topic, payload, retain=False):
             self.published[topic] = payload
 
-    svc = M.MqttService("broker", 1883, get_setting=lambda k, d="": d, abilities=abilities, car_type=car_type)
+    svc = M.MqttService("broker", 1883, get_setting=settings("VINTEST", abilities, car_type or "B10"), abilities=abilities, car_type=car_type)
     svc.client = _FakeClient()
     svc.publish_discovery(types.SimpleNamespace(vin="VINTEST"))
     return svc.client.published
@@ -139,7 +145,7 @@ def test_mqtt_unlock_button_present_on_b10():
 def test_mqtt_unlock_button_present_when_abilities_unknown():
     """No abilities reported yet → shown (never hide on a guess)."""
     pub = _discover(None)
-    assert _UNLOCK_TOPIC in pub and pub[_UNLOCK_TOPIC]
+    assert pub.get(_UNLOCK_TOPIC) == ""  # no declared abilities: do not invent permission
 
 
 # ── web wiring (the real chain the /charges context + /api/command gate use) ─
@@ -154,6 +160,7 @@ def _web_show_unlock(tmp_path, monkeypatch, car_type, abilities):
     db.ensure_vehicle("VINWEB", car_type, abilities=abilities)
     monkeypatch.setattr(db_reader, "DB_PATH", dbf)
     veh, _ = db_reader.get_vehicle()
+    monkeypatch.setattr(cp, "_default_get_setting", lambda: settings("VINWEB", abilities, car_type))
     return cp.command_shown((veh or {}).get("vin", ""), "unlock_charger",
                             abilities=cp.parse_abilities((veh or {}).get("abilities")))
 
@@ -167,7 +174,7 @@ def test_web_shows_unlock_on_b10(tmp_path, monkeypatch):
 
 
 def test_web_shows_unlock_when_abilities_absent(tmp_path, monkeypatch):
-    assert _web_show_unlock(tmp_path, monkeypatch, "B10", None) is True
+    assert _web_show_unlock(tmp_path, monkeypatch, "B10", None) is False
 
 
 # ── the command route refuses it server-side (defence in depth) ──────────────
@@ -190,7 +197,7 @@ def test_run_command_refuses_unlock_on_t03(monkeypatch):
     assert resp.status_code == 400 and body.get("unsupported") is True
 
 
-def test_run_command_gate_ignores_non_ability_commands(monkeypatch):
+def test_run_command_uses_verified_binding_for_non_ability_commands(monkeypatch):
     """A command with no ability requirement must NOT trigger the vehicle lookup — the reason the
     gate is keyed on COMMAND_ABILITY. get_vehicle raising here proves it's never called."""
     import asyncio
@@ -202,7 +209,8 @@ def test_run_command_gate_ignores_non_ability_commands(monkeypatch):
     def _boom():
         raise AssertionError("get_vehicle must not be called for a non-ability command")
 
-    monkeypatch.setattr(main.db_reader, "get_vehicle", _boom)
+    monkeypatch.setattr(main.db_reader, "get_vehicle", lambda: ({"vin":"VIN", "car_type":"B10"}, {}))
+    monkeypatch.setattr(main, "_last_command_at", 0)
     monkeypatch.setattr(main.db_reader, "get_latest_status", lambda: {})
     monkeypatch.setattr(main.db_reader, "get_language", lambda: "en")
     # unknown command exits before the gate anyway; use a real non-ability command key present in the
@@ -254,6 +262,7 @@ def _web_charge_schedule_advanced(tmp_path, monkeypatch, car_type, abilities):
     db.ensure_vehicle("VINSCHED", car_type, abilities=abilities)
     monkeypatch.setattr(db_reader, "DB_PATH", dbf)
     veh, _ = db_reader.get_vehicle()
+    monkeypatch.setattr(cp, "_default_get_setting", lambda: settings("VINWEB", abilities, car_type))
     return cp.charge_schedule_advanced(cp.parse_abilities((veh or {}).get("abilities")))
 
 

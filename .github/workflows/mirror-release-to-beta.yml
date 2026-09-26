@@ -20,6 +20,7 @@ permissions:
 
 jobs:
   mirror:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false }}
     runs-on: ubuntu-latest
     steps:
       - name: Resolve the prod release details

@@ -1,4 +1,7 @@
 """LeapMotor Mate — web server."""
+import mate_api  # explicit independent runtime; no sitecustomize hook
+from runtime_paths import prepare_installation
+prepare_installation()
 import json
 import logging
 import os
@@ -29,7 +32,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "3.19.2"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "4.0.0-rc.1"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -556,7 +559,11 @@ def _ctx(**kwargs):
     # A car that walked in from the poller and never met the wizard is running on its model's
     # default pack. On every page, because the figures it bends are on every page.
     _unconfigured = db_reader.unconfigured_vehicles()
-    return {**kwargs, "lang": lang, "t": t, "version": MATE_VERSION, "demo": _IS_DEMO,
+    _command_css = ""
+    if os.environ.get("MATE_API_V2") == "1" and not _IS_DEMO:
+        from ui_command_access import hidden_controls_css
+        _command_css = hidden_controls_css((_veh or {}).get("vin", ""), db_reader.get_setting)
+    return {**kwargs, "api_v2_command_css": _command_css, "lang": lang, "t": t, "version": MATE_VERSION, "demo": _IS_DEMO,
             "unconfigured_cars": ", ".join(
                 (v.get("car_type") or (v.get("vin") or "")[-6:]) for v in _unconfigured),
             "vehicles": _vehicles,
@@ -2525,6 +2532,10 @@ async def settings_page(request: Request):
                 "default_drive_mode": db_reader.get_setting("default_drive_mode", ""),
                 "default_one_pedal": db_reader.get_setting("default_one_pedal", ""),
                 "db_size_mb": round(db_reader.get_db_size_bytes() / 1048576, 1)}
+    if os.environ.get("MATE_API_V2") == "1":
+        from cloud_import_policy import trips_enabled
+        settings["cloud_import_available"] = True
+        settings["cloud_import_trips"] = trips_enabled(db_reader._get())
     # Per-card open/collapsed state for the settings accordion — saved in the DB (shared
     # across devices). Cards start collapsed so the page stays compact, EXCEPT 'vehicle': it's
     # tiny (model + VIN + the Logout/change-account button) and keeping it open makes the logout
@@ -3648,6 +3659,17 @@ async def save_cost_dynamic(request: Request):
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("costs_saved")}</span>')
 
 
+@app.post("/api/settings/cloud-import", response_class=HTMLResponse)
+async def save_cloud_import(request: Request):
+    if os.environ.get("MATE_API_V2") != "1":
+        return HTMLResponse("unavailable", status_code=404)
+    from cloud_import_policy import KEY
+    form = await request.form()
+    db_reader.set_setting(KEY, "1" if form.get("cloud_import_trips") == "1" else "0")
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e">{t("cloud_import_saved")}</span>')
+
+
 @app.post("/api/settings/abrp", response_class=HTMLResponse)
 async def save_abrp(request: Request):
     """Enable/disable ABRP live telemetry and store the user's personal token."""
@@ -4002,7 +4024,7 @@ async def test_mqtt(request: Request):
 
 # Every collapsible card on the Settings accordion. Used both to build the initial
 # open/collapsed map and as the allowlist for the ui-state save endpoint.
-_UI_CARD_KEYS = {"locale", "vehicle", "battery", "polling", "charge_detect", "trips", "advanced",
+_UI_CARD_KEYS = {"cloud_import", "locale", "vehicle", "battery", "polling", "charge_detect", "trips", "advanced",
                  "abrp", "geocoder", "charger_locator", "wallbox", "mqtt",
                  "database", "export", "diagnostics"}
 
@@ -5788,7 +5810,7 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
     # declare it can do — e.g. unlock-charge-cable on a T03, which never declares code 53 (#142) —
     # instead of bouncing a no-op off the car. Only the ability-gated commands (COMMAND_ABILITY keys)
     # look up the vehicle, so every other command's path is untouched. None abilities → allowed.
-    if name in capability_profile.COMMAND_ABILITY:
+    if os.environ.get("MATE_API_V2") == "1" or name in capability_profile.COMMAND_ABILITY:
         _veh, _ = db_reader.get_vehicle()
         if not capability_profile.command_shown(
                 (_veh or {}).get("vin", ""), name,
@@ -5887,7 +5909,14 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
         # Climate commands take several seconds to reflect in signals → show the
         # spinner and refresh from real signals after a delay (like slow commands).
         slow = name in _SLOW_COMMANDS or field is not None
-        background_tasks.add_task(_post_command_refresh, expected, epoch, 12 if slow else 3)
+        refresh_delay = 2 if os.environ.get("MATE_API_V2") == "1" else (12 if slow else 3)
+        background_tasks.add_task(_post_command_refresh, expected, epoch, refresh_delay)
+        if os.environ.get("MATE_API_V2") == "1" and "cloud accepted" in msg.lower():
+            from html import escape
+            message = i18n.get_t(db_reader.get_language())("command_accepted_unconfirmed")
+            return _cmd_response(request,
+                payload={"ok": True, "status": "accepted_unconfirmed", "message": message},
+                html='<span data-warn="1" data-accepted="1" style="color:#fbbf24">' + escape(message) + '</span>')
         if slow:
             return _cmd_response(request, payload={"ok": True, "status": "pending"},
                 html='<span data-slow="1" style="color:#60a5fa;display:inline-flex;align-items:center;gap:4px"><svg style="animation:spin 1s linear infinite;width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span><style>@keyframes spin{to{transform:rotate(360deg)}}</style>')
@@ -5978,9 +6007,28 @@ async def demo_status():
 _DATA_CERT_DIR = os.environ.get("DATA_CERT_DIR", "/data/certs")
 
 
+@app.post("/api/setup/application-bundle")
+async def setup_application_bundle(request: Request):
+    from application_bundle import install_bundle, MAX_BYTES
+    form = await request.form()
+    upload = form.get("bundle")
+    if upload is None or not hasattr(upload, "read"):
+        return JSONResponse({"error": "Application bundle required"}, status_code=400)
+    payload = await upload.read(MAX_BYTES + 1)
+    try:
+        result = await run_in_threadpool(install_bundle, payload, Path(_DATA_CERT_DIR).parent)
+    except Exception:
+        return JSONResponse({"error": "Invalid application bundle; existing material preserved"}, status_code=400)
+    command_client._session._reset()
+    return JSONResponse({"ok": True, "state": result["state"]})
+
+
 @app.get("/api/setup/cert-status")
 async def cert_status_api():
     """Whether the app certificate is already available (wizard can skip the cert step)."""
+    if os.environ.get("MATE_API_V2") == "1":
+        from setup_readiness import readiness
+        return JSONResponse(readiness(_DATA_CERT_DIR))
     return JSONResponse({"present": command_client.certs_present()})
 
 

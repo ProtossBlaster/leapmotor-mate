@@ -1,0 +1,15 @@
+{% set micro = trips|selectattr('cloud_zero_segment')|list %}
+<div class="space-y-1">
+  {% for trip in trips if not trip.cloud_zero_segment %}
+  {% include "partials/trip_row.html" %}
+  {% endfor %}
+</div>
+{% if micro %}
+<details class="mt-4 rounded-lg border border-slate-700 p-3" data-cloud-zero-segments>
+  <summary class="cursor-pointer text-sm text-slate-300">{{ micro|length }} {{ t('cloud_zero_segments') }}</summary>
+  <p class="text-xs text-slate-500 my-3">{{ t('cloud_zero_hint') }}</p>
+  <div class="space-y-1">
+    {% for trip in micro %}{% include "partials/trip_row.html" %}{% endfor %}
+  </div>
+</details>
+{% endif %}

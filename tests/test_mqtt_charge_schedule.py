@@ -17,6 +17,7 @@ import pytest
 
 pytest.importorskip("paho.mqtt.client", reason="poller MQTT bridge needs paho (absent in minimal CI)")
 import mqtt as M
+from cloud_access_fixture import settings
 
 
 class _FakeClient:
@@ -28,7 +29,7 @@ class _FakeClient:
 
 
 def _service(prefix="leapmotor"):
-    svc = M.MqttService("broker", 1883, topic_prefix=prefix, get_setting=lambda k, d="": d)
+    svc = M.MqttService("broker", 1883, topic_prefix=prefix, get_setting=settings("VINTEST"))
     svc.client = _FakeClient()
     return svc
 

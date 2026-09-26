@@ -12,7 +12,9 @@ if [ -d /run/s6/container_environment ]; then
 fi
 
 export DB_PATH="${DB_PATH:-/data/leapmotor_mate.db}"
-export CERT_DIR="/app/certs"
+export CERT_DIR="${DATA_CERT_DIR:-/data/certs}"
+export DATA_CERT_DIR="${CERT_DIR}"
+export MATE_API_V2=1
 
 # ── Research / data-collection mode (BetaTester add-on) ──────────────────────
 # MATE_RESEARCH gates the full-signal capture + REEV build; it's read at runtime

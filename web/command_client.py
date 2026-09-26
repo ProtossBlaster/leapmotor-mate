@@ -1,4 +1,5 @@
 """Persistent Leapmotor session — login once, reuse for all commands and status fetches."""
+import mate_api  # explicit independent runtime; no sitecustomize hook
 import os
 import json
 import ssl
@@ -6,7 +7,7 @@ import time
 import logging
 import threading
 
-from leapmotor_api import LeapmotorApiClient
+from api_v2_bridge import NewAPIClient as LeapmotorApiClient
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +20,8 @@ def _classify_outcome(ok: bool, msg: str) -> str:
       rejected          — auth/PIN/other refusal (not a reachability issue)
     """
     if ok:
+        if "cloud accepted" in (msg or "").lower():
+            return "accepted_unconfirmed"
         return "confirmed"
     low = (msg or "").lower()
     if "remote control result" in low or ("timed out" in low and "remote" in low):
@@ -347,6 +350,26 @@ class LeapmotorSession:
         return ok, msg
 
     def _execute_inner(self, action_fn) -> tuple[bool, str]:
+        if os.environ.get("MATE_API_V2") == "1":
+            with self._lock:
+                try:
+                    self._connect()
+                    target = self._target()
+                    if target is None:
+                        return False, "No vehicle selected"
+                    self._use_pin_of(target.vin)
+                    self._api.last_new_command_receipt = None
+                    action_fn(self._api, target.vin)
+                    receipt = self._api.last_new_command_receipt
+                    if receipt is None:
+                        return False, "New API command returned no receipt; not retried"
+                    if receipt.outcome in ("accepted", "accepted_untracked"):
+                        return True, "Cloud accepted; physical execution not confirmed"
+                    return False, "Remote control result " + receipt.outcome + "; not retried"
+                except Exception as exc:
+                    # Do not log exception text: upstream errors may contain secrets.
+                    log.warning("API v2 command failed or was blocked (%s); no automatic retry", type(exc).__name__)
+                    return False, str(exc)
         with self._lock:
             refreshed = False
             for attempt in range(3):
@@ -633,7 +656,7 @@ class LeapmotorSession:
         import json as _json
         from urllib.parse import quote
         try:
-            from leapmotor_api.crypto import build_consumption_last_week_headers
+            from leapmotor_cloud.mate_compat import adapter_owned_headers as build_consumption_last_week_headers
         except Exception:  # noqa: BLE001
             return None
         with self._lock:
@@ -694,7 +717,7 @@ class LeapmotorSession:
         its own — the caller holds the lock and has connected."""
         import json as _json
         from urllib.parse import quote
-        from leapmotor_api.crypto import build_consumption_last_week_headers
+        from leapmotor_cloud.mate_compat import adapter_owned_headers as build_consumption_last_week_headers
         api, vin = self._api, self._target().vin
         headers = build_consumption_last_week_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin,
@@ -710,7 +733,7 @@ class LeapmotorSession:
         """Raw, UNMAPPED 6-week 100km-EC + rank response (research probe helper)."""
         import json as _json
         from urllib.parse import quote
-        from leapmotor_api.crypto import build_consumption_weekly_rank_headers
+        from leapmotor_cloud.mate_compat import adapter_owned_headers as build_consumption_weekly_rank_headers
         api, vin = self._api, self._target().vin
         headers = build_consumption_weekly_rank_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin, language=api.language).to_dict()
@@ -728,7 +751,7 @@ class LeapmotorSession:
         we're here to CONFIRM. Raw on purpose — captures any fuel field the BEV mapping would drop."""
         import json as _json
         from urllib.parse import quote
-        from leapmotor_api.crypto import build_consumption_weekly_rank_headers
+        from leapmotor_cloud.mate_compat import adapter_owned_headers as build_consumption_weekly_rank_headers
         api, vin = self._api, self._target().vin
         headers = build_consumption_weekly_rank_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin, language=api.language).to_dict()
@@ -752,7 +775,7 @@ class LeapmotorSession:
         (body_params) like the live call, or the reply carries mileage only."""
         import json as _json
         from urllib.parse import quote
-        from leapmotor_api.crypto import build_signed_headers
+        from leapmotor_cloud.mate_compat import adapter_owned_headers as build_signed_headers
         api, vin = self._api, self._target().vin
         headers = build_signed_headers(
             sign_key=api.sign_key, device_id=api.device_id, vin=vin, language=api.language,
@@ -814,7 +837,7 @@ class LeapmotorSession:
         life) and the derived parked share (total − driving). Returns a dict or None."""
         import json as _json, time as _time
         from urllib.parse import quote
-        from leapmotor_api.crypto import build_signed_headers
+        from leapmotor_cloud.mate_compat import adapter_owned_headers as build_signed_headers
         with self._lock:
             for attempt in range(2):
                 try:
@@ -954,6 +977,8 @@ def set_charge_limit(percent: int):
     (leapmotor-api #18). We round-trip the current plan through save_charge_schedule, which
     preserves cycles/circulation/recharge, and keep the plan's own enable state + start/end
     window — touching only the SoC."""
+    if os.environ.get("MATE_API_V2") == "1":
+        return _session.execute(lambda api, vin: api.set_charge_limit(vin, int(percent)))
     cur = _session.get_charge_schedule() or {}
     return save_charge_schedule(
         enabled=bool(int(cur.get("chargeEnable", 0) or 0)),
@@ -1207,7 +1232,8 @@ def prepare_car_off() -> tuple:
                 failed.append(f"{name}: {msg}")
         except Exception as e:
             failed.append(f"{name}: {e}")
-    return (False, "; ".join(failed)) if failed else (True, "OK")
+    return (False, "; ".join(failed)) if failed else (True,
+        "Cloud accepted; physical execution not confirmed" if os.environ.get("MATE_API_V2") == "1" else "OK")
 
 
 # `cycles` is the charge schedule's per-weekday mask: a 7-field comma string where field i is
@@ -1243,6 +1269,9 @@ def save_charge_schedule(*, enabled: bool, soc_limit: int, start_time: str, end_
     returns "1,1,1,1,1,1,1"; upstream lib docs are inconsistent (some use day-NUMBER lists), so the
     mask format/order is anchored to the on-car confirmation (Mate sent pos0 → app showed Monday)."""
     cur = _session.get_charge_schedule() or {}
+    if os.environ.get("MATE_API_V2") == "1" and any(cur.get(k) is None for k in
+            ("chargeEnable", "chargesoc", "cycles", "starttime", "endtime", "circulation", "recharge")):
+        return False, "Command not sent: complete current charging configuration is required"
     if not cycles:
         cycles = cur.get("cycles") or "1,1,1,1,1,1,1"
     circulation = int(cur.get("circulation", 1) or 0)

@@ -6,6 +6,7 @@ or publish errors are logged, never raised to the poller loop.
 """
 import json
 import logging
+import os
 import time
 from datetime import datetime, timezone
 
@@ -66,6 +67,7 @@ class MqttService:
         self.is_beta = bool(is_beta)
         self.config_sig = None
         self._own_vins = set()          # VINs WE publish for — a command for any other is refused
+        self._access_published = {}
         self._discovery_sent: set = set()   # VINs whose discovery has been published
         # #144 — temperature topic keys a car has never reported, and what we last told HA about
         # them, both PER VIN. 🔴 One set for the bridge would have judged both cars by whichever was
@@ -182,6 +184,34 @@ class MqttService:
 
     # ── Publishing ────────────────────────────────────────────────────────────
 
+    def _access_signature(self, vin):
+        if os.environ.get("MATE_API_V2") != "1":
+            return None
+        from ui_command_access import COMMANDS, allowed, snapshot_key, account_hash, account_username
+        try:
+            username = account_username(self.get_setting)
+            snapshot = json.loads(self.get_setting(snapshot_key(vin), '{}'))
+            # Effective permissions include freshness/account matching, but not the
+            # timestamp itself: healthy refreshes must not republish every entity.
+            return (account_hash(username), tuple(allowed(snapshot, username, vin, key)
+                                                  for key in sorted(COMMANDS)))
+        except Exception:
+            return ('unavailable',)
+
+    def _command_visible(self, vin, key):
+        if os.environ.get("MATE_API_V2") == "1":
+            key = {'climate_auto': 'ac_on', 'climate_cool': 'quick_cool',
+                   'climate_heat': 'quick_heat', 'climate_vent': 'quick_vent',
+                   'fan_level': 'set_fan_level', 'recirculation': 'set_recirc',
+                   'door_lock': 'lock', 'lock_toggle': 'lock',
+                   'trunk': 'open_trunk', 'charge_limit': 'set_charge_limit',
+                   'charge_schedule': 'save_charge_schedule'}.get(key, key)
+            from ui_command_access import command_allowed
+            return command_allowed(vin, key, self.get_setting)
+        abilities, car_type = self._facts(vin)
+        return capability_profile.command_shown(vin, key, self.get_setting,
+                                                abilities=abilities, car_type=car_type)
+
     def publish_status(self, data, abilities=None, car_type=None, absent_temps=None):
         """One car's state. `abilities` and `car_type` describe THIS car — with two on the account
         they differ, and everything the bridge gates is gated on them.
@@ -203,9 +233,12 @@ class MqttService:
             return  # still (re)connecting — try again next cycle
         # Discovery per CAR: each one is its own Home Assistant device, and the second car's
         # entities never appear if one flag says "already sent" for the whole bridge.
-        if self.discovery_enabled and data.vin not in self._discovery_sent:
+        access = self._access_signature(data.vin)
+        if self.discovery_enabled and (data.vin not in self._discovery_sent
+                or self._access_published.get(data.vin) != access):
             self.publish_discovery(data)
             self._discovery_sent.add(data.vin)
+            self._access_published[data.vin] = access
         elif (self.discovery_enabled
               and self.absent_temps.get(data.vin, set()) != self._temps_published.get(data.vin)):
             # ⚠️ Discovery runs ONCE per car per connection, and this answer CHANGES: it needs 50
@@ -464,6 +497,10 @@ class MqttService:
         device = self._device(vin)
 
         def cfg(component, key, conf):
+            if (os.environ.get("MATE_API_V2") == "1" and "command_topic" in conf
+                    and not self._command_visible(vin, key)):
+                self.client.publish(f"{_DISC}/{component}/{device_id}/{key}/config", "", retain=True)
+                return
             conf.update({"unique_id": f"{device_id}_{key}", "device": device})
             self.client.publish(f"{_DISC}/{component}/{device_id}/{key}/config",
                                 json.dumps(conf), retain=True)
@@ -696,9 +733,7 @@ class MqttService:
             # Model-aware: hide command buttons confirmed broken on THIS car (e.g. A/C Off on
             # the B10). Clearing the retained config makes HA drop a button that was published
             # before it was classified as broken. Unknown/working commands are always shown.
-            _ab, _ct = self._facts(vin)
-            if capability_profile.command_shown(vin, key, self.get_setting,
-                                                abilities=_ab, car_type=_ct):
+            if self._command_visible(vin, key):
                 cfg("button", key, {"name": name, "command_topic": f"{prefix}/{vin}/command",
                                     "payload_press": key, "icon": icon})
             else:

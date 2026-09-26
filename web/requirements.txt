@@ -3,7 +3,6 @@ anyio>=3.6.2,<4.15       # Starlette 0.38 uses an alias deprecated by AnyIO 4.15
 uvicorn[standard]==0.30.0
 jinja2==3.1.4
 python-multipart==0.0.9
-leapmotor-api==0.3.1
 Pillow>=10.0.0,<13           # live composed Overview car picture (car_image.py)
 tzdata==2025.2
 cryptography>=43,<49

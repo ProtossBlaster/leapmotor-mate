@@ -47,6 +47,20 @@
   <!-- ── Column 1 (5): Vehicle & driving — Language, Vehicle, Battery, Polling, Charge detect ─ -->
   <div class="flex-1 w-full space-y-5">
 
+    {% if settings.cloud_import_available %}
+    {% call scard('cloud_import', '☁️ ' + t('cloud_import_title'), false) %}
+      <form hx-post="api/settings/cloud-import" hx-target="#cloud-import-result" class="space-y-3">
+        <label class="flex items-center gap-3 text-sm text-white">
+          <input type="checkbox" name="cloud_import_trips" value="1" {% if settings.cloud_import_trips %}checked{% endif %}>
+          {{ t('cloud_import_enabled') }}
+        </label>
+        <p class="text-xs text-slate-400">{{ t('cloud_import_help') }}</p>
+        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-700 text-white text-sm">{{ t('cloud_import_save') }}</button>
+        <span id="cloud-import-result" role="status" class="text-sm"></span>
+      </form>
+    {% endcall %}
+    {% endif %}
+
     <!-- Language & Currency -->
     {% call scard('locale', '🌍 ' + t('setup_locale'), card_open.get('locale')) %}
       <div class="space-y-4">

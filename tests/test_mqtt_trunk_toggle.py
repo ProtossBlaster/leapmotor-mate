@@ -15,6 +15,7 @@ import pytest
 
 pytest.importorskip("paho.mqtt.client", reason="poller MQTT bridge needs paho (absent in minimal CI)")
 import mqtt as M
+from cloud_access_fixture import settings
 
 
 class _FakeClient:
@@ -26,7 +27,7 @@ class _FakeClient:
 
 
 def _service():
-    svc = M.MqttService("broker", 1883, get_setting=lambda k, d="": d)
+    svc = M.MqttService("broker", 1883, get_setting=settings("VINTEST"))
     svc.client = _FakeClient()
     return svc
 
@@ -46,7 +47,7 @@ def test_discovery_publishes_a_trunk_switch():
 
 
 def test_trunk_switch_respects_topic_prefix():
-    svc = M.MqttService("broker", 1883, topic_prefix="myprefix", get_setting=lambda k, d="": d)
+    svc = M.MqttService("broker", 1883, topic_prefix="myprefix", get_setting=settings("VINTEST"))
     svc.client = _FakeClient()
     svc.publish_discovery(types.SimpleNamespace(vin="VINTEST"))
     topic = "homeassistant/switch/myprefix_mate_vintest/trunk/config"

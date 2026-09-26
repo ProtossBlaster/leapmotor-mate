@@ -5,12 +5,13 @@ serves the T03 named-field status, so no endpoint patching is needed here. We st
 parse the raw signal dict ourselves (_parse_signal) to stay independent of the
 library's typed model and insulated from its enum changes.
 """
+import mate_api  # explicit independent runtime; no sitecustomize hook
 import logging
 import os
 import re
 from dataclasses import dataclass
 
-from leapmotor_api import LeapmotorApiClient
+from api_v2_bridge import NewAPIClient as LeapmotorApiClient
 
 import capability_profile
 
@@ -400,7 +401,7 @@ class LeapmotorMateClient:
         import time as _time
         from urllib.parse import quote
         try:
-            from leapmotor_api.crypto import build_signed_headers
+            from leapmotor_cloud.mate_compat import adapter_owned_headers as build_signed_headers
             api, vin = self._api, (vehicle or self._vehicle).vin
             now_ms = int(_time.time() * 1000)
             b_ms = now_ms - 7 * 86400 * 1000
@@ -434,7 +435,7 @@ class LeapmotorMateClient:
         import json as _json
         from urllib.parse import quote
         try:
-            from leapmotor_api.crypto import build_consumption_last_week_headers
+            from leapmotor_cloud.mate_compat import adapter_owned_headers as build_consumption_last_week_headers
             api, vin = self._api, (vehicle or self._vehicle).vin
             h = build_consumption_last_week_headers(
                 sign_key=api.sign_key, device_id=api.device_id, carvin=vin,

@@ -375,8 +375,9 @@ document.addEventListener('htmx:afterRequest', function(e) {
   sending = false;                                   // the HTTP request finished (cloud accepted / refused)
   var name = (path.split('api/command/')[1] || '').replace(/\/$/, '');
   var res = document.getElementById('hero-cmd-result');
-  if (e.detail.successful && res && !res.querySelector('[data-warn]')) {
-    res.innerHTML = '';                              // no "✓ Done": the pill + the ⏳ are the only feedback
+  var accepted = res && res.querySelector('[data-accepted]');
+  if (e.detail.successful && res && (accepted || !res.querySelector('[data-warn]'))) {
+    if (!accepted) res.innerHTML = '';                // retain the unconfirmed acceptance notice
     // Start the hidden 10 s floor + (movement only) the real-confirm wait. The ⏳ + red stay until both end.
     busySlot = slotOf(name); busyUntil = Date.now() + BUSY_MS; busyStart = Date.now();
     pendingExpect = CONFIRM[name] || null;

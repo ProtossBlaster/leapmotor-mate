@@ -29,6 +29,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
 
+      - name: Select candidate or stable channel
+        id: channel
+        run: python .github/scripts/release_channel.py
+
       - name: Set up QEMU (for arm64 emulation)
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3
 
@@ -60,7 +64,8 @@ jobs:
             name=docker.io/${{ env.DOCKERHUB_USERNAME }}/leapmotor-mate,enable=${{ env.DOCKERHUB_USERNAME != '' }}
           # `latest` on the default branch; the version on a vX.Y.Z tag; always a short SHA.
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && steps.channel.outputs.prerelease == 'false' }}
+            type=raw,value=candidate,enable=${{ steps.channel.outputs.prerelease == 'true' }}
             type=semver,pattern={{version}}
             type=sha,format=short
 
@@ -80,6 +85,7 @@ jobs:
       # Published as a rolling `:beta` tag (+ `:beta-<sha>` for traceability). The official tags
       # above are built flag-off, so normal users are never on the research build.
       - name: Beta image metadata (tags + labels)
+        if: ${{ steps.channel.outputs.prerelease == 'false' }}
         id: meta-beta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5
         with:
@@ -91,6 +97,7 @@ jobs:
             type=sha,prefix=beta-,format=short
 
       - name: Build and push BETA (amd64 + arm64)
+        if: ${{ steps.channel.outputs.prerelease == 'false' }}
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8  # v6
         with:
           context: .

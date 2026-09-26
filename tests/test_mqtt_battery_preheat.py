@@ -16,6 +16,7 @@ import pytest
 
 pytest.importorskip("paho.mqtt.client", reason="poller MQTT bridge needs paho (absent in minimal CI)")
 import mqtt as M
+from cloud_access_fixture import settings
 
 
 class _FakeClient:
@@ -27,7 +28,7 @@ class _FakeClient:
 
 
 def test_discovery_publishes_the_battery_preheat_button():
-    svc = M.MqttService("broker", 1883, get_setting=lambda k, d="": d)
+    svc = M.MqttService("broker", 1883, get_setting=settings("VINTEST"))
     svc.client = _FakeClient()
     svc.publish_discovery(types.SimpleNamespace(vin="VINTEST"))
     topic = "homeassistant/button/leapmotor_mate_vintest/battery_preheat/config"

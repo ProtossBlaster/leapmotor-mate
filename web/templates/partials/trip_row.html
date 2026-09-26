@@ -12,7 +12,10 @@
    all four, or a mode saves and then vanishes from the picker. #}
 <a href="trips/{{ trip.id }}" data-trip-id="{{ trip.id }}" class="trip-row">
 
-  {% if trip.reconstructed %}
+  {% if trip.has_gps is defined and not trip.has_gps %}
+  <div class="trip-thumb flex items-center justify-center text-slate-500 text-[10px] text-center px-1"
+       title="{{ t('gps_unavailable') }}">{{ t('gps_unavailable') }}</div>
+  {% elif trip.reconstructed %}
   <div class="trip-thumb flex items-center justify-center text-amber-400/70 text-lg"
        title="{{ t('trip_reconstructed_hint') }}">✨</div>
   {% else %}
@@ -35,9 +38,12 @@
       {% if trip.reconstructed %}<span style="font-size:10px" class="text-amber-400/90 ml-1" title="{{ t('trip_reconstructed_hint') }}">✨ {{ t('trip_reconstructed') }}</span>{% endif %}
     </div>
     <div class="text-slate-500 text-xs">{{ fmt_dur(trip.duration_min) }}{% if trip.is_merged %} · {{ t('driving_only') }}{% endif %}</div>
+    {% if trip.is_cloud %}<div class="text-slate-400 text-[10px]">{{ t('cloud_source') }}</div>{% endif %}
+    {% if trip.start_soc is none or trip.end_soc is none %}<div class="sm:hidden text-slate-500 text-[10px]">{{ t('soc_unavailable') }}</div>{% endif %}
   </div>
 
   <div class="hidden sm:flex flex-col items-end gap-1 flex-shrink-0">
+    {% if trip.start_soc is not none and trip.end_soc is not none %}
     <div class="soc-mini" title="{{ '%.0f'|format(trip.start_soc or 0) }}% → {{ '%.0f'|format(trip.end_soc or 0) }}%">
       <i class="soc-rem"  style="width:{{ (trip.end_soc or 0) }}%"></i>
       <i class="soc-used" style="left:{{ (trip.end_soc or 0) }}%;width:{{ (used if used > 0 else 0) }}%"></i>
@@ -45,11 +51,15 @@
     <div class="text-slate-500 text-[11px]">
       {{ (trip.start_soc or 0)|dec(0) }}→{{ (trip.end_soc or 0)|dec(0) }}%
     </div>
+    {% else %}<div class="text-slate-500 text-[11px]">{{ t('soc_unavailable') }}</div>{% endif %}
   </div>
 
   <div class="text-right flex-shrink-0" style="min-width:84px">
     <div class="text-white text-sm font-bold">{{ (trip.distance_km or 0) | dist(1) }}</div>
-    {% if trip.efficiency_kwh_100km %}
+    {% if trip.cloud_zero_segment and trip.ec_kwh is not none %}
+    <div class="text-slate-400 text-[11px]">{{ trip.ec_kwh|nice }} kWh</div>
+    {% endif %}
+    {% if trip.efficiency_kwh_100km is not none %}
     <span class="eff-pill {{ eff_cls(trip.efficiency_kwh_100km) }} mt-0.5">
       {{ trip.efficiency_kwh_100km | eff }}
     </span>
@@ -94,6 +104,7 @@
     {% endif %}
   </div>
 
+{% if trip.energy_source %}<span class="text-xs text-slate-400 ml-2">{{ t('trip_energy_source_' ~ trip.energy_source) }}</span>{% endif %}
 </a>
 {% if trip.is_merged %}
 <div class="merge-sep" style="padding:0 0 4px 56px">

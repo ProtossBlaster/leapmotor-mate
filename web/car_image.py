@@ -32,7 +32,7 @@ _parsed: dict = {"key": None, "pkg": None, "order": None}
 
 
 def _package(package_bytes: bytes):
-    from leapmotor_api.image import CarImagePackage
+    from mate_cloud_image import CarImagePackage
     # The BYTES identify the package, not their count: two cars whose packages weigh the same —
     # same model, different colour — shared one entry, and the second was served the first one's
     # picture. `hash()` on bytes is a C-speed pass and randomised per process, which is exactly
@@ -183,7 +183,7 @@ def compose(package_bytes: bytes, status: dict) -> tuple[bytes, str]:
     import io
 
     from PIL import Image
-    from leapmotor_api.image import _build_layer_list
+    from mate_cloud_image import build_layer_list as _build_layer_list
 
     pkg, st = _package(package_bytes), _status_obj(status)
     if not st.is_charging:
