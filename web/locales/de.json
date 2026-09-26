@@ -1271,7 +1271,25 @@
     "cloud_import_saved": "Preference saved",
     "cloud_import_save": "Save",
     "cloud_import_title": "Cloud trip history",
-    "cloud_import_enabled": "Import trips from Leapmotor cloud"
+    "cloud_import_enabled": "Import trips from Leapmotor cloud",
+    "places_title": "Ladeorte",
+    "places_help": "Private Orte mit festem Tarif pro Fahrzeug. Automatische Zuordnung nur für neue AC-Ladungen mit aktueller GPS-Position und genau einem passenden Bereich. Änderungen gelten nicht rückwirkend.",
+    "places_estimate": "Ohne gemessene Ladeenergie wird der Preis aus der Batterieenergie geschätzt; Ladeverluste werden nicht gemessen.",
+    "place_add": "Ort hinzufügen",
+    "place_name": "Name",
+    "place_lat": "Breitengrad",
+    "place_lon": "Längengrad",
+    "place_radius": "Radius (m)",
+    "place_rate": "Preis / kWh",
+    "place_auto": "Automatisch",
+    "place_map_hint": "Auf die Karte klicken oder Koordinaten eingeben. Automatisch deaktivieren, um den Ort nur manuell zuzuweisen.",
+    "places_totals": "Erfasste Ausgaben je Ort (gesamt)",
+    "place_unpriced": "ohne Kosten",
+    "place_assign": "Ladeort",
+    "place_none": "Kein Ortstarif",
+    "place_invalid": "Name, Koordinaten, Radius (25–500 m) und Preis (0–100) prüfen.",
+    "place_closed_only": "Den Ort nach Ladeende zuweisen.",
+    "place_unmerge_first": "Zusammengeführte Ladungen vor dem Ortswechsel trennen."
   },
   "months": {
     "full": [

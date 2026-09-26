@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.1.0] — 2026-09-26
+
+- Show or hide frequent places on the map, remembering the choice in each browser (#315, PR323).
+- Configure private charging places per vehicle with a fixed tariff, map coordinates and matching radius (#288, PR324).
+- Match new live AC sessions only from fresh, unambiguous stationary GPS; save the place and tariff on each session.
+- Preserve historical charges, free sessions and manually entered costs; offer manual assignment for closed, unmerged charges and spending by place.
+- Guard against stale vehicle forms and merging different place/rate snapshots; avoid reporting priced group pieces as missing costs.
+- Translate the new controls into all eight supported languages. Additive database migration; no reconfiguration of credentials or cloud client.
+- Place costs are estimates without measured charger energy; public roaming/subscriptions and dynamic private-place tariffs are outside this release.
+
 ## [4.0.1] — 2026-09-26
 
 - Fix cloud-history settings and trip labels displaying raw translation keys: move 14 misplaced strings into the runtime translation dictionary in all eight locales.

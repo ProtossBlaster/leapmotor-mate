@@ -1,6 +1,10 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.0.1 · **Langue :** Français
+> **Version de Mate :** v4.1.0 · **Langue :** Français
+
+## Nouveautés de la version 4.1.0
+
+Sur la carte, affichez ou masquez les lieux fréquents ; le choix est mémorisé dans le navigateur. Dans les coûts, configurez des lieux de recharge privés par véhicule avec coordonnées, rayon et tarif fixe par kWh. Seules les nouvelles sessions AC avec une position GPS récente, stationnaire et sans ambiguïté sont associées automatiquement. Chaque session conserve son tarif. Les sessions terminées et non fusionnées peuvent être associées manuellement. Sans mesure du chargeur, les coûts sont des estimations.
 > Ce manuel s'adresse à celles et ceux qui *utilisent* Mate, et non à ceux qui le développent. Il explique
 > comment le configurer depuis le début et ce que fait chaque page. Pour les détails techniques internes, voir `ARCHITECTURE.md`.
 

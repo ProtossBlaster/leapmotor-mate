@@ -1,0 +1,10 @@
+<form hx-post="api/charges/{{ charge.id }}/place" hx-target="this" class="flex flex-wrap items-center gap-2 text-xs">
+  <label>{{ t('place_assign') }}
+    <select name="place_id" class="bg-slate-900 rounded p-1">
+      <option value="">{{ t('place_none') }}</option>
+      {% for p in charging_places %}<option value="{{ p.id }}" {% if charge.charging_place_id == p.id %}selected{% endif %}>{{ p.name }} · {{ p.rate|dec(4) }}/kWh</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit" style="background:#14b8a6;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;align-self:end">{{ t('note_save') }}</button>
+  <a href="costs#charging-places" class="underline">{{ t('places_title') }}</a>
+</form>

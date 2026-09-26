@@ -1271,7 +1271,25 @@
     "cloud_import_enabled": "Importa viaggi dal cloud Leapmotor",
     "cloud_import_help": "Aggiunge i viaggi che non si sovrappongono alle registrazioni locali. Disattivando restano i viaggi già importati. La lettura dei consumi cloud resta disponibile. La modifica si applica alla prossima sincronizzazione dello storico.",
     "cloud_import_save": "Salva",
-    "cloud_import_saved": "Preferenza salvata"
+    "cloud_import_saved": "Preferenza salvata",
+    "places_title": "Luoghi di ricarica",
+    "places_help": "Luoghi privati con tariffa fissa per veicolo. Il riconoscimento vale solo per nuove ricariche AC con GPS recente e una sola zona compatibile. Modificare un luogo non cambia le sessioni precedenti.",
+    "places_estimate": "Senza energia misurata dal caricatore, il costo è stimato dall’energia della batteria; le perdite di ricarica non sono misurate.",
+    "place_add": "Aggiungi luogo",
+    "place_name": "Nome",
+    "place_lat": "Latitudine",
+    "place_lon": "Longitudine",
+    "place_radius": "Raggio (m)",
+    "place_rate": "Prezzo / kWh",
+    "place_auto": "Automatico",
+    "place_map_hint": "Scegli un punto sulla mappa o inserisci le coordinate. Disattiva Automatico per usare il luogo solo con assegnazione manuale.",
+    "places_totals": "Spesa registrata per luogo (tutto lo storico)",
+    "place_unpriced": "senza costo",
+    "place_assign": "Luogo di ricarica",
+    "place_none": "Senza tariffa del luogo",
+    "place_invalid": "Controlla nome, coordinate, raggio (25–500 m) e prezzo (0–100).",
+    "place_closed_only": "Assegna il luogo dopo la fine della ricarica.",
+    "place_unmerge_first": "Separa le ricariche unite prima di cambiarne il luogo."
   },
   "months": {
     "full": [

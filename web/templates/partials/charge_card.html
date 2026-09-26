@@ -37,6 +37,11 @@
           · <span style="color:{% if is_dc %}#fb923c{% else %}#38bdf8{% endif %};font-weight:700">{% if is_dc %}DC{% else %}AC{% endif %}</span>
         </div>
         <div class="mt-0.5">{% with charge=c %}{% include "partials/charge_location.html" %}{% endwith %}</div>
+        <div id="place-{{ c.id }}" class="text-xs text-slate-400 mt-1">
+          {% if c.charging_place_name %}📍 {{ c.charging_place_name }} · {{ c.charging_place_rate|dec(4) }}/kWh{% endif %}
+          <button type="button" class="underline" hx-get="api/charges/{{ c.id }}/place"
+                  hx-target="#place-{{ c.id }}">{{ t('place_assign') }}</button>
+        </div>
         {# #237 — the distance covered since the previous charge, from the car's own odometer. Only
            where both readings exist and only where the car actually moved: two sessions the same
            afternoon give 0, and a zero here says nothing worth a line. #}

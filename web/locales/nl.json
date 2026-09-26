@@ -1271,7 +1271,25 @@
     "cloud_import_saved": "Preference saved",
     "cloud_import_save": "Save",
     "cloud_import_title": "Cloud trip history",
-    "cloud_import_enabled": "Import trips from Leapmotor cloud"
+    "cloud_import_enabled": "Import trips from Leapmotor cloud",
+    "places_title": "Laadlocaties",
+    "places_help": "Privélocaties met een vast tarief per voertuig. Automatische toewijzing alleen voor nieuwe AC-sessies met recente GPS en één passende zone. Wijzigingen veranderen eerdere sessies niet.",
+    "places_estimate": "Zonder gemeten laadenergie worden kosten geschat uit batterijenergie; laadverliezen worden niet gemeten.",
+    "place_add": "Locatie toevoegen",
+    "place_name": "Naam",
+    "place_lat": "Breedtegraad",
+    "place_lon": "Lengtegraad",
+    "place_radius": "Straal (m)",
+    "place_rate": "Prijs / kWh",
+    "place_auto": "Automatisch",
+    "place_map_hint": "Klik op de kaart of voer coördinaten in. Schakel Automatisch uit voor alleen handmatige toewijzing.",
+    "places_totals": "Geregistreerde kosten per locatie (alles)",
+    "place_unpriced": "zonder kosten",
+    "place_assign": "Laadlocatie",
+    "place_none": "Geen locatietarief",
+    "place_invalid": "Controleer naam, coördinaten, straal (25–500 m) en prijs (0–100).",
+    "place_closed_only": "Wijs de locatie toe nadat het laden is voltooid.",
+    "place_unmerge_first": "Splits samengevoegde sessies voordat u hun locatie wijzigt."
   },
   "months": {
     "full": [

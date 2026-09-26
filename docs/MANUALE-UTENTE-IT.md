@@ -1,6 +1,10 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.0.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.1.0 · **Lingua:** Italiano
+
+## Novità della 4.1.0
+
+Nella Mappa puoi mostrare o nascondere i luoghi frequenti; la scelta resta salvata nel browser. In Costi → Luoghi di ricarica aggiungi luoghi privati per auto, con coordinate, raggio e prezzo fisso per kWh. Le nuove sessioni AC usano GPS recente, auto ferma e una sola zona compatibile. Ogni sessione conserva la tariffa: modificare un luogo non ricalcola lo storico. Puoi assegnare manualmente ricariche concluse e non unite. Senza misura della colonnina, i costi sono stime.
 > Questo manuale è pensato per chi *usa* Mate, non per chi lo sviluppa. Spiega come configurarlo
 > dall'inizio e cosa fa ogni pagina. Per i dettagli tecnici interni c'è `ARCHITECTURE.md`.
 
