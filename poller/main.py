@@ -1112,6 +1112,8 @@ def main():
             while waited < wait:
                 time.sleep(min(5.0, wait - waited))
                 waited += 5.0
+                # the loop's heartbeat, so a login the cloud keeps refusing is not a dead poller
+                db.set_setting("last_loop_ts", str(time.time()))
                 _now = load_config(db)
                 if (_now["username"], _now["password"], _now["pin"]) != _startup_login:
                     log.info("Credentials changed during startup login — restarting to apply")
