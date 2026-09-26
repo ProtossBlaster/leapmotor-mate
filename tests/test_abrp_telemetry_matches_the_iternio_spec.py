@@ -113,6 +113,42 @@ def test_a_dc_gun_signal_given_as_text_is_still_read():
     assert _tlm(**_CHARGING, **{"1197": "1"})["is_dcfc"] is True
 
 
+# ── the optional fields Mate already knows ───────────────────────────────────
+# Lower priority in the spec, but each one the planner uses: the pack size to turn a percentage
+# into kilowatt-hours, the tyre pressures, and the heater's draw to explain a winter consumption.
+
+def test_tyre_pressures_go_out_in_kilopascals():
+    tlm = _tlm(**{"2646": 245, "2653": 250, "2660": 240, "2667": 238})   # car: bar × 100
+    assert (tlm["tire_pressure_fl"], tlm["tire_pressure_fr"],
+            tlm["tire_pressure_rl"], tlm["tire_pressure_rr"]) == (245, 250, 240, 238)
+
+
+def test_a_tyre_the_car_never_measured_is_not_a_flat():
+    tlm = _tlm()
+    assert not any(k.startswith("tire_pressure_") for k in tlm)
+
+
+def test_the_pack_size_and_the_energy_in_it_are_sent_when_known():
+    vd = client._parse_signal("VIN", _sig(**{"1204": 51.3}))
+    tlm = abrp._build_tlm(vd, abrp.CarFacts(capacity_kwh=65.0))
+    assert tlm["capacity"] == 65.0
+    assert tlm["soe"] == pytest.approx(33.35, abs=0.01)
+
+
+def test_without_a_pack_size_neither_is_guessed():
+    tlm = _tlm(**{"1204": 51.3})
+    assert "capacity" not in tlm and "soe" not in tlm
+
+
+def test_the_cabin_heaters_draw_goes_out_in_kilowatts():
+    tlm = _tlm(**{"1348": 1350})      # car: watts, 50 W steps
+    assert tlm["hvac_power"] == pytest.approx(1.35)
+
+
+def test_a_car_without_the_heater_signal_says_nothing_about_it():
+    assert "hvac_power" not in _tlm()
+
+
 # ── one frame, one point ─────────────────────────────────────────────────────
 # A sleeping car repeats one frame for hours, and Mate polled it every 30 s: the same point went
 # to ABRP over 2 000 times in a row, each arrival counted as fresh contact, so the car sat

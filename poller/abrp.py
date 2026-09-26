@@ -91,4 +91,15 @@ def _build_tlm(data, facts: CarFacts | None = None) -> dict:
         tlm["batt_temp"] = data.battery_min_temp
     if data.climate_target_temp and data.climate_target_temp > 0:
         tlm["hvac_setpoint"] = data.climate_target_temp
+    if data.climate_power is not None:
+        # 1348 is a heating power in watts: Mate saw it follow the cabin heater, leapmotor-ha calls
+        # it PTC power and ioBroker battery preheat power; nobody has seen it with cooling on
+        tlm["hvac_power"] = round(data.climate_power / 1000.0, 3)
+    if facts.capacity_kwh and facts.capacity_kwh > 0:
+        tlm["capacity"] = facts.capacity_kwh
+        tlm["soe"] = round(data.soc / 100.0 * facts.capacity_kwh, 2)
+    for corner in ("fl", "fr", "rl", "rr"):
+        bar = getattr(data, f"tire_{corner}_bar")
+        if bar and bar > 0:
+            tlm[f"tire_pressure_{corner}"] = round(bar * 100.0)     # ABRP wants kPa
     return {k: v for k, v in tlm.items() if v is not None}
