@@ -890,8 +890,9 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         # LR=2646/RR=2660, but that's WRONG: cross-checked on TWO real B10s against the official
         # app's per-wheel view — the #32 reporter's UK car AND Silvio's IT car, both with the
         # 280-kPa wheel at the REAR-RIGHT — the true order is the ascending-id one:
-        # 2646=FL, 2653=FR, 2660=RL, 2667=RR. (State signals pair the same way:
-        # FL=2655, FR=2648, RL=2662, RR=2641 — see _parse_vehicle_status.)
+        # 2646=FL, 2653=FR, 2660=RL, 2667=RR. (The alarm flags do not move with them: leapmotor-api,
+        # leapmotor-ha and ioBroker all pair them as 2641=FL, 2648=FR, 2655=RL, 2662=RR — see the
+        # web's _parse_vehicle_status.)
         tire_fl_bar=round(float(sig.get("2646") or 0) / 100.0, 2),
         tire_fr_bar=round(float(sig.get("2653") or 0) / 100.0, 2),
         tire_rl_bar=round(float(sig.get("2660") or 0) / 100.0, 2),

@@ -2305,12 +2305,13 @@ def _parse_vehicle_status(sig: dict, vin: str | None = None, cmd_pct: int | None
         # Wheel→signal mapping corrected from a TWO-B10 vs official-app cross-check (GitHub #32:
         # the UK reporter's car + Silvio's IT car, both showing 280 kPa at the rear-right):
         # pressures map ascending 2646=FL/2653=FR/2660=RL/2667=RR (the leapmotor-api doc order was
-        # wrong); each pressure's paired state signal moves with it (FL=2655/FR=2648/RL=2662/RR=2641).
+        # wrong). The alarm flags do NOT move with them: leapmotor-api, leapmotor-ha and ioBroker all
+        # pair them as 2641=FL/2648=FR/2655=RL/2662=RR; that check did not cover them (no alarm was on).
         "tyres": {
-            "fl": {"bar": bar("2646"), "low": i("2655") == 1},
+            "fl": {"bar": bar("2646"), "low": i("2641") == 1},
             "fr": {"bar": bar("2653"), "low": i("2648") == 1},
-            "rl": {"bar": bar("2660"), "low": i("2662") == 1},
-            "rr": {"bar": bar("2667"), "low": i("2641") == 1},
+            "rl": {"bar": bar("2660"), "low": i("2655") == 1},
+            "rr": {"bar": bar("2667"), "low": i("2662") == 1},
         },
         "doors": {
             "driver":     is_open("1277"), "passenger": is_open("1278"),
