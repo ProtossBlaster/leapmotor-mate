@@ -174,7 +174,7 @@ def commands(mate):
             # Fail promptly at the authorization seam instead of timing out on
             # every later click when a fixture accidentally hides the controls.
             assert page.locator(SLIDER).is_visible(), mate.log.read_text()[-3000:]
-            assert page.locator(MIRROR).is_visible(), mate.log.read_text()[-3000:]
+            assert page.locator(MIRROR).first.is_visible(), mate.log.read_text()[-3000:]
             # How many grid refetches are out (the page's clock can be fake, the network never is: _grid_back),
             # how many came back with the grid, and how many command answers the page heard.
             page.evaluate("""() => {

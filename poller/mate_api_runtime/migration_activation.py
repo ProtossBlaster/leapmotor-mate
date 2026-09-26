@@ -5,6 +5,7 @@ keeps the legacy client for this release; remote commands never trigger fallback
 """
 from contextlib import closing
 import hashlib
+import hmac
 import json
 import os
 from pathlib import Path
@@ -34,7 +35,14 @@ def _identity(values):
     import crypto
     account = [crypto.decrypt(values.get('leapmotor_user', '')) or os.environ.get('LEAPMOTOR_USER', ''),
                crypto.decrypt(values.get('leapmotor_pass', '')) or os.environ.get('LEAPMOTOR_PASS', '')]
-    return hashlib.sha256(json.dumps(account).encode()).hexdigest()
+    from runtime_paths import paths
+    key_file = paths().data / 'secret.key'
+    key = os.environ.get('MATE_SECRET_KEY', '').encode() or (key_file.read_bytes() if key_file.exists() else b'')
+    if not key:
+        # A legacy plaintext installation has no secret yet. The promotion
+        # recomputes this once its complete key has been published.
+        return 'pending:' + hashlib.sha256(account[0].encode()).hexdigest()
+    return hmac.new(key, json.dumps(account).encode(), hashlib.sha256).hexdigest()
 
 
 def _select(result):
@@ -96,6 +104,7 @@ def _promote(database, stage, decision):
                 os.fsync(fd)
             finally:
                 os.close(fd)
+    decision['identity'] = _identity(_settings(database))
     _save_decision(database, decision, selected)
     # Keep the successful material generation: session certificates reference it.
     # No unrelated history is restored.
