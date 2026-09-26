@@ -106,8 +106,11 @@ _SIGNAL_TO_NAMED = {
     "1695": "leftRearWindowStatus", "1696": "rightRearWindowStatus",
     "1298": "driverDoorLockStatus", "1277": "lbcmDriverDoorStatus", "1278": "rbcmDriverDoorStatus",
     "1279": "lbcmLeftRearDoorStatus", "1280": "rbcmRightRearDoorStatus", "1281": "bbcmBackDoorStatus",
-    "2667": "leftFrontTirePressure", "2653": "rightFrontTirePressure",
-    "2646": "leftRearTirePressure", "2660": "rightRearTirePressure",
+    # Tyre pressures: the library documents 2667 as the left front, but on the car 2646 is
+    # (the poller's _parse_signal reads FL=2646, FR=2653, RL=2660, RR=2667), so each named field goes
+    # under the id the parser reads for that wheel.
+    "2646": "leftFrontTirePressure", "2653": "rightFrontTirePressure",
+    "2660": "leftRearTirePressure", "2667": "rightRearTirePressure",
     "2641": "leftFrontTirePressureState", "2648": "rightFrontTirePressureState",
     "2655": "leftRearTirePressureState", "2662": "rightRearTirePressureState",
     "1256": "bcmKeyPositionOn1", "1257": "bcmKeyPositionOn2", "1258": "bcmKeyPositionOn3",

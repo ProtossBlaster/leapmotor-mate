@@ -90,6 +90,10 @@ COMMAND_FEATURE = {
     "seat_heat_driver_off": "seat_heat_cmd",
     "seat_vent_driver_on":  "seat_vent_cmd",
     "seat_vent_driver_off": "seat_vent_cmd",
+    "seat_heat_passenger_on":  "seat_heat_cmd",
+    "seat_heat_passenger_off": "seat_heat_cmd",
+    "seat_vent_passenger_on":  "seat_vent_cmd",
+    "seat_vent_passenger_off": "seat_vent_cmd",
 }
 
 

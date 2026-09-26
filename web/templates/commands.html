@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ t('nav_commands') }} — LeapMotor Mate{% endblock %}
+{% block autorefresh %}0{% endblock %}{# own 30 s grid poll below; a reload mid-command would drop the ⏳ and the wait for the car #}
 
 {% block content %}
 <style>
@@ -15,13 +16,51 @@
 {% include "partials/cmd_grid.html" %}
 {# Dummy request-source OUTSIDE #cmd-grid: htmx puts the `htmx-request` class on the source, and the
    command ⏳ indicators only light up when that class is on one of THEIR ancestors. Refreshing with
-   this span as source (instead of defaulting to <body>) keeps every spinner from flashing. #}
-<span id="cmd-refresh-src" class="hidden"></span>
+   this span as source (instead of defaulting to <body>) keeps every spinner from flashing.
+   hx-sync: a refetch asked for while another is out is dropped — that one brings the state in. Queued
+   (htmx's default) it would keep the #cmd-grid it was asked for, which the one before swaps out; in htmx 1.x
+   swapping into that detached element throws, and htmx then never releases this source: no refetch at all
+   until a reload. #}
+<span id="cmd-refresh-src" class="hidden" hx-sync="this:drop"></span>
 
 <script>
-function refreshCmdGrid() {
-  htmx.ajax('GET', 'api/cmd-grid', {source: '#cmd-refresh-src', target: '#cmd-grid', swap: 'outerHTML'});
+// Not while a command's request is out — the request itself (cmdsOut), which outlives the page's 60 s lock
+// on a slow cloud. htmx reports the end of a request on the tile that sent it, and a tile the swap has
+// replaced never does (htmx falls back to an ancestor still in the page, and the swap leaves none): the page
+// would wait the watchdog's 60 s for an answer it had, and never refetch after it. A refetch asked for
+// meanwhile runs once the answer is in (refetchWaited) — not after an error, whose "Try again" the swap
+// would take with it. One already out when a command leaves is aborted (htmx:beforeRequest below): its
+// promise then rejects, which is expected there; any other rejection is thrown on as before.
+var refetchWaits = false, refetchAborted = false, cmdsOut = [];
+function cmdOut() {
+  cmdsOut = cmdsOut.filter(function (x) { return x.readyState > 0 && x.readyState < 4; });   // opened, not done, not aborted
+  return cmdsOut.length > 0;
 }
+function refreshCmdGrid() {
+  if (sending || cmdOut()) { refetchWaits = true; return; }
+  htmx.ajax('GET', 'api/cmd-grid', {source: '#cmd-refresh-src', target: '#cmd-grid', swap: 'outerHTML'})
+      .catch(function (err) { if (!refetchAborted) throw err; refetchAborted = false; });
+}
+function refetchWaited() { if (refetchWaits) { refetchWaits = false; refreshCmdGrid(); } }
+var NOTICE_MS = 6000;                // how long a refusal, or the notice below, stays in the tile
+function noticeGone(el) {            // ...then the grid is re-read, if a refetch waited for the notice
+  setTimeout(function () { var n = document.getElementById(el.id); if (n) n.innerHTML = ''; refetchWaited(); }, NOTICE_MS);
+}
+// A request the browser neither answers nor fails — a connection hung somewhere between the browser and Mate —
+// would hold the page for good: no refetch while it is out. So the page stops waiting after CMD_TIMEOUT_MS. That
+// is the page's own limit, not the server's: a real answer takes well under a minute (a 30 s call to the cloud
+// and the confirmation window the cloud names, about 30 s), but the server may still be at work — retrying,
+// logging in again — when the page lets go. Hence the outcome is unknown: the car may still act on it, so the
+// command is not resent, and the car's state is re-read once the notice is gone.
+var CMD_TIMEOUT_MS = 180000, CMD_NO_ANSWER_MSG = {{ t('cmd_no_answer')|tojson }}, cmdTimedOut = null;
+document.addEventListener('htmx:sendAbort', function (e) {
+  if (e.detail.xhr !== cmdTimedOut) return;   // the lock is already off (htmx:afterRequest fired first)
+  cmdTimedOut = null;
+  var el = e.detail.target;
+  el.innerHTML = '<span data-warn="1" style="color:#fbbf24">⏱ ' + CMD_NO_ANSWER_MSG + '</span>';
+  refetchWaits = true;
+  noticeGone(el);
+});
 
 // Climate temp/fan sliders post their own routes (api/climate-temp|fan); the car reports the new value
 // only a few seconds later. Keep the value the user JUST set visible across grid refetches until the
@@ -59,7 +98,7 @@ var BUSY_MS = 10000;
 var sending = false, sendingSince = 0, busyUntil = 0, busyStart = 0, busyCmd = null, pendingExpect = null;
 function isBusy() { return Date.now() < busyUntil || pendingExpect != null; }
 // The ⏳ and the message are the SAME node (#spin-): turn it into the red message ON, restore the bare htmx ⏳ OFF.
-// Comfort toggles (steering / mirror heat) key their tile on `skey`, not the command — and the two mirrors
+// Comfort controls (steering slider, mirror toggles) key their tile on `skey`, not the command — and the two mirrors
 // SHARE one command (mirror_heat_on heats both). So map the command to the skey(s) whose #spin- to drive,
 // falling back to #spin-{cmd} for every normal tile.
 var COMFORT_SKEYS = {
@@ -106,6 +145,18 @@ document.addEventListener('htmx:beforeRequest', function(e) {
     if (sending || isBusy()) { e.preventDefault(); return; }   // a command is already in progress — block (no popup)
     sending = true; sendingSince = Date.now();
     busyCmd = (path.split('api/command/')[1] || '').replace(/\/$/, '');
+    cmdsOut.push(e.detail.xhr);
+    var xhr = e.detail.xhr, elt = e.detail.elt;
+    setTimeout(function () {                                   // no answer, no error: the page gives up (htmx:sendAbort above)
+      if (xhr.readyState > 0 && xhr.readyState < 4) { cmdTimedOut = xhr; htmx.trigger(elt, 'htmx:abort'); }
+    }, CMD_TIMEOUT_MS);
+    var src = document.getElementById('cmd-refresh-src');
+    if (src && src.classList.contains('htmx-request')) {      // a refetch out: its swap would land during this request
+      refetchAborted = true; htmx.trigger(src, 'htmx:abort'); refetchWaits = true;
+    }
+    // The thumb shows what the request asks for from now, and the hold it starts is this request's own:
+    // the answer, however late, is matched to it (htmx:afterRequest).
+    if (steerAsked(busyCmd) !== null) e.detail.requestConfig.steer = steerStart(e.detail.elt, steerAsked(busyCmd));
     cmdBusyTick(); return;
   }
 });
@@ -123,15 +174,23 @@ document.addEventListener('htmx:afterRequest', function(e) {
   if (isCmd) {
     sending = false;
     var name = (path.split('api/command/')[1] || '').replace(/\/$/, '');
-    var el = document.getElementById('result-' + name);
+    // Read the request's own target, including comfort tiles and cloud-only acceptance.
+    var el = e.detail.target;
     var accepted = el && el.querySelector('[data-accepted]');
-    if (e.detail.successful && (accepted || !el || !el.querySelector('[data-warn]'))) {
-      if (el && !accepted) el.innerHTML = '';                 // retain the unconfirmed acceptance notice
+    var took = e.detail.successful && !!(el && (el.querySelector('[data-ok]') || el.querySelector('[data-slow]') || accepted));
+    var steer = e.detail.requestConfig.steer;
+    if (steer && steer.seq === steerSeq) {
+      if (took) steerResume(steer.hold);
+      else { steerHold = null; var sl = document.querySelector(STEER_SLIDER); if (sl) steerRestore(sl); }
+    }
+    if (took) {
+      if (!accepted) el.innerHTML = ''; // Retain the unconfirmed cloud acceptance notice.
+
       busyCmd = name; busyUntil = Date.now() + BUSY_MS; busyStart = Date.now();
       pendingExpect = CONFIRM[name] || null;                  // movement toggle → wait for the real flip too
-    } else if (el && el.querySelector('[data-warn]')) {
+    } else if (el.querySelector('[data-warn]')) {
       setBusyUI(busyCmd, false); busyCmd = null;              // refused (e.g. driving) → drop the ⏳, keep the notice
-      setTimeout(function () { var n = document.getElementById('result-' + name); if (n) n.innerHTML = ''; }, 6000);
+      noticeGone(el);
       cmdBusyTick(); return;                                  // nothing changed on the car → no grid refetch
     }
     cmdBusyTick();
@@ -141,11 +200,84 @@ document.addEventListener('htmx:afterRequest', function(e) {
     if (path === 'api/climate-fan')  climMarkPending('clim-fan-slider', 'clim-fan-val');
   }
   // Refetch the grid so the real state — and the toggled button that ends the wait — lands.
-  if (e.detail.successful) [1500, 5000, 9000, 15000, 23000, 31000].forEach(function (ms) { setTimeout(refreshCmdGrid, ms); });
+  if (e.detail.successful) { refetchWaits = false; [1500, 5000, 9000, 15000, 23000, 31000].forEach(function (ms) { setTimeout(refreshCmdGrid, ms); }); }
 });
 
 // Re-apply the ⏳+message + disabled state right after a grid refetch (the swap rebuilt every tile).
-document.addEventListener('htmx:afterSwap', function() { cmdBusyTick(); climReapply(); });
+document.addEventListener('htmx:afterSwap', function() { cmdBusyTick(); climReapply(); steerReapply(); });
+// …and again once htmx has settled it: 20 ms after the swap it puts the fresh attributes back on every element
+// with an id, the class and style that make #spin- read "Command in progress" among them.
+document.addEventListener('htmx:afterSettle', cmdBusyTick);
+
+// === Steering heat slider (Off | 1 | 2). The wheel has a level I, but the remote command can only switch it
+// off or on at II — so the thumb may sit on 1 while the car reports it, and leave it, but never land on it:
+// passing 1 carries on to the end it was heading for.
+var LVL_OFF = {{ t('lvl_off')|tojson }}, LVL_ABBR = {{ t('lvl_abbr')|tojson }};
+var STEER_SLIDER = '#cmd-grid input[hx-post="api/command/steering_heat_on"]';
+function steerLabel(v) {
+  var lbl = document.getElementById('sm-steering_heat');
+  if (lbl) lbl.textContent = v === 0 ? LVL_OFF : LVL_ABBR + ' ' + v;
+}
+function steerShow(el, v) {          // what the tile stands on: shown, and where the next gesture starts from
+  el.value = el.dataset.from = v;
+  steerLabel(v);
+}
+// oninput, i.e. mid-gesture. `from` is where the gesture started, not where the last snap put the thumb:
+// the browser fires input whenever its reading differs from the value, and a thumb over 1 would read 1
+// after every snap, so the thumb would flip 2, 0, 2, 0 with each move if the snap moved `from` along.
+// The gesture's end sets `from` (htmx:beforeRequest). Leaving 1 is the one move that sets it at once:
+// 1 cannot be come back to, so from then on the gesture counts from the end it reached.
+function steerLevel(el) {
+  // The busy look stops the pointer, not the keys (as the windows slider). And the page's lock lets go of a
+  // request after 60 s (a tile a refetch swapped out never reports its end) while this slider's own may still
+  // be out: hx-sync drops the change then, so the thumb must not move where no request follows it.
+  if (sending || isBusy() || el.classList.contains('htmx-request')) { steerRestore(el); return; }
+  var v = +el.value, from = +(el.dataset.from || el.defaultValue);
+  if (v === 1 && from !== 1) v = from === 0 ? 2 : 0;
+  if (from === 1 && v !== 1) el.dataset.from = v;
+  el.value = v;
+  steerLabel(v);
+}
+function steerRestore(el) {          // a move refused while a command completes: back to what the tile stood on
+  var hold = steerHeld(el);
+  steerShow(el, hold ? hold.level : +el.defaultValue);
+}
+// "Done" is the cloud taking the command, not the car acting on it: the car's answer reaches Mate a poll
+// or more later (~100 s has been seen), and every refetch before that redraws the level the car had. So
+// the thumb stays on the level asked for until the car reports it — or until STEER_HOLD_MS, past which
+// a car that never answered gets its own state back. Not climPending: that one finds its slider by id,
+// and this slider must not have one (see cmd_grid.html).
+var STEER_HOLD_MS = 120000, steerHold = null;   // {vin, level, until, unchanged}
+var steerSeq = 0;                                // counts the steering commands sent: the latest one owns the tile
+function steerAsked(cmd) { return cmd === 'steering_heat_on' ? 2 : cmd === 'steering_heat_off' ? 0 : null; }
+function steerCar(el) { var grid = el.closest('#cmd-grid'); return grid ? grid.dataset.vin : ''; }
+// The hold is for one car: the picker moves the whole interface, and a page left open on another car gets
+// that car's grid at its next refetch, with its own slider and its own level.
+function steerHeld(el) { return steerHold && steerCar(el) === steerHold.vin ? steerHold : null; }
+// A level the grid already draws when the command leaves — or when its answer comes — is not the car's answer
+// to it: 2 → off → on keeps the grid on the old 2 until the car has acted on the off. Such a hold waits for the
+// grid to say something else first; it costs nothing to keep, the thumb stands on that level either way.
+function steerUnchanged(hold) { var el = document.querySelector(STEER_SLIDER); return !!el && steerCar(el) === hold.vin && +el.defaultValue === hold.level; }
+function steerStart(el, level) {     // the request is leaving: the thumb shows what it asks for, and the next gesture starts there
+  steerHold = {vin: steerCar(el), level: level, until: Date.now() + STEER_HOLD_MS, unchanged: false};
+  steerHold.unchanged = steerUnchanged(steerHold);
+  steerShow(el, level);
+  return {seq: ++steerSeq, hold: steerHold};
+}
+function steerResume(hold) {         // the answer is in: the wait for the car starts now, however late — the cloud has answered
+  hold.until = Date.now() + STEER_HOLD_MS;   // after the page's 60 s lock, and a hold that ran out meanwhile is back
+  hold.unchanged = steerUnchanged(hold);
+  steerHold = hold;
+  steerReapply();
+}
+function steerReapply() {
+  var el = document.querySelector(STEER_SLIDER), hold = el && steerHeld(el);
+  if (!hold) return;
+  if (Date.now() > hold.until) { steerHold = null; return; }
+  if (+el.defaultValue !== hold.level) hold.unchanged = false;
+  else if (!hold.unchanged) { steerHold = null; return; }   // the car reports the level: the hold is over
+  steerShow(el, hold.level);
+}
 
 // === Window slider — snaps to the stops the car actually actuates (#62). Blocked while a command runs. ===
 var WINS_STOPS = {{ wins_stops | tojson }};

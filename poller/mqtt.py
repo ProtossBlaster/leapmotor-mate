@@ -291,7 +291,7 @@ class MqttService:
                 st["energy_wh"] = 0.0
                 st["last_mono"] = now
                 st["active"] = True
-            net_w = max(0.0, data.charge_current_a - st["i0_a"]) * data.charge_voltage_v
+            net_w = max(0.0, (data.charge_current_a or 0.0) - st["i0_a"]) * (data.charge_voltage_v or 0.0)
             if st["last_mono"] is not None:
                 dt_h = (now - st["last_mono"]) / 3600.0
                 if 0 < dt_h <= 5 / 60:                     # ignore sleep/offline gaps > 5 min
@@ -300,7 +300,7 @@ class MqttService:
             return True, round(net_w), round(st["energy_wh"], 1)
         # not in V2L → remember this idle current to seed the next session's baseline; reset live values
         st["active"] = False
-        st["prev_current"] = data.charge_current_a
+        st["prev_current"] = data.charge_current_a or 0.0
         return False, 0, 0.0
 
     def _handle_beacon(self, vin, payload):
@@ -510,9 +510,11 @@ class MqttService:
             ("range", "Range", {"unit": "km", "icon": "mdi:map-marker-distance"}),
             ("odometer", "Odometer", {"dc": "distance", "unit": "km", "icon": "mdi:counter"}),
             ("speed", "Speed", {"dc": "speed", "unit": "km/h"}),
-            ("charge_power", "Charge Power", {"dc": "power", "unit": "kW"}),
-            ("charge_voltage", "Charge Voltage", {"dc": "voltage", "unit": "V"}),
-            ("charge_current", "Charge Current", {"dc": "current", "unit": "A"}),
+            # Empty-to-none like the current and voltage below: a power the car cannot vouch for is ""
+            ("charge_power", "Charge Power", {"dc": "power", "unit": "kW", "tpl": _EMPTY_NONE}),
+            # Empty-to-none like climate_power below: a frame without 1177/1178 is published as ""
+            ("charge_voltage", "Charge Voltage", {"dc": "voltage", "unit": "V", "tpl": _EMPTY_NONE}),
+            ("charge_current", "Charge Current", {"dc": "current", "unit": "A", "tpl": _EMPTY_NONE}),
             ("charge_time_remaining", "Charge Time Remaining", {"dc": "duration", "unit": "min"}),
             ("v2l_power", "V2L Power", {"dc": "power", "unit": "W", "icon": "mdi:home-lightning-bolt"}),
             ("v2l_energy_session", "V2L Session Energy", {"unit": "Wh", "icon": "mdi:lightning-bolt"}),

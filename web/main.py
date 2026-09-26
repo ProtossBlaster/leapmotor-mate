@@ -2170,11 +2170,10 @@ _COMFORT_ROWS = (
     ("steering_heat",        "steering_heat", "comfort_steering_heat",        "steering",  "heat"),  # last → mirrors stay paired on mobile
 )
 
-# Comfort rows controllable as a simple on/off toggle (steering/mirror — no level on the car).
+# Comfort rows controllable as a simple on/off toggle (mirrors — no level on the car).
 # skey -> (gating command feature, on-command key, off-command key). Both mirror tiles share the
-# single mirror command. Seats are handled separately (level slider).
+# single mirror command. Seats and the steering wheel are handled separately (level sliders).
 _COMFORT_TOGGLE = {
-    "steering_heat":     ("steering_heat_cmd", "steering_heat_on", "steering_heat_off"),
     "mirror_heat_left":  ("mirror_heat_cmd",   "mirror_heat_on",   "mirror_heat_off"),
     "mirror_heat_right": ("mirror_heat_cmd",   "mirror_heat_on",   "mirror_heat_off"),
 }
@@ -2205,6 +2204,11 @@ def _comfort_rows(vin, car_type=""):
             if capability_profile.is_shown(vin, f"seat_{func}_cmd", car_type=car_type):
                 row.update(control="slider", func=func,
                            position=("driver" if side == "driver" else "copilot"))
+        elif skey == "steering_heat":
+            # 1816 on a B10 from software 3.41.30: 0 off, 1 level I, 2 level II, 3 level II switched on remotely.
+            row.update(value=min(v, 2), remote=(v == 3))
+            if capability_profile.is_shown(vin, "steering_heat_cmd", car_type=car_type):
+                row.update(control="steering", cmd_on="steering_heat_on", cmd_off="steering_heat_off")
         elif skey in _COMFORT_TOGGLE:
             cfeat, cmd_on, cmd_off = _COMFORT_TOGGLE[skey]
             if capability_profile.is_shown(vin, cfeat, car_type=car_type):
@@ -2218,7 +2222,7 @@ def _comfort_rows(vin, car_type=""):
 # making them appear to "revert". After a web comfort command we merge the expected sensor values
 # so the refresh shows the action immediately; the next poll overwrites with the real values.
 _COMFORT_CMD_OPTIMISTIC = {
-    "steering_heat_on":  {"steering_heat": 2},
+    "steering_heat_on":  {"steering_heat": 3},   # what 1816 reads after a remote "on" (see _comfort_rows)
     "steering_heat_off": {"steering_heat": 0},
     "mirror_heat_on":    {"mirror_heat_left": 1, "mirror_heat_right": 1},
     "mirror_heat_off":   {"mirror_heat_left": 0, "mirror_heat_right": 0},
@@ -2272,7 +2276,8 @@ async def commands(request: Request):
     status = db_reader.get_latest_status()
     comfort = _comfort_rows(vehicle.get("vin") if vehicle else None, (vehicle or {}).get("car_type", ""))
     return templates.TemplateResponse(request, "commands.html", _ctx(
-        page="commands", vehicle=vehicle, status=status, comfort=comfort, **_wins_ctx(),
+        page="commands", vehicle=vehicle, vin=vehicle.get("vin") if vehicle else None,
+        status=status, comfort=comfort, **_wins_ctx(),
         ac_off_shown=capability_profile.command_shown(vehicle.get("vin") if vehicle else None, "climate_off"),
         is_t03=(vehicle.get("car_type") or "").upper() == "T03" if vehicle else False,
     ))
@@ -2312,12 +2317,13 @@ def _parse_vehicle_status(sig: dict, vin: str | None = None, cmd_pct: int | None
         # Wheel→signal mapping corrected from a TWO-B10 vs official-app cross-check (GitHub #32:
         # the UK reporter's car + Silvio's IT car, both showing 280 kPa at the rear-right):
         # pressures map ascending 2646=FL/2653=FR/2660=RL/2667=RR (the leapmotor-api doc order was
-        # wrong); each pressure's paired state signal moves with it (FL=2655/FR=2648/RL=2662/RR=2641).
+        # wrong). The alarm flags do NOT move with them: leapmotor-api, leapmotor-ha and ioBroker all
+        # pair them as 2641=FL/2648=FR/2655=RL/2662=RR; that check did not cover them (no alarm was on).
         "tyres": {
-            "fl": {"bar": bar("2646"), "low": i("2655") == 1},
+            "fl": {"bar": bar("2646"), "low": i("2641") == 1},
             "fr": {"bar": bar("2653"), "low": i("2648") == 1},
-            "rl": {"bar": bar("2660"), "low": i("2662") == 1},
-            "rr": {"bar": bar("2667"), "low": i("2641") == 1},
+            "rl": {"bar": bar("2660"), "low": i("2655") == 1},
+            "rr": {"bar": bar("2667"), "low": i("2662") == 1},
         },
         "doors": {
             "driver":     is_open("1277"), "passenger": is_open("1278"),
@@ -3346,16 +3352,34 @@ async def set_manual_charge_location(request: Request, charge_id: int):
     set_charge_location_name exactly like a picked candidate would — location_name
     IS NOT NULL either way, so the background sweep (_LOCATION_CANDIDATES_WHERE) never
     revisits this charge. An empty submission changes nothing (closes the input with
-    whatever was already saved, same as clicking away)."""
+    whatever was already saved, same as clicking away).
+    #301: an Open Charge Map identifier in the field — a pasted OCM link, "OCM-280221", or
+    the bare number — is not a name: that exact POI is fetched by id and saved with its own
+    name and link, same as a pick from 🔄. Nothing is searched, so nothing can be guessed
+    wrong. Its coordinates are NOT written: a charge without them is how a hand-typed one is
+    recognised, and the station's position is not where the car was. When the fetch fails
+    nothing is written either — the id is not a label, and saving it as one would bury it."""
+    import asyncio
     form = await request.form()
     name = (form.get("name") or "").strip()[:200]
     charge = db_reader.get_charge_location(charge_id)
     if not charge:
         return HTMLResponse("", status_code=404)
+    t = i18n.get_t(db_reader.get_language())
+    poi_id = charger_locator.parse_ocm_id(name)
+    if poi_id:
+        st, reason = await asyncio.get_event_loop().run_in_executor(
+            None, charger_locator.ocm_station_by_id, poi_id)
+        if reason:
+            return templates.TemplateResponse(request, "partials/charge_location.html",
+                                              {"charge": charge, "t": t, "ocm_error": reason})
+        db_reader.set_charge_location_name(charge_id, st["name"][:200], st["url"])
+        charge["location_name"], charge["location_url"] = st["name"][:200], st["url"]
+        return templates.TemplateResponse(request, "partials/charge_location.html",
+                                          {"charge": charge, "t": t})
     if name:
         db_reader.set_charge_location_name(charge_id, name, None)
         charge["location_name"], charge["location_url"] = name, None
-    t = i18n.get_t(db_reader.get_language())
     return templates.TemplateResponse(request, "partials/charge_location.html",
                                       {"charge": charge, "t": t})
 
@@ -4656,7 +4680,7 @@ async def cmd_grid(request: Request):
     vin = vehicle.get("vin") if vehicle else None
     comfort = _comfort_rows(vin, (vehicle or {}).get("car_type", ""))
     return templates.TemplateResponse(request, "partials/cmd_grid.html", _ctx(
-        status=status, comfort=comfort, **_wins_ctx(),
+        vin=vin, status=status, comfort=comfort, **_wins_ctx(),
         ac_off_shown=capability_profile.command_shown(vin, "climate_off"),
         is_t03=(vehicle.get("car_type") or "").upper() == "T03" if vehicle else False,
     ))
@@ -4868,11 +4892,9 @@ async def boost(seconds: int = _BOOST_DEFAULT_S):
     """Trigger fast (10s) polling for a window, so the poller catches a trip start that
     would otherwise be missed during deep sleep. Meant to be called when you get in the
     car (e.g. an iPhone Bluetooth shortcut, relayed by HA on the LAN — Mate stays local).
-    Coordinated with the poller via settings['boost_until']."""
-    import time
+    It can't tell which car you got into, so every car is sped up (db_reader.boost_every_car)."""
     seconds = max(30, min(int(seconds or _BOOST_DEFAULT_S), 1800))
-    until = time.time() + seconds
-    db_reader.set_setting("boost_until", str(until))
+    db_reader.boost_every_car(seconds)
     return {"status": "boost on", "seconds": seconds}
 
 
@@ -5807,7 +5829,7 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
                              payload={"ok": False, "error": "unknown_command"})
 
     # Ability gate (defence in depth, mirrors the hidden button): refuse a command the car doesn't
-    # declare it can do — e.g. unlock-charge-cable on a T03, which never declares code 53 (#142) —
+    # declare it can do — e.g. unlock-charge-cable on a T03, which never declares code 48 (#142) —
     # instead of bouncing a no-op off the car. Only the ability-gated commands (COMMAND_ABILITY keys)
     # look up the vehicle, so every other command's path is untouched. None abilities → allowed.
     if os.environ.get("MATE_API_V2") == "1" or name in capability_profile.COMMAND_ABILITY:
@@ -5854,7 +5876,7 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
     _last_command_at = time.time()
     # Boost the poller so the car's REAL state is re-polled within a few seconds (not up to 30s).
     # We no longer fake an optimistic state, so the UI must catch up to reality quickly.
-    db_reader.set_setting("boost_until", str(time.time() + 60))
+    db_reader.boost_selected_car(60)
     global _command_epoch
     _command_epoch += 1
     epoch = _command_epoch
@@ -5896,7 +5918,7 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
             _veh, _ = db_reader.get_vehicle()
             _optimistic_comfort(_veh.get("vin") if _veh else None, _COMFORT_CMD_OPTIMISTIC[name])
         return _cmd_response(request, payload={"ok": True, "status": "done"},
-                             html='<span style="color:#22c55e">✓ Done</span>')
+                             html='<span data-ok="1" style="color:#22c55e">✓ Done</span>')
 
     import asyncio
     ok, msg = await asyncio.get_event_loop().run_in_executor(None, fn)
@@ -5921,7 +5943,7 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
             return _cmd_response(request, payload={"ok": True, "status": "pending"},
                 html='<span data-slow="1" style="color:#60a5fa;display:inline-flex;align-items:center;gap:4px"><svg style="animation:spin 1s linear infinite;width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span><style>@keyframes spin{to{transform:rotate(360deg)}}</style>')
         return _cmd_response(request, payload={"ok": True, "status": "done"},
-                             html='<span style="color:#22c55e">✓ Done</span>')
+                             html='<span data-ok="1" style="color:#22c55e">✓ Done</span>')
     return _cmd_response(request, payload={"ok": False, "error": msg},
                          html=_cmd_error_html(msg))
 
@@ -6228,7 +6250,12 @@ def _web_listen_host() -> str:
     return "127.0.0.1" if os.environ.get("MATE_DESKTOP") == "1" else "0.0.0.0"
 
 
+# The Supervisor proxies Ingress over a pooled aiohttp client that reuses an idle connection for 15 s;
+# uvicorn's default drops one after 5 s, and a request landing on that mark met a closing socket: 502,
+# command lost. The server has to outlive the client's pool.
+_KEEP_ALIVE_S = 30
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("WEB_PORT", 4000))
-    uvicorn.run("main:app", host=_web_listen_host(), port=port, reload=False)
+    uvicorn.run("main:app", host=_web_listen_host(), port=port, reload=False, timeout_keep_alive=_KEEP_ALIVE_S)

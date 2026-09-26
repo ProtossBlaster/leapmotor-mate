@@ -847,8 +847,8 @@
         if (!rc) { location.reload(); return; }
         htmx.ajax(rc.verb, rc.path, {
           source: d.elt, target: tgt, swap: tgt.getAttribute('hx-swap') || 'innerHTML'
-        });
-      });
+        }).catch(function () {});   // rejected when the retry is aborted, times out or fails to send: every one of
+      });                           // those is an htmx event the listeners above already act on
       box.appendChild(msg);
       box.appendChild(btn);
       host.insertBefore(box, tgt.nextSibling);
