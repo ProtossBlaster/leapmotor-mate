@@ -228,6 +228,22 @@ CREATE TABLE IF NOT EXISTS offline_gaps (
     energy_kwh     REAL               -- ΔSoC × the capacity in force then; 0 when the SoC rose
 );
 CREATE INDEX IF NOT EXISTS idx_offline_gaps_vehicle ON offline_gaps(vehicle_id, started_at);
+
+-- One row per poll and per login attempt, so "is Mate getting data?" is answered from a table
+-- instead of counted by hand out of the log (#300). `outcome` is what the REQUEST did; the frame's
+-- own age sits beside it, measured at poll time, because an answer can carry a frame that is hours
+-- old and a repeated frame can still be current. Kept a week.
+CREATE TABLE IF NOT EXISTS poll_log (
+    id           INTEGER PRIMARY KEY,
+    at           TEXT NOT NULL,       -- UTC ISO, the poll clock
+    vehicle_id   INTEGER,             -- NULL on a login row: the session is the account's
+    kind         TEXT NOT NULL,       -- 'poll' | 'login'
+    outcome      TEXT NOT NULL,       -- poll: answer|empty|failed|refused · login: ok|refused|failed
+    frame_age_s  INTEGER,             -- poll+answer: host clock − car clock; NULL = no clock, or ahead
+    process      TEXT,                -- login: 'poller' | 'web'
+    reason       TEXT                 -- failed/refused: the error, truncated
+);
+CREATE INDEX IF NOT EXISTS idx_poll_log_at ON poll_log(at);
 """
 
 

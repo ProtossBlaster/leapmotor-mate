@@ -190,6 +190,7 @@ def _make_client() -> LeapmotorApiClient:
     )
     import session_share
     session_share.install(api)   # share ONE token with the poller (avoid mutual eviction)
+    api.on_login = _note_login   # every login the cloud is really asked for, from whichever call
     return api
 
 
@@ -262,6 +263,22 @@ def _parse_plugin_consumption(raw) -> dict | None:
         "elec_kwh_100km": _f(block.get("ec100km")),
         "fuel_mpg":       _f(block.get("ocMpg")),
     }
+
+
+def _note_login(exc) -> None:
+    """One poll_log row per login the WEB makes: the two processes share a session, and which of
+    them last got in is what the poller's log cannot say (#300). The backend calls this from the
+    one place it authenticates, for a resumed session never."""
+    try:
+        import db_reader as _dr
+        import session_share
+        if exc is None:
+            _dr.log_login("ok", "web")
+        else:
+            outcome, reason = session_share.error_outcome(exc)
+            _dr.log_login(outcome, "web", reason)
+    except Exception as exc:  # noqa: BLE001 — never let bookkeeping break a command
+        log.debug("poll_log skipped: %s", exc)
 
 
 class LeapmotorSession:

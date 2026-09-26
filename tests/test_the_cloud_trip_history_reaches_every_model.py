@@ -22,7 +22,7 @@ def test_the_history_worker_starts_on_an_account_kept_on_the_legacy_client(monke
     monkeypatch.delenv('MATE_DEMO', raising=False)
     monkeypatch.setattr(history_service, '_thread', None)
     started = threading.Event()
-    monkeypatch.setattr(history_worker, 'sync_once', started.set)
+    monkeypatch.setattr(history_worker, 'sync_once', lambda on_login=None: started.set())
     history_service.start_history_worker()
     assert started.wait(5), \
         'un account trattenuto sul client vecchio non scarica nessuno storico cloud'

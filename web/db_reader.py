@@ -1,5 +1,6 @@
 """Read-only DB queries for the web layer."""
 import json
+import logging
 import math
 import sqlite3
 import statistics
@@ -871,6 +872,21 @@ def _ensure_settings_audit(db) -> None:
     db.execute("CREATE TABLE IF NOT EXISTS settings_audit ("
                "id INTEGER PRIMARY KEY AUTOINCREMENT, changed_at TEXT NOT NULL, key TEXT NOT NULL,"
                " old_value TEXT, new_value TEXT)")
+
+
+def log_login(outcome: str, process: str = "web", reason=None) -> None:
+    """The web's own login attempts, in the same table the poller writes (poll_log). Best-effort:
+    a row that cannot be written must not cost the command that needed the login."""
+    try:
+        db = _conn_rw()
+        db.execute(
+            "INSERT INTO poll_log (at, kind, outcome, process, reason) VALUES (?, 'login', ?, ?, ?)",
+            (datetime.now(timezone.utc).isoformat(), outcome, process,
+             None if reason is None else str(reason)[:200]))
+        db.commit()
+        db.close()
+    except Exception as exc:  # noqa: BLE001
+        logging.getLogger(__name__).debug("poll_log skipped: %s", exc)
 
 
 def get_settings_audit(limit: int = 40) -> list:

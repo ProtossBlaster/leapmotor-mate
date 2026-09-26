@@ -14,9 +14,10 @@ import abrp
 import energy_snapshots
 import quirks
 import ready_automation
+import session_share
 from client import (LeapmotorMateClient, set_charge_current_min, EmptyStatusError,
                     seed_coord_signs, get_coord_signs)
-from db import Database
+from db import Database, log_login
 from mqtt import MqttService
 from outside_temp import OutsideTempSampler
 from recorder import Recorder
@@ -808,6 +809,38 @@ def _is_bad_credentials(msg: str) -> bool:
     return any(s in low for s in _BAD_CREDS_MARKS)
 
 
+def _frame_age_s(timestamp_ms) -> int | None:
+    """Host clock minus the car's clock on this frame, at poll time. None when the car sent no
+    clock or its clock runs ahead of the host — neither is a staleness a row may claim."""
+    if not timestamp_ms:
+        return None
+    age = int(time.time() - timestamp_ms / 1000)
+    return age if age >= 0 else None
+
+
+def _log_poll_safe(db, vehicle_id, outcome, frame_age_s=None, reason=None) -> None:
+    """The row must never take the poll down with it — least of all from an error branch."""
+    try:
+        db.log_poll(vehicle_id, outcome, frame_age_s, reason)
+    except Exception as exc:  # noqa: BLE001
+        log.debug("poll_log skipped: %s", exc)
+
+
+def _note_login(db_path, exc) -> None:
+    """One poll_log row per login the cloud was asked for. The backend calls this from the one
+    place it authenticates — for the startup login, a re-login and a read whose token had lapsed
+    alike — and never for a resumed session or an attempt it put off locally. Must not raise, and
+    takes the path, not the poller's connection: the cloud-history thread calls it too."""
+    try:
+        if exc is None:
+            log_login(db_path, "ok")
+        else:
+            outcome, reason = session_share.error_outcome(exc)
+            log_login(db_path, outcome, "poller", reason)
+    except Exception as e:  # noqa: BLE001
+        log.debug("poll_log skipped: %s", e)
+
+
 _RELOGIN_MIN_S = 60          # the gap today, and still the gap for the first retry
 _RELOGIN_MAX_S = 30 * 60     # a refusal lasting days must not push recovery out of reach
 
@@ -870,6 +903,7 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
     cycle or the car; with two it decides whether a car in a tunnel takes the other one off the
     road with it. Nothing in this function may raise.
     """
+    answered = stored = False
     try:
         # Apply user-tunable poll cadence + charge-detection floor (Settings) live, each cycle
         try:
@@ -884,8 +918,10 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
             pass
         with _API_LOCK:
             data = client.get_status(ctx.vehicle)
+        answered = True
         # what this car is known to misreport is corrected here, before anyone reads the frame
         data = quirks.fix_frame(data, ctx.vehicle)
+        frame_age = _frame_age_s(data.timestamp_ms)
         # Live outside-air temperature for the car's spot (Open-Meteo; the cloud carries none — see
         # client.py). Opt-in and cached hard, so a parked car makes no calls. Set BEFORE the recorder
         # runs, so it lands on the position row (positions.outside_temp) and flows on to MQTT, ABRP
@@ -893,6 +929,10 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         if db.get_setting("outside_temp_enabled", "0") == "1":
             data.outside_temp = ctx.outside_sampler.sample(data.latitude, data.longitude, time.time())
         ctx.recorder.process(data)
+        stored = True
+        # the answer counts once the frame is on record: a frame the recorder could not store is
+        # this car's failed fetch, not an answer with an error after it (see the except below)
+        _log_poll_safe(db, ctx.vehicle_id, "answer", frame_age)
         _write_comfort_state(db, data)
 
         # A range-extender reports a fuel tank (signal 3235) → flag it. On the BetaTester build
@@ -1007,6 +1047,7 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         # cycle: a parked car can stay asleep for hours and an ever-climbing
         # "after N tries" warning reads like an escalating failure when it isn't.
         ctx.empty_status_count += 1
+        _log_poll_safe(db, ctx.vehicle_id, "empty")
         # The car said nothing, but the wallbox counter is in the house and still has something to
         # say about a charge that is still open (#295) — measure it before backing off.
         ctx.recorder.sample_wallbox_meter()
@@ -1022,7 +1063,20 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
                         "reports again.", ctx.interval)
         # already backed off (count > 3): stay quiet so a sleeping car can't spam the log
     except Exception as exc:
+        if answered:
+            # the cloud answered and what broke is ours, so the cloud's error counter and the
+            # re-login stay out of it. One request, one row: a frame on record is an answer
+            # whatever failed after it; a frame that could not be stored is a failed fetch, with
+            # our error kept, so the page does not show the previous frame as current.
+            log.error("Frame processing failed: %s", exc)
+            ctx.interval = ctx.recorder.poll_interval
+            if not stored:
+                reason = f"{type(exc).__name__}: {exc}"
+                _log_poll_safe(db, ctx.vehicle_id, "failed", reason=reason)
+            return
         ctx.poll_error_count += 1
+        outcome, reason = session_share.error_outcome(exc)
+        _log_poll_safe(db, ctx.vehicle_id, outcome, reason=reason)
         # Same as above, and this is the branch his outage took (#295): three API errors put the
         # state machine OFFLINE, and the per-poll read in process() is never reached again. The
         # charge stays open across the gap, so the counter that measures it stays worth reading.
@@ -1088,6 +1142,9 @@ def main():
     _masked = (_u[:3] + "***" + _u[_u.find("@"):]) if "@" in _u else (_u[:3] + "***")
     device_id = db.get_or_create_device_id()
     log.info("Poller authenticating as account: %s | device_id: %s", _masked, device_id)
+
+    def _on_login(exc):        # every login this process spends: the client's, or the history sync's
+        _note_login(db_path, exc)
     client = LeapmotorMateClient(
         username=cfg["username"],
         password=cfg["password"],
@@ -1095,6 +1152,7 @@ def main():
         cert_path=cfg["cert_path"],
         key_path=cfg["key_path"],
         device_id=device_id,
+        on_login=_on_login,
     )
 
     # Startup login with in-process retry + backoff. A transient cloud error here — e.g. the
@@ -1156,7 +1214,7 @@ def main():
                  "other cars send nothing until they get their own token", _moved[-6:])
     # Start only after reset, successful authentication and vehicle registration.
     from history_service import start_history_worker
-    start_history_worker()
+    start_history_worker(_on_login)
     ctx = contexts[0]
     vehicle_id = ctx.vehicle_id
 
@@ -1263,6 +1321,7 @@ def main():
                     db.prune_positions(ret)
                 if _research_enabled():
                     db.prune_raw_signals(int(db.get_setting("research_retention_days", "30") or 30))
+                db.prune_poll_log(7)
                 db.set_setting("last_prune_ts", str(time.time()))
         except Exception as exc:  # noqa: BLE001
             log.warning("DB prune skipped: %s", exc)

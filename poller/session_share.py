@@ -207,6 +207,30 @@ def _shared_token_refresh(self) -> None:
     _save(self)
 
 
+# What the cloud says when the session behind a request is dead. Anything else that raises is a
+# request that did not work — a timeout, a missing certificate, a frame that would not parse. The
+# 4.x bridge names the stage a sign-in failed at: the cloud's own rejection is a refusal, a
+# transport or certificate failure on the way to it is not.
+REFUSED_MARKS = ("session rejected", "session unavailable", "unauthori", "authentication",
+                 "token", "login", "stage=cloud_rejection")
+
+# A login the 4.x bridge put off locally, inside a minute of the last attempt: the cloud saw nothing.
+DEFERRED_MARKS = ("temporarily deferred",)
+
+
+def login_attempted(exc) -> bool:
+    return not any(m in str(exc).lower() for m in DEFERRED_MARKS)
+
+
+def error_outcome(exc) -> tuple[str, str]:
+    """('refused' | 'failed', reason) for a request or a login that raised — one rule for both
+    processes. Refused is the cloud's word on the session; an attempt the bridge put off never
+    reached the cloud, so it is a failed request, whatever its wording."""
+    low = str(exc).lower()
+    refused = login_attempted(exc) and any(m in low for m in REFUSED_MARKS)
+    return ("refused" if refused else "failed"), f"{type(exc).__name__}: {exc}"
+
+
 def install(api):
     """Route every login / token-refresh through the shared-session logic."""
     if getattr(api, '_mate_new_api', False) is True:
