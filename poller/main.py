@@ -789,6 +789,16 @@ class VehicleContext:
         self.next_due = 0.0           # monotonic; 0 = due now, so the first round polls every car
 
 
+# A refusal the cloud words as a credentials problem: retrying will not fix it, only the user can.
+_BAD_CREDS_MARKS = ("password", "incorrect", "wrong account", "account does not exist",
+                    "invalid account", "user does not exist", "account or password")
+
+
+def _is_bad_credentials(msg: str) -> bool:
+    low = (msg or "").lower()
+    return any(s in low for s in _BAD_CREDS_MARKS)
+
+
 _RELOGIN_MIN_S = 60          # the gap today, and still the gap for the first retry
 _RELOGIN_MAX_S = 30 * 60     # a refusal lasting days must not push recovery out of reach
 
@@ -1097,10 +1107,7 @@ def main():
             # Bad credentials won't fix themselves by retrying. Everything else — the transient
             # cloud `code 39`, an unpropagated fresh car-share ("no vehicles found"), cert/token/
             # connection blips — is recoverable: keep retrying with a capped backoff.
-            bad_creds = any(s in msg.lower() for s in (
-                "password", "incorrect", "wrong account", "account does not exist",
-                "invalid account", "user does not exist", "account or password",
-            ))
+            bad_creds = _is_bad_credentials(msg)
             db.set_setting("poller_login_error", msg[:300])
             log.error("Startup login failed%s: %s",
                       " (check credentials)" if bad_creds else " — will retry", msg)

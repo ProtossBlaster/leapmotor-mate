@@ -30,3 +30,13 @@ def test_the_refusal_is_still_recorded_for_the_setup_screen(startup):
     """The heartbeat is added beside the existing status, not instead of it."""
     _, db, _ = startup(refusals=1)
     assert "login failed" in db.get_setting("poller_login_error", "")
+
+
+def test_only_a_refusal_worded_as_a_credentials_problem_counts_as_one():
+    """The startup wait is an hour on bad credentials and seconds on anything else, so the words
+    that decide it live in one place."""
+    assert PM._is_bad_credentials("Leapmotor login failed: account or password error")
+    assert PM._is_bad_credentials("Incorrect password")
+    assert not PM._is_bad_credentials("Leapmotor login failed: Error occurred")
+    assert not PM._is_bad_credentials("HTTPSConnectionPool: Read timed out")
+    assert not PM._is_bad_credentials("")
