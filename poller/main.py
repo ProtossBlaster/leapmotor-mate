@@ -1042,8 +1042,6 @@ def main():
     log.info("Starting LeapMotor Mate poller")
 
     db = Database(db_path)
-    from history_service import start_history_worker
-    start_history_worker()
 
     # Factory reset requested from Settings: the web side set this marker, cleared the setup gate
     # and relaunched the app (run.sh restarts both processes). The destructive wipe happens HERE,
@@ -1133,6 +1131,9 @@ def main():
     if _moved:
         log.info("ABRP: install-wide token assigned to %s (a second car was registered); "
                  "other cars send nothing until they get their own token", _moved[-6:])
+    # Start only after reset, successful authentication and vehicle registration.
+    from history_service import start_history_worker
+    start_history_worker()
     ctx = contexts[0]
     vehicle_id = ctx.vehicle_id
 

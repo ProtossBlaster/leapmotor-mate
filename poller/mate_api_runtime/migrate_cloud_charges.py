@@ -1,4 +1,4 @@
-"""Transactional, idempotent cloud charge import for the isolated 4001 lab."""
+"""Transactional, idempotent cloud charge import into Mate."""
 import hashlib
 import json
 import math
@@ -38,7 +38,10 @@ def migrate(con):
             key=hashlib.sha256(json.dumps([vin,row.get('chargeGunStartTs') or row['chargeEarliestTs']]).encode()).hexdigest()
             linked=con.execute('SELECT charge_id,payload_sha256 FROM api_lab_cloud_charge_links WHERE record_key=?',(key,)).fetchone()
             if linked:
-                if not con.execute('SELECT 1 FROM charges WHERE id=?',(linked[0],)).fetchone():raise ValueError('Imported charge removed')
+                if not con.execute('SELECT 1 FROM charges WHERE id=?',(linked[0],)).fetchone():
+                    report.setdefault('deleted', 0)
+                    report['deleted'] += 1
+                    continue  # A retained link prevents deleted charges returning.
                 report['unchanged' if linked[1]==digest else 'changed']+=1
                 continue
             overlap=con.execute('''SELECT 1 FROM charges WHERE vehicle_id=? AND

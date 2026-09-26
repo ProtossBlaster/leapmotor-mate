@@ -1,4 +1,4 @@
-"""Lab-only, transactional promotion of staged cloud trips into Mate.
+"""Transactional promotion of staged cloud trips into Mate.
 
 Does not log in, send commands, or synthesize GPS/SoC/odometer samples.
 Changed cloud records and overlapping local trips require reconciliation.
@@ -55,7 +55,9 @@ def migrate(con):
             linked = con.execute('SELECT trip_id,payload_sha256 FROM api_lab_cloud_trip_links WHERE record_key=?', (key,)).fetchone()
             if linked:
                 if not con.execute('SELECT 1 FROM trips WHERE id=?', (linked[0],)).fetchone():
-                    raise ValueError('Imported trip was removed; explicit reconciliation required')
+                    report.setdefault('deleted', 0)
+                    report['deleted'] += 1
+                    continue  # Keep the link as a tombstone: respect the user deletion.
                 report['unchanged' if linked[1] == digest else 'changed'] += 1
                 continue
             existing = con.execute('''SELECT 1 FROM trips WHERE vehicle_id=?
