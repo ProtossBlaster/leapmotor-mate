@@ -676,6 +676,44 @@ def _mqtt_tick(db, client, data, service, vehicle=None, vehicle_id=None):
     return service
 
 
+def _link_state(acct, fetch, frame_age_s) -> tuple[str, dict]:
+    """The data-link state for Home Assistant, judged from what the poller holds right now: the
+    account's session first, then this car's last fetch, then the age of the frame. The web adds
+    the heartbeat on top; here the heartbeat is the sensor's own `expire_after`."""
+    link = acct.link or {}
+    fetch = fetch or {}
+    # the layer that failed, if one did: a login the poller could not even put to the cloud (it
+    # timed out on the way) is the session's `failed`, and fails every car's fetch
+    if link.get("state") == "refused":
+        src, state = link, "login_refused"
+    elif link.get("state") == "failed":
+        src, state = link, "fetch_failed"
+    elif fetch.get("state") == "failed":
+        src, state = fetch, "fetch_failed"
+    else:
+        src, state = link, None
+    attrs = {"since": src.get("since"), "reason": src.get("reason"),
+             "next_retry_ts": src.get("next_retry_ts"), "bad_creds": bool(src.get("bad_creds"))}
+    if state:
+        return state, attrs
+    if frame_age_s is None:
+        return "age_unknown", attrs
+    return ("fresh" if frame_age_s < _LINK_FRESH_S else "no_new_data"), attrs
+
+
+def _mqtt_link(db, client, acct, vin, frame_age_s, fetch=None) -> None:
+    """Publish the data-link state — from a branch that may have no frame, and on a bridge that
+    may not exist yet. Best-effort, like every other publish."""
+    try:
+        acct.mqtt_service = _mqtt_connect(db, client, acct.mqtt_service)
+        if acct.mqtt_service is None:
+            return
+        state, attrs = _link_state(acct, fetch, frame_age_s)
+        acct.mqtt_service.publish_link(vin, state, attrs)
+    except Exception as exc:  # noqa: BLE001
+        log.debug("MQTT: link publish skipped: %s", exc)
+
+
 def load_config(db: "Database") -> dict:
     """Load credentials from DB settings, falling back to env vars (dev mode).
     DB takes precedence over env — same order as the web layer — so a stray
@@ -814,6 +852,10 @@ _BAD_CREDS_MARKS = ("password", "incorrect", "wrong account", "account does not 
 def _is_bad_credentials(msg: str) -> bool:
     low = (msg or "").lower()
     return any(s in low for s in _BAD_CREDS_MARKS)
+
+
+# A frame younger than this is "current" — the same 5 minutes the web's DATA_AGE_STALE_S uses.
+_LINK_FRESH_S = 300
 
 
 def _frame_age_s(timestamp_ms) -> int | None:
@@ -1070,6 +1112,7 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         # MQTT → Home Assistant bridge (opt-in, off by default)
         acct.mqtt_service = _mqtt_tick(db, client, data, acct.mqtt_service, ctx.vehicle,
                                                  ctx.vehicle_id)
+        _mqtt_link(db, client, acct, ctx.vin, frame_age, ctx.link)
 
         ctx.interval = ctx.recorder.poll_interval
         # Boost window (set via POST /api/boost, e.g. an iPhone BT shortcut relayed
@@ -1106,6 +1149,7 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         _log_poll_safe(db, ctx.vehicle_id, "empty")
         acct.note_link(db, "ok")            # the cloud let the poll in; the car said nothing
         ctx.note_fetch(db, "empty")
+        _mqtt_link(db, client, acct, ctx.vin, _frame_age_s(db.get_last_frame_ts(ctx.vehicle_id)), ctx.link)
         # The car said nothing, but the wallbox counter is in the house and still has something to
         # say about a charge that is still open (#295) — measure it before backing off.
         ctx.recorder.sample_wallbox_meter()
@@ -1132,6 +1176,8 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
                 reason = f"{type(exc).__name__}: {exc}"
                 _log_poll_safe(db, ctx.vehicle_id, "failed", reason=reason)
                 ctx.note_fetch(db, "failed", reason, next_retry_ts=time.time() + ctx.interval)
+            # Home Assistant hears it either way: an entity that is not published expires
+            _mqtt_link(db, client, acct, ctx.vin, _frame_age_s(data.timestamp_ms) if stored else None, ctx.link)
             return
         ctx.poll_error_count += 1
         outcome, reason = session_share.error_outcome(exc)
@@ -1184,6 +1230,7 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
                     acct.note_link(db, outcome, reason, bad_creds=_is_bad_credentials(reason),
                                    next_retry_ts=acct.last_relogin + acct.relogin_wait_s)
                 log.warning("Re-login failed, next attempt in %ds: %s", acct.relogin_wait_s, e2)
+        _mqtt_link(db, client, acct, ctx.vin, None, ctx.link)
 
 
 
@@ -1269,6 +1316,11 @@ def main():
                 acct.note_link(db, outcome, reason, next_retry_ts=time.time() + wait, bad_creds=bad_creds)
             waited = 0.0
             while waited < wait:
+                # Home Assistant hears it too, for every car this install has seen, and again
+                # before the entity would expire (_LINK_EXPIRE_S) while the wait goes on
+                if waited % 300 == 0:
+                    for vin in db.vehicle_vins():
+                        _mqtt_link(db, client, acct, vin, None)
                 time.sleep(min(5.0, wait - waited))
                 waited += 5.0
                 # the loop's heartbeat, so a login the cloud keeps refusing is not a dead poller
