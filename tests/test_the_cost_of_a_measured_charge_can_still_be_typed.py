@@ -16,26 +16,25 @@ run), which is where `charge_card.html` is drawn.
 """
 import re
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import db as poller_db
 import db_reader
 import pytest
 
 
-def _iso(days_ago: int) -> str:
-    return (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
-
-
 def _day_card(cli) -> str:
     """The day drawer of the Charges calendar, which is where a charge is drawn as a CARD."""
-    d = datetime.now(timezone.utc) - timedelta(days=2)
+    # The calendar uses the configured local date, not the stored UTC date.
+    stamp = db_reader.get_charge(1)["started_at"]
+    d = datetime.fromisoformat(stamp).astimezone(ZoneInfo("Europe/Rome"))
     return cli.get("/api/charges/calendar/day",
                    params={"year": d.year, "month": d.month, "day": d.day}).text
 
 
-@pytest.fixture()
-def measured(tmp_path, monkeypatch):
+@pytest.fixture(params=["2026-09-24T12:00:00+00:00", "2026-09-24T22:30:00+00:00"])
+def measured(tmp_path, monkeypatch, request):
     """One charge Mate recorded itself — manual_entry unset, cost computed from the tariff."""
     path = str(tmp_path / "i308.db")
     poller_db.Database(path)
@@ -45,9 +44,10 @@ def measured(tmp_path, monkeypatch):
     con.execute(
         "INSERT INTO charges (id, vehicle_id, started_at, ended_at, energy_added_kwh, "
         "charge_type, location_type, cost) VALUES (1, 1, ?, ?, 59.83, 'AC', 'HOME', 17.95)",
-        (_iso(2), _iso(2)))
+        (request.param, request.param))
     con.commit()
     con.close()
+    db_reader.set_setting("timezone", "Europe/Rome")
     return path
 
 
