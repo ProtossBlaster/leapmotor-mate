@@ -11,10 +11,17 @@ name: Sync beta add-on repo
 # Reuses the ADDON_REPO_TOKEN secret (contents: write on the beta repo — same token
 # mirror-release-to-beta.yml already uses).
 #
-# NB on the legacy "beta" tag: HA classifies "beta" as SPECIALCONTAINER, so an install already on
-# "beta" will NOT update in-place to a numbered version (verified with awesomeversion). Those installs
-# migrate ONCE via Mate's own Backup → reinstall → Restore (Settings → Export / Backup), which carries
-# ALL data across losslessly (verified). From a NUMBERED install onward, updates are the normal button.
+# Historical installed version "beta" needs a separate UI-compatibility check. Supervisor's
+# need_update and manager update checks compare inequality, so an in-place update of the SAME slug
+# is supported; AwesomeVersion ordering alone does not imply a reinstall is required. However,
+# Core's generic UpdateEntity uses ordering (4.0.0 > beta is false), and the app-page Update button
+# opens that entity dialog. Old literal-beta installations can therefore have a disabled UI even
+# when Supervisor reports an update. Numbered installations use the normal update path; a universal
+# zero-extra-action claim for historical literal-beta installs requires real Supervisor/UI proof.
+# Do not direct users to uninstall or restore data based solely on version ordering.
+# Sources: home-assistant/supervisor supervisor/apps/app.py (need_update), apps/manager.py (update);
+# home-assistant/core homeassistant/components/update/__init__.py (_version_is_newer);
+# home-assistant/frontend src/panels/config/apps/app-view/info/supervisor-app-info.ts (_openUpdate).
 
 on:
   release:

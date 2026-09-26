@@ -42,6 +42,14 @@ volume dati. Il canale Beta conserva la modalità di ricerca. Il Desktop scarica
 payload attraverso il suo aggiornamento normale; il contratto è verificato anche
 sui binari Desktop 1.0 già pubblicati, senza richiedere una nuova shell.
 
+Per l'add-on Beta, il percorso senza azioni aggiuntive riguarda le installazioni
+con versione numerica, a partire dalla baseline `3.19.2`. Le installazioni storiche
+che mostrano ancora la versione letterale `beta` hanno un caso distinto: Supervisor
+consente l'aggiornamento sullo stesso slug, ma la finestra di aggiornamento di HA
+può bloccarlo per l'ordinamento delle versioni. Il passaggio senza azioni aggiuntive
+non è ancora verificato su quel percorso UI; non implica che servano reinstallazione
+o esportazione/ripristino del database.
+
 Il backup precedente resta in `migration-backups/mate-4.0.0`. Le generazioni dei
 certificati della sessione sono private e restano disponibili per i processi che
 le usano. Il recupero ordinario consiste nella selezione automatica del client
