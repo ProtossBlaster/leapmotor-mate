@@ -1,0 +1,42 @@
+{# The data-link tile beside the Overview heading — refreshed on its own every 30 s (api/link-pill).
+   Two links as two dots, Mate to the cloud (the session) and the cloud to the car (the frame); the
+   facts sit on a hover of each word. Nothing more while nothing is wrong: grey is a quiet car,
+   amber is the #178 case (frozen while moving) and gets one line, red is Mate itself not fetching
+   and turns the tile into the banner: the consequence first, the last frame's time, the next
+   attempt, the stored error. #}
+{% set _cloud = 'red' if data_link.state in ('login_refused', 'fetch_failed') else 'grey' if data_link.state == 'not_polling' else 'green' %}
+{% set _car = 'grey' if _cloud != 'green' else 'green' if data_link.state == 'fresh' else 'amber' if data_link.amber else 'grey' %}
+{% set _dot = {'green': 'bg-emerald-500', 'amber': 'bg-amber-500', 'red': 'bg-red-500', 'grey': 'bg-slate-600'} %}
+{% set _never = t('link_never') %}
+{# Every moment reads the same: local clock, then its age — "27/09 02:29 (3h ago)" — or "never". #}
+{% macro when(m) -%}{% if m %}{{ m.local }} ({{ ago(m.age_s) }}){% else %}{{ _never }}{% endif %}{%- endmacro %}
+{% set _tip_mate = t('link_tip_mate').replace('{since}', when(data_link.mate.started)).replace('{beat}', when(data_link.mate.beat)) %}
+{% set _tip_cloud = t('link_tip_cloud').replace('{state}', t('link_sess_' + data_link.cloud.session)).replace('{since}', when(data_link.cloud.since)).replace('{ok}', when(data_link.cloud.last_ok)).replace('{bad}', (when(data_link.cloud.last_bad) ~ ' · ' ~ data_link.cloud.last_bad_what) if data_link.cloud.last_bad else _never) %}
+{# The car's frame by its own clock; a frame without one is named by when it was received. #}
+{% macro frame_when() -%}{% if data_link.car.frame %}{{ when(data_link.car.frame) }}{% elif data_link.car.received %}{{ t('link_received').replace('{when}', when(data_link.car.received)) }}{% else %}{{ _never }}{% endif %}{%- endmacro %}
+{% set _tip_car = t('link_tip_car').replace('{frame}', frame_when()).replace('{state}', t('link_state_' + data_link.car.state) if data_link.car.state else '—') %}
+<div class="rounded-xl border px-4 py-2.5 text-sm {% if data_link.red %}border-red-500/40 bg-red-500/10{% else %}border-slate-700 bg-slate-800{% endif %}"
+     data-link="{{ data_link.state }}">
+  {# Each word is a fact sheet on hover, tap or focus — the app's one tooltip (data-tip, base.html). #}
+  {% macro node(text, tip, cls='') -%}
+  <span class="{{ cls }}" tabindex="0" data-tip="{{ tip }}">{{ text }}</span>
+  {%- endmacro %}
+  <div class="flex items-center gap-2 text-xs font-medium text-slate-300" data-link-chain="{{ _cloud }}-{{ _car }}">
+    <span class="text-slate-400" data-tip="{{ t('link_hint') }}">🔗</span>
+    {{ node('Mate', _tip_mate) }}<span class="w-4 h-px bg-slate-600"></span><span class="inline-block w-2.5 h-2.5 rounded-full {{ _dot[_cloud] }}"></span>
+    {{ node(t('link_cloud'), _tip_cloud, 'text-red-300' if _cloud == 'red' else '') }}<span class="w-4 h-px bg-slate-600"></span><span class="inline-block w-2.5 h-2.5 rounded-full {{ _dot[_car] }}"></span>
+    {{ node(t('link_car'), _tip_car, 'text-amber-300' if _car == 'amber' else 'text-slate-500' if _car == 'grey' else '') }}
+  </div>
+  {% if data_link.red %}
+  <div class="mt-1 font-semibold text-red-200" data-link-banner="{{ data_link.state }}">{{ t('link_banner_' + ('bad_creds' if data_link.bad_creds else data_link.state)) }}</div>
+  <div class="text-xs text-red-200/70 space-y-0.5">
+    <div>{{ t('link_banner_last').replace('{when}', frame_when()) }}</div>
+    {% if data_link.retry_min %}{% set _r = t('link_retry').replace('{when}', data_link.retry_local or '—').replace('{n}', data_link.retry_min|string) %}<div>{{ _r[0]|upper }}{{ _r[1:] }}.</div>{% endif %}
+    {% if data_link.last_error %}<div>{{ t('link_last_error_' + data_link.last_error)|capitalize }}.</div>{% endif %}
+    {% if data_link.reason %}<div class="font-mono break-all text-red-200/60" data-link-error>{{ data_link.reason }}</div>{% endif %}
+    {% if data_link.bad_creds %}<div>{{ t('link_banner_password_hint') }}</div>{% endif %}
+  </div>
+  {% elif data_link.amber %}
+  <div class="mt-1 text-xs text-amber-300" data-link-reason>{{ t('link_no_new_data').replace('{state}', t('link_state_' + data_link.last_state)).replace('{since}', when(data_link.car.frame)) }}</div>
+  {% endif %}
+</div>
