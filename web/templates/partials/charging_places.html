@@ -6,7 +6,7 @@
   <form method="post" action="api/settings/charging-places" class="flex flex-wrap gap-2 border-b border-slate-700 pb-3">
     <input type="hidden" name="id" value="{{ p.id }}">
     {% include 'partials/charging_place_fields.html' %}
-    <button class="btn" type="submit">{{ t('note_save') }}</button>
+    <button style="background:#14b8a6;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;align-self:end" type="submit">{{ t('note_save') }}</button>
   </form>
   {% endfor %}
   <details>
@@ -14,7 +14,7 @@
     <form id="new-place" method="post" action="api/settings/charging-places" class="flex flex-wrap gap-2 mt-3">
       {% set p = {'name':'', 'latitude':'', 'longitude':'', 'radius_m':100, 'rate':'', 'enabled':true} %}
       {% include 'partials/charging_place_fields.html' %}
-      <button class="btn" type="submit">{{ t('note_save') }}</button>
+      <button style="background:#14b8a6;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;align-self:end" type="submit">{{ t('note_save') }}</button>
       <p class="w-full text-xs text-slate-400">{{ t('place_map_hint') }}</p>
       <div id="charging-place-map" style="height:260px;width:100%"></div>
     </form>
