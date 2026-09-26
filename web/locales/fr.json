@@ -534,6 +534,7 @@
     "ago_s": "il y a {n}s",
     "ago_m": "il y a {n} min",
     "ago_h": "il y a {n} h",
+    "ago_d": "il y a {n} j",
     "data_age": "données d’il y a {age}",
     "data_age_hint": "La voiture ne joint plus le cloud : ce que vous voyez est la dernière trame reçue par le cloud, pas l’état actuel.",
     "cmd_timeout_car": "Envoyé — la voiture n'a pas confirmé à temps (signal faible ou en veille). Ça a peut-être marché ; réessayez bientôt.",

@@ -534,6 +534,7 @@
     "ago_s": "vor {n}s",
     "ago_m": "vor {n} Min.",
     "ago_h": "vor {n} Std.",
+    "ago_d": "vor {n} Tagen",
     "data_age": "Daten {age} alt",
     "data_age_hint": "Das Auto erreicht die Cloud nicht: Sie sehen den letzten Frame, den die Cloud erhalten hat — nicht den aktuellen Zustand.",
     "cmd_timeout_car": "Gesendet — das Auto hat nicht rechtzeitig bestätigt (schwaches Signal oder im Standby). Eventuell trotzdem ausgeführt; gleich erneut versuchen.",

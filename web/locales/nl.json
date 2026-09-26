@@ -534,6 +534,7 @@
     "ago_s": "{n} s geleden",
     "ago_m": "{n} min geleden",
     "ago_h": "{n} u geleden",
+    "ago_d": "{n} d geleden",
     "data_age": "gegevens van {age} geleden",
     "data_age_hint": "De auto bereikt de cloud niet: wat je ziet is het laatste beeld dat de cloud ontvangen heeft, niet de auto op dit moment.",
     "cmd_timeout_car": "Verstuurd — de auto heeft niet op tijd bevestigd (zwak signaal of in slaapstand). Het kan alsnog gelukt zijn; probeer het zo meteen opnieuw.",

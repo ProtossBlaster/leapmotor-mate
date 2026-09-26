@@ -534,6 +534,7 @@
     "ago_s": "{n}s fa",
     "ago_m": "{n} min fa",
     "ago_h": "{n} h fa",
+    "ago_d": "{n} g fa",
     "data_age": "dati di {age} fa",
     "data_age_hint": "L’auto non sta raggiungendo il cloud: quello che vedi è l’ultimo frame che il cloud ha ricevuto, non lo stato di adesso.",
     "cmd_timeout_car": "Inviato — l'auto non ha confermato in tempo (segnale debole o in standby). Potrebbe aver funzionato lo stesso; riprova tra poco.",

@@ -534,6 +534,7 @@
     "ago_s": "hace {n} s",
     "ago_m": "hace {n} min",
     "ago_h": "hace {n} h",
+    "ago_d": "hace {n} d",
     "data_age": "datos de hace {age}",
     "data_age_hint": "El coche no está llegando a la nube: lo que ves es el último fotograma que la nube recibió, no el coche ahora mismo.",
     "cmd_timeout_car": "Enviado — el coche no ha confirmado a tiempo (poca cobertura o dormido). Puede que aun así haya funcionado; vuelve a probar dentro de un momento.",
