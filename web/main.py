@@ -100,6 +100,7 @@ def _ensure_schema() -> None:
         sys.path.insert(0, _poller)
         try:
             import schema as _schema
+            import charging_places  # shared pure module; no web/poller name collisions
         finally:
             sys.path.remove(_poller)
         conn = _sq.connect(db_reader.DB_PATH, timeout=15)
@@ -2622,11 +2623,43 @@ async def costs_page(request: Request):
     cfg = db_reader.get_cost_config()
     return templates.TemplateResponse(request, "costs.html", _ctx(
         page="costs", vehicle=vehicle,
+        **db_reader.charging_places_context(),
         settings={**settings, **prices},
         charge_types=db_reader.charge_types_localised(),
         cost_mode=cfg["mode"], cost_modes=cfg["modes"], tou_method=cfg["method"],
         tou_bands_json=json.dumps(cfg["bands"]), cost_modes_json=json.dumps(cfg["modes"]),
     ))
+
+
+@app.post("/api/settings/charging-places", response_class=HTMLResponse)
+async def save_charging_place(request: Request):
+    form = await request.form()
+    try:
+        db_reader.save_charging_place(form)
+    except ValueError as exc:
+        return HTMLResponse(i18n.get_t(db_reader.get_language())(str(exc)), status_code=400)
+    return RedirectResponse(request.headers.get("x-ingress-path", "") + "/costs#charging-places", status_code=303)
+
+
+@app.get("/api/charges/{charge_id}/place", response_class=HTMLResponse)
+async def charge_place_picker(request: Request, charge_id: int):
+    row = db_reader._get().execute("SELECT * FROM charges WHERE id=? AND vehicle_id=?",
+                                  (charge_id, db_reader._current_vehicle_id())).fetchone()
+    if not row:
+        return HTMLResponse("", status_code=404)
+    return templates.TemplateResponse(request, "partials/charge_place_picker.html", _ctx(
+        charge=dict(row), **db_reader.charging_places_context()))
+
+
+@app.post("/api/charges/{charge_id}/place", response_class=HTMLResponse)
+async def set_charge_place(request: Request, charge_id: int):
+    form = await request.form()
+    try:
+        db_reader.assign_charging_place(charge_id, int(form.get("place_id") or 0))
+    except ValueError as exc:
+        key = str(exc) if str(exc).startswith('place_') else 'place_invalid'
+        return HTMLResponse(i18n.get_t(db_reader.get_language())(key), status_code=400)
+    return Response(status_code=204, headers={"HX-Refresh": "true"})
 
 
 @app.get("/wallbox", response_class=HTMLResponse)

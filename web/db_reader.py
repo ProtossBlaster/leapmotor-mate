@@ -2047,6 +2047,10 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
     if location_type == "FREE":
         return 0.0
 
+    if "charging_place_rate" in charge.keys() and charge["charging_place_rate"] is not None:
+        import charging_places
+        return charging_places.cost(dict(charge), ac_kwh)
+
     if config is None:
         config = get_cost_config()
     prices = get_charge_prices()
@@ -4895,6 +4899,10 @@ def merge_charges(parent_id: int, child_id: int, gap_min: int = CHARGE_MERGE_GAP
     if (a.get("started_at") or "") > (b.get("started_at") or ""):
         a, b = b, a                                   # parent = the earlier row
     kids = _charge_children_by_parent(db)
+    place_facts = {(r.get('charging_place_id'), r.get('charging_place_rate'))
+                   for r in [a, b, *kids.get(a['id'], []), *kids.get(b['id'], [])]}
+    if len(place_facts) > 1 and any(pid is not None for pid, _ in place_facts):
+        return {"ok": False, "error": "different_charging_place"}
     a_grp = _charge_group_stats(a, kids.get(a["id"], []))
     gap = _gap_minutes(a_grp.get("ended_at"), b.get("started_at"))
     if gap is None or gap < 0 or gap >= gap_min:
@@ -10215,3 +10223,61 @@ def _ev_energy_summary(summary):
     distance = sum(km for _, km in eligible)
     summary["avg_eff"] = sum(eff * km for eff, km in eligible) / distance if distance else None
     return summary
+
+
+# Private charging places: settings per car; assignment and tariff snapshots per session.
+def charging_places_context():
+    db = _get()
+    vehicle_id = _current_vehicle_id()
+    places = [dict(r) for r in db.execute(
+        'SELECT * FROM charging_places WHERE vehicle_id=? ORDER BY name,id', (vehicle_id,))]
+    totals = [dict(r) for r in db.execute(
+        'SELECT charging_place_name AS name, COUNT(*) AS sessions, SUM(cost) AS cost, '
+        'SUM(CASE WHEN cost IS NULL THEN 1 ELSE 0 END) AS unpriced '
+        'FROM charges WHERE vehicle_id=? AND ended_at IS NOT NULL AND charging_place_id IS NOT NULL '
+        'GROUP BY charging_place_id,charging_place_name ORDER BY name', (vehicle_id,))]
+    return {'charging_places': places, 'charging_place_totals': totals, 'charging_place_vehicle_id': vehicle_id}
+
+
+def save_charging_place(form):
+    import charging_places
+    vehicle_id = _current_vehicle_id()
+    if vehicle_id is None or str(form.get('vehicle_id')) != str(vehicle_id):
+        raise ValueError('place_invalid')
+    values = charging_places.validate(*(form.get(k) for k in ('name','latitude','longitude','radius_m','rate')))
+    enabled = 1 if form.get('enabled') == 'on' else 0
+    try:
+        place_id = int(form.get('id') or 0)
+    except (TypeError, ValueError):
+        raise ValueError('place_invalid') from None
+    with _conn_rw() as db:
+        if place_id:
+            cur = db.execute('UPDATE charging_places SET name=?,latitude=?,longitude=?,radius_m=?,rate=?,enabled=? '
+                             'WHERE id=? AND vehicle_id=?', (*values, enabled, place_id, vehicle_id))
+            if cur.rowcount != 1:
+                raise ValueError('place_invalid')
+        else:
+            db.execute('INSERT INTO charging_places (name,latitude,longitude,radius_m,rate,enabled,vehicle_id) '
+                       'VALUES (?,?,?,?,?,?,?)', (*values, enabled, vehicle_id))
+
+
+def assign_charging_place(charge_id, place_id):
+    import charging_places
+    with _conn_rw() as db:
+        row = db.execute('SELECT * FROM charges WHERE id=? AND vehicle_id=?',
+                         (charge_id, _current_vehicle_id())).fetchone()
+        if not row or not row['ended_at']:
+            raise ValueError('place_closed_only')
+        if row['merged_into_id'] or db.execute('SELECT 1 FROM charges WHERE merged_into_id=?', (charge_id,)).fetchone():
+            raise ValueError('place_unmerge_first')
+        if place_id:
+            place = db.execute('SELECT * FROM charging_places WHERE id=? AND vehicle_id=?',
+                               (place_id, row['vehicle_id'])).fetchone()
+            if not place:
+                raise ValueError('place_invalid')
+            charging_places.snapshot(db, charge_id, place, 'manual')
+            return _update_charge_type(db, charge_id, 'HOME',
+                                       _free=1 if row['location_type'] == 'FREE' else None)
+        db.execute('UPDATE charges SET charging_place_id=NULL, charging_place_name=NULL, '
+                   'charging_place_rate=NULL, charging_place_source=NULL WHERE id=?', (charge_id,))
+        return _update_charge_type(db, charge_id, row['location_type'])

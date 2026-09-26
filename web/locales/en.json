@@ -1271,7 +1271,25 @@
     "cloud_import_enabled": "Import trips from Leapmotor cloud",
     "cloud_import_help": "Adds trips that do not overlap local recordings. Disabling keeps previously imported trips. Cloud energy lookup remains available. Changes apply at the next history synchronization.",
     "cloud_import_save": "Save",
-    "cloud_import_saved": "Preference saved"
+    "cloud_import_saved": "Preference saved",
+    "places_title": "Charging places",
+    "places_help": "Private places with a fixed tariff per vehicle. Automatic matching applies only to new AC sessions with a recent GPS position and one matching zone. Editing a place does not change previous sessions.",
+    "places_estimate": "Without a measured charger energy total, cost is estimated from battery energy; charging losses are not measured.",
+    "place_add": "Add place",
+    "place_name": "Name",
+    "place_lat": "Latitude",
+    "place_lon": "Longitude",
+    "place_radius": "Radius (m)",
+    "place_rate": "Price / kWh",
+    "place_auto": "Automatic",
+    "place_map_hint": "Click the map or enter coordinates. Disable Automatic to keep a place available for manual assignment only.",
+    "places_totals": "Recorded spending by place (all time)",
+    "place_unpriced": "without cost",
+    "place_assign": "Charging place",
+    "place_none": "No place tariff",
+    "place_invalid": "Check the name, coordinates, radius (25–500 m) and price (0–100).",
+    "place_closed_only": "Assign a place after the session has ended.",
+    "place_unmerge_first": "Unmerge the charging sessions before changing their place."
   },
   "months": {
     "full": [

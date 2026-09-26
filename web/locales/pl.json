@@ -1271,7 +1271,25 @@
     "cloud_import_saved": "Preference saved",
     "cloud_import_save": "Save",
     "cloud_import_title": "Cloud trip history",
-    "cloud_import_enabled": "Import trips from Leapmotor cloud"
+    "cloud_import_enabled": "Import trips from Leapmotor cloud",
+    "places_title": "Miejsca ładowania",
+    "places_help": "Prywatne miejsca ze stałą taryfą dla pojazdu. Automatyczne przypisanie tylko dla nowych sesji AC z aktualnym GPS i jednym pasującym obszarem. Zmiany nie dotyczą wcześniejszych sesji.",
+    "places_estimate": "Bez pomiaru energii ładowarki koszt jest szacowany z energii baterii; straty ładowania nie są mierzone.",
+    "place_add": "Dodaj miejsce",
+    "place_name": "Nazwa",
+    "place_lat": "Szerokość",
+    "place_lon": "Długość",
+    "place_radius": "Promień (m)",
+    "place_rate": "Cena / kWh",
+    "place_auto": "Automatycznie",
+    "place_map_hint": "Kliknij mapę lub wpisz współrzędne. Wyłącz Automatycznie, aby przypisywać miejsce tylko ręcznie.",
+    "places_totals": "Zarejestrowane koszty według miejsca (cała historia)",
+    "place_unpriced": "bez kosztu",
+    "place_assign": "Miejsce ładowania",
+    "place_none": "Bez taryfy miejsca",
+    "place_invalid": "Sprawdź nazwę, współrzędne, promień (25–500 m) i cenę (0–100).",
+    "place_closed_only": "Przypisz miejsce po zakończeniu ładowania.",
+    "place_unmerge_first": "Rozdziel połączone sesje przed zmianą miejsca."
   },
   "months": {
     "full": [
