@@ -72,3 +72,60 @@ def test_a_frame_without_a_timestamp_is_dated_now():
     import time
     tlm = _tlm()
     assert abs(tlm["utc"] - time.time()) < 5
+
+
+# ── one frame, one point ─────────────────────────────────────────────────────
+# A sleeping car repeats one frame for hours, and Mate polled it every 30 s: the same point went
+# to ABRP over 2 000 times in a row, each arrival counted as fresh contact, so the car sat
+# "connected" in ABRP all night. A frame is sent once; the next one, when the car has said
+# something new.
+
+def test_the_same_frame_is_not_a_new_point():
+    vd = client._parse_signal("VIN", _sig(sts=1790423669401))
+    assert abrp.is_new_point("tok", vd, last_sent=abrp.NOTHING_SENT)
+    assert not abrp.is_new_point("tok", vd, last_sent=("tok", 1790423669401))
+
+
+def test_a_newer_frame_is():
+    vd = client._parse_signal("VIN", _sig(sts=1790423699401))
+    assert abrp.is_new_point("tok", vd, last_sent=("tok", 1790423669401))
+
+
+def test_a_frame_without_a_timestamp_cannot_be_told_apart_so_it_always_goes():
+    vd = client._parse_signal("VIN", _sig())
+    assert abrp.is_new_point("tok", vd, last_sent=abrp.NOTHING_SENT)
+    assert abrp.is_new_point("tok", vd, last_sent=("tok", 1790423669401))
+
+
+def test_a_token_that_has_not_had_the_frame_gets_it():
+    """The token is part of "sent": after a change in Settings the new ABRP vehicle has seen
+    nothing, and a sleeping car would otherwise leave it empty for hours."""
+    vd = client._parse_signal("VIN", _sig(sts=1790423669401))
+    assert abrp.is_new_point("B", vd, last_sent=("A", 1790423669401))
+
+
+# A frame counts as sent only once ABRP has taken it; a failed send leaves it for the next poll.
+
+class _Resp:
+    def __init__(self, body): self._b = body
+    def read(self): return self._b
+    def __enter__(self): return self
+    def __exit__(self, *a): return False
+
+
+def test_a_point_abrp_accepted_is_reported_as_sent(monkeypatch):
+    monkeypatch.setattr(abrp.urllib.request, "urlopen", lambda *a, **k: _Resp(b'{"status":"ok"}'))
+    assert abrp.send("tok", client._parse_signal("VIN", _sig())) is True
+
+
+def test_a_point_abrp_refused_is_not(monkeypatch):
+    monkeypatch.setattr(abrp.urllib.request, "urlopen",
+                        lambda *a, **k: _Resp(b'{"status":"error","errors":["bad token"]}'))
+    assert abrp.send("tok", client._parse_signal("VIN", _sig())) is False
+
+
+def test_a_point_that_never_reached_abrp_is_not(monkeypatch):
+    def _down(*a, **k):
+        raise OSError("connection refused")
+    monkeypatch.setattr(abrp.urllib.request, "urlopen", _down)
+    assert abrp.send("tok", client._parse_signal("VIN", _sig())) is False

@@ -767,7 +767,7 @@ class VehicleContext:
 
     __slots__ = ("vehicle", "vehicle_id", "vin", "recorder", "persisted_signs",
                  "empty_status_count", "poll_error_count", "research_last_sig",
-                 "interval", "next_due", "outside_sampler")
+                 "interval", "next_due", "outside_sampler", "abrp_last_sent")
 
     def __init__(self, db, vehicle, vehicle_id: int):
         self.vehicle = vehicle
@@ -782,6 +782,7 @@ class VehicleContext:
         self.poll_error_count = 0     # consecutive hard API errors (cloud unreachable)
         self.research_last_sig: dict = {}   # beta build: last value per signal id, for delta logging
         self.outside_sampler = OutsideTempSampler()   # live outside temp (Open-Meteo), cached per car
+        self.abrp_last_sent = abrp.NOTHING_SENT   # (token, frame ts) last taken by ABRP; a repeat is not a point
         self.interval = 30.0
         self.next_due = 0.0           # monotonic; 0 = due now, so the first round polls every car
 
@@ -943,8 +944,9 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
             # THIS car's token (#186). One token for two cars pushed both of them into the same ABRP
             # vehicle — two positions, two SoCs, interleaved. A car with no token sends nothing.
             _tok = db.get_abrp_token(data.vin)
-            if _tok:
-                abrp.send(_tok, data)
+            if _tok and abrp.is_new_point(_tok, data, ctx.abrp_last_sent):
+                if abrp.send(_tok, data):
+                    ctx.abrp_last_sent = (_tok, data.timestamp_ms)   # a failed send leaves it for the next poll
 
         # MQTT → Home Assistant bridge (opt-in, off by default)
         acct.mqtt_service = _mqtt_tick(db, client, data, acct.mqtt_service, ctx.vehicle,
