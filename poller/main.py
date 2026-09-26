@@ -606,9 +606,9 @@ def _mqtt_config_sig(db) -> tuple:
             db.get_setting("mqtt_tls_insecure"), db.get_setting("mqtt_discovery", "1"))
 
 
-def _mqtt_tick(db, client, data, service, vehicle=None, vehicle_id=None):
-    """Manage the MQTT bridge each poll cycle: (dis)connect on the enable flag,
-    then publish the current state. Returns the (possibly new/None) service."""
+def _mqtt_connect(db, client, service):
+    """The bridge as the settings want it right now: gone when disabled, rebuilt when its
+    configuration changed, otherwise the one already connected. Returns the service or None."""
     if db.get_setting("mqtt_enabled") != "1" or not db.get_setting("mqtt_broker"):
         if service:
             service.disconnect()
@@ -644,6 +644,15 @@ def _mqtt_tick(db, client, data, service, vehicle=None, vehicle_id=None):
         service.config_sig = sig
         service.on_command = lambda vin, cmd, val: _handle_mqtt_command(client, service, db, vin, cmd, val)
         service.on_collision = lambda other, other_beta, vin: _handle_mqtt_collision(db, other, other_beta, vin)
+    return service
+
+
+def _mqtt_tick(db, client, data, service, vehicle=None, vehicle_id=None):
+    """Manage the MQTT bridge each poll cycle: (dis)connect on the enable flag,
+    then publish the current state. Returns the (possibly new/None) service."""
+    service = _mqtt_connect(db, client, service)
+    if service is None:
+        return None
     try:
         # This CAR's model and declared abilities, not the install's. Discovery is keyed by VIN, so
         # two cars are two Home Assistant devices — gating both on one car's model would put
