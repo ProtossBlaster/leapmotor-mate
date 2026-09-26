@@ -829,6 +829,12 @@ class Database:
             (_now_iso(), vehicle_id, outcome, frame_age_s, None if reason is None else str(reason)[:200]))
         self._conn.commit()
 
+    def vehicle_vins(self) -> list:
+        """Every car registered so far, for what must be said about them before a login lets
+        the poller ask the cloud which cars there are."""
+        return [r["vin"] for r in self._conn.execute(
+            "SELECT vin FROM vehicles WHERE vin IS NOT NULL AND TRIM(vin) <> '' ORDER BY id").fetchall()]
+
     def prune_poll_log(self, retention_days: int = 7) -> int:
         cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
         cur = self._conn.execute("DELETE FROM poll_log WHERE at < ?", (cutoff,))
