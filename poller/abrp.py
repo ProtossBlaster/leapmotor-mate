@@ -11,12 +11,20 @@ import logging
 import time
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
 _API_URL = "https://api.iternio.com/1/tlm/send"
 _API_KEY = "6f6a554f-d8c8-4c72-8914-d5895f58b1eb"  # public shared telemetry key
 _TIMEOUT = 10
+
+
+@dataclass(frozen=True)
+class CarFacts:
+    """What Mate knows about the car from its own database rather than from the cloud frame:
+    the frame is the car's word, these are the install's. All optional; an absent one is not sent."""
+    capacity_kwh: float | None = None   # usable pack size, per vehicle (vehicles.capacity_kwh)
 
 
 NOTHING_SENT = ("", 0)   # the (token, frame timestamp) pair of a car that has not sent a point yet
@@ -29,11 +37,11 @@ def is_new_point(token: str, data, last_sent: tuple) -> bool:
     return not data.timestamp_ms or (token, data.timestamp_ms) != last_sent
 
 
-def send(token: str, data) -> bool:
+def send(token: str, data, facts: CarFacts | None = None) -> bool:
     """Send one telemetry frame to ABRP; True once ABRP has taken it. No‑op without a token."""
     if not token:
         return False
-    tlm = _build_tlm(data)
+    tlm = _build_tlm(data, facts)
     qs = urllib.parse.urlencode({
         "api_key": _API_KEY,
         "token": token,
@@ -51,8 +59,9 @@ def send(token: str, data) -> bool:
         return False
 
 
-def _build_tlm(data) -> dict:
-    """Map VehicleData → ABRP telemetry payload (null fields filtered out)."""
+def _build_tlm(data, facts: CarFacts | None = None) -> dict:
+    """Map VehicleData (+ CarFacts) → ABRP telemetry payload (null fields filtered out)."""
+    facts = facts or CarFacts()
     tlm = {
         # the time of the reading (a sleeping car repeats one frame for hours), not of the send
         "utc": data.timestamp_ms // 1000 if data.timestamp_ms else int(time.time()),

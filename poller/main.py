@@ -945,7 +945,7 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
             # vehicle — two positions, two SoCs, interleaved. A car with no token sends nothing.
             _tok = db.get_abrp_token(data.vin)
             if _tok and abrp.is_new_point(_tok, data, ctx.abrp_last_sent):
-                if abrp.send(_tok, data):
+                if abrp.send(_tok, data, abrp.CarFacts(capacity_kwh=db.get_battery_capacity(ctx.vehicle_id))):
                     ctx.abrp_last_sent = (_tok, data.timestamp_ms)   # a failed send leaves it for the next poll
 
         # MQTT → Home Assistant bridge (opt-in, off by default)
