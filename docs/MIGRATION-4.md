@@ -1,57 +1,53 @@
-# Migrazione a Mate 4.0.0-rc.1
+# Migrazione automatica a Mate 4
 
-Questa è una release candidata volontaria. MATE-API ha una versione indipendente;
-V3 identifica i comandi cloud. I comandi sono qualificati per B10: altre vetture
-non devono sostituire automaticamente una precedente installazione funzionante.
+MATE-API è la libreria indipendente; Mate è il prodotto Docker, add-on Home Assistant
+e Desktop che la usa. V3 indica la versione dei comandi cloud, non della libreria.
 
-## Docker e Home Assistant
+## Aggiornamento normale, nessuna procedura aggiuntiva
 
-Usano la stessa immagine e lo stesso codice. Per Docker scegliere esplicitamente
-il tag `4.0.0-rc.1` e un volume dati nominato. Per HA installare il candidato
-separato solo dopo aver fermato l'istanza che usa lo stesso account. Le release
-candidate non aggiornano `latest`, l'add-on stabile o quello beta esistente.
+La migrazione viene eseguita all'avvio dopo il normale aggiornamento di Mate. Non
+richiede importazione ZIP, inserimento di credenziali/PIN, cambio di add-on o
+reinstallazione del Desktop. Si riutilizzano database, chiave, certificati,
+configurazione, identità MQTT e modalità Beta/REEV dell'installazione.
 
-1. Fermare il vecchio Mate. Salvare l'intera directory dati e annotare immagine/tag.
-2. Conservare database, `secret.key`, certificati applicativi e account. Le copie
-   sono private: non caricarle su GitHub.
-3. Al primo avvio il candidato crea un backup SQLite coerente e copia chiave e
-   materiale locale in `migration-backups/mate-4.0.0`. Un errore interrompe la
-   migrazione; la seconda esecuzione riusa il backup completo. Conservare anche
-   il backup esterno del punto 1 per i dati dell'istanza precedente.
-4. Materiale applicativo già completo: mantenuto e validato. Per un'installazione
-   vuota fornire `MATE_APPLICATION_BUNDLE` (directory montata readonly) oppure
-   caricare dalla configurazione un ZIP contenente esattamente `certs/app.crt`,
-   `certs/app.key`, `api-v2-private/p12-parameters.json`. Nessun account, token o
-   storico può essere incluso nel pacchetto. Non è scaricato automaticamente da
-   repository terzi. Le release del sorgente non includono materiale privato.
-5. Completare login, selezione veicolo e PIN. Verificare letture, un viaggio e una
-   ricarica prima di considerare conclusa la migrazione operativa. La chiusura
-   accettata dal cloud non equivale a conferma fisica.
-6. Impostazioni → Storico viaggi cloud abilita l'importazione. Disattivarla mantiene
-   i dati precedenti e la raccolta cloud utilizzata per selezionare i consumi.
+Il software crea un backup SQLite coerente, verifica il nuovo client su una copia
+privata ed esegue solo autenticazione e letture cloud. La verifica dura al massimo
+15 secondi. I parametri comuni vengono dalla versione pubblica verificata del SDK,
+con hash, provenienza e licenza inclusi. Non vengono distribuiti certificati privati,
+token, credenziali o dati degli utenti.
 
-## Desktop
+Se la verifica riesce, vengono trasferite soltanto le impostazioni della nuova
+sessione; lo storico e le altre impostazioni non vengono sostituiti. Entrambi i
+processi usano la stessa decisione. Se la verifica fallisce, il normale Mate
+aggiornato mantiene automaticamente il client precedente, comprese le correzioni
+all'interfaccia e alla raccolta dati. Un errore di comando non provoca mai un
+secondo invio tramite l'altro client.
 
-Il codice `web/` e `poller/` comprende l'esatta copia della libreria indicata in
-`poller/vendor/mate-api.json`, con hash e licenza. Non richiede un pip install
-all'avvio. Utilizzare una shell compatibile e `--payload-tag v4.0.0-rc.1` per la
-prova volontaria. Gli aggiornamenti automatici continuano a scegliere release stabili.
-Il launcher mantiene il payload precedente per il ritorno; la cartella dati resta
-quella dell'utente. Windows richiede la shell con moduli di lock e protezione ACL.
+## Compatibilità dei modelli
 
-## Rollback
+Il nuovo percorso dei comandi è qualificato per B10. Account con altri modelli,
+compresi C10 REEV/T03, o account misti mantengono il client precedente finché i loro
+contratti non sono qualificati. Questa protezione è automatica e non chiede azioni
+all'utente. Un account trattenuto sul client precedente viene nuovamente verificato
+al successivo rilascio, non durante una sessione in corso.
 
-Fermare tutti i processi della versione candidata. Conservare una copia della
-cartella attuale per non perdere quanto raccolto durante la prova. Ripristinare
-insieme database, chiave e materiale dal backup precedente in una cartella separata;
-avviare l'immagine/payload precedente su quella cartella. Non sovrascrivere solo
-il database mantenendo una chiave diversa. Non avviare due istanze sullo stesso
-account o volume. Verificare integrità SQLite, login e storico prima del ritorno.
-I dati raccolti dopo il backup rimangono nella copia candidata e non sono fusi
-automaticamente nel database precedente.
+I comandi B10 sono stati provati fisicamente dall'operatore. Le prove automatiche
+non estendono questa qualifica fisica ad altri modelli e non recuperano dati GPS
+che il cloud o il vecchio client non hanno mai registrato.
 
-## Qualifica ancora esterna
+## Distribuzione e recupero
 
-Prove fisiche e sonno del veicolo, viaggio/ricarica reali, revoca lato emittente e
-supporto ad altri modelli richiedono evidenze specifiche. Il build/test nativo non
-certifica un'installazione su ogni computer o un HA Supervisor reale.
+Docker e gli add-on usano la stessa immagine; l'add-on esistente conserva slug e
+volume dati. Il canale Beta conserva la modalità di ricerca. Il Desktop scarica il
+payload attraverso il suo aggiornamento normale; il contratto è verificato anche
+sui binari Desktop 1.0 già pubblicati, senza richiedere una nuova shell.
+
+Il backup precedente resta in `migration-backups/mate-4.0.0`. Le generazioni dei
+certificati della sessione sono private e restano disponibili per i processi che
+le usano. Il recupero ordinario consiste nella selezione automatica del client
+precedente, senza ripristinare un vecchio database e perdere i dati più recenti.
+
+Le release candidate rimangono escluse dai canali stabili. La presenza di questo
+codice nel repository non significa che il canale stabile sia già stato promosso;
+la versione effettiva è indicata nelle release e nell'add-on. I test nativi non
+sostituiscono una prova su ogni hardware o su un Supervisor HA reale.

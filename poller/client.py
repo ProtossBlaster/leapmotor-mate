@@ -11,7 +11,7 @@ import os
 import re
 from dataclasses import dataclass
 
-from api_v2_bridge import NewAPIClient as LeapmotorApiClient
+from api_backend import LeapmotorApiClient
 
 import capability_profile
 

@@ -32,7 +32,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "4.0.0-rc.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "4.0.0-rc.2"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
@@ -6038,7 +6038,8 @@ async def setup_application_bundle(request: Request):
         return JSONResponse({"error": "Application bundle required"}, status_code=400)
     payload = await upload.read(MAX_BYTES + 1)
     try:
-        result = await run_in_threadpool(install_bundle, payload, Path(_DATA_CERT_DIR).parent)
+        from runtime_paths import paths
+        result = await run_in_threadpool(install_bundle, payload, paths().data)
     except Exception:
         return JSONResponse({"error": "Invalid application bundle; existing material preserved"}, status_code=400)
     command_client._session._reset()
@@ -6050,7 +6051,8 @@ async def cert_status_api():
     """Whether the app certificate is already available (wizard can skip the cert step)."""
     if os.environ.get("MATE_API_V2") == "1":
         from setup_readiness import readiness
-        return JSONResponse(readiness(_DATA_CERT_DIR))
+        from runtime_paths import paths
+        return JSONResponse(readiness(command_client.cert_dir(), parameters_directory=paths().data / 'api-v2-private'))
     return JSONResponse({"present": command_client.certs_present()})
 
 
@@ -6090,6 +6092,10 @@ async def setup_cert_api(request: Request):
     key_path = os.path.join(_DATA_CERT_DIR, "app.key")
     pending = (crt_path + ".new", key_path + ".new")
     try:
+        if os.environ.get("MATE_API_V2") == "1":
+            from migration_state import backup_before_migration
+            from runtime_paths import paths
+            await run_in_threadpool(backup_before_migration, paths().db)
         os.makedirs(_DATA_CERT_DIR, exist_ok=True)
         for path, pem in zip(pending, (crt, key)):
             with open(path, "w") as fh:
@@ -6106,6 +6112,14 @@ async def setup_cert_api(request: Request):
                 os.remove(path)
     if problem:
         return JSONResponse({"error": _CERT_REFUSALS[problem], "code": problem}, status_code=400)
+
+    if os.environ.get("MATE_API_V2") == "1":
+        from automatic_material import provision_automatic
+        from runtime_paths import paths
+        try:
+            await run_in_threadpool(provision_automatic, paths().data, certificate_directory=_DATA_CERT_DIR)
+        except Exception:
+            return JSONResponse({"error": "Application material could not be prepared"}, status_code=400)
 
     # Drop any half-built session so the next call picks up the new cert
     command_client._session._reset()

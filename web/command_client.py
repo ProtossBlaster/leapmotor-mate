@@ -7,7 +7,7 @@ import time
 import logging
 import threading
 
-from api_v2_bridge import NewAPIClient as LeapmotorApiClient
+from api_backend import LeapmotorApiClient
 
 log = logging.getLogger(__name__)
 

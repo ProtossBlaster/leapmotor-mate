@@ -1120,7 +1120,7 @@ def main():
 
     # Every car on the account is registered and gets its own context. `ensure_vehicle` is keyed by
     # VIN, so a car that has been here before keeps its id and its whole history.
-    from api_v2_bridge import NewAPIClient as LeapmotorApiClient
+    from api_backend import LeapmotorApiClient
     v = client._vehicle
     contexts = []
     for veh in (client._vehicles or [v]):

@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.0.0-rc.2] — 2026-09-26
+
+- Automatic application-profile provisioning using existing certificates and verified public parameters.
+- Bounded staged qualification; shared account-wide backend selection and automatic compatibility fallback.
+- Preserve credentials, PIN, history, MQTT identities and Beta/REEV; no command replay between backends.
+- Integrate PR313 OCM IDs, PR314 command UI fixes, PR318 telemetry/REEV corrections and PR319 ability-48 regression.
+- Native released Desktop 1.0 compatibility checks and Windows migration tests.
+
 ## [4.0.0-rc.1] — 2026-09-26
 
 ### Italiano
