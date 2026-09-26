@@ -6,7 +6,7 @@ pw=pytest.importorskip('playwright.sync_api')
 
 
 @pytest.mark.parametrize('width',[390,1100])
-def test_place_forms_and_manual_assignment_in_browser(store,width):
+def test_place_forms_and_manual_assignment_in_browser(store,width,tmp_path):
     import main
     import db_reader as W
     from starlette.testclient import TestClient
@@ -31,6 +31,11 @@ def test_place_forms_and_manual_assignment_in_browser(store,width):
         page.goto('http://mate.test/costs')
         page.locator('#charging-places summary').click()
         form=page.locator('#new-place')
+        page.locator('#charging-place-map').click(position={'x':100,'y':100})
+        assert form.locator('[name=latitude]').input_value()
+        assert form.locator('[name=longitude]').input_value()
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        page.screenshot(path=str(tmp_path/f'mate288-{width}.png'),full_page=True)
         form.locator('[name=name]').fill('Weekend house')
         form.locator('[name=latitude]').fill('46')
         form.locator('[name=longitude]').fill('9')

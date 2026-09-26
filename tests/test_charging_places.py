@@ -189,3 +189,13 @@ def test_free_charge_remains_free_when_a_place_is_assigned(store):
     W.assign_charging_place(cid,pid)
     assert row(store,cid)['cost']==0
     assert row(store,cid)['is_free']==1
+
+
+@pytest.mark.parametrize('group_field',['cost_manual','gross_kwh'])
+def test_group_total_does_not_mark_children_unpriced(store,group_field):
+    place(store)
+    parent=closed(store,cost=8,**{group_field:1})
+    closed(store,cost=None,merged_into_id=parent)
+    totals=W.charging_places_context()['charging_place_totals']
+    assert totals[0]['cost']==8
+    assert totals[0]['unpriced']==0

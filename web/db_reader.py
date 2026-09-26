@@ -10233,7 +10233,10 @@ def charging_places_context():
         'SELECT * FROM charging_places WHERE vehicle_id=? ORDER BY name,id', (vehicle_id,))]
     totals = [dict(r) for r in db.execute(
         'SELECT charging_place_name AS name, COUNT(*) AS sessions, SUM(cost) AS cost, '
-        'SUM(CASE WHEN cost IS NULL THEN 1 ELSE 0 END) AS unpriced '
+        'SUM(CASE WHEN cost IS NULL AND NOT EXISTS ('
+        'SELECT 1 FROM charges parent WHERE parent.id=charges.merged_into_id '
+        'AND parent.cost IS NOT NULL AND (parent.cost_manual=1 OR parent.gross_kwh>0)'
+        ') THEN 1 ELSE 0 END) AS unpriced '
         'FROM charges WHERE vehicle_id=? AND ended_at IS NOT NULL AND charging_place_id IS NOT NULL '
         'GROUP BY charging_place_id,charging_place_name ORDER BY name', (vehicle_id,))]
     return {'charging_places': places, 'charging_place_totals': totals, 'charging_place_vehicle_id': vehicle_id}
