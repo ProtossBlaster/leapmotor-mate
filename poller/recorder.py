@@ -161,13 +161,14 @@ class Recorder:
         # never mistaking driving discharge for regen.
         if self._sm.state == State.DRIVING and self._active_trip_id and not stale:
             self._db.add_trip_position(self._active_trip_id, data)
-            if not data.plug_connected and data.charge_current_a < -3.0:
+            if (not data.plug_connected and (data.charge_current_a or 0) < -3.0
+                    and data.charge_power_kw is not None):
                 self._regen_kwh += data.charge_power_kw * (self._sm.poll_driving / 3600)
 
         # During active charge: track peak power, and sum the wallbox counter's rises so the billed
         # energy is MEASURED (reset/race-proof). Both are persisted → survive a poller restart mid-charge.
         if self._sm.state == State.CHARGING and self._active_charge_id:
-            if data.charge_power_kw > self._max_charge_kw:
+            if data.charge_power_kw is not None and data.charge_power_kw > self._max_charge_kw:
                 self._max_charge_kw = data.charge_power_kw
                 self._db.update_charge_max_power(self._active_charge_id, self._max_charge_kw)
             if self._charge_at_wallbox:
@@ -184,7 +185,8 @@ class Recorder:
                     # throw away a wallbox total that was never wrong. The counter reading itself is
                     # NOT gated: it comes from Home Assistant, not from the cloud that went quiet.
                     car_kwh = (data.charge_power_kw * (self._sm.poll_interval / 3600)
-                               if not stale and data.charge_power_kw >= _WB_STUCK_MIN_KW else 0.0)
+                               if not stale and data.charge_power_kw is not None
+                               and data.charge_power_kw >= _WB_STUCK_MIN_KW else 0.0)
                     self._db.accumulate_wallbox_energy(self._active_charge_id, wb, car_kwh)
                     log.debug("Charge #%d: wallbox counter %.3f kWh", self._active_charge_id, wb)
                 else:

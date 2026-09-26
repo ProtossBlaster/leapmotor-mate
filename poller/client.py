@@ -11,7 +11,7 @@ import os
 import re
 from dataclasses import dataclass
 
-from api_v2_bridge import NewAPIClient as LeapmotorApiClient
+from api_backend import LeapmotorApiClient
 
 import capability_profile
 
@@ -29,7 +29,7 @@ class VehicleData:
     gear: str            # P R N D
     vehicle_state: str   # parked driving
     charging_status: int
-    charge_power_kw: float
+    charge_power_kw: float | None    # |I×V| from 1178/1177; None = no reading the car can vouch for
     latitude: float
     longitude: float
     outside_temp: float
@@ -47,8 +47,8 @@ class VehicleData:
     any_door_open: bool       # driver/passenger/rear doors or trunk
     plug_connected: bool      # cable inserted (signal 1149)
     remaining_charge_min: int # minutes to full (signal 1200), 0 when not charging
-    charge_voltage_v: float   # charging voltage (signal 1177)
-    charge_current_a: float   # charging current (signal 1178)
+    charge_voltage_v: float | None   # pack voltage (signal 1177); None = the car did not say
+    charge_current_a: float | None   # pack current (signal 1178), + discharge / − charge; None = not said
     is_reev: bool = False     # car reports a fuel tank (signal 3235) → range-extender model
     fuel_level_pct: float = None  # REEV fuel tank level % (signal 3235); None on a BEV
     # Litres actually in the tank — signal 3263, reported in MILLILITRES. Decoded by @gm27271
@@ -92,6 +92,7 @@ class VehicleData:
     # LATCHES at 1 for ~5-10 min after a charge, see _is_plugged_in), 2 = V2L bidirectional discharge
     # active. Verified on-car 2026-06-19: V2L switch ON + adapter → 47=2, battery discharging (1178>0).
     ac_port_mode: int = 0
+    dc_gun_connected: bool | None = None  # DC fast-charge gun inserted (signal 1197); None = not reported
 
     # Climate detail (read+write validated on-car 2026-06-20): fan level (signal 1941 acAirVolume,
     # 1-7; HOLDS the last level even when A/C is off), recirculation (signal 1943: 1=recirc/in,
@@ -465,7 +466,7 @@ class LeapmotorMateClient:
         self._api.close()
 
 
-# Numeric signal-id → T03 named-field map (verbatim from leapmotor-api 0.3.1's
+# Numeric signal-id → T03 named-field map (from leapmotor-api 0.3.1's
 # _SIGNAL_TO_NAMED). C10/B10 report these as numeric IDs inside `data["signal"]`;
 # the T03 / EU API reports the SAME data as these named fields at the top level of
 # `data`. We invert this to rebuild a numeric `signal` dict for the T03 so the shared
@@ -497,8 +498,11 @@ _SIGNAL_TO_NAMED = {
     "1695": "leftRearWindowStatus", "1696": "rightRearWindowStatus",
     "1298": "driverDoorLockStatus", "1277": "lbcmDriverDoorStatus", "1278": "rbcmDriverDoorStatus",
     "1279": "lbcmLeftRearDoorStatus", "1280": "rbcmRightRearDoorStatus", "1281": "bbcmBackDoorStatus",
-    "2667": "leftFrontTirePressure", "2653": "rightFrontTirePressure",
-    "2646": "leftRearTirePressure", "2660": "rightRearTirePressure",
+    # Tyre pressures: the library documents 2667 as the left front, but on the car 2646 is
+    # (_parse_signal reads FL=2646, FR=2653, RL=2660, RR=2667), so each named field goes
+    # under the id the parser reads for that wheel.
+    "2646": "leftFrontTirePressure", "2653": "rightFrontTirePressure",
+    "2660": "leftRearTirePressure", "2667": "rightRearTirePressure",
     "2641": "leftFrontTirePressureState", "2648": "rightFrontTirePressureState",
     "2655": "leftRearTirePressureState", "2662": "rightRearTirePressureState",
     "1256": "bcmKeyPositionOn1", "1257": "bcmKeyPositionOn2", "1258": "bcmKeyPositionOn3",
@@ -807,17 +811,20 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
     # to the web today (the windows_pct gate is never marked broken) and the B10 is safe because it
     # sends no % signals. window_open_states returns [FL, FR, RL, RR].
     win_states = capability_profile.window_open_states(sig, bool(vin))
+    dc_gun = _si(sig, "1197")   # None when absent or unreadable — the cloud has sent "" before
+    fuel_pct = _sf(sig, "3235")
+    fuel_ml = _sf(sig, "3263")
 
     return VehicleData(
         vin=vin,
         timestamp_ms=int(sig.get("sts") or sig.get("1") or 0),
         soc=float(sig.get("100003") or sig.get("1204") or 0),
         range_km=float(sig.get("3260") or 0),
-        is_reev=(sig.get("3235") is not None),   # fuel level present → range-extender variant
-        fuel_level_pct=(float(sig["3235"]) if sig.get("3235") is not None else None),  # REEV tank %
-        fuel_liters=(float(sig["3263"]) / 1000.0 if sig.get("3263") is not None else None),  # 3263 = mL
-        fuel_range_km=(float(sig["3259"]) if sig.get("3259") is not None else None),       # REEV fuel range
-        combined_range_km=(float(sig["3261"]) if sig.get("3261") is not None else None),   # REEV total range
+        is_reev=(sig.get("3235") is not None),   # fuel level FIELD present → range-extender variant
+        fuel_level_pct=fuel_pct,                                        # REEV tank %
+        fuel_liters=(fuel_ml / 1000.0 if fuel_ml is not None else None),  # 3263 = mL
+        fuel_range_km=_sf(sig, "3259"),                                 # REEV fuel range
+        combined_range_km=_sf(sig, "3261"),                             # REEV total range
         odometer_km=float(sig.get("1318") or 0),
         speed_kmh=speed_kmh,
         gear=gear,
@@ -850,8 +857,8 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         climate_defrost=int(sig.get("1945") or 0) == 2,
         fan_level=int(sig.get("1941") or 0),                        # 1941 acAirVolume: fan level 1-7
         recirculation=int(sig.get("1943") or 0) == 1,              # 1943: 1=recirc(in) / 0=fresh(out)
-        climate_mode=int(sig["3713"]) if sig.get("3713") is not None else None,  # 3713: 0 auto/1 cool/3 heat/4 vent
-        climate_power=int(sig["1348"]) if sig.get("1348") is not None else None,  # 1348 PTC power (W)
+        climate_mode=_si(sig, "3713"),    # 3713: 0 auto/1 cool/3 heat/4 vent
+        climate_power=_si(sig, "1348"),   # 1348 PTC power (W)
         trunk_open=int(sig.get("1281") or 0) != 0,
         windows_open=any(bool(w) for w in win_states),
         sunshade_open=int(sig.get("1724") or 0) != 0,
@@ -860,10 +867,11 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
             for k in ("1277", "1278", "1279", "1280", "1281")
         ),
         plug_connected=_is_plugged_in(sig),
+        dc_gun_connected=None if dc_gun is None else dc_gun != 0,
         charge_deferred=_is_deferred_charge(sig),
         remaining_charge_min=int(sig.get("1200") or 0),
-        charge_voltage_v=float(sig.get("1177") or 0),
-        charge_current_a=float(sig.get("1178") or 0),
+        charge_voltage_v=_sf(sig, "1177"),   # absent is None, not 0 V (same rule as the temperatures)
+        charge_current_a=_sf(sig, "1178"),
         ac_port_mode=int(sig.get("47") or 0),    # 47 acInputSlowCharge: 0 idle / 1 AC charge / 2 V2L
         seat_heat_driver=int(sig.get("2100") or 0),
         seat_heat_passenger=int(sig.get("2118") or 0),
@@ -888,8 +896,9 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         # LR=2646/RR=2660, but that's WRONG: cross-checked on TWO real B10s against the official
         # app's per-wheel view — the #32 reporter's UK car AND Silvio's IT car, both with the
         # 280-kPa wheel at the REAR-RIGHT — the true order is the ascending-id one:
-        # 2646=FL, 2653=FR, 2660=RL, 2667=RR. (State signals pair the same way:
-        # FL=2655, FR=2648, RL=2662, RR=2641 — see _parse_vehicle_status.)
+        # 2646=FL, 2653=FR, 2660=RL, 2667=RR. (The alarm flags do not move with them: leapmotor-api,
+        # leapmotor-ha and ioBroker all pair them as 2641=FL, 2648=FR, 2655=RL, 2662=RR — see the
+        # web's _parse_vehicle_status.)
         tire_fl_bar=round(float(sig.get("2646") or 0) / 100.0, 2),
         tire_fr_bar=round(float(sig.get("2653") or 0) / 100.0, 2),
         tire_rl_bar=round(float(sig.get("2660") or 0) / 100.0, 2),

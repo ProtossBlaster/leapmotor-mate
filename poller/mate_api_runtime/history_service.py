@@ -8,7 +8,7 @@ _guard = threading.Lock()
 
 def start_history_worker():
     global _thread
-    if os.environ.get('MATE_DEMO', '').lower() in ('1', 'true'):
+    if os.environ.get('MATE_API_V2') == '0' or os.environ.get('MATE_DEMO', '').lower() in ('1', 'true'):
         return
     with _guard:
         if _thread is not None and _thread.is_alive():

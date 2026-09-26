@@ -139,7 +139,9 @@
 {% endmacro %}
 
 
-<div id="cmd-grid" class="flex flex-col lg:flex-row gap-4 lg:items-start">
+{# Which car this grid draws: the picker moves the whole interface, and a page left open on another car
+   gets this car's grid at its next refetch (the steering slider's hold in commands.html asks). #}
+<div id="cmd-grid" data-vin="{{ vin or '' }}" class="flex flex-col lg:flex-row gap-4 lg:items-start">
   <!-- LEFT column: main control panels (Vehicle + Climate) -->
   <div class="flex flex-col gap-4 flex-1 min-w-0">
 
@@ -346,6 +348,8 @@
           {% else %}text-slate-400 bg-slate-700 border border-slate-600{% endif %}">
           {% if c.on %}{{ t('climate_on_state') }}{% if c.value > 1 and c.control != 'toggle' %} · {{ c.value }}{% endif %}{% else %}{{ t('climate_off_state') }}{% endif %}
         </span>
+        {# Under the badge, not under the slider: the note tells what the car reports, as the badge does. #}
+        {% if c.remote %}<div class="text-[10px] text-slate-400 leading-tight">{{ t('comfort_steering_heat_remote') }}</div>{% endif %}
         {% if c.control == 'slider' %}
         <div class="w-full mt-auto">
           <input type="range" min="0" max="3" step="1" value="{{ c.value }}" name="level"
@@ -355,6 +359,26 @@
                  oninput="document.getElementById('sm-{{ c.func }}-{{ c.position }}').textContent=(this.value==0?'{{ t('lvl_off') }}':('{{ t('lvl_abbr') }} '+this.value))">
           <div class="flex items-center justify-between text-[9px] text-slate-500 px-0.5"><span>{{ t('lvl_off') }}</span><span>1</span><span>2</span><span>3</span></div>
           <div class="text-[10px] text-slate-400 mt-0.5"><span id="sm-{{ c.func }}-{{ c.position }}">{{ t('lvl_off') if c.value == 0 else (t('lvl_abbr') ~ ' ' ~ c.value) }}</span> <span id="sr-{{ c.func }}-{{ c.position }}" class="text-emerald-400"></span></div>
+        </div>
+        {% elif c.control == 'steering' %}
+        {# The seat slider's twin, but it posts the existing on/off commands: the position picks which.
+           1 is shown when the car reports it and never chosen (steerLevel in commands.html). No id, like
+           the seats': htmx refocuses a same-id element after each swap, and focus holds off the 30 s refresh. #}
+        <div class="w-full mt-auto">
+          {# hx-sync: a change while this slider's own command is still out is dropped. Queued (htmx's default)
+             it would go out once the answer is in — as a repeat of the command after an error, when the page
+             has no busy floor to refuse it.
+             The endpoint follows the thumb only when a move of the thumb (a change event) sends the request:
+             the layout's "Try again" replays a failed request from this element without one, and by then the
+             thumb is back on the car's level. #}
+          <input type="range" min="0" max="2" step="1" value="{{ c.value }}" aria-label="{{ t(c.label_key) }}"
+                 hx-post="api/command/{{ c.cmd_on }}" hx-trigger="change" hx-sync="this:drop"
+                 hx-on::config-request="if (event.detail.triggeringEvent && this.value == 0) event.detail.path = 'api/command/{{ c.cmd_off }}'"
+                 hx-target="#tg-{{ c.skey }}" hx-swap="innerHTML"
+                 class="w-full cursor-pointer accent-orange-400"
+                 oninput="steerLevel(this)">
+          <div class="flex items-center justify-between text-[9px] text-slate-500 px-0.5"><span>{{ t('lvl_off') }}</span><span{% if c.value != 1 %} class="opacity-40"{% endif %}>1</span><span>2</span></div>
+          <div class="text-[10px] text-slate-400 mt-0.5 min-h-[14px] leading-tight"><span id="sm-{{ c.skey }}">{{ t('lvl_off') if c.value == 0 else (t('lvl_abbr') ~ ' ' ~ c.value) }}</span> <span id="spin-{{ c.skey }}" class="htmx-indicator text-brand text-xs">⏳</span><span id="tg-{{ c.skey }}" class="text-emerald-400"></span></div>
         </div>
         {% elif c.control == 'toggle' %}
         <form class="w-full mt-auto" hx-post="api/command/{{ c.cmd_off if c.on else c.cmd_on }}"

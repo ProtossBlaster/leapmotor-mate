@@ -10,8 +10,8 @@ the ground truth for what THIS model supports), via a whitelist COMMAND_ABILITY.
 any car that doesn't declare the code hides the button, present and future models alike.
 
 Pinned here, on real declared-ability sets from diagnostics bundles:
-- T03 (chengler, #142): [...] no 53  → hidden
-- B10 (Wartopia, #128):  [...] has 53 → shown
+- T03 (chengler, #142): [...] no 48  → hidden
+- B10 (Wartopia, #128):  [...] has 48 → shown
 And the crucial NON-regression: climate stays OUT of ability gating. The T03 omits AC_ON (code 6)
 yet cools (#67), so gating A/C on the ability would wrongly hide it — command_shown must not.
 """
@@ -28,9 +28,9 @@ def synthetic_owner_binding(monkeypatch):
 
 
 # Real declared-ability code sets, straight from the diagnostics bundles.
-T03_ABILITIES = [1, 2, 3, 5, 7, 10, 11, 14, 15, 17, 18, 20, 30, 31, 34, 35, 36, 52, 61]        # no 53, no 6
+T03_ABILITIES = [1, 2, 3, 5, 7, 10, 11, 14, 15, 17, 18, 20, 30, 31, 34, 35, 36, 52, 61]        # no 48, no 6
 B10_ABILITIES = [1, 2, 3, 5, 6, 7, 10, 11, 12, 13, 14, 15, 19, 20, 21, 23, 24, 29, 30, 31,
-                 32, 34, 35, 38, 42, 43, 47, 48, 51, 52, 53, 57, 59, 60, 61, 69, 70]           # has 53 and 6
+                 32, 34, 35, 38, 42, 43, 47, 48, 51, 52, 53, 57, 59, 60, 61, 69, 70]           # has 48 and 6
 
 
 # ── the gate itself ──────────────────────────────────────────────────────────
@@ -38,6 +38,7 @@ B10_ABILITIES = [1, 2, 3, 5, 6, 7, 10, 11, 12, 13, 14, 15, 19, 20, 21, 23, 24, 2
 def test_unlock_charge_cable_hidden_on_t03():
     """The crux of #142: the T03 doesn't declare code 48, so the button must be hidden."""
     assert cp.ability_supported("unlock_charger", T03_ABILITIES) is False
+
 
 
 def test_unlock_charge_cable_shown_on_b10():
@@ -71,6 +72,8 @@ def test_ability_gate_is_model_blind():
     """No per-model table: a hypothetical future car that omits 48 hides the button too."""
     assert cp.ability_supported("unlock_charger", [1, 2, 3]) is False
     assert cp.command_shown("VIN", "unlock_charger", abilities=[48]) is True
+    assert cp.ability_supported("unlock_charger", [53]) is False
+
 
 
 # ── parse_abilities (shared normaliser) ──────────────────────────────────────
@@ -95,7 +98,7 @@ def test_poller_get_abilities_roundtrip(tmp_path):
     db = D.Database(str(tmp_path / "t.db"))
     db.ensure_vehicle("VINT03", "T03", abilities=T03_ABILITIES)
     got = db.get_abilities()
-    assert got is not None and 53 not in got and 34 in got
+    assert got is not None and 48 not in got and 34 in got
 
 
 def test_poller_get_abilities_none_when_absent(tmp_path):

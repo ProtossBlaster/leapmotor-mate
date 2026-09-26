@@ -96,7 +96,7 @@ def _windows_directory(path, *, protect, directory=True):
         if not advapi.ConvertSidToStringSidW(sid, ctypes.byref(sid_text)):
             raise OSError('Private directory protection unavailable')
         if protect:
-            sddl = 'D:P(A;OICI;FA;;;' + sid_text.value + ')'
+            sddl = 'D:P(A;' + ('OICI' if directory else '') + ';FA;;;' + sid_text.value + ')'
             if not advapi.ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl, 1, ctypes.byref(descriptor), None):
                 raise OSError('Private directory protection unavailable')
             if not advapi.SetFileSecurityW(str(path), 0x80000004, descriptor):

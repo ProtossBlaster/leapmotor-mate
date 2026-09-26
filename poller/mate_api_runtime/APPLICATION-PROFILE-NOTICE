@@ -1,0 +1,15 @@
+Application PKCS#12 derivation profile
+
+Source: leapmotor-api 0.3.1, https://github.com/markoceri/leapmotor-api
+Public distribution: https://files.pythonhosted.org/packages/d2/b2/2294926ef67a18eee31aadcac5cb4baafdc322265985c5e0762e89e53cee/leapmotor_api-0.3.1-py3-none-any.whl
+PyPI metadata: https://pypi.org/pypi/leapmotor-api/0.3.1/json
+Wheel SHA-256: a965f8790a7c3e4136b4821bbb8fc93d852ab6f571367ad2b991cbfee9d5b54c
+Source leapmotor_api/crypto.py SHA-256: 3590cf38b52e5a46f33fa2e0ff368473e8aa1e97ec257e30c31645d4f1799409
+application_profile.json SHA-256: c856adee9057ae48893e6dd65fdc7fe9bb5f5956bdfb64d90a3daa2ec2b053f6
+License: AGPL-3.0-or-later; full license in APPLICATION-PROFILE-LICENSE.
+
+The two public constants _P12_SM4_ROUND_KEYS and _SM4_SBOX are converted
+without modification from Python tuples to JSON round_keys and sbox arrays.
+No account identifiers, passwords, certificates, private keys, sessions or
+private operator profile contents are included. This is application protocol
+material distributed in the cited public source, not per-account material.

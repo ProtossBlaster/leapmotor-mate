@@ -69,6 +69,7 @@ def web(tmp_path, monkeypatch):
     """The web app with its certificate directory pointed at an empty folder."""
     for var in ("MATE_AUTH_PASSWORD", "SUPERVISOR_TOKEN", "HASSIO_TOKEN"):
         monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "mate.db"))
     data = tmp_path / "certs"
     monkeypatch.setattr(main, "_DATA_CERT_DIR", str(data))
     monkeypatch.setattr(command_client, "_DATA_CERT_DIR", str(data))
@@ -93,7 +94,7 @@ def test_a_good_pair_is_saved_and_the_wizard_counts_it_as_present(web):
     response = _paste(client, CRT, KEY_PEM)
     assert response.status_code == 200, response.text
     assert (data / "app.crt").exists() and (data / "app.key").exists()
-    assert client.get("/api/setup/cert-status").json()["state"] == "application_parameters_required"
+    assert client.get("/api/setup/cert-status").json()["state"] == "ready"
 
 
 def test_a_web_page_saved_in_place_of_the_certificate_is_refused(web):
@@ -152,7 +153,7 @@ def test_a_windows_file_is_accepted(web):
         "crt_file": ("app.crt", ("﻿" + CRT.replace("\n", "\r\n")).encode(), "application/x-x509-ca-cert"),
         "key_file": ("app.key", ("﻿" + KEY_PEM.replace("\n", "\r\n")).encode(), "application/octet-stream")})
     assert response.status_code == 200, response.text
-    assert client.get("/api/setup/cert-status").json()["state"] == "application_parameters_required"
+    assert client.get("/api/setup/cert-status").json()["state"] == "ready"
 
 
 def test_the_wizard_offers_the_certificate_step_again_when_the_saved_one_cannot_be_read(web):

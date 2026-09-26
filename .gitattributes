@@ -1,2 +1,5 @@
 # Preserve the exact upstream bytes used by the vendored integrity manifest.
 poller/vendor/** text eol=lf
+
+# The automatic profile is checksum-pinned on every platform.
+poller/mate_api_runtime/application_profile.json text eol=lf

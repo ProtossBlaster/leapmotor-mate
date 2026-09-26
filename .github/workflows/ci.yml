@@ -17,7 +17,9 @@ jobs:
       - name: Install test deps
         # Exercise the same dependency sets as production. httpx is test-only: Starlette's
         # TestClient needs it for the live middleware/API regression tests.
-        run: pip install pytest httpx -r poller/requirements.txt -r web/requirements.txt
+        run: pip install pytest httpx playwright -r poller/requirements.txt -r web/requirements.txt
+      - name: Install browser for command UI regressions
+        run: python -m playwright install --with-deps chromium
       - name: Run tests
         run: pytest -q
 
@@ -63,4 +65,4 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pytest httpx -r poller/requirements.txt -r web/requirements.txt
-      - run: python -m pytest -q tests/test_mate_api_migration.py tests/test_private_material_portability.py tests/test_application_bundle.py tests/test_cloud_access_env.py
+      - run: python -m pytest -q tests/test_mate_api_migration.py tests/test_private_material_portability.py tests/test_application_bundle.py tests/test_cloud_access_env.py tests/test_automatic_material.py tests/test_migration_activation.py tests/test_migration_activation_multiprocess.py tests/test_migration_preflight.py tests/test_startup_api_backend.py
