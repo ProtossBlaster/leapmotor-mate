@@ -473,7 +473,8 @@ class MqttService:
             ("range", "Range", {"unit": "km", "icon": "mdi:map-marker-distance"}),
             ("odometer", "Odometer", {"dc": "distance", "unit": "km", "icon": "mdi:counter"}),
             ("speed", "Speed", {"dc": "speed", "unit": "km/h"}),
-            ("charge_power", "Charge Power", {"dc": "power", "unit": "kW"}),
+            # Empty-to-none like the current and voltage below: a power the car cannot vouch for is ""
+            ("charge_power", "Charge Power", {"dc": "power", "unit": "kW", "tpl": _EMPTY_NONE}),
             # Empty-to-none like climate_power below: a frame without 1177/1178 is published as ""
             ("charge_voltage", "Charge Voltage", {"dc": "voltage", "unit": "V", "tpl": _EMPTY_NONE}),
             ("charge_current", "Charge Current", {"dc": "current", "unit": "A", "tpl": _EMPTY_NONE}),

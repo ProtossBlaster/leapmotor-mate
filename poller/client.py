@@ -28,7 +28,7 @@ class VehicleData:
     gear: str            # P R N D
     vehicle_state: str   # parked driving
     charging_status: int
-    charge_power_kw: float
+    charge_power_kw: float | None    # |I×V| from 1178/1177; None = no reading the car can vouch for
     latitude: float
     longitude: float
     outside_temp: float
