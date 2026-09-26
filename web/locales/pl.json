@@ -534,6 +534,7 @@
     "ago_s": "{n}s temu",
     "ago_m": "{n} min temu",
     "ago_h": "{n} godz. temu",
+    "ago_d": "{n} dn. temu",
     "data_age": "dane sprzed {age}",
     "data_age_hint": "Samochód nie łączy się z chmurą: widzisz ostatnią ramkę, którą chmura otrzymała, a nie stan bieżący.",
     "cmd_timeout_car": "Wysłano — samochód nie potwierdził w czasie (słaby sygnał lub śpi). Może jednak zadziałało; spróbuj ponownie za chwilę.",

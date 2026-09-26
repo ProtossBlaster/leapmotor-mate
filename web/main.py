@@ -464,7 +464,9 @@ def _ago(t, seconds) -> str:
         return t("ago_s").format(n=s)
     if s < 3600:
         return t("ago_m").format(n=s // 60)
-    return t("ago_h").format(n=s // 3600)
+    if s < 86400:
+        return t("ago_h").format(n=s // 3600)
+    return t("ago_d").format(n=s // 86400)
 
 
 def _last_position(status, t) -> dict:

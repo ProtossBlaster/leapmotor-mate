@@ -534,6 +534,7 @@
     "ago_s": "{n}s ago",
     "ago_m": "{n}m ago",
     "ago_h": "{n}h ago",
+    "ago_d": "{n}d ago",
     "data_age": "data {age} old",
     "data_age_hint": "The car isn’t reaching the cloud: what you see is the last frame the cloud received, not the car right now.",
     "cmd_timeout_car": "Sent — the car didn't confirm in time (weak signal or asleep). It may still have worked; try again shortly.",
