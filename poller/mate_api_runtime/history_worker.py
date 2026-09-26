@@ -65,12 +65,13 @@ def _reader(api):
     return _Reader(api)
 
 
-def _client(username, password, device):
+def _client(username, password, device, on_login=None):
     """The client this installation selected for commands, holding its live session.
 
     On a retained account the previous client is shared through `session_share`, so the
     worker reuses the poller's token instead of knocking on the login endpoint the cloud
-    started rationing on 17/09/2026.
+    started rationing on 17/09/2026. A login it does spend is told to `on_login`, like the
+    poller's own.
     """
     certs = Path(DB).parent / 'certs'
     if os.environ.get('MATE_API_V2') == '0':
@@ -81,13 +82,16 @@ def _client(username, password, device):
                                  app_key_path=str(certs / 'app.key'),
                                  language='en-US', device_id=device)
         session_share.install(api)
+        api.on_login = on_login
         return api
-    return NewAPIClient(username=username, password=password, device_id=device,
-                        app_cert_path=str(certs / 'app.crt'),
-                        app_key_path=str(certs / 'app.key'), language='en-US')
+    api = NewAPIClient(username=username, password=password, device_id=device,
+                       app_cert_path=str(certs / 'app.crt'),
+                       app_key_path=str(certs / 'app.key'), language='en-US')
+    api.on_login = on_login
+    return api
 
 
-def sync_once():
+def sync_once(on_login=None):
     with connect_db() as db:
         if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='settings'").fetchone():
             return
@@ -103,7 +107,7 @@ def sync_once():
             set_setting(db,'mate_device_id',device)
         local_vins={row[0] for row in db.execute('SELECT vin FROM vehicles')}
     if not username or not password or not local_vins:return
-    api=_client(username,password,device)
+    api=_client(username,password,device,on_login)
     reader=_reader(api)
     # Persisted cars survive account changes; only current authenticated bindings
     # may authorize a cloud read. New cars wait until the poller registers them.

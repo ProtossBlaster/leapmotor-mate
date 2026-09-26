@@ -43,13 +43,16 @@ def frame(ts_ms, vin=VIN):
 
 
 class Client:
-    """A cloud told what to do on the next poll: return a frame, or raise."""
+    """A cloud told what to do on the next poll: return a frame, or raise. `on_login` is what the
+    real backend calls from its one authentication point; here a re-login calls it when it
+    `relogin_authenticates` (False = a token refresh held, or the bridge put the attempt off)."""
 
-    def __init__(self):
+    def __init__(self, on_login=None):
         self.next = None
+        self.on_login = on_login
         self.relogin_raises = None
         self.relogin_calls = 0
-        self.relogin_authenticates = True   # False = a token refresh held, no login spent
+        self.relogin_authenticates = True
 
     def get_status(self, vehicle=None):
         if isinstance(self.next, Exception):
@@ -58,15 +61,17 @@ class Client:
 
     def relogin(self):
         self.relogin_calls += 1
+        if self.relogin_authenticates and self.on_login:
+            self.on_login(self.relogin_raises)
         if self.relogin_raises:
             raise self.relogin_raises
-        return self.relogin_authenticates
 
 
 def make_poll(PM, tmp_path, monkeypatch):
     """`_poll_vehicle` on a fixed clock, with everything that is not the poll stubbed out.
     Returns `run(what, advance=0)`; the database, client, account and vehicle id hang off it."""
-    db = D.Database(str(tmp_path / "poll.db"))
+    path = str(tmp_path / "poll.db")
+    db = D.Database(path)
     vid = db.ensure_vehicle(VIN, "B10")
     clock = {"t": NOW}
     monkeypatch.setattr(PM.time, "time", lambda: clock["t"])
@@ -81,7 +86,7 @@ def make_poll(PM, tmp_path, monkeypatch):
 
     ctx = PM.VehicleContext(db, _Vehicle(), vid)
     acct = PM.AccountState()
-    client = Client()
+    client = Client(on_login=lambda exc: PM._note_login(path, exc))
 
     def run(what, advance=0.0):
         clock["t"] += advance
@@ -98,21 +103,27 @@ class Stop(BaseException):
 
 
 class RefusingClient:
-    """A cloud that refuses the first `refusals` logins, then lets the test stop the process —
-    or, with `then`, answers the next login with that (True = authenticated, False = resumed)."""
+    """A cloud that refuses the first `refusals` logins — or fails them with `error` — then lets
+    the test stop the process, or, with `then`, lets the next login through (True =
+    authenticated, False = resumed). Built by main() with the listener the real client would
+    hand its backend."""
 
-    def __init__(self, refusals, then=None):
+    def __init__(self, refusals, then=None, error=None, on_login=None):
         self.refusals = refusals
         self.then = then
+        self.error = error or RuntimeError("Leapmotor login failed: Error occurred")
+        self.on_login = on_login
         self.attempts = 0
 
     def login(self):
         self.attempts += 1
         if self.attempts <= self.refusals:
-            raise RuntimeError("Leapmotor login failed: Error occurred")
+            self.on_login(self.error)
+            raise self.error
         if self.then is None:
             raise Stop
-        return self.then
+        if self.then:
+            self.on_login(None)
 
     @property
     def _vehicle(self):
@@ -121,13 +132,17 @@ class RefusingClient:
 
 def make_startup(PM, tmp_path, monkeypatch):
     """`main()` up to and including the startup login, on a clock its own sleeps advance.
-    Returns `run(refusals)` → (client, database, clock at the stop)."""
+    Returns `run(refusals, then=None, error=None)` → (client, database, clock at the stop)."""
     path = str(tmp_path / "beat.db")
     monkeypatch.setenv("DB_PATH", path)
 
-    def run(refusals, then=None):
-        client = RefusingClient(refusals, then)
-        monkeypatch.setattr(PM, "LeapmotorMateClient", lambda **kw: client)
+    def run(refusals, then=None, error=None):
+        client = RefusingClient(refusals, then, error)
+
+        def _build(**kw):
+            client.on_login = kw["on_login"]
+            return client
+        monkeypatch.setattr(PM, "LeapmotorMateClient", _build)
         clock = {"t": NOW}
         monkeypatch.setattr(PM.time, "time", lambda: clock["t"])
         monkeypatch.setattr(PM.time, "sleep", lambda s: clock.__setitem__("t", clock["t"] + s))
