@@ -809,17 +809,19 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
     # to the web today (the windows_pct gate is never marked broken) and the B10 is safe because it
     # sends no % signals. window_open_states returns [FL, FR, RL, RR].
     win_states = capability_profile.window_open_states(sig, bool(vin))
+    fuel_pct = _sf(sig, "3235")
+    fuel_ml = _sf(sig, "3263")
 
     return VehicleData(
         vin=vin,
         timestamp_ms=int(sig.get("sts") or sig.get("1") or 0),
         soc=float(sig.get("100003") or sig.get("1204") or 0),
         range_km=float(sig.get("3260") or 0),
-        is_reev=(sig.get("3235") is not None),   # fuel level present → range-extender variant
-        fuel_level_pct=(float(sig["3235"]) if sig.get("3235") is not None else None),  # REEV tank %
-        fuel_liters=(float(sig["3263"]) / 1000.0 if sig.get("3263") is not None else None),  # 3263 = mL
-        fuel_range_km=(float(sig["3259"]) if sig.get("3259") is not None else None),       # REEV fuel range
-        combined_range_km=(float(sig["3261"]) if sig.get("3261") is not None else None),   # REEV total range
+        is_reev=(sig.get("3235") is not None),   # fuel level FIELD present → range-extender variant
+        fuel_level_pct=fuel_pct,                                        # REEV tank %
+        fuel_liters=(fuel_ml / 1000.0 if fuel_ml is not None else None),  # 3263 = mL
+        fuel_range_km=_sf(sig, "3259"),                                 # REEV fuel range
+        combined_range_km=_sf(sig, "3261"),                             # REEV total range
         odometer_km=float(sig.get("1318") or 0),
         speed_kmh=speed_kmh,
         gear=gear,
@@ -852,8 +854,8 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         climate_defrost=int(sig.get("1945") or 0) == 2,
         fan_level=int(sig.get("1941") or 0),                        # 1941 acAirVolume: fan level 1-7
         recirculation=int(sig.get("1943") or 0) == 1,              # 1943: 1=recirc(in) / 0=fresh(out)
-        climate_mode=int(sig["3713"]) if sig.get("3713") is not None else None,  # 3713: 0 auto/1 cool/3 heat/4 vent
-        climate_power=int(sig["1348"]) if sig.get("1348") is not None else None,  # 1348 PTC power (W)
+        climate_mode=_si(sig, "3713"),    # 3713: 0 auto/1 cool/3 heat/4 vent
+        climate_power=_si(sig, "1348"),   # 1348 PTC power (W)
         trunk_open=int(sig.get("1281") or 0) != 0,
         windows_open=any(bool(w) for w in win_states),
         sunshade_open=int(sig.get("1724") or 0) != 0,
