@@ -4107,6 +4107,100 @@ def _link_details(status, now: float, beat: float, link: dict, vid) -> dict:
     }
 
 
+POLL_WINDOW_S = 300
+# What wins a window: a failure anywhere in it (what stops the data matters more than what got
+# through beside it); otherwise the best frame that arrived — one current frame means the link
+# worked, however many re-served ones came with it.
+_POLL_RANK = {"gap": 0, "old": 1, "noclock": 2, "current": 3, "empty": 4, "failed": 5, "refused": 6}
+_POLL_COUNTED = ("current", "old", "noclock", "empty", "failed", "refused")
+
+
+def _poll_cell(outcome, frame_age_s) -> str:
+    """A poll row as one word for the strip: the request's outcome, and for an answer whether the
+    frame it carried was current (under LINK_FRESH_S), older, or without a clock."""
+    if outcome != "answer":
+        return outcome                       # empty | failed | refused
+    if frame_age_s is None:
+        return "noclock"
+    return "current" if int(frame_age_s) < LINK_FRESH_S else "old"
+
+
+def polling_summary(now: Optional[float] = None) -> dict:
+    """What the poller has been getting, for Diagnostics and the bundle.
+
+    `strip`: the last 24 h as 288 windows of five minutes of wall clock, each {cell, from, to}:
+    the outcome that wins the window ('gap' where no poll ran) and its local times for a hover.
+    Windows, not polls: the cadence is 10–30 s and user-set, so a count of polls says nothing on
+    its own. `days`: seven local days of counts,
+    today included. `no_poll_min` is five times the number of CLOSED windows with no poll —
+    from the first row kept, up to now — so it is a lower-resolution figure, never the length of
+    an outage, and it never counts the future part of today or the days before history began.
+    """
+    now = time.time() if now is None else now
+    db = _get()
+    rows = [dict(r) for r in db.execute(
+        "SELECT at, kind, outcome, frame_age_s, process FROM poll_log "
+        "WHERE at >= ? ORDER BY id",
+        ((datetime.fromtimestamp(now, timezone.utc) - timedelta(days=8)).isoformat(),)).fetchall()]
+    polls, logins = [], []
+    for r in rows:
+        try:
+            ts = datetime.fromisoformat(r["at"]).timestamp()
+        except (TypeError, ValueError):
+            continue
+        (polls if r["kind"] == "poll" else logins).append((ts, r))
+    first_at = polls[0][0] if polls else None
+
+    # the strip: 288 windows ending now
+    start = now - 288 * POLL_WINDOW_S
+    strip = ["gap"] * 288
+    for ts, r in polls:
+        if ts < start or ts >= now:
+            continue
+        i = int((ts - start) // POLL_WINDOW_S)
+        cell = _poll_cell(r["outcome"], r["frame_age_s"])
+        if _POLL_RANK[cell] > _POLL_RANK[strip[i]]:
+            strip[i] = cell
+
+    # seven local days of counts
+    tz = _local_tz()
+    today = datetime.fromtimestamp(now, tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    days = []
+    for back in range(6, -1, -1):
+        day_start = today - timedelta(days=back)
+        d0, d1 = day_start.timestamp(), (day_start + timedelta(days=1)).timestamp()
+        day = {"day": day_start.strftime("%Y-%m-%d"), "polls": 0, "no_poll_min": 0,
+               "login_ok_poller": 0, "login_ok_web": 0,
+               "login_refused_poller": 0, "login_refused_web": 0}
+        day.update({k: 0 for k in _POLL_COUNTED})
+        seen = set()
+        for ts, r in polls:
+            if d0 <= ts < d1:
+                day["polls"] += 1
+                day[_poll_cell(r["outcome"], r["frame_age_s"])] += 1
+                seen.add(int((ts - d0) // POLL_WINDOW_S))
+        for ts, r in logins:
+            if d0 <= ts < d1 and r["outcome"] in ("ok", "refused"):
+                proc = "web" if r["process"] == "web" else "poller"
+                day[f"login_{r['outcome']}_{proc}"] += 1
+        if first_at is not None:
+            lo = max(d0, first_at)
+            hi = min(d1, now)
+            w0 = int((lo - d0 + POLL_WINDOW_S - 1) // POLL_WINDOW_S)     # first window fully after lo
+            w1 = int((hi - d0) // POLL_WINDOW_S)                          # windows closed before hi
+            day["no_poll_min"] = 5 * sum(1 for w in range(w0, w1) if w not in seen)
+        days.append(day)
+    # each cell carries its own window in words, so a colour is never the only thing that says
+    # what it is (a hover shows "13:05–13:10 · session refused")
+    def _hhmm(epoch):
+        dt = _local_dt(datetime.fromtimestamp(epoch, timezone.utc).isoformat())
+        return dt.strftime("%H:%M") if dt else "?"
+    cells = [{"cell": c, "from": _hhmm(start + i * POLL_WINDOW_S),
+              "to": _hhmm(start + (i + 1) * POLL_WINDOW_S)} for i, c in enumerate(strip)]
+    return {"strip": cells, "window_s": POLL_WINDOW_S, "days": days,
+            "first_at": _local_hhmm(epoch=first_at) if first_at else None}
+
+
 def get_ota_status() -> dict:
     """OTA / software-update status the poller stored (from scanning the account inbox). Returns
     {available:bool, title:str|None, time:str|None (localized "dd/mm HH:MM")}. False until the

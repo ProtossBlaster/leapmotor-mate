@@ -11,6 +11,7 @@ import json
 import os
 import re
 import sqlite3
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -795,6 +796,38 @@ def _abilities_section() -> str:
     return "\n".join(out)
 
 
+def _polling_section() -> str:
+    """Seven days of what the poller got, and the link state as it stands — the figures #300 was
+    answered with by counting log lines. The stored error is cut to its class: it is a message
+    from the cloud, and a message may quote what was sent."""
+    try:
+        p = db_reader.polling_summary()
+    except Exception as exc:  # noqa: BLE001
+        return f"(unavailable: {exc})"
+    head = ("day         polls  current  old  noclock  empty  failed  refused  no-poll-min  "
+            "logins ok p/w  refused p/w")
+    lines = [head]
+    for d in p["days"]:
+        lines.append(f"{d['day']}  {d['polls']:5d}  {d['current']:7d}  {d['old']:3d}  {d['noclock']:7d}  "
+                     f"{d['empty']:5d}  {d['failed']:6d}  {d['refused']:7d}  {d['no_poll_min']:11d}  "
+                     f"{d['login_ok_poller']:6d} / {d['login_ok_web']:<4d}  "
+                     f"{d['login_refused_poller']:4d} / {d['login_refused_web']}")
+    lines.append(f"history from : {p['first_at'] or '—'} (local)")
+    try:
+        link = json.loads(db_reader.get_setting("poll_link", "") or "{}")
+    except ValueError:
+        link = {}
+    reason = str(link.get("reason") or "").split(":")[0][:40] or "—"
+    lines.append(f"link         : {link.get('state') or '—'} since {link.get('since') or '—'} · "
+                 f"{reason} · bad_creds={bool(link.get('bad_creds'))}")
+    try:
+        beat = float(db_reader.get_setting("last_loop_ts", "0") or 0)
+        lines.append(f"heartbeat    : {int(time.time() - beat)} s ago" if beat else "heartbeat    : never")
+    except (TypeError, ValueError):
+        lines.append("heartbeat    : ?")
+    return "\n".join(lines)
+
+
 def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: dict | None = None) -> str:
     """One redacted text blob to attach to an issue. `parts` selects which sections to include
     (any of 'info', 'poller', 'web', 'signals'); a one-line version header is always present. The
@@ -859,6 +892,7 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
         out += ["", "----- charges the car took, and what Mate had in hand -----",
                 _missed_charges_section()]
         out += ["", "----- vehicle abilities (what the car DECLARES it can do) -----", _abilities_section()]
+        out += ["", "----- polling (last 7 days, local days) -----", _polling_section()]
     if "poller" in want:
         out += ["", "----- poller log (full retained window) -----", read_full_log("poller")]
     if "web" in want:
