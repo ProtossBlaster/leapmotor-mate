@@ -61,6 +61,8 @@ def test_success_promotes_only_session_settings(installation, monkeypatch):
                 ('api_v2_shared_session', 'encrypted-session'), ('api_v2_access_test', 'rights'),
                 ('leapmotor_pin', 'must-not-promote'), ('custom', 'must-not-promote')])
             dst.execute('DELETE FROM trips')
+        src.close()
+        dst.close()
         (stage / 'secret.key').write_bytes(b'existing-key')
         return {'state': 'qualified'}
     monkeypatch.setattr(migration_preflight, 'qualify_installation', qualify)

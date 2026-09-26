@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 import mate_api
 import automatic_material as mod
+from leapmotor_cloud.private_storage import validate_private_file
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -41,7 +42,7 @@ def test_reuses_exact_local_pair_and_preserves_source(material, tmp_path):
     assert result['automatic'] and result['account_data_copied'] is False
     for name in mod.NAMES:
         assert (destination/name).read_bytes() == (material/name).read_bytes()
-        assert (destination/name).stat().st_mode & 0o777 == 0o600
+        validate_private_file(destination/name)
     assert all(p.read_bytes()==data and p.stat().st_mode==modes[p] for p,data in source.items())
 
 
@@ -50,7 +51,8 @@ def test_existing_pair_repaired_without_identity_change(material):
     result = mod.provision_automatic(material, profile_directory=material/'missing')
     assert result['state'] == 'existing_material_preserved'
     assert before == [(material/name).read_bytes() for name in mod.NAMES]
-    assert all((material/name).stat().st_mode & 0o077 == 0 for name in mod.NAMES)
+    for name in mod.NAMES:
+        validate_private_file(material/name)
 
 
 def test_default_packaged_profile_needs_no_operator_input(material):

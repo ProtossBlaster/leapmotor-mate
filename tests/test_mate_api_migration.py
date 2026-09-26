@@ -60,7 +60,7 @@ class ProductMigrationTests(unittest.TestCase):
         import hashlib
         root=ROOT/'poller'/'vendor'
         manifest=json.loads((root/'mate-api.json').read_text())
-        self.assertEqual(manifest['version'],'0.1.0a8')
+        self.assertEqual(manifest['version'],'0.1.0a9')
         for name,digest in manifest['sha256'].items():
             self.assertEqual(hashlib.sha256((root/name).read_bytes()).hexdigest(),digest,name)
 

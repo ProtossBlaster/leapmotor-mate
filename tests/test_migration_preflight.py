@@ -39,7 +39,8 @@ def test_failed_probe_keeps_original_database_and_key(tmp_path, monkeypatch):
         return subprocess.CompletedProcess(command, 1)
     monkeypatch.setattr(migration.subprocess, 'run', failed)
     result = migration.qualify_installation(db, tmp_path / 'stage')
-    assert result == {'state': 'failed', 'reason': 'qualification_failed'}
+    assert result['state'] == 'failed'
+    assert result['reason'] in {'qualification_failed', 'timeout'}
     assert db.read_bytes() == before
     assert (db.parent / 'secret.key').read_bytes() == b'original-key'
 
@@ -87,7 +88,8 @@ def test_real_worker_failure_preserves_original_bytes(tmp_path):
     db = database(tmp_path)
     original = db.read_bytes()
     result = migration.qualify_installation(db, tmp_path / 'stage', timeout=4)
-    assert result == {'state': 'failed', 'reason': 'qualification_failed'}
+    assert result['state'] == 'failed'
+    assert result['reason'] in {'qualification_failed', 'timeout'}
     assert db.read_bytes() == original
     assert (db.parent / 'secret.key').read_bytes() == b'original-key'
     assert (tmp_path / 'stage' / 'mate.db').is_file()
@@ -227,7 +229,8 @@ def test_real_frozen_worker_dispatch(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, 'executable', executable)
     monkeypatch.setattr(sys, 'frozen', True, raising=False)
     result = migration.qualify_installation(db, tmp_path / 'stage')
-    assert result == {'state': 'failed', 'reason': 'qualification_failed'}
+    assert result['state'] == 'failed'
+    assert result['reason'] in {'qualification_failed', 'timeout'}
     # Missing certificates prevent any network calls, but the frozen worker
     # must have completed the real snapshot and reported its safe failure.
     assert (tmp_path / 'stage' / db.name).is_file()

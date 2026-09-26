@@ -1,7 +1,7 @@
 {
-  "version": "0.1.0a8",
+  "version": "0.1.0a9",
   "source": "https://github.com/ProtossBlaster/MATE-API",
-  "commit": "ccea85011cbfdc68baa1ed2c059533fd2f95c247",
+  "commit": "b909e81d25338f2dfbacfda6e60f97a528d4bab4",
   "sha256": {
     "leapmotor_cloud/__init__.py": "ab9c3e71a18f9e6eddf0edc96f9b4e92f0b4145e33f929c432f5a3b0357458e4",
     "leapmotor_cloud/account_material.py": "fe2ead6c0b5a3ff8ed0de27963d99553a8fc0713971d7206039f9a2e5bba6c65",
@@ -25,7 +25,7 @@
     "leapmotor_cloud/models.py": "784fd80434b7735463cc860eb195b2843e4d1e6665345ca5ade168d0ed397c8a",
     "leapmotor_cloud/operating_availability.py": "be56508180680232b1d814f91dad8da492f87d96874cc3db723fda22d56be4e7",
     "leapmotor_cloud/pin.py": "4346bc70a9b569d7af6ac926886bf224efc1a924fb39d91d16eaec0958678a4e",
-    "leapmotor_cloud/private_storage.py": "55d8d5cfd25b5692d076ff17c03d8b96aebe98e56d637cb084cce3cb056471ac",
+    "leapmotor_cloud/private_storage.py": "f5b144c36c31dea4fe76dde61848f716ab72e63e33b292639c0ca54ad3d76ea1",
     "leapmotor_cloud/scheduling.py": "994c0ce9d6a0238ca43d2c5c609e34c16438933d6aeaa27320830b2324fbd02f",
     "leapmotor_cloud/sensor_catalog.py": "623f168fefaebf8eee387db40f4e5745f061ac9e5a502cd0e0a37cbf8349f9a9",
     "leapmotor_cloud/session.py": "6706f9d98794fc54b8e0a1e969fe491be953394d4f946ab887f6602e11533b78",
