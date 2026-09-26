@@ -74,6 +74,45 @@ def test_a_frame_without_a_timestamp_is_dated_now():
     assert abs(tlm["utc"] - time.time()) < 5
 
 
+# ── is_dcfc: a DC charge is not an AC charge ─────────────────────────────────
+# Signal 1197 (dcInputFastCharge) says whether the DC gun is in. Mate parsed the id into its
+# signal map and never read it; ABRP was told "charging" and left to guess the kind.
+
+_CHARGING = {"1149": 2, "1178": -30.0, "1177": 400.0, "1200": 40}
+
+
+def test_a_charge_on_the_dc_gun_is_reported_as_dc_fast_charging():
+    tlm = _tlm(**_CHARGING, **{"1197": 1})
+    assert tlm["is_charging"] is True and tlm["is_dcfc"] is True
+
+
+def test_a_charge_on_the_ac_port_is_not():
+    tlm = _tlm(**_CHARGING, **{"1197": 0})
+    assert tlm["is_charging"] is True and tlm["is_dcfc"] is False
+
+
+def test_a_dc_gun_in_a_car_that_is_not_charging_is_not_a_dc_charge():
+    tlm = _tlm(**{"1197": 1, "1149": 1, "1178": 0.1, "1177": 400.0})
+    assert tlm["is_charging"] is False and tlm["is_dcfc"] is False
+
+
+def test_a_car_that_never_reports_the_dc_gun_says_nothing_about_it():
+    tlm = _tlm(**_CHARGING)
+    assert "is_dcfc" not in tlm
+
+
+@pytest.mark.parametrize("value", ["", None, "n/a"])
+def test_an_unreadable_dc_gun_signal_is_unknown_not_a_crash(value):
+    """The cloud has sent "" for a signal before; the other readers use `_si`/`_sf` and shrug.
+    A poll that raises here stops the whole car, ABRP enabled or not."""
+    tlm = _tlm(**_CHARGING, **{"1197": value})
+    assert tlm["is_charging"] is True and "is_dcfc" not in tlm
+
+
+def test_a_dc_gun_signal_given_as_text_is_still_read():
+    assert _tlm(**_CHARGING, **{"1197": "1"})["is_dcfc"] is True
+
+
 # ── one frame, one point ─────────────────────────────────────────────────────
 # A sleeping car repeats one frame for hours, and Mate polled it every 30 s: the same point went
 # to ABRP over 2 000 times in a row, each arrival counted as fresh contact, so the car sat
@@ -129,3 +168,8 @@ def test_a_point_that_never_reached_abrp_is_not(monkeypatch):
         raise OSError("connection refused")
     monkeypatch.setattr(abrp.urllib.request, "urlopen", _down)
     assert abrp.send("tok", client._parse_signal("VIN", _sig())) is False
+
+
+def test_any_non_zero_dc_gun_value_means_inserted():
+    """The flag is read as "not 0", not "exactly 1": a 2 would otherwise pass for no gun."""
+    assert _tlm(**_CHARGING, **{"1197": 2})["is_dcfc"] is True

@@ -70,6 +70,8 @@ def _build_tlm(data, facts: CarFacts | None = None) -> dict:
         "lat": data.latitude,
         "lon": data.longitude,
         "is_charging": data.charging_status > 0,
+        "is_dcfc": (data.charging_status > 0 and data.dc_gun_connected
+                    if data.dc_gun_connected is not None else None),
         "is_parked": data.vehicle_state == "parked",
         "odometer": data.odometer_km,
         "ext_temp": data.outside_temp,

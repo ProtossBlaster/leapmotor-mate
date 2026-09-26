@@ -91,6 +91,7 @@ class VehicleData:
     # LATCHES at 1 for ~5-10 min after a charge, see _is_plugged_in), 2 = V2L bidirectional discharge
     # active. Verified on-car 2026-06-19: V2L switch ON + adapter → 47=2, battery discharging (1178>0).
     ac_port_mode: int = 0
+    dc_gun_connected: bool | None = None  # DC fast-charge gun inserted (signal 1197); None = not reported
 
     # Climate detail (read+write validated on-car 2026-06-20): fan level (signal 1941 acAirVolume,
     # 1-7; HOLDS the last level even when A/C is off), recirculation (signal 1943: 1=recirc/in,
@@ -809,6 +810,7 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
     # to the web today (the windows_pct gate is never marked broken) and the B10 is safe because it
     # sends no % signals. window_open_states returns [FL, FR, RL, RR].
     win_states = capability_profile.window_open_states(sig, bool(vin))
+    dc_gun = _si(sig, "1197")   # None when absent or unreadable — the cloud has sent "" before
     fuel_pct = _sf(sig, "3235")
     fuel_ml = _sf(sig, "3263")
 
@@ -864,6 +866,7 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
             for k in ("1277", "1278", "1279", "1280", "1281")
         ),
         plug_connected=_is_plugged_in(sig),
+        dc_gun_connected=None if dc_gun is None else dc_gun != 0,
         charge_deferred=_is_deferred_charge(sig),
         remaining_charge_min=int(sig.get("1200") or 0),
         charge_voltage_v=_sf(sig, "1177"),   # absent is None, not 0 V (same rule as the temperatures)
