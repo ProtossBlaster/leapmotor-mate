@@ -1,12 +1,15 @@
 """A pack current the car never sent is ABSENT, not 0 A — the #144 rule, applied to signal 1178.
 
 The parser read the current and the voltage as `float(sig.get(id) or 0)`, so a frame without them
-said "0 A at 0 V". Nothing downstream could tell that from a car resting with the pack idle — and
-anything that wants to send or store a measurement has to know whether there was one. The readers
-that only gate on the current (the regen gate, the V2L accumulator) take "unknown" as no current.
+said "0 A at 0 V". Nothing downstream could tell that from a car resting with the pack idle. It
+mattered the moment ABRP got a signed power on every point: a frame with a voltage and no current
+became `power: 0` — a false sample of zero consumption in the middle of a drive, fed to the
+planner's consumption calibration as if measured. A frame that says nothing about the current now
+says nothing about the power either; a measured 0 A still says 0 kW.
 """
 import types
 
+import abrp
 import client
 import pytest
 
@@ -32,6 +35,18 @@ def test_an_unreadable_reading_is_none_too(sid, field):
 def test_a_measured_zero_is_zero():
     vd = client._parse_signal("VIN", _sig(**{"1178": 0, "1177": 380.0}))
     assert vd.charge_current_a == 0.0 and vd.charge_voltage_v == 380.0
+
+
+# ── ABRP: no current, no power ───────────────────────────────────────────────
+
+def test_a_voltage_without_a_current_gives_abrp_no_power():
+    tlm = abrp._build_tlm(client._parse_signal("VIN", _sig(**{"1177": 380.0})))
+    assert "voltage" in tlm and "power" not in tlm and "current" not in tlm
+
+
+def test_a_measured_zero_current_gives_abrp_zero_power():
+    tlm = abrp._build_tlm(client._parse_signal("VIN", _sig(**{"1178": 0, "1177": 380.0})))
+    assert tlm["power"] == 0 and tlm["current"] == 0
 
 
 # ── the other readers of the current survive "unknown" ───────────────────────

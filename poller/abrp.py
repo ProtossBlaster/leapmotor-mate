@@ -54,11 +54,13 @@ def _build_tlm(data) -> dict:
     }
     if data.range_km and data.range_km > 0:
         tlm["est_battery_range"] = data.range_km
-    if data.charge_power_kw and data.charge_power_kw > 0:
-        tlm["power"] = data.charge_power_kw
     if data.charge_voltage_v and data.charge_voltage_v > 0:
         tlm["voltage"] = data.charge_voltage_v
-    if data.charge_current_a:
+        # signed as the spec wants (output +, charging/regen −), on every point that measured a
+        # current, 0 kW included; a current the car did not send is no power, not 0 kW
+        if data.charge_current_a is not None:
+            tlm["power"] = round(data.charge_current_a * data.charge_voltage_v / 1000.0, 3)
+    if data.charge_current_a is not None:
         tlm["current"] = data.charge_current_a
     if data.battery_min_temp:
         tlm["batt_temp"] = data.battery_min_temp
