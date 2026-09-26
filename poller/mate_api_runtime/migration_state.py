@@ -51,7 +51,7 @@ def backup_before_migration(database):
             for path in stage.rglob('*'):
                 os.chmod(path, 0o700 if path.is_dir() else 0o600)
                 if path.is_file():
-                    with path.open('rb') as stream:
+                    with path.open('r+b') as stream:
                         os.fsync(stream.fileno())
             manifest = {'database': database.name, 'format': 1, 'mate_target': '4.0.0',
                         'database_existed': database.exists()}

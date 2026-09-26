@@ -77,8 +77,8 @@ class ProductMigrationTests(unittest.TestCase):
             code = 'import sys; from migration_state import backup_before_migration; backup_before_migration(sys.argv[1])'
             workers = [subprocess.Popen([sys.executable, '-c', code, str(db)], env=env,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE) for _ in range(2)]
-            for worker in workers:
-                out, err = worker.communicate(timeout=20)
+            results = [worker.communicate(timeout=20) for worker in workers]
+            for worker, (out, err) in zip(workers, results):
                 self.assertEqual(worker.returncode, 0, err.decode())
             self.assertEqual(len(list(root.rglob('complete.json'))), 1)
             self.assertFalse(list(root.rglob('.pending-*')))

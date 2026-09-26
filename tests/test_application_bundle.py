@@ -33,7 +33,7 @@ def test_bundle_only_installs_validated_application_files(tmp_path,monkeypatch):
     payload=bundle([(name,b'synthetic') for name in names])
     captured={}
     def bootstrap(source,destination):
-        captured['names']=sorted(str(p.relative_to(source)) for p in Path(source).rglob('*') if p.is_file())
+        captured['names']=sorted(p.relative_to(source).as_posix() for p in Path(source).rglob('*') if p.is_file())
         captured['destination']=destination
         return {'state':'application_material_migrated'}
     monkeypatch.setattr(mod,'bootstrap',bootstrap)
