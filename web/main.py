@@ -705,6 +705,7 @@ async def overview(request: Request):
         charge_limit=_configured_charge_limit((vehicle or {}).get("vin") or ""),
         car_resp=db_reader.command_responsiveness(),
         battery_price=db_reader.current_blended_price(),   # #200 — must match /api/status-card
+        data_link=None if _IS_DEMO else db_reader.data_link(status),   # demo runs no poller
     ))
 
 
@@ -4462,6 +4463,16 @@ async def status_card(request: Request):
         status=status, vehicle=vehicle,
         car_resp=db_reader.command_responsiveness(),
         battery_price=db_reader.current_blended_price(),   # #200 — must match the overview route
+    ))
+
+
+@app.get("/api/link-pill", response_class=HTMLResponse)
+async def link_pill(request: Request):
+    """The data-link tile beside the Overview heading, on its own 30-second refresh."""
+    if _IS_DEMO:
+        return HTMLResponse("")            # demo runs no poller: a silent heartbeat is not an outage
+    return templates.TemplateResponse(request, "partials/link_pill.html", _ctx(
+        data_link=db_reader.data_link(db_reader.get_latest_status()),
     ))
 
 

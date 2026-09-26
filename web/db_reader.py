@@ -2,6 +2,7 @@
 import json
 import logging
 import math
+import re
 import sqlite3
 import statistics
 import time
@@ -3929,6 +3930,181 @@ def _data_age(d: dict) -> None:
     d["data_age"] = (f"{age // 60}m" if age < 3600 else
                      f"{age // 3600}h {(age % 3600) // 60}m" if age < 86400 else
                      f"{age // 86400}d")
+
+
+LINK_FRESH_S = DATA_AGE_STALE_S      # one threshold for "current": the row and the card agree
+_LINK_RED = ("login_refused", "fetch_failed", "not_polling")
+
+
+def _heartbeat_grace_s() -> int:
+    """How long the heartbeat may be silent before the poller counts as missing: two parked
+    cadences and a minute, so an install polling every ten minutes is not told the poller is gone
+    between two polls. The heartbeat is written once per round and every five seconds while a
+    startup login waits."""
+    try:
+        parked = int(get_setting("poll_parked", str(POLL_PARKED_DEFAULT_S)) or POLL_PARKED_DEFAULT_S)
+    except (TypeError, ValueError):
+        parked = POLL_PARKED_DEFAULT_S
+    return 2 * parked + 60
+
+
+def _local_hhmm(epoch=None, iso=None) -> Optional[str]:
+    """dd/mm HH:MM in the reader's zone, from an epoch or a stored UTC ISO string."""
+    if epoch is not None:
+        iso = datetime.fromtimestamp(float(epoch), timezone.utc).isoformat()
+    dt = _local_dt(iso)
+    return dt.strftime("%d/%m %H:%M") if dt else None
+
+
+def _iso_epoch(iso) -> Optional[float]:
+    try:
+        return datetime.fromisoformat(str(iso)).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def _iso_age_s(iso, now: float) -> Optional[int]:
+    epoch = _iso_epoch(iso)
+    return None if epoch is None else max(0, int(now - epoch))
+
+
+_EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
+
+
+def _error_text(reason) -> Optional[str]:
+    """The error as the poller stored it, for the banner and the hover: the user asked why, so the
+    message itself — with any address the cloud echoed back masked, and cut to one screen line."""
+    if not reason:
+        return None
+    text = _EMAIL_RE.sub("…@…", str(reason)).strip()
+    return text if len(text) <= 200 else text[:199] + "…"
+
+
+def data_link(status) -> dict:
+    """Whether the data on the Overview can be trusted, for the link tile: a state, and the facts
+    each of its hovers shows (`_link_details`).
+
+    Judged in this order, and the first that applies wins:
+      1. the poller's heartbeat — silent past its grace, and nothing else can be trusted: the
+         session state below was written by a process that is not reporting any more;
+      2. the account's session, as the poller reports it in `poll_link` — refused;
+      3. THIS car's last fetch, in `poll_link_<vin>` — failed. Two cars are two requests, and
+         the page is about the car it shows, not about whichever car was polled last;
+      4. the age of the frame on the row, from the car's own clock — the same threshold and the
+         same "no clock, no age" as `_data_age`.
+    A car that has said nothing all night is `no_new_data` and grey — a quiet car is not a broken
+    link; the amber mark is the existing #178 rule (the frame froze while driving or charging).
+    """
+    now = time.time()
+    out = {"state": "fresh", "since_s": None, "since_local": None, "retry_min": None,
+           "reason": None, "bad_creds": False, "amber": False, "last_state": None,
+           "last_error": None, "red": False, "retry_local": None}
+    frame_age = _frame_age_s((status or {}).get("frame_ts"))
+    try:
+        beat = float(get_setting("last_loop_ts", "0") or 0)
+    except (TypeError, ValueError):
+        beat = 0.0
+    link = _link_setting("poll_link")
+    vid = _current_vehicle_id()          # the car the page shows — with a position row or without one
+    vin = _vin_of(vid)
+    fetch = _link_setting(f"poll_link_{vin.lower()}") if vin else {}
+    # the layer that failed, if one did: the session outranks the car's fetch, and a login the
+    # poller could not even put to the cloud (it timed out on the way) fails every car's fetch
+    broken = failure = None
+    if link.get("state") == "refused":
+        broken, failure = link, "login_refused"
+    elif link.get("state") == "failed":
+        broken, failure = link, "fetch_failed"
+    elif fetch.get("state") == "failed":
+        broken, failure = fetch, "fetch_failed"
+    if beat <= 0 or now - beat > _heartbeat_grace_s():
+        out["state"] = "not_polling"
+        out["since_s"] = int(now - beat) if beat > 0 else None
+        out["since_local"] = _local_hhmm(epoch=beat) if beat > 0 else None
+        if broken:
+            out["last_error"] = broken["state"]
+            out["reason"] = _error_text(broken.get("reason"))
+    elif broken:
+        out["state"] = failure
+        out["since_local"] = _local_hhmm(iso=broken.get("since"))
+        out["since_s"] = _iso_age_s(broken.get("since"), now)
+        out["reason"] = _error_text(broken.get("reason"))
+        out["bad_creds"] = bool(broken.get("bad_creds"))
+        nr = broken.get("next_retry_ts")
+        if nr:
+            out["retry_min"] = max(1, (max(0, int(nr - now)) + 59) // 60)
+            out["retry_local"] = _local_hhmm(epoch=nr)     # a future clock; "in N min" is retry_min
+    else:
+        age = frame_age
+        if age is None:
+            out["state"] = "age_unknown"
+        elif age >= LINK_FRESH_S:
+            out["state"] = "no_new_data"
+            out["since_s"] = age
+            out["since_local"] = _local_hhmm(epoch=now - age)
+            out["amber"] = bool(status.get("data_age"))     # the #178 rule: moving or charging
+            out["last_state"] = ("charging" if status.get("charging")
+                                 else "driving" if status.get("gear") == "D" or float(status.get("speed_kmh") or 0) > 0
+                                 else "parked")
+    out["red"] = out["state"] in _LINK_RED
+    out.update(_link_details(status, now, beat, link, vid))
+    return out
+
+
+def _link_setting(key) -> dict:
+    try:
+        return json.loads(get_setting(key, "") or "{}")
+    except ValueError:
+        return {}
+
+
+def _vin_of(vehicle_id) -> Optional[str]:
+    if vehicle_id is None:
+        return None
+    row = _get().execute("SELECT vin FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
+    return row["vin"] if row and row["vin"] else None
+
+
+def _moment(epoch, now: float) -> Optional[dict]:
+    """A point in time for a tooltip: the local clock and how long ago — every one the same shape."""
+    if not epoch:
+        return None
+    return {"local": _local_hhmm(epoch=epoch), "age_s": max(0, int(now - float(epoch)))}
+
+
+def _link_details(status, now: float, beat: float, link: dict, vid) -> dict:
+    """What a hover on each dot says — facts, not help text: when the poller started and last
+    beat; when the cloud last answered and last failed, and the session as it stands; when the
+    car last spoke and what it was doing. Every moment is a `_moment`, so the tooltips read alike.
+    `vid` is the car shown: its polls; the session's refusals are everyone's."""
+    db = _get()
+    last_ok = db.execute("SELECT at FROM poll_log WHERE kind='poll' AND outcome IN ('answer','empty') "
+                         "AND vehicle_id = COALESCE(?, vehicle_id) ORDER BY id DESC LIMIT 1", (vid,)).fetchone()
+    last_bad = db.execute("SELECT at, outcome, reason FROM poll_log WHERE kind='poll' AND outcome IN "
+                          "('failed','refused') AND (outcome = 'refused' OR vehicle_id = COALESCE(?, vehicle_id)) "
+                          "ORDER BY id DESC LIMIT 1", (vid,)).fetchone()
+    try:
+        started = float(get_setting("poller_started_ts", "0") or 0)
+    except (TypeError, ValueError):
+        started = 0.0
+    frame_age = _frame_age_s((status or {}).get("frame_ts"))
+    car_state = None
+    if status:
+        car_state = ("charging" if status.get("charging")
+                     else "driving" if status.get("gear") == "D" or float(status.get("speed_kmh") or 0) > 0
+                     else "parked")
+    return {
+        "mate": {"started": _moment(started, now), "beat": _moment(beat, now)},
+        "cloud": {"session": link.get("state") or "unknown",
+                  "since": _moment(_iso_epoch(link.get("since")), now),
+                  "last_ok": _moment(_iso_epoch(last_ok["at"]) if last_ok else None, now),
+                  "last_bad": _moment(_iso_epoch(last_bad["at"]) if last_bad else None, now),
+                  "last_bad_what": (f"{last_bad['outcome']}: {_error_text(last_bad['reason']) or ''}".rstrip(": ")
+                                    if last_bad else None)},
+        # the frame by the car's own clock; when it carries none, when the poller received it
+        "car": {"frame": _moment(now - frame_age if frame_age is not None else None, now),
+                "received": _moment(_iso_epoch((status or {}).get("recorded_at")), now), "state": car_state},
+    }
 
 
 def get_ota_status() -> dict:
