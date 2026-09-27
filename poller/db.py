@@ -249,6 +249,7 @@ class Database:
         self._repair_odometer_trips()
         self._repair_quantized_trip_distance()
         self._repair_snap_to_full_charges()
+        self._repair_charges_anchored_below_the_detection_floor()
         self._drop_phantom_charges()
         self._repair_phantom_zero_soc_charges()
         self._repair_negative_efficiency()
@@ -409,6 +410,63 @@ class Database:
         self.set_setting("charges_soc_snap_repair_v1", "1")
         if fixed:
             log.info("Snap-to-full charge repair: %d charge(s) recomputed", fixed)
+
+    def _repair_charges_anchored_below_the_detection_floor(self) -> None:
+        """One-time repair for charges finalized while the energy was anchored to `charging` (#316).
+
+        Those charges were cut where the charge-DETECTION floor stopped calling the session a
+        charge, not where the car stopped taking energy — on a slow wallbox that is hours and
+        several kWh early. Recompute them from the last sample with the cable in and current
+        still flowing; where nothing was ever recorded for a charge, leave it as it is, because
+        nothing better exists for it.
+
+        The cost follows only where Mate computed it from this same energy. A HOME charge billed
+        on the wallbox counter was measured at the wall, and a typed-in total is the owner's own
+        figure: both keep what they say, while their energy is still corrected — which only makes
+        their implied €/kWh truer.
+        → tests/test_a_slow_charge_keeps_the_energy_it_delivered.py
+        """
+        if self.get_setting("charges_energy_below_floor_repair_v1") == "1":
+            return
+        rows = self._conn.execute(
+            """SELECT * FROM charges
+               WHERE ended_at IS NOT NULL AND end_soc >= 100.0
+                 AND start_soc IS NOT NULL AND COALESCE(reconstructed, 0) = 0"""
+        ).fetchall()
+        fixed = 0
+        for c in rows:
+            before = self._last_charging_soc(c["vehicle_id"], c["started_at"], c["ended_at"])
+            last = self._last_energising_soc(c["vehicle_id"], c["started_at"], c["ended_at"])
+            old_e = c["energy_added_kwh"]
+            # Only where the ANCHOR moved. A row whose anchor is unchanged is already right for
+            # what it measured, and recomputing it here would quietly rescale it to whatever
+            # capacity the car declares TODAY: on the lab's B10 that is all thirteen of its
+            # 100 %-ending charges, written at 67.1 kWh and now declared 65.0.
+            if last is None or before is None or old_e is None or last <= before:
+                continue
+            gained = (before - c["start_soc"]) / 100.0
+            if gained <= 0 or old_e <= 0:
+                continue
+            # The kWh-per-point scale this row was actually written with, not today's. Nothing
+            # records the capacity in force back then; the row itself does.
+            capacity = old_e / gained
+            new_e = round(max((last - c["start_soc"]) / 100.0 * capacity, 0), 3)
+            if abs(new_e - old_e) < 0.001:
+                continue
+            new_cost = c["cost"]
+            billed_on_ac = bool(c["ac_energy_kwh"]) and c["location_type"] == "HOME"
+            if not billed_on_ac and not c["cost_manual"] and c["cost"] and old_e > 0:
+                new_cost = round(c["cost"] / old_e * new_e, 2)
+            self._conn.execute("UPDATE charges SET energy_added_kwh=?, cost=? WHERE id=?",
+                               (new_e, new_cost, c["id"]))
+            log.info("Charge #%d: below-floor energy repair — %.3f→%.3f kWh%s",
+                     c["id"], old_e, new_e,
+                     "" if new_cost == c["cost"] else f" | cost {c['cost']}→{new_cost}")
+            fixed += 1
+        self._conn.commit()
+        self.set_setting("charges_energy_below_floor_repair_v1", "1")
+        if fixed:
+            log.info("Below-floor charge-energy repair: %d charge(s) recomputed", fixed)
 
     def _drop_phantom_charges(self) -> None:
         """One-time cleanup mirroring the live finalize_charge guard: remove charges already in the
@@ -1615,6 +1673,35 @@ class Database:
             "WHERE id=?", (reading, round(accum, 3), round(stuck, 3), charge_id))
         self._conn.commit()
 
+    def _last_energising_soc(self, vehicle_id: int, started_at: str, ended_at: str | None = None):
+        """Last SoC sampled while the cable was in and current was still entering the pack.
+
+        This is what the snap-to-full guard actually needs, and `charging` cannot say it: that
+        flag is set by the charge-DETECTION floor, whose job is to notice a session is open. On a
+        slow home wallbox the pack current runs under that floor for hours while the car goes on
+        charging — @arzthilfe's C10 (#316) ran 2.4 → 1.1 A against a 2.0 A floor, and the guard
+        anchored his charge at 92.2 % instead of 100 %: 7.8 points, 6.4 kWh, thrown away.
+
+        Cable connected plus current flowing in is the physical fact the guard was reaching for,
+        and it still excludes the BMS snap to 100.0, where the cable is in and nothing flows.
+        The floor goes back to deciding only whether a session is open — the same correction
+        already made twice for the power reading and for keeping a session open (#307).
+
+        Rows written before `charge_current_a` existed carry no reading, and for those the older
+        `charging` anchor is all there is — which is exactly what they had before.
+        → tests/test_a_slow_charge_keeps_the_energy_it_delivered.py
+        """
+        row = self._conn.execute(
+            "SELECT soc FROM positions WHERE vehicle_id=? AND soc IS NOT NULL"
+            " AND recorded_at>=? AND recorded_at<=?"
+            " AND charge_current_a IS NOT NULL AND charge_current_a < 0"
+            " AND COALESCE(plug_connected, 1) = 1"
+            " ORDER BY recorded_at DESC LIMIT 1",
+            (vehicle_id, started_at, ended_at or _now_iso())).fetchone()
+        if row is not None:
+            return row["soc"]
+        return self._last_charging_soc(vehicle_id, started_at, ended_at)
+
     def _last_charging_soc(self, vehicle_id: int, started_at: str, ended_at: str | None = None):
         """Last SoC sampled while charging=1 within the charge window, or None.
         The B10 BMS snaps the displayed SoC to 100.0 in the very poll where charging
@@ -1706,7 +1793,7 @@ class Database:
         # end_soc itself stays data.soc — users should still see the charge reached 100%.
         soc_for_energy = end_soc
         if end_soc >= 100.0:
-            last = self._last_charging_soc(charge["vehicle_id"], charge["started_at"])
+            last = self._last_energising_soc(charge["vehicle_id"], charge["started_at"])
             if last is not None:
                 soc_for_energy = last
         energy_added = max((soc_for_energy - start_soc) / 100.0 * self.get_battery_capacity(charge["vehicle_id"]), 0)
