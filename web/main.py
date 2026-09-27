@@ -417,6 +417,7 @@ def _driving(pos: dict) -> bool:
     return (pos.get("gear") or "P") != "P" or pos.get("speed_kmh", 0) > 1
 
 def _state_color(pos: dict) -> str:
+    if pos.get("driving_stale"): return "text-amber-400"
     if pos.get("charging"): return "text-yellow-400"
     if _driving(pos): return "text-blue-400"
     if pos.get("plug_connected"): return "text-teal-300"   # cable in, not actively charging
@@ -521,6 +522,7 @@ def _ctx(**kwargs):
     lang = db_reader.get_language()
     t = i18n.get_t(lang)
     def state_label(pos: dict) -> str:
+        if pos.get("driving_stale"): return t("state_stale")
         if pos.get("charging"): return t("state_charging")
         if _driving(pos): return t("state_driving")
         # Charge finished (or paused) but the cable is still plugged in — don't read as a plain

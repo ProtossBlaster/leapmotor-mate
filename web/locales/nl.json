@@ -514,6 +514,7 @@
     "no_data": "Geen gegevens",
     "state_parked": "Geparkeerd",
     "state_driving": "Onderweg",
+    "state_stale": "Gegevens verouderd",
     "state_charging": "Aan het laden",
     "hero_charge_window": "Laadt {window}",
     "state_plugged": "Kabel aangesloten",

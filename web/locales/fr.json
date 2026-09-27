@@ -514,6 +514,7 @@
     "no_data": "Aucune donnée",
     "state_parked": "Stationné",
     "state_driving": "En conduite",
+    "state_stale": "Données obsolètes",
     "state_charging": "En charge",
     "hero_charge_window": "Charge {window}",
     "state_plugged": "Câble connecté",
