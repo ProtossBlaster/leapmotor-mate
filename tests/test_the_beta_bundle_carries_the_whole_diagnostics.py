@@ -30,8 +30,17 @@ class _Req:
     query_params: dict = {}
 
 
-def _bundle(tmp_path, monkeypatch, fresh=lambda: {"1204": 88, "1318": 12345}):
-    """The real endpoint, decrypted back — the file a tester actually attaches."""
+def _bundle(tmp_path, monkeypatch, fresh=lambda: {"1204": 88, "1318": 12345}, log=None):
+    """The real endpoint, decrypted back — the file a tester actually attaches.
+
+    The bundle carries a tail of the app's log, and `diagnostics.data_dir()` finds it beside the
+    database named by the DB_PATH *environment variable* — which conftest points at one directory
+    for the whole suite. So the log this bundle quotes was written by whatever else ran first, and
+    the privacy assertions below were reading a body no test controls. On 27/09/2026 that cost a CI
+    run: a line reading "cutoff set to 2026-09-27T16:06:19.194901+00:00" contains "9.19", and the
+    longitude needle is "9.19". Point the variable at this test's own directory, and pass `log` to
+    say what the tail holds.
+    """
     import asyncio
     import io
 
@@ -39,6 +48,9 @@ def _bundle(tmp_path, monkeypatch, fresh=lambda: {"1204": 88, "1318": 12345}):
     import db_reader
     import research
 
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "t.db"))
+    if log is not None:
+        (tmp_path / "mate-web.log").write_text(log, encoding="utf-8")
     path = str(tmp_path / "t.db")
     pdb = D.Database(path)
     c = pdb._conn
@@ -91,6 +103,30 @@ def test_the_report_carries_no_coordinates_and_no_free_text(tmp_path, monkeypatc
     body = _bundle(tmp_path, monkeypatch).read("diagnostics.txt").decode()
     for needle in ("45.4642", "9.19", "casa di mia sorella", "LFZTEST0000000001"):
         assert needle not in body, f"the bundle leaked {needle!r}"
+
+
+# What the app's own log looks like when it has something to give away: the trip-start line with a
+# coordinate pair, the MQTT topic with the VIN glued in lowercase, and the account address.
+_TELLING_LOG = (
+    "2026-08-14 07:12:00 [INFO] db: Trip #1 started — SOC 41.0% @ (45.4642, 9.1900)\n"
+    "2026-08-14 07:12:01 [INFO] mqtt: discovery homeassistant/sensor/mate_lfztest0000000001/soc\n"
+    "2026-08-14 07:12:02 [INFO] api: login as silvio.tester@example.com ok\n"
+)
+
+
+def test_the_log_the_bundle_quotes_is_redacted_too(tmp_path, monkeypatch):
+    """The tail is the one part of the report the app did not compose for sharing.
+
+    Before this, the log the bundle quoted came from the directory the whole suite shares, so what
+    the promise was checked against was an accident of test order. Give it a log that HAS the three
+    things the promise names and read the tail that comes out.
+    """
+    body = _bundle(tmp_path, monkeypatch, log=_TELLING_LOG).read("diagnostics.txt").decode()
+    assert "Trip #1 started" in body, "the log tail is not in the report at all"
+    for needle in ("45.4642", "9.1900", "LFZTEST0000000001", "lfztest0000000001",
+                   "silvio.tester@example.com"):
+        assert needle not in body, f"the log tail leaked {needle!r}"
+    assert "(45.4…, 9.1…)" in body, "the coordinate pair is not truncated, it is gone or intact"
 
 
 def test_what_was_already_there_is_still_there(tmp_path, monkeypatch):
