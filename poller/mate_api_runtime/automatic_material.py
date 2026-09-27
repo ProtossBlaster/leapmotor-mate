@@ -19,6 +19,7 @@ from provision_application import load_material
 
 MAX_FILE_BYTES = 32768
 PARAMETERS = NAMES[2]
+PACKAGED_PROFILE = 'application_profile.json'
 DEFAULT_PROFILE_DIRECTORY = Path(__file__).parent
 PROFILE_SHA256 = "c856adee9057ae48893e6dd65fdc7fe9bb5f5956bdfb64d90a3daa2ec2b053f6"
 
@@ -66,6 +67,29 @@ def _private_owned(path, *, directory=False):
         _windows_directory(path, protect=True, directory=False)
 
 
+def packaged_profile_usable(profile_directory=DEFAULT_PROFILE_DIRECTORY):
+    """Whether this build can install the common parameters out of its own packaged profile.
+
+    The setup page asks this to know what to offer a new installation: with a usable profile a
+    certificate pair is enough on its own, because saving it runs `provision_automatic`, and the
+    three-file bundle is only the answer where there is no profile to complete the pair.
+    Deliberately the same checks `provision_automatic` makes before accepting that file, so the
+    page never offers a form that would then be refused.
+    → tests/test_a_fresh_install_is_offered_the_certificate_form.py
+    """
+    try:
+        payload = _read(_safe_path(profile_directory) / PACKAGED_PROFILE)
+        if hashlib.sha256(payload).hexdigest() != PROFILE_SHA256:
+            return False
+        parameters = json.loads(payload)
+        if set(parameters) != {'round_keys', 'sbox'}:
+            return False
+        AccountPasswordResolver(**parameters)
+    except Exception:
+        return False
+    return True
+
+
 def provision_automatic(destination, *, profile_directory=DEFAULT_PROFILE_DIRECTORY, certificate_directory=None):
     """Reuse local certificates and install missing common parameters atomically.
 
@@ -93,7 +117,7 @@ def provision_automatic(destination, *, profile_directory=DEFAULT_PROFILE_DIRECT
         existing_parameters = targets[PARAMETERS].exists()
         packaged = Path(profile_directory) == DEFAULT_PROFILE_DIRECTORY
         parameter_path = targets[PARAMETERS] if existing_parameters else _safe_path(profile_directory) / (
-            'application_profile.json' if packaged else PARAMETERS)
+            PACKAGED_PROFILE if packaged else PARAMETERS)
         payloads[PARAMETERS] = _read(parameter_path)
         if packaged and not existing_parameters and hashlib.sha256(payloads[PARAMETERS]).hexdigest() != PROFILE_SHA256:
             raise ValueError('Packaged application profile integrity check failed')

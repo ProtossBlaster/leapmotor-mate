@@ -1109,7 +1109,9 @@ async function chooseSetup() {
     if (!r.ok) throw new Error('Setup readiness unavailable');
     if (d.present) {
       document.getElementById('setup-form').style.display = 'block';
-    } else if (d.managed) {
+    } else if (d.manual_upload_required) {
+      // Only where this build cannot complete a certificate pair by itself: the bundle carries
+      // private parameters a user has no way of producing, so it is never the ordinary path.
       document.getElementById('application-bundle-step').style.display = 'block';
     } else {
       document.getElementById('cert-step').style.display = 'block';
