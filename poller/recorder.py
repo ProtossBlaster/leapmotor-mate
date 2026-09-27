@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from db import Database, _WB_STUCK_MIN_KW, _now_iso
-from state_machine import State, StateMachine, StateEvent, _PARKED_STATES
+from state_machine import (State, StateMachine, StateEvent, _PARKED_STATES,
+                           FROZEN_DRIVE_LIMIT_S)
 from client import VehicleData
 
 log = logging.getLogger(__name__)
@@ -205,6 +206,22 @@ class Recorder:
         # mutation survived because the two branches are identical, which is what proved it dead.)
         if not stale:
             self._last_fresh_ts = _now_iso()
+
+    def _outage_was_brief(self) -> bool:
+        """Was the cloud's silence short enough that the drive can still be one drive?
+
+        Bounded by the half hour that already ends a frozen drive: past `FROZEN_DRIVE_LIMIT_S`
+        Mate declares a drive over on its own, so a longer silence cannot be called its middle.
+        Measured from the moment the cloud last had news, which is where the silence began.
+        → tests/test_a_drive_survives_a_gap_in_the_cloud.py
+        """
+        if self._last_fresh_ts is None:
+            return False
+        try:
+            began = datetime.fromisoformat(self._last_fresh_ts)
+            return (datetime.fromisoformat(_now_iso()) - began).total_seconds() < FROZEN_DRIVE_LIMIT_S
+        except (TypeError, ValueError):
+            return False
 
     def _record_offline_gap(self, data: Optional[VehicleData]) -> None:
         """Kilometres that appeared while the cloud was quiet get a row of their own — never the
@@ -501,6 +518,15 @@ class Recorder:
             # and an open charge appears in no calendar and in no AC count.
             if self._active_charge_id:
                 self._close_dangling_charge(data, "drove_away")
+            if frm == State.OFFLINE and self._active_trip_id is not None and self._outage_was_brief():
+                # The same drive, with a hole in it. The state before the silence was DRIVING and
+                # the state after it is DRIVING, so those kilometres are this trip's — its own
+                # odometer endpoints already measure them, and a second row would both abandon
+                # this trip open forever and file its distance under no trip at all (D #331: nine
+                # dropouts in one morning, ten trips opened, one closed). The charge path has said
+                # the same thing since #208, one branch below: re-entering with one still open
+                # means we never stopped.
+                return
             self._regen_kwh = 0.0
             # Before the trip is created, so both baselines still hold the last poll's reading:
             # anything the odometer gained while the cloud was quiet is declared on its own instead
