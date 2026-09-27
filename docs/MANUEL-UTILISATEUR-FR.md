@@ -1,8 +1,10 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.3.0 · **Langue :** Français
+> **Version de Mate :** v4.3.1 · **Langue :** Français
 
-## Nouveautés de la version 4.3.0
+## Nouveautés de la version 4.3.1
+
+Une voiture qui perd le cloud une minute au milieu d'un trajet garde le trajet : au retour, le trajet ouvert reprend au lieu qu'un autre commence, et les kilomètres du trou y restent. Les trajets déjà coupés restent tels quels — pour les réunir, **🔗 Fusionnables** dans le calendrier des trajets.
 
 La consommation et l'énergie de conduite reviennent là où le cloud les refusait : si la page Trajets affichait « aucune donnée » sous le graphique de consommation, ou si le rapport mensuel n'avait pas d'énergie de conduite, cela fonctionne de nouveau. Une charge qui continue lentement après la baisse du courant conserve désormais toute l'énergie livrée, et les charges déjà enregistrées sont recalculées une fois au premier démarrage. L'aperçu indique **Données obsolètes** au lieu de **Conduite** quand la voiture a cessé de parler au cloud en route, et une charge prise sans réseau — dans un parking souterrain par exemple — peut être retrouvée même si vous avez roulé un ou deux kilomètres pour en sortir.
 

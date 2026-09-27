@@ -3,6 +3,10 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.3.1] — 2026-09-27
+
+- Fix: a car that loses the cloud for a minute mid-drive no longer loses the drive. Coming back from a dropout with a trip still open resumes that trip instead of opening another, and the kilometres of the gap stay in it rather than being declared as belonging to no trip (D #331: nine dropouts in one morning, ten trips opened, one closed). A silence longer than the frozen-drive guard, or one that happens while parked, keeps the previous behaviour.
+
 ## [4.3.0] — 2026-09-27
 
 - Fix: an installation running the bundled SDK sends its consumption reads signed again. Since 4.0.0 the Trips consumption chart, the Monthly Report's driving energy and the per-trip enrichment were refused by the cloud with `code 39, Information verification failed`, because the SDK's header builders had been replaced by the independent client's marker for both backends at once (#327).

@@ -1,8 +1,10 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.3.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.3.1 · **Lingua:** Italiano
 
-## Novità della 4.3.0
+## Novità della 4.3.1
+
+Un'auto che perde il cloud per un minuto a metà strada tiene il viaggio: al ritorno riprende quello aperto invece di aprirne un altro, e i chilometri del buco restano dentro. I viaggi già spezzati restano come sono — per unirli c'è **🔗 Unibili** nel calendario dei Viaggi.
 
 Consumi ed energia di guida tornano dove il cloud li rifiutava: se in Viaggi il grafico dei consumi diceva «nessun dato», o il Rapporto mensile non mostrava l'energia di guida, ora funzionano. Una ricarica che prosegue piano dopo il calo di corrente tiene tutta l'energia che ha dato, e le ricariche già presenti nel tuo database vengono ricalcolate una volta al primo avvio. La panoramica scrive **Dati non aggiornati** invece di **In marcia** quando l'auto ha smesso di parlare col cloud a metà strada, e una ricarica fatta senza campo — in un garage sotterraneo, per dire — può essere recuperata anche se poi hai percorso un chilometro o due per uscirne.
 

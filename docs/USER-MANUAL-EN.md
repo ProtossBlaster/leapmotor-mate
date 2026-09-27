@@ -1,8 +1,10 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.3.0 · **Language:** English
+> **Mate version:** v4.3.1 · **Language:** English
 
-## New in 4.3.0
+## New in 4.3.1
+
+A car that loses the cloud for a minute in the middle of a drive keeps the drive: coming back resumes the trip that was open instead of starting another, and the kilometres of the gap stay in it. Trips already split stay as they are — join them with **🔗 Mergeable** in the Trips calendar.
 
 Consumption and driving energy are back where the cloud was refusing them: if your Trips page showed "no data" under the consumption chart, or the Monthly Report had no driving energy, it works again. A charge that goes on slowly after the current drops now keeps all the energy it delivered, and the charges already in your database are recomputed once on first start. The Overview says **Data stale** instead of **Driving** when the car has stopped talking to the cloud mid-journey, and a charge taken while out of contact — in an underground garage, say — can be recovered even if you drove a kilometre or two out of it.
 

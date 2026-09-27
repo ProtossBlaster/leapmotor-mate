@@ -1,8 +1,10 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.3.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.3.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.3.0
+## Neu in Version 4.3.1
+
+Ein Auto, das mitten in der Fahrt für eine Minute die Cloud verliert, behält die Fahrt: nach der Rückkehr wird die offene Fahrt fortgesetzt statt eine neue begonnen, und die Kilometer der Lücke bleiben darin. Bereits geteilte Fahrten bleiben, wie sie sind — zusammenführen lassen sie sich im Fahrtenkalender mit **🔗 Zusammenführbar**.
 
 Verbrauch und Fahrenergie sind wieder da, wo die Cloud sie abgelehnt hat: Wenn auf der Seite Fahrten unter dem Verbrauchsdiagramm «Keine Daten» stand oder im Monatsbericht die Fahrenergie fehlte, funktioniert es wieder. Eine Ladung, die nach dem Absinken des Stroms langsam weiterläuft, behält nun die gesamte gelieferte Energie, und die bereits gespeicherten Ladungen werden beim ersten Start einmal neu berechnet. Die Übersicht zeigt **Daten veraltet** statt **Fahrt**, wenn das Auto unterwegs nicht mehr mit der Cloud spricht, und eine Ladung ohne Empfang — etwa in einer Tiefgarage — kann auch dann erkannt werden, wenn Sie danach ein bis zwei Kilometer herausgefahren sind.
 

@@ -1,8 +1,10 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.3.0 · **Idioma:** Español
+> **Versión de Mate:** v4.3.1 · **Idioma:** Español
 
-## Novedades de la versión 4.3.0
+## Novedades de la versión 4.3.1
+
+Un coche que pierde la nube durante un minuto a mitad de trayecto conserva el trayecto: al volver se reanuda el que estaba abierto en lugar de empezar otro, y los kilómetros del hueco se quedan dentro. Los trayectos ya partidos se quedan como están — para unirlos está **🔗 Fusionables** en el calendario de Viajes.
 
 El consumo y la energía de conducción vuelven donde la nube los rechazaba: si en la página Viajes el gráfico de consumo decía «sin datos», o el informe mensual no mostraba la energía de conducción, ya funciona. Una carga que sigue despacio tras bajar la corriente conserva ahora toda la energía entregada, y las cargas ya registradas se recalculan una vez en el primer arranque. La vista general dice **Datos desactualizados** en lugar de **Conduciendo** cuando el coche ha dejado de hablar con la nube a mitad de camino, y una carga hecha sin cobertura — en un garaje subterráneo, por ejemplo — puede recuperarse aunque después hayas recorrido uno o dos kilómetros para salir.
 
