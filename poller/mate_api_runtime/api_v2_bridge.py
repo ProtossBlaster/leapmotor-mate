@@ -82,6 +82,19 @@ class NoLegacyNetwork:
         raise LeapmotorApiError('Direct legacy network access disabled in independent API runtime')
 
 
+def _rejection(status, codes):
+    """The cloud's refusal, with its own codes kept on the exception.
+
+    One error covers every non-zero code, so a caller that only reads the message cannot tell an
+    empty window (100, "No data found") from a failure worth retrying — and pays three session
+    resets, three logins, for a day the car did not move (#327).
+    → tests/test_an_empty_window_is_an_answer_not_a_failure.py
+    """
+    error = LeapmotorApiError('New API rejected request: HTTP %s, code %s' % (status, str(codes)[:100]))
+    error.api_codes = tuple(codes)
+    return error
+
+
 class NewAPIClient(MateClientCompatibility):
     _mate_new_api = True
 
@@ -169,7 +182,7 @@ class NewAPIClient(MateClientCompatibility):
             self._invalidate_session(headers['token'])
             raise LeapmotorApiError('Session unavailable; invalidated without replay')
         if response.status != 200 or not codes or any(type(c) is bool or str(c)!='0' for c in codes):
-            raise LeapmotorApiError('New API rejected request: HTTP %s, code %s' % (response.status,str(codes)[:100]))
+            raise _rejection(response.status, codes)
         if binary:
             raise LeapmotorApiError('Picture endpoint did not return a ZIP')
         return envelope, response

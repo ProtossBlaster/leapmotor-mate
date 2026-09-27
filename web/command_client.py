@@ -147,6 +147,29 @@ def _get_credentials() -> tuple[str, str, str]:
     return user, pwd, pin
 
 
+def _signed_headers_builder(name: str):
+    """The header builder these raw endpoints must sign with, for the backend THIS process runs.
+
+    Mate has two. `api_backend` picks the bundled SDK when the activation decided the account does
+    not qualify (MATE_API_V2=0) and the independent client otherwise. These six endpoints are
+    POSTed by Mate itself rather than by the client, so on the SDK the signed headers — `sign`
+    among them — are the caller's job. The independent client signs its own wire request, and its
+    `adapter_owned_headers` marker returns nothing on purpose.
+
+    4.0.0 replaced the SDK's builders with that marker at all six call sites at once, for both
+    backends, so an installation left on the SDK sent these reads unsigned. The cloud answers an
+    unsigned request `code 39, Information verification failed`, and Mate showed it as "no data":
+    no consumption chart on Trips, no driving energy in the Monthly Report, no per-trip
+    enrichment (#327, on two cars).
+    → tests/test_the_legacy_backend_still_signs_its_reads.py
+    """
+    if os.environ.get("MATE_API_V2") == "0":
+        import leapmotor_api.crypto as _crypto
+        return getattr(_crypto, name)
+    from leapmotor_cloud.mate_compat import adapter_owned_headers
+    return adapter_owned_headers
+
+
 def _make_client() -> LeapmotorApiClient:
     user, pwd, pin = _get_credentials()
     try:
@@ -189,6 +212,19 @@ def _classify_ec_response(j) -> tuple[str, dict | None]:
     if result in (0, 100) or "no data" in msg:
         return "empty", None
     return "auth", None
+
+
+def _classify_client_rejection(error) -> str:
+    """What the independent client's rejection was really about: 'empty' or 'retry'.
+
+    That client raises one error for every non-zero cloud code, so the body never reaches
+    `_classify_ec_response` and an empty window looks exactly like a transport failure: three
+    attempts, three `self._reset()`, three logins — for a day the car simply did not move. Code
+    100 is "No data found", which is an answer.
+    → tests/test_an_empty_window_is_an_answer_not_a_failure.py
+    """
+    codes = getattr(error, "api_codes", None) or ()
+    return "empty" if any(str(code) == "100" for code in codes) else "retry"
 
 
 def _parse_plugin_consumption(raw) -> dict | None:
@@ -664,7 +700,7 @@ class LeapmotorSession:
         import json as _json
         from urllib.parse import quote
         try:
-            from leapmotor_cloud.mate_compat import adapter_owned_headers as build_consumption_last_week_headers
+            build_consumption_last_week_headers = _signed_headers_builder("build_consumption_last_week_headers")
         except Exception:  # noqa: BLE001
             return None
         with self._lock:
@@ -715,6 +751,8 @@ class LeapmotorSession:
                         "driving_pct": pct(drv), "ac_pct": pct(ac), "other_pct": pct(oth),
                     }
                 except Exception as e:  # noqa: BLE001
+                    if _classify_client_rejection(e) == "empty":
+                        return None      # no driving in this window — an answer, not a failure
                     log.warning("Energy range fetch (attempt %d): %s", attempt + 1, e)
                     self._reset()
             return None
@@ -725,7 +763,7 @@ class LeapmotorSession:
         its own — the caller holds the lock and has connected."""
         import json as _json
         from urllib.parse import quote
-        from leapmotor_cloud.mate_compat import adapter_owned_headers as build_consumption_last_week_headers
+        build_consumption_last_week_headers = _signed_headers_builder("build_consumption_last_week_headers")
         api, vin = self._api, self._target().vin
         headers = build_consumption_last_week_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin,
@@ -741,7 +779,7 @@ class LeapmotorSession:
         """Raw, UNMAPPED 6-week 100km-EC + rank response (research probe helper)."""
         import json as _json
         from urllib.parse import quote
-        from leapmotor_cloud.mate_compat import adapter_owned_headers as build_consumption_weekly_rank_headers
+        build_consumption_weekly_rank_headers = _signed_headers_builder("build_consumption_weekly_rank_headers")
         api, vin = self._api, self._target().vin
         headers = build_consumption_weekly_rank_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin, language=api.language).to_dict()
@@ -759,7 +797,7 @@ class LeapmotorSession:
         we're here to CONFIRM. Raw on purpose — captures any fuel field the BEV mapping would drop."""
         import json as _json
         from urllib.parse import quote
-        from leapmotor_cloud.mate_compat import adapter_owned_headers as build_consumption_weekly_rank_headers
+        build_consumption_weekly_rank_headers = _signed_headers_builder("build_consumption_weekly_rank_headers")
         api, vin = self._api, self._target().vin
         headers = build_consumption_weekly_rank_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin, language=api.language).to_dict()
@@ -783,7 +821,7 @@ class LeapmotorSession:
         (body_params) like the live call, or the reply carries mileage only."""
         import json as _json
         from urllib.parse import quote
-        from leapmotor_cloud.mate_compat import adapter_owned_headers as build_signed_headers
+        build_signed_headers = _signed_headers_builder("build_signed_headers")
         api, vin = self._api, self._target().vin
         headers = build_signed_headers(
             sign_key=api.sign_key, device_id=api.device_id, vin=vin, language=api.language,
@@ -845,7 +883,7 @@ class LeapmotorSession:
         life) and the derived parked share (total − driving). Returns a dict or None."""
         import json as _json, time as _time
         from urllib.parse import quote
-        from leapmotor_cloud.mate_compat import adapter_owned_headers as build_signed_headers
+        build_signed_headers = _signed_headers_builder("build_signed_headers")
         with self._lock:
             for attempt in range(2):
                 try:
