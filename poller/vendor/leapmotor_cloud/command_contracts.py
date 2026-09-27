@@ -1,4 +1,10 @@
-"""B10 lab contracts from app 1.16.4 static/runtime evidence, not actuation proof.
+"""Command contracts from app 1.16.4 static/runtime evidence, not actuation proof.
+
+`appremotectl` v3 is one command path for the whole Leapmotor range, so these contracts carry
+no model name: what a given car may do is the data its own cloud entry publishes (abilities,
+rightList, moduleRights), and the cloud refuses a command the car has not got (`result: 40`)
+without the vehicle moving. Payloads do stay model-shaped where the cars were measured to
+disagree — see `air()` — and that shape is the caller's to choose, never this module's to invent.
 
 Command IDs, rights and abilities are independent namespaces. Unknown payloads
 fail closed. This module never performs network requests or vehicle commands.
@@ -20,9 +26,20 @@ COMMAND_RULES={
     '192':(192,48),'193':(193,82),'230':(230,12),'240':(161,13),
     '301':(301,21),'320':(320,15),'360':(360,38),'361':(361,38),
     '370':(370,42),'440':(440,19),
+    # Sentry mode: the shipped V1 client sends cmd 220 with {"value":"1"|"0"} and declares
+    # right 220 (VehicleRight.SENTRY_MODE), the same right Mate's capability profile records.
+    # No ability code for it was ever identified in the app, hence None: the account right, the
+    # control module and the cloud's own refusal are its gate. Command 400 stays unavailable —
+    # the examined official-app availability path disables it, which is evidence, not a gap.
+    '220':(220,None),
 }
-UNAVAILABLE={'220':'Sentinel: app uses command 400, but its B10 availability and actuation are not validated.',
-             '400':'Sentinel is disabled by the examined official-app availability path.'}
+UNAVAILABLE={'400':'Sentinel is disabled by the examined official-app availability path.'}
+# Commands whose ability code is DOCUMENTED above but is NOT a usable gate, because a model was
+# measured to under-declare it. The European T03 omits AC_ON (6) and cools anyway — measured
+# on-car and reported across the ecosystem (Mate #67) — so gating climate on the ability would
+# hide the most used function of that model. The account right, the control module and the
+# cloud's own refusal stay in force. Add an id here only with a measurement, never on a hunch.
+ABILITY_NOT_GATED=frozenset({'170','171'})
 AIR_KEYS={'circle','mode','operate','position','temperature','windlevel','wshld'}
 CHARGE_KEYS={'chargeEnable','chargesoc','circulation','cycles','endtime','recharge','starttime'}
 
@@ -39,20 +56,24 @@ def require(vehicle,cmd,ability=None):
     # permissions from abilities. Never apply this exception to a shared or
     # unidentified vehicle, or override an explicitly supplied permission list.
     owner=(getattr(vehicle,'is_shared',None) is False
-           and raw_vehicle.get('vin')==vehicle.vin
-           and str(raw_vehicle.get('carType','')).upper()=='B10')
+           and raw_vehicle.get('vin')==vehicle.vin)
     right_allowed=(owner and raw_vehicle.get('rightList') is None) or vehicle.has_right(right)
     module_allowed=(owner and raw_vehicle.get('moduleRights') is None) or vehicle.has_module_right(200)
     ability=default if ability is None else ability
     raw=raw_vehicle.get('abilities')
-    if isinstance(raw,list):
+    if ability is None or cmd in ABILITY_NOT_GATED:
+        # Either COMMAND_RULES carries no ability code (none was identified in the app) or the
+        # code is documented but measured unreliable (ABILITY_NOT_GATED). The account right, the
+        # control module and the cloud's refusal remain in force either way.
+        supported=True
+    elif isinstance(raw,list):
         try:
             if any(not (type(v) is int and v>0 or isinstance(v,str) and v.isascii() and v.isdecimal() and int(v)>0) for v in raw):
                 raise ValueError()
             supported=ability in {int(v) for v in raw}
         except (ValueError,TypeError):supported=False
     else:supported=vehicle.has_ability(ability)
-    decision=permission_decision(model='B10',owner=bool(owner),ability_supported=bool(supported),
+    decision=permission_decision(owner=bool(owner),ability_supported=bool(supported),
         right_allowed=bool(right_allowed),module_allowed=bool(module_allowed),
         rights_present=not(owner and raw_vehicle.get('rightList') is None),
         module_rights_present=not(owner and raw_vehicle.get('moduleRights') is None))
@@ -79,14 +100,23 @@ def text(value,limit=512):
 
 
 def air(state):
+    # Full-off is the one place the cars genuinely disagree, and both forms are measured on-car:
+    #  * B10/C10 obey a bare {"operate":"off"} (acSwitch 1938 -> 0, 2026-06-06) and IGNORE the
+    #    full body;
+    #  * the T03 obeys operate=off only INSIDE the full seven-field body and ignores the bare
+    #    form (@derekzoli, 06-07/08/2026, confirmed by re-reading acSwitch, not by an ACK — the
+    #    cloud answers code:0 to all of them, which is why a log cannot tell them apart).
+    # So the shape belongs to the caller: reshaping either one yields an accepted no-op.
     if state=={'operate':'off'}:return state
     fields(state,AIR_KEYS)
-    if state['operate']=='close':return {'operate':'off'}
-    if (state['operate'] not in ('auto','manual') or state['mode'] not in ('cold','hot','wind','nohotcold')
+    if (state['operate'] not in ('auto','manual','off','close') or state['mode'] not in ('cold','hot','wind','nohotcold')
         or state['circle'] not in ('in','out') or state['position']!='all'
         or state['windlevel'] not in tuple(str(i) for i in range(1,8)) or state['wshld'] not in ('0','1','2')):
         fail('unsupported climate setting')
     finite(state['temperature'],16,32)
+    # `close` is accepted and ignored by every car measured, `off` is the one that acts: it is
+    # corrected in place, keeping the body the caller chose.
+    if state['operate'] in ('off','close'):return dict(state,operate='off')
     # B10 physical trials: manual/nohotcold, not manual/wind, activates ventilation.
     if state['mode']=='wind':state=dict(state,mode='nohotcold')
     return state
@@ -142,7 +172,7 @@ def bundle(state,vehicle):
             if value['value'] not in ('1','2'):fail('invalid mirror heat')
         elif key=='seat_setting':
             fields(value,{'driver','copilot','left_rear','right_rear'})
-            if value['left_rear']!='0' or value['right_rear']!='0':fail('rear-seat preparation not supported on this B10 adapter')
+            if value['left_rear']!='0' or value['right_rear']!='0':fail('rear-seat preparation is not implemented')
             for pos in ('driver','copilot'):
                 code=value[pos]
                 if code not in ('0','1','2','3','11','12','13'):fail('invalid preparation seat level')
@@ -189,9 +219,7 @@ def appointment(cmd,state,vehicle,*,timezone_name=None,now=None):
 
 
 def prepare(cmd,state,vehicle,*,timezone_name=None,now=None):
-    model=getattr(vehicle,'car_type',None) or getattr(vehicle,'raw',{}).get('carType','')
-    if str(model).upper()!='B10':fail('command contracts currently validated only for B10')
-    if cmd not in COMMAND_RULES:fail(UNAVAILABLE.get(cmd,'command contract not implemented for B10: '+cmd))
+    if cmd not in COMMAND_RULES:fail(UNAVAILABLE.get(cmd,'command contract not implemented: '+cmd))
     if not isinstance(state,dict):fail('payload must be an object')
     ability=None
     if cmd=='370':
@@ -204,7 +232,8 @@ def prepare(cmd,state,vehicle,*,timezone_name=None,now=None):
     simple={'110':('value',('lock','unlock')),'120':('value',('true',)),
             '130':('value',('true','false')),'160':('value',('ptcon','ptcoff')),
             '192':('operation',('unlock',)),'193':('value',('start','stop')),
-            '240':('value',('0','10')),'320':('level',('1','2')),'440':('value',('1','2'))}
+            '240':('value',('0','10')),'320':('level',('1','2')),'440':('value',('1','2')),
+            '220':('value',('0','1'))}
     if cmd in simple:
         field,values=simple[cmd];fields(state,{field})
         if state[field] not in values:fail('unsupported value for '+cmd)

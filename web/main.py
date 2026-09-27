@@ -563,7 +563,13 @@ def _ctx(**kwargs):
     _command_css = ""
     if os.environ.get("MATE_API_V2") == "1" and not _IS_DEMO:
         from ui_command_access import hidden_controls_css
-        _command_css = hidden_controls_css((_veh or {}).get("vin", ""), db_reader.get_setting)
+        _vin = (_veh or {}).get("vin", "")
+        _command_css = hidden_controls_css(
+            _vin, db_reader.get_setting,
+            # One rule for the page, the injected CSS and Home Assistant: the cloud's data for
+            # this car plus what was measured on the model.
+            shown=lambda _name: capability_profile.command_shown(
+                _vin, _name, car_type=(_veh or {}).get("car_type", "")))
     return {**kwargs, "api_v2_command_css": _command_css, "lang": lang, "t": t, "version": MATE_VERSION, "demo": _IS_DEMO,
             "unconfigured_cars": ", ".join(
                 (v.get("car_type") or (v.get("vin") or "")[-6:]) for v in _unconfigured),
@@ -5869,7 +5875,8 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
         _veh, _ = db_reader.get_vehicle()
         if not capability_profile.command_shown(
                 (_veh or {}).get("vin", ""), name,
-                abilities=capability_profile.parse_abilities((_veh or {}).get("abilities"))):
+                abilities=capability_profile.parse_abilities((_veh or {}).get("abilities")),
+                car_type=(_veh or {}).get("car_type", "")):
             _msg = {"it": "Non supportato su questo modello", "fr": "Non pris en charge sur ce modèle",
                     "de": "Von diesem Modell nicht unterstützt"}.get(
                         db_reader.get_language(), "Not supported on this model")
@@ -5977,6 +5984,16 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
                 html='<span data-slow="1" style="color:#60a5fa;display:inline-flex;align-items:center;gap:4px"><svg style="animation:spin 1s linear infinite;width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span><style>@keyframes spin{to{transform:rotate(360deg)}}</style>')
         return _cmd_response(request, payload={"ok": True, "status": "done"},
                              html='<span data-ok="1" style="color:#22c55e">✓ Done</span>')
+    if os.environ.get("MATE_API_V2") == "1":
+        # The cloud is the authority on what a model has. A refusal with code 40 means this car
+        # has not got this command, so stop offering it — the button would fail every time.
+        refusal = command_client.last_cloud_refusal()
+        if refusal:
+            import ui_command_access
+            refused_vin, code = refusal
+            ui_command_access.remember_refusal(
+                refused_vin, ui_command_access.account_username(db_reader.get_setting),
+                name, code, get_setting=db_reader.get_setting, set_setting=db_reader.set_setting)
     return _cmd_response(request, payload={"ok": False, "error": msg},
                          html=_cmd_error_html(msg))
 

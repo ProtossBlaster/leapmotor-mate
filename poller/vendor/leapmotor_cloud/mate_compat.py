@@ -110,15 +110,18 @@ _ACTIONS={
  'steering_wheel_heat_off':('320',{'level':'1'}),'rearview_mirror_heat':('440',None),
  'rearview_mirror_heat_on':('440',{'value':'2'}),'rearview_mirror_heat_off':('440',{'value':'1'}),
  'prepare_car':('360',None),
+ 'sentry_mode_on':('220',{'value':'1'}),'sentry_mode_off':('220',{'value':'0'}),
 }
-_ALIASES={'trunk':'trunk_open','sunshade':'sunshade_open','battery_preheat':'battery_preheat_on'}
+_ALIASES={'trunk':'trunk_open','sunshade':'sunshade_open','battery_preheat':'battery_preheat_on',
+ 'sentry_mode':'sentry_mode_on'}
 _METHODS={'lock_vehicle':'lock','unlock_vehicle':'unlock','unlock_charger':'unlock_charger',
  'open_trunk':'trunk_open','close_trunk':'trunk_close','find_vehicle':'find_car',
  'open_sunshade':'sunshade_open','close_sunshade':'sunshade_close',
  'battery_preheat':'battery_preheat_on','battery_preheat_off':'battery_preheat_off',
  'start_charging':'charge_start','stop_charging':'charge_stop',
  'steering_wheel_heat_on':'steering_wheel_heat_on','steering_wheel_heat_off':'steering_wheel_heat_off',
- 'rearview_mirror_heat_on':'rearview_mirror_heat_on','rearview_mirror_heat_off':'rearview_mirror_heat_off'}
+ 'rearview_mirror_heat_on':'rearview_mirror_heat_on','rearview_mirror_heat_off':'rearview_mirror_heat_off',
+ 'sentry_mode_on':'sentry_mode_on','sentry_mode_off':'sentry_mode_off'}
 
 
 class MateClientCompatibility:
@@ -198,8 +201,11 @@ class MateClientCompatibility:
     def quick_heat(self,vin):return self.ac_switch(vin,params=self._climate('hot','32'))
     def windshield_defrost(self,vin):return self.ac_switch(vin,params=self._climate('nohotcold','26',operate='auto',wshld='2'))
     def prepare_car(self,vin,*,params):return self._send_state(vin,'prepare_car',params)
-    def sentry_mode_on(self,vin):raise MateAPIError('Sentinel is not validated; command not sent')
-    def sentry_mode_off(self,vin):raise MateAPIError('Sentinel is not validated; command not sent')
+    # Sentry mode keeps the contract the shipped V1 client used: cmd 220, {"value":"1"|"0"},
+    # right 220. Its actuation is not validated on any model, so the cloud is the authority —
+    # a car without it answers result 40 and nothing moves.
+    def sentry_mode_on(self,vin):return self._remote_control(vin=vin,action='sentry_mode_on')
+    def sentry_mode_off(self,vin):return self._remote_control(vin=vin,action='sentry_mode_off')
 
     def set_climate_schedule(self,vin,*,controls):return self._send_state(vin,'ac_schedule',{'controls':controls})
     def cancel_climate_schedule(self,vin):return self.set_climate_schedule(vin,controls=[])

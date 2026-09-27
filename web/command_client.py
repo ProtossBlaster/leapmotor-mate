@@ -362,12 +362,17 @@ class LeapmotorSession:
                         return False, "No vehicle selected"
                     self._use_pin_of(target.vin)
                     self._api.last_new_command_receipt = None
+                    self.last_refusal = None
                     action_fn(self._api, target.vin)
                     receipt = self._api.last_new_command_receipt
                     if receipt is None:
                         return False, "New API command returned no receipt; not retried"
                     if receipt.outcome in ("accepted", "accepted_untracked"):
                         return True, "Cloud accepted; physical execution not confirmed"
+                    if receipt.outcome == "rejected":
+                        # Keep the cloud's own code: 40 (no such permission) is the cloud saying
+                        # this car has not got this command, which the caller records per VIN.
+                        self.last_refusal = (target.vin, getattr(receipt, "api_code", None))
                     return False, "Remote control result " + receipt.outcome + "; not retried"
                 except Exception as exc:
                     # Do not log exception text: upstream errors may contain secrets.
@@ -891,6 +896,15 @@ class LeapmotorSession:
 
 
 _session = LeapmotorSession()
+
+
+def last_cloud_refusal():
+    """(vin, api_code) when the cloud refused the last command through the new client, else None.
+
+    Code 40 (无此权限, "No such permission") is the cloud's verdict that the vehicle has not got
+    that command — more informative than the rights list its own snapshot published.
+    """
+    return getattr(_session, "last_refusal", None)
 
 
 def get_car_picture() -> bytes | None:

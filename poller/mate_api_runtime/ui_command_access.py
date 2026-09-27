@@ -17,6 +17,7 @@ GROUPS = {
  '370': 'seat_vent_driver_on seat_vent_driver_off seat_vent_passenger_on seat_vent_passenger_off',
  '320': 'steering_heat_on steering_heat_off', '440': 'mirror_heat_on mirror_heat_off',
  '360': 'prepare_car', '361': 'prepare_schedule',
+ '220': 'sentry_on sentry_off',
 }
 COMMANDS = {name: cmd for cmd, names in GROUPS.items() for name in names.split()}
 
@@ -29,18 +30,58 @@ def account_hash(username):
     return hashlib.sha256(username.encode()).hexdigest()
 
 
-def allowed(snapshot, username, vin, command, *, now=None):
-    if command in ('sentry_on', 'sentry_off'):
-        return False
+def refusal_key(vin):
+    return 'api_v2_refused_' + (vin or '').lower()
+
+
+def load_refusals(vin, username, *, get_setting):
+    """Commands this car's cloud has refused with «no such permission».
+
+    Scoped to the account binding: a different account starts clean, because the refusal belongs
+    to that pairing and not to the VIN for ever.
+    """
+    try:
+        stored = json.loads(get_setting(refusal_key(vin), '{}'))
+        if stored.get('account') != account_hash(username):
+            return frozenset()
+        return frozenset(c for c in stored.get('commands', []) if isinstance(c, str))
+    except Exception:
+        return frozenset()
+
+
+def remember_refusal(vin, username, command, code, *, get_setting, set_setting):
+    """Remember the cloud's own verdict that this car has not got this command.
+
+    Only api code 40 (无此权限, «No such permission») is remembered: it is the cloud saying the
+    function is absent for that vehicle, and it outranks the rights list its own snapshot
+    published. Any other failure — transport, PIN, an unknown outcome — says nothing about what
+    the car has, so nothing is written and the control stays.
+    """
+    if type(code) is bool or str(code) != '40' or command not in COMMANDS:
+        return
+    refused = set(load_refusals(vin, username, get_setting=get_setting))
+    if command in refused:
+        return
+    refused.add(command)
+    set_setting(refusal_key(vin), json.dumps(
+        {'account': account_hash(username), 'commands': sorted(refused)},
+        separators=(',', ':')))
+
+
+def allowed(snapshot, username, vin, command, *, now=None, refusals=()):
     cmd = COMMANDS.get(command)
-    if cmd is None:
+    if cmd is None or command in refusals:
         return False
     try:
         now = time.time() if now is None else now
         if snapshot['account'] != account_hash(username) or not 0 <= now - snapshot['at'] <= 300:
             return False
         raw = snapshot['vehicle']
-        if raw.get('vin') != vin or raw.get('carType', '').upper() != 'B10':
+        if raw.get('vin') != vin:
+            return False
+        # No model check: what this car may do is what its own cloud entry declares, checked by
+        # require()/prepare() below. carType is kept in the binding for payload shape only.
+        if not isinstance(raw.get('carType', ''), str):
             return False
         shared = snapshot['shared']
         if type(shared) is not bool:
@@ -65,15 +106,25 @@ def command_allowed(vin, command, get_setting):
     try:
         username = account_username(get_setting)
         snapshot = json.loads(get_setting(snapshot_key(vin), '{}'))
-        return allowed(snapshot, username, vin, command)
+        return allowed(snapshot, username, vin, command,
+                       refusals=load_refusals(vin, username, get_setting=get_setting))
     except Exception:
         return False
 
 
-def hidden_controls_css(vin, get_setting):
+def hidden_controls_css(vin, get_setting, *, shown=None):
+    """CSS that hides the controls this car must not offer.
+
+    `shown(command)` is the caller's own rule, so this stays the SAME decision the page and Home
+    Assistant make: the cloud's per-vehicle data plus what was measured on the car. Without it the
+    page would re-expose a control `command_shown` hides — a model that over-declares (the T03
+    lists heated steering it has no hardware for, #144) would get a button that can never act.
+    """
+    if shown is None:
+        shown = lambda name: command_allowed(vin, name, get_setting)
     selectors = []
-    for name in list(COMMANDS) + ['sentry_on','sentry_off']:
-        if not command_allowed(vin, name, get_setting):
+    for name in COMMANDS:
+        if not shown(name):
             selectors.append('[hx-post="api/command/' + name + '"]')
     routes = {'set_windows':'api/windows', 'set_climate_temp':'api/climate-temp',
               'set_fan_level':'api/climate-fan'}
@@ -81,6 +132,6 @@ def hidden_controls_css(vin, get_setting):
         for side, label in (('driver','driver'),('copilot','passenger')):
             routes['seat_' + func + '_' + label + '_on'] = 'api/seat/' + func + '/' + side
     for name, route in routes.items():
-        if not command_allowed(vin, name, get_setting):
+        if not shown(name):
             selectors.append('[hx-post="' + route + '"]')
     return ','.join(selectors) + '{display:none!important}' if selectors else ''

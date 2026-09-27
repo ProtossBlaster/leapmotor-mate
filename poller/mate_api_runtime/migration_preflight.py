@@ -157,11 +157,13 @@ def _qualify_staged():
         vehicles = client.get_vehicle_list()
         if not vehicles:
             raise ValueError('No account vehicle available for qualification')
+        # Every model qualifies. This decides WHICH CLIENT the installation runs, never which
+        # commands it may send: those follow the cloud's own per-vehicle data and its refusal.
+        # What still has to hold for each car is that the new client can actually read it.
         for vehicle in vehicles:
-            if str(vehicle.car_type).upper() != 'B10':
-                raise ValueError('Vehicle command compatibility unavailable')
             _validate_telemetry(client._get_vehicle_raw_status(vehicle), vehicle.vin)
-        return {'state': 'qualified', 'capabilities': ['B10']}
+        return {'state': 'qualified',
+                'capabilities': sorted({str(v.car_type).upper() for v in vehicles})}
     finally:
         client.close()
 

@@ -276,6 +276,13 @@ def command_shown(vin: str, command_key: str, get_setting: Optional[Callable] = 
     T03 — #144); otherwise mapped to its gating feature (COMMAND_FEATURE), and commands with neither
     are always shown."""
     if os.environ.get("MATE_API_V2") == "1" and os.environ.get("MATE_DEMO", "").lower() not in ("1", "true"):
+        # The cloud decides what may be SENT; what we SHOW also keeps what was measured on the
+        # car. A model that over-declares would otherwise get a button that can never act: the
+        # European T03 lists STEERING_WHEEL and heated seats it has no hardware for (#144).
+        # A command with no COMMAND_FEATURE entry is its own feature name in MODEL_ABSENT
+        # (`prepare_car`), so fall back to the key: a gate that read only the map would let it by.
+        if car_type and model_hidden(car_type, COMMAND_FEATURE.get(command_key, command_key)):
+            return False
         from ui_command_access import command_allowed
         return command_allowed(vin,command_key,get_setting or _default_get_setting())
     if not ability_supported(command_key, abilities):

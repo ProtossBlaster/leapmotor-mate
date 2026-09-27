@@ -6,9 +6,16 @@ from .errors import ValidationError
 from .models import Availability as A, CapabilitySnapshot, Decision, require_aware
 
 
-def permission_decision(*, model, owner, ability_supported, right_allowed,
+def permission_decision(*, owner, ability_supported, right_allowed,
                         module_allowed, rights_present=True, module_rights_present=True):
-    """Owner must originate from an authenticated binding, never guessed."""
+    """Owner must originate from an authenticated binding, never guessed.
+
+    The verdict is the cloud's own data for that vehicle and nothing else. It carries no model
+    name on purpose: `appremotectl` v3 is one command path for the whole range, and a command a
+    car does not have is refused by the cloud itself (`result: 40`, 无此权限) without the vehicle
+    moving. A model name in here could only ever narrow a car out of a function its own cloud
+    entry declares.
+    """
     if owner is not None and type(owner) is not bool:
         raise ValidationError('Invalid ownership flag')
     if any(type(x) is not bool for x in (ability_supported,right_allowed,module_allowed,
@@ -16,7 +23,9 @@ def permission_decision(*, model, owner, ability_supported, right_allowed,
         raise ValidationError('Explicit permission flags required')
     if not ability_supported:return Decision(A.UNSUPPORTED,'ability_absent')
     if owner is None:return Decision(A.UNKNOWN,'ownership_unknown')
-    owner_omission=owner and model=='B10'
+    # bindcars, the authenticated owner entry, may omit rightList/moduleRights; the official
+    # app then derives the owner's permissions from abilities. One app serves every model.
+    owner_omission=owner
     if not module_rights_present:
         if not owner_omission:return Decision(A.FORBIDDEN,'control_module_missing')
     elif not module_allowed:return Decision(A.FORBIDDEN,'control_module_denied')
@@ -42,7 +51,7 @@ def evaluate(snapshot: CapabilitySnapshot, *, ability: int, right: int,
         return Decision(A.UNKNOWN, "snapshot_expired")
     if not snapshot.complete:
         return Decision(A.UNKNOWN, "snapshot_incomplete")
-    return permission_decision(model=snapshot.vehicle.model,owner=snapshot.owner,
+    return permission_decision(owner=snapshot.owner,
         ability_supported=ability in snapshot.abilities,right_allowed=right in snapshot.rights,
         module_allowed=200 in snapshot.module_rights,rights_present=snapshot.rights_present,
         module_rights_present=snapshot.module_rights_present)

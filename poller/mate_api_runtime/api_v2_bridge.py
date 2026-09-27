@@ -444,8 +444,11 @@ class NewAPIClient(MateClientCompatibility):
             self.last_new_command_receipt=None
             cmd_id=str(cmd_id)
             vehicle=next((v for v in self.get_vehicle_list() if v.vin==vin),None)
-            if vehicle is None or vehicle.car_type.upper()!='B10':
-                raise LeapmotorApiError('New command adapter currently limited to B10')
+            if vehicle is None:
+                raise LeapmotorApiError('Command vehicle is not in the authenticated binding')
+            # No model check: appremotectl v3 is one path for the whole range. What the car may
+            # do is the data its own cloud entry publishes, checked by prepare() below, and the
+            # cloud refuses what the car has not got (result 40) without it moving.
             if not isinstance(cmd_content,str) or len(cmd_content)>32768:
                 raise LeapmotorApiError('Invalid command payload size')
             state=prepare(cmd_id,json.loads(cmd_content,object_pairs_hook=_unique_object,

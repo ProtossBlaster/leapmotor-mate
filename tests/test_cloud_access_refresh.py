@@ -153,7 +153,12 @@ def test_mqtt_discovery_recovers_revokes_and_ignores_timestamp_only_refresh(monk
     assert len(service.client.messages) == count
     settings[snapshot_key(VIN)] = snapshot(1100, [10])
     service.publish_status(data)
-    assert latest(topic) == latest(schedule_topic) == ''
+    # Dropping ability 35 revokes the charge schedule: that code IS a usable gate.
+    assert latest(schedule_topic) == ''
+    # Dropping AC_ON (6) does NOT revoke the climate: the European T03 omits that code and cools
+    # anyway (#67), so climate is deliberately not gated on the ability — on any model. What can
+    # still revoke it is the account right, a stale snapshot or the cloud's own refusal.
+    assert latest(topic) != ''
     assert latest(lock_topic) != ''
     clock[0] = 1401
     service.publish_status(data)

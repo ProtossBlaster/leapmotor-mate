@@ -127,11 +127,17 @@ def test_staged_qualification_decrypts_key_and_reads_every_vehicle(tmp_path, mon
         def close(self):
             pass
     monkeypatch.setattr(api_v2_bridge, 'NewAPIClient', Cloud)
-    assert migration._qualify_staged() == {'state': 'qualified', 'capabilities': ['B10']}
+    assert migration._qualify_staged() == {'state': 'qualified', 'capabilities': ['B10']}  # the models seen
     assert reads == ['fixture-1', 'fixture-2']
 
 
-def test_staged_qualification_rejects_unsupported_account_without_commands(tmp_path, monkeypatch):
+def test_staged_qualification_rejects_an_account_the_new_client_cannot_read(tmp_path, monkeypatch):
+    """Qualification says WHICH CLIENT, never which commands.
+
+    Every model qualifies — appremotectl v3 is one path for the whole range and the cloud refuses
+    a command a car has not got. What still has to hold, per car, is that the new client can
+    actually read that car: an unreadable vehicle keeps the whole account on the previous client.
+    """
     from types import SimpleNamespace
     import automatic_material
     import api_v2_bridge
@@ -143,10 +149,12 @@ def test_staged_qualification_rejects_unsupported_account_without_commands(tmp_p
     class Cloud:
         def __init__(self, **kwargs): pass
         def login(self): pass
-        def get_vehicle_list(self): return [SimpleNamespace(car_type='C10')]
+        def get_vehicle_list(self): return [SimpleNamespace(car_type='C10', vin='fixture-1')]
+        def _get_vehicle_raw_status(self, vehicle):
+            return {'data': {'vin': vehicle.vin, 'signal': {}}}
         def close(self): pass
     monkeypatch.setattr(api_v2_bridge, 'NewAPIClient', Cloud)
-    with pytest.raises(ValueError, match='compatibility'):
+    with pytest.raises(ValueError, match='telemetry'):
         migration._qualify_staged()
 
 

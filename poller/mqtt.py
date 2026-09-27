@@ -206,6 +206,13 @@ class MqttService:
                    'door_lock': 'lock', 'lock_toggle': 'lock',
                    'trunk': 'open_trunk', 'charge_limit': 'set_charge_limit',
                    'charge_schedule': 'save_charge_schedule'}.get(key, key)
+            # The cloud decides what may be SENT; what Home Assistant SHOWS also keeps what was
+            # measured on the car, exactly as the page does — the European T03 declares
+            # STEERING_WHEEL and heated seats it has no hardware for (#144), and the two surfaces
+            # must not disagree about the same car.
+            feat = capability_profile.COMMAND_FEATURE.get(key)
+            if feat and capability_profile.model_hidden(self._facts(vin)[1], feat):
+                return False
             from ui_command_access import command_allowed
             return command_allowed(vin, key, self.get_setting)
         abilities, car_type = self._facts(vin)
