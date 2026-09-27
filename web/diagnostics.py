@@ -811,6 +811,13 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
             f"VIN          : {info['vin_masked']}",
             f"Battery kWh  : {info['battery_kwh']}  (SoH reference: {info['battery_nominal_kwh']})",
             f"Language     : {info['language']}",
+            # 🔴 Mate 4 runs one of two cloud clients, and they fail differently: #327 was a
+            # refusal that only happens on the bundled SDK. @arzthilfe's bundle did not say
+            # which he had, and it had to be inferred from the shape of a log line.
+            # `api_backend` selects the SDK only on an explicit '0'.
+            f"Cloud client : " + ("bundled SDK (leapmotor-api)"
+                                  if os.environ.get("MATE_API_V2") == "0"
+                                  else "independent (mate-api)"),
             f"DB size (MB) : {info['db_size_mb']}",
             f"Rows         : trips={info['counts']['trips']} "
             f"charges={info['counts']['charges']} positions={info['counts']['positions']}",
