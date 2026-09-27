@@ -234,6 +234,21 @@ SECRET_KEYS = {"leapmotor_pass", "leapmotor_pin", "abrp_token",
                "mqtt_pass", "geocoder_key", "ha_token", "ocm_key", "tomtom_key"}
 
 
+def log_login(path: str, outcome: str, process: str = "poller", reason=None) -> None:
+    """One row per login ATTEMPT, by whichever process made it — the web and the poller share one
+    session, and which of them last got in is a question the poller log alone cannot answer.
+    On a connection of its own: the cloud-history thread logs in while the poll loop may be
+    mid-transaction on the poller's, and one connection under two threads interleaves them."""
+    conn = sqlite3.connect(path, timeout=5)
+    try:
+        conn.execute(
+            "INSERT INTO poll_log (at, kind, outcome, process, reason) VALUES (?, 'login', ?, ?, ?)",
+            (_now_iso(), outcome, process, None if reason is None else str(reason)[:200]))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 class Database:
     def __init__(self, path: str = "leapmotor_mate.db"):
         self._path = path
@@ -805,6 +820,26 @@ class Database:
         )
         self._conn.commit()
         return len(rows)
+
+    def log_poll(self, vehicle_id, outcome: str, frame_age_s=None, reason=None) -> None:
+        """One row per poll: what the request did, and how old the frame was when it arrived."""
+        self._conn.execute(
+            "INSERT INTO poll_log (at, vehicle_id, kind, outcome, frame_age_s, reason) "
+            "VALUES (?, ?, 'poll', ?, ?, ?)",
+            (_now_iso(), vehicle_id, outcome, frame_age_s, None if reason is None else str(reason)[:200]))
+        self._conn.commit()
+
+    def vehicle_vins(self) -> list:
+        """Every car registered so far, for what must be said about them before a login lets
+        the poller ask the cloud which cars there are."""
+        return [r["vin"] for r in self._conn.execute(
+            "SELECT vin FROM vehicles WHERE vin IS NOT NULL AND TRIM(vin) <> '' ORDER BY id").fetchall()]
+
+    def prune_poll_log(self, retention_days: int = 7) -> int:
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
+        cur = self._conn.execute("DELETE FROM poll_log WHERE at < ?", (cutoff,))
+        self._conn.commit()
+        return cur.rowcount
 
     def prune_raw_signals(self, retention_days: int) -> int:
         """Drop raw-signal rows older than retention_days (0 = keep forever) so the beta

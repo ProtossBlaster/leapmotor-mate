@@ -864,5 +864,40 @@
   })();
   </script>
 
+{# One tooltip for the whole app: any element with data-tip="…" shows it on hover, on tap and on
+   keyboard focus. The browser's own `title` needs a second of hovering, never shows on touch and
+   not at all inside the Home Assistant app. Delegated on the document, so content swapped in by
+   HTMX gets it too. Lines break only where the text has a newline — a fact sheet is not prose. #}
+<div id="mate-tip" class="hidden fixed z-[1100] pointer-events-none rounded-lg border border-slate-600 bg-slate-900 px-2.5 py-1.5 text-[11px] leading-snug text-slate-200 shadow-lg max-w-[min(20rem,90vw)] whitespace-pre-line" role="tooltip"></div>
+<script>
+  (function () {
+    var tip = document.getElementById('mate-tip'), cur = null;
+    function place(x, y) {
+      var w = tip.offsetWidth, h = tip.offsetHeight;
+      var l = Math.min(x + 12, window.innerWidth - w - 8), t = y + 16;
+      if (t + h > window.innerHeight - 8) t = y - h - 10;
+      tip.style.left = Math.max(8, l) + 'px'; tip.style.top = Math.max(8, t) + 'px';
+    }
+    function show(el, x, y) { cur = el; tip.textContent = el.getAttribute('data-tip'); tip.classList.remove('hidden'); place(x, y); }
+    function hide() { cur = null; tip.classList.add('hidden'); }
+    function at(e) { return e.target && e.target.closest ? e.target.closest('[data-tip]') : null; }
+    document.addEventListener('pointermove', function (e) {
+      if (e.pointerType !== 'mouse') return;
+      var el = at(e); if (!el) return hide();
+      if (el !== cur) show(el, e.clientX, e.clientY); else place(e.clientX, e.clientY);
+    });
+    document.addEventListener('pointerdown', function (e) {
+      var el = at(e); if (!el) return hide();
+      if (el === cur && !tip.classList.contains('hidden')) return hide();   // a second tap closes it
+      show(el, e.clientX, e.clientY);
+    });
+    document.addEventListener('focusin', function (e) {
+      var el = at(e); if (!el) return hide();
+      var r = el.getBoundingClientRect(); show(el, r.left, r.bottom);
+    });
+    document.addEventListener('focusout', hide);
+    document.addEventListener('scroll', hide, true);
+  })();
+</script>
 </body>
 </html>

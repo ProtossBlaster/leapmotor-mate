@@ -464,7 +464,9 @@ def _ago(t, seconds) -> str:
         return t("ago_s").format(n=s)
     if s < 3600:
         return t("ago_m").format(n=s // 60)
-    return t("ago_h").format(n=s // 3600)
+    if s < 86400:
+        return t("ago_h").format(n=s // 3600)
+    return t("ago_d").format(n=s // 86400)
 
 
 def _last_position(status, t) -> dict:
@@ -703,6 +705,7 @@ async def overview(request: Request):
         charge_limit=_configured_charge_limit((vehicle or {}).get("vin") or ""),
         car_resp=db_reader.command_responsiveness(),
         battery_price=db_reader.current_blended_price(),   # #200 — must match /api/status-card
+        data_link=None if _IS_DEMO else db_reader.data_link(status),   # demo runs no poller
     ))
 
 
@@ -2579,6 +2582,7 @@ async def settings_page(request: Request):
         timezones=db_reader.timezone_options(),
         timezone_code=db_reader.get_timezone(),
         diag=diagnostics.build_system_info(MATE_VERSION),
+        polling=db_reader.polling_summary(),
         measured_capacity=db_reader.get_battery_health().get("latest_capacity_kwh"),
         # The capacity actually in use, and the SoH reference. The form used to carry its own
         # default (67.1) while the code read another (65.0) — two defaults for one value, and
@@ -4460,6 +4464,16 @@ async def status_card(request: Request):
         status=status, vehicle=vehicle,
         car_resp=db_reader.command_responsiveness(),
         battery_price=db_reader.current_blended_price(),   # #200 — must match the overview route
+    ))
+
+
+@app.get("/api/link-pill", response_class=HTMLResponse)
+async def link_pill(request: Request):
+    """The data-link tile beside the Overview heading, on its own 30-second refresh."""
+    if _IS_DEMO:
+        return HTMLResponse("")            # demo runs no poller: a silent heartbeat is not an outage
+    return templates.TemplateResponse(request, "partials/link_pill.html", _ctx(
+        data_link=db_reader.data_link(db_reader.get_latest_status()),
     ))
 
 

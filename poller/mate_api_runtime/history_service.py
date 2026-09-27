@@ -6,7 +6,8 @@ import threading
 _thread = None
 _guard = threading.Lock()
 
-def start_history_worker():
+def start_history_worker(on_login=None):
+    """`on_login` hears every login the worker's own client spends — see history_worker."""
     global _thread
     # Cloud history is a READ: it does not follow the COMMAND qualification. An account
     # retained on the previous client — anything that is not a pure B10 account — still
@@ -23,7 +24,7 @@ def start_history_worker():
             stop = threading.Event()
             while True:
                 try:
-                    sync_once()
+                    sync_once(on_login)
                 except Exception as error:
                     logging.getLogger('mate.history').warning('History sync unavailable (%s)', type(error).__name__)
                 stop.wait(300)

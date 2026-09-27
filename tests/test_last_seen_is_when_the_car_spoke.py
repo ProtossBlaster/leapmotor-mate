@@ -152,3 +152,15 @@ def test_a_healthy_car_reads_the_same_as_before():
 def test_a_car_that_reports_no_clock_still_gets_an_answer():
     out = _render_card(last_seen_s=45, data_age_s=None, data_age=None)
     assert "45s ago" in out, "with no frame timestamp the row time is all we have"
+
+
+# ── and past a day it is counted in days ──────────────────────────────────────
+
+def test_nine_days_reads_as_days_not_as_two_hundred_hours():
+    """A car whose last frame is nine days old said "216h ago" — a number nobody converts in
+    their head, on the one figure that is supposed to say at a glance how stale the screen is."""
+    import main
+    t = {"ago_s": "{n}s ago", "ago_m": "{n}m ago", "ago_h": "{n}h ago", "ago_d": "{n}d ago"}.get
+    assert main._ago(t, 9 * 86400 + 3600) == "9d ago"
+    assert main._ago(t, 86400) == "1d ago"
+    assert main._ago(t, 86399) == "23h ago", "under a day nothing changes"

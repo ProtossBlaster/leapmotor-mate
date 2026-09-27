@@ -30,6 +30,29 @@ _BEACON = "mate_instance"
 # simply reads `unknown`, which is the honest answer. Only an empty string is falsy in Jinja, so a
 # real "0" still goes through.
 _EMPTY_NONE = "{{ value if value else none }}"
+# The data-link sensor expires on its own: it is published from every branch of the poll, so the
+# only way it goes quiet is a poller that has stopped — and then `unavailable` is the truth. The
+# web's heartbeat rule (two parked cadences and a minute) at the slowest cadence Settings allows:
+# the web recomputes its grace from the cadence set, this is fixed at discovery.
+_LINK_EXPIRE_S = 2 * 600 + 60
+# Whether the readings can be trusted, as the Overview judges it: fresh · no_new_data ·
+# age_unknown · login_refused · fetch_failed. Published from EVERY branch of the poll (see
+# publish_link), so a refused session reaches HA as `login_refused` rather than as an entity
+# that quietly went stale. Since when, the error and the next attempt ride along as attributes.
+_LINK_SENSOR = ("data_link", "Data Link", {"icon": "mdi:cloud-check-variant",
+                                            "expire": _LINK_EXPIRE_S, "attrs": True})
+
+
+def _sensor_conf(prefix, vin, key, name, extra) -> dict:
+    """One sensor's discovery config from its (key, name, extra) line."""
+    c = {"name": name, "state_topic": f"{prefix}/{vin}/{key}"}
+    if "unit" in extra: c["unit_of_measurement"] = extra["unit"]
+    if "dc" in extra: c["device_class"] = extra["dc"]
+    if "icon" in extra: c["icon"] = extra["icon"]
+    if "tpl" in extra: c["value_template"] = extra["tpl"]
+    if "expire" in extra: c["expire_after"] = extra["expire"]
+    if extra.get("attrs"): c["json_attributes_topic"] = f"{prefix}/{vin}/{key}/attributes"
+    return c
 
 
 class MqttService:
@@ -68,6 +91,7 @@ class MqttService:
         self.config_sig = None
         self._own_vins = set()          # VINs WE publish for — a command for any other is refused
         self._access_published = {}
+        self._link_discovery_sent = set()   # VINs whose data_link entity has been announced
         self._discovery_sent: set = set()   # VINs whose discovery has been published
         # #144 — temperature topic keys a car has never reported, and what we last told HA about
         # them, both PER VIN. 🔴 One set for the bridge would have judged both cars by whichever was
@@ -134,6 +158,7 @@ class MqttService:
             self.client.subscribe(f"{self.topic_prefix}/+/+/set")
             self.client.subscribe(f"{self.topic_prefix}/+/{_BEACON}")
             self._discovery_sent.clear()   # resend discovery for every car after a reconnect
+            self._link_discovery_sent.clear()
         else:
             log.error("MQTT: connect refused (code %d)", rc)
 
@@ -482,6 +507,26 @@ class MqttService:
             v = "" if value is None else str(value)
         self.client.publish(f"{self.topic_prefix}/{vin}/{key}", v, retain=True)
 
+    def publish_link(self, vin, state: str, attrs: dict) -> None:
+        """The data-link state, from every branch of the poll — with no frame to hand, so nothing
+        of _publish_sensors applies. Connects like publish_status does, so a poller that starts
+        into an outage still says `login_refused` instead of nothing — and announces the entity
+        itself, since the discovery that rides on a frame may be a long time coming."""
+        if not self.client and not self.connect():
+            return
+        if not self.client.is_connected():
+            return
+        if self.discovery_enabled and vin not in self._link_discovery_sent:
+            key, name, extra = _LINK_SENSOR
+            device_id = f"{self.topic_prefix}_mate_{vin.lower()}"
+            conf = _sensor_conf(self.topic_prefix, vin, key, name, extra)
+            conf.update({"unique_id": f"{device_id}_{key}", "device": self._device(vin)})
+            self.client.publish(f"{_DISC}/sensor/{device_id}/{key}/config", json.dumps(conf), retain=True)
+            self._link_discovery_sent.add(vin)
+        base = f"{self.topic_prefix}/{vin}"
+        self.client.publish(f"{base}/data_link", state, retain=True)
+        self.client.publish(f"{base}/data_link/attributes", json.dumps(attrs), retain=True)
+
     def _device(self, vin):
         """The HA device this car's entities hang off. Extracted so the temperature re-check can
         rebuild the identical descriptor — a second copy that drifted would create a second device.
@@ -538,6 +583,7 @@ class MqttService:
             ("frame_ts", "Data Timestamp", {"dc": "timestamp", "icon": "mdi:car-clock", "tpl": _EMPTY_NONE}),
             ("data_age", "Data Age", {"dc": "duration", "unit": "s",
                                       "icon": "mdi:timer-sand", "tpl": _EMPTY_NONE}),
+            _LINK_SENSOR,
             ("climate_mode", "Climate Mode", {"icon": "mdi:air-conditioner"}),
             # Empty-to-none like frame_ts and data_age above: the car stops reporting 1348 the
             # moment the climate is off, `pub()` writes "" for an absent value, and a `power` entity
@@ -546,12 +592,8 @@ class MqttService:
                                                 "icon": "mdi:air-conditioner", "tpl": _EMPTY_NONE}),
         ]
         for key, name, extra in sensors:
-            c = {"name": name, "state_topic": f"{prefix}/{vin}/{key}"}
-            if "unit" in extra: c["unit_of_measurement"] = extra["unit"]
-            if "dc" in extra: c["device_class"] = extra["dc"]
-            if "icon" in extra: c["icon"] = extra["icon"]
-            if "tpl" in extra: c["value_template"] = extra["tpl"]
-            cfg("sensor", key, c)
+            cfg("sensor", key, _sensor_conf(prefix, vin, key, name, extra))
+        self._link_discovery_sent.add(vin)
 
         # The three temperatures live in their own pass because they are the only entities gated on a
         # MEASUREMENT that keeps changing (#144): a car that has never once sent one does not get the
