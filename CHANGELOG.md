@@ -3,6 +3,11 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.2.1] — 2026-09-27
+
+- Fix: a new installation is offered the certificate step again. From 4.0.0 the setup page showed only the application-bundle upload — a ZIP carrying private parameters no user can produce — so Mate could not be set up from scratch (#328). The wizard asks for app.crt and app.key again and installs the rest from the profile packaged in the image; the bundle upload remains only where a certificate pair genuinely cannot finish the installation. Existing installations were never affected.
+- Document the verified China cloud API flow in docs/CHINA-API-RESEARCH.md, contributed by @kerniger (#326). Documentation only: Chinese-market accounts remain unsupported.
+
 ## [4.2.0] — 2026-09-27
 
 - Cloud commands reach every vehicle model, not only the B10: what a car may do is the data its own cloud entry publishes (abilities, account rights, control module) and the cloud's own refusal, never the model name.

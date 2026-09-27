@@ -1,8 +1,10 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.2.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.2.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.2.0
+## Neu in Version 4.2.1
+
+Eine Neuinstallation lässt sich wieder einrichten. Ab 4.0.0 bot die Seite des ersten Starts nur noch das Hochladen eines Anwendungspakets an — ein ZIP, das private Daten enthalten muss, die niemand selbst erzeugen kann — sodass Mate nicht von Grund auf installiert werden konnte. Der Assistent fragt wieder nach `app.crt` und `app.key`, als Datei oder als eingefügter Text, und ergänzt den Rest selbst. Wenn Mate bereits läuft, ändert sich für Sie nichts.
 
 Cloud-Befehle funktionieren jetzt bei jedem Modell, nicht mehr nur bei der B10. Was Ihr Auto darf, entscheiden die Daten, die die Cloud für dieses Fahrzeug veröffentlicht, und die Antwort der Cloud selbst: einen Befehl, den Ihr Modell nicht hat, lehnt die Cloud ab, und Mate bietet ihn nicht mehr an. Der Wächtermodus erscheint dort, wo das Konto das Recht dazu hat. Das vollständige Ausschalten der Klimaanlage verwendet die Nutzlast, die bei jedem Modell gemessen wurde. Die Cloud-Historie je Fahrt, einschließlich Kraftstoff des Range-Extenders, wird bei jedem Modell erfasst. Ein von der Cloud angenommener Befehl ist kein Beweis für die Ausführung: die Bestätigung am Fahrzeug gibt es nur für die B10.
 

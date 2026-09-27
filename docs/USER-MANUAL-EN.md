@@ -1,8 +1,10 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.2.0 · **Language:** English
+> **Mate version:** v4.2.1 · **Language:** English
 
-## New in 4.2.0
+## New in 4.2.1
+
+A new installation can be set up again. From 4.0.0 the first-start page offered only the upload of an application bundle — a ZIP that must carry private parameters no user can produce — so Mate could not be installed from scratch. The wizard asks for `app.crt` and `app.key` again, by file or as pasted text, and installs the rest by itself. If Mate is already running, nothing changes for you.
 
 Cloud commands now work on every vehicle model, not only the B10. What your car may do is decided by the data its own cloud entry publishes and by the cloud's answer: a command your model does not have is refused by the cloud, and Mate stops offering it. Sentry mode appears where your account has the right for it. Switching the climate completely off uses the payload each model was measured to obey. Cloud per-trip history, including range-extender fuel per trip, is collected on every model. A command accepted by the cloud is not proof the car carried it out; on-car confirmation exists only for the B10.
 

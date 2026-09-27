@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.2.0:** cloud commands on every vehicle model, decided by the data the cloud publishes for that car and by its own refusal rather than by the model name, with sentry mode where the account has the right and the climate-off payload each model was measured to obey. Cloud per-trip history, range-extender fuel included, on every model. Acceptance by the cloud is not confirmation of physical execution: that remains confirmed only on the B10. See the [migration contract](docs/MIGRATION-4.md).
-See [release notes and upgrade impact](docs/releases/v4.2.0.md).
+**v4.2.1:** a new installation can be set up again — the wizard asks for the app certificate instead of a bundle no user can build. Cloud commands on every vehicle model, decided by the data the cloud publishes for that car and by its own refusal rather than by the model name, with sentry mode where the account has the right and the climate-off payload each model was measured to obey. Cloud per-trip history, range-extender fuel included, on every model. Acceptance by the cloud is not confirmation of physical execution: that remains confirmed only on the B10. See the [migration contract](docs/MIGRATION-4.md).
+See [release notes and upgrade impact](docs/releases/v4.2.1.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -361,12 +361,14 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.2.0:** comandi dal cloud su ogni modello, decisi dai dati che il cloud pubblica per quell'auto e dal suo rifiuto anziché dal nome del modello, con la sentinella dove l'account ne ha il diritto e il payload di spegnimento del clima che ogni modello è stato misurato obbedire. Storico dei singoli viaggi dal cloud, carburante del prolungatore compreso, su ogni modello. L'accettazione del cloud non è la conferma dell'esecuzione fisica: quella resta confermata solo sulla B10. Vedi il [contratto di migrazione](docs/MIGRATION-4.md).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.2.0.md#italiano).
+**v4.2.1:** un'installazione nuova si può di nuovo configurare — la procedura chiede il certificato dell'app invece di un pacchetto che nessun utente può costruire. Comandi dal cloud su ogni modello, decisi dai dati che il cloud pubblica per quell'auto e dal suo rifiuto anziché dal nome del modello, con la sentinella dove l'account ne ha il diritto e il payload di spegnimento del clima che ogni modello è stato misurato obbedire. Storico dei singoli viaggi dal cloud, carburante del prolungatore compreso, su ogni modello. L'accettazione del cloud non è la conferma dell'esecuzione fisica: quella resta confermata solo sulla B10. Vedi il [contratto di migrazione](docs/MIGRATION-4.md).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.2.1.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
 I comandi dal cloud sono abilitati su **ogni modello** (dalla 4.2.0). Cosa può fare un'auto lo decidono i dati che il cloud pubblica per quel veicolo — abilities, diritti dell'account, modulo di controllo — e il rifiuto del cloud stesso, mai il nome del modello: un comando che il tuo modello non ha viene rifiutato dal cloud e Mate smette di proporlo. **La conferma in auto dell'esecuzione fisica esiste solo per la B10**: l'accettazione del cloud non è la prova che l'auto abbia eseguito. Spec. europea (gamma Leapmotor distribuita da Stellantis/Leapmotor).
+
+Gli account del mercato cinese non sono supportati da Mate. La [ricerca sull'API del cloud cinese](docs/CHINA-API-RESEARCH.md) documenta un flusso in sola lettura verificato a parte su una B05 e il lavoro di integrazione che resterebbe.
 
 ## ☕ Sostieni il progetto
 

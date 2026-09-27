@@ -1,8 +1,10 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.2.0 · **Idioma:** Español
+> **Versión de Mate:** v4.2.1 · **Idioma:** Español
 
-## Novedades de la versión 4.2.0
+## Novedades de la versión 4.2.1
+
+Una instalación nueva se puede volver a configurar. Desde la 4.0.0 la página del primer arranque solo ofrecía la subida de un paquete de aplicación — un ZIP que debe contener material privado que ningún usuario puede generar — por lo que Mate no se podía instalar desde cero. El asistente vuelve a pedir `app.crt` y `app.key`, como archivo o como texto pegado, e instala el resto por su cuenta. Si Mate ya está funcionando, para ti no cambia nada.
 
 Los comandos desde la nube funcionan ya en todos los modelos, no solo en el B10. Lo que puede hacer tu coche lo deciden los datos que la nube publica para ese vehículo y la respuesta de la nube: un comando que tu modelo no tiene es rechazado por la nube, y Mate deja de ofrecerlo. El modo centinela aparece donde la cuenta tiene ese derecho. El apagado completo del climatizador usa la carga útil que se midió en cada modelo. El historial por viaje de la nube, incluido el combustible del extensor de autonomía, se recoge en todos los modelos. Un comando aceptado por la nube no prueba que el coche lo haya ejecutado: la confirmación en el vehículo existe solo para el B10.
 

@@ -1,8 +1,10 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.2.0 · **Langue :** Français
+> **Version de Mate :** v4.2.1 · **Langue :** Français
 
-## Nouveautés de la version 4.2.0
+## Nouveautés de la version 4.2.1
+
+Une nouvelle installation peut de nouveau être configurée. Depuis la 4.0.0, la page du premier démarrage ne proposait que l'envoi d'une archive applicative — un ZIP devant contenir des éléments privés qu'aucun utilisateur ne peut produire — si bien que Mate ne pouvait pas être installé de zéro. L'assistant redemande `app.crt` et `app.key`, sous forme de fichier ou de texte collé, et installe le reste lui-même. Si Mate fonctionne déjà, rien ne change pour vous.
 
 Les commandes cloud fonctionnent désormais sur tous les modèles, et non plus seulement sur la B10. Ce que votre voiture peut faire est déterminé par les données que le cloud publie pour ce véhicule et par la réponse du cloud : une commande que votre modèle n'a pas est refusée par le cloud, et Mate cesse de la proposer. Le mode sentinelle apparaît là où le compte en a le droit. L'arrêt complet de la climatisation utilise la charge utile que chaque modèle a été mesuré obéir. L'historique cloud par trajet, carburant du prolongateur inclus, est collecté sur tous les modèles. Une commande acceptée par le cloud ne prouve pas que la voiture l'a exécutée : la confirmation sur véhicule n'existe que pour la B10.
 
