@@ -117,6 +117,9 @@ class NewAPIClient(MateClientCompatibility):
         self._routes = {}
         self._access_refresh_attempt = None
         self.last_new_command_receipt = None
+        # called from the one place the cloud is asked to authenticate, whichever read or command
+        # needed it: on_login(None) when it let us in, on_login(exc) when it did not. Must not raise.
+        self.on_login = None
 
     def _audit(self, path, method, status, code):
         with connect_db() as db:
@@ -263,6 +266,7 @@ class NewAPIClient(MateClientCompatibility):
         self.account_cert_file=str(cert);self.account_key_file=str(key)
 
     def login(self):
+        """Resume the saved session when it is still good, else authenticate."""
         with self._mutex:
             lock_path = Path(DB).parent/'api-v2-session.lock'
             with exclusive(lock_path):
@@ -288,7 +292,12 @@ class NewAPIClient(MateClientCompatibility):
                     set_setting(db,'api_v2_login_attempt',str(time.time()))
                 if not self.username or not self.password:
                     raise LeapmotorApiError('New API account credentials are missing')
-                session=self._authenticate_session()
+                try:
+                    session=self._authenticate_session()
+                except Exception as exc:
+                    if self.on_login:self.on_login(exc)
+                    raise
+                if self.on_login:self.on_login(None)
                 saved=self._session_row(session)
                 with connect_db() as db:
                     set_setting(db,SESSION_KEY,crypto.encrypt(json.dumps(saved)))

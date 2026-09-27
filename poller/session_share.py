@@ -181,13 +181,22 @@ def ensure_account_cert(api) -> bool:
 def _shared_login(self) -> None:
     """Replacement for api.login: restore the shared token first; do a real login only
     when there is no recent shared session (or a just-restored one failed within the
-    guard window). After a real login, persist the new session for the other process."""
+    guard window). After a real login, persist the new session for the other process.
+    The real login is told to `api.on_login`, as the 4.x bridge tells it from its own."""
     if time.time() - getattr(self, "_mate_restore_at", 0) > _GUARD_S:
         self._mate_restore_at = time.time()
         if _restore(self):
             log.info("Reusing shared session token (no login)")
             return
-    type(self).login(self)   # original, unpatched class login
+    hook = getattr(self, "on_login", None)
+    try:
+        type(self).login(self)   # original, unpatched class login
+    except Exception as exc:
+        if hook:
+            hook(exc)
+        raise
+    if hook:
+        hook(None)
     _save(self)
     log.info("New login — shared session saved")
 
