@@ -1,8 +1,12 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.5.0 · **Idioma:** Español
+> **Versión de Mate:** v4.5.1 · **Idioma:** Español
 
-## Novedades de la versión 4.5.0
+## Novedades de la versión 4.5.1
+
+Mate carga más rápido. Decidir qué botones puede mostrar tu coche leía la base de datos 156 veces por página — una por comando, tres ajustes cada una, y cada una abría su propia conexión. Ahora se leen una sola vez. En un add-on que funciona desde una tarjeta SD, eso era la mayor parte de la espera. La tarjeta «Enlace con la nube» de los ajustes ya no se construye en cada carga de la página: busca sus cifras cuando la abres tú. Y el menú mantiene su sitio — elegir una entrada de abajo lo devolvía arriba, y la entrada recién usada quedaba otra vez fuera de pantalla.
+
+### Novedades de la versión 4.5.0
 
 La página de inicio dice ahora si sus datos son de fiar. Junto al título hay un pequeño panel: **Mate → nube → coche**, dos puntos, y al pasar el ratón (o tocar) sobre cada palabra aparecen los hechos que hay detrás — cuánto tiempo lleva funcionando el lector, si la nube lo deja entrar y cuándo respondió por última vez, cuándo envió el coche su último dato y qué estaba haciendo. Mientras todo va bien, no escribe nada más. Cuando es Mate quien no consigue leer, el panel se pone rojo y dice qué implica: cuándo llegó el último dato, cuándo lo intentará de nuevo, el error que dio la nube y — solo si la nube culpó a la contraseña — que la contraseña es lo que hay que revisar. Hasta ahora, una nube que llevaba nueve días rechazando los accesos de una instalación se veía igual que un coche dormido en el garaje: «visto hace 9 h», y nada más.
 

@@ -1,8 +1,12 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.5.0 · **Language:** English
+> **Mate version:** v4.5.1 · **Language:** English
 
-## New in 4.5.0
+## New in 4.5.1
+
+Mate loads faster. Deciding which buttons your car may show was reading the database 156 times for every page — once per control, three settings each, each one opening its own connection. It reads them once now. On an add-on running from an SD card that was most of the wait. The Cloud link card in Settings no longer builds itself for every load of the page: it fetches its own figures when you open it. And the menu keeps its place — picking an item from the bottom used to throw it back to the top, so the item you had just used was off screen again.
+
+### New in 4.5.0
 
 The Overview now says whether what it shows can be trusted. Beside the heading there is a small tile: **Mate → cloud → car**, two dots, and a hover (or a tap) on each word tells you the facts behind it — how long the poller has been running, whether the cloud is letting it in and when it last answered, when the car last sent a frame and what it was doing. While everything works, that is all it says. When Mate itself cannot fetch, the tile turns red and says what follows from it: when the last frame arrived, when the next attempt is, the error the cloud gave, and — only when the cloud blamed the password — that the password is the thing to check. Until now a cloud that had been refusing an installation's logins for nine days looked exactly like a car asleep in a garage: "last seen 9 h ago", and nothing else.
 

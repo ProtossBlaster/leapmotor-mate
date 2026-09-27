@@ -1,8 +1,12 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.5.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.5.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.5.0
+## Neu in Version 4.5.1
+
+Mate lädt schneller. Die Entscheidung, welche Schaltflächen Ihr Auto zeigen darf, las die Datenbank 156-mal pro Seite — einmal je Befehl, drei Einstellungen jeweils, und jede öffnete ihre eigene Verbindung. Jetzt werden sie einmal gelesen. Auf einem Add-on, das von einer SD-Karte läuft, war das der Großteil der Wartezeit. Die Karte „Cloud-Verbindung“ in den Einstellungen baut sich nicht mehr bei jedem Laden der Seite auf: sie holt ihre Zahlen, wenn Sie sie öffnen. Und das Menü behält seinen Platz — ein Eintrag weiter unten warf es zurück nach oben, und der eben benutzte Eintrag war wieder außerhalb des Bildes.
+
+### Neu in Version 4.5.0
 
 Die Übersicht sagt jetzt, ob ihren Daten zu trauen ist. Neben der Überschrift sitzt eine kleine Kachel: **Mate → Cloud → Auto**, zwei Punkte, und wer mit der Maus darüber fährt (oder tippt), bekommt die Fakten dahinter — wie lange der Poller läuft, ob die Cloud ihn hereinlässt und wann sie zuletzt geantwortet hat, wann das Auto den letzten Datensatz geschickt hat und was es dabei tat. Solange alles läuft, steht dort nicht mehr. Kann Mate selbst nicht abrufen, wird die Kachel rot und sagt, was daraus folgt: wann der letzte Datensatz kam, wann der nächste Versuch ist, der Fehler der Cloud und — nur wenn die Cloud das Passwort genannt hat — dass das Passwort zu prüfen ist. Bisher sah eine Cloud, die die Anmeldungen einer Installation neun Tage lang abwies, genauso aus wie ein Auto, das in der Garage schläft: „vor 9 Std. gesehen“, und sonst nichts.
 

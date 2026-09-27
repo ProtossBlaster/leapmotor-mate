@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.5.0:** the Overview says whether its data can be trusted — a tile beside the heading, Mate → cloud → car, with the facts behind each word on a hover, and a banner naming the consequence when Mate itself cannot fetch. Home Assistant gets the same verdict as one entity per car, and Settings gets a Cloud link card with a day of polling and a week of counts. An age past a day is counted in days, and the heartbeat keeps beating while a login is being refused. The energy label under a trip names its source instead of our endpoint: Leapmotor history, measured by the car, Mate estimate.
-See [release notes and upgrade impact](docs/releases/v4.5.0.md).
+**v4.5.1:** the pages come back. Deciding which buttons a car may show was reading the database 156 times for every page — once per control, each read opening its own connection — and it is read once now; on an add-on running from an SD card that was most of the wait. The Cloud link card no longer builds itself for every load of Settings, the link tile's lookups are bounded, and the menu keeps its place instead of throwing you back to the top. Overview 0.081 s → 0.058 s, Settings 0.422 s → 0.320 s, measured on a real database.
+See [release notes and upgrade impact](docs/releases/v4.5.1.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -362,8 +362,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.5.0:** la panoramica dice se i suoi dati sono affidabili — un riquadro accanto al titolo, Mate → cloud → auto, con i fatti dietro ogni parola al passaggio del mouse, e un cartello che nomina la conseguenza quando è Mate a non riuscire a leggere. Home Assistant riceve lo stesso giudizio come un'entità per auto, e nelle impostazioni arriva un riquadro «Collegamento al cloud» con un giorno di letture e una settimana di conteggi. Un'età oltre il giorno si conta in giorni, e il battito continua mentre un login viene rifiutato. L'etichetta dell'energia sotto un viaggio nomina la sua sorgente invece del nostro endpoint: storico Leapmotor, misurata dall'auto, stima Mate.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.5.0.md#italiano).
+**v4.5.1:** le pagine tornano. Decidere quali bottoni può mostrare un'auto leggeva il database 156 volte per ogni pagina — una per comando, e ogni lettura apriva una connessione sua — e ora si legge una volta sola; su un add-on che gira da una scheda SD era la maggior parte dell'attesa. Il riquadro «Collegamento al cloud» non si costruisce più a ogni apertura delle impostazioni, le letture del riquadrino hanno un limite, e il menu resta dov'era invece di riportarti in cima. Panoramica 0,081 s → 0,058 s, impostazioni 0,422 s → 0,320 s, misurate su un database vero.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.5.1.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

@@ -1,8 +1,12 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.5.0 · **Langue :** Français
+> **Version de Mate :** v4.5.1 · **Langue :** Français
 
-## Nouveautés de la version 4.5.0
+## Nouveautés de la version 4.5.1
+
+Mate se charge plus vite. Décider quels boutons votre voiture peut afficher lisait la base de données 156 fois par page — une fois par commande, trois réglages chacune, chacune ouvrant sa propre connexion. Elle les lit une seule fois désormais. Sur un add-on qui tourne depuis une carte SD, c'était l'essentiel de l'attente. La carte « Lien cloud » des réglages ne se construit plus à chaque chargement de la page : elle va chercher ses chiffres quand vous l'ouvrez. Et le menu garde sa place — choisir une entrée en bas le renvoyait en haut, et l'entrée que vous veniez d'utiliser se retrouvait hors écran.
+
+### Nouveautés de la version 4.5.0
 
 La page d'accueil dit désormais si ce qu'elle affiche est fiable. À côté du titre, une petite tuile : **Mate → cloud → voiture**, deux points, et un survol (ou un appui) sur chaque mot donne les faits — depuis combien de temps le collecteur tourne, si le cloud le laisse entrer et quand il a répondu pour la dernière fois, quand la voiture a envoyé sa dernière trame et ce qu'elle faisait. Tant que tout va bien, elle n'écrit rien de plus. Quand c'est Mate qui n'arrive plus à lire, la tuile passe au rouge et dit ce que cela implique : l'heure de la dernière trame, la prochaine tentative, l'erreur renvoyée par le cloud et — seulement si le cloud a mis en cause le mot de passe — que c'est le mot de passe qu'il faut vérifier. Jusqu'ici, un cloud qui refusait les connexions d'une installation depuis neuf jours ressemblait exactement à une voiture endormie au garage : « vue il y a 9 h », et rien d'autre.
 

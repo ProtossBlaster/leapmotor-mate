@@ -3,6 +3,13 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.5.1] — 2026-09-28
+
+- A page reads a setting once, not once per button. Deciding which controls a car may show walked all 52 of them and read three settings for each — 156 reads to draw one page, and every read opened its own SQLite connection. 17.17 ms per page on an SSD, and far worse on an add-on running from an SD card, which is why the add-on felt worse than Docker. Measured on one copy of a real database: the Overview goes from 0.081 s to 0.058 s. The jump came in with 4.0.0 (Overview: 3.19.2 32 ms, 4.0.0 59 ms).
+- Settings does not pay for a card nobody opened. 4.5.0 built the Cloud link card — 288 five-minute windows and seven days of counts, aggregated from every row of the last eight days — inside the page, on every load, open or not. It fetches its own body when opened now. Settings 0.422 s → 0.320 s on a real database, where 3.19.2 was 0.319 s.
+- The link tile's two last-poll lookups are bounded by the retention window. With no failure to find, one of them walked the whole table, on a tile that refreshes every 30 s.
+- The menu keeps its place. Seventeen items are taller than the window they sit in (822 px of nav in 524 px at 1280x800), and every page is a full load, so picking an item from the bottom threw the menu back to the top and the item just used was off screen again.
+
 ## [4.5.0] — 2026-09-27
 
 - The Overview says whether its data can be trusted. A tile beside the heading, refreshed every 30 s on its own: two dots on one line, Mate → cloud → car, and the facts on a hover of each word — since when the poller has been running, what the session is doing and when it last answered, the last frame and what the car was doing. Nothing more is printed while nothing is wrong. Red is Mate not fetching, and the tile becomes the banner: the consequence, the last frame's time, the next attempt, the stored error, and the password hint only when the cloud blamed the password. For nine days in D #300 the same page read "last seen 9 h ago", which is also what a car asleep in a garage reads.
