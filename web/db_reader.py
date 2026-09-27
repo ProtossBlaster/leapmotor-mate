@@ -3762,6 +3762,10 @@ def get_latest_status() -> Optional[dict]:
     if not row:
         return None
     d = dict(row)
+    # The poller owns the frozen-drive guard. Do not infer a second timeout from frame age:
+    # a fresh frame may carry a backdated clock. Only the frame it actually gave up on is stale.
+    d["driving_stale"] = bool(d.get("frame_ts")) and str(d["frame_ts"]) == get_setting(
+        f"frozen_drive_frame_{d['vehicle_id']}", "")
     # Apply in-memory optimistic overrides if still within TTL
     entry = _opt_by_vehicle.get(_current_vehicle_id())
     if entry and entry[0] and time.time() < entry[1]:
@@ -9192,6 +9196,51 @@ def get_battery_capacity_kwh() -> float:
 
 
 _SCAN_MAX_KW = 250.0  # implied charge rate above this → spurious-SoC glitch, not a real charge
+# The moving-endpoint exception needs much stronger evidence than a parked SoC rise. An hour
+# without a new frame plus >=10 points is well outside ordinary polling gaps / BMS jitter.
+_SCAN_OFFLINE_MIN_GAP_S = 3600
+_SCAN_OFFLINE_MIN_RISE_PCT = 10.0
+_SCAN_OFFLINE_MAX_KM = 3.0       # only the short exit from a garage, never an unobserved long drive
+# Deliberately generous regen budget: 3 kWh/km exceeds even a lossless 3-tonne descent on a
+# 30% slope (~2.5 kWh/km). Add a whole kilometre for odometer quantisation / braking energy.
+# The net battery gain must EXCEED this budget; a distance allowance alone would admit regen.
+_SCAN_REGEN_KWH_PER_KM = 3.0
+_SCAN_ODOMETER_SLACK_KM = 1.0
+
+
+def _scan_offline_charge(a, b, capacity_kwh: float) -> bool:
+    """Conservative evidence of charging between two distinct frames, possibly still in D.
+
+    Rows between them must have been repeats (collapsed by the caller). Require both clocks
+    to show a long gap: a backdated frame or a recently replayed return cannot invent hours of
+    charging. No clocks / invalid telemetry means no exception to the parked-only scan.
+    """
+    try:
+        values = [a[k] for k in ("soc", "odometer_km", "speed_kmh", "frame_ts")]
+        values += [b[k] for k in ("soc", "odometer_km", "speed_kmh", "frame_ts")]
+        if not all(v is not None and math.isfinite(v) for v in values):
+            return False
+        if not (0 < a["soc"] < b["soc"] <= 100 and a["odometer_km"] > 0
+                and a["frame_ts"] > 0 and b["frame_ts"] > a["frame_ts"]):
+            return False
+        if any(r["charging"] or r["gear"] not in ("P", "D", "R", "N")
+               or r["speed_kmh"] < 0 for r in (a, b)):
+            return False
+        distance = b["odometer_km"] - a["odometer_km"]
+        rise = b["soc"] - a["soc"]
+        if not (0 <= distance <= _SCAN_OFFLINE_MAX_KM and rise >= _SCAN_OFFLINE_MIN_RISE_PCT):
+            return False
+        elapsed = (datetime.fromisoformat(b["recorded_at"])
+                   - datetime.fromisoformat(a["recorded_at"])).total_seconds()
+        frame_elapsed = (b["frame_ts"] - a["frame_ts"]) / 1000.0
+        gap_s = min(elapsed, frame_elapsed)
+        if gap_s < _SCAN_OFFLINE_MIN_GAP_S:
+            return False
+        energy = rise / 100.0 * capacity_kwh
+        regen_budget = (distance + _SCAN_ODOMETER_SLACK_KM) * _SCAN_REGEN_KWH_PER_KM
+        return regen_budget < energy <= _SCAN_MAX_KW * gap_s / 3600.0
+    except (TypeError, ValueError, OverflowError):
+        return False
 
 
 def scan_missed_charges(threshold: float = 2.0, apply: bool = False) -> list[dict]:
@@ -9207,8 +9256,12 @@ def scan_missed_charges(threshold: float = 2.0, apply: bool = False) -> list[dic
 
     Guards against false positives (which a one-shot silent migration could not afford,
     hence this is preview-then-confirm): parked at both ends (charging=0, speed<=1), the
-    odometer UNCHANGED across the whole run (so regen while driving offline can't look
-    like a charge), and no overlap with any existing charge window."""
+    odometer UNCHANGED across the whole run, and no overlap with any existing charge window.
+    A BEV may also qualify across a long gap between distinct frames with a short odometer
+    advance, but only when its net energy gain exceeds a generous regen budget. REEVs cannot
+    use that exception: their generator can explain a battery gain while out of contact.
+    As with offline_gaps, the interval bounds the silence, not the exact charging time, and
+    the net SoC gain cannot recover energy spent driving inside it."""
     db = _conn_rw() if apply else _get()
     # See get_vehicle(): an unordered LIMIT 1 rides the UNIQUE(vin) covering index and can name
     # the wrong car — and with apply=True this INSERTS charges, so it would file reconstructed
@@ -9217,12 +9270,24 @@ def scan_missed_charges(threshold: float = 2.0, apply: bool = False) -> list[dic
     if vehicle_id is None:
         return []
     rows = db.execute(
-        "SELECT recorded_at, soc, charging, speed_kmh, odometer_km, latitude, longitude "
-        "FROM positions WHERE vehicle_id=? AND soc IS NOT NULL ORDER BY recorded_at, id",
+        "SELECT recorded_at, soc, charging, speed_kmh, gear, frame_ts, odometer_km, latitude, longitude "
+        "FROM positions WHERE vehicle_id=? ORDER BY recorded_at, id",
         (vehicle_id,)).fetchall()
+    # A re-served frame is not a new observation. Keep when it FIRST arrived, like the recorder's
+    # last-fresh baseline for offline kilometres. Never bridge a fresh intermediate frame (even
+    # one lacking SoC), or collapse inconsistent payloads merely because their clock is stuck.
+    observations = []
+    frame_fields = ("frame_ts", "soc", "odometer_km", "speed_kmh", "gear", "charging")
+    for row in rows:
+        if (observations and row["frame_ts"]
+                and all(row[k] == observations[-1][k] for k in frame_fields)):
+            continue
+        observations.append(row)
+    rows = observations
     charges = db.execute(
         "SELECT started_at, ended_at FROM charges WHERE vehicle_id=?", (vehicle_id,)).fetchall()
     cap = get_battery_capacity_kwh()
+    allow_offline = not is_reev_car()
 
     def _parked(r):
         return (r["charging"] or 0) == 0 and (r["speed_kmh"] or 0) <= 1
@@ -9230,6 +9295,9 @@ def scan_missed_charges(threshold: float = 2.0, apply: bool = False) -> list[dic
     def _odo_same(a, b):
         oa, ob = a["odometer_km"], b["odometer_km"]
         return oa is None or ob is None or abs(ob - oa) < 0.5
+
+    def _rising(a, b):
+        return a["soc"] is not None and b["soc"] is not None and b["soc"] > a["soc"]
 
     def _overlaps(start, end):
         for c in charges:
@@ -9241,15 +9309,16 @@ def scan_missed_charges(threshold: float = 2.0, apply: bool = False) -> list[dic
     candidates, i, n = [], 0, len(rows)
     while i < n - 1:
         a, b = rows[i], rows[i + 1]
-        if not (b["soc"] - a["soc"] > 0 and _parked(a) and _parked(b) and _odo_same(a, b)):
+        parked_rise = _rising(a, b) and _parked(a) and _parked(b) and _odo_same(a, b)
+        if not (parked_rise or (allow_offline and _scan_offline_charge(a, b, cap))):
             i += 1
             continue
         # Extend the run while SoC keeps rising, parked, and the odometer never moves —
         # so one charge seen across several stale polls becomes ONE candidate, not many.
         run_start, run_end, j = a, b, i + 1
-        while j < n - 1:
+        while parked_rise and j < n - 1:
             c, d = rows[j], rows[j + 1]
-            if d["soc"] - c["soc"] > 0 and _parked(c) and _parked(d) and _odo_same(run_start, d):
+            if _rising(c, d) and _parked(c) and _parked(d) and _odo_same(run_start, d):
                 run_end, j = d, j + 1
             else:
                 break

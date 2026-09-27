@@ -308,7 +308,7 @@ class StateMachine:
                 self._parked_count = 0
                 self._alert_start_ts = now
                 self._frozen_closed_ts = frame_ts    # …and don't let this same frame re-open one
-                events.append(self._go(State.PARKED_ACTIVE, data))
+                events.append(self._go(State.PARKED_ACTIVE, data, frozen=True))
             else:
                 self._parked_count = 0
 

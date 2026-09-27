@@ -523,6 +523,11 @@ class Recorder:
             self._close_dangling_charge(data, "outage")
 
         elif frm == State.DRIVING and to in _PARKED_STATES:
+            if event.frozen and data:
+                # Share the state machine's decision with the web process. Scope it to this car
+                # AND frame: fresh telemetry automatically stops matching, even after a restart.
+                self._db.set_setting(f"frozen_drive_frame_{self._vehicle_id}",
+                                     str(data.timestamp_ms))
             if self._active_trip_id and data:
                 self._finalize_trip(data)
             self._active_trip_id = None
