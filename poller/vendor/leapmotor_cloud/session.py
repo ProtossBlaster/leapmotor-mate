@@ -68,6 +68,12 @@ class CloudSession:
     key: bytes = field(repr=False)
     client_cert: tuple[Path, Path] = field(repr=False)
     expires_at: datetime | None = None
+    # What lets a session be renewed instead of bought again with a login. The cloud issues it
+    # beside the access token and gives it a week (measured 27/09/2026: 604799 s against the
+    # token's 7200), so an installation that keeps it spends one login a week rather than one
+    # every half hour. Kept out of `repr` like every other piece of session material.
+    refresh_token: str | None = field(default=None, repr=False)
+    refresh_expires_at: datetime | None = None
 
     def __post_init__(self):
         for value in (self.token, self.user_id, self.device_id):
@@ -78,9 +84,17 @@ class CloudSession:
         validate_cert_paths(self.client_cert)
         if self.expires_at is not None:
             require_aware(self.expires_at)
+        if self.refresh_token is not None and (
+                not isinstance(self.refresh_token, str) or not self.refresh_token
+                or len(self.refresh_token) > 16384
+                or any(not 33 <= ord(c) <= 126 for c in self.refresh_token)):
+            raise ValidationError("Invalid refresh material")
+        if self.refresh_expires_at is not None:
+            require_aware(self.refresh_expires_at)
 
     @classmethod
-    def from_login_data(cls, data, *, device_id, client_cert, expires_at=None):
+    def from_login_data(cls, data, *, device_id, client_cert, expires_at=None,
+                        refresh_token=None, refresh_expires_at=None):
         if not isinstance(data, Mapping) or not isinstance(data.get("signParam"), Mapping):
             raise ValidationError("Invalid login material")
         account = data.get("accountId")
@@ -90,7 +104,8 @@ class CloudSession:
         params = data["signParam"]
         key = derive_v2_key(token, params.get("r2"), params.get("r3"))
         expiry = expires_at if expires_at is not None else _expiry_from_token(token)
-        return cls(token, str(account), session_device_id(token, device_id), key, client_cert, expiry)
+        return cls(token, str(account), session_device_id(token, device_id), key, client_cert,
+                   expiry, refresh_token, refresh_expires_at)
 
     @property
     def expiry_known(self):
@@ -100,6 +115,12 @@ class CloudSession:
         require_aware(now)
         if self.expires_at is not None and now >= self.expires_at:
             raise SessionExpired()
+
+    def renewable(self, now):
+        """Whether this session can be renewed rather than replaced by a login."""
+        require_aware(now)
+        return bool(self.refresh_token) and (self.refresh_expires_at is None
+                                             or now < self.refresh_expires_at)
 
 
 class SessionStore:

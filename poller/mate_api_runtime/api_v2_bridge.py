@@ -22,7 +22,8 @@ from urllib.parse import parse_qsl, urlencode
 import crypto
 from leapmotor_cloud.mate_compat import MateClientCompatibility, Vehicle, MateAPIError as LeapmotorApiError
 from leapmotor_cloud.pin import encrypt_operate_password
-from leapmotor_cloud.authentication import LoginClient, LoginUnavailable
+from leapmotor_cloud.authentication import LoginClient, LoginUnavailable, REFRESH_PATH
+from leapmotor_cloud.session import CloudSession
 from leapmotor_cloud.operating_availability import OperatingState, operating_decision
 from leapmotor_cloud.models import Availability
 from leapmotor_cloud.transport import UrllibTransport, Request, validate_url
@@ -187,6 +188,20 @@ class NewAPIClient(MateClientCompatibility):
             raise LeapmotorApiError('Picture endpoint did not return a ZIP')
         return envelope, response
 
+    def _session_row(self, session):
+        """The saved session, including what lets the next process RENEW it instead of logging
+        in. A row written before 0.1.0a11 simply has no refresh keys, and is read back with
+        `.get`."""
+        row=dict(token=session.token,user_id=session.user_id,device_id=session.device_id,
+                 key=base64.b64encode(session.key).decode(),cert=str(session.client_cert[0]),
+                 private_key=str(session.client_cert[1]),expires_at=session.expires_at.timestamp(),
+                 username_hash=hashlib.sha256(self.username.encode()).hexdigest())
+        if getattr(session,'refresh_token',None):
+            row['refresh_token']=session.refresh_token
+            if getattr(session,'refresh_expires_at',None) is not None:
+                row['refresh_expires_at']=session.refresh_expires_at.timestamp()
+        return row
+
     def _apply_session(self, saved):
         if not certificate_usable(saved['cert'], saved['private_key']):
             raise LeapmotorApiError('Account certificate unavailable or expiring')
@@ -198,6 +213,9 @@ class NewAPIClient(MateClientCompatibility):
         self._new_key=base64.b64decode(saved['key'],validate=True)
         if len(self._new_key)!=32:raise ValueError('Invalid session key')
         self.account_cert_file=saved['cert'];self.account_key_file=saved['private_key']
+        self._session_expires_at=saved.get('expires_at')
+        self._refresh_token=saved.get('refresh_token')
+        self._refresh_expires_at=saved.get('refresh_expires_at')
         self.remote_cert_synced=True
 
     def _authenticate_session(self):
@@ -271,10 +289,7 @@ class NewAPIClient(MateClientCompatibility):
                 if not self.username or not self.password:
                     raise LeapmotorApiError('New API account credentials are missing')
                 session=self._authenticate_session()
-                saved=dict(token=session.token,user_id=session.user_id,device_id=session.device_id,
-                           key=base64.b64encode(session.key).decode(),cert=str(session.client_cert[0]),
-                           private_key=str(session.client_cert[1]),expires_at=session.expires_at.timestamp(),
-                           username_hash=hashlib.sha256(self.username.encode()).hexdigest())
+                saved=self._session_row(session)
                 with connect_db() as db:
                     set_setting(db,SESSION_KEY,crypto.encrypt(json.dumps(saved)))
                     set_setting(db,'device_id',self._installation_device_id)
@@ -290,8 +305,54 @@ class NewAPIClient(MateClientCompatibility):
     def _ensure_token(self):
         self.login()
 
+    def _renew_session(self):
+        """Ask the cloud for a new access token from the refresh one. True when it worked.
+
+        Measured on 27/09/2026: the refresh endpoint answers a whole new session — access
+        token, refresh token and signing parameters — without a login and without re-issuing
+        the account certificate. A session saved before 0.1.0a11 carries no refresh material,
+        so there is nothing to ask with and the caller reauthenticates as before; so does a
+        refusal, which must never leave this adapter holding a dead session.
+        → tests/test_a_session_is_renewed_not_rebought.py
+        """
+        token=getattr(self,'_refresh_token',None)
+        if not token:
+            return False
+        expires=getattr(self,'_refresh_expires_at',None)
+        if expires is not None and time.time()>=float(expires):
+            return False
+        try:
+            current=CloudSession(self.token,self.user_id,self.device_id,self._new_key,
+                                 (Path(self.account_cert_file),Path(self.account_key_file)),
+                                 datetime.fromtimestamp(float(self._session_expires_at),timezone.utc)
+                                 if getattr(self,'_session_expires_at',None) else None,
+                                 token,
+                                 datetime.fromtimestamp(float(expires),timezone.utc) if expires else None)
+            client=LoginClient(self._transport,
+                application_cert=(Path(self.app_cert_path),Path(self.app_key_path)),
+                account_certificate_provider=lambda data:(Path(self.account_cert_file),
+                                                          Path(self.account_key_file)),
+                clock=lambda:datetime.now(timezone.utc),
+                nonce_factory=lambda:str(secrets.randbelow(10**15)),language=self.language)
+            renewed=client.refresh(current,device_id=self._installation_device_id)
+        except Exception as error:
+            status=getattr(error,'http_status',None) or 0
+            code=getattr(error,'api_code',None)
+            self._audit(REFRESH_PATH,'POST',status,str(code) if code is not None else 'refresh_failed')
+            return False
+        row=self._session_row(renewed)
+        with connect_db() as db:
+            set_setting(db,SESSION_KEY,crypto.encrypt(json.dumps(row)))
+        self._apply_session(row)
+        self._audit(REFRESH_PATH,'POST',200,'0')
+        return True
+
     def token_refresh(self):
-        # Coordinated reauthentication, not the obsolete refresh endpoint.
+        # Renew where the cloud lets us; a login is what is left when it does not.
+        lock_path=Path(DB).parent/'api-v2-session.lock'
+        with exclusive(lock_path):
+            if self._renew_session():
+                return
         with connect_db() as db:
             raw=setting(db,SESSION_KEY)
             if raw:
