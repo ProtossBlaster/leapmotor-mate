@@ -1,18 +1,18 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.4.0 · **Language:** English
+> **Mate version:** v4.5.0 · **Language:** English
 
-## New in 4.4.0
+## New in 4.5.0
 
-If Mate was running on the older cloud client — you would have seen no consumption chart before 4.3.0, and no **Cloud trip history** card in Settings — it moves to the independent one the next time it starts, and the card appears with it. Mate also stops signing in every half hour: the cloud lets a session be renewed for a week, which matters on an account the cloud has been rationing.
+The Overview now says whether what it shows can be trusted. Beside the heading there is a small tile: **Mate → cloud → car**, two dots, and a hover (or a tap) on each word tells you the facts behind it — how long the poller has been running, whether the cloud is letting it in and when it last answered, when the car last sent a frame and what it was doing. While everything works, that is all it says. When Mate itself cannot fetch, the tile turns red and says what follows from it: when the last frame arrived, when the next attempt is, the error the cloud gave, and — only when the cloud blamed the password — that the password is the thing to check. Until now a cloud that had been refusing an installation's logins for nine days looked exactly like a car asleep in a garage: "last seen 9 h ago", and nothing else.
 
-A car that loses the cloud for a minute in the middle of a drive keeps the drive: coming back resumes the trip that was open instead of starting another, and the kilometres of the gap stay in it. Trips already split stay as they are — join them with **🔗 Mergeable** in the Trips calendar.
+Home Assistant hears the same thing. Each car gets a **Data Link** sensor (`sensor.<car>_data_link`) that reads `fresh`, `no_new_data`, `age_unknown`, `login_refused` or `fetch_failed`, with since-when, the error and the next attempt as attributes. It is published even while Mate is waiting out a refused login, and it expires by itself after 21 minutes — so `unavailable` means the poller has stopped, not that the car is quiet. One automation is enough to be told: notify me when it has been neither `fresh` nor `no_new_data` for an hour.
 
-Consumption and driving energy are back where the cloud was refusing them: if your Trips page showed "no data" under the consumption chart, or the Monthly Report had no driving energy, it works again. A charge that goes on slowly after the current drops now keeps all the energy it delivered, and the charges already in your database are recomputed once on first start. The Overview says **Data stale** instead of **Driving** when the car has stopped talking to the cloud mid-journey, and a charge taken while out of contact — in an underground garage, say — can be recovered even if you drove a kilometre or two out of it.
+Settings has a new **📡 Cloud link** card: the last 24 hours as a strip of five-minute windows, and seven days of counts — polls, how many carried a current frame, how many failed, how many the cloud refused, and how many logins each part of Mate spent. Every cell and every label explains itself on a hover. The same table now goes into the diagnostics bundle.
 
-A new installation can be set up again. From 4.0.0 the first-start page offered only the upload of an application bundle — a ZIP that must carry private parameters no user can produce — so Mate could not be installed from scratch. The wizard asks for `app.crt` and `app.key` again, by file or as pasted text, and installs the rest by itself. If Mate is already running, nothing changes for you.
+Two smaller things. An age past a day is written in days: nine days without contact used to read "216h ago". And Mate's own health check no longer reports a dead process while the cloud is refusing to let it in — it is waiting, and it now says so.
 
-Cloud commands now work on every vehicle model, not only the B10. What your car may do is decided by the data its own cloud entry publishes and by the cloud's answer: a command your model does not have is refused by the cloud, and Mate stops offering it. Sentry mode appears where your account has the right for it. Switching the climate completely off uses the payload each model was measured to obey. Cloud per-trip history, including range-extender fuel per trip, is collected on every model. A command accepted by the cloud is not proof the car carried it out; on-car confirmation exists only for the B10.
+Under a trip's energy, the label that read **getEC** now reads **Measured by the car**: it was the name of a cloud endpoint, not a word for people. **Leapmotor cloud** becomes **Leapmotor history** for the same reason — both figures come from the cloud, and what differs is which one it is: the trip as the cloud's own history records it, or the energy the car itself metered over that window. **Mate estimate** is unchanged.
 
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.

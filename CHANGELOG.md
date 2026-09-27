@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.5.0] — 2026-09-27
+
+- The Overview says whether its data can be trusted. A tile beside the heading, refreshed every 30 s on its own: two dots on one line, Mate → cloud → car, and the facts on a hover of each word — since when the poller has been running, what the session is doing and when it last answered, the last frame and what the car was doing. Nothing more is printed while nothing is wrong. Red is Mate not fetching, and the tile becomes the banner: the consequence, the last frame's time, the next attempt, the stored error, and the password hint only when the cloud blamed the password. For nine days in D #300 the same page read "last seen 9 h ago", which is also what a car asleep in a garage reads.
+- Home Assistant gets one entity for it: `sensor.<car>_data_link`, per car, carrying the same verdict (fresh, no_new_data, age_unknown, login_refused, fetch_failed) with since-when, the error and the next attempt as attributes. Published from every branch of the poll, including the startup wait, and it expires after 1260 s — so `unavailable` means the poller has stopped. One automation covers the case D #300 was: notify when it has been neither fresh nor no_new_data for an hour.
+- A "Cloud link" card in Settings: the last 24 hours as 288 five-minute windows, worst outcome per window, and seven local days of counts with logins split by process. The same table goes into the diagnostics bundle, where the answer to "is Mate getting data?" used to be counted by hand out of the log.
+- An age past a day is counted in days. Nine days without contact was printed as "216h ago".
+- The heartbeat keeps beating while a startup login is being refused. A poller waiting out a refusal reported as a dead process; ⚠️ `/healthz` now answers 200 in that state, where it answered 503, because the process is alive and a 503 only restart-loops the container through a cloud outage.
+- The energy label under a trip names its source instead of our endpoint (#332). "getEC" was the name of a cloud endpoint: it now reads "Measured by the car". "Leapmotor cloud" becomes "Leapmotor history", because both figures come from the cloud and what differs is which one — the trip as the cloud's history records it, or the energy the car metered over the window. Eight languages.
+- The diagnostics bundle's privacy test reads a log it controls. It asserted on a tail written by whatever else the test suite had logged first, so what the promise was checked against was an accident of test order; the part of the report the app does not compose for sharing now has a test that gives it a coordinate pair, a VIN and an address and reads what comes out.
+
 ## [4.4.0] — 2026-09-27
 
 - An account of any model qualifies for the independent cloud client. The verdict of the qualification probe was compared against a literal `['B10']`, so every other account was kept on the bundled SDK — where the consumption reads went out unsigned until 4.3.0 (#327, #330) and where the cloud trip-history card does not exist (#298). The gate had been opened inside the child process and left shut in the parent.

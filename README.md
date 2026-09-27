@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.4.0:** installations that were kept on the old cloud client move to the independent one at the next start, and a session is renewed instead of costing a login every half hour. A car that loses the cloud for a minute mid-drive keeps the drive instead of fragmenting it. Consumption and driving energy are back on installations the cloud was refusing, a slow charge keeps the energy it delivered (charges already recorded are recomputed once), and the Overview says when its data is stale instead of "driving". Cloud commands on every vehicle model, decided by the data the cloud publishes for that car and by its own refusal rather than by the model name, with sentry mode where the account has the right and the climate-off payload each model was measured to obey. Cloud per-trip history, range-extender fuel included, on every model. Acceptance by the cloud is not confirmation of physical execution: that remains confirmed only on the B10. See the [migration contract](docs/MIGRATION-4.md).
-See [release notes and upgrade impact](docs/releases/v4.4.0.md).
+**v4.5.0:** the Overview says whether its data can be trusted — a tile beside the heading, Mate → cloud → car, with the facts behind each word on a hover, and a banner naming the consequence when Mate itself cannot fetch. Home Assistant gets the same verdict as one entity per car, and Settings gets a Cloud link card with a day of polling and a week of counts. An age past a day is counted in days, and the heartbeat keeps beating while a login is being refused. The energy label under a trip names its source instead of our endpoint: Leapmotor history, measured by the car, Mate estimate.
+See [release notes and upgrade impact](docs/releases/v4.5.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -46,6 +46,7 @@ LeapMotor Mate is free and open-source, developed in my spare time. If it's usef
 - **Overview** — live status, battery, range, **READY state**, location map and the car's own picture.
 - **Security and charge state** — a **Security** indicator (green *Active* when the car is locked and the alarm is armed) and, while the cable is still in after a completed charge, a **Fully charged** badge.
 - **When the data is old, it says so** — the cloud answers even when the car cannot reach it, by re-serving the last frame it holds. Mate shows that frame's real age instead of passing it off as current.
+- **Whether the data can be trusted at all** — a tile beside the heading, **Mate → cloud → car**, with the facts behind each word on a hover: how long the poller has been running, whether the cloud is letting it in and when it last answered, when the car last sent a frame. When Mate itself cannot fetch it turns red and names the consequence, the next attempt and the error — and says the password is the thing to check only when the cloud blamed the password. Home Assistant gets the same verdict as `sensor.<car>_data_link`, and Settings gets a **Cloud link** card: a day of polling in five-minute windows and a week of counts.
 - **Vehicle software updates** — the Overview tells you when the car has an **OTA update** waiting, without opening the official app.
 
 **On the road**
@@ -361,8 +362,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.4.0:** le installazioni rimaste sul client vecchio del cloud passano a quello indipendente al primo avvio, e una sessione si rinnova invece di costare un login ogni mezz'ora. Un'auto che perde il cloud per un minuto a metà strada tiene il viaggio invece di spezzarlo. Consumi ed energia di guida tornano dove il cloud li rifiutava, una ricarica lenta tiene l'energia che ha dato (le ricariche già registrate vengono ricalcolate una volta) e la panoramica dice quando il dato è fermo invece di scrivere «in marcia». Comandi dal cloud su ogni modello, decisi dai dati che il cloud pubblica per quell'auto e dal suo rifiuto anziché dal nome del modello, con la sentinella dove l'account ne ha il diritto e il payload di spegnimento del clima che ogni modello è stato misurato obbedire. Storico dei singoli viaggi dal cloud, carburante del prolungatore compreso, su ogni modello. L'accettazione del cloud non è la conferma dell'esecuzione fisica: quella resta confermata solo sulla B10. Vedi il [contratto di migrazione](docs/MIGRATION-4.md).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.4.0.md#italiano).
+**v4.5.0:** la panoramica dice se i suoi dati sono affidabili — un riquadro accanto al titolo, Mate → cloud → auto, con i fatti dietro ogni parola al passaggio del mouse, e un cartello che nomina la conseguenza quando è Mate a non riuscire a leggere. Home Assistant riceve lo stesso giudizio come un'entità per auto, e nelle impostazioni arriva un riquadro «Collegamento al cloud» con un giorno di letture e una settimana di conteggi. Un'età oltre il giorno si conta in giorni, e il battito continua mentre un login viene rifiutato. L'etichetta dell'energia sotto un viaggio nomina la sua sorgente invece del nostro endpoint: storico Leapmotor, misurata dall'auto, stima Mate.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.5.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
@@ -393,6 +394,7 @@ LeapMotor Mate è gratuito e open-source, sviluppato nel tempo libero. Se ti è 
 - **Panoramica** — stato in tempo reale, batteria, autonomia, **stato READY**, mappa della posizione e l'immagine della tua auto.
 - **Sicurezza e stato di carica** — un indicatore **Sicurezza** (verde *Attiva* quando l'auto è chiusa e l'allarme inserito) e, finché il cavo è ancora inserito a ricarica finita, un distintivo **Carica completa**.
 - **Quando il dato è vecchio, lo dice** — il cloud risponde anche quando l'auto non lo raggiunge, ripetendo l'ultimo fotogramma che ha. Mate ne mostra l'età vera invece di spacciarlo per attuale.
+- **E se il dato è affidabile o no** — un riquadro accanto al titolo, **Mate → cloud → auto**, con i fatti dietro ogni parola al passaggio del mouse: da quanto gira il poller, se il cloud lo fa entrare e quando ha risposto l'ultima volta, quando l'auto ha mandato l'ultimo dato. Quando è Mate a non riuscire a leggere diventa rosso e nomina la conseguenza, il prossimo tentativo e l'errore — e dice che è la password da controllare solo quando è il cloud ad averla incolpata. Home Assistant riceve lo stesso giudizio come `sensor.<auto>_data_link`, e nelle impostazioni c'è un riquadro **Collegamento al cloud**: un giorno di letture in finestre da cinque minuti e una settimana di conteggi.
 - **Aggiornamenti software dell'auto** — la Panoramica ti dice quando l'auto ha un **aggiornamento OTA** in attesa, senza aprire l'app ufficiale.
 
 **In strada**
