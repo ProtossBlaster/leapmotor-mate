@@ -562,6 +562,29 @@
   </script>
 
   <script>
+    // The menu keeps its place across a page. Seventeen items are taller than the window they sit
+    // in (measured: 822 px of nav in 524 px at 1280x800), every page is a full load, and the
+    // sidebar was rebuilt scrolled to the top — so the item you had just used was off screen again
+    // and reaching Settings meant scrolling down every single time. Same mechanism as the <main>
+    // scroll below: sessionStorage, so it is this tab's own and nothing is remembered for tomorrow.
+    (function () {
+      const nav = document.querySelector('#sidebar nav');
+      if (!nav) return;
+      const KEY = 'lm_nav_scroll';
+      try {
+        const at = parseFloat(sessionStorage.getItem(KEY) || '0');
+        if (at > 0) nav.scrollTop = at;
+      } catch (e) { /* private window, blocked storage: the menu simply starts at the top */ }
+      function remember() {
+        try { sessionStorage.setItem(KEY, String(nav.scrollTop)); } catch (e) {}
+      }
+      // Written on the scroll itself, not on a timer: a click on a nav link navigates away, and a
+      // pending timer would never fire.
+      nav.addEventListener('scroll', remember, {passive: true});
+    })();
+  </script>
+
+  <script>
     // Global idle-aware auto-refresh: keep display pages fresh without a manual reload. Reloads
     // every N seconds (from <body data-autorefresh>, 0 = disabled) but ONLY when the page is idle —
     // never while a form field is focused, an interaction happened in the last 20s, an HTMX request
