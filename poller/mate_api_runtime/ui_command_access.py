@@ -121,7 +121,24 @@ def hidden_controls_css(vin, get_setting, *, shown=None):
     lists heated steering it has no hardware for, #144) would get a button that can never act.
     """
     if shown is None:
-        shown = lambda name: command_allowed(vin, name, get_setting)
+        # The account name, the car's capability snapshot and its refusals are the SAME for every
+        # command in one render, so they are read once. They used to be read per command:
+        # `command_allowed` for each of 52 controls, three settings each — 156 reads to draw one
+        # page, and `db_reader.get_setting` opens its own SQLite connection every time. On an
+        # add-on running from an SD card that was most of what "everything is slow" meant.
+        # A read that throws keeps the old verdict: nothing is offered.
+        try:
+            username = account_username(get_setting)
+            snapshot = json.loads(get_setting(snapshot_key(vin), '{}'))
+            refusals = load_refusals(vin, username, get_setting=get_setting)
+        except Exception:
+            shown = lambda name: False
+        else:
+            def shown(name):
+                try:
+                    return allowed(snapshot, username, vin, name, refusals=refusals)
+                except Exception:
+                    return False
     selectors = []
     for name in COMMANDS:
         if not shown(name):
