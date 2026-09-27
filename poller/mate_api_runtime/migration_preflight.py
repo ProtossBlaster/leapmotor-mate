@@ -52,7 +52,18 @@ def qualify_installation(database, stage_directory, *, timeout=15):
         result = json.loads(result_file.read_text())
         if result == {'state': 'not_required'}:
             return result
-        if result == {'state': 'qualified', 'capabilities': ['B10']}:
+        # Any account qualifies whose vehicles the new client could actually read: the child
+        # answers with the models it saw, and since 4.2.0 that is every model. This line used to
+        # compare the whole verdict against a literal ['B10'], so a C10 account answered ['C10'],
+        # matched nothing, and was kept on the bundled SDK — which is where the unsigned
+        # consumption reads lived (#327) and where there is no cloud-history card (#298). The
+        # gate had been opened inside the child and left shut here, on the other side of a
+        # subprocess boundary.
+        # → tests/test_every_model_qualifies_for_the_new_client.py
+        if (isinstance(result, dict) and result.get('state') == 'qualified'
+                and isinstance(result.get('capabilities'), list) and result['capabilities']
+                and all(isinstance(model, str) and model for model in result['capabilities'])
+                and set(result) == {'state', 'capabilities'}):
             return result
     except subprocess.TimeoutExpired:
         return {'state': 'failed', 'reason': 'timeout'}

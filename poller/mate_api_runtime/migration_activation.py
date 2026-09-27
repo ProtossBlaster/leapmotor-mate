@@ -16,7 +16,11 @@ import tempfile
 from process_lock import exclusive
 from leapmotor_cloud.private_storage import ensure_private_directory
 
-RELEASE = '4.0.0'
+# The decision is kept per release and returned untouched while this matches, so an
+# installation is asked again only when what qualifies has changed. It changed here: until
+# 4.3.1 the parent accepted a qualification only from an account whose every car was a B10,
+# so every other account was left on the bundled SDK and never asked again.
+RELEASE = '4.4.0'
 DECISION_KEY = 'mate_api_migration_decision'
 
 
