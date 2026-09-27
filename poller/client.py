@@ -175,7 +175,7 @@ _OTA_RE = re.compile("|".join(_OTA_PATTERNS), re.IGNORECASE | re.UNICODE)
 
 class LeapmotorMateClient:
     def __init__(self, username: str, password: str, pin: str, cert_path: str, key_path: str,
-                 device_id: str | None = None):
+                 device_id: str | None = None, on_login=None):
         self._api = LeapmotorApiClient(
             username=username,
             password=password,
@@ -187,6 +187,9 @@ class LeapmotorMateClient:
         )
         import session_share
         session_share.install(self._api)   # share ONE token with the web (avoid mutual eviction)
+        # told by the backend of every login the cloud is really asked for — from whichever read
+        # or command needed it, never for a resumed session: on_login(None) or on_login(exc)
+        self._api.on_login = on_login
         self._vehicle = None
         self._vehicles: list = []          # every car on the account, in the order the cloud lists them
         self._named_mode_logged = False    # log the T03/EU named-field path once
