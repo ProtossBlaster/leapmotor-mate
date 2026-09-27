@@ -9307,19 +9307,37 @@ def scan_missed_charges(threshold: float = 2.0, apply: bool = False) -> list[dic
         return False
 
     candidates, i, n = [], 0, len(rows)
+
+    def _next_soc(k):
+        """The next frame the parked scan may compare against.
+
+        Frames the cloud gave no SoC for used to be excluded by the query itself. They are kept
+        now because the offline exception must SEE them — a fresh frame without SoC still proves
+        the car was in contact — but a parked rise observed across one must stay ONE charge.
+        """
+        while k < n and rows[k]["soc"] is None:
+            k += 1
+        return k
+
     while i < n - 1:
         a, b = rows[i], rows[i + 1]
-        parked_rise = _rising(a, b) and _parked(a) and _parked(b) and _odo_same(a, b)
+        k = _next_soc(i + 1)
+        rise_to = rows[k] if k < n else None
+        parked_rise = (rise_to is not None and _rising(a, rise_to) and _parked(a)
+                       and _parked(rise_to) and _odo_same(a, rise_to))
         if not (parked_rise or (allow_offline and _scan_offline_charge(a, b, cap))):
             i += 1
             continue
         # Extend the run while SoC keeps rising, parked, and the odometer never moves —
         # so one charge seen across several stale polls becomes ONE candidate, not many.
-        run_start, run_end, j = a, b, i + 1
+        run_start, run_end, j = (a, rise_to, k) if parked_rise else (a, b, i + 1)
         while parked_rise and j < n - 1:
-            c, d = rows[j], rows[j + 1]
+            c, m = rows[j], _next_soc(j + 1)
+            if m >= n:
+                break
+            d = rows[m]
             if _rising(c, d) and _parked(c) and _parked(d) and _odo_same(run_start, d):
-                run_end, j = d, j + 1
+                run_end, j = d, m
             else:
                 break
         rise = run_end["soc"] - run_start["soc"]
