@@ -8,7 +8,12 @@ _guard = threading.Lock()
 
 def start_history_worker():
     global _thread
-    if os.environ.get('MATE_API_V2') == '0' or os.environ.get('MATE_DEMO', '').lower() in ('1', 'true'):
+    # Cloud history is a READ: it does not follow the COMMAND qualification. An account
+    # retained on the previous client — anything that is not a pure B10 account — still
+    # collects it with the session it already holds: the unified mileage/daily/detail/page
+    # path answers result=0 under the previous client's signature as well (measured
+    # 27/09/2026 against the real cloud: 183 trips, driveReevOil included).
+    if os.environ.get('MATE_DEMO', '').lower() in ('1', 'true'):
         return
     with _guard:
         if _thread is not None and _thread.is_alive():

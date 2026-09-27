@@ -62,17 +62,29 @@ assert api_backend.LeapmotorApiClient is (Legacy if {flag!r} == '0' else New)
 ''', tmp_path)
 
 
-def test_legacy_start_does_not_prepare_material_or_start_independent_history(tmp_path):
+def test_legacy_start_reads_its_history_without_preparing_independent_material(tmp_path):
+    """Cloud history is a READ and follows no command qualification.
+
+    An account retained on the previous client — everything that is not a pure B10 account,
+    so every C10, REEV, T03 and mixed account — still collects its cloud trip history: the
+    unified `mileage/daily/detail/page` path answers under that client's signature as well,
+    with the session the poller already holds and no extra login. What a legacy start must
+    still NOT do is prepare the independent client's own material.
+    """
     _run(f'''
 import os, sys
 from pathlib import Path
-sys.path.insert(0, {str(RUNTIME)!r})
+# The real poller process reaches its own modules (crypto) and the pinned client
+# (poller/vendor) the same way mate_api.py sets them up.
+for _p in ({str(RUNTIME)!r}, {str(ROOT / 'poller')!r}, {str(ROOT / 'poller' / 'vendor')!r}):
+    sys.path.insert(0, _p)
 import runtime_paths, history_service
 assert runtime_paths.prepare_installation() == {{'state': 'legacy'}}
 assert not Path(os.environ['DB_PATH']).parent.exists()
 history_service.start_history_worker()
-assert history_service._thread is None
-assert 'history_worker' not in sys.modules
+assert history_service._thread is not None and history_service._thread.is_alive()
+assert 'history_worker' in sys.modules
 assert 'bootstrap_independent' not in sys.modules
 assert 'migration_state' not in sys.modules
+assert not Path(os.environ['DB_PATH']).parent.exists()
 ''', tmp_path, '0')
