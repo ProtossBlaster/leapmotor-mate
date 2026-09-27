@@ -130,10 +130,10 @@ def test_every_cell_says_its_window_in_words_for_a_hover(web):
         "INSERT INTO poll_log (at, vehicle_id, kind, outcome) VALUES (?, 1, 'poll', 'refused')",
         (datetime.now(timezone.utc).isoformat(),))
     db._conn.commit()
-    html = client.get("/settings").text
+    html = client.get("/api/polling-card").text          # the card's own body since 4.5.1
     cells = _strip_cells(html)
     assert len(cells) == 288 and any(tip.endswith("· session refused") for tip in cells)
-    assert 'id="mate-tip"' in html, "the app's one tooltip box, from base.html"
+    assert 'id="mate-tip"' in client.get("/settings").text, "the app's one tooltip box, from base.html"
 
 
 @pytest.mark.parametrize("outcome, age, cell", [
@@ -185,9 +185,15 @@ def test_an_empty_table_is_all_gaps_and_zero_minutes(web):
 # ── the page and the bundle ───────────────────────────────────────────────────
 
 def test_the_settings_page_draws_the_strip_and_the_table(web):
+    """The card fetches its own body since 4.5.1 — Settings was paying for it on every load,
+    open or not, and that was most of the slowness reported hours after 4.5.0 went out. What the
+    card draws is unchanged, so this asks the endpoint the card asks."""
     db, client = web
     _week(db)
-    html = client.get("/settings").text
+    settings = client.get("/settings").text
+    assert "api/polling-card" in settings, "Settings no longer fetches the card at all"
+    assert len(_strip_cells(settings)) == 0, "Settings still renders the strip inline"
+    html = client.get("/api/polling-card").text
     assert len(_strip_cells(html)) == 288
     assert "Logins ok" in html and "poller / web" in html
 

@@ -4078,11 +4078,17 @@ def _link_details(status, now: float, beat: float, link: dict, vid) -> dict:
     car last spoke and what it was doing. Every moment is a `_moment`, so the tooltips read alike.
     `vid` is the car shown: its polls; the session's refusals are everyone's."""
     db = _get()
-    last_ok = db.execute("SELECT at FROM poll_log WHERE kind='poll' AND outcome IN ('answer','empty') "
-                         "AND vehicle_id = COALESCE(?, vehicle_id) ORDER BY id DESC LIMIT 1", (vid,)).fetchone()
-    last_bad = db.execute("SELECT at, outcome, reason FROM poll_log WHERE kind='poll' AND outcome IN "
-                          "('failed','refused') AND (outcome = 'refused' OR vehicle_id = COALESCE(?, vehicle_id)) "
-                          "ORDER BY id DESC LIMIT 1", (vid,)).fetchone()
+    # Bounded by the retention window, which is also all there is: without a floor the healthy case
+    # — no failure to find — walks every row in the table, on a tile that refreshes every 30 s.
+    floor = (datetime.fromtimestamp(now, timezone.utc) - timedelta(days=8)).isoformat()
+    last_ok = db.execute("SELECT at FROM poll_log WHERE at >= ? AND kind='poll' "
+                         "AND outcome IN ('answer','empty') "
+                         "AND vehicle_id = COALESCE(?, vehicle_id) ORDER BY id DESC LIMIT 1",
+                         (floor, vid)).fetchone()
+    last_bad = db.execute("SELECT at, outcome, reason FROM poll_log WHERE at >= ? AND kind='poll' "
+                          "AND outcome IN ('failed','refused') "
+                          "AND (outcome = 'refused' OR vehicle_id = COALESCE(?, vehicle_id)) "
+                          "ORDER BY id DESC LIMIT 1", (floor, vid)).fetchone()
     try:
         started = float(get_setting("poller_started_ts", "0") or 0)
     except (TypeError, ValueError):

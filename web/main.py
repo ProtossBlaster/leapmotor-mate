@@ -2582,7 +2582,6 @@ async def settings_page(request: Request):
         timezones=db_reader.timezone_options(),
         timezone_code=db_reader.get_timezone(),
         diag=diagnostics.build_system_info(MATE_VERSION),
-        polling=db_reader.polling_summary(),
         measured_capacity=db_reader.get_battery_health().get("latest_capacity_kwh"),
         # The capacity actually in use, and the SoH reference. The form used to carry its own
         # default (67.1) while the code read another (65.0) — two defaults for one value, and
@@ -4464,6 +4463,16 @@ async def status_card(request: Request):
         status=status, vehicle=vehicle,
         car_resp=db_reader.command_responsiveness(),
         battery_price=db_reader.current_blended_price(),   # #200 — must match the overview route
+    ))
+
+
+@app.get("/api/polling-card", response_class=HTMLResponse)
+async def polling_card(request: Request):
+    """The Cloud link card's body, fetched when the card is opened. It was built inside
+    settings_page for every load of the page, open or not, and that cost was the whole of the
+    slowness reported hours after 4.5.0 went out."""
+    return templates.TemplateResponse(request, "partials/polling_card.html", _ctx(
+        polling=db_reader.polling_summary(),
     ))
 
 

@@ -1,0 +1,33 @@
+{# What the poller has been getting: 24 h of five-minute windows, worst outcome per window,
+         and a week of counts with logins split by process — the table #300 was counted by hand. #}
+      {% set _cell = {'current': 'bg-emerald-500', 'old': 'bg-slate-400', 'noclock': 'bg-slate-400 ring-1 ring-inset ring-white',
+                      'empty': 'bg-slate-600', 'failed': 'bg-orange-500', 'refused': 'bg-red-500', 'gap': 'bg-transparent ring-1 ring-inset ring-slate-700'} %}
+      <div data-diag-polling>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-1">
+          <span class="text-xs font-medium text-slate-300">{{ t('diag_polling_title') }}</span>
+          <span class="text-[11px] text-slate-500">{{ t('diag_polling_cell') }}</span>
+        </div>
+        {# 288 cells in ~300 px: no gaps and no rounding, or the gaps alone eat the width and every cell is 0 px #}
+        <div class="flex h-4">{% for c in polling.strip %}<i class="flex-1 {{ _cell[c.cell] }}" data-tip="{{ c.from }}–{{ c.to }} · {{ t('diag_poll_' + c.cell) }}"></i>{% endfor %}</div>
+        <div class="flex justify-between text-[10px] text-slate-500 mt-1"><span>−24 h</span><span>−18 h</span><span>−12 h</span><span>−6 h</span><span>{{ t('diag_polling_now') }}</span></div>
+        <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400 mt-2">
+          {% for key in ('current', 'old', 'noclock', 'empty', 'failed', 'refused', 'gap') %}<span data-tip="{{ t('diag_poll_tip_' + key) }}"><i class="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1 {{ _cell[key] }}"></i>{{ t('diag_poll_' + key) }}</span>{% endfor %}
+        </div>
+        <div class="overflow-x-auto mt-3">
+          {# Days across, measures down: seven short day headers fit the settings column, eleven
+             measure headers did not — the table pushed the whole page wider. #}
+          <table class="text-[11px] text-slate-300 whitespace-nowrap">
+            <thead><tr class="text-slate-500 [&>th]:px-1 [&>th]:pb-1 [&>th]:font-medium [&>th]:text-right [&>th]:leading-tight">
+              <th class="!text-left"></th>{% for d in polling.days %}<th>{{ d.day[8:] }}<br><span class="text-slate-600">{{ d.day[5:7] }}</span></th>{% endfor %}
+            </tr></thead>
+            <tbody class="[&>tr>td]:px-1 [&>tr>td]:py-0.5 [&>tr>td]:text-right [&>tr>td:first-child]:text-left [&>tr>td:first-child]:text-slate-400 [&>tr>td:first-child]:pr-2">
+              {# every label explains itself on a hover (data-tip, base.html) — no legend paragraph #}
+              {% for key, tip, label, cls in [('polls', 'polls', t('diag_poll_polls'), ''), ('current', 'current', t('diag_poll_h_current'), 'text-emerald-300'), ('old', 'old', t('diag_poll_h_old'), ''), ('noclock', 'noclock', t('diag_poll_h_noclock'), ''), ('empty', 'empty', t('diag_poll_h_empty'), ''), ('failed', 'failed', t('diag_poll_h_failed'), 'text-orange-300'), ('refused', 'refused', t('diag_poll_h_refused'), 'text-red-300'), ('no_poll_min', 'nopoll', t('diag_poll_nopoll'), '')] %}
+              <tr><td data-tip="{{ t('diag_poll_tip_' + tip) }}">{{ label }}</td>{% for d in polling.days %}<td class="{{ cls }}">{{ d[key] }}</td>{% endfor %}</tr>
+              {% endfor %}
+              <tr><td data-tip="{{ t('diag_poll_tip_logins_ok') }}" class="leading-tight">{{ t('diag_poll_h_logins_ok') }}<br><span class="text-slate-600">poller / web</span></td>{% for d in polling.days %}<td class="leading-tight">{{ d.login_ok_poller }}<br><span class="text-slate-500">{{ d.login_ok_web }}</span></td>{% endfor %}</tr>
+              <tr><td data-tip="{{ t('diag_poll_tip_logins_refused') }}" class="leading-tight">{{ t('diag_poll_h_logins_refused') }}<br><span class="text-slate-600">poller / web</span></td>{% for d in polling.days %}<td class="leading-tight">{{ d.login_refused_poller }}<br><span class="text-slate-500">{{ d.login_refused_web }}</span></td>{% endfor %}</tr>
+            </tbody>
+          </table>
+        </div>
+      </div>

@@ -51,7 +51,10 @@ def test_every_cell_of_the_strip_is_given_real_width(mate, width):
     try:
         page = browser.new_page(viewport={"width": width, "height": 900})
         assert page.goto(mate + "/settings").status == 200
-        page.evaluate("document.querySelector('[data-diag-polling]').closest('details')?.setAttribute('open', '')")
+        # Since 4.5.1 the card fetches its own body when it is opened — Settings was building the
+        # strip for every load of the page, open or not. So: open the cards, then wait for the swap.
+        page.evaluate("document.querySelectorAll('details').forEach(d => d.setAttribute('open', ''))")
+        page.wait_for_selector("[data-diag-polling] .flex.h-4", timeout=15000)
         m = page.evaluate(_MEASURE)
     finally:
         browser.close()
