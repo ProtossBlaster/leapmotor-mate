@@ -17,6 +17,8 @@ See [release notes and upgrade impact](docs/releases/v4.2.0.md).
 
 Cloud commands are enabled on **every model** (since 4.2.0). What a car may do is decided by the data its own cloud entry publishes — abilities, account rights, control module — and by the cloud's own refusal, never by the model name; a command your model does not have is refused by the cloud and Mate stops offering it. **On‑car confirmation of physical execution exists only for the B10**: acceptance by the cloud is not proof the car carried a command out. European spec (the Leapmotor lineup distributed by Stellantis/Leapmotor).
 
+Chinese-market accounts are not supported by Mate. [China cloud API research](docs/CHINA-API-RESEARCH.md) documents a separately verified read-only B05 flow and the remaining integration work.
+
 > 🇮🇹 [Versione italiana più sotto.](#leapmotor-mate--italiano)
 
 ## ☕ Support
