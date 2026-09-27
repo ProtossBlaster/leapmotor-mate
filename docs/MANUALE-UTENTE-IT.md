@@ -1,8 +1,10 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.2.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.3.0 · **Lingua:** Italiano
 
-## Novità della 4.2.1
+## Novità della 4.3.0
+
+Consumi ed energia di guida tornano dove il cloud li rifiutava: se in Viaggi il grafico dei consumi diceva «nessun dato», o il Rapporto mensile non mostrava l'energia di guida, ora funzionano. Una ricarica che prosegue piano dopo il calo di corrente tiene tutta l'energia che ha dato, e le ricariche già presenti nel tuo database vengono ricalcolate una volta al primo avvio. La panoramica scrive **Dati non aggiornati** invece di **In marcia** quando l'auto ha smesso di parlare col cloud a metà strada, e una ricarica fatta senza campo — in un garage sotterraneo, per dire — può essere recuperata anche se poi hai percorso un chilometro o due per uscirne.
 
 Un'installazione nuova si può di nuovo configurare. Dalla 4.0.0 la pagina del primo avvio offriva soltanto il caricamento di un pacchetto applicativo — uno ZIP che deve contenere materiale privato che nessun utente può produrre — quindi Mate non si poteva installare da zero. La procedura richiede di nuovo `app.crt` e `app.key`, come file o come testo incollato, e mette il resto da sola. Se Mate è già in funzione, per te non cambia niente.
 

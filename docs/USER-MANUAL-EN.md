@@ -1,8 +1,10 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.2.1 · **Language:** English
+> **Mate version:** v4.3.0 · **Language:** English
 
-## New in 4.2.1
+## New in 4.3.0
+
+Consumption and driving energy are back where the cloud was refusing them: if your Trips page showed "no data" under the consumption chart, or the Monthly Report had no driving energy, it works again. A charge that goes on slowly after the current drops now keeps all the energy it delivered, and the charges already in your database are recomputed once on first start. The Overview says **Data stale** instead of **Driving** when the car has stopped talking to the cloud mid-journey, and a charge taken while out of contact — in an underground garage, say — can be recovered even if you drove a kilometre or two out of it.
 
 A new installation can be set up again. From 4.0.0 the first-start page offered only the upload of an application bundle — a ZIP that must carry private parameters no user can produce — so Mate could not be installed from scratch. The wizard asks for `app.crt` and `app.key` again, by file or as pasted text, and installs the rest by itself. If Mate is already running, nothing changes for you.
 

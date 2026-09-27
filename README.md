@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.2.1:** a new installation can be set up again — the wizard asks for the app certificate instead of a bundle no user can build. Cloud commands on every vehicle model, decided by the data the cloud publishes for that car and by its own refusal rather than by the model name, with sentry mode where the account has the right and the climate-off payload each model was measured to obey. Cloud per-trip history, range-extender fuel included, on every model. Acceptance by the cloud is not confirmation of physical execution: that remains confirmed only on the B10. See the [migration contract](docs/MIGRATION-4.md).
-See [release notes and upgrade impact](docs/releases/v4.2.1.md).
+**v4.3.0:** consumption and driving energy are back on installations the cloud was refusing, a slow charge keeps the energy it delivered (charges already recorded are recomputed once), and the Overview says when its data is stale instead of "driving". Cloud commands on every vehicle model, decided by the data the cloud publishes for that car and by its own refusal rather than by the model name, with sentry mode where the account has the right and the climate-off payload each model was measured to obey. Cloud per-trip history, range-extender fuel included, on every model. Acceptance by the cloud is not confirmation of physical execution: that remains confirmed only on the B10. See the [migration contract](docs/MIGRATION-4.md).
+See [release notes and upgrade impact](docs/releases/v4.3.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -361,8 +361,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.2.1:** un'installazione nuova si può di nuovo configurare — la procedura chiede il certificato dell'app invece di un pacchetto che nessun utente può costruire. Comandi dal cloud su ogni modello, decisi dai dati che il cloud pubblica per quell'auto e dal suo rifiuto anziché dal nome del modello, con la sentinella dove l'account ne ha il diritto e il payload di spegnimento del clima che ogni modello è stato misurato obbedire. Storico dei singoli viaggi dal cloud, carburante del prolungatore compreso, su ogni modello. L'accettazione del cloud non è la conferma dell'esecuzione fisica: quella resta confermata solo sulla B10. Vedi il [contratto di migrazione](docs/MIGRATION-4.md).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.2.1.md#italiano).
+**v4.3.0:** consumi ed energia di guida tornano dove il cloud li rifiutava, una ricarica lenta tiene l'energia che ha dato (le ricariche già registrate vengono ricalcolate una volta) e la panoramica dice quando il dato è fermo invece di scrivere «in marcia». Comandi dal cloud su ogni modello, decisi dai dati che il cloud pubblica per quell'auto e dal suo rifiuto anziché dal nome del modello, con la sentinella dove l'account ne ha il diritto e il payload di spegnimento del clima che ogni modello è stato misurato obbedire. Storico dei singoli viaggi dal cloud, carburante del prolungatore compreso, su ogni modello. L'accettazione del cloud non è la conferma dell'esecuzione fisica: quella resta confermata solo sulla B10. Vedi il [contratto di migrazione](docs/MIGRATION-4.md).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.3.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

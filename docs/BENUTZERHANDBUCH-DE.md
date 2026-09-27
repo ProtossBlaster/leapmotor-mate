@@ -1,8 +1,10 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.2.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.3.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.2.1
+## Neu in Version 4.3.0
+
+Verbrauch und Fahrenergie sind wieder da, wo die Cloud sie abgelehnt hat: Wenn auf der Seite Fahrten unter dem Verbrauchsdiagramm «Keine Daten» stand oder im Monatsbericht die Fahrenergie fehlte, funktioniert es wieder. Eine Ladung, die nach dem Absinken des Stroms langsam weiterläuft, behält nun die gesamte gelieferte Energie, und die bereits gespeicherten Ladungen werden beim ersten Start einmal neu berechnet. Die Übersicht zeigt **Daten veraltet** statt **Fahrt**, wenn das Auto unterwegs nicht mehr mit der Cloud spricht, und eine Ladung ohne Empfang — etwa in einer Tiefgarage — kann auch dann erkannt werden, wenn Sie danach ein bis zwei Kilometer herausgefahren sind.
 
 Eine Neuinstallation lässt sich wieder einrichten. Ab 4.0.0 bot die Seite des ersten Starts nur noch das Hochladen eines Anwendungspakets an — ein ZIP, das private Daten enthalten muss, die niemand selbst erzeugen kann — sodass Mate nicht von Grund auf installiert werden konnte. Der Assistent fragt wieder nach `app.crt` und `app.key`, als Datei oder als eingefügter Text, und ergänzt den Rest selbst. Wenn Mate bereits läuft, ändert sich für Sie nichts.
 

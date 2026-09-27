@@ -3,6 +3,15 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.3.0] — 2026-09-27
+
+- Fix: an installation running the bundled SDK sends its consumption reads signed again. Since 4.0.0 the Trips consumption chart, the Monthly Report's driving energy and the per-trip enrichment were refused by the cloud with `code 39, Information verification failed`, because the SDK's header builders had been replaced by the independent client's marker for both backends at once (#327).
+- Fix: a charge that keeps going below the charge-detection floor keeps the energy it delivered. The energy of a charge ending at 100% is anchored to the last sample with the cable connected and current still entering the pack, instead of the last sample the detection floor called charging — on a 1.7 kW wallbox that was 7.8 points of SoC and 6.4 kWh (#316). Charges already recorded are recomputed once, only where that anchor moved, each keeping the kWh-per-point scale it was written with.
+- Fix: a window with no driving is read as the empty answer it is, instead of three attempts, three session resets and three logins.
+- The Overview says "Data stale" instead of "Driving" for a frame the poller's frozen-drive guard gave up on, and the missed-charge scan can reconstruct a charge taken while out of contact when the car drove at most 3 km out of it — BEV only, with a conservative regeneration budget (PR #329, @kerniger).
+- Fix: a poll carrying no SoC no longer removes a charge from the missed-charge scan.
+- The diagnostics bundle names the cloud client it is running.
+
 ## [4.2.1] — 2026-09-27
 
 - Fix: a new installation is offered the certificate step again. From 4.0.0 the setup page showed only the application-bundle upload — a ZIP carrying private parameters no user can produce — so Mate could not be set up from scratch (#328). The wizard asks for app.crt and app.key again and installs the rest from the profile packaged in the image; the bundle upload remains only where a certificate pair genuinely cannot finish the installation. Existing installations were never affected.
