@@ -17,6 +17,8 @@ See [release notes and upgrade impact](docs/releases/v4.1.0.md).
 
 Candidate command qualification: **B10**. Previous stable releases supported **B05 · B10 · C10 · T03**; those other models still require qualification with this new client — full‑electric (BEV) only, European spec (the Leapmotor lineup distributed by Stellantis/Leapmotor). Not for REEV / range‑extender versions.
 
+Chinese-market accounts are not supported by Mate. [China cloud API research](docs/CHINA-API-RESEARCH.md) documents a separately verified read-only B05 flow and the remaining integration work.
+
 > 🇮🇹 [Versione italiana più sotto.](#leapmotor-mate--italiano)
 
 ## ☕ Support
