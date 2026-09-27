@@ -1,10 +1,11 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.1.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.2.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.1.0
+## Neu in Version 4.2.0
 
-Häufige Orte lassen sich auf der Karte ein- und ausblenden; die Auswahl wird im Browser gespeichert. Unter Kosten können private Ladeorte pro Fahrzeug mit Koordinaten, Radius und festem Preis pro kWh eingerichtet werden. Neue AC-Ladevorgänge werden nur bei aktueller GPS-Position, stehendem Fahrzeug und genau einem passenden Ort automatisch zugeordnet. Jeder Vorgang behält seinen Tarif. Abgeschlossene, nicht zusammengeführte Ladevorgänge können manuell zugeordnet werden. Ohne gemessene Ladeenergie sind die Kosten Schätzwerte.
+Cloud-Befehle funktionieren jetzt bei jedem Modell, nicht mehr nur bei der B10. Was Ihr Auto darf, entscheiden die Daten, die die Cloud für dieses Fahrzeug veröffentlicht, und die Antwort der Cloud selbst: einen Befehl, den Ihr Modell nicht hat, lehnt die Cloud ab, und Mate bietet ihn nicht mehr an. Der Wächtermodus erscheint dort, wo das Konto das Recht dazu hat. Das vollständige Ausschalten der Klimaanlage verwendet die Nutzlast, die bei jedem Modell gemessen wurde. Die Cloud-Historie je Fahrt, einschließlich Kraftstoff des Range-Extenders, wird bei jedem Modell erfasst. Ein von der Cloud angenommener Befehl ist kein Beweis für die Ausführung: die Bestätigung am Fahrzeug gibt es nur für die B10.
+
 > Dieses Handbuch richtet sich an alle, die Mate *nutzen*, nicht an die, die es entwickeln. Es erklärt, wie
 > Sie es von Grund auf einrichten und was jede Seite tut. Für die internen technischen Details gibt es `ARCHITECTURE.md`.
 

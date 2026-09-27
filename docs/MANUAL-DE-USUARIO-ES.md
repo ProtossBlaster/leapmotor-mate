@@ -1,10 +1,11 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.1.0 · **Idioma:** Español
+> **Versión de Mate:** v4.2.0 · **Idioma:** Español
 
-## Novedades de la versión 4.1.0
+## Novedades de la versión 4.2.0
 
-En el mapa puedes mostrar u ocultar los lugares frecuentes; la elección se guarda en el navegador. En los costes, configura lugares de carga privados por vehículo con coordenadas, radio y precio fijo por kWh. Solo se asignan automáticamente nuevas sesiones AC con GPS reciente, vehículo detenido y una única zona compatible. Cada sesión conserva su tarifa. Las cargas terminadas y no unidas permiten asignación manual. Sin medición del cargador, los costes son estimaciones.
+Los comandos desde la nube funcionan ya en todos los modelos, no solo en el B10. Lo que puede hacer tu coche lo deciden los datos que la nube publica para ese vehículo y la respuesta de la nube: un comando que tu modelo no tiene es rechazado por la nube, y Mate deja de ofrecerlo. El modo centinela aparece donde la cuenta tiene ese derecho. El apagado completo del climatizador usa la carga útil que se midió en cada modelo. El historial por viaje de la nube, incluido el combustible del extensor de autonomía, se recoge en todos los modelos. Un comando aceptado por la nube no prueba que el coche lo haya ejecutado: la confirmación en el vehículo existe solo para el B10.
+
 > Este manual está escrito para quien *usa* Mate, no para quien lo desarrolla. Explica cómo
 > configurarlo desde cero y qué hace cada página. Para los detalles técnicos internos está `ARCHITECTURE.md`.
 

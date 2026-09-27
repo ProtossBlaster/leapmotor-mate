@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.1.0:** private charging places with per-session tariffs and a frequent-places map toggle. Retains automatic migration with existing credentials and certificates, isolated verification and automatic compatibility fallback. Includes the current PR fixes and preserves Beta/REEV support. See the [migration contract](docs/MIGRATION-4.md).
-See [release notes and upgrade impact](docs/releases/v4.1.0.md).
+**v4.2.0:** cloud commands on every vehicle model, decided by the data the cloud publishes for that car and by its own refusal rather than by the model name, with sentry mode where the account has the right and the climate-off payload each model was measured to obey. Cloud per-trip history, range-extender fuel included, on every model. Acceptance by the cloud is not confirmation of physical execution: that remains confirmed only on the B10. See the [migration contract](docs/MIGRATION-4.md).
+See [release notes and upgrade impact](docs/releases/v4.2.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -15,7 +15,7 @@ See [release notes and upgrade impact](docs/releases/v4.1.0.md).
 
 **Trip tracking, charge logging and remote control for Leapmotor vehicles** — a self‑hosted companion (think *TeslaMate* for Leapmotor). Runs as a **Home Assistant add‑on** or as a **standalone Docker** container.
 
-Candidate command qualification: **B10**. Previous stable releases supported **B05 · B10 · C10 · T03**; those other models still require qualification with this new client — full‑electric (BEV) only, European spec (the Leapmotor lineup distributed by Stellantis/Leapmotor). Not for REEV / range‑extender versions.
+Cloud commands are enabled on **every model** (since 4.2.0). What a car may do is decided by the data its own cloud entry publishes — abilities, account rights, control module — and by the cloud's own refusal, never by the model name; a command your model does not have is refused by the cloud and Mate stops offering it. **On‑car confirmation of physical execution exists only for the B10**: acceptance by the cloud is not proof the car carried a command out. European spec (the Leapmotor lineup distributed by Stellantis/Leapmotor).
 
 > 🇮🇹 [Versione italiana più sotto.](#leapmotor-mate--italiano)
 
@@ -327,7 +327,7 @@ Publish the car to Home Assistant as **native entities** (in parallel to the Mat
 
 - **`Ready`** — a binary sensor that turns on as soon as the car is powered up, before it moves, while an automation still has time to act.
 
-- **Command buttons** — lock/unlock, trunk, find car, preheat battery, unlock charge cable, climate (A/C Auto / Quick Cool / Quick Heat / Quick Ventilation / Defrost / A/C Off) and comfort (heated/ventilated seats, steering-wheel & mirror heating). Turning the A/C fully **off** now works on the B10 (using the `operate=off` command found by on‑car testing); the comfort commands use the payloads captured by [@kerniger](https://github.com/kerniger/leapmotor-ha).
+- **Command buttons** — lock/unlock, trunk, find car, preheat battery, unlock charge cable, climate (A/C Auto / Quick Cool / Quick Heat / Quick Ventilation / Defrost / A/C Off) and comfort (heated/ventilated seats, steering-wheel & mirror heating). Turning the A/C fully **off** uses the payload each model was measured to obey: the bare `operate=off` on the B10/C10, the same value inside the full seven‑field body on the T03 (found on‑car by [@derekzoli](https://github.com/derekzoli)) — each car ignores the other's form while the cloud answers success to both. Sentry mode is offered where the account declares the right for it. The comfort commands use the payloads captured by [@kerniger](https://github.com/kerniger/leapmotor-ha).
 
 Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection** to verify the broker before saving. After a command the state now updates in Home Assistant immediately (no waiting for the next poll), and the **topic prefix** scopes the device — so you can run a second instance on a different prefix without it clashing with the first.
 
@@ -359,12 +359,12 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.1.0:** luoghi privati di ricarica con tariffe per sessione e comando per mostrare/nascondere i luoghi frequenti sulla mappa. Mantiene la migrazione automatica con credenziali e certificati esistenti, verifica isolata e mantenimento automatico della compatibilità. Include le correzioni delle PR e conserva Beta/REEV. Vedi il [contratto di migrazione](docs/MIGRATION-4.md).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.1.0.md#italiano).
+**v4.2.0:** comandi dal cloud su ogni modello, decisi dai dati che il cloud pubblica per quell'auto e dal suo rifiuto anziché dal nome del modello, con la sentinella dove l'account ne ha il diritto e il payload di spegnimento del clima che ogni modello è stato misurato obbedire. Storico dei singoli viaggi dal cloud, carburante del prolungatore compreso, su ogni modello. L'accettazione del cloud non è la conferma dell'esecuzione fisica: quella resta confermata solo sulla B10. Vedi il [contratto di migrazione](docs/MIGRATION-4.md).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.2.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
-Comandi qualificati nella candidata: **B10**. Le precedenti versioni stabili supportavano **B05 · B10 · C10 · T03**; gli altri modelli richiedono ancora qualifica con il nuovo client — solo full‑electric (BEV), spec. europea (gamma Leapmotor distribuita da Stellantis/Leapmotor). NON per le versioni REEV / range‑extender.
+I comandi dal cloud sono abilitati su **ogni modello** (dalla 4.2.0). Cosa può fare un'auto lo decidono i dati che il cloud pubblica per quel veicolo — abilities, diritti dell'account, modulo di controllo — e il rifiuto del cloud stesso, mai il nome del modello: un comando che il tuo modello non ha viene rifiutato dal cloud e Mate smette di proporlo. **La conferma in auto dell'esecuzione fisica esiste solo per la B10**: l'accettazione del cloud non è la prova che l'auto abbia eseguito. Spec. europea (gamma Leapmotor distribuita da Stellantis/Leapmotor).
 
 ## ☕ Sostieni il progetto
 
@@ -658,7 +658,7 @@ Pubblica l'auto a Home Assistant come **entità native** (in parallelo all'inter
 
 - **`Ready`** — un binary sensor che si accende appena l'auto viene accesa, prima che si muova, cioè finché un'automazione fa ancora in tempo ad agire.
 
-- **Pulsanti comando** — lock/unlock, baule, trova auto, preriscaldamento batteria, sblocco cavo di ricarica, clima (A/C Auto / Quick Cool / Quick Heat / Ventilazione / Sbrinamento / A/C Off) e comfort (sedili riscaldati/ventilati, riscaldamento volante e specchietti). Lo spegnimento **completo** dell'A/C ora funziona sulla B10 (usa il comando `operate=off`, individuato con i test sull'auto); i comandi comfort usano i payload catturati da [@kerniger](https://github.com/kerniger/leapmotor-ha).
+- **Pulsanti comando** — lock/unlock, baule, trova auto, preriscaldamento batteria, sblocco cavo di ricarica, clima (A/C Auto / Quick Cool / Quick Heat / Ventilazione / Sbrinamento / A/C Off) e comfort (sedili riscaldati/ventilati, riscaldamento volante e specchietti). Lo spegnimento **completo** dell'A/C usa il payload che ogni modello è stato misurato obbedire: `operate=off` nudo sulla B10/C10, lo stesso valore dentro il corpo intero a sette campi sulla T03 (trovato sull'auto da [@derekzoli](https://github.com/derekzoli)) — ogni auto ignora la forma dell'altra, e il cloud risponde con successo a entrambe. La sentinella viene proposta dove l'account ne dichiara il diritto. I comandi comfort usano i payload catturati da [@kerniger](https://github.com/kerniger/leapmotor-ha).
 
 Funziona con qualsiasi broker MQTT (es. l'add‑on Mosquitto). Usa **Prova connessione** per verificare il broker prima di salvare. Dopo un comando lo stato ora si aggiorna in Home Assistant all'istante (senza aspettare il polling successivo), e il **prefisso topic** delimita il dispositivo — così puoi far girare una seconda istanza con un prefisso diverso senza che entri in conflitto con la prima.
 

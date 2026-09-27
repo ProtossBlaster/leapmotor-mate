@@ -1,10 +1,11 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.1.0 · **Language:** English
+> **Mate version:** v4.2.0 · **Language:** English
 
-## New in 4.1.0
+## New in 4.2.0
 
-On Map, show or hide frequent places; the choice is saved in this browser. In Costs → Charging places, add private places per vehicle with coordinates, radius and a fixed price per kWh. New live AC sessions use fresh, stationary, unambiguous GPS. Each session keeps its tariff; editing places does not reprice history. Manual assignment is available for closed, unmerged charges. Without measured charger energy, costs are estimates.
+Cloud commands now work on every vehicle model, not only the B10. What your car may do is decided by the data its own cloud entry publishes and by the cloud's answer: a command your model does not have is refused by the cloud, and Mate stops offering it. Sentry mode appears where your account has the right for it. Switching the climate completely off uses the payload each model was measured to obey. Cloud per-trip history, including range-extender fuel per trip, is collected on every model. A command accepted by the cloud is not proof the car carried it out; on-car confirmation exists only for the B10.
+
 > This manual is written for people who *use* Mate, not for those who develop it. It explains how to
 > set it up from scratch and what every page does. For the internal technical details, see `ARCHITECTURE.md`.
 
