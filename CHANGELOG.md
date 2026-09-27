@@ -3,6 +3,13 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.4.0] — 2026-09-27
+
+- An account of any model qualifies for the independent cloud client. The verdict of the qualification probe was compared against a literal `['B10']`, so every other account was kept on the bundled SDK — where the consumption reads went out unsigned until 4.3.0 (#327, #330) and where the cloud trip-history card does not exist (#298). The gate had been opened inside the child process and left shut in the parent.
+- The qualification is asked again. The decision is kept per release and the marker had read 4.0.0 since 4.0.0, so an installation refused once was never re-examined. Installations kept on the bundled SDK migrate at the next start.
+- A session is renewed instead of bought again with a login. The cloud states the access token's life (7200 s) and issues a refresh token good for seven days; Mate kept neither and capped every session at thirty minutes, which cost ~48 logins a day. Renewal brings that to about one a week, the first lever on the login wall behind #296 and beta #49.
+- mate-api 0.1.0a11 vendored.
+
 ## [4.3.1] — 2026-09-27
 
 - Fix: a car that loses the cloud for a minute mid-drive no longer loses the drive. Coming back from a dropout with a trip still open resumes that trip instead of opening another, and the kilometres of the gap stay in it rather than being declared as belonging to no trip (D #331: nine dropouts in one morning, ten trips opened, one closed). A silence longer than the frozen-drive guard, or one that happens while parked, keeps the previous behaviour.

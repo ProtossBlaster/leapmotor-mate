@@ -1,8 +1,10 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.3.1 · **Langue :** Français
+> **Version de Mate :** v4.4.0 · **Langue :** Français
 
-## Nouveautés de la version 4.3.1
+## Nouveautés de la version 4.4.0
+
+Si Mate tournait encore sur l'ancien client cloud — avant la 4.3.0 le graphique de consommation manquait, et la carte **Historique des trajets cloud** est absente des réglages — il passe au client indépendant au prochain démarrage, et la carte apparaît avec lui. Mate cesse aussi de se connecter toutes les demi-heures : le cloud permet de renouveler une session pendant une semaine.
 
 Une voiture qui perd le cloud une minute au milieu d'un trajet garde le trajet : au retour, le trajet ouvert reprend au lieu qu'un autre commence, et les kilomètres du trou y restent. Les trajets déjà coupés restent tels quels — pour les réunir, **🔗 Fusionnables** dans le calendrier des trajets.
 

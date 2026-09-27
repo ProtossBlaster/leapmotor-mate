@@ -1,8 +1,10 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.3.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.4.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.3.1
+## Neu in Version 4.4.0
+
+Lief Mate noch auf dem älteren Cloud-Client — vor 4.3.0 fehlte das Verbrauchsdiagramm, und in den Einstellungen fehlt die Karte **Cloud-Fahrtenhistorie** — wechselt es beim nächsten Start zum unabhängigen Client, und die Karte erscheint damit. Mate meldet sich außerdem nicht mehr jede halbe Stunde an: die Cloud lässt eine Sitzung eine Woche lang erneuern.
 
 Ein Auto, das mitten in der Fahrt für eine Minute die Cloud verliert, behält die Fahrt: nach der Rückkehr wird die offene Fahrt fortgesetzt statt eine neue begonnen, und die Kilometer der Lücke bleiben darin. Bereits geteilte Fahrten bleiben, wie sie sind — zusammenführen lassen sie sich im Fahrtenkalender mit **🔗 Zusammenführbar**.
 

@@ -1,8 +1,10 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.3.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.4.0 · **Lingua:** Italiano
 
-## Novità della 4.3.1
+## Novità della 4.4.0
+
+Se Mate girava sul client vecchio del cloud — prima della 4.3.0 non vedevi il grafico dei consumi, e in Impostazioni manca il riquadro **Storico viaggi dal cloud** — al prossimo avvio passa a quello indipendente, e il riquadro compare con lui. Mate smette anche di autenticarsi ogni mezz'ora: il cloud permette di rinnovare una sessione per una settimana, e su un account razionato la differenza si sente.
 
 Un'auto che perde il cloud per un minuto a metà strada tiene il viaggio: al ritorno riprende quello aperto invece di aprirne un altro, e i chilometri del buco restano dentro. I viaggi già spezzati restano come sono — per unirli c'è **🔗 Unibili** nel calendario dei Viaggi.
 

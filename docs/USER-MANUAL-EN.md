@@ -1,8 +1,10 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.3.1 · **Language:** English
+> **Mate version:** v4.4.0 · **Language:** English
 
-## New in 4.3.1
+## New in 4.4.0
+
+If Mate was running on the older cloud client — you would have seen no consumption chart before 4.3.0, and no **Cloud trip history** card in Settings — it moves to the independent one the next time it starts, and the card appears with it. Mate also stops signing in every half hour: the cloud lets a session be renewed for a week, which matters on an account the cloud has been rationing.
 
 A car that loses the cloud for a minute in the middle of a drive keeps the drive: coming back resumes the trip that was open instead of starting another, and the kilometres of the gap stay in it. Trips already split stay as they are — join them with **🔗 Mergeable** in the Trips calendar.
 

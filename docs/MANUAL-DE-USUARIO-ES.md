@@ -1,8 +1,10 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.3.1 · **Idioma:** Español
+> **Versión de Mate:** v4.4.0 · **Idioma:** Español
 
-## Novedades de la versión 4.3.1
+## Novedades de la versión 4.4.0
+
+Si Mate seguía en el cliente antiguo de la nube — antes de la 4.3.0 no veías el gráfico de consumo, y en Ajustes falta la tarjeta **Historial de viajes de la nube** — pasa al cliente independiente en el próximo arranque, y la tarjeta aparece con él. Mate también deja de iniciar sesión cada media hora: la nube permite renovar una sesión durante una semana.
 
 Un coche que pierde la nube durante un minuto a mitad de trayecto conserva el trayecto: al volver se reanuda el que estaba abierto en lugar de empezar otro, y los kilómetros del hueco se quedan dentro. Los trayectos ya partidos se quedan como están — para unirlos está **🔗 Fusionables** en el calendario de Viajes.
 
