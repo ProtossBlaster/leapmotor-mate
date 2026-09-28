@@ -828,6 +828,35 @@ def _polling_section() -> str:
     return "\n".join(lines)
 
 
+def _cloud_history_section() -> str:
+    """Did the cloud's own trip history arrive, and did it carry fuel? Counts only — this text is
+    attached to public issues. Since 4.5.3 every install stages these records, range-extender
+    accounts included; each one carries `driveReevOil`, the fuel the car's cloud says that drive
+    burned. A report that "the petrol figures are wrong" splits in two here, and the halves have
+    opposite answers: Mate read the field and got it wrong, or the cloud never sent one."""
+    try:
+        s = db_reader.cloud_history_state()
+    except Exception as exc:  # noqa: BLE001
+        return f"(unavailable: {exc})"
+    if not s["staged"]:
+        return ("staged drives : none — the cloud history worker has not stored anything on this "
+                "install\n"
+                f"cloud-linked  : {s['promoted_trips']} trips · import setting "
+                f"{s['import_setting'] if s['import_setting'] is not None else 'unset'}")
+    oil_max = "—" if s["oil_max"] is None else _n(s["oil_max"], 3)
+    return "\n".join([
+        f"staged drives : {s['mileage']} (plus {s['charge']} charge records)",
+        f"window        : {s['first_at'] or '—'} → {s['last_at'] or '—'} (UTC)",
+        # Present-and-zero vs absent: a BEV reports the field on every drive with value 0.0, and
+        # that must not read like a cloud that sent nothing.
+        f"driveReevOil  : {s['oil_present']} of {s['mileage']} carry the field · "
+        f"{s['oil_positive']} of {s['mileage']} above zero · max {oil_max} (unit unverified)",
+        f"cloud-linked  : {s['promoted_trips']} trips · import setting "
+        f"{s['import_setting'] if s['import_setting'] is not None else 'unset'}",
+        f"last sync     : {(s['last_sync'] or '—')[:200]}",
+    ])
+
+
 def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: dict | None = None) -> str:
     """One redacted text blob to attach to an issue. `parts` selects which sections to include
     (any of 'info', 'poller', 'web', 'signals'); a one-line version header is always present. The
@@ -893,6 +922,8 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
                 _missed_charges_section()]
         out += ["", "----- vehicle abilities (what the car DECLARES it can do) -----", _abilities_section()]
         out += ["", "----- polling (last 7 days, local days) -----", _polling_section()]
+        out += ["", "----- cloud trip history (staged from Leapmotor) -----",
+                _cloud_history_section()]
     if "poller" in want:
         out += ["", "----- poller log (full retained window) -----", read_full_log("poller")]
     if "web" in want:

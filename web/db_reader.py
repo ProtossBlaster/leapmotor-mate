@@ -3192,6 +3192,127 @@ def list_fuel_purchases(limit: int = 200) -> list:
         db.close()
 
 
+# The cloud's OWN per-trip record, as the API-v2 history worker stages it in
+# api_lab_cloud_history_records — allow-listed for the BetaTester bundle, and the single source of
+# both the columns and their order (main.py's writer reads this tuple; two lists would drift, and a
+# drifted column disappears silently).
+#
+# `driveReevOil` is why this exists: the fuel that ONE drive burned, by the car's own cloud. Measured
+# 27/09/2026 on 183 records of a B10 — present on every one, reading 0.0, which is correct for a BEV
+# and no answer for a range-extender. Its UNIT is unverified: litres, or millilitres like signal 3263.
+# `accountId` is dropped and the VIN masked — these rows identify an account and the pack travels.
+# `started_at`/`ended_at` are derived because matching a record to a trip is the whole point: one REEV
+# drive whose litres we know independently is what calibrates the unit.
+RESEARCH_CLOUD_TRIP_FIELDS = (
+    "started_at", "ended_at", "vin_masked", "zone",
+    "routeStartTs", "routeEndTs",
+    # distance twice: the km field is always an integer, the miles field carries the tenths
+    "totalMileage", "totalMileageInMi",
+    "totalEnergy", "maxSpeed", "maxSpeedInMi",
+    "driveReevOil",
+)
+
+
+def _cloud_ms_to_iso(value):
+    """Epoch milliseconds → ISO UTC, or None. The raw field is exported next to it, so a value the
+    cloud sends in some other shape costs a readable column and not the row."""
+    from datetime import datetime, timezone
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    try:
+        return datetime.fromtimestamp(value / 1000, timezone.utc).isoformat()
+    except (ValueError, OSError, OverflowError):
+        return None
+
+
+def cloud_history_state() -> dict:
+    """What the cloud history worker has actually staged, as COUNTS — for the public diagnostics
+    text. Answers the first question a range-extender report has to answer: did the worker run, how
+    many drives did it stage, and is `driveReevOil` populated or flat zero? Those are opposite
+    conclusions ("the cloud sent no fuel" is not a Mate defect), and until now neither was visible.
+
+    Counts and ranges only: no VIN, no accountId, no per-drive rows — that file is attached to public
+    issues. The rows themselves go in the encrypted pack (research_cloud_trip_records).
+
+    The import switch is reported as its two RAW inputs (the setting as stored, and how many trips
+    carry a cloud link) instead of re-deciding it here: the decision belongs to
+    poller/mate_api_runtime/cloud_import_policy.py, and a second copy of it would drift."""
+    import json as _json
+    db = _get()
+    tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'"
+                                      " AND name LIKE 'api_lab_cloud%'")}
+    state = {"staged": "api_lab_cloud_history_records" in tables, "mileage": 0, "charge": 0,
+             "first_at": None, "last_at": None, "oil_present": 0, "oil_positive": 0,
+             "oil_max": None, "promoted_trips": 0, "import_setting": None, "last_sync": None}
+    if "api_lab_cloud_trip_links" in tables:
+        state["promoted_trips"] = db.execute(
+            "SELECT COUNT(*) FROM api_lab_cloud_trip_links").fetchone()[0]
+    state["import_setting"] = get_setting("api_v2_import_cloud_trips", None)
+    state["last_sync"] = get_setting("api_v2_history_sync", None)
+    if not state["staged"]:
+        return state
+    for kind, count in db.execute("SELECT kind, COUNT(*) FROM api_lab_cloud_history_records"
+                                  " GROUP BY kind"):
+        if kind in ("mileage", "charge"):
+            state[kind] = count
+    starts = []
+    for (payload,) in db.execute("SELECT payload_json FROM api_lab_cloud_history_records"
+                                 " WHERE kind='mileage'"):
+        try:
+            record = _json.loads(payload)
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(record, dict):
+            continue
+        started = _cloud_ms_to_iso(record.get("routeStartTs"))
+        if started:
+            starts.append(started)
+        oil = record.get("driveReevOil")
+        # 🔑 Present-and-zero is an ANSWER (a BEV reports exactly that); absent is not. Counted apart.
+        if isinstance(oil, (int, float)) and not isinstance(oil, bool):
+            state["oil_present"] += 1
+            if oil > 0:
+                state["oil_positive"] += 1
+            if state["oil_max"] is None or oil > state["oil_max"]:
+                state["oil_max"] = oil
+    if starts:
+        state["first_at"], state["last_at"] = min(starts), max(starts)
+    return state
+
+
+def research_cloud_trip_records() -> list:
+    """The staged cloud per-trip records for the BetaTester bundle's cloud_trip_records.csv, oldest
+    first. Reads what is STORED — not another live probe: on the one readable bundle we have (21/09)
+    all five live probes returned `{"code":3,"message":"Token is invalid","data":null}`, because the
+    probe logs in at export time. A staged table needs no token.
+
+    Absent table (every install that never ran the history worker, which is most of them) and
+    unparseable payloads both yield nothing rather than raising: this runs inside an export whose
+    other files must still be produced."""
+    import json as _json
+    db = _get()
+    if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table'"
+                      " AND name='api_lab_cloud_history_records'").fetchone():
+        return []
+    from diagnostics import mask_vin       # local: diagnostics imports this module at its top
+    out = []
+    for (payload,) in db.execute("SELECT payload_json FROM api_lab_cloud_history_records"
+                                 " WHERE kind='mileage'"):
+        try:
+            record = _json.loads(payload)
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(record, dict):
+            continue
+        row = {key: record.get(key) for key in RESEARCH_CLOUD_TRIP_FIELDS}
+        row["started_at"] = _cloud_ms_to_iso(record.get("routeStartTs"))
+        row["ended_at"] = _cloud_ms_to_iso(record.get("routeEndTs"))
+        row["vin_masked"] = mask_vin(record.get("vin"))
+        out.append(row)
+    out.sort(key=lambda r: (r["routeStartTs"] is None, r["routeStartTs"] or 0))
+    return out
+
+
 def research_fuel_purchases() -> list:
     """Every refuel — with `vehicle_id` and `created_at` — for the BetaTester bundle's
     fuel_purchases.csv (beta #36). Unlike list_fuel_purchases (the UI's: newest-first, no scope, no

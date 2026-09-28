@@ -1728,6 +1728,19 @@ def _build_research_export():
         w.writeheader()
         w.writerows(fuels)
         z.writestr("fuel_purchases.csv", s.getvalue())
+        # The cloud's OWN per-trip records, as the history worker staged them. Since 4.5.3 every
+        # install stages these, range-extender accounts included, and each row carries
+        # `driveReevOil` — the fuel that drive burned according to the car's cloud. The bundle
+        # carried the AGGREGATE probes (getEC, the weekly rank, mileage/energy/detail) and never
+        # these, so the field sat in the tester's database and could not be read: whether a REEV
+        # populates it, and in litres or millilitres, is still unmeasured. Columns and order come
+        # from db_reader.RESEARCH_CLOUD_TRIP_FIELDS — one list, so a column cannot drift out.
+        cloud_trips = db_reader.research_cloud_trip_records()
+        s = io.StringIO()
+        w = csv.DictWriter(s, fieldnames=db_reader.RESEARCH_CLOUD_TRIP_FIELDS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(cloud_trips)
+        z.writestr("cloud_trip_records.csv", s.getvalue())
         # What each PAGE made of those same trips — beta #35/#36. Three pages print three kWh/100km
         # for one month (Statistics AVERAGES the per-trip ratios; Trips divides getEC by its own km;
         # the Report divides getEC by ALL km), and the cost card can drop the fuel. The raw trips are
