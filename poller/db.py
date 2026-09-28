@@ -1448,7 +1448,13 @@ class Database:
 
         🔑 Nothing new has to be recorded to know this. While DRIVING the recorder does not save a
         position for a repeated frame (#128), so the LAST `positions` row of such a trip already is
-        the last thing the car said.
+        the last thing the car said."""
+        seen = self.trip_last_seen(trip_id)
+        return seen[0] if seen else None
+
+    def trip_last_seen(self, trip_id: int) -> Optional[tuple[str, sqlite3.Row]]:
+        """The last `positions` row inside this trip, and the moment it stands for. The row carries
+        what `finalize_trip` reads from a frame, under the same names.
 
         The car's own clock (`frame_ts`) is preferred over ours, for the same reason the charge
         prefers it — it is the measurement's own time, not the time we happened to poll. ⚠️ And it
@@ -1460,7 +1466,8 @@ class Database:
         if trip is None or not trip["started_at"]:
             return None
         row = self._conn.execute(
-            "SELECT recorded_at, frame_ts FROM positions"
+            "SELECT recorded_at, frame_ts, soc, odometer_km, latitude, longitude,"
+            " fuel_level_pct, fuel_liters FROM positions"
             " WHERE vehicle_id=? AND recorded_at>=? ORDER BY recorded_at DESC LIMIT 1",
             (trip["vehicle_id"], trip["started_at"])).fetchone()
         if row is None:
@@ -1470,7 +1477,7 @@ class Database:
             frame_iso = datetime.fromtimestamp(int(row["frame_ts"]) / 1000, timezone.utc).isoformat()
             if frame_iso > trip["started_at"]:
                 ended_at = frame_iso
-        return ended_at
+        return ended_at, row
 
     def finalize_trip(self, trip_id: int, data, regen_kwh: float = 0.0,
                       end_at_override: Optional[str] = None) -> Optional[float]:
