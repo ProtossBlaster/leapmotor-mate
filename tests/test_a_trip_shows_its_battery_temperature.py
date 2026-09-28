@@ -59,7 +59,7 @@ def test_the_page_prints_it_after_the_power_and_names_the_coldest_cell(tmp_path,
     row = re.search(r"Battery temp.*?</div>", html, re.DOTALL).group(0)
     assert "3 – 9 °C" in row, "the readings are not one range, lowest to highest"
     assert "data-tip=" in row and "coldest cell" in row
-    assert html.index("Max regen") < html.index("Battery temp") < html.index("Elevation")
+    assert html.index("Max regen") < html.index("Battery temp") < html.index("Ascent / descent")
 
 
 def test_a_range_whose_ends_print_the_same_is_one_figure(tmp_path, monkeypatch):

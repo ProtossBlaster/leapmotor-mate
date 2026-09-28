@@ -436,10 +436,11 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
 - **Elevation and outside temperature.** The Leapmotor cloud reports neither, so a few minutes after
   a drive ends Mate looks the trip's GPS track up against [Open-Meteo](https://open-meteo.com)
   (free, no key, no account). The detail then gains an **altitude line in the Trip data chart**, the
-  metres **climbed and descended**, and the **highest and lowest** temperature of the drive — not an
-  average, so a valley-to-pass climb shows the real drop. Between them they explain a good part of a
-  drive's consumption: a climb costs energy, cold costs range. Trips recorded before this existed
-  have a **Calculate elevation** button, and the whole thing can be switched off in Settings.
+  metres **climbed and descended** (the *Ascent / descent* row; its ⓘ says how they are counted),
+  and the **highest and lowest** temperature of the drive — not an average, so a valley-to-pass
+  climb shows the real drop. Between them they explain a good part of a drive's consumption: a climb
+  costs energy, cold costs range. Trips recorded before this existed have a **Calculate elevation**
+  button, and the whole thing can be switched off in Settings.
 - **Max speed from the car 🆕.** When the car's cloud record of a drive is matched to the trip (the
   same record that gives the official consumption), the detail shows the top speed the car itself
   measured. Mate's own readings are several seconds apart and miss short peaks — on a B10 by up to

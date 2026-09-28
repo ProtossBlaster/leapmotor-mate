@@ -440,11 +440,12 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
 - **Altimetria e temperatura esterna.** Il cloud Leapmotor non riporta né l'una né l'altra, quindi
   qualche minuto dopo la fine di un viaggio Mate cerca il suo tracciato GPS su
   [Open-Meteo](https://open-meteo.com) (gratuito, senza chiave e senza account). Nel dettaglio
-  compaiono la **linea dell'altitudine nel grafico Dati del viaggio**, i metri **saliti e scesi**, e
-  la temperatura **più alta e più bassa** del viaggio — non una media, così una salita da fondovalle
-  a passo mostra il calo vero. Insieme spiegano buona parte del consumo di una guidata: la salita
-  costa energia, il freddo costa autonomia. I viaggi registrati prima che esistesse hanno un
-  pulsante **Calcola altimetria**, e tutto si può spegnere dalle Impostazioni.
+  compaiono la **linea dell'altitudine nel grafico Dati del viaggio**, i metri **saliti e scesi**
+  (riga *Dislivello + / −*; la sua ⓘ dice come sono calcolati), e la temperatura **più alta e più
+  bassa** del viaggio — non una media, così una salita da fondovalle a passo mostra il calo vero.
+  Insieme spiegano buona parte del consumo di una guidata: la salita costa energia, il freddo costa
+  autonomia. I viaggi registrati prima che esistesse hanno un pulsante **Calcola altimetria**, e
+  tutto si può spegnere dalle Impostazioni.
 - **Velocità massima dall'auto 🆕.** Quando il record del viaggio nel cloud dell'auto viene abbinato
   al viaggio (lo stesso record che dà i consumi ufficiali), il dettaglio mostra la velocità massima
   misurata dall'auto stessa. Le letture di Mate sono a qualche secondo l'una dall'altra e perdono i

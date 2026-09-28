@@ -456,12 +456,12 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
 - **Altitud y temperatura exterior.** La nube de Leapmotor no da ninguna de las dos, así que unos
   minutos después de terminar un recorrido Mate consulta la traza GPS del trayecto contra
   [Open-Meteo](https://open-meteo.com) (gratis, sin clave, sin cuenta). El detalle gana entonces una
-  **línea de altitud en el gráfico Datos del trayecto**, los metros **subidos y bajados**, y la
-  temperatura **más alta y más baja** del trayecto — no una media, para que una subida de valle a
-  puerto muestre la caída real. Entre las dos explican buena parte del consumo de un recorrido:
-  subir cuesta energía, el frío cuesta autonomía. Los trayectos registrados antes de que esto
-  existiera tienen un botón **Calcular la altimetría**, y todo el conjunto se puede desactivar en
-  Ajustes.
+  **línea de altitud en el gráfico Datos del trayecto**, los metros **subidos y bajados** (fila
+  *Desnivel + / −*; su ⓘ explica cómo se cuentan), y la temperatura **más alta y más baja** del
+  trayecto — no una media, para que una subida de valle a puerto muestre la caída real. Entre las
+  dos explican buena parte del consumo de un recorrido: subir cuesta energía, el frío cuesta
+  autonomía. Los trayectos registrados antes de que esto existiera tienen un botón **Calcular la
+  altimetría**, y todo el conjunto se puede desactivar en Ajustes.
 - **Velocidad máxima del coche 🆕.** Cuando el registro del recorrido en la nube del coche se asocia
   al trayecto (el mismo que da el consumo oficial), el detalle muestra la velocidad máxima que midió
   el propio coche. Las lecturas de Mate están separadas unos segundos y pierden los picos breves —

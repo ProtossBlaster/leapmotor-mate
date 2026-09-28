@@ -450,13 +450,14 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   Ein paar Minuten nach dem Ende einer Fahrt gleicht Mate deren GPS-Spur mit
   [Open-Meteo](https://open-meteo.com) ab (kostenlos, ohne Schlüssel, ohne Konto). Das Detail
   bekommt dadurch eine **Höhenlinie im Diagramm Fahrtdaten**, die **überwundenen und abgefahrenen**
-  Höhenmeter sowie die **höchste und niedrigste** Temperatur der Fahrt — kein Mittelwert, sodass
-  eine Auffahrt vom Tal zum Pass den echten Abfall zeigt. Zusammen erklären die beiden einen guten
-  Teil des Verbrauchs einer Fahrt: Steigen kostet Energie, Kälte kostet Reichweite. Fahrten, die vor
-  dieser Funktion aufgezeichnet wurden, haben eine Schaltfläche **Höhenmeter berechnen**, und das
-  Ganze lässt sich in den Einstellungen abschalten. Ist der Schalter für die Außentemperatur an
-  (siehe *Übersicht*), stammen die Temperaturen der Fahrt aus den **unterwegs** genommenen
-  Messungen; diese nachträgliche Abfrage bleibt der Rückfall für ältere Fahrten 🆕.
+  Höhenmeter (Zeile *Anstieg / Abstieg*; ihr ⓘ sagt, wie sie gezählt werden) sowie die **höchste und
+  niedrigste** Temperatur der Fahrt — kein Mittelwert, sodass eine Auffahrt vom Tal zum Pass den
+  echten Abfall zeigt. Zusammen erklären die beiden einen guten Teil des Verbrauchs einer Fahrt:
+  Steigen kostet Energie, Kälte kostet Reichweite. Fahrten, die vor dieser Funktion aufgezeichnet
+  wurden, haben eine Schaltfläche **Höhenmeter berechnen**, und das Ganze lässt sich in den
+  Einstellungen abschalten. Ist der Schalter für die Außentemperatur an (siehe *Übersicht*), stammen
+  die Temperaturen der Fahrt aus den **unterwegs** genommenen Messungen; diese nachträgliche Abfrage
+  bleibt der Rückfall für ältere Fahrten 🆕.
 - **Höchstgeschwindigkeit vom Auto 🆕.** Wird der Cloud-Datensatz des Autos einer Fahrt zugeordnet
   (derselbe, der den offiziellen Verbrauch liefert), zeigt das Detail die vom Auto selbst gemessene
   Höchstgeschwindigkeit. Mates eigene Messungen liegen einige Sekunden auseinander und verpassen

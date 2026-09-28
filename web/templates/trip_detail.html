@@ -314,7 +314,7 @@
         </span>
       </div>
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('elevation') }}</span>
+        <span class="text-slate-400">{{ t('elevation_ascent_descent') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('elevation_trip_help') }}">ⓘ</span></span>
         <span class="text-white font-medium">
           {%- if trip.elevation_gain_m is not none -%}
           <span title="{{ t('elevation_gain') }}">↑&nbsp;{{ trip.elevation_gain_m | elev(0) }}</span>&nbsp;&nbsp;<span title="{{ t('elevation_loss') }}">↓&nbsp;{{ trip.elevation_loss_m | elev(0) }}</span>

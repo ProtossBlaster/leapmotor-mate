@@ -462,14 +462,15 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
 - **Dénivelé et température extérieure.** Le cloud Leapmotor ne donne ni l'un ni l'autre : quelques
   minutes après la fin d'une conduite, Mate confronte le tracé GPS du trajet à
   [Open-Meteo](https://open-meteo.com) (gratuit, sans clé, sans compte). Le détail gagne alors une
-  **ligne d'altitude dans le graphique Données du trajet**, les mètres **montés et descendus**, et
-  la température **la plus haute et la plus basse** du trajet — pas une moyenne, si bien qu'une
-  montée de la vallée au col montre la vraie chute. À eux deux, ils expliquent une bonne part de la
-  consommation d'une conduite : monter coûte de l'énergie, le froid coûte de l'autonomie. Les
-  trajets enregistrés avant que cela existe ont un bouton **Calculer le dénivelé**, et l'ensemble se
-  désactive dans les Réglages. Quand l'interrupteur de température extérieure est activé (voir
-  *Aperçu*), les températures du trajet viennent des relevés pris **en route** ; cette recherche
-  après coup reste le recours pour les trajets plus anciens 🆕.
+  **ligne d'altitude dans le graphique Données du trajet**, les mètres **montés et descendus**
+  (ligne *Dénivelé + / −* ; son ⓘ explique comment ils sont comptés), et la température **la plus
+  haute et la plus basse** du trajet — pas une moyenne, si bien qu'une montée de la vallée au col
+  montre la vraie chute. À eux deux, ils expliquent une bonne part de la consommation d'une conduite
+  : monter coûte de l'énergie, le froid coûte de l'autonomie. Les trajets enregistrés avant que cela
+  existe ont un bouton **Calculer le dénivelé**, et l'ensemble se désactive dans les Réglages. Quand
+  l'interrupteur de température extérieure est activé (voir *Aperçu*), les températures du trajet
+  viennent des relevés pris **en route** ; cette recherche après coup reste le recours pour les
+  trajets plus anciens 🆕.
 - **Vitesse max venant de la voiture 🆕.** Quand l'enregistrement du trajet dans le cloud de la
   voiture est associé au trajet (le même qui donne la consommation officielle), le détail affiche la
   vitesse maximale mesurée par la voiture elle-même. Les relevés de Mate sont espacés de quelques
