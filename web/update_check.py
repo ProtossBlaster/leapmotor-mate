@@ -30,7 +30,17 @@ def _ver_tuple(v: str) -> tuple:
     return tuple(out)
 
 
-def _refresh() -> None:
+def _refresh_for(db_path: str) -> None:
+    """Ask GitHub, then record the answer — in the database this refresh was scheduled for.
+
+    🔴 The write happens after a network call with a six-second timeout, so `db_reader.DB_PATH` is
+    resolved late: by then it can name a different database. In production it never moves, so this
+    guard changes nothing there; in the test suite a thread from one test was writing into another
+    test's database. It matters beyond tests because `_conn_rw` opens the path with sqlite3's default
+    flags, which CREATE an empty database when the file is not there — a job pointed at the wrong
+    path would not merely fail, it could leave a stray database that looks like a fresh install.
+    → tests/test_the_update_check_writes_where_it_was_asked.py
+    """
     global _checking
     try:
         req = urllib.request.Request(
@@ -38,12 +48,13 @@ def _refresh() -> None:
             headers={"Accept": "application/vnd.github+json", "User-Agent": "leapmotor-mate"})
         with urllib.request.urlopen(req, timeout=6) as r:
             tag = (json.load(r).get("tag_name") or "").lstrip("vV")
-        if tag:
+        if tag and db_reader.DB_PATH == db_path:
             db_reader.set_setting("update_latest", tag)
     except Exception:  # noqa: BLE001 — offline / rate-limited / GH down: skip this round, keep last value
         pass
     finally:
-        db_reader.set_setting("update_checked_at", str(int(time.time())))
+        if db_reader.DB_PATH == db_path:
+            db_reader.set_setting("update_checked_at", str(int(time.time())))
         with _lock:
             _checking = False
 
@@ -60,7 +71,7 @@ def _maybe_refresh() -> None:
         if _checking:
             return
         _checking = True
-    threading.Thread(target=_refresh, daemon=True).start()
+    threading.Thread(target=_refresh_for, args=(db_reader.DB_PATH,), daemon=True).start()
 
 
 def get_update_status(current: str) -> dict:

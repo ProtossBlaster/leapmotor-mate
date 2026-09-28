@@ -595,8 +595,82 @@ def _conn(db_path: str) -> sqlite3.Connection:
 DB_PATH = os.environ.get("DB_PATH", "leapmotor_mate.db")
 
 
+class _SharedRead:
+    """A read-only connection shared by everything running on one thread.
+
+    Opening the connection was the expensive part of a small read: `get_setting` costs ~124 µs not
+    because the query is hard but because the connection is new and its page cache is cold. One
+    `get_vampire_drain` opened **1610** of them, `polling_summary` 579, and 119 queries in this
+    module go through that path.
+
+    Nothing is held back by sharing it. The connection is `mode=ro`, and SQLite gives each statement
+    its own read transaction, so a commit from the poller — a different process — is visible on the
+    very next read. That is the difference from the cache this replaces: a cached VALUE goes stale
+    when someone else writes, a shared connection does not.
+
+    `close()` does nothing, on purpose. About a hundred call sites close the connection they were
+    handed, and they were right to when each got its own; closing the shared one would break every
+    later read on the thread. It is let go when the thread ends, when `DB_PATH` moves, or when the
+    file under that path is replaced.
+
+    `__slots__` is deliberate: an attempt to set an attribute on it (`row_factory`, say) raises here
+    instead of quietly applying to one reader's wrapper and not to the connection everyone shares.
+    """
+
+    __slots__ = ("_inner",)
+
+    def __init__(self, inner: sqlite3.Connection):
+        self._inner = inner
+
+    def execute(self, *args, **kwargs):
+        return self._inner.execute(*args, **kwargs)
+
+    def executemany(self, *args, **kwargs):
+        return self._inner.executemany(*args, **kwargs)
+
+    def close(self):
+        return None
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+
+_read_connections = threading.local()
+
+
+def _drop_read_connection():
+    """Let go of this thread's shared read connection, if it holds one."""
+    held = getattr(_read_connections, "held", None)
+    _read_connections.held = None
+    if held is not None:
+        try:
+            held[1]._inner.close()
+        except Exception:                      # noqa: BLE001  — a closed or broken handle is fine
+            pass
+
+
 def _get():
-    return _conn(DB_PATH)
+    """This thread's read connection to `DB_PATH`, opened once.
+
+    Keyed on the path AND on the file it currently names. A restore from backup swaps a new file
+    under the same name; without the device/inode in the key the reader would go on reading the file
+    that was replaced under it, and would never say so. The `stat` costs about a microsecond against
+    the ~30 the connection costs.
+    """
+    path = DB_PATH
+    try:
+        info = os.stat(path)
+        key = (path, info.st_dev, info.st_ino)
+    except OSError:
+        key = (path, None, None)               # not there yet: a fresh install, before the first poll
+    held = getattr(_read_connections, "held", None)
+    if held is not None:
+        if held[0] == key:
+            return held[1]
+        _drop_read_connection()
+    shared = _SharedRead(_conn(path))          # only held once the connection actually opened
+    _read_connections.held = (key, shared)
+    return shared
 
 
 ACTIVE_VEHICLE_SETTING = "active_vehicle_vin"
@@ -3012,11 +3086,27 @@ def repair_manual_charge_timezones() -> int:
 # so the user logs each refuel here (litres + €/L, or total + litres). Web-owned table (create-if-
 # missing, like command_log) because the data is entered from the web UI — no poller round-trip.
 def _ensure_fuel_purchases(db: sqlite3.Connection) -> None:
-    db.execute(
-        "CREATE TABLE IF NOT EXISTS fuel_purchases ("
-        "id INTEGER PRIMARY KEY AUTOINCREMENT, vehicle_id INTEGER, ts TEXT NOT NULL, "
-        "liters REAL NOT NULL, price_per_l REAL NOT NULL, total_cost REAL, "
-        "fuel_before_pct REAL, note TEXT, created_at TEXT)")
+    """Create the refuels table if it is not there. Refuels are typed in by hand, so the table is
+    made on first use rather than in the poller's schema.
+
+    🔴 Thirteen call sites hand this a READ connection, which is opened `mode=ro` and cannot create
+    anything — and most of them wrap this call and their own query in ONE `except sqlite3.Error`, so
+    a failure here silently skips the query. That was invisible while every read opened its own
+    connection: `CREATE TABLE IF NOT EXISTS` is a no-op against a connection whose cached schema
+    already holds the table, so a fresh reader never tried to write and never raised. A connection
+    opened BEFORE the first refuel does try, and raises "attempt to write a readonly database" from
+    then on — which made the total drop every refuel (test_reev_total_consumption). So the refusal is
+    swallowed here, where it is expected, instead of being allowed to eat somebody's read.
+    A writer that genuinely cannot create the table still fails loudly on its own INSERT.
+    """
+    try:
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS fuel_purchases ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, vehicle_id INTEGER, ts TEXT NOT NULL, "
+            "liters REAL NOT NULL, price_per_l REAL NOT NULL, total_cost REAL, "
+            "fuel_before_pct REAL, note TEXT, created_at TEXT)")
+    except sqlite3.OperationalError:
+        pass
 
 
 def _fuel_before_pct(db: sqlite3.Connection, vehicle_id, ts: str):
