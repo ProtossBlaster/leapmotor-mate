@@ -11,6 +11,7 @@ from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 import os
+import contextlib
 import threading
 
 import i18n
@@ -63,9 +64,27 @@ def _resolve_tz(name: str):
     return _env_tz()
 
 
+# How long the zone's NAME is held before it is read again. The ZoneInfo was already memoised; the
+# read that says which zone was not, and it happens once per timestamp localised: profiled on a
+# real database, one open of the Statistics page issued 1207 queries and 1172 of them were this
+# one, each on its own SQLite connection. A zone changes when someone changes it in Settings, never
+# while a page is being drawn, and a change made through this process drops the cache at once — so
+# the only thing this window can delay is a change made by the OTHER process.
+# → tests/test_the_clock_is_not_read_once_per_row.py
+def _invalidate_timezone() -> None:
+    """Kept for callers that used to drop a held zone name. Nothing is held any more: the zone is
+    resolved once per loop and handed down (see `_local_dt(tz=...)`), so there is no cache to
+    invalidate and a setting written by the OTHER process is never served stale."""
+    return None
+
+
 def _local_tz():
     """The zone every timestamp is displayed in — precedence UI setting > env TZ > system local.
-    Cheap: one indexed settings read + a memoised ZoneInfo. Never raises (broken DB → container tz)."""
+    One indexed settings read + a memoised ZoneInfo. Never raises (broken DB → container tz).
+
+    🔴 It is one read PER CALL, and callers that localise many rows must not call it per row: that
+    cost 1172 reads to open the Statistics page once, each on its own SQLite connection. Resolve it
+    once and pass it to `_local_dt(tz=...)`. → tests/test_the_clock_is_not_read_once_per_row.py"""
     try:
         name = get_setting("timezone", "")
     except Exception:
@@ -76,9 +95,12 @@ def _local_tz():
     return _TZ_CACHE["tz"]
 
 
-def _local_dt(s) -> Optional[datetime]:
-    """Parse a stored UTC timestamp and return it as an aware datetime in the
-    local timezone. Returns None if the value is missing/unparseable."""
+def _local_dt(s, tz=None) -> Optional[datetime]:
+    """Parse a stored UTC timestamp and return it as an aware datetime in the local timezone.
+    Returns None if the value is missing/unparseable.
+
+    `tz` is for loops: resolving the zone reads a setting, and a page that localises a thousand
+    rows must read it once, not a thousand times."""
     if not s:
         return None
     try:
@@ -87,7 +109,7 @@ def _local_dt(s) -> Optional[datetime]:
         return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(_local_tz())
+    return dt.astimezone(tz or _local_tz())
 
 
 def local_to_utc_iso(s, tz=None):
@@ -575,6 +597,27 @@ def _get():
 
 ACTIVE_VEHICLE_SETTING = "active_vehicle_vin"
 _read_vehicle_scope = threading.local()
+
+
+@contextlib.contextmanager
+def held_vehicle_scope():
+    """Hold the car every scoped read uses, for one SYNCHRONOUS stretch of work.
+
+    `_current_vehicle_id` costs a query, and a page asks it around sixty times — 87 of the 178
+    queries behind the battery card were that one question. Pinning it once answers them all.
+
+    🔴 `_read_vehicle_scope` is a `threading.local` and this is an async app: a pin held across an
+    `await` would leak into whatever else the loop runs on that thread. Only wrap work that does
+    not await. A per-REQUEST scope would need contextvars, which is its own change.
+    → tests/test_the_battery_page_asks_which_car_once.py
+    """
+    previous = getattr(_read_vehicle_scope, "vehicle_id", None)
+    if previous is None:
+        _read_vehicle_scope.vehicle_id = (_current_vehicle_id(),)
+    try:
+        yield
+    finally:
+        _read_vehicle_scope.vehicle_id = previous
 
 
 def _current_vehicle_id():
@@ -6097,11 +6140,12 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
     ec_on = get_setting("ec_trip_energy_enabled", "1") == "1"
     ec_cutoff = get_setting("ec_trip_since", "")
     now_ts = datetime.now(timezone.utc).timestamp()
+    zone = _local_tz()          # once for the whole list, not once per trip
     out = []
     for t in trips:
         if not t.get("started_at"):
             continue
-        dt = _local_dt(t["started_at"])
+        dt = _local_dt(t["started_at"], zone)
         if dt is None:
             continue
         raw_start = t["started_at"]
@@ -6308,9 +6352,21 @@ def search_trips(text: str = "", date_from: str = "", date_to: str = "",
 def get_trip_years() -> list[int]:
     """Distinct years (local time, most recent first) with at least one trip — populates
     the Viaggi calendar's year-jump pills with only years the user actually has data for."""
+    # The timestamps alone answer this. Asking `get_trips` for them ran the whole pipeline —
+    # cloud-energy matching, the getEC columns, the per-trip cost — for a set of years: 80.5 ms on
+    # a real database, four times that on an add-on, on every open of the Trips page.
+    # 🔴 Not `strftime('%Y')` in SQL: the column is UTC and these are LOCAL years, so a drive at
+    # 23:30 on 31 December belongs to the next one. → tests/test_the_year_pills_do_not_load_every_trip.py
+    zone = _local_tz()
     years = set()
-    for t in get_trips(limit=1_000_000):
-        dt = _local_dt(t.get("started_at"))
+    try:
+        rows = _get().execute(
+            "SELECT started_at FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND started_at IS NOT NULL", (_current_vehicle_id(),)).fetchall()
+    except sqlite3.OperationalError:
+        return []
+    for row in rows:
+        dt = _local_dt(row["started_at"], zone)
         if dt:
             years.add(dt.year)
     return sorted(years, reverse=True)
@@ -9821,6 +9877,11 @@ def get_battery_health(min_soc_delta: float = 12.0, temp_min_c: float | None = N
 
     Single sessions are noisy, so the headline is a weighted mean over the most recent valid ones.
     Charges with no stored telemetry (pruned) are skipped entirely."""
+    with held_vehicle_scope():
+        return _battery_health(min_soc_delta, temp_min_c, min_start_soc)
+
+
+def _battery_health(min_soc_delta: float, temp_min_c, min_start_soc: float) -> dict:
     db = _get()
     # SoH is measured-vs-as-new, so the denominator is the ORIGINAL spec capacity, not
     # the energy-calc capacity the user may have overridden — otherwise adopting a
@@ -10170,6 +10231,17 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
 def get_v2l_sessions(lookback_days: int = 90, limit: int = 50, vehicle_id: int | None = None) -> dict:
     db = _get()
     cutoff = (datetime.now(timezone.utc) - timedelta(days=lookback_days)).isoformat()
+    # A V2L session leaves a mark — ac_port_mode = 2 — and a window without one holds no session to
+    # find. Ask that first: the walk below materialises EVERY frame in the window and builds a row
+    # per sample, which on an add-on measured 57.4 ms for the Overview's card alone, on a page that
+    # refreshes it every 10 s, on a car that had never used V2L.
+    # → tests/test_the_v2l_card_does_not_read_a_week_of_frames.py
+    used = db.execute(
+        "SELECT 1 FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) AND recorded_at >= ? "
+        "AND ac_port_mode = 2 LIMIT 1",
+        (vehicle_id if vehicle_id is not None else _current_vehicle_id(), cutoff)).fetchone()
+    if used is None:
+        return {"sessions": [], "count": 0, "total_energy_wh": 0.0, "lookback_days": lookback_days}
     if vehicle_id is not None:   # use idx_positions_vehicle(vehicle_id, recorded_at) → fast range scan
         rows = db.execute(
             "SELECT recorded_at, soc, charge_current_a, charge_voltage_v, ac_port_mode FROM positions "
