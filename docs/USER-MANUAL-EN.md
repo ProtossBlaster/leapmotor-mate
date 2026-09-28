@@ -435,7 +435,7 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   ⚠️ This is why Mate's own total can sit below the car's odometer: the difference is that line.
 - **Elevation and outside temperature.** The Leapmotor cloud reports neither, so a few minutes after
   a drive ends Mate looks the trip's GPS track up against [Open-Meteo](https://open-meteo.com) (free,
-  no key, no account). The detail then gains an **altitude line under the SoC & speed chart**, the
+  no key, no account). The detail then gains an **altitude line in the Trip data chart**, the
   metres **climbed and descended**, and the temperature **at departure and on arrival** — not an
   average, so a valley-to-pass climb shows the real drop. Between them they explain a good part of a
   drive's consumption: a climb costs energy, cold costs range. Trips recorded before this existed
@@ -453,6 +453,14 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   degrees — and the detail gives its readings during the drive as one range, lowest to highest, such
   as 19 – 22 °C; the ⓘ beside the row says it is the coldest cell. In winter the range shows how cold
   the pack was and how far the drive warmed it up.
+- **Trip data chart 🆕.** The chart under the map is called *Trip data* and is split into bands that
+  share one time axis, one cursor line and one hover box, its lines grouped by band: **driving**
+  (speed, and the battery power — above zero out of the battery, below zero back into it),
+  **battery** (SoC and the car's range estimate) and **altitude with the battery temperature** (the
+  coldest cell's). A band has at most two scales, one on each side, each with its unit at the top
+  and its numbers in its line's colour. Each entry of the legend switches its line on and off — an
+  empty square marks a line switched off — and a band whose lines are all off folds away. All lines
+  start switched on; the choice is remembered in the browser for every trip.
 - **Official consumption from the cloud 🆕** — when available, a trip's **consumption, efficiency and
   cost** come from Leapmotor's **official figure** (the real **driving / A·C / other** split) instead of
   the battery‑% estimate alone. Right after a drive you see the estimate marked **⏳ provisional**; once

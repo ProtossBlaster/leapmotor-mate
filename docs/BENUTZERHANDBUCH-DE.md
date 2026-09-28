@@ -449,7 +449,7 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
 - **Höhenmeter und Außentemperatur.** Die Leapmotor-Cloud liefert weder das eine noch das andere:
   Ein paar Minuten nach dem Ende einer Fahrt gleicht Mate deren GPS-Spur mit
   [Open-Meteo](https://open-meteo.com) ab (kostenlos, ohne Schlüssel, ohne Konto). Das Detail bekommt
-  dadurch eine **Höhenlinie unter dem SoC-&-Geschwindigkeits-Diagramm**, die **überwundenen und
+  dadurch eine **Höhenlinie im Diagramm Fahrtdaten**, die **überwundenen und
   abgefahrenen** Höhenmeter sowie die Temperatur **bei Abfahrt und bei Ankunft** — kein Mittelwert,
   sodass eine Auffahrt vom Tal zum Pass den echten Abfall zeigt. Zusammen erklären die beiden einen
   guten Teil des Verbrauchs einer Fahrt: Steigen kostet Energie, Kälte kostet Reichweite. Fahrten,
@@ -471,6 +471,15 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   Zelle, in ganzen Grad —, und das Detail zeigt ihre Werte während der Fahrt als eine Spanne vom
   niedrigsten zum höchsten, etwa 19 – 22 °C; das ⓘ neben der Zeile sagt, dass es die kälteste Zelle
   ist. Im Winter zeigt die Spanne, wie kalt die Batterie war und wie weit die Fahrt sie erwärmt hat.
+- **Diagramm Fahrtdaten 🆕.** Das Diagramm unter der Karte heißt *Fahrtdaten* und ist in Streifen
+  geteilt, die eine Zeitachse, eine Cursorlinie und ein Hover-Fenster gemeinsam haben, darin die
+  Linien nach Streifen gruppiert: **Fahrt** (Geschwindigkeit und Batterieleistung — über null
+  abgegeben, unter null zurückfließend), **Batterie** (SoC und vom Auto geschätzte Reichweite) und
+  **Höhe mit Batterietemperatur** (der kältesten Zelle). Ein Streifen hat höchstens zwei Skalen, je
+  eine pro Seite, jede mit der Einheit oben und den Zahlen in der Farbe ihrer Linie. Jeder Eintrag
+  der Legende schaltet seine Linie ein und aus — ein leeres Quadrat steht für eine ausgeschaltete
+  Linie —, und ein Streifen, dessen Linien alle aus sind, klappt zu. Anfangs sind alle Linien
+  eingeschaltet; die Auswahl merkt sich der Browser für alle Fahrten.
 
 - **Ihre Notiz + Fahr-Tags 🆕** (#107) — im Detail einer Fahrt können Sie eine **freie Notiz** (Verkehr,
   Wetter, Streckentyp, jede Anmerkung) schreiben und den verwendeten **Fahrmodus** (Comfort / Normal /

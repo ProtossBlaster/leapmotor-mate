@@ -462,7 +462,7 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
 - **Dénivelé et température extérieure.** Le cloud Leapmotor ne donne ni l'un ni l'autre : quelques
   minutes après la fin d'une conduite, Mate confronte le tracé GPS du trajet à
   [Open-Meteo](https://open-meteo.com) (gratuit, sans clé, sans compte). Le détail gagne alors une
-  **ligne d'altitude sous le graphique SoC & vitesse**, les mètres **montés et descendus**, et la
+  **ligne d'altitude dans le graphique Données du trajet**, les mètres **montés et descendus**, et la
   température **au départ et à l'arrivée** — pas une moyenne, si bien qu'une montée de la vallée au
   col montre la vraie chute. À eux deux, ils expliquent une bonne part de la consommation d'une
   conduite : monter coûte de l'énergie, le froid coûte de l'autonomie. Les trajets enregistrés avant
@@ -485,6 +485,16 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   sous forme d'une seule plage, de la plus basse à la plus haute, par exemple 19 – 22 °C ; le ⓘ à côté
   de la ligne précise qu'il s'agit de la cellule la plus froide. En hiver, la plage montre à quel
   point la batterie était froide et combien le trajet l'a réchauffée.
+- **Graphique Données du trajet 🆕.** Le graphique sous la carte s'appelle *Données du trajet* et se
+  divise en bandes qui partagent un axe du temps, une ligne de curseur et une bulle au survol, où
+  les courbes sont groupées par bande : **conduite** (vitesse et puissance de la batterie —
+  au-dessus de zéro fournie, en dessous renvoyée), **batterie** (SoC et autonomie estimée par la
+  voiture) et **altitude avec la température de la batterie** (celle de la cellule la plus froide).
+  Une bande a au plus deux échelles, une de chaque côté, chacune avec l'unité en haut et les
+  chiffres dans la couleur de sa courbe. Chaque entrée de la légende affiche ou masque sa courbe —
+  un carré vide signale une courbe masquée — et une bande dont toutes les courbes sont masquées se
+  replie. Toutes les courbes sont affichées au départ ; le choix est mémorisé dans le navigateur
+  pour tous les trajets.
 
 - **Votre note + tags de conduite 🆕** (#107) — dans le détail d'un trajet, vous pouvez écrire une **note
   libre** (trafic, météo, type de route, toute remarque) et indiquer le **mode de conduite** (Confort /

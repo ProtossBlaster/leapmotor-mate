@@ -440,7 +440,7 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
 - **Altimetria e temperatura esterna.** Il cloud Leapmotor non riporta né l'una né l'altra, quindi
   qualche minuto dopo la fine di un viaggio Mate cerca il suo tracciato GPS su
   [Open-Meteo](https://open-meteo.com) (gratuito, senza chiave e senza account). Nel dettaglio
-  compaiono la **linea dell'altitudine sotto il grafico SoC e velocità**, i metri **saliti e scesi**, e
+  compaiono la **linea dell'altitudine nel grafico Dati del viaggio**, i metri **saliti e scesi**, e
   la temperatura **alla partenza e all'arrivo** — non una media, così una salita da fondovalle a passo
   mostra il calo vero. Insieme spiegano buona parte del consumo di una guidata: la salita costa
   energia, il freddo costa autonomia. I viaggi registrati prima che esistesse hanno un pulsante
@@ -460,6 +460,15 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   come un unico intervallo, dal più basso al più alto, per esempio 19 – 22 °C; la ⓘ accanto alla riga
   dice che è la cella più fredda. D'inverno l'intervallo mostra quanto era fredda la batteria e
   quanto il viaggio l'ha scaldata.
+- **Grafico Dati del viaggio 🆕.** Il grafico sotto la mappa si chiama *Dati del viaggio* ed è diviso
+  in fasce con un unico asse del tempo, un'unica linea del cursore e un unico riquadro al passaggio
+  del mouse, con le linee raggruppate per fascia: **guida** (velocità e potenza della batteria —
+  sopra lo zero erogata, sotto lo zero rientrata), **batteria** (SoC e autonomia stimata dall'auto)
+  e **altitudine con la temperatura della batteria** (quella della cella più fredda). Una fascia ha
+  al massimo due scale, una per lato, ognuna con l'unità in alto e i numeri nel colore della sua
+  linea. Ogni voce della legenda accende e spegne la sua linea — un quadratino vuoto indica una
+  linea spenta — e una fascia con tutte le linee spente si chiude. Tutte le linee partono accese; la
+  scelta viene ricordata nel browser per tutti i viaggi.
 - **Consumi ufficiali dal cloud 🆕** — quando disponibili, **consumo, efficienza e costo** del viaggio
   vengono dal **dato ufficiale Leapmotor** (la vera ripartizione **guida / A·C / altro**) invece della
   sola stima dal calo di batteria. Subito dopo il viaggio vedi la stima con l'avviso **⏳ provvisorio**;

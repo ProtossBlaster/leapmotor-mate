@@ -456,7 +456,7 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
 - **Altitud y temperatura exterior.** La nube de Leapmotor no da ninguna de las dos, así que unos
   minutos después de terminar un recorrido Mate consulta la traza GPS del trayecto contra
   [Open-Meteo](https://open-meteo.com) (gratis, sin clave, sin cuenta). El detalle gana entonces una
-  **línea de altitud bajo el gráfico de SoC y velocidad**, los metros **subidos y bajados**, y la
+  **línea de altitud en el gráfico Datos del trayecto**, los metros **subidos y bajados**, y la
   temperatura **a la salida y a la llegada** — no una media, para que una subida de valle a puerto
   muestre la caída real. Entre las dos explican buena parte del consumo de un recorrido: subir cuesta
   energía, el frío cuesta autonomía. Los trayectos registrados antes de que esto existiera tienen un
@@ -476,6 +476,15 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   único rango, del más bajo al más alto, por ejemplo 19 – 22 °C; la ⓘ junto a la fila aclara que es la
   celda más fría. En invierno, el rango muestra lo fría que estaba la batería y cuánto la calentó el
   trayecto.
+- **Gráfico Datos del trayecto 🆕.** El gráfico bajo el mapa se llama *Datos del trayecto* y se
+  divide en franjas que comparten un eje de tiempo, una línea de cursor y un recuadro al pasar el
+  ratón, con las líneas agrupadas por franja: **conducción** (velocidad y potencia de la batería —
+  por encima de cero la entrega, por debajo vuelve a ella), **batería** (SoC y autonomía que estima
+  el coche) y **altitud con la temperatura de la batería** (la de la celda más fría). Una franja
+  tiene como mucho dos escalas, una a cada lado, cada una con la unidad arriba y los números en el
+  color de su línea. Cada entrada de la leyenda muestra u oculta su línea — un cuadrado vacío señala
+  una línea oculta — y una franja con todas sus líneas ocultas se pliega. Todas las líneas empiezan
+  visibles; la elección se recuerda en el navegador para todos los trayectos.
 - **Consumo oficial desde la nube 🆕** — cuando está disponible, el **consumo, el rendimiento y el
   coste** de un trayecto salen de la **cifra oficial** de Leapmotor (el reparto real entre **marcha /
   climatización / otros**) en vez de solo de la estimación por % de batería. Justo después de un

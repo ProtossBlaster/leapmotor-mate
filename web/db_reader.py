@@ -7153,8 +7153,8 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     seg_ids = _segment_ids(db, parent_id)
     ph = ",".join("?" * len(seg_ids))
     positions = db.execute(
-        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m, power_kw, battery_temp_c "
-        "FROM trip_positions "
+        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m, power_kw, battery_temp_c, "
+        "range_km FROM trip_positions "
         f"WHERE trip_id IN ({ph}) ORDER BY recorded_at, id",
         seg_ids,
     ).fetchall()
