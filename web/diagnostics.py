@@ -88,6 +88,23 @@ def _redact(text: str, vin: str | None = None) -> str:
     return text
 
 
+def _software_line(sw: dict) -> str:
+    """The car's software for the bundle: the version and its install date, what is waiting, or
+    why there is no version. Versions and a size only — nothing of the packages."""
+    if sw.get("state") == "shared":
+        return "not told (the car is shared with this account; the version is told only to the owner)"
+    if sw.get("state") == "refused":
+        return "not told (the cloud refused, code 40)"
+    if sw.get("state") != "ok":
+        return "unknown (not checked yet, or the cloud client cannot ask)"
+    line = sw["installed"] + (f" (installed {sw['installed_at'][:10]})" if sw.get("installed_at") else "")
+    if sw.get("waiting"):
+        line += f", {sw['latest']} waiting" + (f" ({sw['size_gb']} GB)" if sw.get("size_gb") else "")
+    else:
+        line += ", up to date"
+    return line
+
+
 # ── system snapshot ──────────────────────────────────────────────────────────
 def build_system_info(version: str) -> dict:
     """Cheap (no live cloud call) support snapshot for the card + the bundle header."""
@@ -140,6 +157,7 @@ def build_system_info(version: str) -> dict:
         "model": (vehicle or {}).get("car_type") or "—",
         "year": (vehicle or {}).get("year") or "—",
         "vin_masked": mask_vin((vehicle or {}).get("vin")),
+        "software": db_reader.get_software_status((vehicle or {}).get("vin") or ""),
         "battery_kwh": settings.get("battery_capacity_kwh", "—"),
         # The SoH denominator, snapshotted the first time the capacity is saved. Without it a
         # bundle cannot answer "why is my battery health above 100%" — the number that decides it
@@ -871,6 +889,7 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
         out += [
             f"Model / year : {info['model']} / {info['year']}",
             f"VIN          : {info['vin_masked']}",
+            f"Car software : {_software_line(info['software'])}",
             f"Battery kWh  : {info['battery_kwh']}  (SoH reference: {info['battery_nominal_kwh']})",
             f"Language     : {info['language']}",
             # 🔴 Mate 4 runs one of two cloud clients, and they fail differently: #327 was a
