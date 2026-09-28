@@ -16,8 +16,9 @@ import sys
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "web"))
-sys.path.insert(0, str(ROOT / "poller"))
+# sys.path is conftest.py's job — it puts web/ before poller/, and BOTH hold a main.py.
+# Re-inserting them here once flipped that order and nine other tests could not import the
+# web app at all.
 
 import db as D  # noqa: E402
 import db_reader  # noqa: E402

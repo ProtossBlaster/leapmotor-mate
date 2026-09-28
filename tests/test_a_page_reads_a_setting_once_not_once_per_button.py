@@ -24,7 +24,7 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 for _p in (ROOT / "poller" / "vendor", ROOT / "poller" / "mate_api_runtime"):
     if str(_p) not in sys.path:
-        sys.path.insert(0, str(_p))
+        sys.path.append(str(_p))   # APPEND: web/ must stay ahead, both have a main.py
 
 
 def _counting_settings():
