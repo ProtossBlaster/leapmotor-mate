@@ -225,10 +225,14 @@ def timezone_options() -> dict:
     return out
 
 
-def _local_iso(s):
+def _local_iso(s, tz=None):
     """Convert a stored UTC timestamp string to a local-time ISO string, so that
-    template slices like started_at[11:16] display local time. Falls back to input."""
-    dt = _local_dt(s)
+    template slices like started_at[11:16] display local time. Falls back to input.
+
+    `tz` is for loops, exactly like `_local_dt`: resolving the zone reads a setting, and a page
+    that localises a thousand rows must read it once — the monthly report was reading it 1280
+    times. → tests/test_the_clock_is_not_read_once_per_row.py"""
+    dt = _local_dt(s, tz)
     return dt.isoformat() if dt else s
 
 
@@ -6155,7 +6159,7 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
             and t["started_at"] >= ec_cutoff
             and ee and (now_ts - ee) < 6 * 3600)
         t["started_at"] = dt.isoformat()
-        t["ended_at"] = _local_iso(t.get("ended_at"))
+        t["ended_at"] = _local_iso(t.get("ended_at"), zone)
         if reev_costs:
             # REEV: the electric cost from the depleting PAID STOCK the trip detail uses, so list,
             # calendar, Statistics and Report all agree — and generator kWh come out free (already
@@ -6385,6 +6389,7 @@ def get_trip_local_date(trip_id: int) -> "date | None":
 def get_trips_grouped() -> list[dict]:
     """Return trips nested as year → month → day for the sidebar tree view."""
     trips = get_trips()
+    _zone = _local_tz()          # once for the tree, not once per trip
     from collections import OrderedDict
 
     def _node(label):
@@ -6438,7 +6443,7 @@ def get_trips_grouped() -> list[dict]:
     for t in trips:
         if not t.get("started_at"):
             continue
-        dt = _local_dt(t["started_at"])
+        dt = _local_dt(t["started_at"], _zone)
         if dt is None:
             continue
         # ec_pending + cost rate must use the RAW (UTC) started_at — capture before the local rewrite.
@@ -6450,7 +6455,7 @@ def get_trips_grouped() -> list[dict]:
             and _ee and (_now_ts - _ee) < 6 * 3600)
         # Rewrite to local-time ISO so the template (started_at[11:16]) shows local
         t["started_at"] = dt.isoformat()
-        t["ended_at"] = _local_iso(t.get("ended_at"))
+        t["ended_at"] = _local_iso(t.get("ended_at"), _zone)
 
         yr  = dt.strftime("%Y")
         mo  = i18n.fmt_month_year(lang, dt)
@@ -7401,6 +7406,7 @@ def get_charges(limit: int = 50) -> list[dict]:
     parent carries the combined figures. `limit` therefore counts charges, which is what the page
     asks for — the last 50 charges, not the last 50 fragments."""
     db = _get()
+    _zone = _local_tz()          # once for the list, not twice per charge
     rows = db.execute(
         "SELECT * FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
         + ("AND merged_into_id IS NULL " if _charges_have_merge(db) else "")
@@ -7420,8 +7426,8 @@ def get_charges(limit: int = 50) -> list[dict]:
         d["prev_charge_id"] = earlier["id"] if earlier else None
         gap = _gap_minutes(earlier.get("ended_at"), d.get("started_at")) if earlier else None
         d["can_merge_prev"] = gap is not None and 0 <= gap < CHARGE_MERGE_GAP_DEFAULT
-        d["started_at"] = _local_iso(d.get("started_at"))
-        d["ended_at"] = _local_iso(d.get("ended_at"))
+        d["started_at"] = _local_iso(d.get("started_at"), _zone)
+        d["ended_at"] = _local_iso(d.get("ended_at"), _zone)
     return out
 
 
@@ -9356,8 +9362,9 @@ def _collect_monthly_buckets() -> dict:
             b["_ec_km"]  += km
         b["fuel_engine_km"] += tr.get("engine_km") or 0
 
+    charges_zone = _local_tz()          # once for the month's charges
     for c in get_charges(limit=1_000_000):
-        dt = _local_dt(c.get("started_at"))
+        dt = _local_dt(c.get("started_at"), charges_zone)
         if dt is None:
             continue
         b = buckets.setdefault(dt.strftime("%Y-%m"), _report_bucket())
@@ -10479,9 +10486,10 @@ def get_month_track(month: str, max_points: int = 8000) -> list[list[dict]]:
         return []
     db = _get()
     ids = []
+    zone = _local_tz()          # once for the scan, not once per trip
     for r in db.execute("SELECT id, started_at FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
                         "AND started_at IS NOT NULL", (_current_vehicle_id(),)).fetchall():
-        dt = _local_dt(r["started_at"])
+        dt = _local_dt(r["started_at"], zone)
         if dt is not None and dt.strftime("%Y-%m") == month:
             ids.append(r["id"])
     if not ids:
