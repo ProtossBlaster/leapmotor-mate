@@ -795,6 +795,7 @@
     "elevation_loss": "Desnivel negativo",
     "outside_temp": "Temperatura exterior",
     "battery_temp_trip_help": "El coche solo informa de la temperatura de su celda más fría; estos son sus valores más alto y más bajo durante el trayecto.",
+    "outside_temp_trip_help": "La temperatura exterior más alta y más baja del trayecto: de las lecturas en ruta cuando la temperatura exterior está activada en Ajustes; si no, de las dos consultas a la salida y a la llegada.",
     "elevation_calc_btn": "Calcular la altimetría",
     "elevation_calc_failed": "No hay datos de altitud para este trayecto — inténtalo más tarde.",
     "speed_profile": "Perfil de velocidad",

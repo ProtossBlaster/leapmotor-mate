@@ -405,8 +405,8 @@ l'interrupteur activé, tant que la voiture est éveillée Mate interroge
 les 10 km, au premier des deux — et affiche la valeur à côté de celle de l'habitacle. C'est
 **désactivé par défaut**, parce que la requête envoie la position de la voiture à Open-Meteo :
 l'unique interrupteur se trouve dans *Réglages → valeurs par défaut des trajets*. La même donnée
-devient une entité **Température extérieure** dans Home Assistant et donne à chaque trajet sa
-température de départ et d'arrivée.
+devient une entité **Température extérieure** dans Home Assistant et donne à chaque trajet des
+relevés en route, d'où viennent sa température la plus haute et la plus basse.
 
 #### Les trois températures : habitacle, cible A/C, batterie
 Toutes les Leapmotor n'envoient pas les trois. Mate distingue **trois situations différentes**, car les
@@ -462,14 +462,14 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
 - **Dénivelé et température extérieure.** Le cloud Leapmotor ne donne ni l'un ni l'autre : quelques
   minutes après la fin d'une conduite, Mate confronte le tracé GPS du trajet à
   [Open-Meteo](https://open-meteo.com) (gratuit, sans clé, sans compte). Le détail gagne alors une
-  **ligne d'altitude dans le graphique Données du trajet**, les mètres **montés et descendus**, et la
-  température **au départ et à l'arrivée** — pas une moyenne, si bien qu'une montée de la vallée au
-  col montre la vraie chute. À eux deux, ils expliquent une bonne part de la consommation d'une
-  conduite : monter coûte de l'énergie, le froid coûte de l'autonomie. Les trajets enregistrés avant
-  que cela existe ont un bouton **Calculer le dénivelé**, et l'ensemble se désactive dans les
-  Réglages. Quand l'interrupteur de température extérieure est activé (voir *Aperçu*), les
-  températures du trajet viennent des relevés pris **en route** ; cette recherche après coup reste le
-  recours pour les trajets plus anciens 🆕.
+  **ligne d'altitude dans le graphique Données du trajet**, les mètres **montés et descendus**, et
+  la température **la plus haute et la plus basse** du trajet — pas une moyenne, si bien qu'une
+  montée de la vallée au col montre la vraie chute. À eux deux, ils expliquent une bonne part de la
+  consommation d'une conduite : monter coûte de l'énergie, le froid coûte de l'autonomie. Les
+  trajets enregistrés avant que cela existe ont un bouton **Calculer le dénivelé**, et l'ensemble se
+  désactive dans les Réglages. Quand l'interrupteur de température extérieure est activé (voir
+  *Aperçu*), les températures du trajet viennent des relevés pris **en route** ; cette recherche
+  après coup reste le recours pour les trajets plus anciens 🆕.
 - **Vitesse max venant de la voiture 🆕.** Quand l'enregistrement du trajet dans le cloud de la
   voiture est associé au trajet (le même qui donne la consommation officielle), le détail affiche la
   vitesse maximale mesurée par la voiture elle-même. Les relevés de Mate sont espacés de quelques

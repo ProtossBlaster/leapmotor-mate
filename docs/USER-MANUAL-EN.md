@@ -386,7 +386,7 @@ Mate looks its position up against [Open-Meteo](https://open-meteo.com) — at m
 minutes or 10 km, whichever comes first — and shows the reading next to the cabin one. It is **off by
 default**, because the lookup sends the car's position to Open-Meteo: the single opt-in is in
 *Settings → trip defaults*. The same reading becomes an **Outside Temp** entity in Home Assistant and
-gives each trip its own departure and arrival figure.
+gives each trip readings along the way, for its highest and lowest temperature.
 
 #### The three temperatures: cabin, A/C target, battery
 Not every Leapmotor sends all three. Mate tells **three different situations** apart, because
@@ -434,9 +434,9 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   distances, consumption and costs.*
   ⚠️ This is why Mate's own total can sit below the car's odometer: the difference is that line.
 - **Elevation and outside temperature.** The Leapmotor cloud reports neither, so a few minutes after
-  a drive ends Mate looks the trip's GPS track up against [Open-Meteo](https://open-meteo.com) (free,
-  no key, no account). The detail then gains an **altitude line in the Trip data chart**, the
-  metres **climbed and descended**, and the temperature **at departure and on arrival** — not an
+  a drive ends Mate looks the trip's GPS track up against [Open-Meteo](https://open-meteo.com)
+  (free, no key, no account). The detail then gains an **altitude line in the Trip data chart**, the
+  metres **climbed and descended**, and the **highest and lowest** temperature of the drive — not an
   average, so a valley-to-pass climb shows the real drop. Between them they explain a good part of a
   drive's consumption: a climb costs energy, cold costs range. Trips recorded before this existed
   have a **Calculate elevation** button, and the whole thing can be switched off in Settings.

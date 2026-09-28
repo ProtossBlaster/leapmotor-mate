@@ -401,8 +401,8 @@ coche está despierto Mate consulta [Open-Meteo](https://open-meteo.com) sobre s
 mucho una vez cada 20 minutos o cada 10 km, lo que llegue antes — y muestra el valor junto al del
 habitáculo. Está **desactivado por defecto**, porque la consulta envía la posición del coche a
 Open-Meteo: el único interruptor está en *Ajustes → valores por defecto de los trayectos*. El mismo
-dato se convierte en una entidad **Temperatura exterior** en Home Assistant y da a cada trayecto su
-temperatura de salida y de llegada.
+dato se convierte en una entidad **Temperatura exterior** en Home Assistant y da a cada trayecto
+lecturas en ruta, de las que salen su temperatura más alta y más baja.
 
 #### Las tres temperaturas: habitáculo, consigna del A/A y batería
 No todos los Leapmotor envían las tres. Mate distingue **tres situaciones diferentes**, porque
@@ -457,10 +457,11 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   minutos después de terminar un recorrido Mate consulta la traza GPS del trayecto contra
   [Open-Meteo](https://open-meteo.com) (gratis, sin clave, sin cuenta). El detalle gana entonces una
   **línea de altitud en el gráfico Datos del trayecto**, los metros **subidos y bajados**, y la
-  temperatura **a la salida y a la llegada** — no una media, para que una subida de valle a puerto
-  muestre la caída real. Entre las dos explican buena parte del consumo de un recorrido: subir cuesta
-  energía, el frío cuesta autonomía. Los trayectos registrados antes de que esto existiera tienen un
-  botón **Calcular la altimetría**, y todo el conjunto se puede desactivar en Ajustes.
+  temperatura **más alta y más baja** del trayecto — no una media, para que una subida de valle a
+  puerto muestre la caída real. Entre las dos explican buena parte del consumo de un recorrido:
+  subir cuesta energía, el frío cuesta autonomía. Los trayectos registrados antes de que esto
+  existiera tienen un botón **Calcular la altimetría**, y todo el conjunto se puede desactivar en
+  Ajustes.
 - **Velocidad máxima del coche 🆕.** Cuando el registro del recorrido en la nube del coche se asocia
   al trayecto (el mismo que da el consumo oficial), el detalle muestra la velocidad máxima que midió
   el propio coche. Las lecturas de Mate están separadas unos segundos y pierden los picos breves —

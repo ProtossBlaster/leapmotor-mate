@@ -322,12 +322,10 @@
         </span>
       </div>
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('outside_temp') }}</span>
+        <span class="text-slate-400">{{ t('outside_temp') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('outside_temp_trip_help') }}">ⓘ</span></span>
         <span class="text-white font-medium">
-          {%- if trip.outside_temp_start_c is not none and trip.outside_temp_end_c is not none -%}
-          {{ trip.outside_temp_start_c | temp(1) }}&nbsp;→&nbsp;{{ trip.outside_temp_end_c | temp(1) }}
-          {%- elif trip.outside_temp_start_c is not none -%}{{ trip.outside_temp_start_c | temp(1) }}
-          {%- elif trip.outside_temp_end_c is not none -%}{{ trip.outside_temp_end_c | temp(1) }}
+          {%- if trip.outside_temp_max_c is not none -%}
+          {{ trip.outside_temp_min_c | temp_range(trip.outside_temp_max_c, 1) }}
           {%- else -%}—{%- endif -%}
         </span>
       </div>

@@ -795,6 +795,7 @@
     "elevation_loss": "Hoogteverlies",
     "outside_temp": "Buitentemperatuur",
     "battery_temp_trip_help": "De auto meldt alleen de temperatuur van zijn koudste cel; dit zijn de hoogste en de laagste waarde daarvan tijdens de rit.",
+    "outside_temp_trip_help": "De hoogste en laagste buitentemperatuur van de rit: uit de metingen onderweg als de buitentemperatuur in de Instellingen aan staat, anders uit de twee opvragingen bij vertrek en aankomst.",
     "elevation_calc_btn": "Hoogteverloop berekenen",
     "elevation_calc_failed": "Geen hoogtegegevens beschikbaar voor deze rit — probeer het later opnieuw.",
     "speed_profile": "Snelheidsverloop",

@@ -387,8 +387,8 @@ l'auto è sveglia Mate interroga [Open-Meteo](https://open-meteo.com) sulla sua 
 una volta ogni 20 minuti o 10 km, quello che arriva prima — e mostra il valore accanto a quello
 dell'abitacolo. È **spento di default**, perché la richiesta manda la posizione dell'auto a
 Open-Meteo: l'unico interruttore sta in *Impostazioni → valori predefiniti dei viaggi*. Lo stesso
-dato diventa un'entità **Temperatura esterna** in Home Assistant e dà a ogni viaggio la sua
-temperatura di partenza e di arrivo.
+dato diventa un'entità **Temperatura esterna** in Home Assistant e dà a ogni viaggio le letture
+lungo il percorso, da cui vengono la sua temperatura più alta e più bassa.
 
 #### Le tre temperature: abitacolo, target A/C, batteria
 Non tutte le Leapmotor mandano tutte e tre. Mate distingue **tre situazioni diverse**, perché
@@ -441,10 +441,10 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   qualche minuto dopo la fine di un viaggio Mate cerca il suo tracciato GPS su
   [Open-Meteo](https://open-meteo.com) (gratuito, senza chiave e senza account). Nel dettaglio
   compaiono la **linea dell'altitudine nel grafico Dati del viaggio**, i metri **saliti e scesi**, e
-  la temperatura **alla partenza e all'arrivo** — non una media, così una salita da fondovalle a passo
-  mostra il calo vero. Insieme spiegano buona parte del consumo di una guidata: la salita costa
-  energia, il freddo costa autonomia. I viaggi registrati prima che esistesse hanno un pulsante
-  **Calcola altimetria**, e tutto si può spegnere dalle Impostazioni.
+  la temperatura **più alta e più bassa** del viaggio — non una media, così una salita da fondovalle
+  a passo mostra il calo vero. Insieme spiegano buona parte del consumo di una guidata: la salita
+  costa energia, il freddo costa autonomia. I viaggi registrati prima che esistesse hanno un
+  pulsante **Calcola altimetria**, e tutto si può spegnere dalle Impostazioni.
 - **Velocità massima dall'auto 🆕.** Quando il record del viaggio nel cloud dell'auto viene abbinato
   al viaggio (lo stesso record che dà i consumi ufficiali), il dettaglio mostra la velocità massima
   misurata dall'auto stessa. Le letture di Mate sono a qualche secondo l'una dall'altra e perdono i

@@ -392,8 +392,8 @@ Auto wach ist, [Open-Meteo](https://open-meteo.com) zu seiner Position — höch
 oder alle 10 km, je nachdem, was zuerst eintritt — und zeigt den Wert neben dem Innenraumwert. Es ist
 **standardmäßig aus**, weil die Abfrage die Position des Autos an Open-Meteo sendet: Der einzige
 Schalter liegt unter *Einstellungen → Standardwerte für Fahrten*. Derselbe Wert wird zu einer
-**Außentemperatur**-Entität in Home Assistant und gibt jeder Fahrt ihre eigene Temperatur bei Start
-und Ankunft.
+**Außentemperatur**-Entität in Home Assistant und gibt jeder Fahrt Messungen unterwegs, aus denen
+ihre höchste und niedrigste Temperatur stammt.
 
 #### Die drei Temperaturen: Innenraum, A/C-Ziel, Batterie
 Nicht jeder Leapmotor sendet alle drei. Mate unterscheidet **drei verschiedene Situationen**, denn sie
@@ -448,15 +448,15 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   Fehler. **Immer aktiv**, keine Einrichtung.
 - **Höhenmeter und Außentemperatur.** Die Leapmotor-Cloud liefert weder das eine noch das andere:
   Ein paar Minuten nach dem Ende einer Fahrt gleicht Mate deren GPS-Spur mit
-  [Open-Meteo](https://open-meteo.com) ab (kostenlos, ohne Schlüssel, ohne Konto). Das Detail bekommt
-  dadurch eine **Höhenlinie im Diagramm Fahrtdaten**, die **überwundenen und
-  abgefahrenen** Höhenmeter sowie die Temperatur **bei Abfahrt und bei Ankunft** — kein Mittelwert,
-  sodass eine Auffahrt vom Tal zum Pass den echten Abfall zeigt. Zusammen erklären die beiden einen
-  guten Teil des Verbrauchs einer Fahrt: Steigen kostet Energie, Kälte kostet Reichweite. Fahrten,
-  die vor dieser Funktion aufgezeichnet wurden, haben eine Schaltfläche **Höhenmeter berechnen**, und
-  das Ganze lässt sich in den Einstellungen abschalten. Ist der Schalter für die Außentemperatur an
-  (siehe *Übersicht*), stammen die Temperaturen der Fahrt aus den **unterwegs** genommenen Messungen;
-  diese nachträgliche Abfrage bleibt der Rückfall für ältere Fahrten 🆕.
+  [Open-Meteo](https://open-meteo.com) ab (kostenlos, ohne Schlüssel, ohne Konto). Das Detail
+  bekommt dadurch eine **Höhenlinie im Diagramm Fahrtdaten**, die **überwundenen und abgefahrenen**
+  Höhenmeter sowie die **höchste und niedrigste** Temperatur der Fahrt — kein Mittelwert, sodass
+  eine Auffahrt vom Tal zum Pass den echten Abfall zeigt. Zusammen erklären die beiden einen guten
+  Teil des Verbrauchs einer Fahrt: Steigen kostet Energie, Kälte kostet Reichweite. Fahrten, die vor
+  dieser Funktion aufgezeichnet wurden, haben eine Schaltfläche **Höhenmeter berechnen**, und das
+  Ganze lässt sich in den Einstellungen abschalten. Ist der Schalter für die Außentemperatur an
+  (siehe *Übersicht*), stammen die Temperaturen der Fahrt aus den **unterwegs** genommenen
+  Messungen; diese nachträgliche Abfrage bleibt der Rückfall für ältere Fahrten 🆕.
 - **Höchstgeschwindigkeit vom Auto 🆕.** Wird der Cloud-Datensatz des Autos einer Fahrt zugeordnet
   (derselbe, der den offiziellen Verbrauch liefert), zeigt das Detail die vom Auto selbst gemessene
   Höchstgeschwindigkeit. Mates eigene Messungen liegen einige Sekunden auseinander und verpassen

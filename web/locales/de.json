@@ -795,6 +795,7 @@
     "elevation_loss": "Abstieg",
     "outside_temp": "Außentemperatur",
     "battery_temp_trip_help": "Das Auto meldet nur die Temperatur seiner kältesten Zelle; das sind ihr höchster und ihr niedrigster Wert während der Fahrt.",
+    "outside_temp_trip_help": "Die höchste und niedrigste Außentemperatur der Fahrt: aus den Messungen unterwegs, wenn die Außentemperatur in den Einstellungen eingeschaltet ist, sonst aus den zwei Abfragen bei Abfahrt und Ankunft.",
     "elevation_calc_btn": "Höhenprofil berechnen",
     "elevation_calc_failed": "Für diese Fahrt sind keine Höhendaten verfügbar — später erneut versuchen.",
     "speed_profile": "Geschwindigkeitsprofil",

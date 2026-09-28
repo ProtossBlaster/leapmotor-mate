@@ -795,6 +795,7 @@
     "elevation_loss": "Elevation loss",
     "outside_temp": "Outside temperature",
     "battery_temp_trip_help": "The car reports only the temperature of its coldest cell; these are its highest and lowest readings during the trip.",
+    "outside_temp_trip_help": "The highest and lowest outside temperature of the trip: from the readings along the way when the outside temperature is switched on in Settings, otherwise from the two lookups at departure and arrival.",
     "elevation_calc_btn": "Calculate elevation",
     "elevation_calc_failed": "No elevation data available for this trip — try again later.",
     "speed_profile": "Speed profile",

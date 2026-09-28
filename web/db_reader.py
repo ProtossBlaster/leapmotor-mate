@@ -7154,7 +7154,7 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     ph = ",".join("?" * len(seg_ids))
     positions = db.execute(
         "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m, power_kw, battery_temp_c, "
-        "range_km FROM trip_positions "
+        "range_km, outside_temp_c FROM trip_positions "
         f"WHERE trip_id IN ({ph}) ORDER BY recorded_at, id",
         seg_ids,
     ).fetchall()
@@ -7238,6 +7238,12 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     temps = [p["battery_temp_c"] for p in positions if p.get("battery_temp_c") is not None]
     trip_d["battery_temp_max_c"] = max(temps) if temps else None
     trip_d["battery_temp_min_c"] = min(temps) if temps else None
+    # Outside: the readings along the way (the outside-temperature switch), else the two lookups at the ends.
+    outside = ([p["outside_temp_c"] for p in positions if p.get("outside_temp_c") is not None]
+               or [v for v in (trip_d.get("outside_temp_start_c"), trip_d.get("outside_temp_end_c"))
+                   if v is not None])
+    trip_d["outside_temp_max_c"] = max(outside) if outside else None
+    trip_d["outside_temp_min_c"] = min(outside) if outside else None
 
     # ── #18: total energy consumed + trip cost ──────────────────────────────────
     # Energy consumed = efficiency × distance / 100 (consistent with the stored efficiency).

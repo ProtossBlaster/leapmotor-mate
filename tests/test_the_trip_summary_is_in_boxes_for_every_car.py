@@ -60,7 +60,7 @@ def _reev_trip(**over):
          "positions": [], "start_odometer_km": 12000.0, "end_odometer_km": 12097.0,
          "avg_speed_kmh": 83.0, "max_speed_kmh": 130.0, "max_power_kw": None, "max_regen_kw": None,
          "battery_temp_max_c": None, "battery_temp_min_c": None, "elevation_gain_m": None,
-         "elevation_loss_m": None, "outside_temp_start_c": None, "outside_temp_end_c": None,
+         "elevation_loss_m": None, "outside_temp_start_c": None, "outside_temp_end_c": None, "outside_temp_max_c": None, "outside_temp_min_c": None,
          "elevation_profile_available": False, "ec_pending": False, "paid_kwh": None,
          "free_kwh": None, "fuel_price_per_l": 1.829, "reev_elec_kwh_100km": 46.0,
          "battery_net_kwh": None, "energy_kwh": None, "regen_kwh": None}
