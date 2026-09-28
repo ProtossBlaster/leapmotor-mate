@@ -322,6 +322,14 @@ def ensure_schema(conn) -> None:
     # discharge must NOT be counted as standby/vampire drain).
     if "ac_port_mode" not in cols:
         conn.execute("ALTER TABLE positions ADD COLUMN ac_port_mode INTEGER DEFAULT NULL")
+    # V2L samples are a handful among hundreds of thousands of frames, and every page asks whether
+    # the car has used V2L lately. Without this the question is a scan of the whole window — 19731
+    # rows and 12.7 ms on a real database, four times that on an add-on, for an answer that is
+    # almost always "no". Partial, so it holds only the V2L rows and costs nothing to keep.
+    # 🔴 HERE, not in SCHEMA: the column it indexes is added by the ALTER above, so an index on it
+    # inside the schema script fails on a fresh database and takes the WHOLE script down with it.
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_positions_v2l ON positions(vehicle_id, recorded_at)"
+                 " WHERE ac_port_mode = 2")
     # migration: extended climate panel (validated on-car 2026-06-20) — fan level (1941 acAirVolume,
     # 1-7), recirculation (1943: 1=recirc / 0=fresh), base climate mode (3713: 0 auto/1 cool/3 heat/4 vent).
     if "fan_level" not in cols:
