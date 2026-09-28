@@ -466,6 +466,9 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   movimiento y el tiempo parado durante el trayecto (semáforos, atascos), según las lecturas de Mate
   tomadas cada pocos segundos. Una parada entre trayectos unidos no cuenta para ninguno de los dos,
   y un hueco en las lecturas aparece como *sin datos* en lugar de asignarse a uno de ellos.
+- **Velocidad mediana 🆕.** Bajo la velocidad media, el detalle da la mediana de las mismas lecturas
+  en movimiento, la velocidad por debajo de la cual quedó la mitad de ellas. Un tramo rápido breve
+  sube la media de un trayecto urbano, mientras que la mediana conserva su ritmo habitual.
 - **Velocidad máxima del coche 🆕.** Cuando el registro del recorrido en la nube del coche se asocia
   al trayecto (el mismo que da el consumo oficial), el detalle muestra la velocidad máxima que midió
   el propio coche. Las lecturas de Mate están separadas unos segundos y pierden los picos breves —

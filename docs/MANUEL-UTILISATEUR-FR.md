@@ -475,6 +475,9 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   et le temps à l'arrêt pendant le trajet (feux, bouchons), d'après les relevés de Mate espacés de
   quelques secondes. Une pause entre trajets fusionnés ne compte ni pour l'un ni pour l'autre, et un
   trou dans les relevés apparaît comme *sans données* au lieu d'être attribué à l'un des deux.
+- **Vitesse médiane 🆕.** Sous la vitesse moyenne, le détail donne la médiane des mêmes relevés en
+  mouvement, la vitesse sous laquelle est restée la moitié d'entre eux. Un court passage rapide
+  relève la moyenne d'un trajet en ville, tandis que la médiane garde son allure habituelle.
 - **Vitesse max venant de la voiture 🆕.** Quand l'enregistrement du trajet dans le cloud de la
   voiture est associé au trajet (le même qui donne la consommation officielle), le détail affiche la
   vitesse maximale mesurée par la voiture elle-même. Les relevés de Mate sont espacés de quelques

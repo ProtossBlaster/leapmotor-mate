@@ -462,6 +462,9 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   während der Fahrt (Ampeln, Stau), aus Mates Messungen im Abstand einiger Sekunden. Eine Pause
   zwischen zusammengeführten Fahrten zählt zu keinem von beiden, und eine Lücke in den Messungen
   erscheint als *ohne Daten*, statt einem der beiden zugeschlagen zu werden.
+- **Median-Tempo 🆕.** Unter dem Ø-Tempo nennt das Detail den Median derselben Messungen während der
+  Fahrt, also das Tempo, unter dem die Hälfte von ihnen lag. Ein kurzes schnelles Stück hebt den
+  Durchschnitt einer Stadtfahrt, während der Median ihr übliches Tempo behält.
 - **Höchstgeschwindigkeit vom Auto 🆕.** Wird der Cloud-Datensatz des Autos einer Fahrt zugeordnet
   (derselbe, der den offiziellen Verbrauch liefert), zeigt das Detail die vom Auto selbst gemessene
   Höchstgeschwindigkeit. Mates eigene Messungen liegen einige Sekunden auseinander und verpassen

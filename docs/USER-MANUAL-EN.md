@@ -445,6 +445,9 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   time stopped — at a standstill inside the drive (lights, queues) — from Mate's readings several
   seconds apart. A stop between joined pieces counts as neither, and a hole in the readings shows as
   *no data* instead of being given to either.
+- **Median speed 🆕.** Under the average speed, the detail gives the median of the same readings,
+  those while moving: the speed half of them stayed below. A short fast stretch lifts the average of
+  a town drive, while the median keeps its usual pace.
 - **Max speed from the car 🆕.** When the car's cloud record of a drive is matched to the trip (the
   same record that gives the official consumption), the detail shows the top speed the car itself
   measured. Mate's own readings are several seconds apart and miss short peaks — on a B10 by up to

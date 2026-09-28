@@ -7247,6 +7247,7 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     # Average over moving points only (>1 km/h) so long idle stretches don't skew it.
     moving = [s for s in speeds if s > 1]
     trip_d["avg_speed_kmh"] = round(sum(moving) / len(moving)) if moving else None
+    trip_d["median_speed_kmh"] = round(statistics.median(moving)) if moving else None
 
     # Driving and stopped are the spans after each reading, moving above walking pace or not. A span
     # counts only inside one joined piece, cut to that piece's start and end (the end can be the car's

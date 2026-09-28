@@ -780,6 +780,7 @@
     "trip_time_split_help": "Bajo la duración, según las lecturas de Mate tomadas cada pocos segundos: el tiempo en movimiento y el tiempo parado durante el trayecto (semáforos, atascos). Una parada entre trayectos unidos no cuenta para ninguno de los dos y la marca el gráfico; un hueco en las lecturas aparece como sin datos.",
     "trip_time_unknown": "{unknown} sin datos",
     "avg_speed": "Velocidad media",
+    "trip_speed_median": "mediana {median}",
     "max_speed": "Velocidad máxima",
     "max_speed_sampled_help": "El valor más alto de las lecturas de Mate, tomadas cada pocos segundos, así que un pico breve puede caer entre dos. El dato del coche no está disponible para este viaje.",
     "max_power": "Potencia máxima",

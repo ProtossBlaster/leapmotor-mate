@@ -780,6 +780,7 @@
     "trip_time_split_help": "Pod czasem trwania, z odczytów Mate robionych co kilka sekund: czas jazdy i czas stania w miejscu w trakcie przejazdu (światła, korki). Przerwa między połączonymi przejazdami nie liczy się do żadnego z nich — zaznacza ją wykres; luka w odczytach jest pokazana jako brak danych.",
     "trip_time_unknown": "{unknown} bez danych",
     "avg_speed": "Śr. prędkość",
+    "trip_speed_median": "mediana {median}",
     "max_speed": "Maks. prędkość",
     "max_speed_sampled_help": "Najwyższa wartość z odczytów Mate, robionych co kilka sekund, więc krótki szczyt może wypaść między dwoma odczytami. Wartości podanej przez auto dla tego przejazdu brak.",
     "max_power": "Maks. moc",

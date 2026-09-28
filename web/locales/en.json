@@ -780,6 +780,7 @@
     "trip_time_split_help": "Under the duration, from Mate's readings several seconds apart: the time driving, and the time stopped at a standstill inside the trip (lights, queues). A stop between joined pieces counts as neither, and the chart marks it; a hole in the readings shows as no data.",
     "trip_time_unknown": "{unknown} no data",
     "avg_speed": "Avg speed",
+    "trip_speed_median": "{median} median",
     "max_speed": "Max speed",
     "max_speed_sampled_help": "The highest of Mate's readings, taken several seconds apart, so a short peak can fall between two. The car's own figure is not available for this trip.",
     "max_power": "Max power",

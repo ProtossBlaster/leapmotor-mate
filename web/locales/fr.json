@@ -780,6 +780,7 @@
     "trip_time_split_help": "Sous la durée, d'après les relevés de Mate espacés de quelques secondes : le temps en mouvement et le temps à l'arrêt pendant le trajet (feux, bouchons). Une pause entre trajets fusionnés ne compte ni pour l'un ni pour l'autre, et le graphique la signale ; un trou dans les relevés apparaît comme sans données.",
     "trip_time_unknown": "{unknown} sans données",
     "avg_speed": "Vitesse moy.",
+    "trip_speed_median": "médiane {median}",
     "max_speed": "Vitesse max",
     "max_speed_sampled_help": "La plus haute des mesures de Mate, prises à quelques secondes d'intervalle : un pic bref peut tomber entre deux. La valeur de la voiture n'est pas disponible pour ce trajet.",
     "max_power": "Puissance max",

@@ -450,6 +450,9 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   tempo da fermi durante il viaggio (semafori, code), dalle letture di Mate prese a pochi secondi
   l'una dall'altra. Una sosta tra viaggi uniti non conta per nessuno dei due, e un buco nelle
   letture compare come *senza dati* invece di finire in uno dei due.
+- **Velocità mediana 🆕.** Sotto la velocità media, il dettaglio dà la mediana delle stesse letture
+  in movimento, cioè la velocità sotto la quale è rimasta metà di esse. Un breve tratto veloce alza
+  la media di un giro in città, mentre la mediana ne conserva l'andatura abituale.
 - **Velocità massima dall'auto 🆕.** Quando il record del viaggio nel cloud dell'auto viene abbinato
   al viaggio (lo stesso record che dà i consumi ufficiali), il dettaglio mostra la velocità massima
   misurata dall'auto stessa. Le letture di Mate sono a qualche secondo l'una dall'altra e perdono i
