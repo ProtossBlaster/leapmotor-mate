@@ -144,35 +144,6 @@ class EmptyStatusError(Exception):
     retry rather than treating it as a hard failure."""
 
 
-# Title/body patterns that mark an inbox message as an OTA / software update, across the languages
-# a Leapmotor account may use. STOPGAP until a real OTA message pins its msg_type — see
-# LeapmotorMateClient.check_ota().
-#
-# 🔴 These were bare substrings, and a substring is the wrong test for a flag that now drives a
-# Home Assistant notification (#277): "ota" matched inside *nota* and *quota*, and a lone
-# "upgrade" / "aggiorn" / "mise à jour" matched membership offers and terms-of-service notices —
-# five false positives out of six everyday titles. Two rules instead:
-#   • the acronyms match as WORDS (\b), never inside another one;
-#   • a generic update word only counts NEXT TO a software/vehicle word (up to three words apart,
-#     so "aggiornamento del software" and "mise à jour du logiciel" still match).
-# Precision is bought at some recall, deliberately: we have never seen the real notice, but a false
-# ON is a push on someone's phone, and a false OFF is the same silence as before the entity existed.
-_OTA_PATTERNS = (
-    r"\b(?:ota|fota)\b",                                                     # the acronym itself
-    r"\bfirmware\b",
-    r"\bsoftware[\s\-]?(?:update|upgrade|aktualisierung|updaten)\b",          # en/de/nl
-    r"\b(?:system|vehicle|car|fahrzeug)[\s\-]?update\b",
-    r"\bupdate\s+available\b",
-    r"\baggiornamento\b(?:\W+\w+){0,3}\W+\b(?:software|firmware|veicolo|sistema|centralina)\b",
-    r"\bmise\s+[àa]\s+jour\b(?:\W+\w+){0,3}\W+\b(?:logiciel|logicielle|v[ée]hicule|syst[èe]me)\b",
-    r"\baktualisierung\b(?:\W+\w+){0,3}\W+\b(?:software|fahrzeug|system)\b",
-    r"\bactualizaci[óo]n\b(?:\W+\w+){0,3}\W+\b(?:software|sistema|veh[íi]culo)\b",
-    r"\batualiza[çc][ãa]o\b(?:\W+\w+){0,3}\W+\b(?:software|sistema|ve[íi]culo)\b",
-    r"\baktualizacja\b(?:\W+\w+){0,3}\W+\b(?:oprogramowania|systemu|pojazdu)\b",
-)
-_OTA_RE = re.compile("|".join(_OTA_PATTERNS), re.IGNORECASE | re.UNICODE)
-
-
 class LeapmotorMateClient:
     def __init__(self, username: str, password: str, pin: str, cert_path: str, key_path: str,
                  device_id: str | None = None, on_login=None):
@@ -347,39 +318,6 @@ class LeapmotorMateClient:
         except (TypeError, ValueError):
             pass
         return vd
-
-    def check_ota(self) -> dict:
-        """Scan the account message inbox for an OTA / software-update notice. This is the ONLY
-        automatic "update available" signal Leapmotor exposes — there is NO dedicated OTA-status
-        endpoint (even the official-app flow / LeapConnect needs the FOTA task_id typed in by hand);
-        the cloud delivers "update available" as an inbox MESSAGE. Best-effort, never raises.
-        Returns {ok: bool (endpoint answered), scanned: int, ota: bool, title, time}.
-
-        `ok` distinguishes the three states that all otherwise surface as a bare "None" on the
-        Overview and used to be indistinguishable (issue #156, a Malaysia C10): the inbox is
-        genuinely empty (ok=True, scanned=0), it has messages but none is an update (ok=True,
-        scanned>0, ota=False), or we couldn't read the inbox at all for this account/region
-        (ok=False). The caller logs each outcome so a diagnostics bundle can tell which it is.
-
-        We match on the message title/body because the numeric `msg_type` is undocumented and was
-        None on every message we've captured so far — so this pattern match is a deliberate STOPGAP:
-        the moment a real OTA message is seen on-car, key off its exact msg_type instead and tighten
-        this. The patterns are word-anchored and pair generic update words with a software/vehicle
-        word (see _OTA_PATTERNS): the flag reaches Home Assistant, where a false ON is a push. Non-OTA messages (vehicle sharing, etc.) are intentionally ignored — not surfaced."""
-        try:
-            ml = self._api.get_message_list(page_no=1, page_size=20)
-            msgs = getattr(ml, "messages", None) or []
-        except Exception as e:  # noqa: BLE001 — strict lib parser can raise on odd payloads
-            log.warning("OTA inbox scan: message endpoint failed (%s) — cannot check for updates", e)
-            return {"ok": False}
-        for m in msgs:
-            hay = f"{getattr(m, 'title', '') or ''} {getattr(m, 'message', '') or ''}"
-            if _OTA_RE.search(hay):
-                st = getattr(m, "send_time", None)
-                return {"ok": True, "scanned": len(msgs), "ota": True,
-                        "title": getattr(m, "title", None),
-                        "time": int(st) if st else None}
-        return {"ok": True, "scanned": len(msgs), "ota": False}
 
     def get_charge_schedule(self) -> dict | None:
         """The car's own charge window (cmd 190) — flat dict: chargeEnable, starttime, endtime,

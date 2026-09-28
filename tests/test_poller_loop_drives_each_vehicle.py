@@ -130,7 +130,7 @@ def loop(tmp_path, monkeypatch):
         monkeypatch.setattr(PM.time, "time", lambda: clock["t"])
         monkeypatch.setattr(PM.time, "sleep", lambda s: clock.__setitem__("t", clock["t"] + s))
         # Everything the loop reaches out to that isn't the point of this test.
-        for name in ("_maybe_check_ota", "_maybe_refresh_charge_schedule"):
+        for name in ("_maybe_refresh_charge_schedule",):
             monkeypatch.setattr(PM, name, lambda *a, **k: None)
         monkeypatch.setattr(PM.energy_snapshots, "maybe_sample", lambda *a, **k: None)
         monkeypatch.setattr(PM.ready_automation, "maybe_trigger", lambda *a, **k: None)

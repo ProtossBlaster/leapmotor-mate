@@ -4119,8 +4119,6 @@ def get_latest_status() -> Optional[dict]:
     # How old the POSITION is: the fix's own, when the map falls back to one — the poll without a
     # fix is seconds old, the position it falls back to may be days old.
     d["position_age_s"] = _position_age_s(fix.get("frame_ts"), fix.get("recorded_at"))
-    # OTA / software-update status (the poller scans the account message inbox for an update notice).
-    d["ota"] = get_ota_status()
     return d
 
 
@@ -4466,23 +4464,6 @@ def polling_summary(now: Optional[float] = None) -> dict:
               "to": _hhmm(start + (i + 1) * POLL_WINDOW_S)} for i, c in enumerate(strip)]
     return {"strip": cells, "window_s": POLL_WINDOW_S, "days": days,
             "first_at": _local_hhmm(epoch=first_at) if first_at else None}
-
-
-def get_ota_status() -> dict:
-    """OTA / software-update status the poller stored (from scanning the account inbox). Returns
-    {available:bool, title:str|None, time:str|None (localized "dd/mm HH:MM")}. False until the
-    poller has run a check; only ever True when an update notice is actually present."""
-    available = get_setting("ota_available", "") == "1"
-    title = get_setting("ota_title", "") or None
-    when = None
-    raw = get_setting("ota_time", "")
-    if raw:
-        try:
-            dt = datetime.fromtimestamp(int(raw) / 1000, tz=timezone.utc)
-            when = (_local_dt(dt.isoformat()) or dt).strftime("%d/%m %H:%M")
-        except (TypeError, ValueError, OSError):
-            when = None
-    return {"available": available, "title": title, "time": when}
 
 
 def delete_trip(trip_id: int) -> bool:
