@@ -1,8 +1,20 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.5.3 · **Sprache:** Deutsch
+> **Mate-Version:** v4.5.4 · **Sprache:** Deutsch
 
-## Neu in Version 4.5.3
+## Neu in Version 4.5.4
+
+An dem, was du siehst, ändert sich in dieser Version nichts: sie ist für uns. Seit 4.5.3 speichert
+Mate die Fahrtenhistorie, die Leapmotors eigene Cloud führt — dieselben Daten, die die offizielle
+App in ihrer Fahrtenansicht zeigt — und jeder Datensatz nennt den Benzinverbrauch dieser Fahrt. Bei
+einem Fahrzeug mit Range Extender ist das ein zweiter, unabhängiger Wert neben dem, den Mate schon
+aus dem Tankzähler des Autos liest, und er lag in der Datenbank, ohne dass man ihn auslesen konnte.
+Er reist jetzt im Diagnosepaket mit, und der Diagnosetext sagt, ob diese Historie angekommen ist und
+ob das Kraftstofffeld gefüllt oder glatt null ist. Bei einem reinen Elektroauto ist es bei jeder
+Fahrt null — die richtige Antwort, kein Schweigen. In deine Daten wird nichts geschrieben, und von
+der Cloud wird nichts Neues abgefragt.
+
+### Neu in Version 4.5.3
 
 Mate ist noch schneller, und diesmal liegt es nicht an den Fragen, sondern am Fragen selbst. Jeder
 Lesevorgang öffnete eine neue Verbindung zur Datenbank, und bei einem kleinen Lesevorgang war das der

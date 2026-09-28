@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.5.3:** one connection, not one per read. Every read opened a brand-new SQLite connection, which is most of what a small read cost; there is now one per thread, let go when the database moves or is replaced under Mate. Asking whether anyone sat in the car during a charge was a scan of the whole charge — 618 ms for 33 of them — and is now an indexed probe at 0.10 ms. Measured on a real add-on with 90 days of history: Overview 0.213 s → 0.048, Battery 0.129 → 0.012, Charges 0.278 → 0.035, Statistics 0.489 → 0.163, `/api/battery-health` 1.150 → 0.114. Nothing about what you see has changed.
-See [release notes and upgrade impact](docs/releases/v4.5.3.md).
+**v4.5.4:** the fuel figure the car's own cloud keeps. Nothing you see changes: this release adds two things to the diagnostics Mate can produce. Since 4.5.3 every installation stores Leapmotor's own per-trip history — the same data the official app's per-trip panel is drawn from — and each record says how much petrol that drive burned. That field sat in the database unreadable; it now travels in the diagnostics, and the plain diagnostics text says whether the history arrived and whether the field is populated or flat zero. On a battery-only car it is zero on every drive, which is the right answer and not a silence.
+See [release notes and upgrade impact](docs/releases/v4.5.4.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -362,8 +362,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.5.3:** una connessione, non una per lettura. Ogni lettura apriva una connessione SQLite nuova, ed era quasi tutto il costo di una lettura piccola; adesso ce n'è una per thread, lasciata quando il database si sposta o viene sostituito sotto Mate. Chiedere se durante una ricarica c'era qualcuno in auto era una scansione dell'intera ricarica — 618 ms per 33 — e ora è una verifica su indice da 0,10 ms. Misurato su un add-on vero con 90 giorni di storia: panoramica 0,213 s → 0,048, batteria 0,129 → 0,012, ricariche 0,278 → 0,035, statistiche 0,489 → 0,163, `/api/battery-health` 1,150 → 0,114. Di quello che vedi non è cambiato niente.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.5.3.md#italiano).
+**v4.5.4:** il dato del carburante che il cloud dell'auto si tiene. Di quello che vedi non cambia niente: questa versione aggiunge due cose alla diagnostica che Mate sa produrre. Dalla 4.5.3 ogni installazione conserva lo storico dei singoli viaggi del cloud Leapmotor — gli stessi dati da cui l'app ufficiale disegna il suo riquadro per viaggio — e ogni record dice quanta benzina quel viaggio ha consumato. Quel campo restava nel database illeggibile; ora viaggia nella diagnostica, e il testo della diagnostica dice se lo storico è arrivato e se il campo è pieno o piatto a zero. Su un'auto solo elettrica è zero su ogni viaggio, che è la risposta giusta e non un silenzio.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.5.4.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

@@ -1,8 +1,19 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.5.3 · **Language:** English
+> **Mate version:** v4.5.4 · **Language:** English
 
-## New in 4.5.3
+## New in 4.5.4
+
+Nothing you see changes in this release: it is for us. Since 4.5.3 Mate stores the per-trip
+history Leapmotor's own cloud keeps — the same data the official app shows in its per-trip panel —
+and every record says how much petrol that drive burned. On a range-extender that is a second,
+independent figure beside the one Mate already reads from the car's own tank counter, and it was
+sitting in the database with no way to read it out. It now travels in the diagnostics pack, and the
+plain diagnostics text says whether that history arrived and whether the fuel field is populated or
+flat zero. On a battery-only car it is zero on every drive, which is the correct answer rather than
+a silence. Nothing is written to your data and nothing new is asked of the cloud.
+
+### New in 4.5.3
 
 Mate is faster again, and this time the reason is not the questions but the asking. Every read opened
 a brand-new connection to the database, which on a small read was most of what it cost; there is now

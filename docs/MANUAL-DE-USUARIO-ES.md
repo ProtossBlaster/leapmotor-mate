@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.5.3 · **Idioma:** Español
+> **Versión de Mate:** v4.5.4 · **Idioma:** Español
 
-## Novedades de la versión 4.5.3
+## Novedades de la versión 4.5.4
+
+De lo que ves en esta versión no cambia nada: es para nosotros. Desde la 4.5.3 Mate guarda el
+historial de viajes que mantiene la propia nube de Leapmotor — los mismos datos que la aplicación
+oficial muestra en su panel por viaje — y cada registro dice cuánta gasolina consumió ese viaje. En
+un coche con extensor de autonomía es un segundo dato, independiente, junto al que Mate ya lee del
+contador del depósito del coche, y estaba en la base de datos sin forma de extraerlo. Ahora viaja en
+el paquete de diagnóstico, y el texto de diagnóstico dice si ese historial llegó y si el campo de
+combustible está lleno o plano a cero. En un coche solo eléctrico es cero en cada viaje, que es la
+respuesta correcta y no un silencio. En tus datos no se escribe nada y a la nube no se le pide nada
+nuevo.
+
+### Novedades de la versión 4.5.3
 
 Mate es aún más rápido, y esta vez el motivo no son las preguntas sino el hecho de hacerlas. Cada
 lectura abría una conexión nueva a la base de datos, y en una lectura pequeña eso era casi todo el
