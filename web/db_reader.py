@@ -4246,7 +4246,10 @@ def polling_summary(now: Optional[float] = None) -> dict:
     # each cell carries its own window in words, so a colour is never the only thing that says
     # what it is (a hover shows "13:05–13:10 · session refused")
     def _hhmm(epoch):
-        dt = _local_dt(datetime.fromtimestamp(epoch, timezone.utc).isoformat())
+        # `tz` is resolved once above: 288 windows with two ends each asked for it 576 times, and
+        # every one of those reads opened its own SQLite connection — 578 of the 579 queries this
+        # card costs. → tests/test_the_drain_card_reads_the_clock_once.py for the same defect
+        dt = _local_dt(datetime.fromtimestamp(epoch, timezone.utc).isoformat(), tz)
         return dt.strftime("%H:%M") if dt else "?"
     cells = [{"cell": c, "from": _hhmm(start + i * POLL_WINDOW_S),
               "to": _hhmm(start + (i + 1) * POLL_WINDOW_S)} for i, c in enumerate(strip)]
@@ -9917,6 +9920,7 @@ def _battery_health(min_soc_delta: float, temp_min_c, min_start_soc: float) -> d
     ).fetchall()
     _kids = _charge_children_by_parent(db)
     rows = [_charge_group_stats(dict(r), _kids.get(r["id"], [])) for r in rows]
+    zone = _local_tz()          # once for the whole chart, not once per charge dated
     points = []
     for r in rows:
         delta = (r["end_soc"] or 0) - (r["start_soc"] or 0)
@@ -9953,7 +9957,7 @@ def _battery_health(min_soc_delta: float, temp_min_c, min_start_soc: float) -> d
         excluded = cold or soc_jump or active_use or low_start
         exclude_reason = ("cold" if cold else "soc_jump" if soc_jump
                           else "active_use" if active_use else "low_start" if low_start else None)
-        dt = _local_dt(r["started_at"])
+        dt = _local_dt(r["started_at"], zone)
         points.append({
             "charge_id": r["id"],
             "date": dt.strftime("%Y-%m-%d") if dt else (r["started_at"] or "")[:10],
@@ -10063,6 +10067,10 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
     # raised `min_drop_pct` thins the chart without hiding that drain exists at all (#63).
     floor = min(min_drop_pct, _VAMPIRE_NOISE_FLOOR)
     cutoff = (datetime.now(timezone.utc) - timedelta(days=lookback_days)).isoformat()
+    # Once for the whole card, not twice per park closed. `_flush` localises a window's two ends,
+    # and resolving the zone reads a setting on a connection of its own: 1608 reads and 0.195 s of
+    # a 0.490 s call on a real database. → tests/test_the_drain_card_reads_the_clock_once.py
+    zone = _local_tz()
     rows = db.execute(
         "SELECT recorded_at, soc, charging, speed_kmh, odometer_km, ac_port_mode, ready FROM positions "
         "WHERE vehicle_id = COALESCE(?, vehicle_id) AND soc IS NOT NULL AND recorded_at >= ? ORDER BY recorded_at",
@@ -10091,7 +10099,7 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
         # a DROP (a rise = BMS recalibration / charge → keep the parked value, never invent drain).
         if close is not None and close["soc"] is not None and close["soc"] < (soc_end or 0):
             soc_end, t_end = close["soc"], close["recorded_at"]
-        t0, t1 = _local_dt(w["t0"]), _local_dt(t_end)
+        t0, t1 = _local_dt(w["t0"], zone), _local_dt(t_end, zone)
         if t0 is None or t1 is None:
             return
         hours = (t1 - t0).total_seconds() / 3600.0
