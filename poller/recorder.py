@@ -4,6 +4,7 @@ Recorder: reacts to state machine events to persist trips, charges, and position
 import logging
 import threading
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from typing import Optional
 
 from db import Database, _WB_STUCK_MIN_KW, _now_iso
@@ -54,6 +55,9 @@ class Recorder:
         self._last_fresh_ts: Optional[str] = None
         # Timestamp of the last cloud frame (#128) — see process() for what a repeat means.
         self._last_frame_ts: Optional[int] = None
+        # Our clock as this poll began, before its frame was saved: every `positions` row older than
+        # this was already on disk. See _settle_trip_after_outage.
+        self._polled_at: Optional[str] = None
 
     @property
     def state(self) -> State:
@@ -146,6 +150,7 @@ class Recorder:
         # frame said gear P (car parked, then the modem dropped), the SM needs its PARKED_CONFIRM
         # readings to close the trip — hiding them would strand the trip open until the link returns,
         # which is the very bug #128 reports.
+        self._polled_at = _now_iso()
         if not (stale and self._sm.state == State.DRIVING):
             self._db.save_position(self._vehicle_id, data)
 
@@ -238,7 +243,8 @@ class Recorder:
         The kilometres are not lost. They are declared, apart, as what they are: measured, and
         attributable to no trip. → poller/db.record_offline_gap
 
-        Runs at trip OPEN, where both baselines still hold the last poll's values, and where
+        Runs at trip OPEN, and when a charge follows a long outage (_settle_trip_after_outage). In
+        both places both baselines still hold the last poll's values, and
         `_last_fresh_ts` still holds the moment the cloud last had news — which is where the
         silence began, and is not the same as the last poll.
         """
@@ -337,19 +343,51 @@ class Recorder:
     # Not the 0.5 in db.trip_distance_km, which answers a different question — see there.
     _MIN_TRIP_KM = 0.2
 
-    def _finalize_trip(self, data: VehicleData) -> None:
+    def _finalize_trip(self, data, end_at: Optional[str] = None) -> None:
         # End the trip when the car was last HEARD, not when we noticed. On a healthy link the two
         # are the same poll, so nothing moves; behind a frozen frame the difference is everything
         # the 30-minute guard used to fold into the trip. Same shape as the charge close (#208).
         distance_km = self._db.finalize_trip(
             self._active_trip_id, data, self._regen_kwh,
-            end_at_override=self._db.trip_end_from_last_seen(self._active_trip_id))
+            end_at_override=end_at or self._db.trip_end_from_last_seen(self._active_trip_id))
         if distance_km is not None and distance_km < self._MIN_TRIP_KM:
             self._db.delete_trip(self._active_trip_id)
             log.info("Trip #%d discarded — short hop %.2f km (< %.1f km)",
                      self._active_trip_id, distance_km, self._MIN_TRIP_KM)
             return
         self._auto_note_trip(self._active_trip_id)
+
+    def _settle_trip_after_outage(self, to: State, data: VehicleData) -> None:
+        """The cloud refused us mid-drive and answers again: the open trip is resumed or closed,
+        never left open. Left open, nothing but a restart would close it, and the next departure
+        opened a second trip beside it.
+
+        The bound is `_outage_was_brief`, the half hour after which a frozen drive is over too.
+        - Brief, still in D: the same drive with a hole in it, resumed by the DRIVING branch (D #331).
+        - Brief, parked or charging: the same drive, over. It closes on this frame, as a drive whose
+          P arrives late does, and the kilometres of the hole are its own.
+        - Long: no drive has a half-hour hole in it, so this one ended somewhere in the silence. It
+          closes on the last observation before it, and the kilometres after that go where unseen
+          kilometres always go: a reconstructed trip when parked, the offline gap of the trip that
+          opens, or an offline gap here when charging, which runs neither.
+          → tests/test_an_outage_never_leaves_a_trip_open.py
+        """
+        if self._outage_was_brief():
+            if to == State.DRIVING:
+                return
+            self._finalize_trip(data)
+            # This reading is accounted for, so the reconstruction later in this poll must not
+            # find the hole's kilometres again.
+            self._last_odometer = data.odometer_km
+        else:
+            ended_at, row = (self._db.trip_last_seen(self._active_trip_id, before=self._polled_at)
+                             or self._db.trip_opening(self._active_trip_id))
+            # The row carries the frame's attribute names, which is what finalize_trip reads.
+            self._finalize_trip(SimpleNamespace(**dict(row)), end_at=ended_at)
+            if to == State.CHARGING:
+                self._record_offline_gap(data)
+        self._active_trip_id = None
+        self._regen_kwh = 0.0
 
     def sample_wallbox_meter(self) -> None:
         """Read the home wallbox counter on a cycle where the CAR said nothing (#295 @gm27271).
@@ -510,6 +548,9 @@ class Recorder:
     def _handle_event(self, event: StateEvent, data: Optional[VehicleData]) -> None:
         frm, to = event.from_state, event.to_state
 
+        if frm == State.OFFLINE and self._active_trip_id is not None and data:
+            self._settle_trip_after_outage(to, data)
+
         if to == State.DRIVING:
             # A car cannot be driving and charging. This is the mirror of the CHARGING branch
             # below, which closes an open trip on plug-in — and it was missing (#208,
@@ -518,9 +559,10 @@ class Recorder:
             # and an open charge appears in no calendar and in no AC count.
             if self._active_charge_id:
                 self._close_dangling_charge(data, "drove_away")
-            if frm == State.OFFLINE and self._active_trip_id is not None and self._outage_was_brief():
-                # The same drive, with a hole in it. The state before the silence was DRIVING and
-                # the state after it is DRIVING, so those kilometres are this trip's — its own
+            if frm == State.OFFLINE and self._active_trip_id is not None:
+                # Still open after _settle_trip_after_outage: the same drive, with a hole in it.
+                # The state before the silence was DRIVING and the state after it is DRIVING, and
+                # the silence was brief, so those kilometres are this trip's — its own
                 # odometer endpoints already measure them, and a second row would both abandon
                 # this trip open forever and file its distance under no trip at all (D #331: nine
                 # dropouts in one morning, ten trips opened, one closed). The charge path has said

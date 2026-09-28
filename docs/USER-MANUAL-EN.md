@@ -425,6 +425,11 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   driving, Mate closes the trip by itself after half an hour — but dates it at the **last real
   news**, not at the moment it noticed. So the duration holds no half hour of silence and the
   average speed stays honest.
+- **A dropout never leaves a trip open.** If Mate loses the cloud mid-drive and the car is still
+  driving when the link returns within half an hour, the trip simply carries on. If the car is by
+  then parked or charging, the trip ends there, and the kilometres covered in the gap are part of
+  it. After a longer silence the trip ends at the last thing the car said before it, and the
+  kilometres after that are treated like any others covered out of contact.
 - **Kilometres covered while the car was out of contact go into no trip at all.** When the link to
   the cloud drops, the car keeps moving but Mate cannot see it; when the link returns, all it finds
   is an odometer further along. That jump can hold the end of one drive, a stop, and the beginning
@@ -905,6 +910,7 @@ divided into three columns.
 - **Database** — the size of the DB and the **GPS retention**: you can keep the GPS points "forever"
   (default) or delete those older than 6/12/18/24 months to save space. *Only positions are pruned*:
   trips, charges and charge curves stay.
+  The points of a drive still in progress stay until it ends, because its end is read from them.
 - **Export / Backup** — download **trips (CSV)**, **charges (CSV)** and a **database backup**. The
   backup arrives **gzip-compressed** (`leapmotor_mate.db.gz`) 🆕, streamed in pieces so even a large
   database never has to fit in memory whole. Restore takes **both** the compressed file and a plain

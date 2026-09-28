@@ -444,6 +444,12 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   cae mientras conduces, Mate cierra el trayecto solo al cabo de media hora — pero lo fecha en la
   **última noticia real**, no en el momento en que se dio cuenta. Así la duración no contiene media
   hora de silencio y la velocidad media sigue siendo honrada.
+- **Un corte nunca deja un trayecto abierto.** Si Mate pierde la nube durante la marcha y el coche
+  sigue circulando cuando el enlace vuelve antes de media hora, el trayecto simplemente continúa. Si
+  para entonces el coche está aparcado o cargando, el trayecto termina ahí, y los kilómetros
+  recorridos durante el corte forman parte de él. Tras un silencio más largo, el trayecto termina en
+  lo último que dijo el coche antes de ese silencio, y los kilómetros posteriores se tratan como
+  todos los que se recorren sin conexión.
 - **Los kilómetros recorridos mientras el coche estaba sin contacto no van a ningún trayecto.** Cuando
   el enlace con la nube se cae, el coche sigue moviéndose pero Mate no lo ve; cuando el enlace vuelve,
   lo único que encuentra es un cuentakilómetros más adelantado. Ese salto puede contener el final de
@@ -947,6 +953,8 @@ dividida en tres columnas.
 - **Base de datos** — el tamaño de la BD y la **retención del GPS**: puedes conservar los puntos GPS
   «para siempre» (por defecto) o borrar los de más de 6/12/18/24 meses para ahorrar espacio. *Solo se
   limpian las posiciones*: los trayectos, las cargas y las curvas de carga se quedan.
+  Los puntos de un trayecto aún en curso se quedan hasta que termina, porque su final se toma de
+  ellos.
 - **Exportar / Copia de seguridad** — descargar **trayectos (CSV)**, **cargas (CSV)** y una **copia de
   la base de datos**. La copia llega **comprimida en gzip** (`leapmotor_mate.db.gz`) 🆕, enviada a
   trozos para que ni una base de datos grande tenga que caber entera en memoria. La restauración

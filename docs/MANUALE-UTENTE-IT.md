@@ -428,6 +428,12 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   collegamento cade mentre guidi, dopo mezz'ora Mate chiude il viaggio da solo — ma lo data
   all'**ultima notizia vera**, non al momento in cui se n'è accorto. Così la durata non contiene
   mezz'ora di silenzio e la velocità media resta quella giusta.
+- **Un'interruzione non lascia mai aperto un viaggio.** Se Mate perde il cloud durante la guida e
+  l'auto è ancora in marcia quando il collegamento torna entro mezz'ora, il viaggio semplicemente
+  continua. Se nel frattempo l'auto è parcheggiata o in carica, il viaggio finisce lì, e i
+  chilometri fatti durante l'interruzione ne fanno parte. Dopo un silenzio più lungo, il viaggio
+  finisce all'ultima notizia dell'auto prima di esso, e i chilometri successivi sono trattati come
+  tutti quelli fatti senza collegamento.
 - **I chilometri fatti mentre l'auto non comunicava non finiscono in nessun viaggio.** Quando il
   collegamento col cloud si interrompe, l'auto continua a girare ma Mate non lo vede; al ritorno
   trova solo un contachilometri più avanti. Quel salto può contenere la fine di una guidata, una
@@ -933,6 +939,8 @@ volta. È divisa in tre colonne.
 - **Database** — dimensione del DB e **conservazione posizioni** (retention): puoi tenere i punti GPS
   "per sempre" (predefinito) o cancellare quelli più vecchi di 6/12/18/24 mesi per risparmiare
   spazio. *Vengono potate solo le posizioni*: viaggi, ricariche e curve di ricarica restano.
+  I punti di un viaggio ancora in corso restano finché non finisce, perché la sua fine si ricava da
+  essi.
 - **Esporta / backup** — scarica **viaggi (CSV)**, **ricariche (CSV)** e un **backup del database**.
   Il backup arriva **compresso in gzip** (`leapmotor_mate.db.gz`) 🆕, mandato a pezzi così nemmeno un
   database grande deve stare tutto in memoria. Il ripristino accetta **sia** il file compresso **sia**
