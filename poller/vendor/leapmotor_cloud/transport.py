@@ -91,6 +91,30 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         raise TransportError("redirect_refused")
 
 
+def tls_context(ca_file):
+    """The verification context for a Leapmotor endpoint: this one pinned certificate and nothing
+    else, and a sub-CA allowed to be the anchor (VERIFY_X509_PARTIAL_CHAIN).
+
+    VERIFY_X509_STRICT is cleared, not merely left unset. Python 3.13 turns it on by default, and
+    Leapmotor's own certificates cannot pass it: the server certificate for the app gateway carries
+    basicConstraints CA:FALSE together with keyCertSign in its key usage, which strict verification
+    refuses ("Key usage keyCertSign invalid for non-CA cert"). The same contradiction is in the
+    application certificate the client presents, so it is a template error across their PKI, and
+    nothing on this side can reissue either. Measured 28/09/2026 against the live gateway on one
+    OpenSSL (3.6.3) with two interpreters: 3.12 completed the handshake, 3.14 refused it.
+
+    Clearing it is narrow. This context trusts ONE certificate — the sub-CA handed in here — and the
+    transport talks only to an allowlisted set of hosts, so the strict checks sat on top of a pinned
+    anchor rather than guarding a public trust store.
+    """
+    context = ssl.create_default_context(cafile=str(ca_file))
+    context.check_hostname = True
+    context.verify_mode = ssl.CERT_REQUIRED
+    context.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
+    context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    return context
+
+
 class UrllibTransport:
     def __init__(self, ca_file, allowed_hosts, *, timeout=15, max_response_bytes=MAX_RESPONSE_BYTES):
         if not isinstance(ca_file, Path) or not isinstance(allowed_hosts, frozenset) or not allowed_hosts:
@@ -112,10 +136,7 @@ class UrllibTransport:
         if any(k.lower() in ("host", "cookie", "proxy-authorization") for k in request.headers):
             raise ValidationError("Forbidden transport header")
         try:
-            context = ssl.create_default_context(cafile=str(self.ca_file))
-            context.check_hostname = True
-            context.verify_mode = ssl.CERT_REQUIRED
-            context.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
+            context = tls_context(self.ca_file)
             context.load_cert_chain(str(client_cert[0]), str(client_cert[1]))
             opener = urllib.request.build_opener(
                 urllib.request.ProxyHandler({}), _NoRedirect(),

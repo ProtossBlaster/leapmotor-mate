@@ -1,7 +1,7 @@
 {
-  "version": "0.1.0a11",
+  "version": "0.1.0a12",
   "source": "https://github.com/ProtossBlaster/MATE-API",
-  "commit": "e27db3f732ebec3e6bdad8c37273480565c15cf0",
+  "commit": "a74a9218f1a744054916f8e1d9f18edad18e675f",
   "sha256": {
     "leapmotor_cloud/__init__.py": "ab9c3e71a18f9e6eddf0edc96f9b4e92f0b4145e33f929c432f5a3b0357458e4",
     "leapmotor_cloud/account_material.py": "fe2ead6c0b5a3ff8ed0de27963d99553a8fc0713971d7206039f9a2e5bba6c65",
@@ -30,7 +30,7 @@
     "leapmotor_cloud/sensor_catalog.py": "623f168fefaebf8eee387db40f4e5745f061ac9e5a502cd0e0a37cbf8349f9a9",
     "leapmotor_cloud/session.py": "8faeca7c64748cc2e4236ddec251f291b6df17c7bae0f7f25284688310befeb2",
     "leapmotor_cloud/signing.py": "215c1db205faf0e3de7e00b6f79706e2ab5e241d36b14160982582fad65e94aa",
-    "leapmotor_cloud/transport.py": "74af84ac2546395a3805b3cbde9c748318c75f1a3daa39141d89d7c9585be29d",
+    "leapmotor_cloud/transport.py": "e1e6f7c68f8da86ae06e269a8c407f41f8eb3cb1f092f2439d784e882406819d",
     "leapmotor_cloud/vehicle_data.py": "d64ffaea9c8ade972f766d6f14b44ad513ccf4fab01753205e1b3304baece2dd"
   }
 }
