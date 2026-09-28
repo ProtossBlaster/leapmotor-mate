@@ -1305,7 +1305,7 @@ class Database:
                 data.remaining_charge_min or None,
                 data.charge_voltage_v or None,
                 data.charge_current_a or None,
-                1 if data.ready else 0,
+                (1 if data.ready else 0) if data.ready_reported else None,
                 1 if data.charge_completed else 0,
                 None if data.security_active is None else (1 if data.security_active else 0),
                 sum(1 for w in (data.window_fl_open, data.window_fr_open,

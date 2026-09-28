@@ -86,6 +86,7 @@ class VehicleData:
     mirror_heat_left: int = 0       # signal 49 leftMirrorHeating
     mirror_heat_right: int = 0      # signal 50 rightMirrorHeating
     ready: bool = False             # signal 1258 bcmKeyPositionOn3 — faithful READY/ON3 (physical key only)
+    ready_reported: bool = True     # whether the frame carried 1258; if not: ready False, `positions` NULL
     charge_completed: bool = False  # signal 3736 chargeCompleted — true at full charge (validate on a real charge)
     security_active: bool | None = None   # signal 1255 vehicleSecurityActive — None = the car never said
     charge_limit_percent: int | None = None  # configured max-charge SoC (from the config block, not a
@@ -849,6 +850,7 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         tire_rl_bar=round(float(sig.get("2660") or 0) / 100.0, 2),
         tire_rr_bar=round(float(sig.get("2667") or 0) / 100.0, 2),
         ready=int(sig.get("1258") or 0) == 1,   # B10 faithful READY (ON3) sensor
+        ready_reported=_sf(sig, "1258") is not None,
         charge_completed=int(sig.get("3736") or 0) != 0,  # 3736 chargeCompleted — truthy (confirm value at a real full charge)
         # 🔴 None when the car never sends 1255 — NOT False. Two C10s (@ghuaywen-ai #256,
         # @ebagnoli over 17 continuous days) carry 77 and 88 signals and neither has it, while a
