@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.5.4:** the fuel figure the car's own cloud keeps. Nothing you see changes: this release adds two things to the diagnostics Mate can produce. Since 4.5.3 every installation stores Leapmotor's own per-trip history — the same data the official app's per-trip panel is drawn from — and each record says how much petrol that drive burned. That field sat in the database unreadable; it now travels in the diagnostics, and the plain diagnostics text says whether the history arrived and whether the field is populated or flat zero. On a battery-only car it is zero on every drive, which is the right answer and not a silence.
-See [release notes and upgrade impact](docs/releases/v4.5.4.md).
+**v4.5.5:** the update notice nobody could receive. Two things are removed and none added. The Overview's "OTA updates" row said **None** whenever your account's inbox held no update message — and Mate is meant to run on an account the car is *shared* with, which receives no vehicle notices at all, so it said "None" for ever. Under that label it reads as "you are up to date", which Mate had no way of knowing. ⚠️ The **OTA Update Notice** entity is withdrawn from Home Assistant with it: across three owners' diagnostics it found zero notices in 44 successful scans, so an automation built on it will stop having an entity.
+See [release notes and upgrade impact](docs/releases/v4.5.5.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -362,8 +362,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.5.4:** il dato del carburante che il cloud dell'auto si tiene. Di quello che vedi non cambia niente: questa versione aggiunge due cose alla diagnostica che Mate sa produrre. Dalla 4.5.3 ogni installazione conserva lo storico dei singoli viaggi del cloud Leapmotor — gli stessi dati da cui l'app ufficiale disegna il suo riquadro per viaggio — e ogni record dice quanta benzina quel viaggio ha consumato. Quel campo restava nel database illeggibile; ora viaggia nella diagnostica, e il testo della diagnostica dice se lo storico è arrivato e se il campo è pieno o piatto a zero. Su un'auto solo elettrica è zero su ogni viaggio, che è la risposta giusta e non un silenzio.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.5.4.md#italiano).
+**v4.5.5:** l'avviso di aggiornamento che nessuno poteva ricevere. Due cose tolte e nessuna aggiunta. La riga «Aggiornamenti OTA» della panoramica diceva **Nessuno** ogni volta che nella casella del tuo account non c'era un messaggio di aggiornamento — e Mate deve girare su un account con cui l'auto è *condivisa*, che di avvisi del veicolo non ne riceve nessuno, quindi diceva «Nessuno» per sempre. Sotto quella etichetta si legge come «sei aggiornato», e Mate non aveva modo di saperlo. ⚠️ Con lei è ritirata da Home Assistant anche l'entità **OTA Update Notice**: su tre diagnostiche di proprietari ha trovato zero avvisi in 44 scansioni riuscite, quindi un'automazione costruita su di lei resterà senza entità.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.5.5.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

@@ -1,8 +1,20 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.5.4 · **Language:** English
+> **Mate version:** v4.5.5 · **Language:** English
 
-## New in 4.5.4
+## New in 4.5.5
+
+Two things are removed in this release and none added, both about software updates for the car.
+The Overview's "OTA updates" row said **None** whenever your account's message inbox held no
+update notice — and it never knew anything about your car: Leapmotor tells the versions only to
+the account that owns it, and Mate is meant to run on an account the car is shared with, which
+receives no vehicle notices at all. So it said "None" for ever, and under that label "None" reads
+as "you are up to date". ⚠️ The **OTA Update Notice** entity in Home Assistant goes with it —
+across three owners' diagnostics it found zero notices in 44 successful scans — so if you built an
+automation on it, that automation will stop having an entity. Nothing else changes, and nothing is
+written to your data.
+
+### New in 4.5.4
 
 Nothing you see changes in this release: it is for us. Since 4.5.3 Mate stores the per-trip
 history Leapmotor's own cloud keeps — the same data the official app shows in its per-trip panel —
