@@ -4954,9 +4954,13 @@ def _gap_minutes(end_iso, start_iso):
 
 def _whole_minutes(parts, total: int) -> list:
     """`parts` (minutes) as whole minutes adding up to `total`, the printed duration they split: scaled
-    onto it, floored, and the minutes left over given to the parts that lost the most in the flooring."""
-    scale = total / sum(parts) if sum(parts) else 0
-    exact = [p * scale for p in parts]
+    onto it, floored, and the minutes left over given to the parts that lost the most in the flooring.
+
+    Parts that are all zero carry no split to scale; they share the duration equally rather than
+    taking a minute each and leaving the rest of it unaccounted for."""
+    weight = sum(parts)
+    exact = ([p * total / weight for p in parts] if weight and parts
+             else [total / len(parts)] * len(parts) if parts else [])
     whole = [math.floor(e) for e in exact]
     for i in sorted(range(len(exact)), key=lambda i: whole[i] - exact[i])[:total - sum(whole)]:
         whole[i] += 1

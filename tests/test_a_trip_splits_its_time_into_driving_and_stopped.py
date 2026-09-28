@@ -157,3 +157,15 @@ def test_the_page_prints_parts_that_add_up(tmp_path, monkeypatch):
     speeds = {k / 10: 50 if k < 127 else 0 for k in range(179)}
     _, text = _duration_row(tmp_path, monkeypatch, [(0, 19.3, speeds)])
     assert "19 min" in text and "13 min driving · 5 min stopped" in text and "1 min no data" in text
+
+
+def test_the_parts_add_up_even_when_every_one_of_them_is_nothing():
+    """The splitter shares whole minutes out onto the duration by scaling the parts onto it. Parts
+    that are ALL zero have nothing to scale, and the leftover was then handed out one minute per
+    part instead of being accounted for: (0, 0) onto 95 came back as [1, 1]. No caller can produce
+    that today — the unknown band takes whatever the two others leave — so this is the helper being
+    made honest on its own, not a fix for something on screen."""
+    for parts, total in (((0.0, 0.0), 95), ((0.0, 0.0, 0.0), 7), ((0, 0, 0), 1)):
+        out = db_reader._whole_minutes(parts, total)
+        assert sum(out) == total, (parts, total, out)
+        assert all(isinstance(v, int) and v >= 0 for v in out), (parts, total, out)

@@ -122,6 +122,12 @@ def test_the_legend_switches_a_line_folds_an_empty_band_and_remembers_it(mate):
         assert sorted(first["units"]) == sorted(["%", "km", "km/h", "kW", "m", "°C"]), "a scale does not say its unit"
         assert first["minutes"] and all(m.endswith(" min") for m in first["minutes"]), first["minutes"]
         page.hover("#trip-profile", position={"x": 300, "y": 60})
+        # ApexCharts fills the hover box on ITS tick, not inside hover(): reading straight after saw
+        # an empty title in 8 of 25 runs. Wait for the title to have something in it. The third test
+        # below already tolerates the empty read (heads.discard("")); here it is the assertion.
+        page.wait_for_function(
+            "() => { var t = document.querySelector('#trip-profile .apexcharts-tooltip-title');"
+            " return t && t.innerText.trim().length > 0; }")
         head = page.inner_text("#trip-profile .apexcharts-tooltip-title")
         assert re.fullmatch(r"\d\d:\d\d:\d\d \(\d+ min\)", head), head
         groups = page.eval_on_selector_all("#trip-profile .mate-tip-band",
