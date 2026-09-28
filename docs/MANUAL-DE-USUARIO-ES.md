@@ -461,6 +461,11 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   muestre la caída real. Entre las dos explican buena parte del consumo de un recorrido: subir cuesta
   energía, el frío cuesta autonomía. Los trayectos registrados antes de que esto existiera tienen un
   botón **Calcular la altimetría**, y todo el conjunto se puede desactivar en Ajustes.
+- **Velocidad máxima del coche 🆕.** Cuando el registro del recorrido en la nube del coche se asocia
+  al trayecto (el mismo que da el consumo oficial), el detalle muestra la velocidad máxima que midió
+  el propio coche. Las lecturas de Mate están separadas unos segundos y pierden los picos breves —
+  en un B10, hasta 21 km/h —, así que un trayecto sin ese registro conserva el valor muestreado,
+  marcado con una ⓘ.
 - **Consumo oficial desde la nube 🆕** — cuando está disponible, el **consumo, el rendimiento y el
   coste** de un trayecto salen de la **cifra oficial** de Leapmotor (el reparto real entre **marcha /
   climatización / otros**) en vez de solo de la estimación por % de batería. Justo después de un

@@ -782,6 +782,7 @@
     "gps_points": "Gps-punten",
     "avg_speed": "Gem. snelheid",
     "max_speed": "Max. snelheid",
+    "max_speed_sampled_help": "De hoogste waarde uit de metingen van Mate, die enkele seconden uit elkaar liggen, dus een korte piek kan ertussen vallen. De waarde van de auto is voor deze rit niet beschikbaar.",
     "altitude": "Hoogte",
     "elevation": "Hoogteverloop",
     "elevation_gain": "Hoogtewinst",

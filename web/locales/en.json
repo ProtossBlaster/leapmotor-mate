@@ -782,6 +782,7 @@
     "gps_points": "GPS points",
     "avg_speed": "Avg speed",
     "max_speed": "Max speed",
+    "max_speed_sampled_help": "The highest of Mate's readings, taken several seconds apart, so a short peak can fall between two. The car's own figure is not available for this trip.",
     "altitude": "Altitude",
     "elevation": "Elevation",
     "elevation_gain": "Elevation gain",

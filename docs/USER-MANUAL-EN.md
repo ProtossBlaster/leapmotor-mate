@@ -440,6 +440,10 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   average, so a valley-to-pass climb shows the real drop. Between them they explain a good part of a
   drive's consumption: a climb costs energy, cold costs range. Trips recorded before this existed
   have a **Calculate elevation** button, and the whole thing can be switched off in Settings.
+- **Max speed from the car 🆕.** When the car's cloud record of a drive is matched to the trip (the
+  same record that gives the official consumption), the detail shows the top speed the car itself
+  measured. Mate's own readings are several seconds apart and miss short peaks — on a B10 by up to
+  21 km/h — so a trip without that record keeps the sampled figure, marked with an ⓘ.
 - **Official consumption from the cloud 🆕** — when available, a trip's **consumption, efficiency and
   cost** come from Leapmotor's **official figure** (the real **driving / A·C / other** split) instead of
   the battery‑% estimate alone. Right after a drive you see the estimate marked **⏳ provisional**; once

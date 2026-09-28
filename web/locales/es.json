@@ -782,6 +782,7 @@
     "gps_points": "Puntos GPS",
     "avg_speed": "Velocidad media",
     "max_speed": "Velocidad máxima",
+    "max_speed_sampled_help": "El valor más alto de las lecturas de Mate, tomadas cada pocos segundos, así que un pico breve puede caer entre dos. El dato del coche no está disponible para este viaje.",
     "altitude": "Altitud",
     "elevation": "Altimetría",
     "elevation_gain": "Desnivel positivo",

@@ -782,6 +782,7 @@
     "gps_points": "GPS-Punkte",
     "avg_speed": "Ø-Tempo",
     "max_speed": "Max. Tempo",
+    "max_speed_sampled_help": "Der höchste Wert aus Mates Messungen, die einige Sekunden auseinanderliegen – eine kurze Spitze kann dazwischen fallen. Der Wert des Autos ist für diese Fahrt nicht verfügbar.",
     "altitude": "Höhe",
     "elevation": "Höhenunterschied",
     "elevation_gain": "Anstieg",

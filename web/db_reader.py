@@ -7235,6 +7235,11 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     dist = trip_d.get("distance_km") or 0
     _select_ev_energy([trip_d])
     trip_d["energy_kwh"] = (trip_d["energy_kwh"] if trip_d.get("energy_source") else (round(eff * dist / 100, 2) if (eff and dist) else None))
+    # Samples several seconds apart miss short peaks; the car's own record of the drive does not.
+    if trip_d.get("cloud_max_speed_kmh") is not None:
+        trip_d["max_speed_kmh"] = round(trip_d["cloud_max_speed_kmh"])
+    trip_d["max_speed_sampled"] = (trip_d.get("cloud_max_speed_kmh") is None
+                                   and trip_d.get("max_speed_kmh") is not None)
 
     # NET change in the pack over the trip, signed — and only kept when the pack ended FULLER than it
     # started (beta #11, @michapr + @gm27271). On a range-extender the generator can put back more

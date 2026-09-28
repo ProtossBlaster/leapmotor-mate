@@ -470,6 +470,11 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   Réglages. Quand l'interrupteur de température extérieure est activé (voir *Aperçu*), les
   températures du trajet viennent des relevés pris **en route** ; cette recherche après coup reste le
   recours pour les trajets plus anciens 🆕.
+- **Vitesse max venant de la voiture 🆕.** Quand l'enregistrement du trajet dans le cloud de la
+  voiture est associé au trajet (le même qui donne la consommation officielle), le détail affiche la
+  vitesse maximale mesurée par la voiture elle-même. Les relevés de Mate sont espacés de quelques
+  secondes et manquent les pics brefs — jusqu'à 21 km/h sur un B10 —, donc un trajet sans cet
+  enregistrement garde la valeur relevée, signalée par un ⓘ.
 
 - **Votre note + tags de conduite 🆕** (#107) — dans le détail d'un trajet, vous pouvez écrire une **note
   libre** (trafic, météo, type de route, toute remarque) et indiquer le **mode de conduite** (Confort /

@@ -782,6 +782,7 @@
     "gps_points": "Punkty GPS",
     "avg_speed": "Śr. prędkość",
     "max_speed": "Maks. prędkość",
+    "max_speed_sampled_help": "Najwyższa wartość z odczytów Mate, robionych co kilka sekund, więc krótki szczyt może wypaść między dwoma odczytami. Wartości podanej przez auto dla tego przejazdu brak.",
     "altitude": "Wysokość",
     "elevation": "Przewyższenie",
     "elevation_gain": "Podjazd",

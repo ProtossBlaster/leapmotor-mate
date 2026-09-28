@@ -445,6 +445,11 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   mostra il calo vero. Insieme spiegano buona parte del consumo di una guidata: la salita costa
   energia, il freddo costa autonomia. I viaggi registrati prima che esistesse hanno un pulsante
   **Calcola altimetria**, e tutto si può spegnere dalle Impostazioni.
+- **Velocità massima dall'auto 🆕.** Quando il record del viaggio nel cloud dell'auto viene abbinato
+  al viaggio (lo stesso record che dà i consumi ufficiali), il dettaglio mostra la velocità massima
+  misurata dall'auto stessa. Le letture di Mate sono a qualche secondo l'una dall'altra e perdono i
+  picchi brevi — su una B10 fino a 21 km/h — quindi un viaggio senza quel record mantiene il valore
+  campionato, segnato con una ⓘ.
 - **Consumi ufficiali dal cloud 🆕** — quando disponibili, **consumo, efficienza e costo** del viaggio
   vengono dal **dato ufficiale Leapmotor** (la vera ripartizione **guida / A·C / altro**) invece della
   sola stima dal calo di batteria. Subito dopo il viaggio vedi la stima con l'avviso **⏳ provvisorio**;

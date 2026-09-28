@@ -457,6 +457,11 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   das Ganze lässt sich in den Einstellungen abschalten. Ist der Schalter für die Außentemperatur an
   (siehe *Übersicht*), stammen die Temperaturen der Fahrt aus den **unterwegs** genommenen Messungen;
   diese nachträgliche Abfrage bleibt der Rückfall für ältere Fahrten 🆕.
+- **Höchstgeschwindigkeit vom Auto 🆕.** Wird der Cloud-Datensatz des Autos einer Fahrt zugeordnet
+  (derselbe, der den offiziellen Verbrauch liefert), zeigt das Detail die vom Auto selbst gemessene
+  Höchstgeschwindigkeit. Mates eigene Messungen liegen einige Sekunden auseinander und verpassen
+  kurze Spitzen — bei einem B10 um bis zu 21 km/h —, daher behält eine Fahrt ohne diesen Datensatz
+  den gemessenen Wert, markiert mit einem ⓘ.
 
 - **Ihre Notiz + Fahr-Tags 🆕** (#107) — im Detail einer Fahrt können Sie eine **freie Notiz** (Verkehr,
   Wetter, Streckentyp, jede Anmerkung) schreiben und den verwendeten **Fahrmodus** (Comfort / Normal /

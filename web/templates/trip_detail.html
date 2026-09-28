@@ -291,7 +291,7 @@
         <span class="text-white font-medium">{% if trip.avg_speed_kmh is not none %}{{ trip.avg_speed_kmh | speed(0) }}{% else %}—{% endif %}</span>
       </div>
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('max_speed') }}</span>
+        <span class="text-slate-400">{{ t('max_speed') }}{% if trip.max_speed_sampled %} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('max_speed_sampled_help') }}">ⓘ</span>{% endif %}</span>
         <span class="text-white font-medium">{% if trip.max_speed_kmh is not none %}{{ trip.max_speed_kmh | speed(0) }}{% else %}—{% endif %}</span>
       </div>
       <div class="flex justify-between">
