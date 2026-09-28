@@ -254,7 +254,17 @@ class Database:
         self._path = path
         self._conn = sqlite3.connect(path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
-        self._conn.execute("PRAGMA journal_mode=WAL")
+        # 🔴 The pragma does NOT fail when it cannot be honoured: it falls back and REPORTS the mode
+        # it settled on, and that answer used to be thrown away. It decides how two processes get
+        # along — in WAL readers do not block writers, outside WAL they do — so a silent fallback
+        # turns a long-lived read connection into a writer starved for hours (#338: 747 frames lost
+        # to `database is locked`, on a NAS share, which is exactly a filesystem that cannot give
+        # SQLite the shared memory WAL needs). Kept, logged, and printed in the bundle.
+        self.journal_mode = (self._conn.execute("PRAGMA journal_mode=WAL").fetchone() or [None])[0]
+        if str(self.journal_mode).lower() != "wal":
+            log.warning("SQLite is in '%s' journal mode, not WAL — this database is on a filesystem "
+                        "that cannot honour it. Readers will block writers, and a busy moment "
+                        "surfaces as 'database is locked'.", self.journal_mode)
         ensure_schema(self._conn)
         self._backfill_vehicle_capacity()
         self._adopt_the_cars_that_were_already_here()

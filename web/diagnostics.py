@@ -88,6 +88,19 @@ def _redact(text: str, vin: str | None = None) -> str:
     return text
 
 
+def _journal_line(mode) -> str:
+    """The journal mode, and for anything but WAL what it costs — the word alone means nothing to
+    the owner reading their own bundle. Outside WAL, readers block writers, which is how a busy
+    moment becomes `database is locked` and a poller stops storing frames (#338)."""
+    if mode is None:
+        return "unknown (could not be read)"
+    if str(mode).lower() == "wal":
+        return "wal"
+    return (f"⚠️ {mode} — NOT WAL: readers block writers here, so contention surfaces as "
+            "'database is locked'. The filesystem under the database cannot honour WAL "
+            "(a network share usually cannot).")
+
+
 # ── system snapshot ──────────────────────────────────────────────────────────
 def build_system_info(version: str) -> dict:
     """Cheap (no live cloud call) support snapshot for the card + the bundle header."""
@@ -140,6 +153,7 @@ def build_system_info(version: str) -> dict:
         "model": (vehicle or {}).get("car_type") or "—",
         "year": (vehicle or {}).get("year") or "—",
         "vin_masked": mask_vin((vehicle or {}).get("vin")),
+        "journal_mode": db_reader.journal_mode(),
         "battery_kwh": settings.get("battery_capacity_kwh", "—"),
         # The SoH denominator, snapshotted the first time the capacity is saved. Without it a
         # bundle cannot answer "why is my battery health above 100%" — the number that decides it
@@ -881,6 +895,7 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
                                   if os.environ.get("MATE_API_V2") == "0"
                                   else "independent (mate-api)"),
             f"DB size (MB) : {info['db_size_mb']}",
+            f"Journal mode : {_journal_line(info['journal_mode'])}",
             f"Rows         : trips={info['counts']['trips']} "
             f"charges={info['counts']['charges']} positions={info['counts']['positions']}",
             f"Poll (s)     : parked={info['poll_parked']} driving={info['poll_driving']}",

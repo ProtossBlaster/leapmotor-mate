@@ -3225,6 +3225,21 @@ def _cloud_ms_to_iso(value):
         return None
 
 
+def journal_mode() -> str | None:
+    """The journal mode this database is REALLY in, straight from the file.
+
+    `PRAGMA journal_mode=WAL` falls back silently where the filesystem cannot give SQLite the shared
+    memory it needs — a network share, which is what a NAS volume often is — and then readers block
+    writers and a busy moment reads as `database is locked` (#338). Nothing recorded which of the two
+    an installation was in, so no bundle could tell the two diagnoses apart. Read-only: asking for
+    the mode without assigning one does not change it."""
+    try:
+        row = _get().execute("PRAGMA journal_mode").fetchone()
+    except sqlite3.Error:
+        return None
+    return row[0] if row else None
+
+
 def cloud_history_state() -> dict:
     """What the cloud history worker has actually staged, as COUNTS — for the public diagnostics
     text. Answers the first question a range-extender report has to answer: did the worker run, how
