@@ -951,9 +951,10 @@ Elle est divisée en trois colonnes.
   appareil connecté, la variable d'environnement `MATE_AUTH_PASSWORD` prend le dessus sur celui qui
   est enregistré.
 
-- **Base de données** — taille de la base et **conservation des positions** (rétention) : vous pouvez garder
-  les points GPS « pour toujours » (par défaut) ou supprimer ceux de plus de 6/12/18/24 mois pour économiser
-  de l'espace. *Seules les positions sont élaguées* : les trajets, recharges et courbes de charge restent.
+- **Base de données** — taille de la base et **conservation des positions** (rétention) : vous
+  pouvez garder les points GPS « pour toujours » (par défaut) ou supprimer ceux de plus de
+  6/12/18/24 mois pour économiser de l'espace. *Seules les positions sont élaguées* : les trajets
+  (avec leur tracé et les relevés en route), recharges et courbes de charge restent.
 - **Export / sauvegarde** — téléchargez les **trajets (CSV)**, les **recharges (CSV)** et une **sauvegarde de
   la base de données**. La sauvegarde arrive **compressée en gzip** (`leapmotor_mate.db.gz`) 🆕,
   envoyée par morceaux pour qu'une grande base n'ait jamais à tenir entière en mémoire. La

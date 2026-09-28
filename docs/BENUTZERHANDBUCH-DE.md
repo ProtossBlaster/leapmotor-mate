@@ -936,9 +936,10 @@ ist in drei Spalten unterteilt.
   angemeldeten Gerät aus einfach ein neues. Ist kein Gerät mehr angemeldet, überschreibt die
   Umgebungsvariable `MATE_AUTH_PASSWORD` das gespeicherte.
 
-- **Datenbank** — Größe der DB und **Aufbewahrung der Positionen** (Retention): Sie können die GPS-Punkte „für
-  immer" behalten (Standard) oder die älter als 6/12/18/24 Monate löschen, um Platz zu sparen. *Es werden nur die
-  Positionen entfernt*: Fahrten, Ladevorgänge und Ladekurven bleiben erhalten.
+- **Datenbank** — Größe der DB und **Aufbewahrung der Positionen** (Retention): Sie können die
+  GPS-Punkte „für immer" behalten (Standard) oder die älter als 6/12/18/24 Monate löschen, um Platz
+  zu sparen. *Es werden nur die Positionen entfernt*: Fahrten (mit Strecke und den Messwerten
+  unterwegs), Ladevorgänge und Ladekurven bleiben erhalten.
 - **Export / Backup** — laden Sie **Fahrten (CSV)**, **Ladevorgänge (CSV)** und ein **Backup der Datenbank** herunter.
   Das Backup kommt **gzip-komprimiert** (`leapmotor_mate.db.gz`) 🆕 und wird in Stücken gesendet,
   damit auch eine große Datenbank nie ganz in den Speicher muss. Die Wiederherstellung nimmt

@@ -950,8 +950,9 @@ dividida en tres columnas.
   entorno `MATE_AUTH_PASSWORD` tiene prioridad sobre lo que haya guardado.
 
 - **Base de datos** — el tamaño de la BD y la **retención del GPS**: puedes conservar los puntos GPS
-  «para siempre» (por defecto) o borrar los de más de 6/12/18/24 meses para ahorrar espacio. *Solo se
-  limpian las posiciones*: los trayectos, las cargas y las curvas de carga se quedan.
+  «para siempre» (por defecto) o borrar los de más de 6/12/18/24 meses para ahorrar espacio. *Solo
+  se limpian las posiciones*: los trayectos (con su ruta y las lecturas en ruta), las cargas y las
+  curvas de carga se quedan.
 - **Exportar / Copia de seguridad** — descargar **trayectos (CSV)**, **cargas (CSV)** y una **copia de
   la base de datos**. La copia llega **comprimida en gzip** (`leapmotor_mate.db.gz`) 🆕, enviada a
   trozos para que ni una base de datos grande tenga que caber entera en memoria. La restauración

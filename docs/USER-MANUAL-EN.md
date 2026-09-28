@@ -908,7 +908,7 @@ divided into three columns.
 
 - **Database** — the size of the DB and the **GPS retention**: you can keep the GPS points "forever"
   (default) or delete those older than 6/12/18/24 months to save space. *Only positions are pruned*:
-  trips, charges and charge curves stay.
+  trips — with their route and the readings along it — charges and charge curves stay.
 - **Export / Backup** — download **trips (CSV)**, **charges (CSV)** and a **database backup**. The
   backup arrives **gzip-compressed** (`leapmotor_mate.db.gz`) 🆕, streamed in pieces so even a large
   database never has to fit in memory whole. Restore takes **both** the compressed file and a plain

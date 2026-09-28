@@ -935,9 +935,10 @@ volta. È divisa in tre colonne.
   c'è più nessun dispositivo dentro, la variabile d'ambiente `MATE_AUTH_PASSWORD` scavalca quella
   salvata.
 
-- **Database** — dimensione del DB e **conservazione posizioni** (retention): puoi tenere i punti GPS
-  "per sempre" (predefinito) o cancellare quelli più vecchi di 6/12/18/24 mesi per risparmiare
-  spazio. *Vengono potate solo le posizioni*: viaggi, ricariche e curve di ricarica restano.
+- **Database** — dimensione del DB e **conservazione posizioni** (retention): puoi tenere i punti
+  GPS "per sempre" (predefinito) o cancellare quelli più vecchi di 6/12/18/24 mesi per risparmiare
+  spazio. *Vengono potate solo le posizioni*: viaggi (con il percorso e le letture lungo la strada),
+  ricariche e curve di ricarica restano.
 - **Esporta / backup** — scarica **viaggi (CSV)**, **ricariche (CSV)** e un **backup del database**.
   Il backup arriva **compresso in gzip** (`leapmotor_mate.db.gz`) 🆕, mandato a pezzi così nemmeno un
   database grande deve stare tutto in memoria. Il ripristino accetta **sia** il file compresso **sia**
