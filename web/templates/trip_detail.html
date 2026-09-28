@@ -306,6 +306,14 @@
       </div>
       {% endif %}
       <div class="flex justify-between">
+        <span class="text-slate-400">{{ t('battery_temp') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('battery_temp_trip_help') }}">ⓘ</span></span>
+        <span class="text-white font-medium">
+          {%- if trip.battery_temp_max_c is not none -%}
+          {{ trip.battery_temp_min_c | temp_range(trip.battery_temp_max_c, 0) }}
+          {%- else -%}—{%- endif -%}
+        </span>
+      </div>
+      <div class="flex justify-between">
         <span class="text-slate-400">{{ t('elevation') }}</span>
         <span class="text-white font-medium">
           {%- if trip.elevation_gain_m is not none -%}

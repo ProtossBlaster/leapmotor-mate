@@ -792,6 +792,7 @@
     "elevation_gain": "Anstieg",
     "elevation_loss": "Abstieg",
     "outside_temp": "Außentemperatur",
+    "battery_temp_trip_help": "Das Auto meldet nur die Temperatur seiner kältesten Zelle; das sind ihr höchster und ihr niedrigster Wert während der Fahrt.",
     "elevation_calc_btn": "Höhenprofil berechnen",
     "elevation_calc_failed": "Für diese Fahrt sind keine Höhendaten verfügbar — später erneut versuchen.",
     "speed_profile": "Geschwindigkeitsprofil",

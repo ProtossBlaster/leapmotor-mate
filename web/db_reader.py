@@ -7153,7 +7153,8 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     seg_ids = _segment_ids(db, parent_id)
     ph = ",".join("?" * len(seg_ids))
     positions = db.execute(
-        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m, power_kw FROM trip_positions "
+        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m, power_kw, battery_temp_c "
+        "FROM trip_positions "
         f"WHERE trip_id IN ({ph}) ORDER BY recorded_at, id",
         seg_ids,
     ).fetchall()
@@ -7233,6 +7234,10 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     powers = [p["power_kw"] for p in positions if p.get("power_kw") is not None]
     trip_d["max_power_kw"] = max(powers) if powers and max(powers) > 0 else None
     trip_d["max_regen_kw"] = -min(powers) if powers and min(powers) < 0 else None
+    # The car reports only its coldest cell; its highest and lowest reading of the drive.
+    temps = [p["battery_temp_c"] for p in positions if p.get("battery_temp_c") is not None]
+    trip_d["battery_temp_max_c"] = max(temps) if temps else None
+    trip_d["battery_temp_min_c"] = min(temps) if temps else None
 
     # ── #18: total energy consumed + trip cost ──────────────────────────────────
     # Energy consumed = efficiency × distance / 100 (consistent with the stored efficiency).

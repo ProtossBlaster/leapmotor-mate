@@ -259,7 +259,7 @@ templates.env.filters["localdate"] = _localdate
 # Display-time unit conversion (DB stays metric — see units.py). Filters format "<value> <unit>";
 # the *_unit() / *_val() globals give a bare unit label or converted number (chart axes / JS data).
 import units
-for _name in ("dist", "speed", "temp", "pressure", "elev"):
+for _name in ("dist", "speed", "temp", "temp_range", "pressure", "elev"):
     templates.env.filters[_name] = getattr(units, _name)
 templates.env.filters["eff"] = units.efficiency
 def _eff_cls(e) -> str:

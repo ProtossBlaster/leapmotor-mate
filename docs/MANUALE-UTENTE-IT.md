@@ -455,6 +455,11 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   legge a ogni aggiornamento. Le letture sono a qualche secondo l'una dall'altra, quindi un picco
   breve tra due letture sfugge: i valori sono un minimo, e la ⓘ accanto lo dice. Non compaiono su
   un'auto con range extender, come il regen.
+- **Temperatura della batteria 🆕.** L'auto riporta una sola temperatura della batteria — quella
+  della cella più fredda, in gradi interi — e il dettaglio ne indica i valori durante il viaggio
+  come un unico intervallo, dal più basso al più alto, per esempio 19 – 22 °C; la ⓘ accanto alla riga
+  dice che è la cella più fredda. D'inverno l'intervallo mostra quanto era fredda la batteria e
+  quanto il viaggio l'ha scaldata.
 - **Consumi ufficiali dal cloud 🆕** — quando disponibili, **consumo, efficienza e costo** del viaggio
   vengono dal **dato ufficiale Leapmotor** (la vera ripartizione **guida / A·C / altro**) invece della
   sola stima dal calo di batteria. Subito dopo il viaggio vedi la stima con l'avviso **⏳ provvisorio**;

@@ -792,6 +792,7 @@
     "elevation_gain": "Dislivello in salita",
     "elevation_loss": "Dislivello −",
     "outside_temp": "Temperatura esterna",
+    "battery_temp_trip_help": "L'auto riporta solo la temperatura della cella più fredda; questi sono il valore più alto e quello più basso letti durante il viaggio.",
     "elevation_calc_btn": "Calcola dislivello",
     "elevation_calc_failed": "Nessun dato altimetrico disponibile per questo tragitto — riprova più tardi.",
     "speed_profile": "Profilo velocità",

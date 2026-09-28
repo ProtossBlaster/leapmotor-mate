@@ -449,6 +449,10 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   every update. The readings are several seconds apart, so a short peak between two of them is
   missed: the figures are a floor, and the ⓘ beside them says so. Not shown on a range extender,
   like the regen figure.
+- **Battery temperature 🆕.** The car reports one battery temperature — its coldest cell's, in whole
+  degrees — and the detail gives its readings during the drive as one range, lowest to highest, such
+  as 19 – 22 °C; the ⓘ beside the row says it is the coldest cell. In winter the range shows how cold
+  the pack was and how far the drive warmed it up.
 - **Official consumption from the cloud 🆕** — when available, a trip's **consumption, efficiency and
   cost** come from Leapmotor's **official figure** (the real **driving / A·C / other** split) instead of
   the battery‑% estimate alone. Right after a drive you see the estimate marked **⏳ provisional**; once

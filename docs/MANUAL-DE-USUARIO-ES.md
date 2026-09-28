@@ -471,6 +471,11 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   batería que Mate lee en cada actualización. Las lecturas están separadas unos segundos, así que un
   pico breve entre dos se pierde: los valores son un mínimo, y la ⓘ junto a ellos lo indica. No se
   muestran en un coche con extensor de autonomía, igual que la regeneración.
+- **Temperatura de la batería 🆕.** El coche solo informa de una temperatura de la batería — la de su
+  celda más fría, en grados enteros — y el detalle indica sus valores durante el trayecto como un
+  único rango, del más bajo al más alto, por ejemplo 19 – 22 °C; la ⓘ junto a la fila aclara que es la
+  celda más fría. En invierno, el rango muestra lo fría que estaba la batería y cuánto la calentó el
+  trayecto.
 - **Consumo oficial desde la nube 🆕** — cuando está disponible, el **consumo, el rendimiento y el
   coste** de un trayecto salen de la **cifra oficial** de Leapmotor (el reparto real entre **marcha /
   climatización / otros**) en vez de solo de la estimación por % de batería. Justo después de un

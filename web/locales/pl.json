@@ -792,6 +792,7 @@
     "elevation_gain": "Podjazd",
     "elevation_loss": "Przewyższenie −",
     "outside_temp": "Temperatura zewnętrzna",
+    "battery_temp_trip_help": "Auto podaje tylko temperaturę najzimniejszego ogniwa; to jej najwyższy i najniższy odczyt w czasie przejazdu.",
     "elevation_calc_btn": "Oblicz przewyższenie",
     "elevation_calc_failed": "Brak danych wysokościowych dla tej trasy — spróbuj ponownie później.",
     "speed_profile": "Profil prędkości",

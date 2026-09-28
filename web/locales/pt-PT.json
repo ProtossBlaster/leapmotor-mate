@@ -792,6 +792,7 @@
     "elevation_gain": "Desnível positivo",
     "elevation_loss": "Desnível −",
     "outside_temp": "Temperatura exterior",
+    "battery_temp_trip_help": "O carro só indica a temperatura da sua célula mais fria; estes são os seus valores mais alto e mais baixo durante a viagem.",
     "elevation_calc_btn": "Calcular desnível",
     "elevation_calc_failed": "Sem dados de altitude disponíveis para esta viagem — tente novamente mais tarde.",
     "speed_profile": "Perfil de velocidade",

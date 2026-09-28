@@ -480,6 +480,11 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   batterie que Mate lit à chaque mise à jour. Les relevés sont espacés de quelques secondes, donc un
   pic bref entre deux échappe : les valeurs sont un minimum, et le ⓘ à côté le dit. Non affichées
   sur un prolongateur d'autonomie, comme la régénération.
+- **Température de la batterie 🆕.** La voiture ne donne qu'une température de batterie — celle de sa
+  cellule la plus froide, en degrés entiers — et le détail indique ses valeurs pendant le trajet
+  sous forme d'une seule plage, de la plus basse à la plus haute, par exemple 19 – 22 °C ; le ⓘ à côté
+  de la ligne précise qu'il s'agit de la cellule la plus froide. En hiver, la plage montre à quel
+  point la batterie était froide et combien le trajet l'a réchauffée.
 
 - **Votre note + tags de conduite 🆕** (#107) — dans le détail d'un trajet, vous pouvez écrire une **note
   libre** (trafic, météo, type de route, toute remarque) et indiquer le **mode de conduite** (Confort /

@@ -64,7 +64,7 @@ def _trip(**over):
          "engine_km": 62.0, "fuel_start_pct": 30.8, "fuel_end_pct": 20.3, "reconstructed": 0,
          "positions": [], "start_odometer_km": 12000.0, "end_odometer_km": 12097.0,
          "avg_speed_kmh": 83.0, "max_speed_kmh": 130.0, "max_power_kw": None, "max_regen_kw": None,
-         "elevation_gain_m": None,
+         "battery_temp_max_c": None, "battery_temp_min_c": None, "elevation_gain_m": None,
          "elevation_loss_m": None, "outside_temp_start_c": None, "outside_temp_end_c": None,
          "elevation_profile_available": False, "ec_pending": False, "paid_kwh": None,
          "free_kwh": None, "fuel_price_per_l": 1.829,
