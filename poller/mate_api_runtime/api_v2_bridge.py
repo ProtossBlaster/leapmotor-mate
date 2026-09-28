@@ -79,6 +79,7 @@ READ_PATHS = {
     '/carownerservice/oversea/message/v1/list',
     '/carownerservice/oversea/message/v1/unread/count',
     '/carownerservice/oversea/vehicle/v1/app/remote/ctl/getAppointment',
+    '/carownerservice/oversea/hotspot/fetch',
 }
 CONTROL_PATH = '/app/app-control-service/v3/api/appremotectl'
 VERIFY_PATH = '/carownerservice/oversea/vehicle/v1/operPwd/verify'
@@ -496,6 +497,12 @@ class NewAPIClient(MateClientCompatibility):
             return value
         return dict(chargeEnable=integer('isEnable'),chargesoc=integer('percent'),starttime=c.get('beginTime'),
                     endtime=c.get('endTime'),cycles=c.get('cycles'),circulation=integer('circulation'),recharge=integer('recharge'))
+
+    def get_software_version(self,vin):
+        # answered only for the account that owns the car; an account it is shared with gets 40
+        data=self.read('/carownerservice/oversea/hotspot/fetch',{'vin':vin},form=True)['data']
+        if not isinstance(data,dict):raise LeapmotorApiError('Invalid software version response')
+        return data
 
     def _post(self,*,path,headers,data,cert):
         envelope=self.read(path,dict(parse_qsl(data,keep_blank_values=True)),form=True)
