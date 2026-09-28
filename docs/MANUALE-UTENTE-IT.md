@@ -928,7 +928,9 @@ volta. È divisa in tre colonne.
   mai in chiaro. **Se la perdi** non resti fuori per sempre: il campo *Nuova password* non chiede
   quella vecchia, quindi da un qualsiasi dispositivo ancora collegato ne imposti una nuova. Se non
   c'è più nessun dispositivo dentro, la variabile d'ambiente `MATE_AUTH_PASSWORD` scavalca quella
-  salvata.
+  salvata. ⚠️ La *scavalca*, non la sostituisce: l'impronta dimenticata resta nel database sotto,
+  quindi una volta rientrato imposta una password nuova (o toglila) da **Impostazioni → Accesso** e
+  solo dopo rimuovi la variabile — se la togli prima, torna a comandare quella che avevi perso.
 
 - **Database** — dimensione del DB e **conservazione posizioni** (retention): puoi tenere i punti GPS
   "per sempre" (predefinito) o cancellare quelli più vecchi di 6/12/18/24 mesi per risparmiare

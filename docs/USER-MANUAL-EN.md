@@ -900,7 +900,10 @@ divided into three columns.
   salted hash, never in clear text. **If you lose it**, you are not locked out for good: the *New
   password* box doesn't ask for the old one, so from any device still signed in you can simply set
   a new one. If no device is signed in any more, the `MATE_AUTH_PASSWORD` environment variable
-  overrides whatever is stored.
+  overrides whatever is stored. ⚠️ *Overrides*, not replaces: the forgotten hash stays in the
+  database underneath, so once you are back in, set a new password (or clear it) in **Settings →
+  Access** and only then remove the variable — remove it first and the forgotten one is in charge
+  again.
 
 - **Database** — the size of the DB and the **GPS retention**: you can keep the GPS points "forever"
   (default) or delete those older than 6/12/18/24 months to save space. *Only positions are pruned*:

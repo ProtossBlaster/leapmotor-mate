@@ -929,7 +929,10 @@ ist in drei Spalten unterteilt.
   ein gesalzener Hash, nie der Klartext. **Wenn Sie es verlieren**, sind Sie nicht endgültig
   ausgesperrt: das Feld *Neues Passwort* fragt das alte nicht ab, Sie vergeben also von jedem noch
   angemeldeten Gerät aus einfach ein neues. Ist kein Gerät mehr angemeldet, überschreibt die
-  Umgebungsvariable `MATE_AUTH_PASSWORD` das gespeicherte.
+  Umgebungsvariable `MATE_AUTH_PASSWORD` das gespeicherte. ⚠️ Sie *überschreibt* es, sie ersetzt es
+  nicht: der vergessene Hash bleibt darunter in der Datenbank. Vergeben Sie also, sobald Sie wieder
+  drin sind, unter **Einstellungen → Zugang** ein neues Passwort (oder löschen Sie es) und entfernen
+  Sie erst danach die Variable — sonst ist wieder das vergessene zuständig.
 
 - **Datenbank** — Größe der DB und **Aufbewahrung der Positionen** (Retention): Sie können die GPS-Punkte „für
   immer" behalten (Standard) oder die älter als 6/12/18/24 Monate löschen, um Platz zu sparen. *Es werden nur die

@@ -942,7 +942,10 @@ dividida en tres columnas.
   hash con sal, nunca en claro. **Si la pierdes**, no te quedas fuera para siempre: el campo *Contraseña
   nueva* no pide la anterior, así que desde cualquier dispositivo con la sesión todavía abierta puedes
   poner una nueva sin más. Si ya no queda ningún dispositivo con la sesión abierta, la variable de
-  entorno `MATE_AUTH_PASSWORD` tiene prioridad sobre lo que haya guardado.
+  entorno `MATE_AUTH_PASSWORD` tiene prioridad sobre lo que haya guardado. ⚠️ Tiene *prioridad*, no lo
+  sustituye: el hash olvidado sigue debajo en la base de datos, así que en cuanto vuelvas a entrar
+  pon una contraseña nueva (o quítala) en **Ajustes → Acceso** y solo después elimina la variable —
+  si la quitas antes, vuelve a mandar la que habías perdido.
 
 - **Base de datos** — el tamaño de la BD y la **retención del GPS**: puedes conservar los puntos GPS
   «para siempre» (por defecto) o borrar los de más de 6/12/18/24 meses para ahorrar espacio. *Solo se
