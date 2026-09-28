@@ -485,7 +485,8 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   tiene como mucho dos escalas, una a cada lado, cada una con la unidad arriba y los números en el
   color de su línea. Cada entrada de la leyenda muestra u oculta su línea — un cuadrado vacío señala
   una línea oculta — y una franja con todas sus líneas ocultas se pliega. Todas las líneas empiezan
-  visibles; la elección se recuerda en el navegador para todos los trayectos.
+  visibles; la elección se recuerda en el navegador para todos los trayectos. El recuadro empieza
+  con la hora del día, al segundo, y el minuto del trayecto.
 - **Consumo oficial desde la nube 🆕** — cuando está disponible, el **consumo, el rendimiento y el
   coste** de un trayecto salen de la **cifra oficial** de Leapmotor (el reparto real entre **marcha /
   climatización / otros**) en vez de solo de la estimación por % de batería. Justo después de un

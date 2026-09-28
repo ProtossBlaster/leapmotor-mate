@@ -494,7 +494,7 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   chiffres dans la couleur de sa courbe. Chaque entrée de la légende affiche ou masque sa courbe —
   un carré vide signale une courbe masquée — et une bande dont toutes les courbes sont masquées se
   replie. Toutes les courbes sont affichées au départ ; le choix est mémorisé dans le navigateur
-  pour tous les trajets.
+  pour tous les trajets. La bulle commence par l'heure, à la seconde près, et la minute du trajet.
 
 - **Votre note + tags de conduite 🆕** (#107) — dans le détail d'un trajet, vous pouvez écrire une **note
   libre** (trafic, météo, type de route, toute remarque) et indiquer le **mode de conduite** (Confort /

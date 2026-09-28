@@ -468,7 +468,8 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   al massimo due scale, una per lato, ognuna con l'unità in alto e i numeri nel colore della sua
   linea. Ogni voce della legenda accende e spegne la sua linea — un quadratino vuoto indica una
   linea spenta — e una fascia con tutte le linee spente si chiude. Tutte le linee partono accese; la
-  scelta viene ricordata nel browser per tutti i viaggi.
+  scelta viene ricordata nel browser per tutti i viaggi. Il riquadro si apre con l'ora del giorno,
+  al secondo, e il minuto del viaggio.
 - **Consumi ufficiali dal cloud 🆕** — quando disponibili, **consumo, efficienza e costo** del viaggio
   vengono dal **dato ufficiale Leapmotor** (la vera ripartizione **guida / A·C / altro**) invece della
   sola stima dal calo di batteria. Subito dopo il viaggio vedi la stima con l'avviso **⏳ provvisorio**;

@@ -479,7 +479,8 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   eine pro Seite, jede mit der Einheit oben und den Zahlen in der Farbe ihrer Linie. Jeder Eintrag
   der Legende schaltet seine Linie ein und aus — ein leeres Quadrat steht für eine ausgeschaltete
   Linie —, und ein Streifen, dessen Linien alle aus sind, klappt zu. Anfangs sind alle Linien
-  eingeschaltet; die Auswahl merkt sich der Browser für alle Fahrten.
+  eingeschaltet; die Auswahl merkt sich der Browser für alle Fahrten. Das Hover-Fenster beginnt mit
+  der Uhrzeit auf die Sekunde und der Minute der Fahrt.
 
 - **Ihre Notiz + Fahr-Tags 🆕** (#107) — im Detail einer Fahrt können Sie eine **freie Notiz** (Verkehr,
   Wetter, Streckentyp, jede Anmerkung) schreiben und den verwendeten **Fahrmodus** (Comfort / Normal /

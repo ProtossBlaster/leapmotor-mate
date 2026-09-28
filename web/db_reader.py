@@ -164,6 +164,12 @@ def detected_tz_name() -> str:
     return "UTC"
 
 
+def display_tz_name() -> str:
+    """The IANA name of the zone every time on screen is shown in, for the browser to format a time
+    itself: each moment then gets its own offset, which a drive across a clock change needs."""
+    return getattr(_local_tz(), "key", None) or detected_tz_name()
+
+
 def pin_auto_timezone() -> str:
     """One-shot: turn "Automatic" into the zone it was already resolving to, and RECORD it.
 

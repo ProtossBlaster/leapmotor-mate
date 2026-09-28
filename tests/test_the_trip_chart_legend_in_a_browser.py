@@ -53,11 +53,26 @@ def _a_trip_whose_scales_could_step_by_halves():
     return rows
 
 
+AUTUMN = datetime(2026, 10, 25, 0, 50, tzinfo=timezone.utc)   # 02:50 summer time in Warsaw; at 01:00 UTC it is 02:00 again
+
+
+def _a_trip_across_the_autumn_clock_change():
+    """Trip 4, one reading a minute from 02:50 summer time to 02:10 winter time, with Mate on Warsaw."""
+    rows = [("INSERT INTO settings (key, value) VALUES ('timezone', 'Europe/Warsaw')", ()),
+            ("INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, duration_min, start_soc,"
+             " end_soc) VALUES (4,1,?,?,12,20,80,76)", (AUTUMN.isoformat(), (AUTUMN + timedelta(minutes=20)).isoformat()))]
+    rows += [("INSERT INTO trip_positions (trip_id, recorded_at, latitude, longitude, speed_kmh, soc)"
+              " VALUES (4,?,?,9.0,?,?)", ((AUTUMN + timedelta(minutes=k)).isoformat(), 45 + k * 0.01, 50 + k,
+                                          80 - k * 0.2)) for k in range(21)]
+    return rows
+
+
 @pytest.fixture(scope="module")
 def mate(tmp_path_factory):
     data = tmp_path_factory.mktemp("mate-trip-chart")
     db = data / "leapmotor_mate.db"
-    seed_database(db, VIN, _two_trips() + _a_trip_whose_scales_could_step_by_halves())
+    seed_database(db, VIN, _two_trips() + _a_trip_whose_scales_could_step_by_halves()
+                  + _a_trip_across_the_autumn_clock_change())
     with served(data, db) as url:
         yield url
 
@@ -71,6 +86,7 @@ _STATE = """() => {
   const names = chart ? chart.w.globals.seriesNames : [];
   return {legend, lines: names.filter(n => !n.startsWith('_') && !n.endsWith('__dash')),
           bands: chart ? chart.w.config.yaxis[0].max : 0,
+          minutes: Array.from(document.querySelectorAll('#trip-profile .apexcharts-xaxis-label tspan')).map(t => t.textContent),
           units: Array.from(document.querySelectorAll('#trip-profile .apexcharts-yaxis-label tspan')).map(t => t.textContent)
                    .filter(t => /[^0-9.-]/.test(t)),
           charts: document.querySelectorAll('#trip-profile .apexcharts-canvas').length,
@@ -104,7 +120,10 @@ def test_the_legend_switches_a_line_folds_an_empty_band_and_remembers_it(mate):
         assert first["bands"] == 3
         assert (first["charts"], first["tooltips"]) == (1, 1), "the bands are not one chart with one hover box"
         assert sorted(first["units"]) == sorted(["%", "km", "km/h", "kW", "m", "°C"]), "a scale does not say its unit"
+        assert first["minutes"] and all(m.endswith(" min") for m in first["minutes"]), first["minutes"]
         page.hover("#trip-profile", position={"x": 300, "y": 60})
+        head = page.inner_text("#trip-profile .apexcharts-tooltip-title")
+        assert re.fullmatch(r"\d\d:\d\d:\d\d \(\d+ min\)", head), head
         groups = page.eval_on_selector_all("#trip-profile .mate-tip-band",
                                            "gs => gs.map(g => Array.from(g.children).map(r => r.innerText.split(':')[0]))")
         assert groups == [["Speed", "Power"], ["SOC", "Range"], ["Altitude", "Battery temp"]], groups
@@ -152,6 +171,34 @@ def test_every_number_on_a_scale_is_the_value_of_its_line(mate):
         assert len(bands) == 6, bands
         for band in bands:
             assert band[1] - band[0] == band[2] - band[1], f"the numbers {band} do not match evenly spaced lines"
+    finally:
+        browser.close()
+        pw.stop()
+
+
+def test_the_clock_in_the_hover_box_follows_the_clock_change(mate):
+    """Every reading's time of day is its own in Mate's zone: after the clocks go back at 03:00 the
+    reading at 01:04 UTC is 02:04, not 03:04 at the offset the drive started with."""
+    from zoneinfo import ZoneInfo
+
+    pw, browser = chromium(sync_api)
+    try:
+        page = browser.new_page()
+        _open(page, mate + "/trips/4")
+        width = page.eval_on_selector("#trip-profile", "e => e.getBoundingClientRect().width")
+        heads = set()
+        for x in range(40, int(width) - 40, 12):
+            page.hover("#trip-profile", position={"x": x, "y": 60})
+            heads.add(page.inner_text("#trip-profile .apexcharts-tooltip-title"))
+        heads.discard("")   # the pointer outside the plot shows no hover box
+        warsaw = ZoneInfo("Europe/Warsaw")
+        offsets = set()
+        for head in heads:
+            clock, minute = re.fullmatch(r"(\d\d:\d\d:\d\d) \((\d+) min\)", head).groups()
+            at = (AUTUMN + timedelta(minutes=int(minute))).astimezone(warsaw)
+            assert clock == at.strftime("%H:%M:%S"), f"{head} should read {at:%H:%M:%S}"
+            offsets.add(at.utcoffset())
+        assert len(offsets) == 2, f"the hover never reached both sides of the change: {sorted(heads)}"
     finally:
         browser.close()
         pw.stop()

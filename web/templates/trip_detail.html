@@ -581,7 +581,7 @@
       function pushLabel(ms) {
         labelMs.push(useTime && !isNaN(ms) ? ms : NaN);
         labels.push(useTime && !isNaN(ms)
-          ? Math.max(0, Math.round((ms - t0) / 60000)) + "′"
+          ? Math.max(0, Math.round((ms - t0) / 60000)) + " min"
           : String(labels.length));
       }
 
@@ -636,7 +636,7 @@
           pauseAnns.push({
             x: labels[ia], x2: labels[ib],
             fillColor: '#64748b', opacity: 0.14, borderColor: '#64748b',
-            label: { text: '⏸ ' + p.minutes + '′', borderColor: '#64748b',
+            label: { text: '⏸ ' + p.minutes + ' min', borderColor: '#64748b',
                      style: { background: '#334155', color: '#e2e8f0', fontSize: '10px' } }
           });
         });
@@ -762,10 +762,20 @@
       try { shown = JSON.parse(localStorage.getItem(SHOWN_KEY)) || {}; } catch (e) { shown = {}; }
       function isShown(id) { return C[id].present && (id in shown ? !!shown[id] : shownByDefault[id]); }
 
-      // The hover box: the minute of the drive, then the lines band by band, a rule between the bands.
+      // The hover box heads each point with its time of day in Mate's zone, each moment at its own offset
+      // (a drive can cross a clock change), then the minute of the drive.
+      var clockOpts = { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }, clock;
+      try { clock = new Intl.DateTimeFormat('en-GB', Object.assign({ timeZone: {{ display_tz_name()|tojson }} }, clockOpts)); }
+      catch (e) { clock = new Intl.DateTimeFormat('en-GB', clockOpts); }   // a zone this browser does not know: its own
+      function clockAt(i) {
+        var ms = labelMs[i];
+        return ms == null || isNaN(ms) ? labels[i] : clock.format(ms) + ' (' + labels[i] + ')';
+      }
+
+      // The hover box: the clock, then the lines band by band, a rule between the bands.
       function esc(text) { return String(text).replace(/[&<>"]/g, function (ch) { return '&#' + ch.charCodeAt(0) + ';'; }); }
       function hoverBox(bands, i) {
-        var html = '<div class="apexcharts-tooltip-title" style="font-size:12px">' + esc(labels[i]) + '</div>';
+        var html = '<div class="apexcharts-tooltip-title" style="font-size:12px">' + esc(clockAt(i)) + '</div>';
         bands.forEach(function (b, n) {
           var rows = b.ids.filter(isShown).map(function (id) {
             var c = C[id], v = c.data[i];
