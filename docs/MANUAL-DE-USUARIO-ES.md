@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.5.5 · **Idioma:** Español
+> **Versión de Mate:** v4.6.0 · **Idioma:** Español
 
-## Novedades de la versión 4.5.5
+## Novedades de la versión 4.6.0
+
+En cada consulta mientras conduces, Mate lee la potencia que sale de la batería, la temperatura de su
+celda más fría, la estimación de autonomía y el aire exterior. Lo guardaba todo y casi nada te lo
+mostraba. Esas cuatro lecturas quedan ahora **con el viaje mismo** y están en su página: **Potencia
+máx.** y **Regen. máx.**, la temperatura de la batería y la exterior como intervalo, de la más baja a
+la más alta del viaje en lugar de como media, y — bajo la duración — cuánto de ella pasaste **en
+movimiento, parado y sin datos**, en minutos enteros que suman la duración de arriba. Junto a la
+velocidad media está ahora la **mediana** de las mismas lecturas, que en un viaje mitad autopista
+mitad atasco dice más que la media.
+
+El gráfico bajo el mapa se llama ahora **Datos del viaje**: un gráfico en tres bandas sobre un solo
+eje de tiempo — velocidad y potencia, SoC y autonomía, altitud y temperatura de la batería — con un
+solo recuadro al pasar el ratón para todas. Su leyenda enciende y apaga cada línea, y tu elección
+queda guardada en este navegador.
+
+La **velocidad máxima** está corregida: donde el registro que Leapmotor guarda de ese viaje está
+emparejado con él, la cifra es la del coche, no la muestra más rápida de Mate. Las lecturas de Mate
+están separadas unos once segundos, así que un pico más corto nunca estuvo en ellas — en 38 viajes la
+muestra quedó por debajo de la cifra del coche en 37.
+
+⚠️ **Los viajes que condujiste antes de esta versión reciben esas lecturas una sola vez, al arrancar
+Mate**, y solo desde las consultas cuya fila de posición sigue en la base de datos. Si has fijado una
+conservación del GPS, en los viajes más antiguos verás un guion: a 7 días se puede rellenar cerca del
+3 % de sus puntos, a 30 días un quinto, a 90 días siete décimos. Con el valor por defecto — guardar
+todo — todos. Cada viaje de ahora en adelante tiene las lecturas sea cual sea ese ajuste.
+
+### Novedades de la versión 4.5.5
 
 Esta versión quita dos cosas y no añade ninguna, y las dos eran sobre actualizaciones de software
 del coche. La fila «Actualizaciones OTA» de la vista general decía **Ninguna** siempre que en la

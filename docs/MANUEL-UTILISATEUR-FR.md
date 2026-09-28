@@ -1,8 +1,37 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.5.5 · **Langue :** Français
+> **Version de Mate :** v4.6.0 · **Langue :** Français
 
-## Nouveautés de la version 4.5.5
+## Nouveautés de la version 4.6.0
+
+À chaque interrogation pendant que vous roulez, Mate lit la puissance qui sort de la batterie, la
+température de sa cellule la plus froide, l'estimation d'autonomie et l'air extérieur. Il gardait
+tout et ne vous en montrait presque rien. Ces quatre relevés restent maintenant **avec le trajet
+lui-même** et figurent sur sa page : **Puissance max** et **Régén. max**, la température de la
+batterie et celle de l'extérieur sous forme d'intervalle, de la plus basse à la plus haute du trajet
+plutôt qu'en moyenne, et — sous la durée — combien vous en avez passé **en mouvement, à l'arrêt et
+sans données**, en minutes entières qui totalisent la durée au-dessus. À côté de la vitesse moyenne
+il y a désormais la **médiane** des mêmes relevés, qui sur un trajet moitié autoroute moitié bouchon
+en dit plus que la moyenne.
+
+Le graphique sous la carte s'appelle maintenant **Données du trajet** : un graphique en trois bandes
+sur un seul axe de temps — vitesse et puissance, SoC et autonomie, altitude et température de la
+batterie — avec une seule infobulle pour toutes. Sa légende allume et éteint chaque ligne, et votre
+choix reste mémorisé dans ce navigateur.
+
+La **vitesse maximale** est corrigée : là où l'enregistrement que Leapmotor garde de ce trajet lui est
+rattaché, le chiffre est celui de la voiture, pas le relevé le plus rapide de Mate. Les relevés de
+Mate sont espacés d'environ onze secondes, un pic plus court n'y a donc jamais été — sur 38 trajets le
+relevé était sous le chiffre de la voiture sur 37.
+
+⚠️ **Les trajets roulés avant cette version reçoivent ces relevés une seule fois, au démarrage de
+Mate**, et seulement depuis les interrogations dont la ligne de position est encore dans la base. Si
+vous avez réglé une conservation du GPS, les trajets plus anciens afficheront un tiret : à 7 jours
+environ 3 % de leurs points peuvent être remplis, à 30 jours un cinquième, à 90 jours sept dixièmes.
+Avec le réglage par défaut — tout garder — tous le sont. Chaque trajet à partir de maintenant a les
+relevés quel que soit ce réglage.
+
+### Nouveautés de la version 4.5.5
 
 Cette version retire deux choses et n'en ajoute aucune ; toutes deux concernaient les mises à jour
 logicielles de la voiture. La ligne « Mises à jour OTA » de l'aperçu affichait **Aucune** dès que

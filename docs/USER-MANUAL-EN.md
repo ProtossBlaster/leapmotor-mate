@@ -1,8 +1,33 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.5.5 · **Language:** English
+> **Mate version:** v4.6.0 · **Language:** English
 
-## New in 4.5.5
+## New in 4.6.0
+
+At every poll while you drive, Mate reads the power going out of the battery, the temperature of its
+coldest cell, the range estimate and the outside air. It stored all of it and showed you almost none.
+Those four readings are now kept **with the trip itself** and put on its page: **Max power** and
+**Max regen**, the battery and outside temperature as the lowest-to-highest range of the drive rather
+than an average, and — under the duration — how much of it you spent **moving, standing still, and
+with no data**, as whole minutes that add up to the duration above them. Beside the average speed
+there is now the **median** of the same readings, which on a drive half motorway and half queue says
+more than the average does.
+
+The chart under the map is now **Trip data**: one chart in three bands on one time axis — speed and
+power, SoC and range, altitude and battery temperature — with one hover box across all of them. Its
+legend switches each line on and off, and your choice is remembered in this browser.
+
+The **top speed** is corrected: where Leapmotor's own record of that drive is matched to the trip, the
+figure is the car's, not Mate's fastest sample. Mate's readings are about eleven seconds apart, so a
+shorter peak was never in them — across 38 drives the sample was below the car's figure on 37.
+
+⚠️ **Trips you drove before this release get those readings once, when Mate starts**, and only from
+polls whose position row is still in the database. If you have set a GPS retention, most older trips
+will show a dash there: at 7 days about 3% of their points can be filled, at 30 days a fifth, at 90
+days seven tenths. With the default setting — keep everything — all of them are. Every trip from now
+on has the readings whatever that setting says.
+
+### New in 4.5.5
 
 Two things are removed in this release and none added, both about software updates for the car.
 The Overview's "OTA updates" row said **None** whenever your account's message inbox held no

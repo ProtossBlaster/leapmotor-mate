@@ -1,8 +1,35 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.5.5 · **Sprache:** Deutsch
+> **Mate-Version:** v4.6.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.5.5
+## Neu in Version 4.6.0
+
+Bei jeder Abfrage während der Fahrt liest Mate die Leistung, die aus der Batterie geht, die Temperatur
+ihrer kältesten Zelle, die Reichweitenschätzung und die Außenluft. Gespeichert wurde alles, gezeigt
+fast nichts davon. Diese vier Messwerte bleiben nun **bei der Fahrt selbst** und stehen auf ihrer
+Seite: **Max. Leistung** und **Max. Rekuperation**, die Batterie- und die Außentemperatur als Bereich
+vom niedrigsten zum höchsten Wert der Fahrt statt als Mittelwert, und — unter der Dauer — wie viel
+davon **in Fahrt, im Stand und ohne Daten** war, als ganze Minuten, die zusammen die Dauer darüber
+ergeben. Neben der Durchschnittsgeschwindigkeit steht jetzt der **Median** derselben Messwerte, der
+bei einer Fahrt halb Autobahn, halb Stau mehr sagt als der Durchschnitt.
+
+Das Diagramm unter der Karte heißt jetzt **Fahrtdaten**: ein Diagramm in drei Bändern auf einer
+Zeitachse — Geschwindigkeit und Leistung, SoC und Reichweite, Höhe und Batterietemperatur — mit einem
+gemeinsamen Hinweisfeld. Seine Legende schaltet jede Linie ein und aus, und die Auswahl bleibt in
+diesem Browser gespeichert.
+
+Die **Höchstgeschwindigkeit** ist korrigiert: wo Leapmotors eigener Datensatz dieser Fahrt der Fahrt
+zugeordnet ist, kommt der Wert vom Auto und nicht von Mates schnellster Messung. Mates Messwerte
+liegen etwa elf Sekunden auseinander, ein kürzerer Spitzenwert war also nie darin — über 38 Fahrten
+lag die Messung bei 37 unter dem Wert des Autos.
+
+⚠️ **Fahrten von vor dieser Version bekommen diese Messwerte einmalig beim Start von Mate**, und nur
+aus Abfragen, deren Positionszeile noch in der Datenbank steht. Wenn eine GPS-Aufbewahrung eingestellt
+ist, steht bei älteren Fahrten ein Strich: bei 7 Tagen lassen sich etwa 3 % ihrer Punkte füllen, bei
+30 Tagen ein Fünftel, bei 90 Tagen sieben Zehntel. Mit der Voreinstellung — alles behalten — alle.
+Jede Fahrt von jetzt an hat die Messwerte, unabhängig von dieser Einstellung.
+
+### Neu in Version 4.5.5
 
 Diese Version entfernt zwei Dinge und fügt keines hinzu; beide betrafen Software-Updates des
 Autos. Die Zeile „OTA-Updates“ in der Übersicht sagte **Keine**, sobald im Posteingang des Kontos

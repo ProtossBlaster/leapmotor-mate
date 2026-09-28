@@ -1,8 +1,36 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.5.5 · **Lingua:** Italiano
+> **Versione di Mate:** v4.6.0 · **Lingua:** Italiano
 
-## Novità della 4.5.5
+## Novità della 4.6.0
+
+A ogni interrogazione mentre guidi, Mate legge la potenza che esce dalla batteria, la temperatura
+della sua cella più fredda, la stima di autonomia e l'aria esterna. Le conservava tutte e non te ne
+mostrava quasi nessuna. Quelle quattro letture restano adesso **insieme al viaggio** e stanno sulla
+sua pagina: **Potenza max** e **Recupero max**, la temperatura della batteria e quella esterna come
+intervallo dalla più bassa alla più alta della guidata invece che come media, e — sotto la durata —
+quanto ne hai passato **in movimento, da fermo e senza dati**, in minuti interi che sommano alla
+durata scritta sopra. Accanto alla velocità media c'è ora la **mediana** delle stesse letture, che su
+una guidata mezza in autostrada e mezza in coda dice più di quanto dica la media.
+
+Il grafico sotto la mappa si chiama adesso **Dati del viaggio**: un grafico in tre bande su un solo
+asse dei tempi — velocità e potenza, SoC e autonomia, altitudine e temperatura della batteria — con un
+solo riquadro al passaggio del mouse per tutte. La sua legenda accende e spegne ogni linea, e la tua
+scelta resta memorizzata in questo browser.
+
+La **velocità di punta** è corretta: dove il record che Leapmotor tiene di quella guidata è agganciato
+al viaggio, la cifra è quella dell'auto, non il campione più veloce di Mate. Le letture di Mate sono a
+circa undici secondi l'una dall'altra, quindi una punta più breve non c'è mai stata dentro — su 38
+guidate il campione stava sotto la cifra dell'auto in 37.
+
+⚠️ **I viaggi che hai guidato prima di questa versione ricevono quelle letture una volta sola,
+all'avvio di Mate**, e solo dalle interrogazioni la cui riga di posizione è ancora nel database. Se
+hai impostato una conservazione del GPS, sui viaggi più vecchi vedrai un trattino: a 7 giorni si
+riempie circa il 3% dei loro punti, a 30 giorni un quinto, a 90 giorni sette decimi. Col valore di
+serie — tieni tutto — si riempiono tutti. Ogni viaggio da qui in avanti ha le letture qualunque cosa
+dica quell'impostazione.
+
+### Novità della 4.5.5
 
 Questa versione toglie due cose e non ne aggiunge nessuna, ed erano entrambe sugli aggiornamenti
 software dell'auto. La riga «Aggiornamenti OTA» della panoramica diceva **Nessuno** ogni volta che
