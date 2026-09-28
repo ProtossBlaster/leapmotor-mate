@@ -195,9 +195,8 @@ def test_a_trip_without_gps_is_closed_on_its_odometer_not_dropped(rig):
 
 @pytest.mark.parametrize("opening_row_inside", [True, False])
 def test_a_trip_that_heard_nothing_after_it_opened_closes_where_it_opened(rig, opening_row_inside):
-    """The row a trip opens on is saved a moment before the trip exists, so in production it falls
-    outside the trip, and nothing is inside. The trip's own opening is then the last thing it
-    heard — the same end the row gives when it is found."""
+    """Its only reading is the frame it opened on. When that row is gone from inside the trip too,
+    the trip's own opening is the last thing it heard, which is the same end the row gives."""
     db, rec, poll, _wall = rig
     poll(0, _at(0, 1000))
     if not opening_row_inside:

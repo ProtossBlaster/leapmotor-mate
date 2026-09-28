@@ -605,7 +605,8 @@ class Recorder:
             # anything the odometer gained while the cloud was quiet is declared on its own instead
             # of becoming the front of this trip.
             self._record_offline_gap(data)
-            self._active_trip_id = self._db.create_trip(self._vehicle_id, data)
+            self._active_trip_id = self._db.create_trip(self._vehicle_id, data,
+                                                        started_at=self._polled_at)
 
         elif frm == State.OFFLINE and to in _PARKED_STATES and self._active_charge_id and data \
                 and not data.plug_connected:
