@@ -277,6 +277,18 @@
         </span>
       </div>
       <div class="flex justify-between">
+        <span class="text-slate-400">{{ t('duration') }}{% if trip.driving_min is not none %} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('trip_time_split_help') }}">ⓘ</span>{% endif %}</span>
+        <span class="text-right">
+          <span class="text-white font-medium">{{ fmt_dur(trip.duration_min) }}</span>
+          {%- if trip.driving_min is not none %}
+          <span class="block text-xs text-slate-500">{{ t('trip_time_split').replace('{driving}', fmt_dur(trip.driving_min)).replace('{stopped}', fmt_dur(trip.stopped_min)) }}</span>
+          {%- if trip.unknown_min >= 1 %}
+          <span class="block text-xs text-slate-500">{{ t('trip_time_unknown').replace('{unknown}', fmt_dur(trip.unknown_min)) }}</span>
+          {%- endif %}
+          {%- endif %}
+        </span>
+      </div>
+      <div class="flex justify-between">
         <span class="text-slate-400">{{ t('avg_speed') }}</span>
         <span class="text-white font-medium">{% if trip.avg_speed_kmh is not none %}{{ trip.avg_speed_kmh | speed(0) }}{% else %}—{% endif %}</span>
       </div>

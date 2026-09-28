@@ -441,6 +441,10 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   climb shows the real drop. Between them they explain a good part of a drive's consumption: a climb
   costs energy, cold costs range. Trips recorded before this existed have a **Calculate elevation**
   button, and the whole thing can be switched off in Settings.
+- **Driving and stopped 🆕.** Under the duration, the detail splits it into the time driving and the
+  time stopped — at a standstill inside the drive (lights, queues) — from Mate's readings several
+  seconds apart. A stop between joined pieces counts as neither, and a hole in the readings shows as
+  *no data* instead of being given to either.
 - **Max speed from the car 🆕.** When the car's cloud record of a drive is matched to the trip (the
   same record that gives the official consumption), the detail shows the top speed the car itself
   measured. Mate's own readings are several seconds apart and miss short peaks — on a B10 by up to

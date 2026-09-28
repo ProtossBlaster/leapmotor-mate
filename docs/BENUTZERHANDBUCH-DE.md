@@ -458,6 +458,10 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   Einstellungen abschalten. Ist der Schalter für die Außentemperatur an (siehe *Übersicht*), stammen
   die Temperaturen der Fahrt aus den **unterwegs** genommenen Messungen; diese nachträgliche Abfrage
   bleibt der Rückfall für ältere Fahrten 🆕.
+- **Fahrzeit und Standzeit 🆕.** Unter der Dauer teilt das Detail sie in Fahrzeit und Standzeit
+  während der Fahrt (Ampeln, Stau), aus Mates Messungen im Abstand einiger Sekunden. Eine Pause
+  zwischen zusammengeführten Fahrten zählt zu keinem von beiden, und eine Lücke in den Messungen
+  erscheint als *ohne Daten*, statt einem der beiden zugeschlagen zu werden.
 - **Höchstgeschwindigkeit vom Auto 🆕.** Wird der Cloud-Datensatz des Autos einer Fahrt zugeordnet
   (derselbe, der den offiziellen Verbrauch liefert), zeigt das Detail die vom Auto selbst gemessene
   Höchstgeschwindigkeit. Mates eigene Messungen liegen einige Sekunden auseinander und verpassen

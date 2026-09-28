@@ -462,6 +462,10 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   dos explican buena parte del consumo de un recorrido: subir cuesta energía, el frío cuesta
   autonomía. Los trayectos registrados antes de que esto existiera tienen un botón **Calcular la
   altimetría**, y todo el conjunto se puede desactivar en Ajustes.
+- **En movimiento y detenido 🆕.** Bajo la duración, el detalle la divide entre el tiempo en
+  movimiento y el tiempo parado durante el trayecto (semáforos, atascos), según las lecturas de Mate
+  tomadas cada pocos segundos. Una parada entre trayectos unidos no cuenta para ninguno de los dos,
+  y un hueco en las lecturas aparece como *sin datos* en lugar de asignarse a uno de ellos.
 - **Velocidad máxima del coche 🆕.** Cuando el registro del recorrido en la nube del coche se asocia
   al trayecto (el mismo que da el consumo oficial), el detalle muestra la velocidad máxima que midió
   el propio coche. Las lecturas de Mate están separadas unos segundos y pierden los picos breves —

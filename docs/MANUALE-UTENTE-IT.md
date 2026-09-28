@@ -446,6 +446,10 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   Insieme spiegano buona parte del consumo di una guidata: la salita costa energia, il freddo costa
   autonomia. I viaggi registrati prima che esistesse hanno un pulsante **Calcola altimetria**, e
   tutto si può spegnere dalle Impostazioni.
+- **In movimento e fermo 🆕.** Sotto la durata, il dettaglio la divide nel tempo in movimento e nel
+  tempo da fermi durante il viaggio (semafori, code), dalle letture di Mate prese a pochi secondi
+  l'una dall'altra. Una sosta tra viaggi uniti non conta per nessuno dei due, e un buco nelle
+  letture compare come *senza dati* invece di finire in uno dei due.
 - **Velocità massima dall'auto 🆕.** Quando il record del viaggio nel cloud dell'auto viene abbinato
   al viaggio (lo stesso record che dà i consumi ufficiali), il dettaglio mostra la velocità massima
   misurata dall'auto stessa. Le letture di Mate sono a qualche secondo l'una dall'altra e perdono i
