@@ -158,7 +158,8 @@ def _render(tmp_path, monkeypatch, **kw):
     # asyncio.run, NOT get_event_loop: the latter borrows whatever loop the rest of the suite left
     # behind, so this file passed on its own and failed inside the suite — the exact shape of a
     # test that is green for a reason other than the code being right.
-    return asyncio.run(main.battery_page(_Req())).body.decode()
+    # the drain section fetches itself since 4.5.2 — the page is only its shell
+    return asyncio.run(main.battery_vampire_section(_Req())).body.decode()
 
 
 def _note(body):
@@ -189,7 +190,7 @@ def test_the_numbers_follow_the_language(tmp_path, monkeypatch):
     import asyncio
     import main
     monkeypatch.setattr(main.db_reader, "DB_PATH", db_reader.DB_PATH)
-    note = _note(asyncio.run(main.battery_page(_Req())).body.decode())
+    note = _note(asyncio.run(main.battery_vampire_section(_Req())).body.decode())
 
     assert "13,5" in note, f"the duration is not written the Italian way: {note}"
     assert "0,1" in note, f"the drop is not written the Italian way: {note}"

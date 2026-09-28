@@ -1,0 +1,176 @@
+{# Fetched by battery.html, not built into it: this section is ninety days of position rows grouped into parks, which on an add-on is seconds. The page arrives, the figures follow. #}
+<!-- Vampire drain — SoC lost while parked & not charging -->
+<div class="mt-8 mb-4">
+  <h2 class="text-lg font-bold text-white">🦇 {{ t('battery_vampire_title') }}</h2>
+  <p class="text-sm text-slate-400 mt-1">{{ t('battery_vampire_subtitle') }}</p>
+</div>
+
+{% if vampire.measurable_count %}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px">
+    <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">{{ t('battery_vampire_typical') }}</div>
+    <div style="font-size:1.6rem;font-weight:700" class="text-brand">
+      {{ vampire.typical_pct_per_day | nice }}<span style="font-size:0.85rem;font-weight:400;color:#94a3b8"> %/{{ t('day_unit') }}</span>
+    </div>
+  </div>
+</div>
+
+{% if vampire.count %}
+{% if vampire.below_threshold %}
+<p class="text-xs text-slate-500 mb-2">{{ t('battery_vampire_more_below').format(n=vampire.below_threshold, thr=vampire.min_drop_pct) }}</p>
+{% endif %}
+{% if vampire.active_use_count %}
+<p class="text-xs text-slate-500 mb-2">{{ t('battery_vampire_active_use_note').format(n=vampire.active_use_count) }}</p>
+{% endif %}
+<div id="vampire-controls" class="flex flex-wrap items-center gap-2 mb-3 text-xs">
+  <style>#vampire-controls .vp-on{background:#14b8a6;color:#06251f;font-weight:600}</style>
+  <div class="inline-flex rounded-lg border border-slate-700 overflow-hidden">
+    <button type="button" id="vp-rate" data-vp="unit" class="vp-on px-2.5 py-1 text-slate-300 hover:text-white">%/{{ t('day_unit') }}</button>
+    <button type="button" id="vp-abs"  data-vp="unit" class="px-2.5 py-1 text-slate-300 hover:text-white border-l border-slate-700">% {{ t('battery_vampire_lost') }}</button>
+  </div>
+  <div class="inline-flex rounded-lg border border-slate-700 overflow-hidden">
+    <button type="button" id="vp-park" data-vp="group" class="vp-on px-2.5 py-1 text-slate-300 hover:text-white">{{ t('battery_vampire_per_park') }}</button>
+    <button type="button" id="vp-day"  data-vp="group" class="px-2.5 py-1 text-slate-300 hover:text-white border-l border-slate-700">{{ t('battery_vampire_per_day') }}</button>
+  </div>
+</div>
+<div class="card mb-3">
+  <div id="vampire-chart" style="height:300px"></div>
+</div>
+{# Why the chart has not grown. `get_vampire_drain` has named every rejected park since v3.10.2 —
+   this page already received them and printed none, so a chart that had simply had nothing to draw
+   read as broken (#241 @riri19: "the data seems frozen since 05/08"; it was not, his car had just
+   stopped losing enough to measure). Shown ONLY when the most recent stop is one of the rejected
+   ones: when the newest bar IS the newest stop there is nothing to explain, and a note that is
+   always present stops being read. #}
+{% set _last_bar = vampire.windows[-1].start if vampire.windows else '' %}
+{% set _rej = vampire.rejected[-1] if vampire.rejected else None %}
+{% if _rej and _rej.start > _last_bar %}
+{# Every figure goes through `nice`, like the rest of this card: Italian writes 13,5 and the
+   headline above already does, so a raw 13.5 here would be the same page disagreeing with itself. #}
+{% set _why = t('battery_vampire_why_noise').format(drop=_rej.drop_pct|nice, thr=vampire.min_drop_pct|nice)
+              if _rej.why == 'below_noise_floor'
+         else t('battery_vampire_why_flat') if _rej.why == 'flat'
+         else t('battery_vampire_why_short').format(mh=vampire.min_hours|nice) if _rej.why == 'short'
+         else t('battery_vampire_why_woke') %}
+<p id="vampire-why-none" class="text-xs text-slate-400 mb-3">
+  {{ t('battery_vampire_why_none').format(hours=_rej.hours|nice, why=_why) }}
+</p>
+{% endif %}
+<p class="text-xs text-slate-500 leading-relaxed">{{ t('battery_vampire_help') }}</p>
+
+<script>
+(function () {
+  var el = document.getElementById('vampire-chart');
+  if (!el || typeof ApexCharts === 'undefined') return;
+  var wins = {{ vampire.windows | tojson }};
+  var DAY = '{{ t('day_unit') }}';
+  // #88: the bars can be shown per parked window or aggregated per calendar day, and the Y axis can
+  // show the normalised rate (%/day) or the actual SoC lost (%). Each window already carries both
+  // drop_pct and pct_per_day, so the toggles are a pure client-side re-render.
+  var state = { unit: 'rate', group: 'park' };   // unit: rate|abs ; group: park|day
+  var cur = [];
+
+  function aggDay(ws) {
+    var by = {};
+    ws.forEach(function (w) {
+      var k = w.start.slice(0, 10);
+      if (!by[k]) by[k] = { start: k + 'T00:00', drop: 0, hours: 0, s0: w.soc_start, s1: w.soc_end,
+                            reliable: true, active_use: false, n: 0, low_conf: null };
+      var g = by[k];
+      g.drop += w.drop_pct; g.hours += w.hours; g.s1 = w.soc_end;
+      g.reliable = g.reliable && w.reliable; g.active_use = g.active_use || w.active_use; g.n++;
+      // Why the day is uncertain, not just that it is. 'rate' wins when a day mixes both: a stop
+      // too short to measure is the stronger objection, and it is the one the user can act on by
+      // ignoring that bar.
+      if (w.low_conf === 'rate') g.low_conf = 'rate';
+      else if (w.low_conf === 'drop' && g.low_conf !== 'rate') g.low_conf = 'drop';
+    });
+    return Object.keys(by).sort().map(function (k) {
+      var g = by[k];
+      return { start: g.start, drop_pct: Math.round(g.drop * 10) / 10,
+               pct_per_day: g.hours ? Math.round(g.drop / g.hours * 24 * 10) / 10 : 0,
+               hours: Math.round(g.hours * 10) / 10, soc_start: g.s0, soc_end: g.s1,
+               reliable: g.reliable, ongoing: false, active_use: g.active_use, n: g.n,
+               low_conf: g.low_conf };
+    });
+  }
+  function lbl(w) { return w.start.slice(8, 10) + '/' + w.start.slice(5, 7) + (w.ongoing ? '…' : ''); }
+  function unitStr() { return state.unit === 'abs' ? '%' : '%/' + DAY; }
+  function val(w) { return state.unit === 'abs' ? w.drop_pct : w.pct_per_day; }
+
+  function build() {
+    cur = (state.group === 'day') ? aggDay(wins) : wins;
+    if (!el._c) return;
+    el._c.updateOptions({
+      series: [{ name: unitStr(), data: cur.map(val) }],
+      xaxis: { categories: cur.map(lbl) },
+      yaxis: { title: { text: unitStr(), style: { color: '#64748b' } },
+               labels: { style: { colors: '#94a3b8' }, formatter: function (v) { return v != null ? v.toFixed(1) : v; } } }
+    }, false, false);
+  }
+
+  el._c = new ApexCharts(el, {
+    chart: { type: 'bar', height: 300, fontFamily: 'inherit', background: 'transparent', toolbar: { show: false } },
+    series: [{ name: '%/' + DAY, data: [] }],
+    // Ghost bars: a short (or still-open) park extrapolates a single 0.1% SoC step into several
+    // %/day (#41) — translucent, not alarming. Active-use bars (car on) render amber.
+    colors: [function (o) {
+      var w = cur[o.dataPointIndex]; if (!w) return '#14b8a6';
+      if (w.active_use) return 'rgba(251,146,60,0.6)';
+      return (w.reliable && !w.ongoing) ? '#14b8a6' : 'rgba(20,184,166,0.35)';
+    }],
+    plotOptions: { bar: { columnWidth: '55%', borderRadius: 3 } },
+    dataLabels: { enabled: false },
+    xaxis: { type: 'category', categories: [], labels: { style: { colors: '#94a3b8' } },
+             axisBorder: { color: '#334155' }, axisTicks: { color: '#334155' } },
+    yaxis: { labels: { style: { colors: '#94a3b8' }, formatter: function (v) { return v != null ? v.toFixed(1) : v; } },
+             title: { text: '%/' + DAY, style: { color: '#64748b' } } },
+    grid: { borderColor: '#1e293b' },
+    tooltip: { theme: 'dark',
+               y: { formatter: function (v, o) {
+                 var d = cur[o.dataPointIndex]; if (!d) return v;
+                 var s = v + ' ' + unitStr() + '  ·  −' + d.drop_pct + '% / ' + d.hours + ' h  ·  ' + d.soc_start + '→' + d.soc_end + '%';
+                 if (d.n && d.n > 1) s += '  ·  ' + d.n + '×';
+                 if (d.active_use) s += '  ·  {{ t('battery_vampire_active_use') }}';
+                 else if (d.ongoing) s += '  ·  {{ t('battery_vampire_ongoing') }}';
+                 else if (!d.reliable) s += '  ·  ' + (d.low_conf === 'drop'
+                     ? '{{ t('battery_vampire_low_conf_drop') }}'
+                     : '{{ t('battery_vampire_low_conf') }}');
+                 return s;
+               }, title: { formatter: function () { return ''; } } } }
+  });
+  el._c.render();
+  build();
+
+  function wire(id, key, v) {
+    var b = document.getElementById(id); if (!b) return;
+    b.addEventListener('click', function () {
+      if (state[key] === v) return;
+      state[key] = v;
+      document.querySelectorAll('[data-vp="' + key + '"]').forEach(function (x) { x.classList.remove('vp-on'); });
+      b.classList.add('vp-on');
+      build();
+    });
+  }
+  wire('vp-rate', 'unit', 'rate'); wire('vp-abs', 'unit', 'abs');
+  wire('vp-park', 'group', 'park'); wire('vp-day', 'group', 'day');
+})();
+</script>
+{% else %}
+<div class="card flex items-center justify-center h-48 text-slate-500">
+  <div class="text-center max-w-md px-4">
+    <div class="text-4xl mb-3">🦇</div>
+    <div class="font-medium text-slate-400 mb-1">{{ t('battery_vampire_below_title') }}</div>
+    <div class="text-xs text-slate-500">{{ t('battery_vampire_below_hint').format(n=vampire.below_threshold, thr=vampire.min_drop_pct) }}</div>
+  </div>
+</div>
+{% endif %}
+{% else %}
+<div class="card flex items-center justify-center h-48 text-slate-500">
+  <div class="text-center max-w-md px-4">
+    <div class="text-4xl mb-3">🦇</div>
+    <div class="font-medium text-slate-400 mb-1">{{ t('battery_vampire_no_data') }}</div>
+    <div class="text-xs text-slate-500">{{ t('battery_vampire_help') }}</div>
+  </div>
+</div>
+{% endif %}

@@ -1462,13 +1462,29 @@ async def report(request: Request, month: str | None = None):
 
 @app.get("/battery", response_class=HTMLResponse)
 async def battery_page(request: Request):
+    """The shell. Both figures are long sums (3.526 s together on an add-on) and each section
+    fetches its own — see partials/battery_health.html and partials/battery_vampire.html."""
     vehicle, _ = db_reader.get_vehicle()
-    health = db_reader.get_battery_health()
-    vampire = db_reader.get_vampire_drain(
-        min_drop_pct=float(db_reader.get_setting("vampire_min_drop_pct", "0.2") or 0.2),
-        min_hours=float(db_reader.get_setting("vampire_min_hours", "1") or 1))
     return templates.TemplateResponse(request, "battery.html", _ctx(
-        page="battery", vehicle=vehicle, health=health, vampire=vampire,
+        page="battery", vehicle=vehicle,
+    ))
+
+
+@app.get("/api/battery-health", response_class=HTMLResponse)
+async def battery_health_section(request: Request):
+    """State of health: integrates the power samples of every qualifying charge."""
+    return templates.TemplateResponse(request, "partials/battery_health.html", _ctx(
+        health=db_reader.get_battery_health(),
+    ))
+
+
+@app.get("/api/battery-vampire", response_class=HTMLResponse)
+async def battery_vampire_section(request: Request):
+    """Vampire drain: ninety days of position rows grouped into parks."""
+    return templates.TemplateResponse(request, "partials/battery_vampire.html", _ctx(
+        vampire=db_reader.get_vampire_drain(
+            min_drop_pct=float(db_reader.get_setting("vampire_min_drop_pct", "0.2") or 0.2),
+            min_hours=float(db_reader.get_setting("vampire_min_hours", "1") or 1)),
     ))
 
 

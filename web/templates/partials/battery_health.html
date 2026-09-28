@@ -1,0 +1,160 @@
+{# Fetched by battery.html, not built into it: this section is the capacity estimate over every qualifying charge, which on an add-on is seconds. The page arrives, the figures follow. #}
+<div class="mb-5">
+  <h1 class="text-xl font-bold text-white">{{ t('battery_title') }}</h1>
+  <p class="text-sm text-slate-400 mt-1">{{ t('battery_subtitle') }}</p>
+</div>
+
+{% if health.sample_count and health.latest_soh_pct %}
+<!-- Headline tiles -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+  {% macro tile(label, value, unit, color='text-white') %}
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px">
+    <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">{{ label }}</div>
+    <div style="font-size:1.6rem;font-weight:700" class="{{ color }}">
+      {{ value }}<span style="font-size:0.85rem;font-weight:400;color:#94a3b8"> {{ unit }}</span>
+    </div>
+  </div>
+  {% endmacro %}
+
+  {% set soh = health.latest_soh_pct %}
+  {# The ± is the SCATTER of the charges behind the figure, not an accuracy: the divisor is still
+     a SoC the BMS counted. Shown so the headline stops reading like a lab measurement (#205,
+     @riri19). Absent on a single charge — '± 0.0' would be the false precision he asked us to
+     drop. No new strings: the spread rides in the unit slot. #}
+  {{ tile(t('battery_soh'), soh,
+       '%' ~ (' ± %s'|format(health.latest_spread_pct) if health.latest_spread_pct else ''),
+       'text-green-400' if soh >= 92 else 'text-yellow-400' if soh >= 85 else 'text-red-400') }}
+  {{ tile(t('battery_est_capacity'), health.latest_capacity_kwh,
+       'kWh' ~ (' ± %s'|format(health.latest_spread_kwh) if health.latest_spread_kwh else ''),
+       'text-blue-400') }}
+  {{ tile(t('battery_nominal'), health.nominal_kwh, 'kWh', 'text-slate-300') }}
+  {{ tile(t('battery_samples'), health.sample_count, '', 'text-slate-300') }}
+</div>
+
+<!-- Trend chart -->
+<div class="card mb-5">
+  <div class="flex items-center justify-between gap-2 mb-1">
+    <div class="text-sm font-semibold text-white">{{ t('battery_trend_title') }}</div>
+    <div class="flex gap-1 text-xs flex-shrink-0">
+      <button type="button" id="soh-x-time" onclick="sohSetX('time')"
+              class="px-2.5 py-1 rounded-md border border-brand text-white bg-slate-700">{{ t('battery_axis_time') }}</button>
+      <button type="button" id="soh-x-dist" onclick="sohSetX('dist')"
+              class="px-2.5 py-1 rounded-md border border-slate-600 text-slate-300 hover:text-white">{{ t('battery_axis_distance') }}</button>
+    </div>
+  </div>
+  <div id="soh-chart" style="height:340px"></div>
+  {# What the dashed line is, said under the drawing instead of on top of it (#268, @pdifeo). #}
+  <div class="flex items-center gap-2 text-xs text-slate-400 mt-1" id="soh-nominal-key">
+    <span style="display:inline-block;width:20px;border-top:2px dashed #475569"></span>
+    {{ t('battery_nominal') }} {{ health.nominal_kwh }} kWh
+  </div>
+</div>
+
+{% if health.cold_count %}
+<p class="text-xs text-slate-500 leading-relaxed mb-2">{{ t('battery_soh_cold_note').format(n=health.temp_min_c|int) }}</p>
+{% endif %}
+{% if health.active_use_count %}
+<p class="text-xs text-slate-500 leading-relaxed mb-2">{{ t('battery_soh_active_use_note') }}</p>
+{% endif %}
+{% if health.soc_jump_count %}
+<p class="text-xs text-slate-500 leading-relaxed mb-2">{{ t('battery_soh_soc_jump_note') }}</p>
+{% endif %}
+{% if health.low_start_count %}
+<p class="text-xs text-slate-500 leading-relaxed mb-2">{{ t('battery_soh_low_start_note').format(n=health.min_start_soc|int) }}</p>
+{% endif %}
+<p class="text-xs text-slate-500 leading-relaxed">{{ t('battery_method') }}</p>
+
+<script>
+(function () {
+  var el = document.getElementById('soh-chart');
+  if (!el || typeof ApexCharts === 'undefined') return;
+  var pts = {{ health.points | tojson }};
+  var nominal = {{ health.nominal_kwh }};
+  var typeColor = { HOME: '#22c55e', AC: '#60a5fa', FAST: '#fb923c', DC: '#fb923c', HPC: '#e879f9', FREE: '#a3e635' };
+  var COLD   = 'rgba(100,116,139,0.5)';  // faded slate — cold charges, excluded from the figure
+  var ACTIVE = 'rgba(251,146,60,0.55)';  // faded amber — car-on / BMS-recalibration charges, excluded from the figure
+  var LOWSTART = 'rgba(168,85,247,0.55)'; // faded violet — near-empty start, SoC over-reported, excluded
+  var mode = 'time', curData = [];
+  function dataFor(m) {
+    return pts.map(function (p) {
+      return { x: m === 'dist' ? p.odometer_km : new Date(p.ts).getTime(), y: p.capacity_kwh,
+               soh: p.soh_pct, delta: p.soc_delta, end: p.end_soc, energy: p.energy_kwh,
+               temp: p.temp_c, type: p.charge_type || 'AC',
+               excl: p.excluded, excl_reason: p.exclude_reason };
+    }).filter(function (d) { return d.x != null && d.y != null; });
+  }
+  function build() {
+    curData = dataFor(mode);
+    var xaxis = (mode === 'dist')
+      ? { type: 'numeric', labels: { style: { colors: '#94a3b8' },
+            formatter: function (v) { return Math.round(v).toLocaleString() + ' km'; } },
+          axisBorder: { color: '#334155' }, axisTicks: { color: '#334155' } }
+      : { type: 'datetime', labels: { style: { colors: '#94a3b8' } },
+          axisBorder: { color: '#334155' }, axisTicks: { color: '#334155' } };
+    if (el._c) { el._c.destroy(); }
+    el._c = new ApexCharts(el, {
+      chart: { type: 'scatter', height: 340, fontFamily: 'inherit', background: 'transparent',
+               zoom: { enabled: true }, toolbar: { show: false } },
+      series: [{ name: '{{ t('battery_est_capacity') }}', data: curData }],
+      colors: ['#38bdf8'],
+      markers: { size: 6, strokeWidth: 0,
+                 discrete: curData.map(function (d, i) {
+                   var fc = d.excl ? (d.excl_reason === 'cold' ? COLD
+                                     : d.excl_reason === 'low_start' ? LOWSTART : ACTIVE)
+                                   : (typeColor[d.type] || '#38bdf8');
+                   return { seriesIndex: 0, dataPointIndex: i, size: 6, fillColor: fc };
+                 }) },
+      xaxis: xaxis,
+      yaxis: { min: Math.round(nominal * 0.6), max: Math.round(nominal * 1.1),
+               labels: { style: { colors: '#94a3b8' }, formatter: function (v) { return v.toFixed(0); } },
+               title: { text: 'kWh', style: { color: '#64748b' } } },
+      grid: { borderColor: '#1e293b' },
+      // The line, with NO label on it. ApexCharts pins a y-annotation label to the right edge of the
+      // plot — exactly where the newest charges sit, and those are the ones you open this chart to
+      // read: on @pdifeo's screenshot the last four dots were behind the "Nominal 28.4 kWh" box
+      // (#268). Moving the box was tried and dropped: the dots sit AROUND this very line, so no
+      // offset is safe for every dataset — a value that clears them on one car covers a dot on the
+      // next. The name of the line moved out of the drawing instead, into the caption below it,
+      // where it cannot overlap anything by construction.
+      // → tests/test_the_charts_do_not_hide_what_they_draw.py
+      annotations: { yaxis: [{ y: nominal, borderColor: '#475569', strokeDashArray: 5 }] },
+      tooltip: { theme: 'dark',
+                 x: (mode === 'dist')
+                    ? { formatter: function (v) { return Math.round(v).toLocaleString() + ' km'; } }
+                    : { format: 'dd MMM yyyy' },
+                 y: { formatter: function (v, o) {
+                   var d = curData[o.dataPointIndex] || {};
+                   var s = v + ' kWh  ·  ' + (d.soh != null ? d.soh + '% SoH' : '') +
+                           '  ·  +' + d.delta + '% → ' + (d.end != null ? d.end + '%' : '') +
+                           ' / ' + d.energy + ' kWh (' + d.type + ')';
+                   if (d.temp != null) s += '  ·  ' + d.temp + '°C';
+                   if (d.excl_reason === 'cold') s += '  ·  {{ t('battery_cold_excluded') }}';
+                   else if (d.excl_reason === 'active_use') s += '  ·  {{ t('battery_active_use_excluded') }}';
+                   else if (d.excl_reason === 'soc_jump') s += '  ·  {{ t('battery_soc_jump_excluded') }}';
+                   return s;
+                 }, title: { formatter: function () { return ''; } } } }
+    });
+    el._c.render();
+  }
+  window.sohSetX = function (m) {
+    if (m === mode) return;
+    mode = m;
+    var on = 'px-2.5 py-1 rounded-md border border-brand text-white bg-slate-700';
+    var off = 'px-2.5 py-1 rounded-md border border-slate-600 text-slate-300 hover:text-white';
+    document.getElementById('soh-x-time').className = (m === 'time') ? on : off;
+    document.getElementById('soh-x-dist').className = (m === 'dist') ? on : off;
+    build();
+  };
+  build();
+})();
+</script>
+
+{% else %}
+<div class="card flex items-center justify-center h-64 text-slate-500">
+  <div class="text-center max-w-md px-4">
+    <div class="text-4xl mb-3">🩺</div>
+    <div class="font-medium text-slate-400 mb-1">{{ t('battery_no_data') }}</div>
+    <div class="text-xs text-slate-500">{{ t('battery_method') }}</div>
+  </div>
+</div>
+{% endif %}

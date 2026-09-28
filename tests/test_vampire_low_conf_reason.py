@@ -69,7 +69,7 @@ def test_the_window_carries_the_reason_to_the_chart():
     bug this fixes."""
     src = (WEB / "db_reader.py").read_text(encoding="utf-8")
     assert '"low_conf"' in src, "the window dict does not carry the reason"
-    chart = (WEB / "templates" / "battery.html").read_text(encoding="utf-8")
+    chart = (WEB / "templates" / "partials" / "battery_vampire.html").read_text(encoding="utf-8")
     assert "d.low_conf === 'drop'" in chart, "the tooltip does not read the reason"
     assert "battery_vampire_low_conf_drop" in chart, "the new label is never used"
 
@@ -77,7 +77,7 @@ def test_the_window_carries_the_reason_to_the_chart():
 def test_the_day_aggregate_keeps_a_reason():
     """Grouping by day ANDs the reliability flags; without carrying the reason across, an
     aggregated bar loses it and falls back to 'short stop' again — the same bug, one zoom level up."""
-    chart = (WEB / "templates" / "battery.html").read_text(encoding="utf-8")
+    chart = (WEB / "templates" / "partials" / "battery_vampire.html").read_text(encoding="utf-8")
     agg = chart[chart.index("function aggDay"):]
     agg = agg[:agg.index("return Object.keys")]
     assert "low_conf" in agg, "aggDay drops the reason on the floor"
