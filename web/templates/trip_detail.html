@@ -257,34 +257,24 @@
     <details class="card" open>
       <summary class="cursor-pointer text-sm font-medium text-slate-300 hover:text-white">{{ t('trip_details_section') }}</summary>
       <div class="space-y-3 text-sm mt-3">
+      {# The change in brackets is signed: a drive on a range extender can end with a fuller pack. #}
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('start_soc') }}</span>
-        <span class="text-white font-medium">{% if trip.start_soc is not none %}{{ trip.start_soc|dec(1) }}%{% else %}{{ t('data_unavailable') }}{% endif %}</span>
+        <span class="text-slate-400">{{ t('soc') }}</span>
+        <span class="text-white font-medium">
+          {%- if trip.start_soc is not none or trip.end_soc is not none -%}
+          {{ (trip.start_soc|dec(1) ~ '%') if trip.start_soc is not none else '—' }}&nbsp;→&nbsp;{{ (trip.end_soc|dec(1) ~ '%') if trip.end_soc is not none else '—' }}
+          {%- if trip.start_soc is not none and trip.end_soc is not none %}{% set _d = trip.end_soc - trip.start_soc %} <span class="text-slate-400">({{ '+' if _d > 0 else '' }}{{ _d|dec(1) }}%)</span>{% endif -%}
+          {%- else -%}{{ t('data_unavailable') }}{%- endif -%}
+        </span>
       </div>
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('end_soc') }}</span>
-        <span class="text-white font-medium">{% if trip.end_soc is not none %}{{ trip.end_soc|dec(1) }}%{% else %}{{ t('data_unavailable') }}{% endif %}</span>
-      </div>
-      {% if is_reev and research and trip.engine_ran and (trip.end_soc or 0) > (trip.start_soc or 0) %}
-      <!-- REEV engine-on trip where the generator OUT-produced the motor → the pack ended fuller than it
-           started. "SoC used −3%" reads as nonsense here; show it as what it is: a net recharge. -->
-      <div class="flex justify-between">
-        <span class="text-slate-400">🔋 {{ t('reev_battery_recharged') }}</span>
-        <span class="text-blue-300 font-medium">+{{ ((trip.end_soc or 0) - (trip.start_soc or 0))|dec(1) }}%</span>
-      </div>
-      {% else %}
-      <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('soc_used') }}</span>
-        <span class="text-white font-medium">{% if trip.start_soc is not none and trip.end_soc is not none %}{{ (trip.start_soc - trip.end_soc)|dec(1) }}%{% else %}{{ t('data_unavailable') }}{% endif %}</span>
-      </div>
-      {% endif %}
-      <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('start_odometer') }}</span>
-        <span class="text-white font-medium">{{ (trip.start_odometer_km or 0) | dist(0) }}</span>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('end_odometer') }}</span>
-        <span class="text-white font-medium">{% if trip.end_odometer_km %}{{ trip.end_odometer_km | dist(0) }}{% else %}—{% endif %}</span>
+        <span class="text-slate-400">{{ t('odometer') }}</span>
+        <span class="text-white font-medium">
+          {%- if trip.start_odometer_km or trip.end_odometer_km -%}
+          {{ (trip.start_odometer_km | dist(0)) if trip.start_odometer_km else '—' }}&nbsp;→&nbsp;{{ (trip.end_odometer_km | dist(0)) if trip.end_odometer_km else '—' }}
+          {%- if trip.start_odometer_km and trip.end_odometer_km %} <span class="text-slate-400">({{ (trip.end_odometer_km - trip.start_odometer_km) | dist(0) }})</span>{% endif %}
+          {%- else -%}—{%- endif -%}
+        </span>
       </div>
       <div class="flex justify-between">
         <span class="text-slate-400">{{ t('avg_speed') }}</span>

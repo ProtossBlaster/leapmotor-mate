@@ -159,8 +159,8 @@ def test_the_folded_rows_keep_their_spacing_and_their_content():
     one child, so the spacing has to move inward with them or the list renders flush."""
     html = _render()
     body = html[html.index("<details"):]
-    assert "space-y-3" in body[:body.index("start_soc")], "the rows lost the spacing of the card"
-    for key in ("start_soc", "end_soc", "start_odometer", "avg_speed", "gps_points"):
+    assert "space-y-3" in body[:body.index(">soc<")], "the rows lost the spacing of the card"
+    for key in (">soc<", ">odometer<", "avg_speed", "gps_points"):
         assert key in body, f"{key} fell out of the card when it was folded"
 
 
