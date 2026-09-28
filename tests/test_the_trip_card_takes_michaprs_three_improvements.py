@@ -63,8 +63,9 @@ def _trip(**over):
          "cost_per_kwh": 0.279, "fuel_used_l": 5.28, "fuel_l_100km": 5.4, "engine_ran": True,
          "engine_km": 62.0, "fuel_start_pct": 30.8, "fuel_end_pct": 20.3, "reconstructed": 0,
          "positions": [], "start_odometer_km": 12000.0, "end_odometer_km": 12097.0,
-         "avg_speed_kmh": 83.0, "max_speed_kmh": 130.0, "elevation_gain_m": None,
-         "elevation_loss_m": None, "outside_temp_start_c": None, "outside_temp_end_c": None,
+         "avg_speed_kmh": 83.0, "median_speed_kmh": 88.0, "max_speed_kmh": 130.0, "max_power_kw": None, "max_regen_kw": None,
+         "battery_temp_max_c": None, "battery_temp_min_c": None, "elevation_gain_m": None,
+         "elevation_loss_m": None, "outside_temp_start_c": None, "outside_temp_end_c": None, "outside_temp_max_c": None, "outside_temp_min_c": None, "driving_min": None, "stopped_min": None, "unknown_min": None,
          "elevation_profile_available": False, "ec_pending": False, "paid_kwh": None,
          "free_kwh": None, "fuel_price_per_l": 1.829,
          # the plain-electric branch of the energy tile, taken when is_reev is off
@@ -158,8 +159,8 @@ def test_the_folded_rows_keep_their_spacing_and_their_content():
     one child, so the spacing has to move inward with them or the list renders flush."""
     html = _render()
     body = html[html.index("<details"):]
-    assert "space-y-3" in body[:body.index("start_soc")], "the rows lost the spacing of the card"
-    for key in ("start_soc", "end_soc", "start_odometer", "avg_speed", "gps_points"):
+    assert "space-y-3" in body[:body.index(">soc<")], "the rows lost the spacing of the card"
+    for key in (">soc<", ">odometer<", "avg_speed", "gps_points"):
         assert key in body, f"{key} fell out of the card when it was folded"
 
 

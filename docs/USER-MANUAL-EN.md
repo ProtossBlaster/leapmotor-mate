@@ -386,7 +386,7 @@ Mate looks its position up against [Open-Meteo](https://open-meteo.com) — at m
 minutes or 10 km, whichever comes first — and shows the reading next to the cabin one. It is **off by
 default**, because the lookup sends the car's position to Open-Meteo: the single opt-in is in
 *Settings → trip defaults*. The same reading becomes an **Outside Temp** entity in Home Assistant and
-gives each trip its own departure and arrival figure.
+gives each trip readings along the way, for its highest and lowest temperature.
 
 #### The three temperatures: cabin, A/C target, battery
 Not every Leapmotor sends all three. Mate tells **three different situations** apart, because
@@ -434,12 +434,42 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   distances, consumption and costs.*
   ⚠️ This is why Mate's own total can sit below the car's odometer: the difference is that line.
 - **Elevation and outside temperature.** The Leapmotor cloud reports neither, so a few minutes after
-  a drive ends Mate looks the trip's GPS track up against [Open-Meteo](https://open-meteo.com) (free,
-  no key, no account). The detail then gains an **altitude line under the SoC & speed chart**, the
-  metres **climbed and descended**, and the temperature **at departure and on arrival** — not an
-  average, so a valley-to-pass climb shows the real drop. Between them they explain a good part of a
-  drive's consumption: a climb costs energy, cold costs range. Trips recorded before this existed
-  have a **Calculate elevation** button, and the whole thing can be switched off in Settings.
+  a drive ends Mate looks the trip's GPS track up against [Open-Meteo](https://open-meteo.com)
+  (free, no key, no account). The detail then gains an **altitude line in the Trip data chart**, the
+  metres **climbed and descended** (the *Ascent / descent* row; its ⓘ says how they are counted),
+  and the **highest and lowest** temperature of the drive — not an average, so a valley-to-pass
+  climb shows the real drop. Between them they explain a good part of a drive's consumption: a climb
+  costs energy, cold costs range. Trips recorded before this existed have a **Calculate elevation**
+  button, and the whole thing can be switched off in Settings.
+- **Driving and stopped 🆕.** Under the duration, the detail splits it into the time driving and the
+  time stopped — at a standstill inside the drive (lights, queues) — from Mate's readings several
+  seconds apart. A stop between joined pieces counts as neither, and a hole in the readings shows as
+  *no data* instead of being given to either.
+- **Median speed 🆕.** Under the average speed, the detail gives the median of the same readings,
+  those while moving: the speed half of them stayed below. A short fast stretch lifts the average of
+  a town drive, while the median keeps its usual pace.
+- **Max speed from the car 🆕.** When the car's cloud record of a drive is matched to the trip (the
+  same record that gives the official consumption), the detail shows the top speed the car itself
+  measured. Mate's own readings are several seconds apart and miss short peaks — on a B10 by up to
+  21 km/h — so a trip without that record keeps the sampled figure, marked with an ⓘ.
+- **Max power and max regen 🆕.** The detail names the highest power the battery gave out and the
+  highest flowing back into it while braking, from the pack's voltage and current Mate reads at
+  every update. The readings are several seconds apart, so a short peak between two of them is
+  missed: the figures are a floor, and the ⓘ beside them says so. Not shown on a range extender,
+  like the regen figure.
+- **Battery temperature 🆕.** The car reports one battery temperature — its coldest cell's, in whole
+  degrees — and the detail gives its readings during the drive as one range, lowest to highest, such
+  as 19 – 22 °C; the ⓘ beside the row says it is the coldest cell. In winter the range shows how cold
+  the pack was and how far the drive warmed it up.
+- **Trip data chart 🆕.** The chart under the map is called *Trip data* and is split into bands that
+  share one time axis, one cursor line and one hover box, its lines grouped by band: **driving**
+  (speed, and the battery power — above zero out of the battery, below zero back into it),
+  **battery** (SoC and the car's range estimate) and **altitude with the battery temperature** (the
+  coldest cell's). A band has at most two scales, one on each side, each with its unit at the top
+  and its numbers in its line's colour. Each entry of the legend switches its line on and off — an
+  empty square marks a line switched off — and a band whose lines are all off folds away. All lines
+  start switched on; the choice is remembered in the browser for every trip. The hover box opens
+  with the time of day, to the second, and the minute of the drive.
 - **Official consumption from the cloud 🆕** — when available, a trip's **consumption, efficiency and
   cost** come from Leapmotor's **official figure** (the real **driving / A·C / other** split) instead of
   the battery‑% estimate alone. Right after a drive you see the estimate marked **⏳ provisional**; once
@@ -907,7 +937,7 @@ divided into three columns.
 
 - **Database** — the size of the DB and the **GPS retention**: you can keep the GPS points "forever"
   (default) or delete those older than 6/12/18/24 months to save space. *Only positions are pruned*:
-  trips, charges and charge curves stay.
+  trips — with their route and the readings along it — charges and charge curves stay.
 - **Export / Backup** — download **trips (CSV)**, **charges (CSV)** and a **database backup**. The
   backup arrives **gzip-compressed** (`leapmotor_mate.db.gz`) 🆕, streamed in pieces so even a large
   database never has to fit in memory whole. Restore takes **both** the compressed file and a plain

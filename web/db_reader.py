@@ -8,6 +8,7 @@ import statistics
 import time
 import zlib
 from datetime import date, datetime, timezone, timedelta
+from itertools import pairwise
 from pathlib import Path
 from typing import Optional
 import os
@@ -162,6 +163,12 @@ def detected_tz_name() -> str:
     except Exception:  # noqa: BLE001
         pass
     return "UTC"
+
+
+def display_tz_name() -> str:
+    """The IANA name of the zone every time on screen is shown in, for the browser to format a time
+    itself: each moment then gets its own offset, which a drive across a clock change needs."""
+    return getattr(_local_tz(), "key", None) or detected_tz_name()
 
 
 def pin_auto_timezone() -> str:
@@ -4945,6 +4952,17 @@ def _gap_minutes(end_iso, start_iso):
         return None
 
 
+def _whole_minutes(parts, total: int) -> list:
+    """`parts` (minutes) as whole minutes adding up to `total`, the printed duration they split: scaled
+    onto it, floored, and the minutes left over given to the parts that lost the most in the flooring."""
+    scale = total / sum(parts) if sum(parts) else 0
+    exact = [p * scale for p in parts]
+    whole = [math.floor(e) for e in exact]
+    for i in sorted(range(len(exact)), key=lambda i: whole[i] - exact[i])[:total - sum(whole)]:
+        whole[i] += 1
+    return whole
+
+
 def _haversine_km(lat1, lon1, lat2, lon2) -> float:
     lat1, lon1, lat2, lon2 = map(math.radians, (lat1, lon1, lat2, lon2))
     dlat, dlon = lat2 - lat1, lon2 - lon1
@@ -7168,7 +7186,8 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     seg_ids = _segment_ids(db, parent_id)
     ph = ",".join("?" * len(seg_ids))
     positions = db.execute(
-        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m FROM trip_positions "
+        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m, power_kw, battery_temp_c, "
+        "range_km, outside_temp_c, trip_id FROM trip_positions "
         f"WHERE trip_id IN ({ph}) ORDER BY recorded_at, id",
         seg_ids,
     ).fetchall()
@@ -7243,6 +7262,59 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     # Average over moving points only (>1 km/h) so long idle stretches don't skew it.
     moving = [s for s in speeds if s > 1]
     trip_d["avg_speed_kmh"] = round(sum(moving) / len(moving)) if moving else None
+    trip_d["median_speed_kmh"] = round(statistics.median(moving)) if moving else None
+
+    # Driving and stopped are the spans after each reading, moving above walking pace or not. A span
+    # counts only inside one joined piece, cut to that piece's start and end (the end can be the car's
+    # clock, the readings carry ours), and when no longer than 3 usual steps (else it is a hole in the
+    # recording); what no span covers is reported as unknown, never given to either.
+    trip_d["driving_min"] = trip_d["stopped_min"] = trip_d["unknown_min"] = None
+    bounds = {}
+    for piece in _pieces:
+        try:
+            bounds[piece["id"]] = (datetime.fromisoformat(piece["started_at"]).timestamp(),
+                                   datetime.fromisoformat(piece["ended_at"]).timestamp())
+        except (TypeError, ValueError):
+            continue          # a piece without an end: its spans stay unknown
+    stamps = []
+    for p in positions:
+        try:
+            stamps.append((p.get("trip_id"), datetime.fromisoformat(p["recorded_at"]).timestamp(),
+                           p.get("speed_kmh")))
+        except (TypeError, ValueError):
+            continue
+    spans = [(a[0], a[1], b[1], a[2]) for a, b in pairwise(stamps) if a[0] == b[0] and b[1] > a[1]]
+    if spans and (trip_d.get("duration_min") or 0) > 0:
+        limit = 3 * sorted(end - start for _, start, end, _ in spans)[len(spans) // 2]
+        moving = still = 0.0
+        for piece_id, start, end, kmh in spans:
+            if end - start > limit or kmh is None or piece_id not in bounds:
+                continue
+            lo, hi = bounds[piece_id]
+            cut = max(min(end, hi) - max(start, lo), 0) / 60
+            if kmh > 1:
+                moving += cut
+            else:
+                still += cut
+        # Only the stored duration's rounding to a tenth of a minute can leave the cut spans above it.
+        unknown = max(trip_d["duration_min"] - moving - still, 0)
+        trip_d["driving_min"], trip_d["stopped_min"], trip_d["unknown_min"] = _whole_minutes(
+            (moving, still, unknown), int(round(trip_d["duration_min"])))
+
+    # Battery power at each poll: + out of the pack, − back into it (regeneration).
+    powers = [p["power_kw"] for p in positions if p.get("power_kw") is not None]
+    trip_d["max_power_kw"] = max(powers) if powers and max(powers) > 0 else None
+    trip_d["max_regen_kw"] = -min(powers) if powers and min(powers) < 0 else None
+    # The car reports only its coldest cell; its highest and lowest reading of the drive.
+    temps = [p["battery_temp_c"] for p in positions if p.get("battery_temp_c") is not None]
+    trip_d["battery_temp_max_c"] = max(temps) if temps else None
+    trip_d["battery_temp_min_c"] = min(temps) if temps else None
+    # Outside: the readings along the way (the outside-temperature switch), else the two lookups at the ends.
+    outside = ([p["outside_temp_c"] for p in positions if p.get("outside_temp_c") is not None]
+               or [v for v in (trip_d.get("outside_temp_start_c"), trip_d.get("outside_temp_end_c"))
+                   if v is not None])
+    trip_d["outside_temp_max_c"] = max(outside) if outside else None
+    trip_d["outside_temp_min_c"] = min(outside) if outside else None
 
     # ── #18: total energy consumed + trip cost ──────────────────────────────────
     # Energy consumed = efficiency × distance / 100 (consistent with the stored efficiency).
@@ -7250,6 +7322,11 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     dist = trip_d.get("distance_km") or 0
     _select_ev_energy([trip_d])
     trip_d["energy_kwh"] = (trip_d["energy_kwh"] if trip_d.get("energy_source") else (round(eff * dist / 100, 2) if (eff and dist) else None))
+    # Samples several seconds apart miss short peaks; the car's own record of the drive does not.
+    if trip_d.get("cloud_max_speed_kmh") is not None:
+        trip_d["max_speed_kmh"] = round(trip_d["cloud_max_speed_kmh"])
+    trip_d["max_speed_sampled"] = (trip_d.get("cloud_max_speed_kmh") is None
+                                   and trip_d.get("max_speed_kmh") is not None)
 
     # NET change in the pack over the trip, signed — and only kept when the pack ended FULLER than it
     # started (beta #11, @michapr + @gm27271). On a range-extender the generator can put back more

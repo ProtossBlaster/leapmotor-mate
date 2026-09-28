@@ -405,8 +405,8 @@ l'interrupteur activé, tant que la voiture est éveillée Mate interroge
 les 10 km, au premier des deux — et affiche la valeur à côté de celle de l'habitacle. C'est
 **désactivé par défaut**, parce que la requête envoie la position de la voiture à Open-Meteo :
 l'unique interrupteur se trouve dans *Réglages → valeurs par défaut des trajets*. La même donnée
-devient une entité **Température extérieure** dans Home Assistant et donne à chaque trajet sa
-température de départ et d'arrivée.
+devient une entité **Température extérieure** dans Home Assistant et donne à chaque trajet des
+relevés en route, d'où viennent sa température la plus haute et la plus basse.
 
 #### Les trois températures : habitacle, cible A/C, batterie
 Toutes les Leapmotor n'envoient pas les trois. Mate distingue **trois situations différentes**, car les
@@ -462,14 +462,47 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
 - **Dénivelé et température extérieure.** Le cloud Leapmotor ne donne ni l'un ni l'autre : quelques
   minutes après la fin d'une conduite, Mate confronte le tracé GPS du trajet à
   [Open-Meteo](https://open-meteo.com) (gratuit, sans clé, sans compte). Le détail gagne alors une
-  **ligne d'altitude sous le graphique SoC & vitesse**, les mètres **montés et descendus**, et la
-  température **au départ et à l'arrivée** — pas une moyenne, si bien qu'une montée de la vallée au
-  col montre la vraie chute. À eux deux, ils expliquent une bonne part de la consommation d'une
-  conduite : monter coûte de l'énergie, le froid coûte de l'autonomie. Les trajets enregistrés avant
-  que cela existe ont un bouton **Calculer le dénivelé**, et l'ensemble se désactive dans les
-  Réglages. Quand l'interrupteur de température extérieure est activé (voir *Aperçu*), les
-  températures du trajet viennent des relevés pris **en route** ; cette recherche après coup reste le
-  recours pour les trajets plus anciens 🆕.
+  **ligne d'altitude dans le graphique Données du trajet**, les mètres **montés et descendus**
+  (ligne *Dénivelé + / −* ; son ⓘ explique comment ils sont comptés), et la température **la plus
+  haute et la plus basse** du trajet — pas une moyenne, si bien qu'une montée de la vallée au col
+  montre la vraie chute. À eux deux, ils expliquent une bonne part de la consommation d'une conduite
+  : monter coûte de l'énergie, le froid coûte de l'autonomie. Les trajets enregistrés avant que cela
+  existe ont un bouton **Calculer le dénivelé**, et l'ensemble se désactive dans les Réglages. Quand
+  l'interrupteur de température extérieure est activé (voir *Aperçu*), les températures du trajet
+  viennent des relevés pris **en route** ; cette recherche après coup reste le recours pour les
+  trajets plus anciens 🆕.
+- **En mouvement et à l'arrêt 🆕.** Sous la durée, le détail la partage entre le temps en mouvement
+  et le temps à l'arrêt pendant le trajet (feux, bouchons), d'après les relevés de Mate espacés de
+  quelques secondes. Une pause entre trajets fusionnés ne compte ni pour l'un ni pour l'autre, et un
+  trou dans les relevés apparaît comme *sans données* au lieu d'être attribué à l'un des deux.
+- **Vitesse médiane 🆕.** Sous la vitesse moyenne, le détail donne la médiane des mêmes relevés en
+  mouvement, la vitesse sous laquelle est restée la moitié d'entre eux. Un court passage rapide
+  relève la moyenne d'un trajet en ville, tandis que la médiane garde son allure habituelle.
+- **Vitesse max venant de la voiture 🆕.** Quand l'enregistrement du trajet dans le cloud de la
+  voiture est associé au trajet (le même qui donne la consommation officielle), le détail affiche la
+  vitesse maximale mesurée par la voiture elle-même. Les relevés de Mate sont espacés de quelques
+  secondes et manquent les pics brefs — jusqu'à 21 km/h sur un B10 —, donc un trajet sans cet
+  enregistrement garde la valeur relevée, signalée par un ⓘ.
+- **Puissance max et régénération max 🆕.** Le détail indique la puissance la plus élevée fournie par
+  la batterie et la plus élevée renvoyée au freinage, à partir de la tension et du courant de la
+  batterie que Mate lit à chaque mise à jour. Les relevés sont espacés de quelques secondes, donc un
+  pic bref entre deux échappe : les valeurs sont un minimum, et le ⓘ à côté le dit. Non affichées
+  sur un prolongateur d'autonomie, comme la régénération.
+- **Température de la batterie 🆕.** La voiture ne donne qu'une température de batterie — celle de sa
+  cellule la plus froide, en degrés entiers — et le détail indique ses valeurs pendant le trajet
+  sous forme d'une seule plage, de la plus basse à la plus haute, par exemple 19 – 22 °C ; le ⓘ à côté
+  de la ligne précise qu'il s'agit de la cellule la plus froide. En hiver, la plage montre à quel
+  point la batterie était froide et combien le trajet l'a réchauffée.
+- **Graphique Données du trajet 🆕.** Le graphique sous la carte s'appelle *Données du trajet* et se
+  divise en bandes qui partagent un axe du temps, une ligne de curseur et une bulle au survol, où
+  les courbes sont groupées par bande : **conduite** (vitesse et puissance de la batterie —
+  au-dessus de zéro fournie, en dessous renvoyée), **batterie** (SoC et autonomie estimée par la
+  voiture) et **altitude avec la température de la batterie** (celle de la cellule la plus froide).
+  Une bande a au plus deux échelles, une de chaque côté, chacune avec l'unité en haut et les
+  chiffres dans la couleur de sa courbe. Chaque entrée de la légende affiche ou masque sa courbe —
+  un carré vide signale une courbe masquée — et une bande dont toutes les courbes sont masquées se
+  replie. Toutes les courbes sont affichées au départ ; le choix est mémorisé dans le navigateur
+  pour tous les trajets. La bulle commence par l'heure, à la seconde près, et la minute du trajet.
 
 - **Votre note + tags de conduite 🆕** (#107) — dans le détail d'un trajet, vous pouvez écrire une **note
   libre** (trafic, météo, type de route, toute remarque) et indiquer le **mode de conduite** (Confort /
@@ -949,9 +982,10 @@ Elle est divisée en trois colonnes.
   dans **Réglages → Accès** et retirez la variable seulement ensuite — sinon c'est de nouveau
   l'ancien, oublié, qui commande.
 
-- **Base de données** — taille de la base et **conservation des positions** (rétention) : vous pouvez garder
-  les points GPS « pour toujours » (par défaut) ou supprimer ceux de plus de 6/12/18/24 mois pour économiser
-  de l'espace. *Seules les positions sont élaguées* : les trajets, recharges et courbes de charge restent.
+- **Base de données** — taille de la base et **conservation des positions** (rétention) : vous
+  pouvez garder les points GPS « pour toujours » (par défaut) ou supprimer ceux de plus de
+  6/12/18/24 mois pour économiser de l'espace. *Seules les positions sont élaguées* : les trajets
+  (avec leur tracé et les relevés en route), recharges et courbes de charge restent.
 - **Export / sauvegarde** — téléchargez les **trajets (CSV)**, les **recharges (CSV)** et une **sauvegarde de
   la base de données**. La sauvegarde arrive **compressée en gzip** (`leapmotor_mate.db.gz`) 🆕,
   envoyée par morceaux pour qu'une grande base n'ait jamais à tenir entière en mémoire. La

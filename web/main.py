@@ -259,7 +259,7 @@ templates.env.filters["localdate"] = _localdate
 # Display-time unit conversion (DB stays metric — see units.py). Filters format "<value> <unit>";
 # the *_unit() / *_val() globals give a bare unit label or converted number (chart axes / JS data).
 import units
-for _name in ("dist", "speed", "temp", "pressure", "elev"):
+for _name in ("dist", "speed", "temp", "temp_range", "pressure", "elev"):
     templates.env.filters[_name] = getattr(units, _name)
 templates.env.filters["eff"] = units.efficiency
 def _eff_cls(e) -> str:
@@ -317,7 +317,7 @@ templates.env.globals.update(
     dist_val=units.dist_val, speed_val=units.speed_val, temp_val=units.temp_val,
     eff_val=units.eff_val, elev_val=units.elev_val, unit_system=units.get_unit_system,
     dist100_unit=units.dist100_unit, cost100_val=units.cost100_val,
-    eff_cls=_eff_cls,
+    eff_cls=_eff_cls, display_tz_name=db_reader.display_tz_name,
     # #222 — whether the charger's-own-kWh field can be offered at all. A GLOBAL, not a per-route
     # value: the charge card is rendered by the page AND by two partials that build their context by
     # hand, so a flag passed through _ctx reached the page and silently vanished from the day drawer

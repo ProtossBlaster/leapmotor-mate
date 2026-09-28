@@ -392,8 +392,8 @@ Auto wach ist, [Open-Meteo](https://open-meteo.com) zu seiner Position — höch
 oder alle 10 km, je nachdem, was zuerst eintritt — und zeigt den Wert neben dem Innenraumwert. Es ist
 **standardmäßig aus**, weil die Abfrage die Position des Autos an Open-Meteo sendet: Der einzige
 Schalter liegt unter *Einstellungen → Standardwerte für Fahrten*. Derselbe Wert wird zu einer
-**Außentemperatur**-Entität in Home Assistant und gibt jeder Fahrt ihre eigene Temperatur bei Start
-und Ankunft.
+**Außentemperatur**-Entität in Home Assistant und gibt jeder Fahrt Messungen unterwegs, aus denen
+ihre höchste und niedrigste Temperatur stammt.
 
 #### Die drei Temperaturen: Innenraum, A/C-Ziel, Batterie
 Nicht jeder Leapmotor sendet alle drei. Mate unterscheidet **drei verschiedene Situationen**, denn sie
@@ -448,15 +448,47 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   Fehler. **Immer aktiv**, keine Einrichtung.
 - **Höhenmeter und Außentemperatur.** Die Leapmotor-Cloud liefert weder das eine noch das andere:
   Ein paar Minuten nach dem Ende einer Fahrt gleicht Mate deren GPS-Spur mit
-  [Open-Meteo](https://open-meteo.com) ab (kostenlos, ohne Schlüssel, ohne Konto). Das Detail bekommt
-  dadurch eine **Höhenlinie unter dem SoC-&-Geschwindigkeits-Diagramm**, die **überwundenen und
-  abgefahrenen** Höhenmeter sowie die Temperatur **bei Abfahrt und bei Ankunft** — kein Mittelwert,
-  sodass eine Auffahrt vom Tal zum Pass den echten Abfall zeigt. Zusammen erklären die beiden einen
-  guten Teil des Verbrauchs einer Fahrt: Steigen kostet Energie, Kälte kostet Reichweite. Fahrten,
-  die vor dieser Funktion aufgezeichnet wurden, haben eine Schaltfläche **Höhenmeter berechnen**, und
-  das Ganze lässt sich in den Einstellungen abschalten. Ist der Schalter für die Außentemperatur an
-  (siehe *Übersicht*), stammen die Temperaturen der Fahrt aus den **unterwegs** genommenen Messungen;
-  diese nachträgliche Abfrage bleibt der Rückfall für ältere Fahrten 🆕.
+  [Open-Meteo](https://open-meteo.com) ab (kostenlos, ohne Schlüssel, ohne Konto). Das Detail
+  bekommt dadurch eine **Höhenlinie im Diagramm Fahrtdaten**, die **überwundenen und abgefahrenen**
+  Höhenmeter (Zeile *Anstieg / Abstieg*; ihr ⓘ sagt, wie sie gezählt werden) sowie die **höchste und
+  niedrigste** Temperatur der Fahrt — kein Mittelwert, sodass eine Auffahrt vom Tal zum Pass den
+  echten Abfall zeigt. Zusammen erklären die beiden einen guten Teil des Verbrauchs einer Fahrt:
+  Steigen kostet Energie, Kälte kostet Reichweite. Fahrten, die vor dieser Funktion aufgezeichnet
+  wurden, haben eine Schaltfläche **Höhenmeter berechnen**, und das Ganze lässt sich in den
+  Einstellungen abschalten. Ist der Schalter für die Außentemperatur an (siehe *Übersicht*), stammen
+  die Temperaturen der Fahrt aus den **unterwegs** genommenen Messungen; diese nachträgliche Abfrage
+  bleibt der Rückfall für ältere Fahrten 🆕.
+- **Fahrzeit und Standzeit 🆕.** Unter der Dauer teilt das Detail sie in Fahrzeit und Standzeit
+  während der Fahrt (Ampeln, Stau), aus Mates Messungen im Abstand einiger Sekunden. Eine Pause
+  zwischen zusammengeführten Fahrten zählt zu keinem von beiden, und eine Lücke in den Messungen
+  erscheint als *ohne Daten*, statt einem der beiden zugeschlagen zu werden.
+- **Median-Tempo 🆕.** Unter dem Ø-Tempo nennt das Detail den Median derselben Messungen während der
+  Fahrt, also das Tempo, unter dem die Hälfte von ihnen lag. Ein kurzes schnelles Stück hebt den
+  Durchschnitt einer Stadtfahrt, während der Median ihr übliches Tempo behält.
+- **Höchstgeschwindigkeit vom Auto 🆕.** Wird der Cloud-Datensatz des Autos einer Fahrt zugeordnet
+  (derselbe, der den offiziellen Verbrauch liefert), zeigt das Detail die vom Auto selbst gemessene
+  Höchstgeschwindigkeit. Mates eigene Messungen liegen einige Sekunden auseinander und verpassen
+  kurze Spitzen — bei einem B10 um bis zu 21 km/h —, daher behält eine Fahrt ohne diesen Datensatz
+  den gemessenen Wert, markiert mit einem ⓘ.
+- **Max. Leistung und max. Rekuperation 🆕.** Das Detail nennt die höchste von der Batterie
+  abgegebene und die höchste beim Bremsen zurückfließende Leistung, aus Spannung und Strom der
+  Batterie, die Mate bei jeder Aktualisierung liest. Die Messungen liegen einige Sekunden
+  auseinander, eine kurze Spitze dazwischen entgeht also: Die Werte sind eine Untergrenze, und das ⓘ
+  daneben sagt das. Bei einem Range-Extender nicht angezeigt, wie die Rekuperation.
+- **Batterietemperatur 🆕.** Das Auto meldet eine einzige Batterietemperatur — die seiner kältesten
+  Zelle, in ganzen Grad —, und das Detail zeigt ihre Werte während der Fahrt als eine Spanne vom
+  niedrigsten zum höchsten, etwa 19 – 22 °C; das ⓘ neben der Zeile sagt, dass es die kälteste Zelle
+  ist. Im Winter zeigt die Spanne, wie kalt die Batterie war und wie weit die Fahrt sie erwärmt hat.
+- **Diagramm Fahrtdaten 🆕.** Das Diagramm unter der Karte heißt *Fahrtdaten* und ist in Streifen
+  geteilt, die eine Zeitachse, eine Cursorlinie und ein Hover-Fenster gemeinsam haben, darin die
+  Linien nach Streifen gruppiert: **Fahrt** (Geschwindigkeit und Batterieleistung — über null
+  abgegeben, unter null zurückfließend), **Batterie** (SoC und vom Auto geschätzte Reichweite) und
+  **Höhe mit Batterietemperatur** (der kältesten Zelle). Ein Streifen hat höchstens zwei Skalen, je
+  eine pro Seite, jede mit der Einheit oben und den Zahlen in der Farbe ihrer Linie. Jeder Eintrag
+  der Legende schaltet seine Linie ein und aus — ein leeres Quadrat steht für eine ausgeschaltete
+  Linie —, und ein Streifen, dessen Linien alle aus sind, klappt zu. Anfangs sind alle Linien
+  eingeschaltet; die Auswahl merkt sich der Browser für alle Fahrten. Das Hover-Fenster beginnt mit
+  der Uhrzeit auf die Sekunde und der Minute der Fahrt.
 
 - **Ihre Notiz + Fahr-Tags 🆕** (#107) — im Detail einer Fahrt können Sie eine **freie Notiz** (Verkehr,
   Wetter, Streckentyp, jede Anmerkung) schreiben und den verwendeten **Fahrmodus** (Comfort / Normal /
@@ -934,9 +966,10 @@ ist in drei Spalten unterteilt.
   drin sind, unter **Einstellungen → Zugang** ein neues Passwort (oder löschen Sie es) und entfernen
   Sie erst danach die Variable — sonst ist wieder das vergessene zuständig.
 
-- **Datenbank** — Größe der DB und **Aufbewahrung der Positionen** (Retention): Sie können die GPS-Punkte „für
-  immer" behalten (Standard) oder die älter als 6/12/18/24 Monate löschen, um Platz zu sparen. *Es werden nur die
-  Positionen entfernt*: Fahrten, Ladevorgänge und Ladekurven bleiben erhalten.
+- **Datenbank** — Größe der DB und **Aufbewahrung der Positionen** (Retention): Sie können die
+  GPS-Punkte „für immer" behalten (Standard) oder die älter als 6/12/18/24 Monate löschen, um Platz
+  zu sparen. *Es werden nur die Positionen entfernt*: Fahrten (mit Strecke und den Messwerten
+  unterwegs), Ladevorgänge und Ladekurven bleiben erhalten.
 - **Export / Backup** — laden Sie **Fahrten (CSV)**, **Ladevorgänge (CSV)** und ein **Backup der Datenbank** herunter.
   Das Backup kommt **gzip-komprimiert** (`leapmotor_mate.db.gz`) 🆕 und wird in Stücken gesendet,
   damit auch eine große Datenbank nie ganz in den Speicher muss. Die Wiederherstellung nimmt
