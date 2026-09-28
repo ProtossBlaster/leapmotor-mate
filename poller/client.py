@@ -351,10 +351,10 @@ class LeapmotorMateClient:
         return vd
 
     def check_ota(self) -> dict:
-        """Scan the account message inbox for an OTA / software-update notice. This is the ONLY
-        automatic "update available" signal Leapmotor exposes — there is NO dedicated OTA-status
-        endpoint (even the official-app flow / LeapConnect needs the FOTA task_id typed in by hand);
-        the cloud delivers "update available" as an inbox MESSAGE. Best-effort, never raises.
+        """Scan the account message inbox for an OTA / software-update notice. The cloud delivers
+        "update available" as an inbox MESSAGE; the vehicle-update endpoint (get_software_version)
+        says the same with a version number, but only to the account that owns the car, so on an
+        account the car is shared with this scan is what there is. Best-effort, never raises.
         Returns {ok: bool (endpoint answered), scanned: int, ota: bool, title, time}.
 
         `ok` distinguishes the three states that all otherwise surface as a bare "None" on the
@@ -399,6 +399,33 @@ class LeapmotorMateClient:
             return self._api.get_charge_schedule(self._vehicle.vin)
         except Exception as e:  # noqa: BLE001 — a schedule read must never disturb the poll
             log.debug("Charge schedule fetch failed: %s", e)
+            return None
+
+    def get_software_version(self, vehicle=None, language: str = "en") -> dict | None:
+        """The software the car runs, from the vehicle-update endpoint (hotspot/fetch). Read-only,
+        never raises. Returns {state: "ok", installed, installed_at_ms, latest, notes, size_bytes}
+        — `latest` equals `installed` when no update is waiting — or {state: "refused"} when the
+        cloud answers code 40: only the account that OWNS the car is told, an account it is shared
+        with is not. None when the question could not be asked (no such read on the bundled SDK,
+        a transport error), so the caller keeps what it had.
+
+        The raw answer carries signed download links for the packages of a waiting update. They
+        must never reach a log, a setting or a broker, so only the fields above leave here."""
+        read = getattr(self._api, "get_software_version", None)
+        if read is None:
+            return None
+        vin = (vehicle or self._vehicle).vin
+        try:
+            data = read(vin)
+        except Exception as e:  # noqa: BLE001 — a version read must never disturb the poll
+            if any(str(c) == "40" for c in (getattr(e, "api_codes", None) or ())):
+                return {"state": "refused"}
+            log.debug("Software version fetch failed: %s", e)
+            return None
+        try:
+            return _software_view(data, language)
+        except (TypeError, ValueError, AttributeError) as e:
+            log.debug("Software version answer not understood: %s", e)
             return None
 
     def get_energy_counters(self, vehicle=None) -> dict | None:
@@ -522,6 +549,60 @@ _SIGNAL_TO_NAMED = {
     "1255": "vehicleSecurityActive", "3636": "sentryMode",
     "49": "leftMirrorHeating", "50": "rightMirrorHeating", "1724": "roofOpening",
 }
+
+
+def _epoch_ms(raw) -> int | None:
+    """A cloud timestamp as epoch milliseconds, whether it came in seconds or milliseconds."""
+    if raw in (None, ""):
+        return None
+    ts = int(raw)
+    return ts * 1000 if ts < 10**11 else ts
+
+
+def _release_notes(entries, language: str) -> str:
+    """The release notes in one language, as the official app interprets the list: the exact
+    code first, then the same language under another country, then English, then the first entry.
+    Each entry is a list of title/content pairs; they are joined as lines."""
+    entries = [e for e in (entries or []) if isinstance(e, dict)]
+    if not entries:
+        return ""
+    want = (language or "en").lower()
+    lang = want.split("-")[0]
+
+    def code(e):
+        return str(e.get("language") or "").lower()
+
+    chosen = (next((e for e in entries if code(e) == want), None)
+              or next((e for e in entries if code(e).split("-")[0] == lang), None)
+              or next((e for e in entries if code(e).split("-")[0] == "en"), None)
+              or entries[0])
+    lines = []
+    for item in chosen.get("data") or []:
+        if not isinstance(item, dict):
+            continue
+        for part in (item.get("title"), item.get("content")):
+            if part and str(part).strip():
+                lines.append(str(part).strip())
+    return "\n".join(lines)
+
+
+def _software_view(data: dict, language: str) -> dict:
+    """What Mate keeps of a vehicle-update answer: versions, the install time, the notes and the
+    size of a waiting update — and nothing of its packages. `newVersion` is absent altogether
+    when the car is up to date."""
+    current = data.get("currentVersion") or {}
+    new = data.get("newVersion") or {}
+    installed = str(current.get("generalVersion") or "") or None
+    latest = (str(new.get("generalVersion") or "") or None) if new else None
+    items = [i for i in (new.get("updateItemList") or []) if isinstance(i, dict)]
+    return {
+        "state": "ok",
+        "installed": installed,
+        "installed_at_ms": _epoch_ms(current.get("time")),
+        "latest": latest or installed,
+        "notes": _release_notes(new.get("logJsonMultiLang"), language) if new else "",
+        "size_bytes": sum(int(i.get("fileSize") or 0) for i in items) if new else None,
+    }
 
 
 def _named_fields_to_signal(data: dict) -> dict | None:

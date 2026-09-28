@@ -534,10 +534,11 @@ def _maybe_check_ota(db, client):
     not disturb the poll; it just leaves the previous value.
 
     The outcome is logged (at INFO, or WARNING when the inbox can't be read) so a diagnostics
-    bundle answers *why* the Overview shows "None" — Leapmotor has no OTA-status signal, Mate can
-    only read the account inbox, and a bare "None" otherwise hides three different cases: empty
-    inbox, messages-but-no-update, and inbox-unreadable (issue #156). Logged only on change so a
-    stable state doesn't repeat every 10 minutes."""
+    bundle answers *why* the Overview shows "None" — on an account the car is shared with the inbox
+    is all there is (the version itself is told only to the owner, see _maybe_check_software), and
+    a bare "None" otherwise hides three different cases: empty inbox, messages-but-no-update, and
+    inbox-unreadable (issue #156). Logged only on change so a stable state doesn't repeat every
+    10 minutes."""
     global _last_ota_check, _last_ota_log
     now = time.time()
     if now - _last_ota_check < _OTA_CHECK_INTERVAL:
@@ -563,6 +564,58 @@ def _maybe_check_ota(db, client):
     db.set_setting("ota_available", "1" if found else "0")
     db.set_setting("ota_title", res.get("title") or "")
     db.set_setting("ota_time", str(res.get("time") or ""))
+
+
+_SOFTWARE_CHECK_INTERVAL = 6 * 3600   # a version changes once in weeks; the Overview reads the cache
+_last_software_check: dict = {}       # vin → when the cloud was last asked
+
+
+def _software_key(vin: str) -> str:
+    """The per-car setting the web and the MQTT bridge read: what the car runs, what is waiting."""
+    return f"software_{vin.lower()}"
+
+
+def _maybe_check_software(db, client, ctx):
+    """Throttled, best-effort read of THIS car's software version (client.get_software_version),
+    kept in a per-car setting for the Overview, the bundle and Home Assistant. Never raises.
+
+    Asked per car and only for a car the account owns: the cloud answers the owner, an account the
+    car is shared with gets code 40. A shared car is kept as `shared` without asking, a code 40 for
+    a car the account lists as its own as `refused` — two reasons the screens name apart rather than
+    print "none" — and either way an answer kept while Mate ran on the owner's account does not
+    outlive the move to a shared one (the setting is per car, not per account).
+    A read that could not be made leaves the previous answer alone. The version is logged when it
+    changes, so the poller log — and the bundle — say which software a report is about."""
+    now = time.time()
+    if now - _last_software_check.get(ctx.vin, 0.0) < _SOFTWARE_CHECK_INTERVAL:
+        return
+    _last_software_check[ctx.vin] = now   # before the call, so a slow endpoint can't be hammered
+    if getattr(ctx.vehicle, "is_shared", False) is True:
+        res = {"state": "shared"}         # the cloud would say 40; not worth a request
+    else:
+        language = db.get_setting("language", "en") or "en"
+        with _API_LOCK:
+            res = client.get_software_version(ctx.vehicle, language)
+        if res is None:
+            return
+    key = _software_key(ctx.vin)
+    try:
+        prev = json.loads(db.get_setting(key, "") or "{}")
+    except ValueError:
+        prev = {}
+    cur = dict(res, checked_at=_utc_iso())
+    sig = tuple(cur.get(k) for k in ("state", "installed", "latest"))
+    if sig != tuple(prev.get(k) for k in ("state", "installed", "latest")):
+        if cur["state"] == "shared":
+            log.info("Software version of %s: not told — the car is shared with this account", ctx.vin[-6:])
+        elif cur["state"] == "refused":
+            log.info("Software version of %s: not told — the cloud refused (code 40)", ctx.vin[-6:])
+        elif cur.get("latest") != cur.get("installed"):
+            log.info("Software version of %s: %s installed, %s waiting", ctx.vin[-6:],
+                     cur.get("installed"), cur.get("latest"))
+        else:
+            log.info("Software version of %s: %s, up to date", ctx.vin[-6:], cur.get("installed"))
+    db.set_setting(key, json.dumps(cur))
 
 
 _BETA_PREFIX_SUFFIX = "_beta"   # what a colliding BetaTester install renames its prefix to
@@ -1434,6 +1487,12 @@ def main():
             _maybe_check_ota(db, client)
         except Exception as exc:  # noqa: BLE001
             log.debug("OTA check skipped: %s", exc)
+        # …and the software version of each car the account owns — throttled per car.
+        for ctx in contexts:
+            try:
+                _maybe_check_software(db, client, ctx)
+            except Exception as exc:  # noqa: BLE001
+                log.debug("Software version check skipped: %s", exc)
 
         # Heartbeat for /healthz: proves the poll loop is alive (written every cycle,
         # even during offline/asleep backoff) regardless of whether the car reported.
