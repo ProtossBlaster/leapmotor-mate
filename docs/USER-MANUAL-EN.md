@@ -1,8 +1,12 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.5.1 · **Language:** English
+> **Mate version:** v4.5.2 · **Language:** English
 
-## New in 4.5.1
+## New in 4.5.2
+
+Mate is faster, on every page. The slowest pages were asking the database the same question over and over — which time zone to show a time in, once per row; which car you are looking at, eighty-seven times to draw one card; whether the car has been used as a power outlet, by reading a week of data — and every one of those questions opened its own connection to the database. They are asked once now. The Battery page no longer waits for its two long sums: it appears, and the health and standby-drain figures fill in behind it. Measured on a real add-on with ninety days of history: Battery 3.526 s → 0.121 s, Statistics 2.679 → 0.448, Trips 1.696 → 0.406, Settings 1.613 → 0.413. Nothing about what you see has changed.
+
+### New in 4.5.1
 
 Mate loads faster. Deciding which buttons your car may show was reading the database 156 times for every page — once per control, three settings each, each one opening its own connection. It reads them once now. On an add-on running from an SD card that was most of the wait. The Cloud link card in Settings no longer builds itself for every load of the page: it fetches its own figures when you open it. And the menu keeps its place — picking an item from the bottom used to throw it back to the top, so the item you had just used was off screen again.
 

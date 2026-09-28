@@ -1,8 +1,12 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.5.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.5.2 · **Sprache:** Deutsch
 
-## Neu in Version 4.5.1
+## Neu in Version 4.5.2
+
+Mate ist schneller, auf jeder Seite. Die langsamsten Seiten stellten der Datenbank immer wieder dieselbe Frage — in welcher Zeitzone eine Uhrzeit anzuzeigen ist, einmal pro Zeile; welches Auto Sie ansehen, siebenundachtzigmal für eine einzige Karte; ob das Auto als Steckdose genutzt wurde, durch Lesen einer ganzen Woche an Daten — und jede dieser Fragen öffnete ihre eigene Verbindung zur Datenbank. Jetzt werden sie einmal gestellt. Die Batterieseite wartet nicht mehr auf ihre zwei langen Berechnungen: sie erscheint, und Zustand und Standby-Verbrauch werden danach nachgeladen. Gemessen auf einem echten Add-on mit neunzig Tagen Verlauf: Batterie 3,526 s → 0,121 s, Statistik 2,679 → 0,448, Fahrten 1,696 → 0,406, Einstellungen 1,613 → 0,413. An dem, was Sie sehen, hat sich nichts geändert.
+
+### Neu in Version 4.5.1
 
 Mate lädt schneller. Die Entscheidung, welche Schaltflächen Ihr Auto zeigen darf, las die Datenbank 156-mal pro Seite — einmal je Befehl, drei Einstellungen jeweils, und jede öffnete ihre eigene Verbindung. Jetzt werden sie einmal gelesen. Auf einem Add-on, das von einer SD-Karte läuft, war das der Großteil der Wartezeit. Die Karte „Cloud-Verbindung“ in den Einstellungen baut sich nicht mehr bei jedem Laden der Seite auf: sie holt ihre Zahlen, wenn Sie sie öffnen. Und das Menü behält seinen Platz — ein Eintrag weiter unten warf es zurück nach oben, und der eben benutzte Eintrag war wieder außerhalb des Bildes.
 

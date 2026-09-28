@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.5.1:** the pages come back. Deciding which buttons a car may show was reading the database 156 times for every page — once per control, each read opening its own connection — and it is read once now; on an add-on running from an SD card that was most of the wait. The Cloud link card no longer builds itself for every load of Settings, the link tile's lookups are bounded, and the menu keeps its place instead of throwing you back to the top. Overview 0.081 s → 0.058 s, Settings 0.422 s → 0.320 s, measured on a real database.
-See [release notes and upgrade impact](docs/releases/v4.5.1.md).
+**v4.5.2:** the same question, asked once. The slowest pages were asking the database the same thing over and over — which time zone to show a time in, once per row; which car you are looking at, 87 times to draw one card; whether the car has been used as a power outlet, by reading a week of data — and every one of those reads opened its own connection. They are asked once now, and the Battery page no longer waits for its two long sums. Measured on a real add-on with 90 days of history: Battery 3.526 s → 0.121 s, Statistics 2.679 → 0.448, Trips 1.696 → 0.406, Settings 1.613 → 0.413. Nothing about what you see has changed.
+See [release notes and upgrade impact](docs/releases/v4.5.2.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -362,8 +362,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.5.1:** le pagine tornano. Decidere quali bottoni può mostrare un'auto leggeva il database 156 volte per ogni pagina — una per comando, e ogni lettura apriva una connessione sua — e ora si legge una volta sola; su un add-on che gira da una scheda SD era la maggior parte dell'attesa. Il riquadro «Collegamento al cloud» non si costruisce più a ogni apertura delle impostazioni, le letture del riquadrino hanno un limite, e il menu resta dov'era invece di riportarti in cima. Panoramica 0,081 s → 0,058 s, impostazioni 0,422 s → 0,320 s, misurate su un database vero.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.5.1.md#italiano).
+**v4.5.2:** la stessa domanda, chiesta una volta. Le pagine più lente chiedevano al database la stessa cosa continuamente — in quale fuso orario mostrare un'ora, una volta per riga; quale auto stai guardando, 87 volte per disegnare un riquadro; se l'auto è stata usata come presa di corrente, leggendo una settimana di dati — e ognuna di quelle letture apriva una connessione sua. Adesso si chiedono una volta sola, e la pagina della batteria non aspetta più i suoi due conti lunghi. Misurato su un add-on vero con 90 giorni di storia: batteria 3,526 s → 0,121 s, statistiche 2,679 → 0,448, viaggi 1,696 → 0,406, impostazioni 1,613 → 0,413. Di quello che vedi non è cambiato niente.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.5.2.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
