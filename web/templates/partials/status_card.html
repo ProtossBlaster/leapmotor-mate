@@ -186,14 +186,24 @@
     </span>
   </div>
   <div class="flex justify-between items-center text-slate-400 col-span-2 gap-2">
-    <span class="flex-shrink-0">🔄 {{ t('ota_label') }}</span>
-    {% if status.ota and status.ota.available %}
-    <span class="font-semibold text-amber-300 flex items-center gap-1.5 min-w-0 justify-end"
-          title="{{ status.ota.title }}{% if status.ota.time %} · {{ status.ota.time }}{% endif %}">
-      <span class="truncate">⬆️ {{ t('ota_available') }}</span>
-    </span>
+    <span class="flex-shrink-0">💾 {{ t('software_label') }}</span>
+    {# the cloud's answer (owner's account only) outranks the inbox message; the tooltips only add nuance #}
+    {% set sw = status.software %}
+    {% if sw and sw.waiting %}
+    {% set tip = ((sw.size_gb|dec(1) ~ ' GB') if sw.size_gb else '') ~ ('\n' if sw.size_gb and sw.notes else '') ~ (sw.notes or '') %}
+    <span class="font-semibold text-amber-300 truncate min-w-0" tabindex="0"{% if tip %} data-tip="{{ tip }}"{% endif %}>⬆️ {{ sw.installed }} → {{ sw.latest }}</span>
+    {% elif sw and sw.state == 'ok' %}
+    <span class="font-medium text-slate-300 truncate min-w-0" tabindex="0"
+          {% if sw.installed_at %}data-tip="{{ t('software_installed_on').format(d=sw.installed_at|localdate) }}"{% endif %}>{{ sw.installed }} · {{ t('software_up_to_date') }}</span>
     {% else %}
-    <span class="font-medium text-slate-500">{{ t('ota_none') }}</span>
+    {% if sw and sw.state == 'shared' %}{% set what, why = t('software_unknown_shared'), t('software_owner_only_help') %}
+    {% elif sw and sw.state == 'refused' %}{% set what, why = t('software_unknown_refused'), t('software_refused_help') %}
+    {% else %}{% set what, why = t('software_unknown'), t('software_not_known_help') %}{% endif %}
+    <span class="font-medium text-slate-500 truncate min-w-0">
+      <span tabindex="0" data-tip="{{ why }}">{{ what }}</span>
+      {%- if status.ota and status.ota.available %} · <span class="font-semibold text-amber-300" tabindex="0"
+          data-tip="{{ status.ota.title }}{% if status.ota.time %} · {{ status.ota.time }}{% endif %}">⬆️ {{ t('software_update_waiting') }}</span>{% endif %}
+    </span>
     {% endif %}
   </div>
   <div class="flex justify-between text-slate-400 col-span-2">

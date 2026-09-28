@@ -4119,8 +4119,9 @@ def get_latest_status() -> Optional[dict]:
     # How old the POSITION is: the fix's own, when the map falls back to one — the poll without a
     # fix is seconds old, the position it falls back to may be days old.
     d["position_age_s"] = _position_age_s(fix.get("frame_ts"), fix.get("recorded_at"))
-    # OTA / software-update status (the poller scans the account message inbox for an update notice).
+    # the inbox update notice, and the car's software (told only to the account that owns the car)
     d["ota"] = get_ota_status()
+    d["software"] = get_software_status()
     return d
 
 
@@ -4483,6 +4484,36 @@ def get_ota_status() -> dict:
         except (TypeError, ValueError, OSError):
             when = None
     return {"available": available, "title": title, "time": when}
+
+
+def get_software_status(vin: str = "") -> dict:
+    """The software of a car (the selected one by default) as the poller last heard it, from the
+    setting software_<vin>. `state` is "ok" with a version, "shared" when the car is shared with
+    this account — the cloud tells the version only to the owner — "refused" when the cloud said
+    no (code 40) to a car the account lists as its own, or None before the first answer and on a
+    client that cannot ask. `waiting` is True while a newer version is waiting (not
+    `update`: a template reads `sw.update` as the dict's own method, which is always true)."""
+    vin = vin or _selected_vin()
+    try:
+        sw = json.loads(get_setting(f"software_{vin.lower()}", "") or "{}") if vin else {}
+    except ValueError:
+        sw = {}
+    state = sw.get("state") if sw.get("state") in ("ok", "shared", "refused") else None
+    if state == "ok" and not sw.get("installed"):
+        state = None
+    if state != "ok":
+        return {"state": state, "waiting": False}
+    installed_at = None
+    if sw.get("installed_at_ms"):
+        try:
+            installed_at = datetime.fromtimestamp(int(sw["installed_at_ms"]) / 1000, tz=timezone.utc).isoformat()
+        except (TypeError, ValueError, OSError):
+            installed_at = None
+    size = sw.get("size_bytes")
+    latest = sw.get("latest") or sw["installed"]
+    return {"state": "ok", "installed": sw["installed"], "installed_at": installed_at, "latest": latest,
+            "waiting": latest != sw["installed"], "notes": sw.get("notes") or "",
+            "size_gb": round(size / 2**30, 1) if size else None}
 
 
 def delete_trip(trip_id: int) -> bool:
