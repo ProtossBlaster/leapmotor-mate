@@ -1025,8 +1025,18 @@ Et une de plus 🆕 : **Avis de mise à jour OTA**, allumée lorsqu'un message d
 se trouve dans la boîte de réception de votre compte Leapmotor, avec le titre et la date du message
 en attributs — de quoi permettre à une automatisation de vous prévenir. À lire pour ce qu'elle est :
 la boîte appartient au **compte**, donc avec deux voitures le même avis apparaît sur les deux, et
-elle indique qu'un message est arrivé, pas que votre voiture a une mise à jour en attente. Leapmotor
-ne publie aucun état de mise à jour, il n'y a donc pas de numéro de version à afficher.
+elle indique qu'un message est arrivé, pas que votre voiture a une mise à jour en attente. Un avis
+de plus de 30 jours ne compte plus.
+
+**Software** 🆕 est la réponse de la voiture elle-même : une entité de mise à jour, que Home
+Assistant affiche avec toutes ses autres mises à jour, avec la version installée, celle en attente
+et ses notes de version. Leapmotor ne communique la version qu'au compte **propriétaire** de la
+voiture : avec un compte avec lequel la voiture est partagée — la configuration recommandée par ce
+manuel —, l'entité n'apparaît donc pas, et la ligne **Logiciel** de l'Aperçu indique *Inconnu
+(véhicule partagé)*, avec *mise à jour disponible* à côté lorsque la boîte de réception contient un
+message de mise à jour. Avec le compte propriétaire, la ligne indique *3.41.30 · à jour*, ou
+*3.41.30 → 3.42.1*, avec la taille et les notes dans l'infobulle. Mate vérifie toutes les six heures
+et n'installe jamais rien : l'entité n'a pas de bouton Installer.
 
 1. Préparez un **broker MQTT** (généralement le module complémentaire *Mosquitto* dans Home Assistant).
 2. Dans *Paramètres → MQTT*, activez **Activé** et renseignez :

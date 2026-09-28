@@ -976,7 +976,16 @@ And one more 🆕: **OTA Update Notice**, on when a software-update message is s
 Leapmotor account inbox, with the message title and its date as attributes — enough for an
 automation to notify you. Read it for what it is: the inbox belongs to the **account**, so with two
 cars the same notice appears on both, and it says a message arrived, not that your car has an update
-pending. Leapmotor publishes no update status, so there is no version number to show.
+pending. A notice older than 30 days no longer counts.
+
+**Software** 🆕 is the car's own answer: an update entity, shown by Home Assistant with all its other
+updates, carrying the installed version, the one waiting and its release notes. Leapmotor tells the
+version only to the account that **owns** the car, so on an account the car is shared with — the
+setup this manual recommends — the entity does not appear, and the **Software** row on the Overview
+reads *Unknown (shared car)*, with *update available* beside it when the inbox holds an update
+message. On the owner's account the row reads *3.41.30 · up to date*, or *3.41.30 → 3.42.1* with the
+size and the release notes in the tooltip. Mate checks every six hours and never installs anything:
+the entity has no Install button.
 
 1. Get an **MQTT broker** ready (usually the *Mosquitto* add-on in Home Assistant).
 2. In *Settings → MQTT*, turn on **Enabled** and fill in:

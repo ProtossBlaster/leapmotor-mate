@@ -1007,8 +1007,18 @@ Und noch eine 🆕: **OTA-Update-Hinweis**, an, wenn im Postfach Ihres Leapmotor
 über ein Software-Update liegt, mit Titel und Datum der Nachricht als Attribute — genug, damit eine
 Automatisierung Sie benachrichtigt. Richtig verstanden: Das Postfach gehört zum **Konto**, bei zwei
 Fahrzeugen erscheint derselbe Hinweis also an beiden, und er sagt, dass eine Nachricht eingetroffen
-ist, nicht dass Ihr Fahrzeug ein Update offen hat. Leapmotor veröffentlicht keinen Update-Status,
-eine Versionsnummer gibt es daher nicht.
+ist, nicht dass Ihr Fahrzeug ein Update offen hat. Ein Hinweis, der älter als 30 Tage ist, zählt
+nicht mehr.
+
+**Software** 🆕 ist die Antwort des Fahrzeugs selbst: eine Update-Entität, die Home Assistant
+zusammen mit allen anderen Updates anzeigt, mit der installierten Version, der wartenden und deren
+Versionshinweisen. Leapmotor nennt die Version nur dem Konto, dem das Fahrzeug **gehört**. Mit einem
+Konto, für das das Fahrzeug freigegeben ist — der Einrichtung, die dieses Handbuch empfiehlt —,
+erscheint die Entität daher nicht, und die Zeile **Software** der Übersicht zeigt *Unbekannt
+(geteiltes Fahrzeug)*, mit *Update verfügbar* daneben, wenn im Postfach eine Update-Nachricht liegt.
+Mit dem Besitzerkonto zeigt die Zeile *3.41.30 · aktuell* oder *3.41.30 → 3.42.1*, mit Größe und
+Hinweisen im Tooltip. Mate prüft alle sechs Stunden und installiert nie etwas: Die Entität hat keine
+Schaltfläche zum Installieren.
 
 1. Bereiten Sie einen **MQTT-Broker** vor (üblicherweise das *Mosquitto*-Add-on in Home Assistant).
 2. Aktivieren Sie unter *Einstellungen → MQTT* die Option **MQTT aktivieren** und füllen Sie aus:

@@ -1032,8 +1032,17 @@ Y una más 🆕: **Aviso de actualización OTA**, encendida cuando en el buzón 
 un mensaje de actualización de software, con el título y la fecha del mensaje como atributos — lo
 suficiente para que una automatización te avise. Léela por lo que es: el buzón es de la **cuenta**,
 así que con dos coches el mismo aviso aparece en ambos, y dice que ha llegado un mensaje, no que tu
-coche tenga una actualización pendiente. Leapmotor no publica un estado de actualización, por lo que
-no hay número de versión que mostrar.
+coche tenga una actualización pendiente. Un aviso de más de 30 días ya no cuenta.
+
+**Software** 🆕 es la respuesta del propio coche: una entidad de actualización, que Home Assistant
+muestra junto con todas sus demás actualizaciones, con la versión instalada, la que espera y sus
+notas de la versión. Leapmotor solo comunica la versión a la cuenta **propietaria** del coche, así
+que con una cuenta con la que se ha compartido el coche — la configuración que recomienda este
+manual — la entidad no aparece y la fila **Software** del Resumen dice *Desconocido (coche
+compartido)*, con *actualización disponible* al lado cuando el buzón tiene un mensaje de
+actualización. Con la cuenta del propietario, la fila dice *3.41.30 · actualizado*, o *3.41.30 →
+3.42.1*, con el tamaño y sus notas en la información emergente. Mate comprueba cada seis horas y
+nunca instala nada: la entidad no tiene botón Instalar.
 
 1. Ten preparado un **broker MQTT** (normalmente el complemento *Mosquitto* de Home Assistant).
 2. En *Ajustes → MQTT*, activa **Activado** y rellena:
