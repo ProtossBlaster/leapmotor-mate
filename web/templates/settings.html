@@ -25,7 +25,12 @@
         {% if new_badge %}<span id="newbadge-{{ key }}" class="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand/20 text-brand border border-brand/40 uppercase tracking-wide">{{ new_badge }}</span>{% endif %}
       </span>
       {% if status_url %}
-      <span hx-get="{{ status_url }}" hx-trigger="load, every 30s" hx-swap="innerHTML">
+      {# The dot loads once for the collapsed summary, then refreshes only while the card is OPEN:
+         deciding its colour opens a real connection to the broker (or to ABRP), 1.011 s on an
+         add-on, and it was being spent every 30 s on a card nobody had expanded.
+         → tests/test_a_closed_card_does_not_poll_its_broker.py #}
+      <span hx-get="{{ status_url }}" hx-swap="innerHTML"
+            hx-trigger="load, every 30s [this.closest('details').open]">
         <span class="text-xs text-slate-500">…</span>
       </span>
       {% endif %}
