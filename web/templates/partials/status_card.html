@@ -185,17 +185,13 @@
       {% if status.ready %}{{ t('ready_state_on') }}{% else %}{{ t('ready_state_off') }}{% endif %}
     </span>
   </div>
-  <div class="flex justify-between items-center text-slate-400 col-span-2 gap-2">
-    <span class="flex-shrink-0">🔄 {{ t('ota_label') }}</span>
-    {% if status.ota and status.ota.available %}
-    <span class="font-semibold text-amber-300 flex items-center gap-1.5 min-w-0 justify-end"
-          title="{{ status.ota.title }}{% if status.ota.time %} · {{ status.ota.time }}{% endif %}">
-      <span class="truncate">⬆️ {{ t('ota_available') }}</span>
-    </span>
-    {% else %}
-    <span class="font-medium text-slate-500">{{ t('ota_none') }}</span>
-    {% endif %}
-  </div>
+  {# No OTA row. It never said anything about the CAR: the versions are told only to the account that
+     OWNS it, and the inbox of an account the car is shared with carries no vehicle notices — so on the
+     arrangement Mate is built for (owner account on the phone's official app, Mate on a shared one)
+     the row read "None" for ever, and "None" reads as "you are up to date". Measured 28/09/2026 on a
+     real B10 through that shared account: the vehicle-update endpoint answers code 40.
+     The OTA Update Notice entity stays in Home Assistant (#277) — it is OFF, not wrong.
+     → tests/test_the_overview_does_not_claim_the_car_is_up_to_date.py #}
   <div class="flex justify-between text-slate-400 col-span-2">
     <span>{{ t('last_seen') }}</span>
     <!-- WHEN THE CAR LAST REPORTED, not when we last wrote a row. The poller records a row every
