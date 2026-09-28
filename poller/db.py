@@ -1271,7 +1271,9 @@ class Database:
                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 vehicle_id, _now_iso(),
-                data.latitude, data.longitude, data.speed_kmh, data.odometer_km,
+                data.latitude, data.longitude,
+                data.speed_kmh if data.speed_reported else None,
+                data.odometer_km if data.odometer_reported else None,
                 data.soc, data.outside_temp, data.inside_temp, data.climate_target_temp,
                 data.battery_min_temp, data.range_km, data.gear,
                 1 if data.charging_status > 0 else 0,

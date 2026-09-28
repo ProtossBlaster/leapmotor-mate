@@ -49,6 +49,8 @@ class VehicleData:
     remaining_charge_min: int # minutes to full (signal 1200), 0 when not charging
     charge_voltage_v: float | None   # pack voltage (signal 1177); None = the car did not say
     charge_current_a: float | None   # pack current (signal 1178), + discharge / − charge; None = not said
+    speed_reported: bool = True     # whether the frame carried 1319; if not: speed_kmh 0, `positions` NULL
+    odometer_reported: bool = True  # whether the frame carried 1318; if not: odometer_km 0, `positions` NULL
     is_reev: bool = False     # car reports a fuel tank (signal 3235) → range-extender model
     fuel_level_pct: float = None  # REEV fuel tank level % (signal 3235); None on a BEV
     # Litres actually in the tank — signal 3263, reported in MILLILITRES. Decoded by @gm27271
@@ -768,6 +770,8 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         combined_range_km=_sf(sig, "3261"),                             # REEV total range
         odometer_km=float(sig.get("1318") or 0),
         speed_kmh=speed_kmh,
+        speed_reported=_sf(sig, "1319") is not None,
+        odometer_reported=_sf(sig, "1318") is not None,
         gear=gear,
         vehicle_state=vehicle_state,
         charging_status=1 if _is_charging(sig) else 0,

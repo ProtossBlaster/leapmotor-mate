@@ -3968,6 +3968,12 @@ def save_fresh_signals(signals: dict) -> None:
     def sig(key, default=0):  return int(signals.get(key) or default)
     def sigf(key, default=0.0): return float(signals.get(key) or default)
 
+    def sigf_or_none(key):   # a signal the car did not send stays absent in `positions`, not 0
+        try:
+            return float(signals[key]) if signals.get(key) is not None else None
+        except (TypeError, ValueError):
+            return None
+
     def _is_charging() -> bool:
         """Charging only happens while PARKED, so the car must be stationary (gear P,
         speed ~0); plus the cable plugged in (1149) AND a real charge current (1178). The
@@ -4062,7 +4068,7 @@ def save_fresh_signals(signals: dict) -> None:
             datetime.now(timezone.utc).isoformat(),
             _coord_from_signals(signals, "lat"),   # signed pair first (#158) — never the bare
             _coord_from_signals(signals, "lon"),   # unsigned magnitude, or west cars land at sea
-            sigf("1319"), sigf("1318"),
+            sigf_or_none("1319"), sigf_or_none("1318"),
             sigf("100003") or sigf("1204"),
             sigf("3260"),
             gear_map.get(sig("1010"), "P"),
@@ -9945,15 +9951,17 @@ def _scan_offline_charge(a, b, capacity_kwh: float) -> bool:
     charging. No clocks / invalid telemetry means no exception to the parked-only scan.
     """
     try:
-        values = [a[k] for k in ("soc", "odometer_km", "speed_kmh", "frame_ts")]
-        values += [b[k] for k in ("soc", "odometer_km", "speed_kmh", "frame_ts")]
+        values = [a[k] for k in ("soc", "odometer_km", "frame_ts")]
+        values += [b[k] for k in ("soc", "odometer_km", "frame_ts")]
+        # The speed is only a sanity check: a missing one says nothing about a charge.
+        values += [r["speed_kmh"] for r in (a, b) if r["speed_kmh"] is not None]
         if not all(v is not None and math.isfinite(v) for v in values):
             return False
         if not (0 < a["soc"] < b["soc"] <= 100 and a["odometer_km"] > 0
                 and a["frame_ts"] > 0 and b["frame_ts"] > a["frame_ts"]):
             return False
         if any(r["charging"] or r["gear"] not in ("P", "D", "R", "N")
-               or r["speed_kmh"] < 0 for r in (a, b)):
+               or (r["speed_kmh"] or 0) < 0 for r in (a, b)):
             return False
         distance = b["odometer_km"] - a["odometer_km"]
         rise = b["soc"] - a["soc"]
@@ -10022,8 +10030,9 @@ def scan_missed_charges(threshold: float = 2.0, apply: bool = False) -> list[dic
         return (r["charging"] or 0) == 0 and (r["speed_kmh"] or 0) <= 1
 
     def _odo_same(a, b):
+        # A missing odometer proves nothing about the car standing still.
         oa, ob = a["odometer_km"], b["odometer_km"]
-        return oa is None or ob is None or abs(ob - oa) < 0.5
+        return oa is not None and ob is not None and abs(ob - oa) < 0.5
 
     def _rising(a, b):
         return a["soc"] is not None and b["soc"] is not None and b["soc"] > a["soc"]
