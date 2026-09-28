@@ -755,16 +755,18 @@ def _link_state(acct, fetch, frame_age_s) -> tuple[str, dict]:
 
 
 def _mqtt_link(db, client, acct, vin, frame_age_s, fetch=None) -> None:
-    """Publish the data-link state — from a branch that may have no frame, and on a bridge that
-    may not exist yet. Best-effort, like every other publish."""
+    """Publish what does not ride on a frame — the data-link state and the car's software — from a
+    branch that may have no frame, and on a bridge that may not exist yet. Best-effort, like every
+    other publish."""
     try:
         acct.mqtt_service = _mqtt_connect(db, client, acct.mqtt_service)
         if acct.mqtt_service is None:
             return
         state, attrs = _link_state(acct, fetch, frame_age_s)
         acct.mqtt_service.publish_link(vin, state, attrs)
+        acct.mqtt_service.publish_software(vin)
     except Exception as exc:  # noqa: BLE001
-        log.debug("MQTT: link publish skipped: %s", exc)
+        log.debug("MQTT: publish skipped: %s", exc)
 
 
 def load_config(db: "Database") -> dict:

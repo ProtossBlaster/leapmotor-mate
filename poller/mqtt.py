@@ -92,6 +92,7 @@ class MqttService:
         self._own_vins = set()          # VINs WE publish for — a command for any other is refused
         self._access_published = {}
         self._link_discovery_sent = set()   # VINs whose data_link entity has been announced
+        self._software_announced: dict = {}  # vin → the software state its update config was last set for
         self._discovery_sent: set = set()   # VINs whose discovery has been published
         # #144 — temperature topic keys a car has never reported, and what we last told HA about
         # them, both PER VIN. 🔴 One set for the bridge would have judged both cars by whichever was
@@ -159,6 +160,7 @@ class MqttService:
             self.client.subscribe(f"{self.topic_prefix}/+/{_BEACON}")
             self._discovery_sent.clear()   # resend discovery for every car after a reconnect
             self._link_discovery_sent.clear()
+            self._software_announced.clear()
         else:
             log.error("MQTT: connect refused (code %d)", rc)
 
@@ -462,8 +464,9 @@ class MqttService:
         multi-vehicle install the same notice goes out under every VIN, which is what the Overview
         already shows whichever car is selected — publishing it under one car would hide it from the
         other's Home Assistant device. And it says "there is an update message", not "your car has
-        an update pending": the cloud exposes no OTA status, no available version and no installed
-        version (client.check_ota), so the title and the send time are all there is to carry.
+        an update pending": a message carries no version, so the title and the send time are all
+        there is to carry. The versions themselves are told only to the account that owns the car,
+        and go out as the `software` update entity (publish_software).
 
         Attributes go out with the state, empty ones included: a retained title left under an OFF
         entity would read as an update still waiting."""
@@ -480,6 +483,58 @@ class MqttService:
         self.client.publish(f"{base}/ota_notice", "ON" if available else "OFF", retain=True)
         self.client.publish(f"{base}/ota_notice/attrs",
                             json.dumps({"title": title, "sent": sent}), retain=True)
+
+    def publish_software(self, vin):
+        """The car's software as a Home Assistant `update` entity, from the setting the poller keeps
+        (software_<vin>). No `command_topic`: Mate installs nothing, and without one Home Assistant
+        shows the versions and the release notes but no Install button.
+
+        Published from every branch of the poll, like publish_link, not with the frame: the version
+        is checked on its own clock, and a car asleep for days sends no frame to carry it. Announced
+        here, the first time there is a version to show. A car the account does not own gets its
+        retained state cleared, and its config too where discovery is on: an entity announced while
+        Mate ran on the owner's account would otherwise go on showing that account's last answer."""
+        if not self.client and not self.connect():
+            return
+        if not self.client.is_connected():
+            return
+        get = self.get_setting or (lambda k, d="": d)
+        try:
+            sw = json.loads(get(f"software_{vin.lower()}", "") or "{}")
+        except ValueError:
+            return
+        state = sw.get("state")
+        if state == "ok" and not sw.get("installed"):
+            state = None                    # nothing to show is not a version
+        if state not in ("ok", "shared", "refused"):
+            return
+        device_id = f"{self.topic_prefix}_mate_{vin.lower()}"
+        state_topic = f"{self.topic_prefix}/{vin}/software"
+        if self._software_announced.get(vin) != state:
+            if self.discovery_enabled:
+                config_topic = f"{_DISC}/update/{device_id}/software/config"
+                if state == "ok":
+                    conf = {"name": "Software", "state_topic": state_topic, "device_class": "firmware",
+                            "unique_id": f"{device_id}_software", "device": self._device(vin)}
+                    self.client.publish(config_topic, json.dumps(conf), retain=True)
+                else:
+                    self.client.publish(config_topic, "", retain=True)
+            if state != "ok":
+                self.client.publish(state_topic, "", retain=True)
+            self._software_announced[vin] = state
+        if state != "ok":
+            return
+        car_type = self._facts(vin)[1]
+        notes = sw.get("notes") or ""
+        if len(notes) > 255:                # Home Assistant's limit for the summary
+            notes = notes[:254] + "…"
+        self.client.publish(state_topic, json.dumps({
+            "installed_version": sw["installed"],
+            "latest_version": sw.get("latest") or sw["installed"],
+            "title": f"Leapmotor {car_type} software" if car_type else "Leapmotor software",
+            # "" and never null: Home Assistant rejects the whole message when this is not a string
+            "release_summary": notes,
+        }), retain=True)
 
     def _publish_evcc(self, base, data):
         """EVCC-friendly boolean mirrors of plug/charging/climate.
