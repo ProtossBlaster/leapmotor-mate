@@ -2582,7 +2582,6 @@ async def settings_page(request: Request):
         timezones=db_reader.timezone_options(),
         timezone_code=db_reader.get_timezone(),
         diag=diagnostics.build_system_info(MATE_VERSION),
-        measured_capacity=db_reader.get_battery_health().get("latest_capacity_kwh"),
         # The capacity actually in use, and the SoH reference. The form used to carry its own
         # default (67.1) while the code read another (65.0) — two defaults for one value, and
         # whichever got written first decided the reference for ever (@danielvilhena, #221).
@@ -4463,6 +4462,15 @@ async def status_card(request: Request):
         status=status, vehicle=vehicle,
         car_resp=db_reader.command_responsiveness(),
         battery_price=db_reader.current_blended_price(),   # #200 — must match the overview route
+    ))
+
+
+@app.get("/api/measured-capacity", response_class=HTMLResponse)
+async def measured_capacity(request: Request):
+    """The pack's measured capacity hint, fetched by the Settings page instead of built into it:
+    the estimate integrates every qualifying charge and was 927 ms of a 1.36 s page."""
+    return templates.TemplateResponse(request, "partials/measured_capacity.html", _ctx(
+        measured_capacity=db_reader.get_battery_health().get("latest_capacity_kwh"),
     ))
 
 
