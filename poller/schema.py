@@ -287,6 +287,18 @@ def ensure_schema(conn) -> None:
         conn.execute("ALTER TABLE positions ADD COLUMN climate_cooling INTEGER DEFAULT NULL")
     if "climate_heating" not in cols:
         conn.execute("ALTER TABLE positions ADD COLUMN climate_heating INTEGER DEFAULT NULL")
+    # The SoH estimate asks, once per charge, whether anyone was sitting in the car with the cabin
+    # heater or cooler running — a charge like that has its energy/SoC ratio distorted and is left
+    # out of the figure. `LIMIT 1` makes it look cheap; it is the opposite, because the answer is
+    # almost always "no" and proving a negative without an index means reading every frame in the
+    # window. Measured on a real database: 618.05 ms for 33 charges, `SCAN positions`, none of them
+    # with the cabin in use. With this index the plan is a SEARCH and the same 33 cost 0.10 ms.
+    # Partial, so it holds 2081 rows out of 374 511 and costs nothing to keep.
+    # 🔴 HERE, not in SCHEMA: on a database made before these columns existed they arrive with the
+    # ALTERs just above, and an index on them inside the schema script fails on a fresh database and
+    # takes the WHOLE script down with it — 1037 red tests the first time.
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_positions_cabin_use ON positions(vehicle_id, recorded_at)"
+                 " WHERE climate_cooling = 1 OR climate_heating = 1")
     if "climate_defrost" not in cols:
         conn.execute("ALTER TABLE positions ADD COLUMN climate_defrost INTEGER DEFAULT NULL")
     if "trunk_open" not in cols:
