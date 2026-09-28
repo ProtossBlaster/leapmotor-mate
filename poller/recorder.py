@@ -286,10 +286,9 @@ class Recorder:
         The kilometres are not lost. They are declared, apart, as what they are: measured, and
         attributable to no trip. → poller/db.record_offline_gap
 
-        Runs at trip OPEN, and when a charge follows a long outage (_settle_trip_after_outage). In
-        both places the odometer baseline holds the last fresh reading that carried an odometer (after
-        an outage, the one the closed trip ended on), with its SoC and time — which is where the
-        silence began, and is not the same as the last poll.
+        Runs at trip OPEN, where the odometer baseline holds the last fresh reading that carried an
+        odometer, with its SoC and time — which is where the silence began, and is not the same as
+        the last poll.
         """
         prev = self._odometer_reading
         if data is None or prev is None or prev.soc is None:
@@ -321,8 +320,8 @@ class Recorder:
 
         Runs every poll; the odometer baseline advances on every fresh reading that carries one, so a
         LIVE trip (odometer rising while state == DRIVING) is skipped here — the live path records
-        those, with GPS. We only reconstruct when parked, with no trip open, the odometer clearly
-        advanced (≥1 km), and the SoC did NOT rise (a rise means a charge, which
+        those, with GPS. We only reconstruct when parked or charging, with no trip open, the odometer
+        clearly advanced (≥1 km), and the SoC did NOT rise (a rise means a charge, which
         _maybe_reconstruct_charge owns).
 
         A reading without an odometer (parsed as 0) does not move the baseline: it used to, and the
@@ -339,15 +338,16 @@ class Recorder:
         if prev is None or prev.soc is None or prev.at is None:
             return
         prev_odo, prev_soc, prev_ts = prev.odometer_km, prev.soc, prev.at
-        if self._sm.state not in _PARKED_STATES or self._active_trip_id is not None:
+        if (self._sm.state not in _PARKED_STATES and self._sm.state != State.CHARGING) \
+                or self._active_trip_id is not None:
             return                                              # a live trip owns this drive
         if not (data.odometer_km or 0) > prev_odo:
             return                                              # no advance / no odometer → skip
         if (data.odometer_km - prev_odo) < self._reconstruct_min_km:
             return                                              # sub-1 km blip, not a trip
-        # A charge under way when the baseline was read, or seen since — live, or found by the SoC
-        # this very poll — sits between the two ends: their SoC is the drive's spend minus what the
-        # charge put back.
+        # A charge under way when the baseline was read, or seen since — live (a poll that is already
+        # charging has opened its session by now), or found by the SoC this very poll — sits between
+        # the two ends: their SoC is the drive's spend minus what the charge put back.
         charged = self._charged_since(prev)
         if charged or data.soc - prev_soc > 0.5:
             # The SoC went UP, so this is not a pure drive and a trip rebuilt from it would carry
@@ -450,8 +450,8 @@ class Recorder:
           P arrives late does, and the kilometres of the hole are its own.
         - Long: no drive has a half-hour hole in it, so this one ended somewhere in the silence. It
           closes on the last observation before it, and the kilometres after that go where unseen
-          kilometres always go: a reconstructed trip when parked, the offline gap of the trip that
-          opens, or an offline gap here when charging, which runs neither.
+          kilometres always go: the reconstruction later in this poll when parked or charging, or
+          the offline gap of the trip that opens.
           → tests/test_an_outage_never_leaves_a_trip_open.py
         """
         if self._outage_was_brief():
@@ -466,8 +466,6 @@ class Recorder:
             # Read inside the drive, so not while charging, and when we stored it.
             self._finalize_trip(last, end_at=ended_at, reading=OdometerReading(
                 last.odometer_km, last.soc, last.recorded_at, False, last.frame_ts))
-            if to == State.CHARGING:
-                self._record_offline_gap(data)
         self._active_trip_id = None
         self._regen_kwh = 0.0
 

@@ -541,13 +541,17 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   recorridos durante el corte forman parte de él. Tras un silencio más largo, el trayecto termina en
   lo último que dijo el coche antes de ese silencio, y los kilómetros posteriores se tratan como
   todos los que se recorren sin conexión.
-- **Los kilómetros recorridos mientras el coche estaba sin contacto no van a ningún trayecto.** Cuando
-  el enlace con la nube se cae, el coche sigue moviéndose pero Mate no lo ve; cuando el enlace vuelve,
-  lo único que encuentra es un cuentakilómetros más adelantado. Ese salto puede contener el final de
-  un recorrido, una parada y el principio de otro, y **nada dice cómo se reparte** — así que Mate no
-  se lo atribuye a nadie. Una línea encima del calendario declara los kilómetros, la carga y el coste
-  de ese mes, y la página de **Estadísticas** declara el total acumulado: *medidos, pero no
-  atribuibles a un trayecto concreto — por eso quedan fuera de distancias, consumos y costes.*
+- **Los kilómetros que Mate no vio no se suman a los trayectos de alrededor.** Cuando el enlace con
+  la nube se cae durante más tiempo que un corte breve dentro de un mismo trayecto (ver arriba), el
+  coche sigue moviéndose pero Mate no lo ve; cuando el enlace vuelve, lo único que encuentra es un
+  cuentakilómetros más adelantado. Ese salto puede contener el final de un recorrido, una parada y
+  el principio de otro, y **nada dice cómo se reparte**. Si el coche aparece aparcado, su nivel de
+  carga no ha subido y no se detectó ninguna carga en ese intervalo, Mate reconstruye un trayecto
+  solo a partir del salto, sin ruta. Si no (un trayecto nuevo ya en marcha, una carga o un nivel de
+  carga que ha subido), Mate no atribuye esos kilómetros a nadie. Una línea encima del calendario
+  declara los kilómetros, la carga y el coste de ese mes, y la página de **Estadísticas** declara el
+  total acumulado: *medidos, pero no atribuibles a un trayecto concreto — por eso quedan fuera de
+  distancias, consumos y costes.*
   ⚠️ Por eso el total del propio Mate puede quedar por debajo del cuentakilómetros del coche: la
   diferencia es exactamente esa línea.
 - **Altitud y temperatura exterior.** La nube de Leapmotor no da ninguna de las dos, así que unos

@@ -544,13 +544,17 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   parcourus pendant la coupure en font partie. Après un silence plus long, le trajet se termine à la
   dernière nouvelle de la voiture avant ce silence, et les kilomètres suivants sont traités comme
   tous ceux parcourus hors contact.
-- **Les kilomètres parcourus hors contact n'entrent dans aucun trajet.** Quand la liaison avec le
-  cloud tombe, la voiture continue de rouler mais Mate ne la voit pas ; au retour, il ne trouve
-  qu'un odomètre plus avancé. Ce saut peut contenir la fin d'un trajet, un arrêt et le début d'un
-  autre, et **rien ne dit comment cela se répartit** — Mate ne l'attribue donc à personne. Une ligne
-  au-dessus du calendrier indique les kilomètres, la charge et le coût de ce mois-là, et la page
-  **Statistiques** le cumul : *mesurés, mais non attribuables à un trajet précis — donc exclus des
-  distances, des consommations et des coûts.*
+- **Les kilomètres que Mate n'a pas vus ne sont pas ajoutés aux trajets qui les entourent.** Quand
+  la liaison avec le cloud tombe plus longtemps qu'une courte coupure au sein d'un même trajet (voir
+  ci-dessus), la voiture continue de rouler mais Mate ne la voit pas ; au retour, il ne trouve qu'un
+  odomètre plus avancé. Ce saut peut contenir la fin d'un trajet, un arrêt et le début d'un autre,
+  et **rien ne dit comment cela se répartit**. Si la voiture est alors garée, que son niveau de
+  charge n'a pas augmenté et qu'aucune recharge n'a été détectée dans l'intervalle, Mate reconstitue
+  un trajet à partir du seul saut, sans itinéraire. Sinon (un nouveau trajet déjà en cours, une
+  recharge, ou un niveau de charge qui a augmenté), Mate n'attribue ces kilomètres à personne. Une
+  ligne au-dessus du calendrier indique les kilomètres, la charge et le coût de ce mois-là, et la
+  page **Statistiques** le cumul : *mesurés, mais non attribuables à un trajet précis — donc exclus
+  des distances, des consommations et des coûts.*
   ⚠️ C'est pourquoi le total de Mate peut rester en dessous de l'odomètre de la voiture : la
   différence, c'est cette ligne.
   ligne.
