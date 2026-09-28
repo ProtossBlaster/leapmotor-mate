@@ -614,7 +614,9 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
     whole **power-on session** (from switch-on to switch-off), so it can include time the car was on
     before you started driving. If you **never switch the car off between two trips** (you stop, stay in
     Park, drive again), the cloud counts them as **one** session — Mate tells you to **merge the two
-    trips** to get the real combined consumption.
+    trips** to get the real combined consumption. Mate only says so when the car reported it: a stop
+    in Park of more than a minute during which the car did not say whether it was on is not counted as
+    one session.
 - **Your note + driving tags 🆕** (#107) — in a trip's detail you can jot a **free-text note** (traffic,
   weather, road type, any remark) and tag the **drive mode** (Comfort / Normal / Sport) and **One-Pedal**
   (on/off) you used. Mate can't read these from the car — Leapmotor doesn't send them to the cloud — so

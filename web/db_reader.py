@@ -4731,10 +4731,10 @@ _READY_BLIP_S = 60
 # (PARKED_CONFIRM = 6 polls). Lowering it with the other one would have left it exactly equal to
 # the lag it exists to cover.
 _READY_MATCH_SLACK_S = 90
-# How long a READY value may be carried forward over polls that didn't report one. The floor is
-# above the widest parked cadence the settings allow (10–600 s), so even the slowest poller keeps
-# a value across a missed reading; the 3× term keeps that margin at three polls when the user has
-# widened the interval. Beyond it the value expires — see ready_session for what that buys.
+# How long a stretch of polls that didn't report READY may last and still join the ready=1 runs on
+# either side of it. The floor is above the widest parked cadence the settings allow (10–600 s), so
+# even the slowest poller bridges a missed reading; the 3× term keeps that margin at three polls
+# when the user has widened the interval. Beyond it the stretch confirms nothing — see ready_session.
 _READY_CARRY_MIN_S = 900
 
 
@@ -4763,6 +4763,21 @@ def _parked_poll_seconds() -> int:
 _READY_LOOKBACK_S = 6 * 3600  # how far around the trip to scan positions for the session bounds
 
 
+def _one_power_on(gap_s: float, zero: bool, unknown: bool, parked: bool, carry_max: float) -> bool:
+    """Whether two ready=1 runs `gap_s` apart are one power-on, given what the polls between them
+    held: an observed ready=0 (`zero`), a poll that didn't report READY (`unknown`), and one of
+    those in P (`parked`).
+
+    An observed zero is a blip only while it is short, and a poll without READY never says more
+    than a zero would. In P it joins the runs only as briefly: a confirmed park and a plug-in both
+    close a trip on a reading in P (the poller stores a missing gear as P), and past a blip nothing
+    tells such a stop from a switch-off. Out of P it joins them within `carry_max`; the frozen-frame
+    guard closes a trip in gear, but only after half an hour, beyond the window. Out of P is no
+    proof the car stayed on — it only leaves the window to decide."""
+    return (not zero or gap_s < _READY_BLIP_S) and not (
+        unknown and ((parked and gap_s >= _READY_BLIP_S) or gap_s > carry_max))
+
+
 def ready_session(trip: dict):
     """Reconstruct the car's power-on session (READY/ON3, PID 1258) that brackets this trip, from the
     per-poll `positions.ready` log. The cloud's getEC session runs from Ready-ON to power-OFF and can
@@ -4771,7 +4786,10 @@ def ready_session(trip: dict):
 
     Returns {on, off, n_trips, trip_ids} (epoch seconds) or None when no ready data covers the trip
     (old trips before the signal existed → caller falls back to the T0−2min window). Brief ready=0
-    dips shorter than _READY_BLIP_S are treated as still-on (blips)."""
+    dips shorter than _READY_BLIP_S are treated as still-on (blips). Polls that didn't report READY
+    join the runs around them in P only as briefly as a blip, and out of P within the carry window;
+    a session split there could not be confirmed as one, which is not the same as the car having
+    been switched off."""
     t0, t1 = _trip_epoch(trip.get("started_at")), _trip_epoch(trip.get("ended_at"))
     if not t0 or not t1:
         return None
@@ -4779,65 +4797,45 @@ def ready_session(trip: dict):
     lo = datetime.fromtimestamp(t0 - _READY_LOOKBACK_S, timezone.utc).isoformat()
     hi = datetime.fromtimestamp(t1 + _READY_LOOKBACK_S, timezone.utc).isoformat()
     rows = db.execute(
-        "SELECT recorded_at, ready FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "SELECT recorded_at, ready, gear FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
         "AND recorded_at >= ? AND recorded_at <= ? "
         "ORDER BY recorded_at", (_current_vehicle_id(), lo, hi)).fetchall()
-    # Carry a known value forward across polls that didn't report one — but only for a while. The
-    # carry-forward is meant to bridge a missed poll or two; on a car that reports READY rarely it
-    # was instead becoming the only source of truth, and one ready=1 kept meaning "still on" for
-    # hours, straight across a real power-off. Measured: on a BEV, 89.8% of position rows carry a
-    # READY value and 99.9% of consecutive samples are ONE poll apart, so expiry never fires there;
-    # on michapr's REEV (beta #19) the signal arrives in ~0.8% of frames and effectively never as a
-    # zero, so the carry ran for hours and two separate drives were reported as one power-on —
-    # which told him to MERGE trips that must stay apart.
-    #
-    # Past the window the sample becomes None, not 0: "we no longer know" is the truth, and claiming
-    # "off" would be the same overreach in the other direction. None ends the ready=1 run (anything
-    # that isn't 1 does) without being picked up as an observed zero by the on_lo bracket below.
-    carry_max = max(_READY_CARRY_MIN_S, 3 * _parked_poll_seconds())
-    samples, last, last_e = [], None, None
-    for r in rows:
-        e = _trip_epoch(r["recorded_at"])
-        if e is None:
-            continue
-        rd = r["ready"]
-        if rd is None:
-            rd = last if (last is not None and last_e is not None
-                          and e - last_e <= carry_max) else None
-        else:
-            last, last_e = rd, e
-        samples.append((e, rd))
-    if not any(rd for _, rd in samples):
+    samples = [(e, r["ready"], r["gear"]) for r in rows
+               if (e := _trip_epoch(r["recorded_at"])) is not None]
+    if not any(rd == 1 for _, rd, _ in samples):
         return None                          # no ready=1 anywhere → no session info
-    # Build ready=1 runs, then merge runs separated by a ready=0 gap shorter than the debounce.
-    runs, cur = [], None
-    for e, rd in samples:
-        if rd == 1:
-            cur = [e, e] if cur is None else [cur[0], e]
-        elif cur is not None:
-            runs.append(cur); cur = None
-    if cur is not None:
-        runs.append(cur)
-    merged = []
-    for run in runs:
-        if merged and run[0] - merged[-1][1] < _READY_BLIP_S:
-            merged[-1][1] = run[1]
+    # Build ready=1 runs, and join two runs when what lies between them doesn't break the power-on.
+    # A NULL is a poll that didn't report READY: neither on nor off. It is never carried forward (on
+    # a car that reports READY rarely, beta #19, a carried ready=1 outlasted a real power-off) and
+    # never stands for the observed off that on_lo below needs.
+    carry_max = max(_READY_CARRY_MIN_S, 3 * _parked_poll_seconds())
+    merged, zero, unknown, parked = [], False, False, False
+    for e, rd, gear in samples:
+        if rd != 1:
+            zero, unknown = zero or rd == 0, unknown or rd is None
+            parked = parked or (rd is None and gear == "P")
+            continue
+        if merged and _one_power_on(e - merged[-1][1], zero, unknown, parked, carry_max):
+            merged[-1][1] = e
         else:
-            merged.append(list(run))
+            merged.append([e, e])
+        zero, unknown, parked = False, False, False
     # The session = the run that brackets the trip (small slack: the gear-P trip-end lags ready-off
     # by ~1 min, and ready-on can sit a poll after T0).
-    sess = next(((s, e) for s, e in merged
-                 if s - _READY_MATCH_SLACK_S <= t0 and t1 <= e + _READY_MATCH_SLACK_S), None)
-    if sess is None:                         # fallback: any run overlapping the trip
-        sess = next(((s, e) for s, e in merged if not (e < t0 or s > t1)), None)
-    if sess is None:
+    at = next((i for i, (s, e) in enumerate(merged)
+               if s - _READY_MATCH_SLACK_S <= t0 and t1 <= e + _READY_MATCH_SLACK_S), None)
+    if at is None:                           # fallback: any run overlapping the trip
+        at = next((i for i, (s, e) in enumerate(merged) if not (e < t0 or s > t1)), None)
+    if at is None:
         return None
-    on, off = sess
-    # on_lo = last ready=0 sample BEFORE the run = lower bracket of the real Ready-on. The true
+    on, off = merged[at]
+    # on_lo = last OBSERVED ready=0 before the run = lower bracket of the real Ready-on. The true
     # power-on (= getEC anchor) sits between on_lo and `on` (≤ one poll interval), so on_lo is
-    # provably ≤ the anchor → the safe getEC begin (see trip_ec_window). None only if the run starts
-    # at the scan edge with no preceding off-sample (caller then uses its fallback).
-    on_lo = max((ts for ts, rd in samples if ts < on and rd == 0), default=None)
+    # provably ≤ the anchor → the safe getEC begin (see trip_ec_window). Only a zero after the run
+    # before this one counts: the car was on in that run, so an older zero brackets nothing here.
+    # None when no such zero was observed (caller then uses its fallback).
+    since = merged[at - 1][1] if at else float("-inf")
+    on_lo = max((ts for ts, rd, _ in samples if since < ts < on and rd == 0), default=None)
     # Count finalized, non-merged trips whose span falls inside the session.
     olo = datetime.fromtimestamp(on - _READY_MATCH_SLACK_S, timezone.utc).isoformat()
     ohi = datetime.fromtimestamp(off + _READY_MATCH_SLACK_S, timezone.utc).isoformat()

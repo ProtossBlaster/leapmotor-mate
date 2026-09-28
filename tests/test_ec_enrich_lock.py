@@ -497,12 +497,11 @@ def test_revert_trip_ec_noop_when_not_converted(tmp_path, monkeypatch):
 
 # ── beta #19 (@michapr): a READY value may not be carried forward for ever ────
 #
-# ready_session bridges polls that report no READY value by reusing the last one. That is right for
-# a missed reading and wrong for a car that barely reports the signal at all: on his REEV B10 it
-# arrives in ~0.8% of frames and effectively never as a zero, so one ready=1 kept meaning "still on"
-# for hours and two genuinely separate drives came back as one power-on — which told him to MERGE
-# trips that must stay apart. On a BEV the same code is unaffected: 89.8% of position rows carry a
-# value and 99.9% of consecutive samples are one poll apart, so the window never expires.
+# ready_session used to bridge polls that report no READY value by reusing the last one. That is
+# right for a missed reading and wrong for a car that barely reports the signal at all: on his REEV
+# B10 it arrives in ~0.8% of frames and effectively never as a zero, so one ready=1 kept meaning
+# "still on" for hours and two genuinely separate drives came back as one power-on — which told him
+# to MERGE trips that must stay apart. Such polls now bridge only out of P and within a window.
 
 def _sparse_ready(pdb, start, minutes, *, samples_at, step=30):
     """A REEV-shaped log: a poll every `step` seconds for `minutes`, but only the polls listed in
@@ -535,8 +534,8 @@ def _two_trips_only(tmp_path, monkeypatch, aS, aE, bS, bE):
 
 def test_sparse_ready_does_not_span_a_real_power_off(tmp_path, monkeypatch):
     """His case: READY seen three times at the start of trip A and never again, two trips 78 minutes
-    apart with the car off in between. The carry-forward must expire rather than report one session
-    over both — that report is what asks the user to merge them."""
+    apart with the car off in between. The polls without READY must not join them into one session —
+    that report is what asks the user to merge them."""
     aS = datetime(2026, 7, 28, 7, 56, tzinfo=timezone.utc)
     aE, bS, bE = aS + timedelta(minutes=42), aS + timedelta(minutes=120), aS + timedelta(minutes=150)
     pdb = _two_trips_only(tmp_path, monkeypatch, aS, aE, bS, bE)
@@ -564,26 +563,28 @@ def test_a_dense_ready_log_still_reports_a_genuinely_shared_session(tmp_path, mo
     assert ec_enrich.convert_trip(1)["reason"] == "shared_session"
 
 
-def test_the_carry_forward_still_bridges_a_few_missed_polls(tmp_path, monkeypatch):
-    """The window exists to survive a gap, not to forbid one: READY reported, then five minutes of
-    polls with no value, then reported again. That is one unbroken session."""
+def test_missed_polls_on_the_road_still_bridge_one_session(tmp_path, monkeypatch):
+    """A gap must be survived, not forbidden: READY reported, then five minutes of polls with no
+    value while out of P, then reported again. That is one unbroken session."""
     aS = datetime(2026, 7, 28, 7, 56, tzinfo=timezone.utc)
     aE, bS, bE = aS + timedelta(minutes=42), aS + timedelta(minutes=48), aS + timedelta(minutes=70)
     pdb = _two_trips_only(tmp_path, monkeypatch, aS, aE, bS, bE)
     # a value every poll except a 5-minute hole in the middle of trip A
     hole = set(range(1200, 1500, 30))
     _sparse_ready(pdb, aS, 75, samples_at={s for s in range(0, 75 * 60, 30)} - hole)
+    pdb._conn.execute("UPDATE positions SET gear = 'D'")   # on the road; the poller always stores a gear
+    pdb._conn.commit()
 
     s = db_reader.ready_session(dict(pdb._conn.execute("SELECT * FROM trips WHERE id=1").fetchone()))
     assert s and set(s["trip_ids"]) == {1, 2}, "a five-minute gap must not split one power-on"
 
 
-def test_an_expired_carry_is_unknown_not_an_observed_power_off(tmp_path, monkeypatch):
-    """What the window expires INTO matters as much as when. `on_lo` — the last observed ready=0
-    before a session — is the primary getEC start, and trip_ec_window trusts it as a moment the car
-    was *provably* off. If expiry wrote 0 instead of "no longer known", every long silence would
-    manufacture such a moment out of a reading nobody ever took. Here READY is only ever seen as 1,
-    so there is no observed zero anywhere and on_lo must stay None."""
+def test_a_poll_without_ready_is_unknown_not_an_observed_power_off(tmp_path, monkeypatch):
+    """`on_lo` — the last observed ready=0 before a session — is the primary getEC start, and
+    trip_ec_window trusts it as a moment the car was *provably* off. If a poll without READY counted
+    as 0, every long silence would manufacture such a moment out of a reading nobody ever took.
+    Here READY is only ever seen as 1, so there is no observed zero anywhere and on_lo must stay
+    None."""
     aS = datetime(2026, 7, 28, 7, 56, tzinfo=timezone.utc)
     aE, bS, bE = aS + timedelta(minutes=42), aS + timedelta(minutes=120), aS + timedelta(minutes=150)
     pdb = _two_trips_only(tmp_path, monkeypatch, aS, aE, bS, bE)
@@ -595,7 +596,7 @@ def test_an_expired_carry_is_unknown_not_an_observed_power_off(tmp_path, monkeyp
     zeros = [r[0] for r in pdb._conn.execute(
         "SELECT recorded_at FROM positions WHERE ready = 0")]
     assert zeros == [], "the fixture must contain no observed zero, or this proves nothing"
-    assert s.get("on_lo") is None, "on_lo was invented from an expired carry, not an observed zero"
+    assert s.get("on_lo") is None, "on_lo was invented from a poll without READY, not an observed zero"
 
 
 # ── beta #19 follow-up: the message has to say WHICH trips ────────────────────

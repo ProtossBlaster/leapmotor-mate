@@ -647,7 +647,9 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
     todo el **encendido** (de arrancar a apagar), así que puede incluir tiempo con el coche encendido
     antes de que empezaras a moverte. Si **nunca apagas el coche entre dos trayectos** (paras, te
     quedas en Park, vuelves a arrancar), la nube los cuenta como **uno solo** — Mate te dice que
-    **unas los dos trayectos** para obtener el consumo combinado real.
+    **unas los dos trayectos** para obtener el consumo combinado real. Mate solo lo indica cuando el
+    coche lo ha comunicado: una parada en Park de más de un minuto durante la cual el coche no dijo si
+    estaba encendido no cuenta como un solo encendido.
 - **Tu nota + las etiquetas de conducción 🆕** (#107) — en el detalle de un trayecto puedes escribir
   una **nota libre** (tráfico, tiempo, tipo de carretera, lo que sea) y etiquetar el **modo de
   conducción** (Confort / Normal / Sport) y el **One-Pedal** (activado/desactivado) que usaste. Mate no
