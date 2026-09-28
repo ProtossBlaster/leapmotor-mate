@@ -475,6 +475,11 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   vitesse maximale mesurée par la voiture elle-même. Les relevés de Mate sont espacés de quelques
   secondes et manquent les pics brefs — jusqu'à 21 km/h sur un B10 —, donc un trajet sans cet
   enregistrement garde la valeur relevée, signalée par un ⓘ.
+- **Puissance max et régénération max 🆕.** Le détail indique la puissance la plus élevée fournie par
+  la batterie et la plus élevée renvoyée au freinage, à partir de la tension et du courant de la
+  batterie que Mate lit à chaque mise à jour. Les relevés sont espacés de quelques secondes, donc un
+  pic bref entre deux échappe : les valeurs sont un minimum, et le ⓘ à côté le dit. Non affichées
+  sur un prolongateur d'autonomie, comme la régénération.
 
 - **Votre note + tags de conduite 🆕** (#107) — dans le détail d'un trajet, vous pouvez écrire une **note
   libre** (trafic, météo, type de route, toute remarque) et indiquer le **mode de conduite** (Confort /

@@ -444,6 +444,11 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   same record that gives the official consumption), the detail shows the top speed the car itself
   measured. Mate's own readings are several seconds apart and miss short peaks — on a B10 by up to
   21 km/h — so a trip without that record keeps the sampled figure, marked with an ⓘ.
+- **Max power and max regen 🆕.** The detail names the highest power the battery gave out and the
+  highest flowing back into it while braking, from the pack's voltage and current Mate reads at
+  every update. The readings are several seconds apart, so a short peak between two of them is
+  missed: the figures are a floor, and the ⓘ beside them says so. Not shown on a range extender,
+  like the regen figure.
 - **Official consumption from the cloud 🆕** — when available, a trip's **consumption, efficiency and
   cost** come from Leapmotor's **official figure** (the real **driving / A·C / other** split) instead of
   the battery‑% estimate alone. Right after a drive you see the estimate marked **⏳ provisional**; once

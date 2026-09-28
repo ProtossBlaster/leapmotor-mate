@@ -294,6 +294,17 @@
         <span class="text-slate-400">{{ t('max_speed') }}{% if trip.max_speed_sampled %} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('max_speed_sampled_help') }}">ⓘ</span>{% endif %}</span>
         <span class="text-white font-medium">{% if trip.max_speed_kmh is not none %}{{ trip.max_speed_kmh | speed(0) }}{% else %}—{% endif %}</span>
       </div>
+      {# Hidden on a range extender like the regen figure: with the generator running, the pack's power is not the drive's. #}
+      {% if not is_reev %}
+      <div class="flex justify-between">
+        <span class="text-slate-400">{{ t('max_power') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('max_power_help') }}">ⓘ</span></span>
+        <span class="text-white font-medium">{% if trip.max_power_kw is not none %}{{ trip.max_power_kw|dec(0) }} kW{% else %}—{% endif %}</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-400">{{ t('max_regen') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('max_regen_help') }}">ⓘ</span></span>
+        <span class="text-white font-medium">{% if trip.max_regen_kw is not none %}{{ trip.max_regen_kw|dec(0) }} kW{% else %}—{% endif %}</span>
+      </div>
+      {% endif %}
       <div class="flex justify-between">
         <span class="text-slate-400">{{ t('elevation') }}</span>
         <span class="text-white font-medium">

@@ -462,6 +462,11 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   Höchstgeschwindigkeit. Mates eigene Messungen liegen einige Sekunden auseinander und verpassen
   kurze Spitzen — bei einem B10 um bis zu 21 km/h —, daher behält eine Fahrt ohne diesen Datensatz
   den gemessenen Wert, markiert mit einem ⓘ.
+- **Max. Leistung und max. Rekuperation 🆕.** Das Detail nennt die höchste von der Batterie
+  abgegebene und die höchste beim Bremsen zurückfließende Leistung, aus Spannung und Strom der
+  Batterie, die Mate bei jeder Aktualisierung liest. Die Messungen liegen einige Sekunden
+  auseinander, eine kurze Spitze dazwischen entgeht also: Die Werte sind eine Untergrenze, und das ⓘ
+  daneben sagt das. Bei einem Range-Extender nicht angezeigt, wie die Rekuperation.
 
 - **Ihre Notiz + Fahr-Tags 🆕** (#107) — im Detail einer Fahrt können Sie eine **freie Notiz** (Verkehr,
   Wetter, Streckentyp, jede Anmerkung) schreiben und den verwendeten **Fahrmodus** (Comfort / Normal /

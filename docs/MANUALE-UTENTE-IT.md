@@ -450,6 +450,11 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   misurata dall'auto stessa. Le letture di Mate sono a qualche secondo l'una dall'altra e perdono i
   picchi brevi — su una B10 fino a 21 km/h — quindi un viaggio senza quel record mantiene il valore
   campionato, segnato con una ⓘ.
+- **Potenza max e regen max 🆕.** Il dettaglio indica la potenza più alta erogata dalla batteria e
+  quella più alta rientrata in frenata, dalla tensione e dalla corrente della batteria che Mate
+  legge a ogni aggiornamento. Le letture sono a qualche secondo l'una dall'altra, quindi un picco
+  breve tra due letture sfugge: i valori sono un minimo, e la ⓘ accanto lo dice. Non compaiono su
+  un'auto con range extender, come il regen.
 - **Consumi ufficiali dal cloud 🆕** — quando disponibili, **consumo, efficienza e costo** del viaggio
   vengono dal **dato ufficiale Leapmotor** (la vera ripartizione **guida / A·C / altro**) invece della
   sola stima dal calo di batteria. Subito dopo il viaggio vedi la stima con l'avviso **⏳ provvisorio**;

@@ -466,6 +466,11 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   el propio coche. Las lecturas de Mate están separadas unos segundos y pierden los picos breves —
   en un B10, hasta 21 km/h —, así que un trayecto sin ese registro conserva el valor muestreado,
   marcado con una ⓘ.
+- **Potencia máxima y regeneración máxima 🆕.** El detalle indica la potencia más alta que entregó la
+  batería y la más alta que volvió a ella al frenar, a partir de la tensión y la corriente de la
+  batería que Mate lee en cada actualización. Las lecturas están separadas unos segundos, así que un
+  pico breve entre dos se pierde: los valores son un mínimo, y la ⓘ junto a ellos lo indica. No se
+  muestran en un coche con extensor de autonomía, igual que la regeneración.
 - **Consumo oficial desde la nube 🆕** — cuando está disponible, el **consumo, el rendimiento y el
   coste** de un trayecto salen de la **cifra oficial** de Leapmotor (el reparto real entre **marcha /
   climatización / otros**) en vez de solo de la estimación por % de batería. Justo después de un
