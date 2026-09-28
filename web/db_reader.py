@@ -10161,11 +10161,18 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
     # and resolving the zone reads a setting on a connection of its own: 1608 reads and 0.195 s of
     # a 0.490 s call on a real database. → tests/test_the_drain_card_reads_the_clock_once.py
     zone = _local_tz()
+    # Plain tuples, straight off the cursor. This is the one read in Mate measured in hundreds of
+    # thousands of rows — 284 505 frames for ninety days on a real database — and a `sqlite3.Row`
+    # per frame plus a name lookup per field is most of what it costs: 220.43 ms as Rows with
+    # fetchall(), 150.65 ms like this, same frames. The loop below unpacks them in the SELECT's
+    # order, so that order and this unpacking have to stay in step.
+    # → tests/test_the_drain_card_reads_the_clock_once.py
     rows = db.execute(
         "SELECT recorded_at, soc, charging, speed_kmh, odometer_km, ac_port_mode, ready FROM positions "
         "WHERE vehicle_id = COALESCE(?, vehicle_id) AND soc IS NOT NULL AND recorded_at >= ? ORDER BY recorded_at",
         (_current_vehicle_id(), cutoff),
-    ).fetchall()
+    )
+    rows.row_factory = None
 
     windows = []
     # 🔴 The parks that produced NO bar, and why. Without this the page and the bundle could only
@@ -10187,8 +10194,10 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
         # closes at the frozen value and the drop falls in the gap before the trip's start SoC).
         # Close the window at that fresh value + time so the drain is captured — but only when it's
         # a DROP (a rise = BMS recalibration / charge → keep the parked value, never invent drain).
-        if close is not None and close["soc"] is not None and close["soc"] < (soc_end or 0):
-            soc_end, t_end = close["soc"], close["recorded_at"]
+        # `close` is the waking frame as (soc, recorded_at) — a pair, because the caller now reads
+        # plain tuples off the cursor rather than building a row object per frame.
+        if close is not None and close[0] is not None and close[0] < (soc_end or 0):
+            soc_end, t_end = close[0], close[1]
         t0, t1 = _local_dt(w["t0"], zone), _local_dt(t_end, zone)
         if t0 is None or t1 is None:
             return
@@ -10258,18 +10267,17 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
             })
 
     cur = None
-    for r in rows:
+    # Unpacked in the SELECT's own order — keep the two in step.
+    for at, soc, charging, speed_kmh, odo, ac_port_mode, rd in rows:
         # A V2L / bidirectional-discharge sample (ac_port_mode==2) is NOT standby: the car is parked
         # but actively powering an external load, so that SoC loss is V2L output, not vampire drain.
         # Treat it like charging — it BOUNDS the parked window and its drop is never read as drain.
-        v2l = r["ac_port_mode"] == 2
+        v2l = ac_port_mode == 2
         # OFF window = car powered down (Ready/ON3 = 0), not charging, not V2L. Falls back to the old
         # speed<1 test only when the ready signal is absent (trips before it was logged). The drain now
         # spans exactly Ready-OFF → next Ready-ON: on-state idle (Ready+P with climate) is NOT counted,
         # while OFF-state remote heating/cooling IS (per the in-card note).
-        rd = r["ready"]
-        idle = (not r["charging"]) and (not v2l) and (rd == 0 if rd is not None else (r["speed_kmh"] or 0) < 1)
-        odo = r["odometer_km"]
+        idle = (not charging) and (not v2l) and (rd == 0 if rd is not None else (speed_kmh or 0) < 1)
         # a rise in odometer since the window's last idle sample → a drive happened (even if its
         # samples were missed) → the park ended there.
         if (cur is not None and odo is not None and cur["odo_last"] is not None
@@ -10283,15 +10291,15 @@ def get_vampire_drain(min_hours: float = 1.0, min_drop_pct: float = 0.2,
             # or V2L transition is left as-is: the pre-charge gap is ambiguous (could be a drive to
             # the charger), and a V2L drop is bidirectional-discharge output (not standby) — so we
             # never infer drain from either.
-            _flush(cur, close=(None if (r["charging"] or v2l) else r))
+            _flush(cur, close=(None if (charging or v2l) else (soc, at)))
             cur = None
             continue
         if cur is None:                     # start a new parked window
-            cur = {"t0": r["recorded_at"], "soc0": r["soc"],
-                   "t_last": r["recorded_at"], "soc_last": r["soc"], "odo_last": odo}
+            cur = {"t0": at, "soc0": soc,
+                   "t_last": at, "soc_last": soc, "odo_last": odo}
         else:                               # extend the current parked window
-            cur["t_last"] = r["recorded_at"]
-            cur["soc_last"] = r["soc"]
+            cur["t_last"] = at
+            cur["soc_last"] = soc
             if odo is not None:
                 cur["odo_last"] = odo
     _flush(cur, ongoing=True)               # the trailing park is still open

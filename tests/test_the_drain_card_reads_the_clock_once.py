@@ -162,6 +162,41 @@ def test_the_battery_chart_reads_the_clock_once(eight_charges):
     )
 
 
+def test_the_drain_card_does_not_build_a_row_object_per_frame(many_parks):
+    """Ninety days is 284 505 frames on a real database, and each one was becoming a `sqlite3.Row`.
+
+    Measured inside the lab container: reading that window and walking it costs **220.43 ms** with
+    `row_factory = sqlite3.Row` and `fetchall()`, and **150.65 ms** reading plain tuples off the
+    cursor — 68%, with the same count of frames. Nothing about the arithmetic changes; what goes is
+    a per-frame object and a per-field name lookup, on the one read in Mate that is measured in
+    hundreds of thousands of rows.
+    """
+    seen = {}
+    real = db_reader._get()
+
+    class _Watch:
+        def execute(self, sql, *args):
+            cursor = real.execute(sql, *args)
+            if "FROM positions" in sql and "ac_port_mode" in sql:
+                seen["cursor"] = cursor
+            return cursor
+
+        def __getattr__(self, name):
+            return getattr(real, name)
+
+    original = db_reader._get
+    db_reader._get = lambda: _Watch()
+    try:
+        db_reader.get_vampire_drain()
+    finally:
+        db_reader._get = original
+
+    assert "cursor" in seen, "the window read is not where this test expects it"
+    assert seen["cursor"].row_factory is None, (
+        "the drain card still turns every one of ninety days of frames into a sqlite3.Row"
+    )
+
+
 def test_the_times_are_still_local(many_parks):
     """The zone is passed down, not dropped: a window still carries a Rome offset."""
     out = db_reader.get_vampire_drain()
