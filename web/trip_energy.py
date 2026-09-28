@@ -30,6 +30,20 @@ def _within_distance(a, b):
     return abs(a - b) <= max(0.5, 0.1 * a)
 
 
+
+def _first_at_or_after(values, target):
+    """Index of the first value >= target, by halving. Written out instead of importing `bisect`
+    because every import here has to be declared in MateDesktop's payload contract, and a six-line
+    search is not worth coupling a release to a shell rebuild."""
+    low, high = 0, len(values)
+    while low < high:
+        middle = (low + high) // 2
+        if values[middle] < target:
+            low = middle + 1
+        else:
+            high = middle
+    return low
+
 def select_energy(db, displayed):
     """Annotate EV rows only, with conservative full-trip cloud matching.
 
@@ -77,14 +91,34 @@ def select_energy(db, displayed):
                 records[key] = value
             except (TypeError, ValueError, KeyError):
                 continue
+    # A record can only belong to a trip that had already started when the record did
+    # (`start >= a - 90`), so the trips worth testing are the ones whose start is just before it.
+    # Sorted once, they are found by bisection instead of by walking the whole history for every
+    # record: that walk is quadratic in the history and was 32 ms of the 92 ms an add-on spent
+    # showing three trips, growing with every drive recorded.
+    # → tests/test_matching_a_cloud_record_does_not_scan_every_trip.py
+    ordered = sorted(
+        ((bounds[trip_id][0], trip_id) for trip_id, trip in raw.items()
+         if bounds[trip_id][0] is not None and bounds[trip_id][1] is not None
+         and bounds[trip_id][1] > bounds[trip_id][0]),
+        key=lambda pair: pair[0])
+    starts = [pair[0] for pair in ordered]
+    # How far back a qualifying trip can have started: the longest one there is. Taken from the
+    # data, so the window can never cut off a trip that the full walk would have found.
+    longest = max((bounds[trip_id][1] - bounds[trip_id][0] for _, trip_id in ordered), default=0)
+
     assigned = {}
     blocked = set()
     for key, (energy, distance) in records.items():
         vin, start, end = key
         candidates = []
-        for trip_id, trip in raw.items():
+        upper = _first_at_or_after(starts, start + 90 + 1e-9)
+        lower = _first_at_or_after(starts, start - longest - 90)
+        for index in range(lower, upper):
+            trip_id = ordered[index][1]
+            trip = raw[trip_id]
             a, b = bounds[trip_id]
-            if vehicles.get(trip["vehicle_id"]) != vin or a is None or b is None or b <= a:
+            if vehicles.get(trip["vehicle_id"]) != vin:
                 continue
             if min(end, b) > max(start, a) and start >= a - 90 and end <= b + 90:
                 candidates.append(trip_id)
