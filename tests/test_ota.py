@@ -1,15 +1,18 @@
 """OTA-update detection (client.check_ota): the account inbox is the only automatic "update
 available" channel, matched by title keywords (stopgap until a real OTA message pins its
 msg_type). The vehicle-sharing message must NOT be mistaken for an update."""
+import time
 import types
 
 import client as C
+
+_NOW_MS = int(time.time() * 1000)     # a notice ages out after a month, so the fixtures are dated today
 
 
 def _client_with(titles):
     api = types.SimpleNamespace(
         get_message_list=lambda page_no=1, page_size=20: types.SimpleNamespace(
-            messages=[types.SimpleNamespace(title=t, message="", send_time=1780296848000)
+            messages=[types.SimpleNamespace(title=t, message="", send_time=_NOW_MS)
                       for t in titles]))
     c = C.LeapmotorMateClient.__new__(C.LeapmotorMateClient)   # skip the login-y __init__
     c._api = api
@@ -88,7 +91,36 @@ def test_the_body_counts_too_not_only_the_title():
     api = types.SimpleNamespace(get_message_list=lambda page_no=1, page_size=20:
                                 types.SimpleNamespace(messages=[types.SimpleNamespace(
                                     title="Leapmotor", message="Your firmware update is ready",
-                                    send_time=1780296848000)]))
+                                    send_time=_NOW_MS)]))
     c = C.LeapmotorMateClient.__new__(C.LeapmotorMateClient)
     c._api = api
     assert c.check_ota()["ota"] is True
+
+
+# ── A notice is news for a month, not for ever ───────────────────────────────────────────────
+# The scan looks at the twenty newest messages and reports the first that matches, however old.
+# An update message from before Mate was installed would hold the flag ON — and the Home
+# Assistant entity with it — until twenty newer messages had pushed it out of the page.
+
+def _client_dated(pairs):
+    api = types.SimpleNamespace(get_message_list=lambda page_no=1, page_size=20: types.SimpleNamespace(
+        messages=[types.SimpleNamespace(title=t, message="", send_time=st) for t, st in pairs]))
+    c = C.LeapmotorMateClient.__new__(C.LeapmotorMateClient)
+    c._api = api
+    return c
+
+
+def test_a_notice_older_than_a_month_does_not_keep_the_flag_on(monkeypatch):
+    now_ms = 1_790_000_000_000
+    monkeypatch.setattr(time, "time", lambda: now_ms / 1000)
+    old = now_ms - 31 * 86400 * 1000
+    fresh = now_ms - 29 * 86400 * 1000
+    assert _client_dated([("Software update available", old)]).check_ota()["ota"] is False
+    assert _client_dated([("Software update available", fresh)]).check_ota()["ota"] is True
+
+
+def test_a_notice_without_a_date_still_counts(monkeypatch):
+    """The date is what ages a notice out; a message the cloud sent without one is not thrown
+    away for that — a false OFF here is the silence the entity existed to end."""
+    monkeypatch.setattr(time, "time", lambda: 1_790_000_000.0)
+    assert _client_dated([("Software update available", None)]).check_ota()["ota"] is True

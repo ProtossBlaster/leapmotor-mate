@@ -9,6 +9,7 @@ import mate_api  # explicit independent runtime; no sitecustomize hook
 import logging
 import os
 import re
+import time
 from dataclasses import dataclass
 
 from api_backend import LeapmotorApiClient
@@ -171,6 +172,7 @@ _OTA_PATTERNS = (
     r"\baktualizacja\b(?:\W+\w+){0,3}\W+\b(?:oprogramowania|systemu|pojazdu)\b",
 )
 _OTA_RE = re.compile("|".join(_OTA_PATTERNS), re.IGNORECASE | re.UNICODE)
+_OTA_NOTICE_MAX_AGE_S = 30 * 86400   # older than this, a matching message is history, not a notice
 
 
 class LeapmotorMateClient:
@@ -372,13 +374,18 @@ class LeapmotorMateClient:
         except Exception as e:  # noqa: BLE001 — strict lib parser can raise on odd payloads
             log.warning("OTA inbox scan: message endpoint failed (%s) — cannot check for updates", e)
             return {"ok": False}
+        # the page holds the twenty newest messages of any age; an old notice would keep the flag on
+        oldest_ms = (time.time() - _OTA_NOTICE_MAX_AGE_S) * 1000
         for m in msgs:
             hay = f"{getattr(m, 'title', '') or ''} {getattr(m, 'message', '') or ''}"
-            if _OTA_RE.search(hay):
-                st = getattr(m, "send_time", None)
-                return {"ok": True, "scanned": len(msgs), "ota": True,
-                        "title": getattr(m, "title", None),
-                        "time": int(st) if st else None}
+            if not _OTA_RE.search(hay):
+                continue
+            st = getattr(m, "send_time", None)
+            if st and int(st) < oldest_ms:
+                continue
+            return {"ok": True, "scanned": len(msgs), "ota": True,
+                    "title": getattr(m, "title", None),
+                    "time": int(st) if st else None}
         return {"ok": True, "scanned": len(msgs), "ota": False}
 
     def get_charge_schedule(self) -> dict | None:
