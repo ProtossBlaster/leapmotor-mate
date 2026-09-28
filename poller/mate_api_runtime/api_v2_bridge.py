@@ -32,7 +32,30 @@ from leapmotor_cloud.signing import sign_authenticated
 from leapmotor_cloud.session import session_device_id
 from leapmotor_cloud.b10_commands import interpret
 from command_contracts import COMMAND_RULES, APPOINTMENT_PATH, prepare, charge
-from session_material import certificate_usable
+from session_material import certificate_usable as _certificate_usable_uncached
+
+# Whether the account certificate is usable is a question about two FILES, and the answer only
+# changes when they do — but answering it reads both and parses the private key, and RSA parsing is
+# the slowest thing an add-on's CPU does. Profiled: one /api/vehicle-status request, which the
+# Vehicle page fetches after it loads, called it FOURTEEN times (0.732 s of a five-request profile
+# on a Mac, worse on aarch64). Remembered per (path, size, mtime) for both files, so a re-issued
+# certificate is read again and nothing is held across a change.
+# → tests/test_the_certificate_is_read_once_not_fourteen_times.py
+_certificate_answer_cache = {}
+
+
+def certificate_usable(cert_path, key_path, **kwargs):
+    if kwargs:                       # a caller with its own margin or clock gets the real thing
+        return _certificate_usable_uncached(cert_path, key_path, **kwargs)
+    try:
+        key = tuple((str(path), os.stat(path).st_size, os.stat(path).st_mtime_ns)
+                    for path in (cert_path, key_path))
+    except OSError:                  # a file that is not there is the library's answer to give
+        return _certificate_usable_uncached(cert_path, key_path)
+    if key not in _certificate_answer_cache:
+        _certificate_answer_cache.clear()        # one account, one pair: never a growing map
+        _certificate_answer_cache[key] = _certificate_usable_uncached(cert_path, key_path)
+    return _certificate_answer_cache[key]
 
 DB = os.environ.get('DB_PATH', '/data/leapmotor_mate.db')
 SESSION_KEY = 'api_v2_shared_session'
