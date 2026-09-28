@@ -1,8 +1,18 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.5.2 · **Idioma:** Español
+> **Versión de Mate:** v4.5.3 · **Idioma:** Español
 
-## Novedades de la versión 4.5.2
+## Novedades de la versión 4.5.3
+
+Mate es aún más rápido, y esta vez el motivo no son las preguntas sino el hecho de hacerlas. Cada
+lectura abría una conexión nueva a la base de datos, y en una lectura pequeña eso era casi todo el
+coste; ahora hay una por hilo. Y la estimación de salud de la batería leía cada fotograma de cada
+carga solo para descubrir que nadie había estado sentado en el coche con la calefacción encendida —
+ahora es una comprobación indexada. Medido en un add-on real con noventa días de historial: Resumen
+0,213 s → 0,048, Batería 0,129 → 0,012, Cargas 0,278 → 0,035, Estadísticas 0,489 → 0,163, la salud de
+la batería 1,150 → 0,114. De lo que ves no ha cambiado nada.
+
+### Novedades de la versión 4.5.2
 
 Mate es más rápido, en todas las páginas. Las páginas más lentas preguntaban a la base de datos lo mismo una y otra vez — en qué zona horaria mostrar una hora, una vez por fila; qué coche estás mirando, ochenta y siete veces para dibujar una sola tarjeta; si el coche se ha usado como toma de corriente, leyendo una semana de datos — y cada una de esas preguntas abría su propia conexión a la base de datos. Ahora se preguntan una sola vez. La página de batería ya no espera sus dos cálculos largos: aparece, y la salud y el consumo en reposo se rellenan después. Medido en un add-on real con noventa días de historial: batería 3,526 s → 0,121 s, estadísticas 2,679 → 0,448, viajes 1,696 → 0,406, ajustes 1,613 → 0,413. De lo que ves no ha cambiado nada.
 

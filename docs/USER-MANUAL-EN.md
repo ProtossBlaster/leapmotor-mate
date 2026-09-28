@@ -1,8 +1,18 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.5.2 · **Language:** English
+> **Mate version:** v4.5.3 · **Language:** English
 
-## New in 4.5.2
+## New in 4.5.3
+
+Mate is faster again, and this time the reason is not the questions but the asking. Every read opened
+a brand-new connection to the database, which on a small read was most of what it cost; there is now
+one per thread. And the battery health estimate was reading every frame of every charge just to find
+out that nobody had been sitting in the car with the heater on — that is an indexed check now.
+Measured on a real add-on with ninety days of history: Overview 0.213 s → 0.048, Battery 0.129 →
+0.012, Charges 0.278 → 0.035, Statistics 0.489 → 0.163, the battery health figure 1.150 → 0.114.
+Nothing about what you see has changed.
+
+### New in 4.5.2
 
 Mate is faster, on every page. The slowest pages were asking the database the same question over and over — which time zone to show a time in, once per row; which car you are looking at, eighty-seven times to draw one card; whether the car has been used as a power outlet, by reading a week of data — and every one of those questions opened its own connection to the database. They are asked once now. The Battery page no longer waits for its two long sums: it appears, and the health and standby-drain figures fill in behind it. Measured on a real add-on with ninety days of history: Battery 3.526 s → 0.121 s, Statistics 2.679 → 0.448, Trips 1.696 → 0.406, Settings 1.613 → 0.413. Nothing about what you see has changed.
 
