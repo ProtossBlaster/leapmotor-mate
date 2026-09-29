@@ -1338,14 +1338,62 @@ class Database:
             return None, None
         return float(row["soc"]), row["recorded_at"]
 
-    def get_last_odometer(self, vehicle_id: int):
-        """The most recent recorded odometer (km) for this vehicle, or None. Seeds the recorder's
-        odometer baseline across a poller restart so a drive that happened while the poller was DOWN is
-        still caught (odometer-jump trip reconstruction). Ignores 0/glitch readings."""
-        row = self._conn.execute(
-            "SELECT odometer_km FROM positions WHERE vehicle_id = ? AND odometer_km > 0 "
-            "ORDER BY id DESC LIMIT 1", (vehicle_id,)).fetchone()
-        return float(row["odometer_km"]) if row and row["odometer_km"] else None
+    def get_last_odometer_reading(self, vehicle_id: int):
+        """The most recent reading with an odometer for this vehicle, as (odometer km, soc,
+        recorded_at, charging, frame_ts) all from one row, or None. Seeds the recorder's odometer
+        baseline across a poller restart so a drive that happened while the poller was DOWN is
+        still caught (odometer-jump trip reconstruction). Ignores 0/glitch readings.
+
+        A repeated frame moves nothing, as in the running recorder, so the reading is the first
+        row of the run of that frame to carry an odometer."""
+        # "Last" and "first" are in the order the rows were written, which a host clock stepped
+        # back does not change (idx_positions_vehicle_order).
+        cols = "id, odometer_km, soc, recorded_at, charging, frame_ts"
+        last = self._conn.execute(
+            f"SELECT {cols} FROM positions WHERE vehicle_id = ? AND odometer_km > 0"
+            " ORDER BY id DESC LIMIT 1", (vehicle_id,)).fetchone()
+        if last is None:
+            return None
+        first = last
+        if last["frame_ts"] is not None:
+            # This car's last row before the run of that frame: another frame, or none recorded.
+            boundary = self._conn.execute(
+                "SELECT id FROM positions WHERE vehicle_id = ? AND id < ? AND frame_ts IS NOT ?"
+                " ORDER BY id DESC LIMIT 1", (vehicle_id, last["id"], last["frame_ts"])).fetchone()
+            # Every row of this car after it, up to the last one, carries that frame.
+            first = self._conn.execute(
+                f"SELECT {cols} FROM positions WHERE vehicle_id = ? AND id > ? AND odometer_km > 0"
+                " ORDER BY id LIMIT 1",
+                (vehicle_id, boundary["id"] if boundary else 0)).fetchone()
+        return (float(first["odometer_km"]), first["soc"], first["recorded_at"],
+                bool(first["charging"]), first["frame_ts"])
+
+    def charge_open_since(self, vehicle_id: int, since: Optional[str]) -> bool:
+        """Whether a charge session of this car was open at any moment after `since`, a time on our
+        clock. A live charge can end on the car's clock (_charging_end_in_window), but only between
+        two of our readings and never after we first read its last charging frame: its end falls
+        after `since` only when that frame came after it, and before `since` only when a charging
+        reading came at or after it, which charging_read_since answers for. A range extender's
+        charge, known from its rising SoC, has no charging readings, and ends on our clock."""
+        if not since:
+            return False
+        return self._conn.execute(
+            "SELECT 1 FROM charges WHERE vehicle_id = ? AND (ended_at IS NULL OR ended_at > ?)"
+            " LIMIT 1", (vehicle_id, since)).fetchone() is not None
+
+    def charging_read_since(self, vehicle_id: int, since: Optional[str],
+                            frame_ts: Optional[int]) -> bool:
+        """Whether a charging reading of this car was stored after `since`, a time on our clock.
+        A repeat of `frame_ts`, the frame read at `since`, is no new reading: the cloud can serve a
+        finished charge's last frame for hours."""
+        if not since:
+            return False
+        sql = "SELECT 1 FROM positions WHERE vehicle_id = ? AND charging = 1 AND recorded_at > ?"
+        args: list = [vehicle_id, since]
+        if frame_ts is not None:
+            sql += " AND frame_ts IS NOT ?"
+            args.append(frame_ts)
+        return self._conn.execute(sql + " LIMIT 1", args).fetchone() is not None
 
     def get_last_frame_ts(self, vehicle_id: int):
         """The newest cloud-frame timestamp on record for this vehicle, or None. Seeds the recorder's
@@ -1610,7 +1658,8 @@ class Database:
         """The trip's opening, shaped like `trip_last_seen`'s answer: what a trip heard last when no
         row inside it is left."""
         row = self._conn.execute(
-            "SELECT started_at, start_soc AS soc, start_odometer_km AS odometer_km,"
+            "SELECT started_at, started_at AS recorded_at, NULL AS frame_ts,"
+            " start_soc AS soc, start_odometer_km AS odometer_km,"
             " start_lat AS latitude, start_lon AS longitude,"
             " fuel_start_pct AS fuel_level_pct, fuel_start_l AS fuel_liters"
             " FROM trips WHERE id=?", (trip_id,)).fetchone()
@@ -1934,6 +1983,12 @@ class Database:
             # partial frame carrying someone else's timestamp) would invert the session.
             if frame_iso > started_at and (not before or frame_iso < before):
                 ended_at = frame_iso
+            # Whichever time was taken, never after Mate first read that frame: it was made before,
+            # a later car clock runs ahead of ours, and a repeat of it is no new reading.
+            first_read = self._conn.execute(
+                "SELECT MIN(recorded_at) FROM positions WHERE vehicle_id=? AND recorded_at>=?"
+                " AND frame_ts=?", (vehicle_id, started_at, row["frame_ts"])).fetchone()[0]
+            ended_at = min(ended_at, first_read)
         return row["soc"], ended_at
 
     def charge_end_from_last_charging(self, charge_id: int):

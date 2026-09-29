@@ -59,7 +59,7 @@ def _driving():
     rec._started = True
     rec._sm.state = State.DRIVING
     rec._active_trip_id = 7
-    rec._last_soc, rec._last_odometer = 80.0, 1000.0
+    rec._last_soc, rec._odometer_reading = 80.0, R.OdometerReading(1000.0, 80.0, None)
     return rec
 
 
