@@ -527,13 +527,17 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   chilometri fatti durante l'interruzione ne fanno parte. Dopo un silenzio più lungo, il viaggio
   finisce all'ultima notizia dell'auto prima di esso, e i chilometri successivi sono trattati come
   tutti quelli fatti senza collegamento.
-- **I chilometri fatti mentre l'auto non comunicava non finiscono in nessun viaggio.** Quando il
-  collegamento col cloud si interrompe, l'auto continua a girare ma Mate non lo vede; al ritorno
-  trova solo un contachilometri più avanti. Quel salto può contenere la fine di una guidata, una
-  sosta e l'inizio di un'altra, e **non c'è modo di sapere come si divide** — quindi Mate non lo
-  attribuisce a nessuno. Sopra il calendario compare una riga con i chilometri, la carica e il
-  costo di quel mese, e sulla pagina **Statistiche** il totale di sempre: *misurati, ma non
-  attribuibili a un viaggio preciso — perciò esclusi da distanze, consumi e costi.*
+- **I chilometri che Mate non ha visto non vengono aggiunti ai viaggi vicini.** Quando il
+  collegamento col cloud si interrompe più a lungo di una breve interruzione dentro lo stesso
+  viaggio (vedi sopra), l'auto continua a girare ma Mate non lo vede; al ritorno trova solo un
+  contachilometri più avanti. Quel salto può contenere la fine di una guidata, una sosta e l'inizio
+  di un'altra, e **non c'è modo di sapere come si divide**. Se l'auto risulta parcheggiata, il
+  livello di carica non è salito e in quell'intervallo non è stata rilevata alcuna ricarica, Mate
+  ricostruisce un viaggio dal solo salto, senza percorso. Altrimenti (un nuovo viaggio già in
+  corso, una ricarica o un livello di carica salito) Mate non attribuisce quei chilometri a
+  nessuno. Sopra il calendario compare una riga con i chilometri, la carica e il costo di quel
+  mese, e sulla pagina **Statistiche** il totale di sempre: *misurati, ma non attribuibili a un
+  viaggio preciso — perciò esclusi da distanze, consumi e costi.*
   ⚠️ Per questo il totale di Mate può restare sotto al contachilometri dell'auto: la differenza è
   esattamente quella riga.
 - **Altimetria e temperatura esterna.** Il cloud Leapmotor non riporta né l'una né l'altra, quindi

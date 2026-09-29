@@ -529,13 +529,17 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   aus der Lücke gehören zu ihr. Nach einer längeren Stille endet die Fahrt bei der letzten Nachricht
   des Autos davor, und die Kilometer danach werden wie alle anderen behandelt, die ohne Verbindung
   gefahren wurden.
-- **Kilometer ohne Verbindung landen in gar keiner Fahrt.** Wenn die Verbindung zur Cloud abreißt,
+- **Kilometer, die Mate nicht gesehen hat, werden keiner Fahrt davor oder danach zugeschlagen.**
+  Reißt die Verbindung zur Cloud länger ab als eine kurze Lücke innerhalb einer Fahrt (siehe oben),
   fährt das Auto weiter, Mate sieht es aber nicht; kehrt die Verbindung zurück, findet es nur einen
   weitergelaufenen Kilometerstand vor. In diesem Sprung können das Ende einer Fahrt, eine Pause und
-  der Beginn einer weiteren stecken, und **nichts sagt, wie es sich aufteilt** — also ordnet Mate
-  ihn niemandem zu. Eine Zeile über dem Kalender nennt Kilometer, Ladung und Kosten dieses Monats,
-  die Seite **Statistiken** die Gesamtsumme: *gemessen, aber keiner bestimmten Fahrt zuzuordnen —
-  deshalb aus Strecken, Verbrauch und Kosten herausgehalten.*
+  der Beginn einer weiteren stecken, und **nichts sagt, wie es sich aufteilt**. Steht das Auto dann,
+  ist der Ladestand nicht gestiegen und wurde in dieser Zeit kein Ladevorgang erkannt, baut Mate aus
+  dem Sprung allein eine Fahrt ohne Route nach. Andernfalls (wenn schon eine neue Fahrt läuft, das
+  Auto lädt oder der Ladestand gestiegen ist) ordnet Mate die Kilometer niemandem zu. Eine Zeile
+  über dem Kalender nennt Kilometer, Ladung und Kosten dieses Monats, die Seite **Statistiken** die
+  Gesamtsumme: *gemessen, aber keiner bestimmten Fahrt zuzuordnen — deshalb aus Strecken, Verbrauch
+  und Kosten herausgehalten.*
   ⚠️ Darum kann Mates eigene Summe unter dem Kilometerstand des Autos liegen: die Differenz ist
   genau diese Zeile.
 - **Offizieller Verbrauch aus der Cloud 🆕** — sofern vorhanden, stammen **Verbrauch, Effizienz und

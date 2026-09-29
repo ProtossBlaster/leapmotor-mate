@@ -515,13 +515,16 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   then parked or charging, the trip ends there, and the kilometres covered in the gap are part of
   it. After a longer silence the trip ends at the last thing the car said before it, and the
   kilometres after that are treated like any others covered out of contact.
-- **Kilometres covered while the car was out of contact go into no trip at all.** When the link to
-  the cloud drops, the car keeps moving but Mate cannot see it; when the link returns, all it finds
-  is an odometer further along. That jump can hold the end of one drive, a stop, and the beginning
-  of another, and **nothing says how it divides** — so Mate attributes it to nobody. A line above
-  the calendar states that month's kilometres, charge and cost, and the **Statistics** page states
-  the running total: *measured, but not attributable to a specific trip — therefore left out of
-  distances, consumption and costs.*
+- **Kilometres Mate did not see are not added to the trips around them.** When the link to the cloud
+  drops for longer than a short gap inside one drive (see above), the car keeps moving but Mate
+  cannot see it; when the link returns, all it finds is an odometer further along. That jump can
+  hold the end of one drive, a stop, and the beginning of another, and **nothing says how it
+  divides**. If the car is found parked, its charge level has not gone up and no charging was
+  detected over that interval, Mate rebuilds one trip from the jump alone, without a route.
+  Otherwise (a new drive already under way, a charge, or a charge level that rose) Mate attributes
+  the kilometres to nobody. A line above the calendar states that month's kilometres, charge and
+  cost, and the **Statistics** page states the running total: *measured, but not attributable to a
+  specific trip — therefore left out of distances, consumption and costs.*
   ⚠️ This is why Mate's own total can sit below the car's odometer: the difference is that line.
 - **Elevation and outside temperature.** The Leapmotor cloud reports neither, so a few minutes after
   a drive ends Mate looks the trip's GPS track up against [Open-Meteo](https://open-meteo.com)
