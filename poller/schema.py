@@ -553,6 +553,11 @@ def ensure_schema(conn) -> None:
     tpcols = {r[1] for r in conn.execute("PRAGMA table_info(trip_positions)").fetchall()}
     if "elevation_m" not in tpcols:
         conn.execute("ALTER TABLE trip_positions ADD COLUMN elevation_m REAL")
+    # migration: the poll's readings the trip detail shows, kept with each point so they outlive the
+    # positions retention — battery power (kW, + out of the pack), coldest cell, range, outside air.
+    for _c in ("power_kw", "battery_temp_c", "range_km", "outside_temp_c"):
+        if _c not in tpcols:
+            conn.execute(f"ALTER TABLE trip_positions ADD COLUMN {_c} REAL")
     # migration: geohash (7 chars ≈ 150m cell) of start/end lat-lon — the "similar trips"
     # comparator's fast pre-filter (web/db_reader.py get_similar_trips groups candidates by
     # this before validating the actual route). Set at trip creation/finalize (below) going

@@ -1193,6 +1193,43 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
 
 
 
+# When this process last TRIED to prune. The stored mark below is the gate across restarts; this
+# one is the gate inside a run, and it is needed because the condition that makes a prune fail is
+# usually the condition that stops the mark being written — #338, a database on a NAS share: 266
+# attempts in four hours, one per poll, each adding a write to a database already contended.
+_last_prune_attempt = 0.0
+
+
+def _prune_daily(db) -> None:
+    """Daily DB pruning (at most once/day). positions: opt-in via Settings
+    (positions_retention_days; 0 = keep forever). raw_signals_log (beta capture):
+    its own retention, default 30d, so the full-signal log can't grow unbounded.
+
+    🔴 The day is spent by the ATTEMPT, not by its success. The mark used to be the block's last
+    statement, so a prune that raised left the gate open and the next poll tried again — thirty
+    seconds later, and for as long as the cause lasted. On the filesystem that raises
+    `database is locked` the retry cannot succeed either, so it only added load where there was
+    already too much. A failed prune now costs a day, which is what "once a day" already allowed.
+    → tests/test_a_locked_database_does_not_turn_the_daily_prune_into_a_loop.py"""
+    global _last_prune_attempt
+    now = time.time()
+    if now - _last_prune_attempt <= 86400:
+        return
+    _last_prune_attempt = now
+    try:
+        if now - float(db.get_setting("last_prune_ts", "0") or 0) <= 86400:
+            return
+        db.set_setting("last_prune_ts", str(now))
+        ret = int(db.get_setting("positions_retention_days", "0") or 0)
+        if ret > 0:
+            db.prune_positions(ret)
+        if _research_enabled():
+            db.prune_raw_signals(int(db.get_setting("research_retention_days", "30") or 30))
+        db.prune_poll_log(7)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("DB prune skipped: %s", exc)
+
+
 def main():
     from runtime_paths import prepare_installation
     prepare_installation()
@@ -1393,20 +1430,7 @@ def main():
         except Exception:  # noqa: BLE001
             pass
 
-        # Daily DB pruning (at most once/day). positions: opt-in via Settings
-        # (positions_retention_days; 0 = keep forever). raw_signals_log (beta capture):
-        # its own retention, default 30d, so the full-signal log can't grow unbounded.
-        try:
-            if time.time() - float(db.get_setting("last_prune_ts", "0") or 0) > 86400:
-                ret = int(db.get_setting("positions_retention_days", "0") or 0)
-                if ret > 0:
-                    db.prune_positions(ret)
-                if _research_enabled():
-                    db.prune_raw_signals(int(db.get_setting("research_retention_days", "30") or 30))
-                db.prune_poll_log(7)
-                db.set_setting("last_prune_ts", str(time.time()))
-        except Exception as exc:  # noqa: BLE001
-            log.warning("DB prune skipped: %s", exc)
+        _prune_daily(db)
 
         # Interruptible sleep: while parked we may be sleeping for minutes, so check the
         # boost flag every few seconds and wake immediately if one is requested.

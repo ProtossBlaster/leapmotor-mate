@@ -1,4 +1,4 @@
-"""Read-only EV energy selection; never replace stored trip telemetry."""
+"""Read-only EV energy and top-speed selection; never replace stored trip telemetry."""
 
 import json
 import math
@@ -51,6 +51,9 @@ def select_energy(db, displayed):
     require at least 80% time coverage and compatible distance, and reject
     overlapping records, conflicting versions and ambiguous local matches.
     These are matching safeguards, not claimed Leapmotor trip thresholds.
+
+    A trip whose energy comes from the cloud also gets the car's own top speed from the
+    same records (`cloud_max_speed_kmh`), or None when a record lacks it or its versions disagree.
     """
     if not displayed:
         return displayed
@@ -73,6 +76,7 @@ def select_energy(db, displayed):
         links = {r[0] for r in db.execute("SELECT trip_id FROM api_lab_cloud_trip_links")}
     records = {}
     conflicts = set()
+    speeds = {}
     if "api_lab_cloud_history_records" in tables:
         for row in db.execute("SELECT payload_json FROM api_lab_cloud_history_records WHERE kind='mileage'"):
             try:
@@ -86,6 +90,7 @@ def select_energy(db, displayed):
                     continue
                 key = (vin, start, end)
                 value = (energy, distance)
+                speeds.setdefault(key, set()).add(_number(record.get("maxSpeed")))
                 if key in records and records[key] != value:
                     conflicts.add(key)
                 records[key] = value
@@ -108,6 +113,7 @@ def select_energy(db, displayed):
     longest = max((bounds[trip_id][1] - bounds[trip_id][0] for _, trip_id in ordered), default=0)
 
     assigned = {}
+    assigned_keys = {}
     blocked = set()
     for key, (energy, distance) in records.items():
         vin, start, end = key
@@ -130,7 +136,9 @@ def select_energy(db, displayed):
             blocked.add(trip_id)
             continue
         assigned.setdefault(trip_id, []).append((start, end, energy, distance))
+        assigned_keys.setdefault(trip_id, []).append(key)
     cloud = {}
+    cloud_speed = {}
     for trip_id, records_for_trip in assigned.items():
         trip = raw[trip_id]
         if trip_id in blocked or trip.get("reconstructed"):
@@ -148,6 +156,9 @@ def select_energy(db, displayed):
         if not _within_distance(km, sum(item[3] for item in records_for_trip)):
             continue
         cloud[trip_id] = sum(item[2] for item in records_for_trip)
+        known = [next(iter(speeds[key])) if len(speeds[key]) == 1 else None
+                 for key in assigned_keys[trip_id]]
+        cloud_speed[trip_id] = None if None in known else max(known)
     children = {}
     for trip_id, trip in raw.items():
         if trip.get("merged_into_id") is not None:
@@ -175,6 +186,10 @@ def select_energy(db, displayed):
                 if km is not None and _within_distance(km, segment_km):
                     cloud_value = sum(cloud[segment] for segment in segments)
         trip["cloud_energy_kwh"] = cloud_value
+        trip["cloud_max_speed_kmh"] = None
+        if cloud_value is not None:
+            top = [cloud_speed[segment] for segment in segments]
+            trip["cloud_max_speed_kmh"] = None if None in top else max(top)
         if cloud_value is not None:
             energy, source = cloud_value, "cloud"
         elif measured is not None and trip_id not in links:

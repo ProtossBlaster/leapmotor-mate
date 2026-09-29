@@ -1,8 +1,36 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.5.5 · **Lingua:** Italiano
+> **Versione di Mate:** v4.6.0 · **Lingua:** Italiano
 
-## Novità della 4.5.5
+## Novità della 4.6.0
+
+A ogni interrogazione mentre guidi, Mate legge la potenza che esce dalla batteria, la temperatura
+della sua cella più fredda, la stima di autonomia e l'aria esterna. Le conservava tutte e non te ne
+mostrava quasi nessuna. Quelle quattro letture restano adesso **insieme al viaggio** e stanno sulla
+sua pagina: **Potenza max** e **Recupero max**, la temperatura della batteria e quella esterna come
+intervallo dalla più bassa alla più alta della guidata invece che come media, e — sotto la durata —
+quanto ne hai passato **in movimento, da fermo e senza dati**, in minuti interi che sommano alla
+durata scritta sopra. Accanto alla velocità media c'è ora la **mediana** delle stesse letture, che su
+una guidata mezza in autostrada e mezza in coda dice più di quanto dica la media.
+
+Il grafico sotto la mappa si chiama adesso **Dati del viaggio**: un grafico in tre bande su un solo
+asse dei tempi — velocità e potenza, SoC e autonomia, altitudine e temperatura della batteria — con un
+solo riquadro al passaggio del mouse per tutte. La sua legenda accende e spegne ogni linea, e la tua
+scelta resta memorizzata in questo browser.
+
+La **velocità di punta** è corretta: dove il record che Leapmotor tiene di quella guidata è agganciato
+al viaggio, la cifra è quella dell'auto, non il campione più veloce di Mate. Le letture di Mate sono a
+circa undici secondi l'una dall'altra, quindi una punta più breve non c'è mai stata dentro — su 38
+guidate il campione stava sotto la cifra dell'auto in 37.
+
+⚠️ **I viaggi che hai guidato prima di questa versione ricevono quelle letture una volta sola,
+all'avvio di Mate**, e solo dalle interrogazioni la cui riga di posizione è ancora nel database. Se
+hai impostato una conservazione del GPS, sui viaggi più vecchi vedrai un trattino: a 7 giorni si
+riempie circa il 3% dei loro punti, a 30 giorni un quinto, a 90 giorni sette decimi. Col valore di
+serie — tieni tutto — si riempiono tutti. Ogni viaggio da qui in avanti ha le letture qualunque cosa
+dica quell'impostazione.
+
+### Novità della 4.5.5
 
 Questa versione toglie due cose e non ne aggiunge nessuna, ed erano entrambe sugli aggiornamenti
 software dell'auto. La riga «Aggiornamenti OTA» della panoramica diceva **Nessuno** ogni volta che
@@ -387,8 +415,8 @@ l'auto è sveglia Mate interroga [Open-Meteo](https://open-meteo.com) sulla sua 
 una volta ogni 20 minuti o 10 km, quello che arriva prima — e mostra il valore accanto a quello
 dell'abitacolo. È **spento di default**, perché la richiesta manda la posizione dell'auto a
 Open-Meteo: l'unico interruttore sta in *Impostazioni → valori predefiniti dei viaggi*. Lo stesso
-dato diventa un'entità **Temperatura esterna** in Home Assistant e dà a ogni viaggio la sua
-temperatura di partenza e di arrivo.
+dato diventa un'entità **Temperatura esterna** in Home Assistant e dà a ogni viaggio le letture
+lungo il percorso, da cui vengono la sua temperatura più alta e più bassa.
 
 #### Le tre temperature: abitacolo, target A/C, batteria
 Non tutte le Leapmotor mandano tutte e tre. Mate distingue **tre situazioni diverse**, perché
@@ -446,11 +474,44 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
 - **Altimetria e temperatura esterna.** Il cloud Leapmotor non riporta né l'una né l'altra, quindi
   qualche minuto dopo la fine di un viaggio Mate cerca il suo tracciato GPS su
   [Open-Meteo](https://open-meteo.com) (gratuito, senza chiave e senza account). Nel dettaglio
-  compaiono la **linea dell'altitudine sotto il grafico SoC e velocità**, i metri **saliti e scesi**, e
-  la temperatura **alla partenza e all'arrivo** — non una media, così una salita da fondovalle a passo
-  mostra il calo vero. Insieme spiegano buona parte del consumo di una guidata: la salita costa
-  energia, il freddo costa autonomia. I viaggi registrati prima che esistesse hanno un pulsante
-  **Calcola altimetria**, e tutto si può spegnere dalle Impostazioni.
+  compaiono la **linea dell'altitudine nel grafico Dati del viaggio**, i metri **saliti e scesi**
+  (riga *Dislivello + / −*; la sua ⓘ dice come sono calcolati), e la temperatura **più alta e più
+  bassa** del viaggio — non una media, così una salita da fondovalle a passo mostra il calo vero.
+  Insieme spiegano buona parte del consumo di una guidata: la salita costa energia, il freddo costa
+  autonomia. I viaggi registrati prima che esistesse hanno un pulsante **Calcola altimetria**, e
+  tutto si può spegnere dalle Impostazioni.
+- **In movimento e fermo 🆕.** Sotto la durata, il dettaglio la divide nel tempo in movimento e nel
+  tempo da fermi durante il viaggio (semafori, code), dalle letture di Mate prese a pochi secondi
+  l'una dall'altra. Una sosta tra viaggi uniti non conta per nessuno dei due, e un buco nelle
+  letture compare come *senza dati* invece di finire in uno dei due.
+- **Velocità mediana 🆕.** Sotto la velocità media, il dettaglio dà la mediana delle stesse letture
+  in movimento, cioè la velocità sotto la quale è rimasta metà di esse. Un breve tratto veloce alza
+  la media di un giro in città, mentre la mediana ne conserva l'andatura abituale.
+- **Velocità massima dall'auto 🆕.** Quando il record del viaggio nel cloud dell'auto viene abbinato
+  al viaggio (lo stesso record che dà i consumi ufficiali), il dettaglio mostra la velocità massima
+  misurata dall'auto stessa. Le letture di Mate sono a qualche secondo l'una dall'altra e perdono i
+  picchi brevi — su una B10 fino a 21 km/h — quindi un viaggio senza quel record mantiene il valore
+  campionato, segnato con una ⓘ.
+- **Potenza max e regen max 🆕.** Il dettaglio indica la potenza più alta erogata dalla batteria e
+  quella più alta rientrata in frenata, dalla tensione e dalla corrente della batteria che Mate
+  legge a ogni aggiornamento. Le letture sono a qualche secondo l'una dall'altra, quindi un picco
+  breve tra due letture sfugge: i valori sono un minimo, e la ⓘ accanto lo dice. Non compaiono su
+  un'auto con range extender, come il regen.
+- **Temperatura della batteria 🆕.** L'auto riporta una sola temperatura della batteria — quella
+  della cella più fredda, in gradi interi — e il dettaglio ne indica i valori durante il viaggio
+  come un unico intervallo, dal più basso al più alto, per esempio 19 – 22 °C; la ⓘ accanto alla riga
+  dice che è la cella più fredda. D'inverno l'intervallo mostra quanto era fredda la batteria e
+  quanto il viaggio l'ha scaldata.
+- **Grafico Dati del viaggio 🆕.** Il grafico sotto la mappa si chiama *Dati del viaggio* ed è diviso
+  in fasce con un unico asse del tempo, un'unica linea del cursore e un unico riquadro al passaggio
+  del mouse, con le linee raggruppate per fascia: **guida** (velocità e potenza della batteria —
+  sopra lo zero erogata, sotto lo zero rientrata), **batteria** (SoC e autonomia stimata dall'auto)
+  e **altitudine con la temperatura della batteria** (quella della cella più fredda). Una fascia ha
+  al massimo due scale, una per lato, ognuna con l'unità in alto e i numeri nel colore della sua
+  linea. Ogni voce della legenda accende e spegne la sua linea — un quadratino vuoto indica una
+  linea spenta — e una fascia con tutte le linee spente si chiude. Tutte le linee partono accese; la
+  scelta viene ricordata nel browser per tutti i viaggi. Il riquadro si apre con l'ora del giorno,
+  al secondo, e il minuto del viaggio.
 - **Consumi ufficiali dal cloud 🆕** — quando disponibili, **consumo, efficienza e costo** del viaggio
   vengono dal **dato ufficiale Leapmotor** (la vera ripartizione **guida / A·C / altro**) invece della
   sola stima dal calo di batteria. Subito dopo il viaggio vedi la stima con l'avviso **⏳ provvisorio**;
@@ -934,11 +995,14 @@ volta. È divisa in tre colonne.
   mai in chiaro. **Se la perdi** non resti fuori per sempre: il campo *Nuova password* non chiede
   quella vecchia, quindi da un qualsiasi dispositivo ancora collegato ne imposti una nuova. Se non
   c'è più nessun dispositivo dentro, la variabile d'ambiente `MATE_AUTH_PASSWORD` scavalca quella
-  salvata.
+  salvata. ⚠️ La *scavalca*, non la sostituisce: l'impronta dimenticata resta nel database sotto,
+  quindi una volta rientrato imposta una password nuova (o toglila) da **Impostazioni → Accesso** e
+  solo dopo rimuovi la variabile — se la togli prima, torna a comandare quella che avevi perso.
 
-- **Database** — dimensione del DB e **conservazione posizioni** (retention): puoi tenere i punti GPS
-  "per sempre" (predefinito) o cancellare quelli più vecchi di 6/12/18/24 mesi per risparmiare
-  spazio. *Vengono potate solo le posizioni*: viaggi, ricariche e curve di ricarica restano.
+- **Database** — dimensione del DB e **conservazione posizioni** (retention): puoi tenere i punti
+  GPS "per sempre" (predefinito) o cancellare quelli più vecchi di 6/12/18/24 mesi per risparmiare
+  spazio. *Vengono potate solo le posizioni*: viaggi (con il percorso e le letture lungo la strada),
+  ricariche e curve di ricarica restano.
   I punti di un viaggio ancora in corso restano finché non finisce, perché la sua fine si ricava da
   essi.
 - **Esporta / backup** — scarica **viaggi (CSV)**, **ricariche (CSV)** e un **backup del database**.

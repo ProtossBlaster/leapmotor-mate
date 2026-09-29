@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.5.5 · **Idioma:** Español
+> **Versión de Mate:** v4.6.0 · **Idioma:** Español
 
-## Novedades de la versión 4.5.5
+## Novedades de la versión 4.6.0
+
+En cada consulta mientras conduces, Mate lee la potencia que sale de la batería, la temperatura de su
+celda más fría, la estimación de autonomía y el aire exterior. Lo guardaba todo y casi nada te lo
+mostraba. Esas cuatro lecturas quedan ahora **con el viaje mismo** y están en su página: **Potencia
+máx.** y **Regen. máx.**, la temperatura de la batería y la exterior como intervalo, de la más baja a
+la más alta del viaje en lugar de como media, y — bajo la duración — cuánto de ella pasaste **en
+movimiento, parado y sin datos**, en minutos enteros que suman la duración de arriba. Junto a la
+velocidad media está ahora la **mediana** de las mismas lecturas, que en un viaje mitad autopista
+mitad atasco dice más que la media.
+
+El gráfico bajo el mapa se llama ahora **Datos del viaje**: un gráfico en tres bandas sobre un solo
+eje de tiempo — velocidad y potencia, SoC y autonomía, altitud y temperatura de la batería — con un
+solo recuadro al pasar el ratón para todas. Su leyenda enciende y apaga cada línea, y tu elección
+queda guardada en este navegador.
+
+La **velocidad máxima** está corregida: donde el registro que Leapmotor guarda de ese viaje está
+emparejado con él, la cifra es la del coche, no la muestra más rápida de Mate. Las lecturas de Mate
+están separadas unos once segundos, así que un pico más corto nunca estuvo en ellas — en 38 viajes la
+muestra quedó por debajo de la cifra del coche en 37.
+
+⚠️ **Los viajes que condujiste antes de esta versión reciben esas lecturas una sola vez, al arrancar
+Mate**, y solo desde las consultas cuya fila de posición sigue en la base de datos. Si has fijado una
+conservación del GPS, en los viajes más antiguos verás un guion: a 7 días se puede rellenar cerca del
+3 % de sus puntos, a 30 días un quinto, a 90 días siete décimos. Con el valor por defecto — guardar
+todo — todos. Cada viaje de ahora en adelante tiene las lecturas sea cual sea ese ajuste.
+
+### Novedades de la versión 4.5.5
 
 Esta versión quita dos cosas y no añade ninguna, y las dos eran sobre actualizaciones de software
 del coche. La fila «Actualizaciones OTA» de la vista general decía **Ninguna** siempre que en la
@@ -401,8 +428,8 @@ coche está despierto Mate consulta [Open-Meteo](https://open-meteo.com) sobre s
 mucho una vez cada 20 minutos o cada 10 km, lo que llegue antes — y muestra el valor junto al del
 habitáculo. Está **desactivado por defecto**, porque la consulta envía la posición del coche a
 Open-Meteo: el único interruptor está en *Ajustes → valores por defecto de los trayectos*. El mismo
-dato se convierte en una entidad **Temperatura exterior** en Home Assistant y da a cada trayecto su
-temperatura de salida y de llegada.
+dato se convierte en una entidad **Temperatura exterior** en Home Assistant y da a cada trayecto
+lecturas en ruta, de las que salen su temperatura más alta y más baja.
 
 #### Las tres temperaturas: habitáculo, consigna del A/A y batería
 No todos los Leapmotor envían las tres. Mate distingue **tres situaciones diferentes**, porque
@@ -462,11 +489,44 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
 - **Altitud y temperatura exterior.** La nube de Leapmotor no da ninguna de las dos, así que unos
   minutos después de terminar un recorrido Mate consulta la traza GPS del trayecto contra
   [Open-Meteo](https://open-meteo.com) (gratis, sin clave, sin cuenta). El detalle gana entonces una
-  **línea de altitud bajo el gráfico de SoC y velocidad**, los metros **subidos y bajados**, y la
-  temperatura **a la salida y a la llegada** — no una media, para que una subida de valle a puerto
-  muestre la caída real. Entre las dos explican buena parte del consumo de un recorrido: subir cuesta
-  energía, el frío cuesta autonomía. Los trayectos registrados antes de que esto existiera tienen un
-  botón **Calcular la altimetría**, y todo el conjunto se puede desactivar en Ajustes.
+  **línea de altitud en el gráfico Datos del trayecto**, los metros **subidos y bajados** (fila
+  *Desnivel + / −*; su ⓘ explica cómo se cuentan), y la temperatura **más alta y más baja** del
+  trayecto — no una media, para que una subida de valle a puerto muestre la caída real. Entre las
+  dos explican buena parte del consumo de un recorrido: subir cuesta energía, el frío cuesta
+  autonomía. Los trayectos registrados antes de que esto existiera tienen un botón **Calcular la
+  altimetría**, y todo el conjunto se puede desactivar en Ajustes.
+- **En movimiento y detenido 🆕.** Bajo la duración, el detalle la divide entre el tiempo en
+  movimiento y el tiempo parado durante el trayecto (semáforos, atascos), según las lecturas de Mate
+  tomadas cada pocos segundos. Una parada entre trayectos unidos no cuenta para ninguno de los dos,
+  y un hueco en las lecturas aparece como *sin datos* en lugar de asignarse a uno de ellos.
+- **Velocidad mediana 🆕.** Bajo la velocidad media, el detalle da la mediana de las mismas lecturas
+  en movimiento, la velocidad por debajo de la cual quedó la mitad de ellas. Un tramo rápido breve
+  sube la media de un trayecto urbano, mientras que la mediana conserva su ritmo habitual.
+- **Velocidad máxima del coche 🆕.** Cuando el registro del recorrido en la nube del coche se asocia
+  al trayecto (el mismo que da el consumo oficial), el detalle muestra la velocidad máxima que midió
+  el propio coche. Las lecturas de Mate están separadas unos segundos y pierden los picos breves —
+  en un B10, hasta 21 km/h —, así que un trayecto sin ese registro conserva el valor muestreado,
+  marcado con una ⓘ.
+- **Potencia máxima y regeneración máxima 🆕.** El detalle indica la potencia más alta que entregó la
+  batería y la más alta que volvió a ella al frenar, a partir de la tensión y la corriente de la
+  batería que Mate lee en cada actualización. Las lecturas están separadas unos segundos, así que un
+  pico breve entre dos se pierde: los valores son un mínimo, y la ⓘ junto a ellos lo indica. No se
+  muestran en un coche con extensor de autonomía, igual que la regeneración.
+- **Temperatura de la batería 🆕.** El coche solo informa de una temperatura de la batería — la de su
+  celda más fría, en grados enteros — y el detalle indica sus valores durante el trayecto como un
+  único rango, del más bajo al más alto, por ejemplo 19 – 22 °C; la ⓘ junto a la fila aclara que es la
+  celda más fría. En invierno, el rango muestra lo fría que estaba la batería y cuánto la calentó el
+  trayecto.
+- **Gráfico Datos del trayecto 🆕.** El gráfico bajo el mapa se llama *Datos del trayecto* y se
+  divide en franjas que comparten un eje de tiempo, una línea de cursor y un recuadro al pasar el
+  ratón, con las líneas agrupadas por franja: **conducción** (velocidad y potencia de la batería —
+  por encima de cero la entrega, por debajo vuelve a ella), **batería** (SoC y autonomía que estima
+  el coche) y **altitud con la temperatura de la batería** (la de la celda más fría). Una franja
+  tiene como mucho dos escalas, una a cada lado, cada una con la unidad arriba y los números en el
+  color de su línea. Cada entrada de la leyenda muestra u oculta su línea — un cuadrado vacío señala
+  una línea oculta — y una franja con todas sus líneas ocultas se pliega. Todas las líneas empiezan
+  visibles; la elección se recuerda en el navegador para todos los trayectos. El recuadro empieza
+  con la hora del día, al segundo, y el minuto del trayecto.
 - **Consumo oficial desde la nube 🆕** — cuando está disponible, el **consumo, el rendimiento y el
   coste** de un trayecto salen de la **cifra oficial** de Leapmotor (el reparto real entre **marcha /
   climatización / otros**) en vez de solo de la estimación por % de batería. Justo después de un
@@ -948,11 +1008,15 @@ dividida en tres columnas.
   hash con sal, nunca en claro. **Si la pierdes**, no te quedas fuera para siempre: el campo *Contraseña
   nueva* no pide la anterior, así que desde cualquier dispositivo con la sesión todavía abierta puedes
   poner una nueva sin más. Si ya no queda ningún dispositivo con la sesión abierta, la variable de
-  entorno `MATE_AUTH_PASSWORD` tiene prioridad sobre lo que haya guardado.
+  entorno `MATE_AUTH_PASSWORD` tiene prioridad sobre lo que haya guardado. ⚠️ Tiene *prioridad*, no lo
+  sustituye: el hash olvidado sigue debajo en la base de datos, así que en cuanto vuelvas a entrar
+  pon una contraseña nueva (o quítala) en **Ajustes → Acceso** y solo después elimina la variable —
+  si la quitas antes, vuelve a mandar la que habías perdido.
 
 - **Base de datos** — el tamaño de la BD y la **retención del GPS**: puedes conservar los puntos GPS
-  «para siempre» (por defecto) o borrar los de más de 6/12/18/24 meses para ahorrar espacio. *Solo se
-  limpian las posiciones*: los trayectos, las cargas y las curvas de carga se quedan.
+  «para siempre» (por defecto) o borrar los de más de 6/12/18/24 meses para ahorrar espacio. *Solo
+  se limpian las posiciones*: los trayectos (con su ruta y las lecturas en ruta), las cargas y las
+  curvas de carga se quedan.
   Los puntos de un trayecto aún en curso se quedan hasta que termina, porque su final se toma de
   ellos.
 - **Exportar / Copia de seguridad** — descargar **trayectos (CSV)**, **cargas (CSV)** y una **copia de

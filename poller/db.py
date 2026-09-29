@@ -254,13 +254,24 @@ class Database:
         self._path = path
         self._conn = sqlite3.connect(path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
-        self._conn.execute("PRAGMA journal_mode=WAL")
+        # 🔴 The pragma does NOT fail when it cannot be honoured: it falls back and REPORTS the mode
+        # it settled on, and that answer used to be thrown away. It decides how two processes get
+        # along — in WAL readers do not block writers, outside WAL they do — so a silent fallback
+        # turns a long-lived read connection into a writer starved for hours (#338: 747 frames lost
+        # to `database is locked`, on a NAS share, which is exactly a filesystem that cannot give
+        # SQLite the shared memory WAL needs). Kept, logged, and printed in the bundle.
+        self.journal_mode = (self._conn.execute("PRAGMA journal_mode=WAL").fetchone() or [None])[0]
+        if str(self.journal_mode).lower() != "wal":
+            log.warning("SQLite is in '%s' journal mode, not WAL — this database is on a filesystem "
+                        "that cannot honour it. Readers will block writers, and a busy moment "
+                        "surfaces as 'database is locked'.", self.journal_mode)
         ensure_schema(self._conn)
         self._backfill_vehicle_capacity()
         self._adopt_the_cars_that_were_already_here()
         self._backfill_null_vehicle_id()
         self._backfill_trip_geohashes()
         self._backfill_charge_odometer()
+        self._backfill_trip_readings()
         self._repair_odometer_trips()
         self._repair_quantized_trip_distance()
         self._repair_snap_to_full_charges()
@@ -1041,6 +1052,53 @@ class Database:
                         "(per-vehicle scoping safety net)", n, vid)
         self.set_setting("null_vehicle_id_backfill_v1", "1")
 
+    def _backfill_trip_readings(self) -> None:
+        """Give the trip points recorded before they carried the poll's readings those of the
+        `positions` row the same poll wrote (the two rows are milliseconds apart), while the positions
+        retention has not removed them yet. One-time (gated); a point without a match stays empty."""
+        if self.get_setting("trip_readings_backfill_v1") == "1":
+            return
+        def _ts(value):
+            try:
+                return datetime.fromisoformat(value).timestamp()
+            except (TypeError, ValueError):
+                return None
+
+        updates = []
+        for trip in self._conn.execute("SELECT id, vehicle_id FROM trips WHERE vehicle_id IS NOT NULL").fetchall():
+            points = [(p["id"], _ts(p["recorded_at"])) for p in self._conn.execute(
+                "SELECT id, recorded_at FROM trip_positions WHERE trip_id = ? AND power_kw IS NULL"
+                " AND battery_temp_c IS NULL AND range_km IS NULL AND outside_temp_c IS NULL"
+                " ORDER BY recorded_at", (trip["id"],))]
+            points = [(pid, t) for pid, t in points if t is not None]
+            if not points:
+                continue
+            lo = datetime.fromtimestamp(points[0][1] - 2, timezone.utc).isoformat()
+            hi = datetime.fromtimestamp(points[-1][1] + 2, timezone.utc).isoformat()
+            rows = [(_ts(r["recorded_at"]), r) for r in self._conn.execute(
+                "SELECT recorded_at, charge_voltage_v, charge_current_a, battery_min_temp, range_km, outside_temp"
+                " FROM positions WHERE vehicle_id = ? AND recorded_at BETWEEN ? AND ? ORDER BY recorded_at",
+                (trip["vehicle_id"], lo, hi))]
+            rows = [(t, r) for t, r in rows if t is not None]
+            j = 0
+            for pid, t in points:
+                if not rows:
+                    break
+                while j + 1 < len(rows) and abs(rows[j + 1][0] - t) <= abs(rows[j][0] - t):
+                    j += 1
+                at, r = rows[j]
+                if abs(at - t) > 2:
+                    continue
+                v, a = r["charge_voltage_v"], r["charge_current_a"]
+                updates.append((round(v * a / 1000.0, 1) if v is not None and a is not None else None,
+                                r["battery_min_temp"], r["range_km"] or None, r["outside_temp"], pid))
+        self._conn.executemany("UPDATE trip_positions SET power_kw = ?, battery_temp_c = ?, range_km = ?,"
+                               " outside_temp_c = ? WHERE id = ?", updates)
+        self._conn.commit()
+        if updates:
+            log.info("Gave %d trip point(s) the readings of their poll", len(updates))
+        self.set_setting("trip_readings_backfill_v1", "1")
+
     def _backfill_trip_geohashes(self) -> None:
         """Fill start_geohash/end_geohash on every trip that predates the column (idempotent —
         only touches NULLs, so a fresh install or a re-run after the columns already exist is a
@@ -1446,10 +1504,15 @@ class Database:
         # breaks fitBounds on the map. Only record real fixes.
         if not data.latitude or not data.longitude:
             return
+        volts, amps = getattr(data, "charge_voltage_v", None), getattr(data, "charge_current_a", None)
+        power = round(volts * amps / 1000.0, 1) if volts is not None and amps is not None else None
         self._conn.execute(
-            """INSERT INTO trip_positions (trip_id, recorded_at, latitude, longitude, speed_kmh, soc)
-               VALUES (?,?,?,?,?,?)""",
-            (trip_id, _now_iso(), data.latitude, data.longitude, data.speed_kmh, data.soc),
+            """INSERT INTO trip_positions (trip_id, recorded_at, latitude, longitude, speed_kmh, soc,
+                                           power_kw, battery_temp_c, range_km, outside_temp_c)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (trip_id, _now_iso(), data.latitude, data.longitude, data.speed_kmh, data.soc, power,
+             getattr(data, "battery_min_temp", None), getattr(data, "range_km", None) or None,
+             getattr(data, "outside_temp", None)),
         )
         self._conn.commit()
 

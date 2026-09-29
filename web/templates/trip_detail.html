@@ -257,45 +257,71 @@
     <details class="card" open>
       <summary class="cursor-pointer text-sm font-medium text-slate-300 hover:text-white">{{ t('trip_details_section') }}</summary>
       <div class="space-y-3 text-sm mt-3">
+      {# The change in brackets is signed: a drive on a range extender can end with a fuller pack. #}
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('start_soc') }}</span>
-        <span class="text-white font-medium">{% if trip.start_soc is not none %}{{ trip.start_soc|dec(1) }}%{% else %}{{ t('data_unavailable') }}{% endif %}</span>
+        <span class="text-slate-400">{{ t('soc') }}</span>
+        <span class="text-white font-medium">
+          {%- if trip.start_soc is not none or trip.end_soc is not none -%}
+          {{ (trip.start_soc|dec(1) ~ '%') if trip.start_soc is not none else '—' }}&nbsp;→&nbsp;{{ (trip.end_soc|dec(1) ~ '%') if trip.end_soc is not none else '—' }}
+          {%- if trip.start_soc is not none and trip.end_soc is not none %}{% set _d = trip.end_soc - trip.start_soc %} <span class="text-slate-400">({{ '+' if _d > 0 else '' }}{{ _d|dec(1) }}%)</span>{% endif -%}
+          {%- else -%}{{ t('data_unavailable') }}{%- endif -%}
+        </span>
       </div>
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('end_soc') }}</span>
-        <span class="text-white font-medium">{% if trip.end_soc is not none %}{{ trip.end_soc|dec(1) }}%{% else %}{{ t('data_unavailable') }}{% endif %}</span>
-      </div>
-      {% if is_reev and research and trip.engine_ran and (trip.end_soc or 0) > (trip.start_soc or 0) %}
-      <!-- REEV engine-on trip where the generator OUT-produced the motor → the pack ended fuller than it
-           started. "SoC used −3%" reads as nonsense here; show it as what it is: a net recharge. -->
-      <div class="flex justify-between">
-        <span class="text-slate-400">🔋 {{ t('reev_battery_recharged') }}</span>
-        <span class="text-blue-300 font-medium">+{{ ((trip.end_soc or 0) - (trip.start_soc or 0))|dec(1) }}%</span>
-      </div>
-      {% else %}
-      <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('soc_used') }}</span>
-        <span class="text-white font-medium">{% if trip.start_soc is not none and trip.end_soc is not none %}{{ (trip.start_soc - trip.end_soc)|dec(1) }}%{% else %}{{ t('data_unavailable') }}{% endif %}</span>
-      </div>
-      {% endif %}
-      <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('start_odometer') }}</span>
-        <span class="text-white font-medium">{{ (trip.start_odometer_km or 0) | dist(0) }}</span>
+        <span class="text-slate-400">{{ t('odometer') }}</span>
+        <span class="text-white font-medium">
+          {%- if trip.start_odometer_km or trip.end_odometer_km -%}
+          {{ (trip.start_odometer_km | dist(0)) if trip.start_odometer_km else '—' }}&nbsp;→&nbsp;{{ (trip.end_odometer_km | dist(0)) if trip.end_odometer_km else '—' }}
+          {%- if trip.start_odometer_km and trip.end_odometer_km %} <span class="text-slate-400">({{ (trip.end_odometer_km - trip.start_odometer_km) | dist(0) }})</span>{% endif %}
+          {%- else -%}—{%- endif -%}
+        </span>
       </div>
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('end_odometer') }}</span>
-        <span class="text-white font-medium">{% if trip.end_odometer_km %}{{ trip.end_odometer_km | dist(0) }}{% else %}—{% endif %}</span>
+        <span class="text-slate-400">{{ t('duration') }}{% if trip.driving_min is not none %} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('trip_time_split_help') }}">ⓘ</span>{% endif %}</span>
+        <span class="text-right">
+          <span class="text-white font-medium">{{ fmt_dur(trip.duration_min) }}</span>
+          {%- if trip.driving_min is not none %}
+          <span class="block text-xs text-slate-500">{{ t('trip_time_split').replace('{driving}', fmt_dur(trip.driving_min)).replace('{stopped}', fmt_dur(trip.stopped_min)) }}</span>
+          {%- if trip.unknown_min >= 1 %}
+          <span class="block text-xs text-slate-500">{{ t('trip_time_unknown').replace('{unknown}', fmt_dur(trip.unknown_min)) }}</span>
+          {%- endif %}
+          {%- endif %}
+        </span>
       </div>
       <div class="flex justify-between">
         <span class="text-slate-400">{{ t('avg_speed') }}</span>
-        <span class="text-white font-medium">{% if trip.avg_speed_kmh is not none %}{{ trip.avg_speed_kmh | speed(0) }}{% else %}—{% endif %}</span>
+        <span class="text-right">
+          <span class="text-white font-medium">{% if trip.avg_speed_kmh is not none %}{{ trip.avg_speed_kmh | speed(0) }}{% else %}—{% endif %}</span>
+          {%- if trip.median_speed_kmh is not none %}
+          <span class="block text-xs text-slate-500">{{ t('trip_speed_median').replace('{median}', trip.median_speed_kmh | speed(0)) }}</span>
+          {%- endif %}
+        </span>
       </div>
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('max_speed') }}</span>
+        <span class="text-slate-400">{{ t('max_speed') }}{% if trip.max_speed_sampled %} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('max_speed_sampled_help') }}">ⓘ</span>{% endif %}</span>
         <span class="text-white font-medium">{% if trip.max_speed_kmh is not none %}{{ trip.max_speed_kmh | speed(0) }}{% else %}—{% endif %}</span>
       </div>
+      {# Hidden on a range extender like the regen figure: with the generator running, the pack's power is not the drive's. #}
+      {% if not is_reev %}
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('elevation') }}</span>
+        <span class="text-slate-400">{{ t('max_power') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('max_power_help') }}">ⓘ</span></span>
+        <span class="text-white font-medium">{% if trip.max_power_kw is not none %}{{ trip.max_power_kw|dec(0) }} kW{% else %}—{% endif %}</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-400">{{ t('max_regen') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('max_regen_help') }}">ⓘ</span></span>
+        <span class="text-white font-medium">{% if trip.max_regen_kw is not none %}{{ trip.max_regen_kw|dec(0) }} kW{% else %}—{% endif %}</span>
+      </div>
+      {% endif %}
+      <div class="flex justify-between">
+        <span class="text-slate-400">{{ t('battery_temp') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('battery_temp_trip_help') }}">ⓘ</span></span>
+        <span class="text-white font-medium">
+          {%- if trip.battery_temp_max_c is not none -%}
+          {{ trip.battery_temp_min_c | temp_range(trip.battery_temp_max_c, 0) }}
+          {%- else -%}—{%- endif -%}
+        </span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-400">{{ t('elevation_ascent_descent') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('elevation_trip_help') }}">ⓘ</span></span>
         <span class="text-white font-medium">
           {%- if trip.elevation_gain_m is not none -%}
           <span title="{{ t('elevation_gain') }}">↑&nbsp;{{ trip.elevation_gain_m | elev(0) }}</span>&nbsp;&nbsp;<span title="{{ t('elevation_loss') }}">↓&nbsp;{{ trip.elevation_loss_m | elev(0) }}</span>
@@ -303,12 +329,10 @@
         </span>
       </div>
       <div class="flex justify-between">
-        <span class="text-slate-400">{{ t('outside_temp') }}</span>
+        <span class="text-slate-400">{{ t('outside_temp') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('outside_temp_trip_help') }}">ⓘ</span></span>
         <span class="text-white font-medium">
-          {%- if trip.outside_temp_start_c is not none and trip.outside_temp_end_c is not none -%}
-          {{ trip.outside_temp_start_c | temp(1) }}&nbsp;→&nbsp;{{ trip.outside_temp_end_c | temp(1) }}
-          {%- elif trip.outside_temp_start_c is not none -%}{{ trip.outside_temp_start_c | temp(1) }}
-          {%- elif trip.outside_temp_end_c is not none -%}{{ trip.outside_temp_end_c | temp(1) }}
+          {%- if trip.outside_temp_max_c is not none -%}
+          {{ trip.outside_temp_min_c | temp_range(trip.outside_temp_max_c, 1) }}
           {%- else -%}—{%- endif -%}
         </span>
       </div>
@@ -512,17 +536,24 @@
         L.marker([c.latitude, c.longitude], {icon: chargeIcon}).addTo(map).bindPopup(popup);
       });
     </script>
-    <!-- SoC & speed profile -->
-    <div style="padding:12px 16px 16px; background:#1e293b; border-top:1px solid #334155">
+    <!-- Trip data: one chart in bands — driving (speed, power), battery (SoC, temperature, range), altitude -->
+    <div id="trip-profile-panel" style="padding:12px 16px 16px; background:#1e293b; border-top:1px solid #334155">
       <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-1">
         <span style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em">{{ t('trip_profile') }}</span>
-        <span class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
-          <span class="whitespace-nowrap"><span style="color:#22c55e">■</span> {{ t('soc') }}</span>
-          <span class="whitespace-nowrap"><span style="color:#38bdf8">■</span> {{ t('speed') }}</span>
-          <span id="trip-profile-elev-legend" class="whitespace-nowrap" style="display:none"><span style="color:#c9975f">■</span> {{ t('altitude') }}</span>
+        {# Each entry switches its line on and off; an empty square is a line switched off. The bars
+           separate the bands, top to bottom. #}
+        <span id="trip-profile-legend" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+          <button type="button" class="whitespace-nowrap" data-series="speed" aria-pressed="true"><span data-swatch style="color:#38bdf8">■</span> {{ t('speed') }}</button>
+          <button type="button" class="whitespace-nowrap" data-series="power" aria-pressed="true" data-tip="{{ t('chart_power_help') }}" style="display:none"><span data-swatch style="color:#f87171">■</span> {{ t('power') }}</button>
+          <span class="text-slate-700" aria-hidden="true">|</span>
+          <button type="button" class="whitespace-nowrap" data-series="soc" aria-pressed="true"><span data-swatch style="color:#22c55e">■</span> {{ t('soc') }}</button>
+          <button type="button" class="whitespace-nowrap" data-series="range" aria-pressed="true" style="display:none"><span data-swatch style="color:#a78bfa">■</span> {{ t('range') }}</button>
+          <span id="trip-profile-third-bar" class="text-slate-700" aria-hidden="true" style="display:none">|</span>
+          <button type="button" id="trip-profile-elev-legend" class="whitespace-nowrap" data-series="elev" aria-pressed="true" style="display:none"><span data-swatch style="color:#c9975f">■</span> {{ t('altitude') }}</button>
+          <button type="button" class="whitespace-nowrap" data-series="batt" aria-pressed="true" data-tip="{{ t('chart_battery_temp_help') }}" style="display:none"><span data-swatch style="color:#facc15">■</span> {{ t('battery_temp') }}</button>
         </span>
       </div>
-      <div id="trip-profile" style="height:200px"></div>
+      <div id="trip-profile"></div>
     </div>
     <script>
     (function () {
@@ -537,7 +568,7 @@
       // the blank filling below, without which a gap would silently close up.
       var t0 = pts[0].recorded_at ? new Date(pts[0].recorded_at).getTime() : NaN;
       var useTime = !isNaN(t0);
-      var labels = [], socArr = [], spdArr = [], elevArr = [];
+      var labels = [], socArr = [], spdArr = [], elevArr = [], powArr = [], batArr = [], rngArr = [];
       var plot = [];        // mirrors the series (blanks included) so hover indices stay aligned
 
       // Typical spacing between samples — the yardstick for telling a gap from a sample. Median,
@@ -557,7 +588,7 @@
       function pushLabel(ms) {
         labelMs.push(useTime && !isNaN(ms) ? ms : NaN);
         labels.push(useTime && !isNaN(ms)
-          ? Math.max(0, Math.round((ms - t0) / 60000)) + "′"
+          ? Math.max(0, Math.round((ms - t0) / 60000)) + " min"
           : String(labels.length));
       }
 
@@ -574,6 +605,7 @@
             for (var k = 1; k <= blanks; k++) {
               pushLabel(prev + step * k);
               socArr.push(null); spdArr.push(null); elevArr.push(null); plot.push(null);
+              powArr.push(null); batArr.push(null); rngArr.push(null);
             }
           }
         }
@@ -581,6 +613,9 @@
         socArr.push(p.soc != null ? p.soc : null);
         spdArr.push(p.speed_kmh != null ? p.speed_kmh : 0);
         elevArr.push(p.elevation_m != null ? p.elevation_m : null);
+        powArr.push(p.power_kw != null ? p.power_kw : null);
+        batArr.push(p.battery_temp_c != null ? p.battery_temp_c : null);
+        rngArr.push(p.range_km != null ? p.range_km : null);
         plot.push(p);
       });
 
@@ -608,33 +643,28 @@
           pauseAnns.push({
             x: labels[ia], x2: labels[ib],
             fillColor: '#64748b', opacity: 0.14, borderColor: '#64748b',
-            label: { text: '⏸ ' + p.minutes + '′', borderColor: '#64748b',
+            label: { text: '⏸ ' + p.minutes + ' min', borderColor: '#64748b',
                      style: { background: '#334155', color: '#e2e8f0', fontSize: '10px' } }
           });
         });
       }
 
-      var nmSoc = {{ t('soc')|tojson }};
-      var nmSpd = {{ t('speed')|tojson }};
-      var nmElev = {{ t('altitude')|tojson }};
-      // Display-time speed unit conversion (data stays metric km/h).
-      var spdFactor = {{ speed_val(1, 6) }};   // 1 (metric) or 0.621371 (imperial)
-      var spdUnit = {{ speed_unit()|tojson }}; // "km/h" or "mph"
-      spdArr = spdArr.map(function (v) { return v != null ? v * spdFactor : v; });
-      var spdMax = 1;
-      spdArr.forEach(function (v) { if (v != null && v > spdMax) spdMax = v; });
-      spdMax = Math.ceil(spdMax / 10) * 10;
+      var nmSoc = {{ t('soc')|tojson }}, nmSpd = {{ t('speed')|tojson }}, nmElev = {{ t('altitude')|tojson }};
+      var nmPow = {{ t('power')|tojson }}, nmBat = {{ t('battery_temp')|tojson }}, nmRng = {{ t('range')|tojson }};
+      // Display units (data stays metric); the temperature map is linear (°F = °C × 9/5 + 32).
+      var spdFactor = {{ speed_val(1, 6) }}, spdUnit = {{ speed_unit()|tojson }};
+      var elevFactor = {{ elev_val(1, 6) }}, elevUnit = {{ elev_unit()|tojson }};
+      var distFactor = {{ dist_val(1, 6) }}, distUnit = {{ dist_unit()|tojson }};
+      var tempA = {{ temp_val(1, 6) - temp_val(0, 6) }}, tempB = {{ temp_val(0, 6) }}, tempUnit = {{ temp_unit()|tojson }};
+      function scaled(arr, a, b) { return arr.map(function (v) { return v != null ? v * a + (b || 0) : v; }); }
+      spdArr = scaled(spdArr, spdFactor);
+      elevArr = scaled(elevArr, elevFactor);
+      var batDisp = scaled(batArr, tempA, tempB), rngDisp = scaled(rngArr, distFactor);
 
       // Elevation is a lookup on a downsampled + interpolated track (see _interpolate_elevation) —
-      // only enriched trips have it, so the series is added only when at least one real value made it
-      // through. Older / not-yet-enriched trips keep the plain SoC+speed chart unchanged.
+      // only enriched trips have it, so its band exists only when at least one real value made it through.
       var hasElev = elevArr.some(function (v) { return v != null; });
-      var elevFactor = {{ elev_val(1, 6) }};    // 1 (metric) or 3.28084 (imperial)
-      var elevUnit = {{ elev_unit()|tojson }};  // "m" or "ft"
-      if (hasElev) {
-        elevArr = elevArr.map(function (v) { return v != null ? v * elevFactor : v; });
-        document.getElementById('trip-profile-elev-legend').style.display = '';
-      }
+      if (hasElev) document.getElementById('trip-profile-elev-legend').style.display = '';
 
       // Bridge gaps in the terrain line with a dashed segment. SoC/speed truly are unknowable during
       // a signal drop-out and stay blank (see above), but the ground under the car didn't disappear —
@@ -663,14 +693,6 @@
         }
       }
 
-      // Zoom the SoC axis to the trip's own range (it usually only drops a few %),
-      // otherwise a 96→90% drive looks flat pinned to the top of a 0–100 axis.
-      var socVals = socArr.filter(function (v) { return v != null; });
-      var sMin = Math.min.apply(null, socVals), sMax = Math.max.apply(null, socVals);
-      var socLo = Math.max(0, Math.floor(sMin - 1));
-      var socHi = Math.min(100, Math.ceil(sMax + 1));
-      if (socHi - socLo < 4) { socLo = Math.max(0, socHi - 4); }   // keep a sane minimum span
-
       // Cursor marker: shown on the map while hovering the chart. Indexes plot[] (not pts[]) —
       // the blanks inserted for gaps shift every later sample, and a null there hides the marker,
       // which is right: over a gap we have no position to point at.
@@ -692,108 +714,197 @@
         if (cursorMarker && map.hasLayer(cursorMarker)) map.removeLayer(cursorMarker);
       }
 
-      // Mirrors the proven charge-power chart config: plain-array data + categories +
-      // seriesName-bound y-axes (multi-axis needs the binding or nothing draws). Elevation, when
-      // present, is unshifted to the FRONT of every array — ApexCharts stacks series bottom-to-top in
-      // array order, so it draws as the backdrop terrain relief that SoC/speed sit over, matching a
-      // topographic cross-section under the trip's actual telemetry.
-      var series = [{ name: nmSoc, type: 'area', data: socArr },
-                    { name: nmSpd, type: 'line', data: spdArr }];
-      var colors = ['#22c55e', '#38bdf8'];
-      var strokeWidth = [2, 2];
-      var strokeDash = [0, 0];
-      var fillType = ['gradient', 'solid'];
-      var fillOpacity = [1, 1];
-      var opacityFrom = [0.35, 0.35];
-      var opacityTo = [0.05, 0.05];
-      var yaxis = [
-        { seriesName: nmSoc, min: socLo, max: socHi, forceNiceScale: true,
-          labels: { style: { colors: '#22c55e', fontSize: '10px' }, formatter: function (v) { return v != null ? v.toFixed(0) : ''; } },
-          title: { text: 'SoC %', style: { color: '#22c55e', fontSize: '10px' } } },
-        { opposite: true, seriesName: nmSpd, min: 0, max: spdMax,
-          labels: { style: { colors: '#38bdf8', fontSize: '10px' }, formatter: function (v) { return v != null ? v.toFixed(0) : ''; } },
-          title: { text: spdUnit, style: { color: '#38bdf8', fontSize: '10px' } } },
-      ];
-      if (hasElev) {
-        // Light warm tan (not a dark brown) — on this dark navy surface a dark tone would nearly
-        // vanish; a light one stays readable at a flat low-opacity fill and sits far in hue from both
-        // SoC green and speed blue, so it's never confused with either even under a CVD sim.
-        var elevColor = '#c9975f';
-        // A plain line, drawn exactly like SoC and speed — no area fill. Filled, the terrain became
-        // the loudest thing on the chart and buried the two series it exists to give context to
-        // (#159): a soft gradient in v2.7.0, then a flat slab. The relief reads fine as an outline.
-        series.unshift({ name: nmElev, type: 'line', data: elevArr });
-        colors.unshift(elevColor);
-        strokeWidth.unshift(2);
-        strokeDash.unshift(0);
-        fillType.unshift('solid');
-        fillOpacity.unshift(1);      // NOT 0 — on a 'line' series Apex derives the stroke's alpha
-                                     // from this too, so a low value would fade the line itself
-        opacityFrom.unshift(0);      // unused (gradient-only), kept for array-length parity
-        opacityTo.unshift(0);
-        // Hidden axis, no forced min — the relief should read as the trip's OWN climb/descent shape
-        // (auto-scaled to its own min/max), not a slab measured from sea level. A third labelled axis
-        // is also too cramped at 200px; the shared tooltip gives exact values.
-        var elevVals = elevArr.filter(function (v) { return v != null; });
-        var elevLo = Math.floor(Math.min.apply(null, elevVals));
-        var elevHi = Math.ceil(Math.max.apply(null, elevVals));
-        if (elevHi === elevLo) { elevHi = elevLo + 1; }
-        yaxis.unshift({ seriesName: nmElev, show: false, min: elevLo, max: elevHi });
-
-        if (hasElevDash) {
-          // A distinct name, bound to its own y-axis pinned to the SAME min/max as the elevation
-          // axis above — ApexCharts' internal per-series bookkeeping breaks if two series share a
-          // name, and independently auto-scaled axes could otherwise offset the dash from where the
-          // solid line actually ends. Excluded from the tooltip below to avoid a duplicate row.
-          var nmElevDash = nmElev + '__dash';
-          series.push({ name: nmElevDash, type: 'line', data: elevDashArr });
-          colors.push(elevColor);
-          strokeWidth.push(2);       // same weight as the solid elevation line it continues
-          strokeDash.push(4);
-          fillType.push('solid');
-          fillOpacity.push(1);   // NOT 0 — for a 'line' series Apex derives the stroke's alpha from
-                                  // this value too, so 0 here made the dash invisible despite drawing
-          opacityFrom.push(0);
-          opacityTo.push(0);
-          yaxis.push({ seriesName: nmElevDash, show: false, min: elevLo, max: elevHi });
+      // Four equal steps of a round, whole size covering [lo, hi], so a band's inner ticks read as round
+      // numbers and print exactly (a step of 2.5 would print its line at 62.5 as 63).
+      function niceScale(lo, hi, minSpan) {
+        if (hi - lo < minSpan) { var mid = (lo + hi) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
+        var mag = Math.pow(10, Math.floor(Math.log10((hi - lo) / 4)));
+        var steps = [1, 2, 2.5, 3, 4, 5, 10, 20].map(function (m) { return m * mag; })
+                                                 .filter(function (s) { return s % 1 === 0; });
+        for (var s = 0; s < steps.length; s++) {
+          var a = Math.floor(lo / steps[s]) * steps[s];
+          if (a + 4 * steps[s] >= hi) return [a, a + 4 * steps[s]];
         }
+        return [lo, hi];
+      }
+      function extent(arr) {
+        var v = arr.filter(function (x) { return x != null; });
+        return [Math.min.apply(null, v), Math.max.apply(null, v)];
+      }
+      function present(arr) { return arr.some(function (v) { return v != null; }); }
+
+      // Every line on its own scale inside its band. Labels print on the side named, three to a band.
+      var C = {
+        speed: { name: nmSpd, color: '#38bdf8', data: spdArr, unit: spdUnit, dec: 0 },
+        power: { name: nmPow, color: '#f87171', data: powArr, unit: 'kW', dec: 0 },
+        soc:   { name: nmSoc, color: '#22c55e', data: socArr, unit: '%', dec: 1 },
+        batt:  { name: nmBat, color: '#facc15', data: batDisp, unit: tempUnit, dec: 0 },
+        range: { name: nmRng, color: '#a78bfa', data: rngDisp, unit: distUnit, dec: 0 },
+        elev:  { name: nmElev, color: '#c9975f', data: elevArr, unit: elevUnit, dec: 0 },
+      };
+      Object.keys(C).forEach(function (id) {
+        var c = C[id];
+        c.present = present(c.data);
+        if (!c.present) return;
+        var e = extent(c.data);
+        if (id === 'speed') { c.scale = niceScale(0, Math.max(e[1], 1), 20); }
+        else if (id === 'power') {   // symmetric, so zero sits mid-band and regeneration reads as "below"
+          var m = niceScale(0, Math.max(Math.abs(e[0]), Math.abs(e[1]), 1) * 2, 20)[1] / 2;
+          c.scale = [-m, m];
+        } else if (id === 'soc') {
+          c.scale = niceScale(e[0], e[1], 4);
+          if (c.scale[1] > 100) c.scale = [100 - (c.scale[1] - c.scale[0]), 100];
+        } else { c.scale = niceScale(e[0], e[1], id === 'batt' ? 4 : 20); }   // batt, range, elev
+      });
+      // No band holds more than two units, one scale on each side.
+      var BANDS = [{ ids: ['speed', 'power'], left: 'speed', right: 'power' },
+                   { ids: ['soc', 'range'], left: 'soc', right: 'range' },
+                   { ids: ['elev', 'batt'], left: 'elev', right: 'batt' }];
+      if (C.elev.present || C.batt.present) document.getElementById('trip-profile-third-bar').style.display = '';
+
+      // Which lines show is remembered in this browser for every trip; one never switched keeps its default.
+      var SHOWN_KEY = 'mate.tripChart.shown';
+      var shownByDefault = { speed: true, power: true, soc: true, batt: true, range: true, elev: true };
+      var shown = {};
+      try { shown = JSON.parse(localStorage.getItem(SHOWN_KEY)) || {}; } catch (e) { shown = {}; }
+      function isShown(id) { return C[id].present && (id in shown ? !!shown[id] : shownByDefault[id]); }
+
+      // The hover box heads each point with its time of day in Mate's zone, each moment at its own offset
+      // (a drive can cross a clock change), then the minute of the drive.
+      var clockOpts = { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }, clock;
+      try { clock = new Intl.DateTimeFormat('en-GB', Object.assign({ timeZone: {{ display_tz_name()|tojson }} }, clockOpts)); }
+      catch (e) { clock = new Intl.DateTimeFormat('en-GB', clockOpts); }   // a zone this browser does not know: its own
+      function clockAt(i) {
+        var ms = labelMs[i];
+        return ms == null || isNaN(ms) ? labels[i] : clock.format(ms) + ' (' + labels[i] + ')';
       }
 
-      var tooltipSeries = series.map(function (_, i) { return i; });
-      if (hasElevDash) tooltipSeries.pop();   // drop the bridge series — same values, duplicate row
+      // The hover box: the clock, then the lines band by band, a rule between the bands.
+      function esc(text) { return String(text).replace(/[&<>"]/g, function (ch) { return '&#' + ch.charCodeAt(0) + ';'; }); }
+      function hoverBox(bands, i) {
+        var html = '<div class="apexcharts-tooltip-title" style="font-size:12px">' + esc(clockAt(i)) + '</div>';
+        bands.forEach(function (b, n) {
+          var rows = b.ids.filter(isShown).map(function (id) {
+            var c = C[id], v = c.data[i];
+            var value = v == null ? '—' : v.toFixed(c.dec) + (c.unit === '%' ? '' : ' ') + c.unit;   // "76.0%", like the rest of Mate
+            return '<div style="display:flex;align-items:center;gap:6px;padding:2px 10px;font-size:12px">'
+              + '<span style="width:9px;height:9px;border-radius:50%;background:' + c.color + '"></span>'
+              + '<span>' + esc(c.name) + ':</span><b style="margin-left:auto;padding-left:10px">' + esc(value) + '</b></div>';
+          });
+          if (rows.length) {
+            html += '<div class="mate-tip-band" style="padding:4px 0;' + (n ? 'border-top:1px solid #475569' : '') + '">' + rows.join('') + '</div>';
+          }
+        });
+        return html;
+      }
 
-      el._c = new ApexCharts(el, {
-        chart: { type: 'line', height: 200, toolbar: { show: false }, zoom: { enabled: false },
-                 fontFamily: 'inherit', background: 'transparent', parentHeightOffset: 0,
-                 animations: { enabled: false },
-                 events: {
-                   mouseMove: function (event, ctx, config) { showCursor(config.dataPointIndex); },
-                   mouseLeave: function () { hideCursor(); }
-                 } },
-        series: series,
-        colors: colors,
-        stroke: { curve: 'smooth', width: strokeWidth, dashArray: strokeDash },
-        fill: { type: fillType, opacity: fillOpacity,
-                gradient: { shadeIntensity: 1, opacityFrom: opacityFrom, opacityTo: opacityTo, stops: [0, 100] } },
-        dataLabels: { enabled: false },
-        markers: { size: 0 },
-        annotations: { xaxis: pauseAnns },
-        xaxis: { categories: labels, tickAmount: 6, tooltip: { enabled: false },
-                 labels: { style: { colors: '#64748b', fontSize: '10px' }, rotate: 0, hideOverlappingLabels: true },
-                 axisBorder: { show: false }, axisTicks: { show: false } },
-        yaxis: yaxis,
-        grid: { borderColor: '#1e293b', strokeDashArray: 4, padding: { left: 8, right: 8 } },
-        legend: { show: false },
-        tooltip: { theme: 'dark', shared: true, intersect: false, enabledOnSeries: tooltipSeries,
-                   y: { formatter: function (v, o) {
-                          if (v == null) return '';
-                          var nm = o.w.config.series[o.seriesIndex].name;
-                          if (nm === nmSpd) return v.toFixed(0) + ' ' + spdUnit;
-                          if (nm === nmElev) return v.toFixed(0) + ' ' + elevUnit;
-                          return v.toFixed(1) + ' %';
-                        } } },
+      function render() {
+        if (el._c) { try { el._c.destroy(); } catch (e) {} el._c = null; }
+        // A band with every line switched off folds away; the rest share the height.
+        var bands = BANDS.filter(function (b) { return b.ids.some(isShown); });
+        var nb = bands.length;
+        el.style.display = nb ? '' : 'none';
+        if (!nb) { hideCursor(); return; }
+        bands.forEach(function (b, i) { b.base = nb - 1 - i; });   // band 0 is the bottom one
+        // A band is five ticks tall: its lines use the lower four, the fifth is an empty gap above them.
+        var FILL = 0.8;
+        function toBand(c, base) {
+          return function (v) { return v != null ? base + FILL * (v - c.scale[0]) / (c.scale[1] - c.scale[0]) : null; };
+        }
+        function lineAt(side, q) {
+          var b = bands.filter(function (x) { return x.base === Math.floor(q / 5); })[0];
+          var id = b && b[side];
+          return id && isShown(id) && q % 5 ? id : null;
+        }
+        function labelColors(side) {   // each band's numbers in the colour of the line they measure
+          var out = [];
+          for (var q = 0; q <= 5 * nb; q++) out.push(lineAt(side, q) ? C[lineAt(side, q)].color : '#94a3b8');
+          return out;
+        }
+        function label(side) {   // three numbers up a band's scale, its unit at the top
+          return function (t) {
+            var q = Math.round(t * 5), id = lineAt(side, q);
+            if (!id) return '';
+            var c = C[id], k = q % 5;
+            return k < 4 ? (c.scale[0] + k / 4 * (c.scale[1] - c.scale[0])).toFixed(0) : c.unit;
+          };
+        }
+        // Two carrier series hold the labelled axes, so switching a line off never moves the plot.
+        var axisRange = { min: 0, max: nb, tickAmount: 5 * nb };
+        var series = [{ name: '_left', type: 'line', data: labels.map(function () { return null; }) },
+                      { name: '_right', type: 'line', data: labels.map(function () { return null; }) }];
+        var colors = ['transparent', 'transparent'], widths = [0, 0], dashes = [0, 0];
+        var yaxis = [
+          Object.assign({ seriesName: '_left', labels: { minWidth: 28, maxWidth: 28, style: { colors: labelColors('left'), fontSize: '10px' }, formatter: label('left') } }, axisRange),
+          Object.assign({ seriesName: '_right', opposite: true, labels: { minWidth: 28, maxWidth: 28, style: { colors: labelColors('right'), fontSize: '10px' }, formatter: label('right') } }, axisRange),
+        ];
+        var tipSeries = [], lines = [];
+        bands.forEach(function (b) {
+          b.ids.forEach(function (id) {
+            if (!isShown(id)) return;
+            var c = C[id], f = toBand(c, b.base);
+            tipSeries.push(series.length);
+            series.push({ name: c.name, type: 'line', data: c.data.map(f) });
+            colors.push(c.color); widths.push(2); dashes.push(0);
+            yaxis.push(Object.assign({ seriesName: c.name, show: false }, axisRange));
+            if (id === 'elev' && hasElevDash) {   // same scale, dashed, kept out of the hover box
+              series.push({ name: c.name + '__dash', type: 'line', data: elevDashArr.map(f) });
+              colors.push(c.color); widths.push(2); dashes.push(4);
+              yaxis.push(Object.assign({ seriesName: c.name + '__dash', show: false }, axisRange));
+            }
+            if (id === 'power') {
+              lines.push({ y: b.base + FILL / 2, yAxisIndex: 0, borderColor: c.color, strokeDashArray: 3, opacity: 0.6 });
+            }
+          });
+        });
+
+        el._c = new ApexCharts(el, {
+          chart: { type: 'line', height: 36 + 125 * nb, toolbar: { show: false }, zoom: { enabled: false },
+                   fontFamily: 'inherit', background: 'transparent', parentHeightOffset: 0,
+                   animations: { enabled: false },
+                   events: {
+                     mouseMove: function (event, ctx, config) { showCursor(config.dataPointIndex); },
+                     mouseLeave: function () { hideCursor(); }
+                   } },
+          series: series,
+          colors: colors,
+          stroke: { curve: 'smooth', width: widths, dashArray: dashes },
+          fill: { type: 'solid', opacity: 1 },
+          dataLabels: { enabled: false },
+          markers: { size: 0 },
+          annotations: { xaxis: pauseAnns, yaxis: lines },
+          xaxis: { categories: labels, tickAmount: 6, tooltip: { enabled: false },
+                   labels: { style: { colors: '#64748b', fontSize: '10px' }, rotate: 0, hideOverlappingLabels: true },
+                   axisBorder: { show: false }, axisTicks: { show: false } },
+          yaxis: yaxis,
+          // Grid rows from the top, five a band: the gap, then the band's four rows as a darker box.
+          grid: { borderColor: '#1e293b', strokeDashArray: 4, padding: { left: 8, right: 8 },
+                  row: { colors: ['transparent', '#0f172a', '#0f172a', '#0f172a', '#0f172a'], opacity: 1 } },
+          legend: { show: false },
+          tooltip: { theme: 'dark', shared: true, intersect: false, enabledOnSeries: tipSeries,
+                     custom: function (o) { return hoverBox(bands, o.dataPointIndex); } },
+        });
+        el._c.render();
+      }
+
+      function paintLegend(id) {
+        var b = document.querySelector('#trip-profile-legend [data-series="' + id + '"]');
+        if (C[id].present && b) b.style.display = '';
+        if (!b) return;
+        b.setAttribute('aria-pressed', isShown(id) ? 'true' : 'false');
+        b.querySelector('[data-swatch]').textContent = isShown(id) ? '■' : '□';
+      }
+      Object.keys(C).forEach(function (id) {
+        if (!C[id].present) return;
+        paintLegend(id);
+        document.querySelector('#trip-profile-legend [data-series="' + id + '"]').onclick = function () {
+          shown[id] = !isShown(id);
+          try { localStorage.setItem(SHOWN_KEY, JSON.stringify(shown)); } catch (e) {}
+          paintLegend(id);
+          render();
+        };
       });
-      el._c.render();
+      render();
     })();
     </script>
 

@@ -151,6 +151,14 @@ def temp(c, dec=0):
         return f"{_num(c * 9 / 5 + 32, dec)} °F"
     return f"{_num(c, dec)} °C"
 
+def temp_range(lo, hi, dec=0):
+    """Lowest to highest as one range, "3 – 9 °C" (spaced, so neither end runs into the dash or a
+    minus sign), and a single figure when both ends print the same."""
+    low, high = temp(lo, dec), temp(hi, dec)
+    if lo is None or hi is None or low == high:
+        return high if lo is None else low
+    return f"{low.rsplit(' ', 1)[0]} – {high}"
+
 def pressure(bar):
     if bar is None:
         return "—"
