@@ -33,34 +33,59 @@ def seed_database(db_path, vin, rows=()):
         conn.close()
 
 
-@contextmanager
-def served(data_dir, db_path):
-    """web/main.py as its own process on a free port; yields the base URL."""
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        port = s.getsockname()[1]
-    env = {**os.environ, "DB_PATH": str(db_path), "WEB_PORT": str(port), "PYTHONPATH": str(ROOT / "web"),
+# How many ports to try before giving up. A port is chosen by binding to 0 and letting go, so
+# between the choice and the child binding it anything else on the machine can take it — and in a
+# full suite run something does: twice in six runs the browser tests died on
+# `[Errno 48] ... address already in use`, with nothing wrong in the test that lost the race.
+# → tests/test_a_browser_test_does_not_lose_its_port_to_another.py
+_PORT_ATTEMPTS = 5
+
+
+def _spawn(data_dir, db_path):
+    """The web process on a port nobody else had taken by the time it bound one.
+
+    Returns (proc, url, log). Raises the last log if every attempt lost the race."""
+    env = {**os.environ, "DB_PATH": str(db_path), "PYTHONPATH": str(ROOT / "web"),
            "MATE_RESEARCH": "0"}
     for leak in ("MATE_AUTH_PASSWORD", "MATE_DEMO", "SUPERVISOR_TOKEN", "HASSIO_TOKEN"):
         env.pop(leak, None)
     log = data_dir / "web.log"
-    proc = subprocess.Popen([sys.executable, str(ROOT / "web" / "main.py")], env=env,
-                            stdout=log.open("w"), stderr=subprocess.STDOUT, text=True)
-    url = f"http://127.0.0.1:{port}"
-    try:
+    for attempt in range(_PORT_ATTEMPTS):
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+        proc = subprocess.Popen([sys.executable, str(ROOT / "web" / "main.py")],
+                                env={**env, "WEB_PORT": str(port)},
+                                stdout=log.open("w"), stderr=subprocess.STDOUT, text=True)
+        url = f"http://127.0.0.1:{port}"
         deadline = time.time() + 30
         while time.time() < deadline:
             if proc.poll() is not None:
-                pytest.fail(f"the web process died before it served anything:\n{log.read_text()}")
+                break                       # died: the log below says whether it was the port
             try:
                 urllib.request.urlopen(url, timeout=1).read()
-                break
+                return proc, url, log
             except urllib.error.HTTPError:
-                break
+                return proc, url, log       # answering, just not with a 200
             except (urllib.error.URLError, ConnectionError, TimeoutError):
                 time.sleep(0.2)
-        else:
-            pytest.fail(f"the web process never answered:\n{log.read_text()}")
+        proc.terminate()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+        text = log.read_text()
+        if "address already in use" not in text:
+            pytest.fail(f"the web process did not serve anything:\n{text}")
+        # Someone else had this port. Take another one.
+    pytest.fail(f"lost the port race {_PORT_ATTEMPTS} times running:\n{log.read_text()}")
+
+
+@contextmanager
+def served(data_dir, db_path):
+    """web/main.py as its own process on a free port; yields the base URL."""
+    proc, url, _log = _spawn(data_dir, db_path)
+    try:
         yield url
     finally:
         proc.terminate()
