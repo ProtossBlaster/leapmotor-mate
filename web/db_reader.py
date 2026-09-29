@@ -2081,6 +2081,42 @@ def _next_charge_start_utc(db, started_at, exclude_ids=()) -> Optional[str]:
     return _iso_to_utc(row["s"]) if (row and row["s"]) else None
 
 
+# ── Which `positions` rows belong to a charge ────────────────────────────────────────────────────
+# `positions.charging` is the car's OWN flag (`poller/client._is_charging`, which needs
+# `abs(pack current) >= _CHARGE_CURRENT_MIN_A` — the user's charge-detection setting, 2.0 A by
+# default). Some cars stop asserting it while they are still charging. @arzthilfe's C10 (#341) drops
+# it the moment his wallbox goes from 11 A to 8 A, because the pack current then reads 1.7 A:
+#
+#     22:17:21  plug=1 chg=1 A=-2.3      <- 11 A
+#     22:17:52  plug=1 chg=0 A=-1.7      <- 8 A: the flag goes, the current does not
+#
+# and the night carries on at A=-1.6/-1.7 with `State: charging` and the SoC rising 78.9 → 92.2.
+# 146 of that session's 1177 polls are flagged. The SESSION is right — the state machine also holds
+# it on the cable — so it is one row, unmerged; only the queries that read it back by the raw flag
+# lost seven hours of it, the power chart he reported among them.
+#
+# Inside a session's window a NEGATIVE pack current IS charge, whatever the flag says. The two extra
+# gates are the ones `_is_charging` uses, for the same reason: a car in gear or moving has a strongly
+# negative pack current from regen, and an abandoned session whose `ended_at` bled past the drive
+# that followed it (poller.close_orphan_charges) would otherwise pull that drive in.
+#
+# MEASURED on a real 375k-row history: of the 8581 unflagged rows with a charging-sign current, the
+# motion gate excludes 8580. The one it keeps is 69 s inside a session whose flag had not caught up —
+# one that should count. And NO parked sample sits between -0.5 A and 0, so the floor is below
+# everything measured rather than fitted to it.
+_CHARGE_SAMPLE_MIN_A = 0.5     # |pack current| under this, parked, is not energy
+
+
+def _charging_sample(alias: str = "") -> str:
+    """SQL predicate: this row is a sample of the charge whose window contains it.
+
+    ⚠️ Only sound INSIDE a charge's window. On its own it matches every regen frame of every drive
+    (the motion gate is a guard against a bled window, not a substitute for the window)."""
+    q = f"{alias}." if alias else ""
+    return (f"({q}charging = 1 OR ({q}charge_current_a <= -{_CHARGE_SAMPLE_MIN_A} "
+            f"AND COALESCE({q}speed_kmh, 0) <= 2 AND COALESCE({q}gear, 'P') = 'P'))")
+
+
 def _power_window_bounds(db, started_at, ended_at, exclude_ids=()):
     """(lower_utc, upper, upper_is_exclusive) for a charge's charging=1 samples, capping
     the upper bound at the next charge's start so a window/cost never leaks across charges.
@@ -2146,7 +2182,7 @@ def _dynamic_sensor_cost(charge, energy: float, base: float, ctype: str = None) 
     lo, hi, excl = _power_window_bounds(db, charge["started_at"], charge["ended_at"])
     rows = db.execute(
         "SELECT recorded_at, charge_voltage_v, charge_current_a FROM positions "
-        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? AND recorded_at "
+        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? AND recorded_at "
         + ("<" if excl else "<=")
         + " ? ORDER BY recorded_at",
         (_current_vehicle_id(), lo, hi),
@@ -2343,7 +2379,7 @@ def compute_cost(charge, config: Optional[dict] = None, ac_kwh: Optional[float] 
     lo, hi, excl = _power_window_bounds(db, charge["started_at"], charge["ended_at"])
     rows = db.execute(
         "SELECT recorded_at, charge_voltage_v, charge_current_a FROM positions "
-        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? AND recorded_at "
+        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? AND recorded_at "
         + ("<" if excl else "<=")
         + " ? ORDER BY recorded_at",
         (_current_vehicle_id(), lo, hi),
@@ -8167,7 +8203,7 @@ def get_charge_power_curve(charge_id: int) -> dict:
         lo, hi, excl = _power_window_bounds(db, start, end, pieces)
         rows = db.execute(
             "SELECT recorded_at, charge_voltage_v, charge_current_a, soc FROM positions "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? AND recorded_at "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? AND recorded_at "
             + ("<" if excl else "<=")
             + " ? ORDER BY recorded_at",
             (_current_vehicle_id(), lo, hi),
@@ -8175,7 +8211,7 @@ def get_charge_power_curve(charge_id: int) -> dict:
     else:  # charge still in progress — open upper bound
         rows = db.execute(
             "SELECT recorded_at, charge_voltage_v, charge_current_a, soc FROM positions "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? ORDER BY recorded_at",
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? ORDER BY recorded_at",
             (_current_vehicle_id(), start),
         ).fetchall()
     labels, power, soc, times = [], [], [], []
@@ -8194,7 +8230,7 @@ def latest_charge_id_with_power() -> int | None:
     db = _get()
     row = db.execute(
         "SELECT c.id FROM charges c WHERE c.vehicle_id = COALESCE(?, c.vehicle_id) AND EXISTS ("
-        "  SELECT 1 FROM positions p WHERE p.vehicle_id = c.vehicle_id AND p.charging = 1"
+        "  SELECT 1 FROM positions p WHERE p.vehicle_id = c.vehicle_id AND " + _charging_sample("p") + 
         "  AND p.recorded_at >= c.started_at"
         "  AND (c.ended_at IS NULL OR p.recorded_at <= c.ended_at)"
         ") ORDER BY c.started_at DESC LIMIT 1",
@@ -8212,7 +8248,7 @@ def charges_with_power(limit: int = 30) -> list[dict]:
     rows = db.execute(
         "SELECT c.id, c.started_at, c.energy_added_kwh FROM charges c "
         "WHERE c.vehicle_id = COALESCE(?, c.vehicle_id) AND c.location_type = 'HOME' AND EXISTS ("
-        "  SELECT 1 FROM positions p WHERE p.vehicle_id = c.vehicle_id AND p.charging = 1"
+        "  SELECT 1 FROM positions p WHERE p.vehicle_id = c.vehicle_id AND " + _charging_sample("p") + 
         "  AND p.recorded_at >= c.started_at"
         "  AND (c.ended_at IS NULL OR p.recorded_at <= c.ended_at)"
         ") ORDER BY c.started_at DESC LIMIT ?",
@@ -8236,7 +8272,7 @@ def _wallbox_home_charges_raw() -> list[dict]:
         "WHERE c.vehicle_id = COALESCE(?, c.vehicle_id) AND c.location_type = 'HOME' "
         + ("AND c.merged_into_id IS NULL " if _charges_have_merge(db) else "")
         + "AND c.ended_at IS NOT NULL AND EXISTS ("
-        "  SELECT 1 FROM positions p WHERE p.vehicle_id = c.vehicle_id AND p.charging = 1"
+        "  SELECT 1 FROM positions p WHERE p.vehicle_id = c.vehicle_id AND " + _charging_sample("p") + 
         "  AND p.recorded_at >= c.started_at"
         "  AND (c.ended_at IS NULL OR p.recorded_at <= c.ended_at)"
         ") ORDER BY c.started_at DESC",
@@ -8894,7 +8930,7 @@ def _charge_active_window(db, started_at, ended_at):
     lo, hi, excl = _power_window_bounds(db, started_at, ended_at)
     row = db.execute(
         "SELECT MIN(recorded_at) AS s, MAX(recorded_at) AS e FROM positions "
-        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? AND recorded_at "
+        "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? AND recorded_at "
         + ("<" if excl else "<=") + " ?",
         (_current_vehicle_id(), lo, hi),
     ).fetchone()
@@ -10169,13 +10205,13 @@ def _charge_energy_below_soc(db, start: str, end: str | None, cap_soc: float):
         lo, hi, excl = _power_window_bounds(db, start, end)
         rows = db.execute(
             "SELECT recorded_at, soc, charge_voltage_v, charge_current_a FROM positions "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? "
             "AND recorded_at " + ("<" if excl else "<=") + " ? ORDER BY recorded_at",
             (_current_vehicle_id(), lo, hi)).fetchall()
     else:
         rows = db.execute(
             "SELECT recorded_at, soc, charge_voltage_v, charge_current_a FROM positions "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? "
             "ORDER BY recorded_at", (_current_vehicle_id(), start)).fetchall()
     energy, prev_t, prev_p, prev_soc, reached, covered = 0.0, None, 0.0, None, None, 0.0
     for r in rows:
@@ -10223,7 +10259,7 @@ def _charge_has_soc_jump(db, start: str, end: str | None,
     params = (start, end) if end else (start,)
     rows = db.execute(
         f"SELECT recorded_at, soc FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) AND {clause} "
-        "AND charging = 1 "
+        "AND " + _charging_sample() + " "
         "AND soc IS NOT NULL ORDER BY recorded_at",
         (_current_vehicle_id(), *params),
     ).fetchall()
@@ -10266,13 +10302,13 @@ def _charge_temp_odo(db, start: str, end: str | None):
     if end:
         rows = db.execute(
             "SELECT battery_min_temp, odometer_km FROM positions "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " "
             "AND recorded_at >= ? AND recorded_at <= ? ORDER BY recorded_at",
             (_current_vehicle_id(), start, end)).fetchall()
     else:
         rows = db.execute(
             "SELECT battery_min_temp, odometer_km FROM positions "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " "
             "AND recorded_at >= ? ORDER BY recorded_at", (_current_vehicle_id(), start)).fetchall()
     temps = [r["battery_min_temp"] for r in rows if r["battery_min_temp"] is not None]
     odos = [r["odometer_km"] for r in rows if r["odometer_km"] is not None]

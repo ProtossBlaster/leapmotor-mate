@@ -41,7 +41,10 @@ def archivio(monkeypatch):
     con.row_factory = sqlite3.Row
     con.execute("CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT)")
     con.execute("CREATE TABLE positions (vehicle_id INT, recorded_at TEXT, charging INT, "
-                "charge_voltage_v REAL, charge_current_a REAL)")
+                "charge_voltage_v REAL, charge_current_a REAL, "
+                # Parked, as every sample here means: a charge sample is now "the flag, OR a
+                # charging current while stationary" (#341, db_reader._charging_sample).
+                "speed_kmh REAL DEFAULT 0, gear TEXT DEFAULT 'P')")
     con.commit()
     monkeypatch.setattr(db_reader, "_get", lambda: con)
     monkeypatch.setattr(db_reader, "_conn_rw", lambda: con)

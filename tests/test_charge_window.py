@@ -12,6 +12,11 @@ def _con(samples):
     con.execute("CREATE TABLE positions (recorded_at TEXT, charging INT)")
     con.executemany("INSERT INTO positions VALUES (?,?)", samples)
     con.execute("ALTER TABLE positions ADD COLUMN vehicle_id INTEGER DEFAULT 1")
+    # Parked, as every sample in this fixture means: a charge sample is now "the flag, OR a
+    # charging current while stationary" (#341, db_reader._charging_sample).
+    con.execute("ALTER TABLE positions ADD COLUMN speed_kmh REAL DEFAULT 0")
+    con.execute("ALTER TABLE positions ADD COLUMN gear TEXT DEFAULT 'P'")
+    con.execute("ALTER TABLE positions ADD COLUMN charge_current_a REAL")
     con.commit()
     return con
 

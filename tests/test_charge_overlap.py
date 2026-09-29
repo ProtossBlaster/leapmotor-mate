@@ -35,6 +35,10 @@ def _db(charges, positions):
                 "charge_voltage_v REAL, charge_current_a REAL)")
     con.executemany("INSERT INTO positions VALUES (?,?,?,?)", positions)
     con.execute("ALTER TABLE positions ADD COLUMN vehicle_id INTEGER DEFAULT 1")
+    # Parked, as every sample in this fixture means: a charge sample is now "the flag, OR a
+    # charging current while stationary" (#341, db_reader._charging_sample).
+    con.execute("ALTER TABLE positions ADD COLUMN speed_kmh REAL DEFAULT 0")
+    con.execute("ALTER TABLE positions ADD COLUMN gear TEXT DEFAULT 'P'")
     con.commit()
     return con
 
@@ -82,6 +86,10 @@ def test_power_curve_capped_at_next_charge_start(monkeypatch):
         ("2026-06-08T08:13:00+00:00", 1, 230, 21.7, 62),   # B
     ])
     con.execute("ALTER TABLE positions ADD COLUMN vehicle_id INTEGER DEFAULT 1")
+    # Parked, as every sample in this fixture means: a charge sample is now "the flag, OR a
+    # charging current while stationary" (#341, db_reader._charging_sample).
+    con.execute("ALTER TABLE positions ADD COLUMN speed_kmh REAL DEFAULT 0")
+    con.execute("ALTER TABLE positions ADD COLUMN gear TEXT DEFAULT 'P'")
     con.commit()
     monkeypatch.setattr(db_reader, "_get", lambda: con)
     # A's curve must stop before B's samples (08:05/08:13 are excluded by the cap)
@@ -96,10 +104,14 @@ def test_window_without_charges_table_is_unclamped():
     # Isolated DB with no charges table → no cap, original behaviour (backward compatible).
     con = sqlite3.connect(":memory:")
     con.row_factory = sqlite3.Row
-    con.execute("CREATE TABLE positions (recorded_at TEXT, charging INT)")
-    con.executemany("INSERT INTO positions VALUES (?,?)",
+    con.execute("CREATE TABLE positions (recorded_at TEXT, charging INT, charge_current_a REAL)")
+    con.executemany("INSERT INTO positions VALUES (?,?,NULL)",
                     [("2026-06-02T16:48:59+00:00", 1), ("2026-06-02T21:18:36+00:00", 1)])
     con.execute("ALTER TABLE positions ADD COLUMN vehicle_id INTEGER DEFAULT 1")
+    # Parked, as every sample in this fixture means: a charge sample is now "the flag, OR a
+    # charging current while stationary" (#341, db_reader._charging_sample).
+    con.execute("ALTER TABLE positions ADD COLUMN speed_kmh REAL DEFAULT 0")
+    con.execute("ALTER TABLE positions ADD COLUMN gear TEXT DEFAULT 'P'")
     con.commit()
     rs, re = db_reader._charge_active_window(con, "2026-06-02T16:48:39+00:00", "2026-06-02T23:53:43+00:00")
     assert rs == "2026-06-02T16:48:59+00:00" and re == "2026-06-02T21:18:36+00:00"

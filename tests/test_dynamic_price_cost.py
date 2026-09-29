@@ -29,6 +29,10 @@ def _db():
         t = (T0 + timedelta(minutes=15 * i)).isoformat()
         con.execute("INSERT INTO positions VALUES (?,1,250,20)", (t,))
     con.execute("ALTER TABLE positions ADD COLUMN vehicle_id INTEGER DEFAULT 1")
+    # Parked, as every sample in this fixture means: a charge sample is now "the flag, OR a
+    # charging current while stationary" (#341, db_reader._charging_sample).
+    con.execute("ALTER TABLE positions ADD COLUMN speed_kmh REAL DEFAULT 0")
+    con.execute("ALTER TABLE positions ADD COLUMN gear TEXT DEFAULT 'P'")
     con.commit()
     return con
 
