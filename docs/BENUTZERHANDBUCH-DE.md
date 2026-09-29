@@ -1,8 +1,36 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.0
+## Neu in Version 4.7.1
+
+Nichts Neues auf dem Bildschirm: fünf Stellen, an denen Mate vor dem Ende dessen aufhörte, was es
+gerade tat.
+
+**Ein Verbindungsabriss lässt eine Fahrt nicht mehr halb aufgezeichnet zurück.** Verliert Mate
+während der Fahrt die Cloud und steht das Auto geparkt oder am Kabel, wenn die Verbindung innerhalb
+einer halben Stunde zurückkommt, endet die Fahrt dort und behält die Kilometer aus der Lücke. Nach
+längerem Schweigen endet sie bei dem, was das Auto zuletzt gemeldet hat, und die Kilometer danach
+werden behandelt wie alle anderen außer Reichweite gefahrenen. Vorher blieb die Fahrt einfach offen,
+bis der Poller neu startete, und die nächste Fahrt öffnete eine zweite daneben. Fahrten, die eine
+frühere Version offen gelassen hat, werden beim nächsten Abruf aufgeräumt. ⚠️ Mit eingestellter
+**GPS-Aufbewahrung** bleiben die Punkte einer noch laufenden Fahrt jetzt bis zu ihrem Ende erhalten,
+weil ihr Ende aus ihnen gelesen wird.
+
+**Das Leistungsdiagramm einer zusammengeführten Ladung zeichnet jetzt die ganze Sitzung.** Die
+Wallbox mitten in der Nacht herunterzuregeln beendete das Diagramm in genau diesem Moment, während
+die Sitzung noch stundenlang weiterlief. Die Kilowattstunden und die Kosten waren immer richtig — nur
+die Zeichnung hörte auf.
+
+**Zwei Meldungen sagen mehr.** Ein Ladeplan, den Mate nicht sendet, nennt jetzt die fehlerhafte
+Einstellung und den Wert, den Ihr Auto dafür veröffentlicht hat, statt eines Satzes, der auf drei
+verschiedene Einstellungen passte. Und auf einer Installation, die gerade aktualisiert wird, bricht
+ein harmloser Zusammenstoß zwischen Mates beiden Hälften den Rest der Datenbank-Aktualisierung nicht
+mehr ab.
+
+**Ein Tippen auf das Logo oben auf der Seite bringt Sie zur Startseite**, am Telefon wie am Rechner.
+
+### Neu in Version 4.7.0
 
 **Wenn Sie eine Leapmotor mit Range-Extender fahren, ist Mate jetzt auch für Sie.** Diese Modelle
 ließen sich nur mit dem BetaTester-Build lesen; ihre Seiten — die REEV-Seite, das Benzin je Fahrt und

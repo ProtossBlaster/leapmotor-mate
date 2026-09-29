@@ -1,8 +1,32 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.0 · **Language:** English
+> **Mate version:** v4.7.1 · **Language:** English
 
-## New in 4.7.0
+## New in 4.7.1
+
+Nothing new on screen: five places where Mate stopped before the end of what it was doing.
+
+**A dropout never leaves a drive half-recorded.** If Mate loses the cloud mid-drive and the car is
+parked or charging when the link comes back within half an hour, the trip now ends there and keeps
+the kilometres covered in the gap. After a longer silence it ends at the last thing the car said,
+and the kilometres after that are treated like any others covered out of contact. Before, the trip
+simply stayed open until the poller restarted, and your next drive opened a second one beside it. Any
+trip an earlier version left open is tidied up at the next poll. ⚠️ If you set a **GPS retention**,
+the points of a drive still in progress are now kept until it ends, because its end is read from
+them.
+
+**The power chart of a charge you merged now draws the whole session.** Turning a wallbox down in
+the middle of the night ended the chart at that moment, while the session ran on for hours. The
+kilowatt-hours and the cost were always right; only the drawing stopped.
+
+**Two messages say more.** A charge schedule Mate refuses to send now names the setting that is
+wrong and what your car published for it, instead of one sentence that fitted three different
+settings. And on an installation being upgraded, a harmless collision between Mate's two halves no
+longer cuts the rest of the database upgrade short.
+
+**Tapping the logo at the top of the page takes you home**, on the phone as well as on a computer.
+
+### New in 4.7.0
 
 **If you drive a Leapmotor with a range extender, Mate is now for you too.** Those models could only
 be read with the BetaTester build; their pages — the REEV page, the petrol per trip and per period,

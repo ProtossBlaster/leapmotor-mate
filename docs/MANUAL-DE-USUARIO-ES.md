@@ -1,8 +1,34 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.0 · **Idioma:** Español
+> **Versión de Mate:** v4.7.1 · **Idioma:** Español
 
-## Novedades de la versión 4.7.0
+## Novedades de la versión 4.7.1
+
+Nada nuevo en pantalla: cinco puntos en los que Mate se paraba antes de terminar lo que estaba
+haciendo.
+
+**Un corte ya no deja un viaje grabado a medias.** Si Mate pierde la nube durante un trayecto y el
+coche está aparcado o cargando cuando el enlace vuelve dentro de la media hora, el viaje termina ahí
+y se queda con los kilómetros recorridos en el hueco. Tras un silencio más largo termina en lo último
+que dijo el coche, y los kilómetros posteriores se tratan como cualquier otro recorrido fuera de
+cobertura. Antes el viaje simplemente seguía abierto hasta que el poller se reiniciaba, y el
+siguiente trayecto abría un segundo al lado. Los viajes que una versión anterior dejó abiertos se
+ordenan en el siguiente sondeo. ⚠️ Si tienes fijada una **retención de GPS**, los puntos de un
+trayecto todavía en curso ahora se conservan hasta que termina, porque su final se lee de ahí.
+
+**El gráfico de potencia de una carga que hayas unido ya dibuja toda la sesión.** Bajar la potencia
+del cargador en mitad de la noche cerraba el gráfico en ese momento, mientras la sesión seguía horas.
+Los kilovatios hora y el coste siempre fueron correctos: solo se detenía el dibujo.
+
+**Dos mensajes dicen más.** Una programación de carga que Mate se niega a enviar ahora nombra el
+ajuste erróneo y el valor que publicó tu coche, en lugar de una sola frase válida para tres ajustes
+distintos. Y en una instalación que se está actualizando, un choque inofensivo entre las dos mitades
+de Mate ya no corta el resto de la actualización de la base de datos.
+
+**Tocar el logotipo de la parte superior de la página te lleva al inicio**, tanto en el móvil como en
+el ordenador.
+
+### Novedades de la versión 4.7.0
 
 **Si conduces un Leapmotor con extensor de autonomía, ahora Mate también es para ti.** Esos modelos
 solo se podían leer con la compilación BetaTester; sus páginas — la página REEV, la gasolina por viaje

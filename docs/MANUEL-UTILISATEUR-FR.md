@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.0 · **Langue :** Français
+> **Version de Mate :** v4.7.1 · **Langue :** Français
 
-## Nouveautés de la version 4.7.0
+## Nouveautés de la version 4.7.1
+
+Rien de neuf à l'écran : cinq endroits où Mate s'arrêtait avant la fin de ce qu'il faisait.
+
+**Une coupure ne laisse plus un trajet enregistré à moitié.** Si Mate perd le cloud en cours de route
+et que la voiture est garée ou en charge quand la liaison revient dans la demi-heure, le trajet se
+termine là et garde les kilomètres parcourus pendant le trou. Après un silence plus long, il se
+termine sur la dernière chose que la voiture a dite, et les kilomètres suivants sont traités comme
+tous ceux parcourus hors de portée. Avant, le trajet restait simplement ouvert jusqu'au redémarrage
+du collecteur, et le trajet suivant en ouvrait un deuxième à côté. Les trajets laissés ouverts par
+une version précédente sont rangés au relevé suivant. ⚠️ Si vous avez réglé une **conservation du
+GPS**, les points d'un trajet encore en cours sont désormais gardés jusqu'à sa fin, car sa fin se lit
+dedans.
+
+**Le graphique de puissance d'une charge que vous avez fusionnée dessine maintenant toute la
+session.** Baisser la puissance de la wallbox au milieu de la nuit arrêtait le graphique à cet
+instant, alors que la session continuait pendant des heures. Les kilowattheures et le coût ont
+toujours été justes : seul le dessin s'arrêtait.
+
+**Deux messages en disent plus.** Une programmation de charge que Mate refuse d'envoyer nomme
+maintenant le réglage fautif et la valeur publiée par votre voiture, au lieu d'une phrase unique
+valable pour trois réglages différents. Et sur une installation en cours de mise à jour, une
+collision inoffensive entre les deux moitiés de Mate ne coupe plus le reste de la mise à jour de la
+base.
+
+**Toucher le logo en haut de la page vous ramène à l'accueil**, sur téléphone comme sur ordinateur.
+
+### Nouveautés de la version 4.7.0
 
 **Si vous conduisez une Leapmotor à prolongateur d'autonomie, Mate est désormais aussi pour vous.**
 Ces modèles ne pouvaient être lus qu'avec la version BetaTester ; leurs pages — la page REEV, le

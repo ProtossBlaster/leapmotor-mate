@@ -1,8 +1,33 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.1 · **Lingua:** Italiano
 
-## Novità della 4.7.0
+## Novità della 4.7.1
+
+Niente di nuovo a schermo: cinque punti in cui Mate si fermava prima della fine di quello che stava
+facendo.
+
+**Una caduta di linea non lascia più una guidata registrata a metà.** Se Mate perde il cloud durante
+una guidata e l'auto è ferma o in ricarica quando il collegamento torna entro mezz'ora, il viaggio
+adesso finisce lì e tiene i chilometri fatti nel buco. Dopo un silenzio più lungo finisce sull'ultima
+cosa che ha detto l'auto, e i chilometri dopo vengono trattati come tutti gli altri fatti fuori
+contatto. Prima il viaggio restava semplicemente aperto fino al riavvio del poller, e la guidata dopo
+ne apriva un secondo accanto. I viaggi che una versione precedente ha lasciato aperti vengono
+sistemati al poll successivo. ⚠️ Se hai impostato una **conservazione del GPS**, i punti di una
+guidata ancora in corso adesso restano finché non finisce, perché la sua fine si legge da lì.
+
+**Il grafico della potenza di una ricarica che hai unito adesso disegna tutta la sessione.**
+Abbassare la wallbox in mezzo alla notte chiudeva lì il grafico, mentre la sessione andava avanti per
+ore. I chilowattora e il costo sono sempre stati giusti: si fermava solo il disegno.
+
+**Due messaggi dicono di più.** Una programmazione di ricarica che Mate si rifiuta di mandare adesso
+nomina l'impostazione sbagliata e il valore che la tua auto ha pubblicato, invece di una frase sola
+buona per tre impostazioni diverse. E su un'installazione che si sta aggiornando, uno scontro
+innocuo fra le due metà di Mate non tronca più il resto dell'aggiornamento del database.
+
+**Toccare il logo in cima alla pagina ti porta a casa**, sul telefono come sul computer.
+
+### Novità della 4.7.0
 
 **Se guidi una Leapmotor con range extender, adesso Mate è anche per te.** Quei modelli si potevano
 leggere solo con la build BetaTester; le loro pagine — la pagina REEV, la benzina per viaggio e per
