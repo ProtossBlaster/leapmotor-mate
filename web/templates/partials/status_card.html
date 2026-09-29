@@ -133,34 +133,34 @@
      odometer alone in a 130px column wraps its own value onto a second line. Odd total ⟺ an even
      number of temperatures survive, so the odometer takes the full width exactly then, and the
      grid closes flush whether three rows are hidden or none. #}
-  <div class="flex justify-between text-slate-400{{ ' col-span-2' if absent|length is odd else '' }}">
-    <span>{{ t('odometer') }}</span>
-    <span class="text-white font-medium">{{ (status.odometer_km or 0) | dist(0) }}</span>
+  <div class="flex justify-between gap-2 text-slate-400{{ ' col-span-2' if absent|length is odd else '' }}">
+    <span class="min-w-0">{{ t('odometer') }}</span>
+    <span class="text-white font-medium whitespace-nowrap">{{ (status.odometer_km or 0) | dist(0) }}</span>
   </div>
   {% if 'inside_temp' not in absent %}
-  <div class="flex justify-between text-slate-400">
-    <span>{{ t('inside_temp') }}</span>
-    <span class="text-white font-medium">{{ status.inside_temp | temp(0) if status.inside_temp is not none else '—' }}</span>
+  <div class="flex justify-between gap-2 text-slate-400">
+    <span class="min-w-0">{{ t('inside_temp') }}</span>
+    <span class="text-white font-medium whitespace-nowrap">{{ status.inside_temp | temp(0) if status.inside_temp is not none else '—' }}</span>
   </div>
   {% endif %}
   {% if 'outside_temp' not in absent %}
-  <div class="flex justify-between text-slate-400">
-    <span>{{ t('outside_temp_label') }} <span class="text-slate-600 cursor-help" title="{{ t('outside_temp_title') }}">ⓘ</span></span>
-    <span class="text-white font-medium">{{ status.outside_temp | temp(0) if status.outside_temp is not none else '—' }}</span>
+  <div class="flex justify-between gap-2 text-slate-400">
+    <span class="min-w-0">{{ t('outside_temp_label') }} <span class="text-slate-600 cursor-help" title="{{ t('outside_temp_title') }}">ⓘ</span></span>
+    <span class="text-white font-medium whitespace-nowrap">{{ status.outside_temp | temp(0) if status.outside_temp is not none else '—' }}</span>
   </div>
   {% endif %}
   {% if 'ac_target' not in absent %}
-  <div class="flex justify-between text-slate-400">
-    <span>{{ t('ac_target') }}</span>
-    <span class="text-white font-medium">
+  <div class="flex justify-between gap-2 text-slate-400">
+    <span class="min-w-0">{{ t('ac_target') }}</span>
+    <span class="text-white font-medium whitespace-nowrap">
       {% if status.climate_target_temp is not none %}{{ status.climate_target_temp | temp(0) }}{% else %}—{% endif %}
     </span>
   </div>
   {% endif %}
   {% if 'battery_temp' not in absent %}
-  <div class="flex justify-between text-slate-400">
-    <span>{{ t('battery_temp') }}</span>
-    <span class="text-white font-medium">
+  <div class="flex justify-between gap-2 text-slate-400">
+    <span class="min-w-0">{{ t('battery_temp') }}</span>
+    <span class="text-white font-medium whitespace-nowrap">
       {# `is not none`, not truthiness: these two rows dropped a genuine 0 °C. #144 is that absence
          must not read as zero; the mirror of it is that zero must not read as absence, and a pack
          at exactly 0.0 in a northern winter is the one reading its owner is watching for. #}
@@ -172,16 +172,16 @@
      for a signal that does not exist reads as "your car is not protected" — the one direction a
      missing value must never fall in. Absent is not zero. #}
   {% if status.security_active is not none %}
-  <div class="flex justify-between text-slate-400 col-span-2">
-    <span>🔒 {{ t('security_label') }}</span>
-    <span class="font-semibold {% if status.security_active %}text-emerald-400{% else %}text-slate-500{% endif %}">
+  <div class="flex justify-between gap-2 text-slate-400 col-span-2">
+    <span class="min-w-0">🔒 {{ t('security_label') }}</span>
+    <span class="font-semibold whitespace-nowrap {% if status.security_active %}text-emerald-400{% else %}text-slate-500{% endif %}">
       {% if status.security_active %}{{ t('security_on') }}{% else %}{{ t('security_off') }}{% endif %}
     </span>
   </div>
   {% endif %}
-  <div class="flex justify-between text-slate-400 col-span-2">
+  <div class="flex justify-between gap-2 text-slate-400 col-span-2">
     <span>READY</span>
-    <span class="font-semibold {% if status.ready %}text-emerald-400{% else %}text-slate-500{% endif %}">
+    <span class="font-semibold whitespace-nowrap {% if status.ready %}text-emerald-400{% else %}text-slate-500{% endif %}">
       {% if status.ready %}{{ t('ready_state_on') }}{% else %}{{ t('ready_state_off') }}{% endif %}
     </span>
   </div>
@@ -192,8 +192,8 @@
      real B10 through that shared account: the vehicle-update endpoint answers code 40.
      The OTA Update Notice entity stays in Home Assistant (#277) — it is OFF, not wrong.
      → tests/test_the_overview_does_not_claim_the_car_is_up_to_date.py #}
-  <div class="flex justify-between text-slate-400 col-span-2">
-    <span>{{ t('last_seen') }}</span>
+  <div class="flex justify-between gap-2 text-slate-400 col-span-2">
+    <span class="min-w-0">{{ t('last_seen') }}</span>
     <!-- WHEN THE CAR LAST REPORTED, not when we last wrote a row. The poller records a row every
          30 s even while the cloud re-serves one frozen frame, so this used to read "22 seconds
          ago" over data that was hours old (#232) — and a figure that is wrong is worse than one
@@ -204,7 +204,7 @@
          link died while the car was moving or charging (#178) — and a parked, sleeping car never
          lands there. Printing the age twice under one label would be two correct numbers saying
          the same thing, which reads as a defect even when both are right. -->
-    <span class="{{ 'text-amber-400' if status.data_age else 'text-white' }} font-medium"
+    <span class="{{ 'text-amber-400' if status.data_age else 'text-white' }} font-medium whitespace-nowrap"
           {% if status.data_age %}title="{{ t('data_age_hint') }}"{% endif %}>
       {{ ago(status.data_age_s if status.data_age_s is not none else status.last_seen_s) }}
     </span>
