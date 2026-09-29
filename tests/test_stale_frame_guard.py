@@ -70,7 +70,7 @@ class _SpyDB:
     def close_orphan_charges(self, vid):
         pass
 
-    def close_orphan_trips(self, vid):
+    def close_orphan_trips(self, vid, keep=None):
         pass
 
 

@@ -1945,16 +1945,17 @@ class Database:
 
     # ── Startup cleanup ───────────────────────────────────────────────────
 
-    def close_orphan_trips(self, vehicle_id: int) -> int:
+    def close_orphan_trips(self, vehicle_id: int, keep: Optional[int] = None) -> int:
         """
         Called at poller startup. Finalizes any trip left open by a previous
-        crash using the last recorded trip_position as the end point.
+        crash using the last recorded trip_position as the end point, except
+        `keep`, the one the recorder resumes.
         Returns number of trips closed.
         """
         orphans = self._conn.execute(
             "SELECT id, start_soc, start_odometer_km, started_at FROM trips "
-            "WHERE vehicle_id = ? AND ended_at IS NULL",
-            (vehicle_id,),
+            "WHERE vehicle_id = ? AND ended_at IS NULL AND id IS NOT ?",
+            (vehicle_id, keep),
         ).fetchall()
 
         closed = 0

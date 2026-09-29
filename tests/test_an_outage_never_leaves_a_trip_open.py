@@ -239,3 +239,34 @@ def test_retention_keeps_what_an_open_trip_will_be_closed_on(rig, monkeypatch, g
     with monkeypatch.context() as m:
         m.setattr(D, "datetime", Later)
         assert db.prune_positions(180) == 6, "once the trip is closed, its readings age out as before"
+
+
+def _left_open(db, wall, vid, minute, odo):
+    """A trip as an earlier version could leave it: opened, driven three minutes, never closed."""
+    wall["now"] = T0 + timedelta(minutes=minute)
+    trip_id = db.create_trip(vid, _at(minute, odo))
+    for i in range(3):
+        wall["now"] = T0 + timedelta(minutes=minute + i)
+        db.save_position(vid, _at(minute + i, odo + i))
+        db.add_trip_position(trip_id, _at(minute + i, odo + i))
+    return trip_id
+
+
+def _open_trips(db):
+    return [t["id"] for t in db._conn.execute("SELECT id FROM trips WHERE ended_at IS NULL ORDER BY id")]
+
+
+def test_every_trip_an_earlier_version_left_open_is_settled_when_the_newest_is_resumed(rig):
+    """Earlier versions left a trip open when an outage ended in P, and the next departure opened
+    another beside it, so a database can hold several. A restart with the car driving resumes the
+    newest; the others cannot be this drive, and are closed on their own points as any orphan is."""
+    db, rec, _poll, wall = rig
+    older = _left_open(db, wall, rec._vehicle_id, 0, 1000)
+    newer = _left_open(db, wall, rec._vehicle_id, 60, 1010)
+
+    wall["now"] = T0 + timedelta(minutes=70)
+    rec.process(_at(70, 1013))
+
+    assert _open_trips(db) == [newer], "only the newest can still be the drive in progress"
+    closed = db._conn.execute("SELECT * FROM trips WHERE id = ?", (older,)).fetchone()
+    assert closed["ended_at"] == (T0 + timedelta(minutes=2)).isoformat()

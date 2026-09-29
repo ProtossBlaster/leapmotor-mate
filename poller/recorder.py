@@ -108,8 +108,10 @@ class Recorder:
                 self._active_trip_id = open_trip["id"]
                 self._sm.state = State.DRIVING
                 log.info("Resumed open trip #%d (car still driving)", open_trip["id"])
-            else:
-                self._db.close_orphan_trips(self._vehicle_id)
+            # Only the newest can still be the drive in progress. Older versions could leave several
+            # open (an outage ending in P left one, the next departure opened another): the rest
+            # are closed on their own points.
+            self._db.close_orphan_trips(self._vehicle_id, keep=self._active_trip_id)
 
     def process(self, data: VehicleData) -> None:
         """Called every poll cycle with fresh vehicle data."""
