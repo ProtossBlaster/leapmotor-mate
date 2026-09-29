@@ -6,7 +6,9 @@ per-trip history in `api_lab_cloud_history_records`: eleven fields per drive, am
 records of a B10: the field is present on all of them and reads 0.0, which is the right answer for a
 BEV and no answer at all for a REEV.
 
-Whether a range-extender populates it, and in WHICH unit (litres, or millilitres like signal 3263),
+It is in LITRES — settled on 29/09/2026 against @ebagnoli's 19/09 drive, whose official app figures
+(77 km / 0.3 kWh / 4.9 L) the record matches on all three fields. Whether a range-extender populates
+it at all,
 is not measured — and it cannot be, because the bundle never carried those rows. `cloud_probes.json`
 carries the AGGREGATE endpoints (getEC, the weekly rank, mileage/energy/detail) and not
 `mileage/daily/detail/page`, so the field sat in the tester's database and never reached us.

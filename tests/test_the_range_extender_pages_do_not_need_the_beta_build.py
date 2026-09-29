@@ -75,6 +75,38 @@ def test_the_generator_figures_are_computed_on_the_official_build():
                 f"{needle} still waits for the beta build: {line.strip()}"
 
 
+def test_the_wizard_offers_the_range_extender_packs_on_every_build():
+    """The gate I missed on the first pass, and the one that would have bitten hardest: the battery
+    list used to drop every pack marked `reev` unless MATE_RESEARCH was on. Shipping the REEV pages
+    while hiding the pack leaves an owner unable to finish the wizard at all — a worse silence than
+    the one that filter was written to prevent."""
+    import main
+    every = {o["label"] for opts in main._EU_BATTERY_MAP.values() for o in opts if o.get("reev")}
+    assert every, "there are no REEV packs in the map at all — this test measures nothing"
+    offered = {o["label"] for opts in main.battery_options_for_build().values()
+               for o in opts if o.get("reev")}
+    assert offered == every, f"the official wizard still hides {sorted(every - offered)}"
+
+
+def test_only_the_research_machinery_still_asks_for_the_beta_build():
+    """The whole allow-list of `research_enabled()` calls in web/main.py, by the line they sit on —
+    so a sixteenth gate on a REEV surface fails here instead of on an owner's screen. Everything
+    listed is either the research machinery itself or the `research` flag handed to a template,
+    which still needs it for the beta badge and the one unvalidated figure."""
+    import re
+    body = (WEB / "main.py").read_text()
+    lines = [l.strip() for l in body.splitlines() if "research.research_enabled()" in l]
+    allowed = (
+        '"research": research.research_enabled(),',              # handed to a template
+        '"is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),',
+        'if research.research_enabled() and db_reader.get_setting("research_consent", "0") != "1" \\',
+        'is_research = research.research_enabled()',              # the REEV page's own tools + ?demo
+        'if not research.research_enabled():',                    # logbook, export, consent
+    )
+    unexpected = [l for l in lines if not any(re.fullmatch(re.escape(a), l) for a in allowed)]
+    assert not unexpected, f"a new beta gate appeared: {unexpected}"
+
+
 def test_the_fuel_page_is_gated_on_the_car_and_not_on_the_build(tmp_path, monkeypatch):
     """`_fuel_blocked` guards the page AND its nine write endpoints, so it is the single gate that
     decides whether a REEV owner can log a refuel at all."""

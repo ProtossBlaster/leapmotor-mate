@@ -500,8 +500,20 @@ def _reev_engine_on(db, vehicle_id, started_at, ended_at) -> Optional[dict]:
     return {"engine_km": round(engine_km, 1), "engine_fuel_pct": round(engine_fuel_pct, 2)}
 
 
+def _cloud_fuel_index() -> dict:
+    """{trip_id: litres} from the car's own cloud, for `_reev_trip_fuel` to prefer. Built ONCE per
+    read like `_trip_fuel_rate_fn`: the match walks every staged record, which is fine once and
+    quadratic per trip. Empty on a BEV, on an install whose cloud has never synced, and for any
+    drive outside the cloud's 28-day window — and an empty index simply leaves the tank's answer."""
+    try:
+        from trip_energy import cloud_fuel_by_trip
+        return cloud_fuel_by_trip(_get())
+    except sqlite3.Error:
+        return {}
+
+
 def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
-                    fuel_start_l=None, fuel_end_l=None, tank_l=None) -> dict:
+                    fuel_start_l=None, fuel_end_l=None, tank_l=None, cloud_l=None) -> dict:
     """REEV Phase C — per-trip fuel from the tank-% drop. There's no 'engine on' PID: the range-extender
     ran iff the fuel level dropped more than the signal-noise floor. `engine` (from _reev_engine_on) is
     the generator's driving footprint; when present the L/100 km is fuel-burned-while-driving over
@@ -514,9 +526,28 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
     has them; the tank-% × assumed-capacity path below is the fallback for a BEV, an unknown model,
     or any trip recorded before v2.14.1. `tank_l` overrides the assumed capacity (per model)."""
     out = {"fuel_used_l": None, "fuel_l_100km": None, "engine_ran": False, "engine_km": None,
-           "fuel_refuelled": False}
-    if fuel_start_pct is None or fuel_end_pct is None:
+           "fuel_refuelled": False, "mate_fuel_l": None, "cloud_fuel_l": cloud_l,
+           "fuel_source": None}
+
+    def _from_cloud(tank_l_value, engine_km_value):
+        """The cloud's litres, with the tank's kept beside them. Applied at every exit below, because
+        the tank has several ways of having no answer (no columns, a mid-drive refuel, a drop under
+        the noise floor) and the cloud's figure is just as good on all of them."""
+        out["mate_fuel_l"] = tank_l_value
+        out["fuel_source"] = "cloud"
+        out["fuel_used_l"] = round(cloud_l, 3)
+        # The generator ran iff something was burned. A cloud 0.0 must not leave `engine_ran` true
+        # from the tank's noise floor, and it must not leave it false when the cloud saw litres the
+        # tank's threshold swallowed.
+        out["engine_ran"] = cloud_l > 0
+        out["engine_km"] = engine_km_value
+        out["fuel_l_100km"] = (round(cloud_l / distance_km * 100, 1)
+                               if distance_km and distance_km > 0.5 and cloud_l > 0 else None)
         return out
+
+    _engine_km = (engine["engine_km"] if engine and engine.get("engine_km", 0) > 0.5 else None)
+    if fuel_start_pct is None or fuel_end_pct is None:
+        return _from_cloud(None, _engine_km) if cloud_l is not None else out
     drop = fuel_start_pct - fuel_end_pct
     # The tank ended FULLER than it started: he filled up during the drive. The litres are then
     # start − end = a negative number, which fell straight into the "nothing burned" branch below
@@ -529,8 +560,11 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
     # know is: something may well have been burned, and we cannot say how much. That is unknown,
     # not zero — and a zero is what quietly disappears into every fuel total.
     if drop < -_REEV_FUEL_MIN_DROP:
+        # 🔑 The tank ended fuller, so IT cannot say what was burned — but the cloud can, and on this
+        # one case it turns an "unknown" into a figure. `fuel_refuelled` stays true either way: the
+        # tank really did move up, and a page that shows the litres should still be able to say so.
         out["fuel_refuelled"] = True
-        return out
+        return _from_cloud(None, _engine_km) if cloud_l is not None else out
     cap = tank_l if tank_l else reev_tank_l()
     measured = (fuel_start_l - fuel_end_l) if (fuel_start_l is not None and fuel_end_l is not None) else None
     # The noise floor belongs to whichever signal is actually being read. 3235 (%) moves in steps of
@@ -542,11 +576,18 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
     # trips; beta #22 @pdifeo: ~2.1 L over 35 km reported as 0.3). The tank constants were right
     # all along; the guard was on the wrong signal, and it ran BEFORE the fine one was even read.
     if measured is not None and measured > _REEV_FUEL_MIN_L:
-        out["fuel_used_l"] = round(measured, 3)
+        tank = round(measured, 3)
     elif measured is None and drop > _REEV_FUEL_MIN_DROP:
-        out["fuel_used_l"] = round(drop / 100.0 * cap, 2)
+        tank = round(drop / 100.0 * cap, 2)
     else:
-        return out                      # nothing burned, or too little to tell from noise
+        tank = None                     # nothing burned, or too little to tell from noise
+    if cloud_l is not None:
+        return _from_cloud(tank, _engine_km)
+    out["mate_fuel_l"] = tank
+    if tank is None:
+        return out
+    out["fuel_source"] = "mate"
+    out["fuel_used_l"] = tank
     out["engine_ran"] = True
     # engine_km is still measured and still shown — it says how far the generator actually drove —
     # but it is NO LONGER the denominator. The L/100 km is over the WHOLE distance, which is what
@@ -3206,7 +3247,11 @@ def list_fuel_purchases(limit: int = 200) -> list:
 #
 # `driveReevOil` is why this exists: the fuel that ONE drive burned, by the car's own cloud. Measured
 # 27/09/2026 on 183 records of a B10 — present on every one, reading 0.0, which is correct for a BEV
-# and no answer for a range-extender. Its UNIT is unverified: litres, or millilitres like signal 3263.
+# and no answer for a range-extender. Its UNIT is LITRES, settled on 29/09/2026 against @ebagnoli's
+# 19/09 drive: the official app states 77 km / 0.3 kWh / 4.9 L for it and the record reads
+# `totalMileage` 77.0, `totalEnergy` 0.3, `driveReevOil` 4.9 — three fields agreeing at once, which
+# a factor of a thousand could not survive. It is also the figure Mate now shows for such a drive
+# (see `trip_energy.cloud_fuel_by_trip`), so this export is what would catch it drifting.
 # `accountId` is dropped and the VIN masked — these rows identify an account and the pack travels.
 # `started_at`/`ended_at` are derived because matching a record to a trip is the whole point: one REEV
 # drive whose litres we know independently is what calibrates the unit.
@@ -5582,6 +5627,7 @@ def get_trips(limit: int = 500) -> list[dict]:
     # Built ONCE for the whole list — the fuel twin of the electric rate timeline. Per trip it would
     # replay every refuel from the beginning, which is quadratic down a long list.
     _fuel_rate_at = _trip_fuel_rate_fn()
+    _cloud_fuel = _cloud_fuel_index()
     cloud_ids = _cloud_trip_ids(db)
     gps_ids = {r[0] for r in db.execute(
         "SELECT DISTINCT trip_id FROM trip_positions WHERE latitude IS NOT NULL AND longitude IS NOT NULL")}
@@ -5602,7 +5648,8 @@ def get_trips(limit: int = 500) -> list[dict]:
                 _seg).fetchone()
             _eng = _reev_engine_on(db, r["vehicle_id"], _b["s"], _b["e"])
         td.update(_reev_trip_fuel(_fs, _fe, td.get("distance_km"), _eng,
-                                  td.get("fuel_start_l"), td.get("fuel_end_l")))
+                                  td.get("fuel_start_l"), td.get("fuel_end_l"),
+                                  cloud_l=_cloud_fuel.get(r["id"])))
         # …and what those litres COST, the same allocation the detail page makes: litres × the
         # tank's blended €/L at the trip's start. Without it the trips reached the day and month
         # totals carrying petrol nobody could price, and those totals showed the electric half of a
@@ -5697,9 +5744,15 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
     fuel_pts = []
     if include_fuel:
         kids = _children_by_parent(db)
+        _cloud_fuel = _cloud_fuel_index()
         for r in rows:
             _fs, _fe = r["fuel_start_pct"], r["fuel_end_pct"]
-            if _fs is None or _fe is None or (_fs - _fe) <= _REEV_FUEL_MIN_DROP:
+            # 🔑 A pre-filter on the tank, widened for the third source. This is the trap named on
+            # `_REEV_FUEL_ANY_DROP_SQL`: v3.6.6 fixed the litres in the reader and left filters like
+            # this one in front of it, so a row was dropped before the better signal could be read.
+            # A drive the cloud has litres for qualifies whatever the tank did.
+            if r["id"] not in _cloud_fuel and (
+                    _fs is None or _fe is None or (_fs - _fe) <= _REEV_FUEL_MIN_DROP):
                 continue
             kids_r = kids.get(r["id"], [])
             td = _trip_group_stats(dict(r), kids_r)
@@ -5710,7 +5763,8 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
             eng = _reev_engine_on(db, r["vehicle_id"], b["s"], b["e"])
             f = _reev_trip_fuel(td.get("fuel_start_pct"), td.get("fuel_end_pct"),
                                 td.get("distance_km"), eng,
-                                td.get("fuel_start_l"), td.get("fuel_end_l"))
+                                td.get("fuel_start_l"), td.get("fuel_end_l"),
+                                cloud_l=_cloud_fuel.get(r["id"]))
             l100 = f.get("fuel_l_100km")
             t = _temp(r)
             if not l100 or t is None:
@@ -5755,13 +5809,17 @@ def reev_fuel_summary() -> Optional[dict]:
     total_l, engine_km, engine_l, n = 0.0, 0.0, 0.0, 0
     total_cost = 0.0
     total_km = 0.0        # EVERY kilometre driven — the L/100 km denominator, as the car's own is
+    _cloud_fuel = _cloud_fuel_index()
     for r in rows:
         eng = _reev_engine_on(db, r["vehicle_id"], r["started_at"], r["ended_at"])
         # Through _reev_trip_fuel, like the trips list and the period card. It used to work the
         # litres out again right here — a third copy of a rule that had just been corrected in one
-        # place, which is how this total stayed on the old answer after v3.6.6.
+        # place, which is how this total stayed on the old answer after v3.6.6. Same reason the cloud
+        # index is passed rather than consulted here: a card reading 3.9 L over a list of drives
+        # adding up to 4.9 is that defect wearing a different hat.
         f = _reev_trip_fuel(r["fuel_start_pct"], r["fuel_end_pct"], r["distance_km"], eng,
-                            r["fuel_start_l"], r["fuel_end_l"])
+                            r["fuel_start_l"], r["fuel_end_l"],
+                            cloud_l=_cloud_fuel.get(r["id"]))
         drop_l = f["fuel_used_l"]
         # ⚠️ The distance is added FIRST and unconditionally: a trip driven on the battery burned no
         # petrol but was still driven, and it is exactly what the L/100 km has to be spread over.
@@ -7368,8 +7426,11 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     _fbounds = db.execute(f"SELECT MIN(started_at) s, MAX(ended_at) e FROM trips WHERE id IN ({ph})",
                           seg_ids).fetchone()
     _feng = _reev_engine_on(db, trip["vehicle_id"], _fbounds["s"], _fbounds["e"])
+    # The cloud's litres for THIS drive, keyed on the group's parent — the same id the trips list
+    # looks up, so the two pages cannot answer differently (the defect the block above describes).
     trip_d.update(_reev_trip_fuel(_fs, _fe, dist, _feng,
-                                  trip_d.get("fuel_start_l"), trip_d.get("fuel_end_l")))
+                                  trip_d.get("fuel_start_l"), trip_d.get("fuel_end_l"),
+                                  cloud_l=_cloud_fuel_index().get(trip["id"])))
     # REEV Phase D — the electric counterpart, from the metered getEC (driverEC) not ΔSoC. Shown
     # research-only next to the fuel so REEV testers can validate it against the car's own dashboard
     # before we ever promote it to the headline efficiency (see _reev_trip_elec).
@@ -7783,20 +7844,29 @@ def get_fuel_totals_between(begin_ts: int, end_ts: int) -> dict:
     e = datetime.fromtimestamp(end_ts, tz=timezone.utc).isoformat()
     out = {"fuel_l": 0.0, "engine_km": 0.0, "trip_count": 0}
     db = _get()
+    _cloud_fuel = _cloud_fuel_index()
+    # The tank filter, widened by the drives the cloud has litres for — the trap named on
+    # `_REEV_FUEL_ANY_DROP_SQL`, which is about a filter dropping a row before the reader could
+    # judge it. Inlined ids rather than a join: they come from our own index, they are integers, and
+    # there are as many as the cloud's 28-day window holds.
+    _ids = ",".join(str(int(i)) for i in _cloud_fuel)
+    _drop = _REEV_FUEL_ANY_DROP_SQL if not _ids else (
+        "(" + _REEV_FUEL_ANY_DROP_SQL + " OR id IN (" + _ids + "))")
     try:
         rows = db.execute(
             "SELECT id, vehicle_id, started_at, ended_at, distance_km, fuel_start_pct, fuel_end_pct,"
             " fuel_start_l, fuel_end_l FROM trips"
             " WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL"
             "   AND started_at >= ? AND started_at <= ?"
-            "   AND " + _REEV_FUEL_ANY_DROP_SQL,
+            "   AND " + _drop,
             (_current_vehicle_id(), b, e, _REEV_FUEL_MIN_DROP)).fetchall()
     except sqlite3.Error:
         return out                      # no fuel columns → a BEV, and nothing to add
     for r in rows:
         eng = _reev_engine_on(db, r["vehicle_id"], r["started_at"], r["ended_at"])
         f = _reev_trip_fuel(r["fuel_start_pct"], r["fuel_end_pct"], r["distance_km"], eng,
-                            r["fuel_start_l"], r["fuel_end_l"])
+                            r["fuel_start_l"], r["fuel_end_l"],
+                            cloud_l=_cloud_fuel.get(r["id"]))
         if f["fuel_used_l"]:
             out["fuel_l"] += f["fuel_used_l"]
             out["engine_km"] += f["engine_km"] or 0
@@ -10957,8 +11027,10 @@ def trip_local_start_hhmm(trip_id: int) -> Optional[str]:
     return dt.strftime("%H:%M") if dt else None
 
 
-# EV source selection is read-only: historical GPS, SoC, getEC and estimates
-# remain in the database unchanged. REEV calculations are deliberately excluded.
+# EV source selection is read-only: historical GPS, SoC, getEC and estimates remain in the database
+# unchanged. REEV energy is deliberately excluded — the generator recharges the pack mid-drive, so
+# the cloud's `totalEnergy` is not that car's appetite. A range-extender's LITRES take the same cloud
+# records by the same matcher, through `_cloud_fuel_index` into `_reev_trip_fuel`.
 def _select_ev_energy(rows):
     from trip_energy import select_energy
     return select_energy(_get(), rows)

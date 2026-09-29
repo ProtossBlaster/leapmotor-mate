@@ -69,16 +69,26 @@ def _detect(monkeypatch, car_type, *, research_on):
     return json.loads(resp.body)
 
 
-def test_official_build_never_offers_a_reev_pack(monkeypatch):
-    """The crux: Mate has no REEV support, so its wizard must not even mention the pack —
-    an owner who picked it would get statistics that quietly don't add up."""
+def test_the_official_build_offers_the_reev_packs_too(monkeypatch):
+    """Inverted in 4.7.0, and the reason is the whole point of the change.
+
+    This used to assert the opposite — "Mate has no REEV support, so its wizard must not even mention
+    the pack, an owner who picked it would get statistics that quietly don't add up". Mate has that
+    support now: the range-extender pages ship on every build. Keeping the filter would leave an owner
+    unable to FINISH the wizard for the very car those pages were opened for, which is a worse silence
+    than the one it was written to prevent.
+
+    The BEV packs are asserted alongside, because a filter that over-reaches the other way would be
+    just as wrong."""
     for car_type in ("C10", "B10"):
         body = _detect(monkeypatch, car_type, research_on=False)
         offered = body.get("battery_options") or []
         assert offered, f"{car_type} must still offer its BEV packs"
-        assert not any(o.get("reev") for o in offered)
-        assert "28.4" not in {o["v"] for o in offered}
-        assert "18.8" not in {o["v"] for o in offered}
+        assert any(o.get("reev") for o in offered), f"{car_type} lost its range-extender packs"
+    body = _detect(monkeypatch, "C10", research_on=False)
+    values = {o["v"] for o in body["battery_options"]}
+    assert "28.4" in values, "the C10 REEV pack is missing from the official wizard"
+    assert {"67.0", "81.9"} <= values, "the BEV packs were filtered out instead"
 
 
 def test_betatester_build_offers_reev_and_bev(monkeypatch):
@@ -109,18 +119,22 @@ def _rendered_options(html):
     return json.loads(m.group(1))
 
 
-def test_official_wizard_page_ships_no_reev_pack(monkeypatch):
-    """The one that would have caught #141: the endpoint's JSON was only half the story — the wizard
-    page shipped its OWN hardcoded copy of the list, REEV packs included. Pin the SERVED SOURCE.
+def test_the_official_wizard_page_ships_the_same_list_as_the_endpoint(monkeypatch):
+    """#141's lesson survives the inversion, and it is the reason `battery_options_for_build` still
+    exists at all: the wizard page once shipped its OWN hardcoded copy of the list, so the endpoint's
+    JSON and the served HTML disagreed for ten days. Both render from one function — asserted here by
+    comparing what the page renders against what the endpoint answers, which is a stronger test than
+    either list on its own.
+
     (Match on the parsed map, not on raw substrings: '18.8' also occurs inside an SVG path.)"""
     html = _wizard_page(monkeypatch, research_on=False)
     rendered = _rendered_options(html)
-    for car_type, opts in rendered.items():
-        assert not any(o.get("reev") for o in opts), car_type
     values = {o["v"] for opts in rendered.values() for o in opts}
-    assert "28.4" not in values and "18.8" not in values
+    assert "28.4" in values, "the page dropped the REEV pack the endpoint offers"
     assert {"67.0", "65.0"} <= values                      # the BEV packs are still offered
-    assert "REEV" not in html and "range-extender" not in html   # nor as prose/comments
+    from_endpoint = {o["v"] for o in _detect(monkeypatch, "C10", research_on=False)["battery_options"]}
+    assert from_endpoint <= values, \
+        f"the page and the endpoint disagree — #141 again: {sorted(from_endpoint - values)}"
 
 
 def test_betatester_wizard_page_ships_reev_and_bev(monkeypatch):

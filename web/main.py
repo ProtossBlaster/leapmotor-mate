@@ -6072,20 +6072,20 @@ _EU_BATTERY_MAP = battery_packs.EU_BATTERY_MAP
 
 
 def battery_options_for_build() -> dict[str, list[dict]]:
-    """The wizard's battery list, as the build that is serving it is allowed to show it.
+    """The wizard's battery list — every pack, range-extenders included, since 4.7.0.
 
-    REEV packs belong to MateBetaTesterOnly ONLY. The official Mate has no REEV support — its energy
-    pipeline assumes SoC-down = energy-used, which a generator refilling the pack mid-drive breaks —
-    so offering the pack would promise a support that isn't there, and whoever picked it would end up
-    with statistics that quietly don't add up. Both builds ship from this one image, so the split is
-    made here, at runtime, and NOT by removing the packs (that would blind the beta too).
+    ⛔ This used to hide the REEV packs on the official build, because the official Mate had no REEV
+    support: its energy pipeline assumes SoC-down = energy-used, which a generator refilling the pack
+    mid-drive breaks. It has that support now, so hiding the pack no longer protects anybody — it
+    stops a range-extender owner from finishing the wizard at all, which is a worse silence than the
+    one the filter was written to prevent.
 
-    Single source of truth on purpose: the wizard page and the detect-vehicle endpoint both render
-    from this. They used to keep separate copies, which is exactly how the REEV packs stayed in the
-    official wizard for ten days after the gate that was supposed to remove them (#141)."""
-    if research.research_enabled():
-        return _EU_BATTERY_MAP
-    return {ct: [o for o in opts if not o.get("reev")] for ct, opts in _EU_BATTERY_MAP.items()}
+    🔑 Why this function still exists rather than reading the map directly: the wizard page and the
+    detect-vehicle endpoint both render from it. They used to keep separate copies, which is exactly
+    how the REEV packs stayed in the official wizard for ten days after the gate that was supposed to
+    remove them (#141) — and a single source of truth is worth keeping whichever way the answer goes.
+    """
+    return _EU_BATTERY_MAP
 
 
 # ── Setup wizard ─────────────────────────────────────────────────────────────

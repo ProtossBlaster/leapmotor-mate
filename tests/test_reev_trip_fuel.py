@@ -45,9 +45,12 @@ def test_engine_ran_gives_litres_and_l_per_100km():
 def test_no_fuel_data_is_inert():
     # `fuel_refuelled` joined the shape in beta #30: a tank that ends FULLER than it started is a
     # refuel mid-drive, and its litres are unknown rather than zero. Inert here like the rest.
+    # `mate_fuel_l` / `cloud_fuel_l` / `fuel_source` joined it in 4.7.0, when the car's own cloud
+    # became the first word on the litres: the tank's answer is kept beside the chosen one and
+    # `fuel_source` says which is on screen. All three inert here — there is no fuel data at all.
     assert db_reader._reev_trip_fuel(None, None, 20) == {
         "fuel_used_l": None, "fuel_l_100km": None, "engine_ran": False, "engine_km": None,
-        "fuel_refuelled": False}
+        "fuel_refuelled": False, "mate_fuel_l": None, "cloud_fuel_l": None, "fuel_source": None}
 
 
 # ── the engine-on basis: L/100km over the generator-driving distance (matches the car) ─────────

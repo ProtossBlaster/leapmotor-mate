@@ -1011,12 +1011,13 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         # (they ship together, but a container can be restarted half-updated).
         if data.is_reev and db.get_setting("is_reev", "0") != "1":
             db.set_setting("is_reev", "1")
-            # Wording follows the build: the official Mate offers no REEV support, so its log must
-            # not name the feature — let alone announce a "REEV view" that will never appear (#141).
-            log.info("REEV detected (fuel signal 3235 present) — enabling REEV view"
-                     if _research_enabled() else
-                     "Fuel signal present — battery-derived figures will be withheld where a "
-                     "range-extender makes them meaningless")
+            # One wording since 4.7.0: the REEV view ships on every build, so the log no longer has
+            # to avoid naming a feature that would never appear (#141). Both halves of what happens
+            # are said, because both still do: the view arrives AND the battery-derived figures are
+            # withheld where a generator refilling the pack makes them meaningless.
+            log.info("REEV detected (fuel signal 3235 present) — enabling REEV view; "
+                     "battery-derived figures will be withheld where a range-extender makes them "
+                     "meaningless")
 
         # Research / BetaTester full-signal capture (MateBetaTesterOnly build only). Logs every
         # raw signal that CHANGED value since the last poll → a complete, timestamped history we
