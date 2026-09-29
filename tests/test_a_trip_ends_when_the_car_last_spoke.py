@@ -49,15 +49,21 @@ def _vd(*, ts, odo=1000, soc=80.0, gear="D", speed=50.0):
     )
 
 
-@pytest.fixture
-def rig(tmp_path, monkeypatch):
+def make_rig(tmp_path, monkeypatch, *, tick=None):
     """Two clocks, because the code uses two: `time.monotonic` for how long a frame has been
-    repeated, and the wall clock for what gets written down."""
+    repeated, and the wall clock for what gets written down. The wall clock reads one fixed time
+    per poll, unless `tick` moves it on every read, as a real clock does."""
     wall = {"now": T0}
     mono = {"t": 10_000.0}
+
+    def now_iso():
+        if tick:
+            wall["now"] += tick
+        return wall["now"].isoformat()
+
     monkeypatch.setattr(SM.time, "monotonic", lambda: mono["t"])
-    monkeypatch.setattr(D, "_now_iso", lambda: wall["now"].isoformat())
-    monkeypatch.setattr(R, "_now_iso", lambda: wall["now"].isoformat())
+    monkeypatch.setattr(D, "_now_iso", now_iso)
+    monkeypatch.setattr(R, "_now_iso", now_iso)
 
     db = D.Database(str(tmp_path / "t.db"))
     db.set_battery_capacity(65.0)
@@ -70,6 +76,11 @@ def rig(tmp_path, monkeypatch):
         rec.process(data)
 
     return db, rec, poll, wall
+
+
+@pytest.fixture
+def rig(tmp_path, monkeypatch):
+    return make_rig(tmp_path, monkeypatch)
 
 
 def _trip(db):

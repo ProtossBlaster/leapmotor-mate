@@ -1448,8 +1448,12 @@ class Database:
                  "no trip", distance_km, (soc_start or 0) - (soc_end or 0), started_at, ended_at)
         return cur.lastrowid
 
-    def create_trip(self, vehicle_id: int, data, head=None) -> int:
-        """`head` (optional) is {"odometer_km", "soc"} — and since v3.8.8 also "latitude"/"longitude"
+    def create_trip(self, vehicle_id: int, data, head=None, started_at: Optional[str] = None) -> int:
+        """`started_at` (optional) is when the poll that opens the trip began. The recorder saves
+        the opening frame to `positions` before it opens the trip, so a trip stamped later than that
+        would not count its own first reading as inside it.
+
+        `head` (optional) is {"odometer_km", "soc"} — and since v3.8.8 also "latitude"/"longitude"
         when a usable one was held — from the last poll before the trip opened, supplied only when
         the car demonstrably drove while we couldn't see it (Recorder._offline_head, #130/#233). It
         moves the trip's START anchors back over those unseen kilometres, so the distance, the
@@ -1474,7 +1478,7 @@ class Database:
             """INSERT INTO trips (vehicle_id, started_at, start_lat, start_lon, start_geohash,
                start_soc, start_odometer_km, drive_mode, one_pedal, fuel_start_pct, fuel_start_l)
                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-            (vehicle_id, _now_iso(), start_lat, start_lon, start_gh,
+            (vehicle_id, started_at or _now_iso(), start_lat, start_lon, start_gh,
              start_soc, start_odo, drive_mode, one_pedal,
              getattr(data, "fuel_level_pct", None),   # REEV Phase C — fuel % at trip start (NULL on BEV)
              getattr(data, "fuel_liters", None)),     # …and the car's own litre count (3263)
@@ -1603,9 +1607,8 @@ class Database:
         return ended_at, row
 
     def trip_opening(self, trip_id: int) -> tuple[str, sqlite3.Row]:
-        """The trip's opening, shaped like `trip_last_seen`'s answer. It is what a trip heard last
-        when nothing was heard inside it: the row it opened on is saved a moment before the trip
-        exists, so it is not inside."""
+        """The trip's opening, shaped like `trip_last_seen`'s answer: what a trip heard last when no
+        row inside it is left."""
         row = self._conn.execute(
             "SELECT started_at, start_soc AS soc, start_odometer_km AS odometer_km,"
             " start_lat AS latitude, start_lon AS longitude,"
