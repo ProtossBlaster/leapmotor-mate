@@ -6,7 +6,7 @@ import threading
 from datetime import datetime, timezone
 from typing import Optional
 
-from db import Database, _WB_STUCK_MIN_KW, _now_iso
+from db import (Database, _WB_STUCK_MIN_KW, _now_iso, _generator_was_running)
 from state_machine import (State, StateMachine, StateEvent, _PARKED_STATES,
                            FROZEN_DRIVE_LIMIT_S)
 from client import VehicleData
@@ -29,6 +29,10 @@ class Recorder:
         self._active_trip_id: Optional[int] = None
         self._active_charge_id: Optional[int] = None
         self._regen_kwh: float = 0.0
+        # The last litre reading the car gave, from any poll — the baseline the regen gate uses to
+        # tell braking from the range-extender's generator. NOT reset per trip on purpose: the poll
+        # that opens a drive then already has something to compare against. None on a BEV for ever.
+        self._last_fuel_l: Optional[float] = None
         self._max_charge_kw: float = 0.0
         # Whether the active charge may trust the home wallbox counter (decided from its GPS at open
         # / resume). Default True = attribute, so anything unlocated behaves exactly as before.
@@ -149,6 +153,12 @@ class Recorder:
         if not (stale and self._sm.state == State.DRIVING):
             self._db.save_position(self._vehicle_id, data)
 
+        # Read the baseline before advancing it: the regen gate below asks what the counter said
+        # at the PREVIOUS reading, not at this one.
+        fuel_before = self._last_fuel_l
+        if data.fuel_liters is not None:
+            self._last_fuel_l = data.fuel_liters
+
         self._charge_closed_this_poll = False
         events = self._sm.update(data)
         for event in events:
@@ -162,8 +172,27 @@ class Recorder:
         # never mistaking driving discharge for regen.
         if self._sm.state == State.DRIVING and self._active_trip_id and not stale:
             self._db.add_trip_position(self._active_trip_id, data)
+            # …and on a range-extender, only when the generator was NOT running. It refills the
+            # pack while driving, unplugged, with the same sign as braking, so petrol burned to make
+            # electricity was being recorded as recovered energy. Measured on @ebagnoli's signal log
+            # (19/09/2026, the one drive of his month where the generator ran): 3.761 of the 4.226
+            # kWh that passed this gate — 89% — arrived while the millilitre counter was falling.
+            # Over his 50 drives the share is 6.4%, because it ran on exactly one of them: the
+            # figure is RIGHT on a pure-electric drive and almost entirely wrong on a generator one.
+            #
+            # 3263 counts MILLILITRES and a generator burns tens of them between two polls, so a
+            # fall since the last reading is the generator, at a resolution nothing else here has.
+            # A poll that carried no reading is not evidence either way and does not gate — the
+            # signal arrives on about two polls in three, and refusing to count without it would
+            # quietly zero the regen of a car that reports it intermittently.
+            #
+            # Deliberately a LOWER BOUND: braking while the generator runs is real recovery and
+            # goes with it, because the pack current carries no way to split the two. A number that
+            # is only ever too small is one an owner can act on; one inflated by petrol is not.
+            # → tests/test_a_reevs_regen_is_braking_not_its_own_generator.py
+            _generator_ran = _generator_was_running(fuel_before, data.fuel_liters)
             if (not data.plug_connected and (data.charge_current_a or 0) < -3.0
-                    and data.charge_power_kw is not None):
+                    and data.charge_power_kw is not None and not _generator_ran):
                 self._regen_kwh += data.charge_power_kw * (self._sm.poll_driving / 3600)
 
         # During active charge: track peak power, and sum the wallbox counter's rises so the billed

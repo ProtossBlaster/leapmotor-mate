@@ -249,6 +249,36 @@ def log_login(path: str, outcome: str, process: str = "poller", reason=None) -> 
         conn.close()
 
 
+# One millilitre. Signal 3263 counts whole millilitres, so any fall at all is fuel that was burned;
+# the threshold keeps float arithmetic on litres from reading a fall that is not there, and is not a
+# noise floor — the counter does not drift downwards. A generator burns tens of mL between two polls.
+_REEV_GENERATOR_MIN_DROP_L = 0.001
+
+# How long a silence may be before the reading in front of it stops describing it. Beyond this the
+# poller was not hearing the car, and integrating the last current across the gap invents energy
+# exactly where the drive was least observed.
+_RECOVERY_MAX_GAP_S = 300
+
+
+def _generator_was_running(fuel_before, fuel_now) -> bool:
+    """Did the range-extender burn fuel between these two readings — so energy that went INTO the
+    pack over that interval cannot be called braking?
+
+    `fuel_now` None is a BEV, or a poll that did not carry signal 3263: not evidence either way, so
+    the energy counts (refusing it would quietly zero the regen of a car that reports the signal
+    intermittently — about two polls in three on the bundle this was measured on). `fuel_before`
+    None on a car that DOES report the counter is "nothing to compare with", which is not an
+    attribution either: on such a car we do not count what we cannot attribute.
+
+    Shared on purpose by the live recorder and by crash recovery, so the two cannot drift.
+    """
+    if fuel_now is None:
+        return False
+    if fuel_before is None:
+        return True
+    return fuel_before - fuel_now >= _REEV_GENERATOR_MIN_DROP_L
+
+
 class Database:
     def __init__(self, path: str = "leapmotor_mate.db"):
         self._path = path
@@ -2079,12 +2109,40 @@ class Database:
                     "SELECT fuel_liters FROM positions WHERE vehicle_id=? AND recorded_at BETWEEN ? AND ?"
                     " AND fuel_liters IS NOT NULL ORDER BY recorded_at DESC LIMIT 1",
                     (vehicle_id, trip["started_at"], ended_at_iso)).fetchone()
+                # The regen too — the third column this path dropped. It is a running total the
+                # recorder keeps in memory and hands to finalize_trip, so a restart mid-drive loses
+                # it and the trip is published reading 0.00 kWh recovered, which on a BEV is a
+                # number on screen and not a blank. Every input is stored per poll, so it is
+                # recomputable exactly, under the recorder's own rule and the SAME
+                # `_generator_was_running`, so a range-extender's generator is not counted here
+                # either. Integrated over the REAL interval between rows, and a gap longer than
+                # _RECOVERY_MAX_GAP_S is skipped: a current read five minutes ago says nothing
+                # about the five minutes of silence after it.
+                # → tests/test_a_trip_closed_by_crash_recovery_keeps_its_regen.py
+                _rows = self._conn.execute(
+                    "SELECT recorded_at, charge_current_a, charge_voltage_v, plug_connected,"
+                    " fuel_liters FROM positions WHERE vehicle_id=? AND recorded_at BETWEEN ? AND ?"
+                    " ORDER BY recorded_at", (vehicle_id, trip["started_at"], ended_at_iso)).fetchall()
+                _regen = 0.0
+                _fuel_before = None
+                for _a, _b in zip(_rows, _rows[1:]):
+                    _gap = (datetime.fromisoformat(_b["recorded_at"])
+                            - datetime.fromisoformat(_a["recorded_at"])).total_seconds()
+                    _gen = _generator_was_running(_fuel_before, _a["fuel_liters"])
+                    if _a["fuel_liters"] is not None:
+                        _fuel_before = _a["fuel_liters"]
+                    if (0 < _gap <= _RECOVERY_MAX_GAP_S and not _a["plug_connected"] and not _gen
+                            and (_a["charge_current_a"] or 0) < -3.0
+                            and _a["charge_voltage_v"] is not None):
+                        _regen += (abs(_a["charge_current_a"] * _a["charge_voltage_v"]) / 1000.0
+                                   * _gap / 3600.0)
                 self._conn.execute(
                     """UPDATE trips SET ended_at=?, end_lat=?, end_lon=?, end_geohash=?, end_soc=?,
                        distance_km=?, duration_min=?, efficiency_kwh_100km=?,
                        end_odometer_km=COALESCE(?, end_odometer_km),
                        fuel_end_pct=COALESCE(?, fuel_end_pct),
-                       fuel_end_l=COALESCE(?, fuel_end_l)
+                       fuel_end_l=COALESCE(?, fuel_end_l),
+                       regen_kwh=?
                        WHERE id=?""",
                     (
                         ended_at_iso,
@@ -2094,6 +2152,7 @@ class Database:
                         end_odo,
                         _pct["fuel_level_pct"] if _pct else None,
                         _lit["fuel_liters"] if _lit else None,
+                        round(_regen, 3),
                         trip_id,
                     ),
                 )
