@@ -2060,31 +2060,73 @@ def _resolve_band_price(bands: list, ctype: str, weekday: int, minute: int,
     return base, base_set
 
 
-def _next_charge_start_utc(db, started_at) -> Optional[str]:
+def _next_charge_start_utc(db, started_at, exclude_ids=()) -> Optional[str]:
     """UTC start of the first charge beginning strictly after `started_at` (a raw stored
     value), or None. Used to cap a charge's power-sample window: an orphan/overlapping
     charge whose ended_at bled past a later charge (see the poller's close_orphan_charges)
-    must NOT absorb the next charge's power samples into its own window or cost."""
+    must NOT absorb the next charge's power samples into its own window or cost.
+
+    `exclude_ids` are rows that are not "a later charge" at all: the other pieces of THIS
+    plug-in, which the car split and a merge joined back (#341). Counting one of those as the
+    next charge cut the session's own curve at its first piece."""
+    holes = ",".join("?" * len(exclude_ids))
     try:
         row = db.execute(
-            "SELECT MIN(started_at) AS s FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND started_at > ?",
-            (_current_vehicle_id(), started_at)
+            "SELECT MIN(started_at) AS s FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND started_at > ?"
+            + (f" AND id NOT IN ({holes})" if exclude_ids else ""),
+            (_current_vehicle_id(), started_at, *exclude_ids)
         ).fetchone()
     except sqlite3.Error:
         return None   # no charges table (isolated unit tests) → no cap
     return _iso_to_utc(row["s"]) if (row and row["s"]) else None
 
 
-def _power_window_bounds(db, started_at, ended_at):
+def _power_window_bounds(db, started_at, ended_at, exclude_ids=()):
     """(lower_utc, upper, upper_is_exclusive) for a charge's charging=1 samples, capping
     the upper bound at the next charge's start so a window/cost never leaks across charges.
-    When capped, the upper bound is EXCLUSIVE (the next charge owns samples at its start)."""
+    When capped, the upper bound is EXCLUSIVE (the next charge owns samples at its start).
+    `exclude_ids`: rows that are this same plug-in's other pieces — see _next_charge_start_utc."""
     lo = _iso_to_utc(started_at) or started_at
     hi = _iso_to_utc(ended_at) or lo
-    nxt = _next_charge_start_utc(db, started_at)
+    nxt = _next_charge_start_utc(db, started_at, exclude_ids)
     if nxt and nxt <= hi:
         return lo, nxt, True
     return lo, hi, False
+
+
+def _charge_group_span(db, charge_id: int, started_at, ended_at):
+    """(start, end, other_piece_ids) for the whole plug-in this row belongs to.
+
+    A charge the car reported as several rows is ONE session everywhere the user looks — the
+    header, the kilowatt-hours, the duration all come from `_charge_group_stats`. Its power curve
+    has to span the same thing (#341, @arzthilfe: turning the wallbox down from 11 A to 8 A ended
+    the chart at that moment, while the session ran on for another nine hours).
+
+    `end` is None when any piece is still running: an open session has no upper bound yet. Alone,
+    the row's own two timestamps and no ids, which is the query every unmerged charge already made.
+
+    Only the PARENT widens. It is the row the session is read from — a merged child keeps the
+    window it always had, so nothing that asks for a piece by id starts seeing the session twice.
+
+    The ids come back so the cap can skip them: the second piece starts exactly where the first
+    ends, and `_next_charge_start_utc` counting it as "the next charge" is what trimmed the curve
+    in the first place.
+
+    ⚠️ The CURVE only. The cost and energy readers price each piece separately and the group sums
+    them afterwards, so widening their window would bill the same kilowatt-hours twice.
+    → tests/test_a_merged_charges_power_curve_covers_the_whole_session.py"""
+    if not _charges_have_merge(db):
+        return started_at, ended_at, ()
+    kids = [r["id"] for r in db.execute(
+        "SELECT id FROM charges WHERE merged_into_id = ?", (charge_id,)).fetchall()]
+    if not kids:
+        return started_at, ended_at, ()
+    holes = ",".join("?" * len(kids))
+    rows = db.execute(f"SELECT started_at, ended_at FROM charges WHERE id IN ({holes})",
+                      tuple(kids)).fetchall()
+    starts = [started_at] + [r["started_at"] for r in rows if r["started_at"]]
+    ends = [ended_at] + [r["ended_at"] for r in rows]
+    return min(starts), (max(ends) if all(ends) else None), (charge_id, *kids)
 
 
 def _dynamic_sensor_cost(charge, energy: float, base: float, ctype: str = None) -> Optional[float]:
@@ -8114,7 +8156,7 @@ def get_charge_power_curve(charge_id: int) -> dict:
                     (charge_id, _current_vehicle_id())).fetchone()
     if not ch:
         return {"labels": [], "power": [], "soc": []}
-    start, end = ch["started_at"], ch["ended_at"]
+    start, end, pieces = _charge_group_span(db, charge_id, ch["started_at"], ch["ended_at"])
     if end:
         # Cap the upper bound at the next charge's start so an orphan/overlapping charge
         # (whose ended_at bled past a later charge — see close_orphan_charges) cannot absorb
@@ -8122,7 +8164,7 @@ def get_charge_power_curve(charge_id: int) -> dict:
         # AC-vs-DC wallbox comparison AND the HOME cost (which bills the AC energy derived from
         # this curve) — GitHub #24. Mirrors _charge_active_window / compute_cost. For a normal
         # charge the next charge starts after ended_at → no cap, identical behaviour.
-        lo, hi, excl = _power_window_bounds(db, start, end)
+        lo, hi, excl = _power_window_bounds(db, start, end, pieces)
         rows = db.execute(
             "SELECT recorded_at, charge_voltage_v, charge_current_a, soc FROM positions "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) AND charging = 1 AND recorded_at >= ? AND recorded_at "
