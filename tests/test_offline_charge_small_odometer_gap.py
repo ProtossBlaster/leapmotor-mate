@@ -88,13 +88,38 @@ def test_frame_time_alone_cannot_invent_a_long_outage(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("column,value", [("frame_ts", None), ("odometer_km", None),
-                                          ("speed_kmh", None), ("gear", None)])
+                                          ("gear", None)])
 def test_incomplete_evidence_is_not_relaxed(tmp_path, monkeypatch, column, value):
     db = _seed(tmp_path, monkeypatch)
     _frame(db, 0, 30)
     _frame(db, 4 * 3600, 80, odo=1002)
     db._conn.execute(f"UPDATE positions SET {column}=? WHERE id=2", (value,))
     db._conn.commit()
+    assert db_reader.scan_missed_charges() == []
+
+
+@pytest.mark.parametrize("missing", ["start", "end", "both"])
+def test_a_speed_the_car_did_not_send_is_no_veto(tmp_path, monkeypatch, missing):
+    """The speed is only checked for sanity: a missing one says nothing about a charge."""
+    db = _seed(tmp_path, monkeypatch)
+    _frame(db, 0, 30, speed=None if missing != "end" else 30)
+    _frame(db, 4 * 3600, 80, odo=1002, speed=None if missing != "start" else 30)
+    assert len(db_reader.scan_missed_charges()) == 1
+
+
+@pytest.mark.parametrize("end", [
+    dict(seconds=4 * 3600, soc=80, odo=None),
+    dict(seconds=4 * 3600, soc=36, odo=1002),
+    dict(seconds=4 * 3600, soc=80, odo=1002, frame_seconds=20),
+    dict(seconds=20, soc=80, odo=1002, frame_seconds=4 * 3600),
+    dict(seconds=4 * 3600, soc=80, odo=1002, reev=True),
+], ids=["no odometer", "small rise", "car clock", "our clock", "range extender"])
+def test_without_a_speed_the_rest_of_the_evidence_is_still_required(tmp_path, monkeypatch, end):
+    db = _seed(tmp_path, monkeypatch)
+    if end.pop("reev", False):
+        monkeypatch.setattr(db_reader, "is_reev_car", lambda: True)
+    _frame(db, 0, 30, speed=None)
+    _frame(db, end.pop("seconds"), end.pop("soc"), speed=None, **end)
     assert db_reader.scan_missed_charges() == []
 
 

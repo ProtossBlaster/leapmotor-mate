@@ -414,7 +414,7 @@ def _soc_color(soc: float) -> str:
 def _driving(pos: dict) -> bool:
     """Active drive = any gear other than Park (so a stop in traffic with gear D
     still reads as driving, not 'Parked'); speed is a fallback if the gear lags."""
-    return (pos.get("gear") or "P") != "P" or pos.get("speed_kmh", 0) > 1
+    return (pos.get("gear") or "P") != "P" or (pos.get("speed_kmh") or 0) > 1
 
 def _state_color(pos: dict) -> str:
     if pos.get("driving_stale"): return "text-amber-400"
