@@ -22,6 +22,7 @@ stored before this rule carries no stamp at all and is re-attempted at once, whi
 every installation stuck since 4.4.0.
 """
 import json
+import os
 import sqlite3
 import time
 
@@ -42,6 +43,13 @@ def installation(tmp_path, monkeypatch):
     (tmp_path / "secret.key").write_bytes(b"existing-key")
     monkeypatch.setenv("DB_PATH", str(db))
     monkeypatch.delenv("MATE_DEMO", raising=False)
+    # `activate_installation` picks the backend by WRITING os.environ['MATE_API_V2'] itself, which
+    # monkeypatch cannot undo because it never went through monkeypatch. Claiming it here does:
+    # monkeypatch remembers what was there (or that nothing was) and puts it back at teardown.
+    # Left behind, a test that ends on a failed qualification hands the whole rest of the suite an
+    # installation running the bundled SDK — measured: 13 unrelated tests turn red on
+    # "Missing local app certificate material".
+    monkeypatch.setenv("MATE_API_V2", os.environ.get("MATE_API_V2", "1"))
     return db
 
 
