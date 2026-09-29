@@ -788,23 +788,30 @@ class Database:
     def prune_positions(self, retention_days: int) -> int:
         """Delete non-charging GPS samples older than retention_days (0/None = keep
         forever). Charging rows are kept so charge power curves survive; trips and their
-        trip_positions are a separate table and are never touched. Nothing recorded since an
-        open trip began is deleted either: that trip is closed on those readings (an outage can
-        outlast the retention, see Recorder._settle_trip_after_outage). VACUUMs when rows were
-        actually removed. Returns the number of rows deleted."""
+        trip_positions are a separate table and are never touched. A car's open trip keeps that
+        car's rows from its start on: the trip is closed on those readings (an outage can outlast
+        the retention, see Recorder._settle_trip_after_outage). Only that car's: another car is
+        pruned as if the trip did not exist, and a car the poller no longer reaches keeps just its
+        own rows, which no longer grow. VACUUMs when rows were actually removed. Returns the number
+        of rows deleted."""
         if not retention_days or retention_days <= 0:
             return 0
         cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
-        open_since = self._conn.execute(
-            "SELECT MIN(started_at) FROM trips WHERE ended_at IS NULL").fetchone()[0]
-        if open_since:
-            cutoff = min(cutoff, open_since)
-        cur = self._conn.execute(
-            "DELETE FROM positions WHERE recorded_at < ? AND COALESCE(charging, 0) = 0",
-            (cutoff,),
-        )
-        self._conn.commit()
-        deleted = cur.rowcount or 0
+        open_since = dict(self._conn.execute(
+            "SELECT vehicle_id, MIN(started_at) FROM trips WHERE ended_at IS NULL"
+            " GROUP BY vehicle_id"))
+        deleted = 0
+        with self._conn:                                     # one transaction for every car
+            for vehicle_id, started_at in open_since.items():
+                deleted += self._conn.execute(
+                    "DELETE FROM positions WHERE vehicle_id = ? AND recorded_at < ?"
+                    " AND COALESCE(charging, 0) = 0", (vehicle_id, min(cutoff, started_at))).rowcount
+            # Every other car, by the retention alone.
+            placeholders = ",".join("?" * len(open_since))
+            others = f" AND vehicle_id NOT IN ({placeholders})" if open_since else ""
+            deleted += self._conn.execute(
+                "DELETE FROM positions WHERE recorded_at < ? AND COALESCE(charging, 0) = 0" + others,
+                (cutoff, *open_since)).rowcount
         if deleted > 0:
             self._conn.execute("VACUUM")
             log.info("Pruned %d old positions rows (retention %dd) and reclaimed space",

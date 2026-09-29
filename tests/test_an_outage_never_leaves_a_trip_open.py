@@ -270,3 +270,57 @@ def test_every_trip_an_earlier_version_left_open_is_settled_when_the_newest_is_r
     assert _open_trips(db) == [newer], "only the newest can still be the drive in progress"
     closed = db._conn.execute("SELECT * FROM trips WHERE id = ?", (older,)).fetchone()
     assert closed["ended_at"] == (T0 + timedelta(minutes=2)).isoformat()
+
+
+def _daily(db, wall, vid, days, charging_day=None):
+    """A reading a day for `days` days from T0; on `charging_day` the car is charging."""
+    for day in range(days):
+        wall["now"] = T0 + timedelta(days=day)
+        d = _at(day * 1440, 1000 + day, gear="P", speed=0.0, charging_status=int(day == charging_day))
+        db.save_position(vid, d)
+
+
+def _opened(db, wall, vid, day):
+    wall["now"] = T0 + timedelta(days=day)
+    return db.create_trip(vid, _at(day * 1440, 1000 + day))
+
+
+@pytest.mark.parametrize("cars", ["one gone from the account, one still polled",
+                                  "two with trips open since different days",
+                                  "none with a trip open"])
+def test_an_open_trip_holds_back_the_pruning_of_its_own_car_only(tmp_path, monkeypatch, cars):
+    """The retention keeps a car's readings from its oldest open trip on, and only that car's:
+    another car is pruned as if the trip did not exist. A car the poller no longer reaches keeps
+    just its own readings, which no longer grow. Charging readings stay, as always."""
+    wall = {"now": T0}
+    monkeypatch.setattr(D, "_now_iso", lambda: wall["now"].isoformat())
+    db = D.Database(str(tmp_path / "t.db"))
+    a, b = db.ensure_vehicle("VIN-A", "C10"), db.ensure_vehicle("VIN-B", "B10")
+    if cars == "one gone from the account, one still polled":
+        _opened(db, wall, a, 0)
+        _daily(db, wall, a, 3, charging_day=1)           # then gone: nothing after its third day
+        _daily(db, wall, b, 300, charging_day=5)
+        kept = {a: (3, 0), b: (81, 5)}                   # rows left, the oldest one's day
+    elif cars == "two with trips open since different days":
+        _daily(db, wall, a, 300, charging_day=5)
+        _daily(db, wall, b, 300, charging_day=5)
+        _opened(db, wall, a, 50)
+        _opened(db, wall, b, 150)
+        kept = {a: (251, 5), b: (151, 5)}
+    else:
+        _daily(db, wall, a, 300, charging_day=5)
+        _daily(db, wall, b, 300, charging_day=5)
+        kept = {a: (81, 5), b: (81, 5)}
+
+    class Later(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return (T0 + timedelta(days=400)).astimezone(tz)
+
+    before = db._conn.execute("SELECT COUNT(*) FROM positions").fetchone()[0]
+    monkeypatch.setattr(D, "datetime", Later)
+    deleted = db.prune_positions(180)                    # keeps day 220 on, but for open trips
+    left = {vid: (n, (datetime.fromisoformat(oldest) - T0).days) for vid, n, oldest in db._conn.execute(
+        "SELECT vehicle_id, COUNT(*), MIN(recorded_at) FROM positions GROUP BY vehicle_id")}
+    assert left == kept
+    assert deleted == before - sum(n for n, _ in kept.values())
