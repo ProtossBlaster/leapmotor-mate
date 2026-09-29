@@ -100,6 +100,16 @@
     {% endif %}
     {% endif %}
     <span class="block mt-0.5 text-amber-400 text-[11px] font-semibold" title="{{ t('reev_engine_ran') }}">⛽ {% if trip.fuel_l_100km is not none %}{{ trip.fuel_l_100km | nice }} L/100km{% else %}{{ trip.fuel_used_l | nice }} L{% endif %}</span>
+    {% elif is_reev and trip.fuel_used_l is not none %}
+    {# A drive the car MEASURED as pure-electric: `fuel_used_l` is 0.0, not None. Until 4.7.0 the
+       two looked identical here — nothing at all — so eight of the ten trips on @ebagnoli's 30 July
+       read exactly like the trips whose tank was never opened. `is not none` is the whole
+       distinction: an unknown drive still prints nothing. Dimmed, because a zero is not a
+       consumption, and the words underneath because "⛽ 0 L" on its own reads as a figure that
+       failed to arrive. (Silvio, 29/09/2026: «metti 0 L tutto elettrico sui viaggi a zero
+       misurato».) #}
+    <span class="block mt-0.5 text-amber-400/60 text-[11px] font-semibold">⛽ {{ trip.fuel_used_l | nice }} L</span>
+    <span class="block text-slate-500 text-[10px] leading-tight">{{ t('trip_fuel_all_electric') }}</span>
     {% endif %}
     {# Filled the tank mid-drive: litres = start − end goes negative, so there is no consumption to
        print and no way to work one out. The dash keeps the slot and the tooltip names the reason —

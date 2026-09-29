@@ -579,6 +579,14 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
         tank = round(measured, 3)
     elif measured is None and drop > _REEV_FUEL_MIN_DROP:
         tank = round(drop / 100.0 * cap, 2)
+    elif measured == 0:
+        # 🔑 IDENTICAL at both ends, on a counter that resolves MILLILITRES: that is a measurement
+        # saying the generator never ran, not an absence of one. It used to fall into the `None`
+        # below beside "the tank was never read", and the page showed the two the same way — a blank.
+        # Measured on @ebagnoli's 150 trips (29/09/2026): 79 land here, every one of them exactly
+        # 0.0, not one in the 0–5 mL band. The percentage gauge gets NO such branch: signal 3235
+        # steps by 0.1, about 47 mL of the tank, so a motionless gauge is compatible with a burn.
+        tank = 0.0
     else:
         tank = None                     # nothing burned, or too little to tell from noise
     if cloud_l is not None:
@@ -588,7 +596,12 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
         return out
     out["fuel_source"] = "mate"
     out["fuel_used_l"] = tank
-    out["engine_ran"] = True
+    # `tank` is 0.0 on a drive the counter measured as pure-electric (see above). Everything below
+    # is about a drive that BURNED something: a zero has no generator footprint to name and no rate
+    # to print — 0 L/100 km is arithmetic on a zero, and it would read as a measured efficiency.
+    out["engine_ran"] = tank > 0
+    if not tank:
+        return out
     # engine_km is still measured and still shown — it says how far the generator actually drove —
     # but it is NO LONGER the denominator. The L/100 km is over the WHOLE distance, which is what
     # the car itself reports (getPlugIn's oc100km) and therefore what the owner sees in the official

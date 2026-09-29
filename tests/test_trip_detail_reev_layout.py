@@ -102,7 +102,11 @@ def test_neither_fuel_figure_can_be_torn_from_its_unit():
     # leading. Slicing wider made this fail on that line, which is not what it is asking about.
     lines = [ln for ln in section.splitlines()
              if "trip.fuel_used_l|nice" in ln or "trip.fuel_l_100km|nice" in ln]
-    assert len(lines) == 2, "the litres and the L/100km are no longer two figures of the fuel box"
+    # BOTH figures must be in the box. How many times the litres appear is not the subject: since
+    # 4.7.0 a drive the car measured as burning nothing prints its own "0 L" here, on a line of its
+    # own, and it is held to exactly the same unbreakable rule by the loop below.
+    assert any("trip.fuel_used_l|nice" in ln for ln in lines), "the litres left the fuel box"
+    assert any("trip.fuel_l_100km|nice" in ln for ln in lines), "the L/100km left the fuel box"
     for ln in lines:
         assert "truncate" in ln or "whitespace-nowrap" in ln, \
             "a fuel figure can break — it can lose its unit: " + ln.strip()[:80]

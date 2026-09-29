@@ -140,6 +140,12 @@
              (feedback-a-layout-question-is-not-answered-by-measuring-harder). #}
           {% if trip.fuel_source %}<div class="text-[10px] text-slate-500 truncate"
                title="{{ t('trip_fuel_source_' ~ trip.fuel_source) }}">{{ t('trip_fuel_source_' ~ trip.fuel_source) }}</div>{% endif %}
+          {% elif trip.fuel_used_l is not none %}
+          {# Measured zero, not missing: the counter read the same millilitre value at both ends, or
+             the cloud answered 0.0. The dash below belongs to a drive whose tank was never read,
+             and the two must not look alike — that was the whole complaint (Silvio, 29/09/2026). #}
+          <div class="text-base font-bold text-slate-300 leading-tight truncate">{{ trip.fuel_used_l|nice }}<span class="text-[10px] font-normal text-slate-400"> L</span></div>
+          <div class="text-[10px] text-slate-500 truncate">{{ t('trip_fuel_all_electric') }}</div>
           {% else %}<div class="text-base font-bold text-slate-500">—</div>{% endif %}
         </div>
         {% endif %}

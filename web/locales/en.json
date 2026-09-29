@@ -1330,6 +1330,7 @@
     "trip_energy_source_mate": "Mate estimate",
     "trip_fuel_source_cloud": "Leapmotor history",
     "trip_fuel_source_mate": "From the tank",
+    "trip_fuel_all_electric": "all electric",
     "cloud_zero_segments": "0 km cloud segments",
     "cloud_zero_hint": "Original records are kept separately. Open the day's merge options to propose a join: every merge requires confirmation and can be undone.",
     "cloud_source": "Leapmotor cloud history",

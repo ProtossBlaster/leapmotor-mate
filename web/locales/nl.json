@@ -1330,6 +1330,7 @@
     "trip_energy_source_mate": "Mate-schatting",
     "trip_fuel_source_cloud": "Leapmotor-historie",
     "trip_fuel_source_mate": "Uit de tank",
+    "trip_fuel_all_electric": "volledig elektrisch",
     "cloud_zero_segments": "cloudsegmenten van 0 km",
     "cloud_zero_hint": "Originele gegevens blijven apart bewaard. Gebruik de samenvoegopties van de dag: elke samenvoeging vereist bevestiging en kan ongedaan worden gemaakt.",
     "cloud_source": "Leapmotor-cloudgeschiedenis",

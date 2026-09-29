@@ -53,7 +53,12 @@ def test_a_pure_electric_trip_is_untouched():
     out = _fuel(56.3, 56.3, 12.0, start_l=28.15, end_l=28.15)
     assert out["fuel_refuelled"] is False
     assert out["engine_ran"] is False
-    assert out["fuel_used_l"] is None
+    # Since 4.7.0 this is 0.0, not None: the litre counter reading the same value at both ends is a
+    # MEASUREMENT saying the generator never ran, and it used to be published exactly like a drive
+    # whose tank was never read at all — both blank
+    # (tests/test_a_reev_drive_that_burned_nothing_says_so.py). `engine_ran` and `fuel_refuelled`,
+    # which is what this file is about, are unchanged.
+    assert out["fuel_used_l"] == 0 and out["fuel_source"] == "mate"
 
 
 def test_gauge_noise_upwards_is_not_a_refuel():

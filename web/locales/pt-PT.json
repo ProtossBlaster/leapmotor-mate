@@ -1330,6 +1330,7 @@
     "trip_energy_source_mate": "Estimativa Mate",
     "trip_fuel_source_cloud": "Histórico Leapmotor",
     "trip_fuel_source_mate": "Do depósito",
+    "trip_fuel_all_electric": "tudo elétrico",
     "cloud_zero_segments": "segmentos cloud de 0 km",
     "cloud_zero_hint": "Os registos originais ficam separados. Utilize as opcoes de uniao do dia: cada uniao requer confirmacao e pode ser desfeita.",
     "cloud_source": "Historico cloud Leapmotor",

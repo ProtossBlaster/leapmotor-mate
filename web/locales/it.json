@@ -1330,6 +1330,7 @@
     "trip_energy_source_mate": "Stima Mate",
     "trip_fuel_source_cloud": "Storico Leapmotor",
     "trip_fuel_source_mate": "Dal serbatoio",
+    "trip_fuel_all_electric": "tutto elettrico",
     "cloud_zero_segments": "segmenti cloud da 0 km",
     "cloud_zero_hint": "Record originali conservati separatamente. Per proporre un'unione, apri Unibili nella giornata: ogni unione richiede conferma ed e reversibile.",
     "cloud_source": "Storico cloud Leapmotor",

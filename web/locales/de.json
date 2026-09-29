@@ -1330,6 +1330,7 @@
     "trip_energy_source_mate": "Mate-Schätzung",
     "trip_fuel_source_cloud": "Leapmotor-Verlauf",
     "trip_fuel_source_mate": "Aus dem Tank",
+    "trip_fuel_all_electric": "rein elektrisch",
     "cloud_zero_segments": "Cloud-Abschnitte mit 0 km",
     "cloud_zero_hint": "Originaldaten bleiben separat erhalten. Nutzen Sie die Zusammenfuehrung des Tages: jede Verbindung erfordert eine Bestaetigung und kann aufgehoben werden.",
     "cloud_source": "Leapmotor-Cloud-Verlauf",
