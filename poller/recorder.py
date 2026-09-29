@@ -491,7 +491,8 @@ class Recorder:
             moved = (last_odo or 0) > 0 and (data.odometer_km or 0) > 0 \
                 and data.odometer_km > last_odo
             if not moved and data.soc > last_soc:
-                end = (data.soc, _frame_iso(data) or _now_iso())
+                now = _now_iso()                # read just now, so it ended no later than now
+                end = (data.soc, min(_frame_iso(data) or now, now))
         if self._charge_at_wallbox:
             end_wb = self._read_wallbox_energy()
             if end_wb is not None:

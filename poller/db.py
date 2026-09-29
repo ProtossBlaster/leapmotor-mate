@@ -1924,6 +1924,12 @@ class Database:
             # partial frame carrying someone else's timestamp) would invert the session.
             if frame_iso > started_at and (not before or frame_iso < before):
                 ended_at = frame_iso
+            # Whichever time was taken, never after Mate first read that frame: it was made before,
+            # a later car clock runs ahead of ours, and a repeat of it is no new reading.
+            first_read = self._conn.execute(
+                "SELECT MIN(recorded_at) FROM positions WHERE vehicle_id=? AND recorded_at>=?"
+                " AND frame_ts=?", (vehicle_id, started_at, row["frame_ts"])).fetchone()[0]
+            ended_at = min(ended_at, first_read)
         return row["soc"], ended_at
 
     def charge_end_from_last_charging(self, charge_id: int):
