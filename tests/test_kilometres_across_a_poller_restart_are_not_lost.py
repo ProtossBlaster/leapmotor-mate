@@ -52,6 +52,12 @@ class _DB:
         self.gaps.append({"odo_start": odo_start, "odo_end": odo_end,
                           "soc_start": soc_start, "soc_end": soc_end})
 
+    def charge_open_since(self, vid, since):
+        return False
+
+    def charging_read_since(self, vid, since, frame_ts):
+        return False
+
 
 def _rec(last_odo=5585.0, last_soc=68.8):
     rec = R.Recorder(_DB(), vehicle_id=1)

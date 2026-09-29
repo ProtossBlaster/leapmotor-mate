@@ -64,7 +64,7 @@ class _SpyDB:
     def get_last_soc(self, vid):
         return None, None
 
-    def get_last_odometer(self, vid):
+    def get_last_odometer_reading(self, vid):
         return None
 
     def close_orphan_charges(self, vid):

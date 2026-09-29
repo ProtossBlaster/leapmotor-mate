@@ -163,6 +163,9 @@ CREATE TABLE IF NOT EXISTS maintenance_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_positions_vehicle ON positions(vehicle_id, recorded_at);
+-- One car's rows in the order they were written: the odometer baseline a restart reads back
+-- (Database.get_last_odometer_reading) walks them from the newest without sorting the history.
+CREATE INDEX IF NOT EXISTS idx_positions_vehicle_order ON positions(vehicle_id, id);
 CREATE INDEX IF NOT EXISTS idx_trip_positions_trip ON trip_positions(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trips_vehicle ON trips(vehicle_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_charges_vehicle ON charges(vehicle_id, started_at);

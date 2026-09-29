@@ -40,6 +40,12 @@ class _CountDB:
         self.trips.append((start_odo, data.odometer_km, start_soc, data.soc))
         return len(self.trips)
 
+    def charge_open_since(self, vid, since):
+        return False
+
+    def charging_read_since(self, vid, since, frame_ts):
+        return False
+
 
 def _rec(state=State.PARKED_ACTIVE, last_odo=1000.0, last_soc=60.0):
     rec = R.Recorder(_CountDB(), vehicle_id=1)
@@ -81,9 +87,8 @@ def test_no_reconstruct_on_odometer_glitch():
     rec = _rec(last_odo=1000.0)
     rec._maybe_reconstruct_trip(_vd(53.0, 0.0))          # a 0 glitch reading must not be a huge "trip"
     assert rec._db.trips == []
-    rec2 = _rec(last_odo=0.0)                             # prev reading was the glitch
-    rec2._maybe_reconstruct_trip(_vd(53.0, 1015.0))
-    assert rec2._db.trips == []
+    rec._maybe_reconstruct_trip(_vd(53.0, 1015.0))       # …nor the baseline the next one is measured from
+    assert rec._db.trips == [(1000.0, 1015.0, 60.0, 53.0)]
 
 
 def test_no_reconstruct_when_soc_rose():
