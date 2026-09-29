@@ -831,17 +831,33 @@ class Database:
     def prune_positions(self, retention_days: int) -> int:
         """Delete non-charging GPS samples older than retention_days (0/None = keep
         forever). Charging rows are kept so charge power curves survive; trips and their
-        trip_positions are a separate table and are never touched. VACUUMs when rows were
-        actually removed. Returns the number of rows deleted."""
+        trip_positions are a separate table and are never touched. A car's open trip keeps that
+        car's rows from its start on: the trip is closed on those readings (an outage can outlast
+        the retention, see Recorder._settle_trip_after_outage). Only that car's: another car is
+        pruned as if the trip did not exist, and a car the poller no longer reaches keeps just its
+        own rows, which no longer grow. For a car it still polls, the recorder bounds the wait: a
+        trip stays open only while the car is heard driving or not heard at all, when nothing is
+        written for it, and every trip an earlier run left open is settled on the car's first poll
+        (Recorder._resume_or_close, close_orphan_trips). VACUUMs when rows were actually removed.
+        Returns the number of rows deleted."""
         if not retention_days or retention_days <= 0:
             return 0
         cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
-        cur = self._conn.execute(
-            "DELETE FROM positions WHERE recorded_at < ? AND COALESCE(charging, 0) = 0",
-            (cutoff,),
-        )
-        self._conn.commit()
-        deleted = cur.rowcount or 0
+        open_since = dict(self._conn.execute(
+            "SELECT vehicle_id, MIN(started_at) FROM trips WHERE ended_at IS NULL"
+            " GROUP BY vehicle_id"))
+        deleted = 0
+        with self._conn:                                     # one transaction for every car
+            for vehicle_id, started_at in open_since.items():
+                deleted += self._conn.execute(
+                    "DELETE FROM positions WHERE vehicle_id = ? AND recorded_at < ?"
+                    " AND COALESCE(charging, 0) = 0", (vehicle_id, min(cutoff, started_at))).rowcount
+            # Every other car, by the retention alone.
+            placeholders = ",".join("?" * len(open_since))
+            others = f" AND vehicle_id NOT IN ({placeholders})" if open_since else ""
+            deleted += self._conn.execute(
+                "DELETE FROM positions WHERE recorded_at < ? AND COALESCE(charging, 0) = 0" + others,
+                (cutoff, *open_since)).rowcount
         if deleted > 0:
             self._conn.execute("VACUUM")
             log.info("Pruned %d old positions rows (retention %dd) and reclaimed space",
@@ -1543,7 +1559,17 @@ class Database:
 
         🔑 Nothing new has to be recorded to know this. While DRIVING the recorder does not save a
         position for a repeated frame (#128), so the LAST `positions` row of such a trip already is
-        the last thing the car said.
+        the last thing the car said."""
+        seen = self.trip_last_seen(trip_id)
+        return seen[0] if seen else None
+
+    def trip_last_seen(self, trip_id: int,
+                       before: Optional[str] = None) -> Optional[tuple[str, sqlite3.Row]]:
+        """The last `positions` row inside this trip, and the moment it stands for. The row carries
+        what `finalize_trip` reads from a frame, under the same names.
+
+        `before` (our clock) leaves out the rows saved from then on: the recorder saves the frame in
+        hand before it decides what that frame means, so "the last row" alone would be that frame.
 
         The car's own clock (`frame_ts`) is preferred over ours, for the same reason the charge
         prefers it — it is the measurement's own time, not the time we happened to poll. ⚠️ And it
@@ -1554,10 +1580,12 @@ class Database:
             "SELECT vehicle_id, started_at FROM trips WHERE id=?", (trip_id,)).fetchone()
         if trip is None or not trip["started_at"]:
             return None
+        bound, args = ("", ()) if before is None else (" AND recorded_at<?", (before,))
         row = self._conn.execute(
-            "SELECT recorded_at, frame_ts FROM positions"
-            " WHERE vehicle_id=? AND recorded_at>=? ORDER BY recorded_at DESC LIMIT 1",
-            (trip["vehicle_id"], trip["started_at"])).fetchone()
+            "SELECT recorded_at, frame_ts, soc, odometer_km, latitude, longitude,"
+            " fuel_level_pct, fuel_liters FROM positions"
+            " WHERE vehicle_id=? AND recorded_at>=?" + bound + " ORDER BY recorded_at DESC LIMIT 1",
+            (trip["vehicle_id"], trip["started_at"], *args)).fetchone()
         if row is None:
             return None
         ended_at = row["recorded_at"]
@@ -1565,7 +1593,18 @@ class Database:
             frame_iso = datetime.fromtimestamp(int(row["frame_ts"]) / 1000, timezone.utc).isoformat()
             if frame_iso > trip["started_at"]:
                 ended_at = frame_iso
-        return ended_at
+        return ended_at, row
+
+    def trip_opening(self, trip_id: int) -> tuple[str, sqlite3.Row]:
+        """The trip's opening, shaped like `trip_last_seen`'s answer. It is what a trip heard last
+        when nothing was heard inside it: the row it opened on is saved a moment before the trip
+        exists, so it is not inside."""
+        row = self._conn.execute(
+            "SELECT started_at, start_soc AS soc, start_odometer_km AS odometer_km,"
+            " start_lat AS latitude, start_lon AS longitude,"
+            " fuel_start_pct AS fuel_level_pct, fuel_start_l AS fuel_liters"
+            " FROM trips WHERE id=?", (trip_id,)).fetchone()
+        return row["started_at"], row
 
     def finalize_trip(self, trip_id: int, data, regen_kwh: float = 0.0,
                       end_at_override: Optional[str] = None) -> Optional[float]:
@@ -2011,16 +2050,19 @@ class Database:
 
     # ── Startup cleanup ───────────────────────────────────────────────────
 
-    def close_orphan_trips(self, vehicle_id: int) -> int:
+    def close_orphan_trips(self, vehicle_id: int, keep: Optional[int] = None) -> int:
         """
         Called at poller startup. Finalizes any trip left open by a previous
-        crash using the last recorded trip_position as the end point.
+        crash using the last recorded trip_position as the end point, except
+        `keep`, the one the recorder resumes.
         Returns number of trips closed.
+        prune_positions keeps a car's rows from its oldest open trip on, so for a
+        car still polled this is also what bounds that across a restart.
         """
         orphans = self._conn.execute(
             "SELECT id, start_soc, start_odometer_km, started_at FROM trips "
-            "WHERE vehicle_id = ? AND ended_at IS NULL",
-            (vehicle_id,),
+            "WHERE vehicle_id = ? AND ended_at IS NULL AND id IS NOT ?",
+            (vehicle_id, keep),
         ).fetchall()
 
         closed = 0

@@ -511,6 +511,12 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   demi-heure — mais il le date de la **dernière vraie nouvelle**, pas du moment où il s'en est
   aperçu. La durée ne contient donc pas une demi-heure de silence, et la vitesse moyenne reste
   juste.
+- **Une coupure ne laisse jamais un trajet ouvert.** Si Mate perd le cloud en cours de route et que
+  la voiture roule encore quand la liaison revient dans la demi-heure, le trajet continue
+  simplement. Si la voiture est alors garée ou en charge, le trajet se termine là, et les kilomètres
+  parcourus pendant la coupure en font partie. Après un silence plus long, le trajet se termine à la
+  dernière nouvelle de la voiture avant ce silence, et les kilomètres suivants sont traités comme
+  tous ceux parcourus hors contact.
 - **Les kilomètres parcourus hors contact n'entrent dans aucun trajet.** Quand la liaison avec le
   cloud tombe, la voiture continue de rouler mais Mate ne la voit pas ; au retour, il ne trouve
   qu'un odomètre plus avancé. Ce saut peut contenir la fin d'un trajet, un arrêt et le début d'un
@@ -1056,6 +1062,8 @@ Elle est divisée en trois colonnes.
   pouvez garder les points GPS « pour toujours » (par défaut) ou supprimer ceux de plus de
   6/12/18/24 mois pour économiser de l'espace. *Seules les positions sont élaguées* : les trajets
   (avec leur tracé et les relevés en route), recharges et courbes de charge restent.
+  Les points d'un trajet encore en cours sont conservés jusqu'à ce qu'il se termine, car c'est d'eux
+  que l'on tire sa fin.
 - **Export / sauvegarde** — téléchargez les **trajets (CSV)**, les **recharges (CSV)** et une **sauvegarde de
   la base de données**. La sauvegarde arrive **compressée en gzip** (`leapmotor_mate.db.gz`) 🆕,
   envoyée par morceaux pour qu'une grande base n'ait jamais à tenir entière en mémoire. La

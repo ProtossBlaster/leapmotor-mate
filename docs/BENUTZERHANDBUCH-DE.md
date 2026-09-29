@@ -495,6 +495,12 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   Verbindung während der Fahrt ab, schließt Mate die Fahrt nach einer halben Stunde selbst — datiert
   sie aber auf die **letzte echte Nachricht**, nicht auf den Moment, in dem es das bemerkt hat. So
   enthält die Dauer keine halbe Stunde Stille und die Durchschnittsgeschwindigkeit bleibt ehrlich.
+- **Ein Verbindungsabbruch lässt keine Fahrt offen.** Verliert Mate während der Fahrt die Cloud und
+  fährt das Auto noch, wenn die Verbindung binnen einer halben Stunde zurückkommt, läuft die Fahrt
+  einfach weiter. Steht das Auto dann schon oder lädt es, endet die Fahrt dort, und die Kilometer
+  aus der Lücke gehören zu ihr. Nach einer längeren Stille endet die Fahrt bei der letzten Nachricht
+  des Autos davor, und die Kilometer danach werden wie alle anderen behandelt, die ohne Verbindung
+  gefahren wurden.
 - **Kilometer ohne Verbindung landen in gar keiner Fahrt.** Wenn die Verbindung zur Cloud abreißt,
   fährt das Auto weiter, Mate sieht es aber nicht; kehrt die Verbindung zurück, findet es nur einen
   weitergelaufenen Kilometerstand vor. In diesem Sprung können das Ende einer Fahrt, eine Pause und
@@ -1036,6 +1042,7 @@ ist in drei Spalten unterteilt.
   GPS-Punkte „für immer" behalten (Standard) oder die älter als 6/12/18/24 Monate löschen, um Platz
   zu sparen. *Es werden nur die Positionen entfernt*: Fahrten (mit Strecke und den Messwerten
   unterwegs), Ladevorgänge und Ladekurven bleiben erhalten.
+  Die Punkte einer noch laufenden Fahrt bleiben, bis sie endet, denn ihr Ende wird aus ihnen gelesen.
 - **Export / Backup** — laden Sie **Fahrten (CSV)**, **Ladevorgänge (CSV)** und ein **Backup der Datenbank** herunter.
   Das Backup kommt **gzip-komprimiert** (`leapmotor_mate.db.gz`) 🆕 und wird in Stücken gesendet,
   damit auch eine große Datenbank nie ganz in den Speicher muss. Die Wiederherstellung nimmt
