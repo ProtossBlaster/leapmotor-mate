@@ -40,7 +40,7 @@ def _charging_recorder(db):
     rec._started = True
     rec._sm.state = State.CHARGING
     rec._active_charge_id = 3
-    rec._last_soc, rec._last_odometer = 60.0, 1000.0
+    rec._last_soc, rec._odometer_reading = 60.0, R.OdometerReading(1000.0, 60.0, None)
     return rec
 
 
@@ -74,7 +74,7 @@ def test_regen_with_an_unknown_power_adds_nothing():
     rec._started = True
     rec._sm.state = State.DRIVING
     rec._active_trip_id = 7
-    rec._last_soc, rec._last_odometer = 80.0, 1000.0
+    rec._last_soc, rec._odometer_reading = 80.0, R.OdometerReading(1000.0, 80.0, None)
     rec.process(_frame(charging_status=0, plug_connected=False, vehicle_state="driving", gear="D",
                        speed_kmh=50.0, charge_current_a=-20.0, charge_power_kw=None))
     assert rec._regen_kwh == 0.0

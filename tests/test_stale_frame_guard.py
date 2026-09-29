@@ -80,7 +80,7 @@ def _driving_recorder():
     rec._started = True
     rec._sm.state = State.DRIVING
     rec._active_trip_id = 7
-    rec._last_soc, rec._last_odometer = 80.0, 1000.0
+    rec._last_soc, rec._odometer_reading = 80.0, R.OdometerReading(1000.0, 80.0, None)
     return rec
 
 
@@ -122,7 +122,7 @@ def test_repeated_frame_while_parked_is_still_recorded():
     rec = R.Recorder(_SpyDB(), vehicle_id=1)
     rec._started = True
     rec._sm.state = State.PARKED_SLEEP
-    rec._last_soc, rec._last_odometer = 80.0, 1000.0
+    rec._last_soc, rec._odometer_reading = 80.0, R.OdometerReading(1000.0, 80.0, None)
     for _ in range(5):
         rec.process(_vd(1_000, gear="P", speed=0.0))
 

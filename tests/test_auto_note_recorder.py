@@ -106,8 +106,7 @@ def test_reconstructed_trip_triggers_auto_note(tmp_path):
     calls = []
     rec._auto_note_trip = lambda tid: calls.append(tid)
     rec._sm.state = State.PARKED_ACTIVE
-    rec._last_odometer = 1000.0
-    rec._last_soc, rec._last_soc_ts = 60.0, "2026-06-09T10:00:00+00:00"
+    rec._odometer_reading = R.OdometerReading(1000.0, 60.0, "2026-06-09T10:00:00+00:00")
 
     rec._maybe_reconstruct_trip(_vd(soc=60.0, odometer_km=1010.0))   # +10 km, flat SoC → a drive
 

@@ -45,8 +45,7 @@ def _rec(state=State.PARKED_ACTIVE, last_odo=1000.0, last_soc=60.0):
     rec = R.Recorder(_CountDB(), vehicle_id=1)
     rec._sm.state = state
     rec._active_trip_id = None
-    rec._last_odometer = last_odo
-    rec._last_soc, rec._last_soc_ts = last_soc, "2026-07-04T20:00:00+00:00"
+    rec._odometer_reading = R.OdometerReading(last_odo, last_soc, "2026-07-04T20:00:00+00:00")
     return rec
 
 
@@ -55,7 +54,7 @@ def test_reconstructs_on_parked_odometer_jump():
     rec = _rec(last_odo=1000.0, last_soc=60.0)
     rec._maybe_reconstruct_trip(_vd(53.0, 1015.0))       # +15 km while parked, SoC fell → a real drive
     assert rec._db.trips == [(1000.0, 1015.0, 60.0, 53.0)]
-    assert rec._last_odometer == 1015.0                  # baseline advanced (won't re-fire next poll)
+    assert rec._odometer_reading.odometer_km == 1015.0   # baseline advanced (won't re-fire next poll)
 
 
 # ── NEGATIVES: none of these must invent a phantom trip ───────────────────────

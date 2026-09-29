@@ -5,7 +5,7 @@ import logging
 import threading
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from typing import Optional
+from typing import NamedTuple, Optional
 
 from db import (Database, _WB_STUCK_MIN_KW, _now_iso, _generator_was_running)
 from state_machine import (State, StateMachine, StateEvent, _PARKED_STATES,
@@ -20,6 +20,14 @@ def _frame_iso(data: VehicleData) -> Optional[str]:
     if not getattr(data, "timestamp_ms", None):
         return None
     return datetime.fromtimestamp(data.timestamp_ms / 1000, timezone.utc).isoformat()
+
+
+class OdometerReading(NamedTuple):
+    """The odometer the unseen kilometres are measured from, with the SoC and the time (ours) it
+    was read at: their energy and their start come from the same reading."""
+    odometer_km: float
+    soc: Optional[float]
+    at: Optional[str]
 
 
 class Recorder:
@@ -47,9 +55,9 @@ class Recorder:
         # sees the state the close just produced. See the guard there.
         self._charge_closed_this_poll: bool = False
         self._reconstruct_min_pct: float = 2.0   # min SoC rise to call it a (missed) charge
-        # Odometer-jump TRIP reconstruction (#118): baseline odometer. A parked car's odometer never
-        # moves, so any jump while parked = a drive we missed offline. Whole-km signal → 1 km floor.
-        self._last_odometer: Optional[float] = None
+        # Odometer-jump TRIP reconstruction (#118): baseline odometer reading. A parked car's odometer
+        # never moves, so any jump while parked = a drive we missed offline. Whole-km signal → 1 km floor.
+        self._odometer_reading: Optional[OdometerReading] = None
         self._reconstruct_min_km: float = 1.0
         # When the cloud last told us something NEW — our own clock, stamped only on a fresh frame.
         # Deliberately NOT the SoC baseline above, which moves on every poll: while the link is dark
@@ -131,7 +139,9 @@ class Recorder:
                 self._last_soc, self._last_soc_ts = data.soc, _now_iso()
             # Seed the odometer baseline too, so a DRIVE during poller downtime is caught on the first
             # poll back (odometer-jump trip reconstruction, #118). None on a fresh DB → first poll just seeds it.
-            self._last_odometer = self._db.get_last_odometer(self._vehicle_id)
+            odometer = self._db.get_last_odometer(self._vehicle_id)
+            self._odometer_reading = (None if odometer is None else
+                                      OdometerReading(odometer, self._last_soc, self._last_soc_ts))
             # And the frame baseline, for the same reason the other two are seeded: it lives in memory,
             # so without this the FIRST poll after any restart can never be a repeat — and a frame the
             # cloud is only re-serving gets recorded as if it were fresh. See get_last_frame_ts.
@@ -231,8 +241,6 @@ class Recorder:
                     # across time nobody measured is not a total (#295). Counted, not guessed.
                     self._db.note_wallbox_unread(self._active_charge_id, self._sm.poll_interval / 60)
 
-        # Order matters: trip reconstruction reads the SoC baseline (for the energy delta) BEFORE the
-        # charge reconstruction advances it. Trip advances its OWN odometer baseline.
         self._maybe_reconstruct_trip(data, fresh_ts_before)
         self._maybe_reconstruct_charge(data)
         # Last, so everything above still saw the previous one. No `and data.timestamp_ms` guard:
@@ -279,14 +287,14 @@ class Recorder:
         `_last_fresh_ts` still holds the moment the cloud last had news — which is where the
         silence began, and is not the same as the last poll.
         """
-        prev_odo, prev_soc = self._last_odometer, self._last_soc
-        if data is None or prev_odo is None or prev_soc is None:
+        prev = self._odometer_reading
+        if data is None or prev is None or prev.soc is None:
             return
         self._db.record_offline_gap(
             self._vehicle_id,
             started_at=self._last_fresh_ts or _now_iso(), ended_at=_now_iso(),
-            odo_start=prev_odo, odo_end=data.odometer_km or 0,
-            soc_start=prev_soc, soc_end=data.soc)
+            odo_start=prev.odometer_km, odo_end=data.odometer_km or 0,
+            soc_start=prev.soc, soc_end=data.soc)
 
     def _maybe_reconstruct_trip(self, data: VehicleData,
                                 fresh_ts_before: Optional[str] = None) -> None:
@@ -300,10 +308,11 @@ class Recorder:
         state == DRIVING) is skipped here — the live path records those, with GPS. We only reconstruct when
         parked, with no trip open, the odometer clearly advanced (≥1 km, both readings valid — the 0-glitch
         guard), and the SoC did NOT rise (a rise means a charge, which _maybe_reconstruct_charge owns)."""
-        prev_odo, prev_soc, prev_ts = self._last_odometer, self._last_soc, self._last_soc_ts
-        self._last_odometer = data.odometer_km                  # advance the odometer baseline every poll
-        if prev_odo is None or prev_soc is None or prev_ts is None:
+        prev = self._odometer_reading
+        self._odometer_reading = OdometerReading(data.odometer_km, data.soc, _now_iso())   # every poll
+        if prev is None or prev.soc is None or prev.at is None:
             return
+        prev_odo, prev_soc, prev_ts = prev
         if self._sm.state not in _PARKED_STATES or self._active_trip_id is not None:
             return                                              # a live trip owns this drive
         if not (prev_odo > 0 and (data.odometer_km or 0) > prev_odo):
@@ -409,7 +418,7 @@ class Recorder:
             self._finalize_trip(data)
             # This reading is accounted for, so the reconstruction later in this poll must not
             # find the hole's kilometres again.
-            self._last_odometer = data.odometer_km
+            self._odometer_reading = OdometerReading(data.odometer_km, data.soc, _now_iso())
         else:
             ended_at, row = (self._db.trip_last_seen(self._active_trip_id, before=self._polled_at)
                              or self._db.trip_opening(self._active_trip_id))
@@ -478,8 +487,9 @@ class Recorder:
         end = self._db.charge_end_from_last_charging(self._active_charge_id)
         if end is not None:
             last_soc, _ended_at = end
-            moved = (self._last_odometer or 0) > 0 and (data.odometer_km or 0) > 0 \
-                and data.odometer_km > self._last_odometer
+            last_odo = self._odometer_reading.odometer_km if self._odometer_reading else 0
+            moved = (last_odo or 0) > 0 and (data.odometer_km or 0) > 0 \
+                and data.odometer_km > last_odo
             if not moved and data.soc > last_soc:
                 end = (data.soc, _frame_iso(data) or _now_iso())
         if self._charge_at_wallbox:

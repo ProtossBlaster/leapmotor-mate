@@ -81,7 +81,7 @@ def test_the_regen_gate_takes_an_unknown_current_as_no_regen():
     rec._started = True
     rec._sm.state = State.DRIVING
     rec._active_trip_id = 7
-    rec._last_soc, rec._last_odometer = 80.0, 1000.0
+    rec._last_soc, rec._odometer_reading = 80.0, R.OdometerReading(1000.0, 80.0, None)
     frame = VehicleData(
         vin="TESTVIN", timestamp_ms=1_000, soc=80.0, range_km=300, odometer_km=1000.0,
         speed_kmh=50.0, gear="D", vehicle_state="driving", charging_status=0, charge_power_kw=0.0,

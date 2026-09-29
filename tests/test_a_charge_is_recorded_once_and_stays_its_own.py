@@ -47,7 +47,7 @@ def _recorder():
     db._conn.commit()
     rec = R.Recorder(db, vehicle_id=1)
     rec._started = True
-    rec._last_odometer = 1000.0
+    rec._odometer_reading = R.OdometerReading(1000.0, None, None)
     return db, rec
 
 

@@ -57,8 +57,7 @@ def _rec(last_odo=5585.0, last_soc=68.8):
     rec = R.Recorder(_DB(), vehicle_id=1)
     rec._sm.state = State.PARKED_ACTIVE
     rec._active_trip_id = None
-    rec._last_odometer = last_odo
-    rec._last_soc, rec._last_soc_ts = last_soc, "2026-09-15T12:51:00+00:00"
+    rec._odometer_reading = R.OdometerReading(last_odo, last_soc, "2026-09-15T12:51:00+00:00")
     return rec
 
 
@@ -100,4 +99,4 @@ def test_the_baseline_still_advances_so_it_fires_once():
     rec._maybe_reconstruct_trip(_vd(91.1, 5665.0))
     rec._maybe_reconstruct_trip(_vd(91.1, 5665.0))
     assert len(rec._db.gaps) == 1
-    assert rec._last_odometer == 5665.0
+    assert rec._odometer_reading.odometer_km == 5665.0
