@@ -4,7 +4,7 @@
 
 ## Novedades de la versión 4.7.2
 
-Ocho cosas que Mate ya sabía y no usaba.
+Nueve cosas que Mate ya sabía y no usaba.
 
 **Los kilómetros recorridos mientras Mate no veía el coche se conservan.** Si el cuentakilómetros se
 movió mientras Mate estaba sin contacto, ese salto es el único rastro del trayecto — y se perdía en
@@ -36,6 +36,11 @@ encontró la base de datos ocupada se guardaba como si fuera una respuesta.
 
 **El €/kWh de una carga ya dice por qué kilovatios-hora divide** — los que entregó el cargador o los
 que llegaron a la batería. Las dos cifras eran correctas; faltaba la palabra.
+
+**Una programación de carga que tu coche no aceptaba ya pasa.** Si el coche publica con un valor
+inesperado uno de los ajustes que Mate lee y reescribe tal cual, guardar la programación — o cambiar
+el límite de SoC — fallaba por completo. Esos ajustes son del coche, no de Mate: diga lo que diga,
+le vuelve igual.
 
 ### Novedades de la versión 4.7.1
 

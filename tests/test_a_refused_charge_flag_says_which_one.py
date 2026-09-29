@@ -15,6 +15,10 @@ Naming them costs nothing and the poller already logs the refusal, so from here 
 bundle carries the answer with no extra cloud call and no new setting.
 
 ⚠️ The values here are flags — 0, 1, whatever the car said. No VIN, no token, nothing to redact.
+
+🔑 And it worked: four days later his next bundle carried `invalid charge flag circulation=2`, on a
+real C10 — which is why an INTEGER the car published is no longer a fault for the two flags Mate
+only echoes. → tests/test_a_car_owned_charge_flag_is_echoed_not_judged.py
 """
 import pytest
 
@@ -24,7 +28,12 @@ from command_contracts import LeapmotorApiError, charge  # the runtime's own shi
 BASE = dict(chargeEnable=1, chargesoc=90, circulation=1,
             cycles="1,1,1,1,1,1,1", endtime="15:00", recharge=0, starttime="11:00")
 
-REFUSED = (2, -1, None, True, False, "1", 1.0, "")
+# What Mate could not READ. An integer the CAR published is a different thing, and for the two
+# flags Mate reads from the car and writes straight back it now goes through unchanged.
+UNREADABLE = (None, True, False, "1", 1.0, "")
+# `chargeEnable` is Mate's own switch: nothing reads it off the car, so 0/1 is all it can be.
+REFUSED_FOR = {"chargeEnable": (2, -1) + UNREADABLE,
+               "circulation": UNREADABLE, "recharge": UNREADABLE}
 
 
 def _refusal(**over):
@@ -39,8 +48,7 @@ def test_the_car_s_own_schedule_still_goes_through():
     assert charge(dict(BASE)) == BASE
 
 
-@pytest.mark.parametrize("flag", ("chargeEnable", "circulation", "recharge"))
-@pytest.mark.parametrize("value", REFUSED)
+@pytest.mark.parametrize("flag,value", [(f, v) for f, vs in REFUSED_FOR.items() for v in vs])
 def test_the_refusal_names_the_flag_and_what_it_held(flag, value):
     message = _refusal(**{flag: value})
     assert flag in message, f"{flag}={value!r} refused without saying which flag: {message!r}"
@@ -51,8 +59,8 @@ def test_the_refusal_names_the_flag_and_what_it_held(flag, value):
 def test_two_different_faults_do_not_read_the_same():
     """The defect itself: one sentence over three flags. Whatever the wording, `circulation` going
     wrong must not print what `recharge` going wrong prints."""
-    assert _refusal(circulation=2) != _refusal(recharge=2)
-    assert _refusal(circulation=2) != _refusal(circulation=None)
+    assert _refusal(circulation=None) != _refusal(recharge=None)
+    assert _refusal(circulation=None) != _refusal(circulation="")
 
 
 def test_a_day_mask_with_no_days_still_says_that_instead():

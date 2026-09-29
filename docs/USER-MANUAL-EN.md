@@ -4,7 +4,7 @@
 
 ## New in 4.7.2
 
-Eight things Mate already knew and did not use.
+Nine things Mate already knew and did not use.
 
 **Kilometres you drove while Mate could not see the car are kept.** If the odometer has moved while
 Mate was out of touch, that jump is the only trace of the drive — and it used to be lost in two
@@ -36,6 +36,11 @@ answer.
 **The €/kWh on a charge now says which kilowatt-hours it divides by** — the ones the charger
 delivered, or the ones that reached the battery. Both figures were right; only the word was
 missing.
+
+**A charge schedule your car would not accept now goes through.** If your car publishes one of
+the settings Mate reads and writes straight back with a value Mate did not expect, saving the
+schedule — or changing the SoC limit — used to fail entirely. Those settings are your car's, not
+Mate's, so whatever it says goes back to it unchanged.
 
 ### New in 4.7.1
 

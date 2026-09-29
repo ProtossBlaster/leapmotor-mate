@@ -4,7 +4,7 @@
 
 ## Neu in Version 4.7.2
 
-Acht Dinge, die Mate bereits wusste und nicht nutzte.
+Neun Dinge, die Mate bereits wusste und nicht nutzte.
 
 **Kilometer, die Sie gefahren sind, während Mate das Auto nicht sehen konnte, bleiben erhalten.**
 Hat sich der Kilometerstand bewegt, während Mate ohne Verbindung war, ist dieser Sprung die einzige
@@ -40,6 +40,11 @@ eine Antwort.
 **Das €/kWh eines Ladevorgangs sagt jetzt, durch welche Kilowattstunden es teilt** — die von der
 Ladesäule abgegebenen oder die in der Batterie angekommenen. Beide Zahlen waren richtig; es fehlte
 das Wort.
+
+**Ein Ladeplan, den Ihr Auto nicht angenommen hat, geht jetzt durch.** Veröffentlicht das Auto eine
+der Einstellungen, die Mate ausliest und unverändert zurückschreibt, mit einem unerwarteten Wert, so
+schlug das Speichern des Plans — oder das Ändern der SoC-Grenze — vollständig fehl. Diese
+Einstellungen gehören dem Auto, nicht Mate: was es sagt, geht unverändert zurück.
 
 ### Neu in Version 4.7.1
 

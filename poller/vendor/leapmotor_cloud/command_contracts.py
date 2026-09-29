@@ -133,12 +133,23 @@ def navigation(state):
 
 def charge(state):
     fields(state,CHARGE_KEYS)
-    # Name the flag and what it held. Only chargeEnable is the caller's to choose; circulation and
-    # recharge are read from the car and written straight back, so when a car publishes something
-    # else the owner is stopped by a sentence naming none of the three, and nor can the caller act
-    # on it (leapmotor-mate #343). Flags only: no VIN, no token, nothing to redact.
-    for key in ('chargeEnable','circulation','recharge'):
-        if type(state[key])is not int or state[key] not in (0,1):
+    # Name the flag and what it held. Flags only: no VIN, no token, nothing to redact. That naming
+    # is what produced the measurement below, from @jcconca's bundle four days later
+    # (leapmotor-mate #343): `invalid charge flag circulation=2`, on a real C10 — not `recharge`,
+    # which is what everyone had assumed, and every nightly automation of his failing since.
+    #
+    # cmd 190 re-sends the car's WHOLE plan. Only chargeEnable and chargesoc are the caller's to
+    # choose; circulation and recharge are read out of the car's own config.3 and written straight
+    # back. {0,1} for those two was assumed, never measured, and a car publishing 2 stopped its
+    # owner from changing the one field they did ask about. Its own integer goes back unchanged.
+    #
+    # An integer, and only an integer: None, '', '1', 1.0 and booleans mean the value could not be
+    # READ, which is a different thing from a value the car said. chargeEnable keeps 0/1 — it is a
+    # switch, and nothing reads it off the car to echo back.
+    if type(state['chargeEnable'])is not int or state['chargeEnable'] not in (0,1):
+        fail('invalid charge flag chargeEnable=%r'%(state['chargeEnable'],))
+    for key in ('circulation','recharge'):
+        if type(state[key])is not int:
             fail('invalid charge flag %s=%r'%(key,state[key]))
     if type(state['chargesoc'])is not int or not 50<=state['chargesoc']<=100:fail('charge target must be 50..100')
     for key in ('starttime','endtime'):

@@ -4,7 +4,7 @@
 
 ## Nouveautés de la version 4.7.2
 
-Huit choses que Mate savait déjà et n'utilisait pas.
+Neuf choses que Mate savait déjà et n'utilisait pas.
 
 **Les kilomètres parcourus pendant que Mate ne voyait pas la voiture sont conservés.** Si le
 compteur a bougé pendant que Mate était hors de contact, ce saut est la seule trace du trajet — et
@@ -37,6 +37,11 @@ occupée était conservée comme si c'était une réponse.
 
 **Le €/kWh d'une recharge dit maintenant par quels kilowattheures il divise** — ceux délivrés par la
 borne, ou ceux arrivés dans la batterie. Les deux chiffres étaient justes ; il manquait le mot.
+
+**Une programmation de recharge que votre voiture refusait passe désormais.** Si la voiture publie
+avec une valeur inattendue l'un des réglages que Mate lit et réécrit tels quels, enregistrer la
+programmation — ou changer la limite de SoC — échouait entièrement. Ces réglages sont ceux de la
+voiture, pas ceux de Mate : ce qu'elle dit lui revient inchangé.
 
 ### Nouveautés de la version 4.7.1
 
