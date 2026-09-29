@@ -339,6 +339,7 @@ templates.env.globals.update(
     charge_energy=db_reader.charge_energy_view,
     # …and the figure the €/kWh on the cost cell divides by, the same one the totals sum.
     billed_kwh=db_reader._billed_kwh,
+    billed_basis=db_reader.billed_basis,
     # #144 — the temperature sensors this car has never once reported, so the status card can leave
     # them out instead of promising a number that will never arrive. A GLOBAL for exactly the reason
     # above: `status_card.html` is rendered by the Overview AND by partials that build their own

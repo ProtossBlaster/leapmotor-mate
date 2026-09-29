@@ -38,10 +38,14 @@
      @Tommy73LMB05: an HPC session read 17,45 € / +41,2 kWh In der Batterie / 0,37 €/kWh, while the
      Overview's Ø-Preis in der Batterie read 0,405. Both right — 17,45/47,28 typed from the column,
      17,45/41,2 into the pack — and the screen called both of them €/kWh, so the only way to find
-     out which was which was to open an issue. The basis is read from `charge_energy`, the same
-     place `_billed_kwh` decides it, so the word cannot drift from the number. #}
+     out which was which was to open an issue.
+
+     🔑 `billed_basis` reads the very branches `_billed_kwh` took one line above. The card's own
+     headline could NOT be used: on his charge it says 'battery' (41,2 kWh in the pack) while the
+     rate divides by the typed 47,28 — labelling the rate from the headline would have put the
+     wrong word under a right number, which is this defect mirrored. #}
   {% if charge.cost is not none and _billed > 0 %}
-  {% set _basis = charge_energy(charge).headline %}
+  {% set _basis = billed_basis(charge) %}
   <div style="font-size:11px;color:#94a3b8;font-weight:400">{{ (charge.cost / _billed) | money }}/kWh
     <span style="font-size:10px;color:#64748b" title="{{ t('rate_basis_help') }}">{{
       t('energy_in_battery') if _basis == 'battery' else t('cal_kwh_delivered') }}</span>

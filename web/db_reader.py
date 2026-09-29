@@ -9112,6 +9112,27 @@ def _billed_kwh(c) -> float:
     return c.get("energy_added_kwh") or 0
 
 
+def billed_basis(c) -> str:
+    """'delivered' or 'battery' — WHICH kilowatt-hours `_billed_kwh` just divided by.
+
+    #346: the €/kWh on a charge card divides by `_billed_kwh`, and the card above it leads with
+    `charge_energy_view`'s headline. On a public charge with the column's own figure typed in the two
+    differ — headline 'battery' (41,2 kWh in the pack) while the rate divides by the typed 47,28 —
+    so labelling the rate from the headline would have put the wrong word under a right number,
+    which is the defect it was meant to fix, mirrored.
+
+    Read from the same three branches as the figure, immediately above, so the word and the number
+    cannot drift. A merged plug-in says 'battery' only when every piece contributed its battery
+    figure."""
+    pieces = c.get("_pieces")
+    if pieces:
+        return "battery" if all(billed_basis(p) == "battery" for p in pieces) else "delivered"
+    if _metered_at_home(c):
+        return "delivered"
+    g = c.get("gross_kwh")
+    return "delivered" if (g and g > 0) else "battery"
+
+
 def price_coverage(cost_total, kwh_priced, priced_n, total_n) -> dict:
     """The €/kWh actually paid — over the PRICED charges ALONE — and how much of the period that
     covers. Single source of truth for the rule, because the obvious shortcut is wrong: a charge

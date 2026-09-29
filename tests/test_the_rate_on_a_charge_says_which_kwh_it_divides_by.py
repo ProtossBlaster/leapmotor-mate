@@ -56,9 +56,18 @@ def _page(tmp_path, monkeypatch, **charge):
 def _rate_line(html):
     """The €/kWh line of the cost cell, as one string."""
     import re
-    m = re.search(r'<div style="font-size:11px;color:#94a3b8;font-weight:400">(.*?)</div>', html, re.S)
-    assert m, "the charge card shows no €/kWh line at all"
-    return " ".join(m.group(1).split())
+    # Anchored on the cost cell's own id. The gross-kWh block under the energy card carries the
+    # same inline style and comes FIRST in the page, and it says "delivered" all by itself — a
+    # loose search matched that instead and reported the rate as labelled when it was not.
+    cell = re.search(r'<div id="cost-1".*?(?=<div id="(?!cost-1)|\Z)', html, re.S)
+    assert cell, "the charge card has no cost cell"
+    m = re.search(r'<div style="font-size:11px;color:#94a3b8;font-weight:400">(.*?)</div>',
+                  cell.group(0), re.S)
+    assert m, "the cost cell shows no €/kWh line at all"
+    # VISIBLE text only. The label's own tooltip explains the difference, so it names both
+    # "delivered" and "battery" — asserted against the raw markup, every assertion below passes
+    # whatever the label says, which is exactly how a wrong label survived its first test.
+    return " ".join(re.sub(r"<[^>]+>", " ", m.group(1)).split())
 
 
 def test_a_typed_charger_figure_is_named_on_the_rate(tmp_path, monkeypatch):
