@@ -1568,6 +1568,11 @@ class Database:
         """The last `positions` row inside this trip, and the moment it stands for. The row carries
         what `finalize_trip` reads from a frame, under the same names.
 
+        "Last" is in the order the rows were written, not by our clock, which can step back: the
+        latest time is then an earlier reading, and a trip closed on it ends short of the odometer
+        the car last gave. The window below is still on our clock, so a step back further than the
+        trip so far, or than the silence after it, hides rows from it.
+
         `before` (our clock) leaves out the rows saved from then on: the recorder saves the frame in
         hand before it decides what that frame means, so "the last row" alone would be that frame.
 
@@ -1584,7 +1589,7 @@ class Database:
         row = self._conn.execute(
             "SELECT recorded_at, frame_ts, soc, odometer_km, latitude, longitude,"
             " fuel_level_pct, fuel_liters FROM positions"
-            " WHERE vehicle_id=? AND recorded_at>=?" + bound + " ORDER BY recorded_at DESC LIMIT 1",
+            " WHERE vehicle_id=? AND recorded_at>=?" + bound + " ORDER BY id DESC LIMIT 1",
             (trip["vehicle_id"], trip["started_at"], *args)).fetchone()
         if row is None:
             return None
