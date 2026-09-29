@@ -61,6 +61,7 @@ def _env(undefined: type[jinja2.Undefined] = _Quiet):
     env.globals["gross_kwh_ok"] = lambda: True
     env.globals["charge_energy"] = db_reader.charge_energy_view
     env.globals["billed_kwh"] = db_reader._billed_kwh
+    env.globals["billed_basis"] = db_reader.billed_basis
     env.globals["solar_kwh_ok"] = lambda: True
     env.globals["solar_mode_on"] = lambda: False
     env.globals["dist_unit"] = lambda: "km"

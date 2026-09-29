@@ -28,7 +28,7 @@ def _spanish_status_rows(sync_api, tmp_path_factory, width):
         # One poll, so the card has an odometer, temperatures and a setpoint to print.
         ("INSERT INTO positions (vehicle_id, recorded_at, soc, odometer_km, speed_kmh, gear, "
          " inside_temp, outside_temp, climate_target_temp, battery_min_temp, charging, plug_connected) "
-         " VALUES (1, '2026-09-29T10:00:00+00:00', 61.0, 1930, 0, 'P', 22.5, 18.0, 24.0, 20.0, 0, 1)", ()),
+         " VALUES (1, '2026-09-29T10:00:00+00:00', 61.0, 148305, 0, 'P', 22.5, 18.0, 24.0, 20.0, 0, 1)", ()),
     ])
     measured = []
     with served(data, db) as url:
@@ -50,6 +50,11 @@ def _spanish_status_rows(sync_api, tmp_path_factory, width):
                     "label_box": label.bounding_box(),
                     "value_box": value.bounding_box(),
                     "value_lines": value.evaluate("el => el.getClientRects().length"),
+                    # Boxes can sit side by side while the INK of an unbreakable word runs out of
+                    # its own box and under the value — "Cuentakilómet148305 km" on screen with a
+                    # measured gap of 12 px. Overflow is the thing to assert; the gap is not enough.
+                    "label_overflow": label.evaluate(
+                        "el => Math.round(el.scrollWidth - el.getBoundingClientRect().width)"),
                 })
         finally:
             browser.close()
@@ -75,6 +80,16 @@ def test_no_spanish_label_touches_its_value(_browser, tmp_path_factory, width):
         gap = vb["x"] - (lb["x"] + lb["width"])
         assert gap >= 4, (f"at {width} px, {row['label']!r} ends {-gap:.1f} px INTO its value "
                           f"{row['value']!r} (gap {gap:.1f} px, needs 4)")
+
+
+@pytest.mark.parametrize("width", [320, 381, 420, 1149])
+def test_a_label_stays_inside_its_own_box(_browser, tmp_path_factory, width):
+    """A label of one long word cannot wrap by itself: `Cuentakilómetros` has nowhere to break, so
+    shrinking its box only pushes the letters out of it and under the value."""
+    for row in _spanish_status_rows(_browser, tmp_path_factory, width):
+        assert row["label_overflow"] <= 1, (
+            f"at {width} px, {row['label']!r} runs {row['label_overflow']} px out of its own box, "
+            f"under the value {row['value']!r}")
 
 
 @pytest.mark.parametrize("width", [381, 1149])

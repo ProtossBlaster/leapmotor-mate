@@ -134,24 +134,24 @@
      number of temperatures survive, so the odometer takes the full width exactly then, and the
      grid closes flush whether three rows are hidden or none. #}
   <div class="flex justify-between gap-2 text-slate-400{{ ' col-span-2' if absent|length is odd else '' }}">
-    <span class="min-w-0">{{ t('odometer') }}</span>
+    <span class="min-w-0 break-words">{{ t('odometer') }}</span>
     <span class="text-white font-medium whitespace-nowrap">{{ (status.odometer_km or 0) | dist(0) }}</span>
   </div>
   {% if 'inside_temp' not in absent %}
   <div class="flex justify-between gap-2 text-slate-400">
-    <span class="min-w-0">{{ t('inside_temp') }}</span>
+    <span class="min-w-0 break-words">{{ t('inside_temp') }}</span>
     <span class="text-white font-medium whitespace-nowrap">{{ status.inside_temp | temp(0) if status.inside_temp is not none else '—' }}</span>
   </div>
   {% endif %}
   {% if 'outside_temp' not in absent %}
   <div class="flex justify-between gap-2 text-slate-400">
-    <span class="min-w-0">{{ t('outside_temp_label') }} <span class="text-slate-600 cursor-help" title="{{ t('outside_temp_title') }}">ⓘ</span></span>
+    <span class="min-w-0 break-words">{{ t('outside_temp_label') }} <span class="text-slate-600 cursor-help" title="{{ t('outside_temp_title') }}">ⓘ</span></span>
     <span class="text-white font-medium whitespace-nowrap">{{ status.outside_temp | temp(0) if status.outside_temp is not none else '—' }}</span>
   </div>
   {% endif %}
   {% if 'ac_target' not in absent %}
   <div class="flex justify-between gap-2 text-slate-400">
-    <span class="min-w-0">{{ t('ac_target') }}</span>
+    <span class="min-w-0 break-words">{{ t('ac_target') }}</span>
     <span class="text-white font-medium whitespace-nowrap">
       {% if status.climate_target_temp is not none %}{{ status.climate_target_temp | temp(0) }}{% else %}—{% endif %}
     </span>
@@ -159,7 +159,7 @@
   {% endif %}
   {% if 'battery_temp' not in absent %}
   <div class="flex justify-between gap-2 text-slate-400">
-    <span class="min-w-0">{{ t('battery_temp') }}</span>
+    <span class="min-w-0 break-words">{{ t('battery_temp') }}</span>
     <span class="text-white font-medium whitespace-nowrap">
       {# `is not none`, not truthiness: these two rows dropped a genuine 0 °C. #144 is that absence
          must not read as zero; the mirror of it is that zero must not read as absence, and a pack
@@ -173,7 +173,7 @@
      missing value must never fall in. Absent is not zero. #}
   {% if status.security_active is not none %}
   <div class="flex justify-between gap-2 text-slate-400 col-span-2">
-    <span class="min-w-0">🔒 {{ t('security_label') }}</span>
+    <span class="min-w-0 break-words">🔒 {{ t('security_label') }}</span>
     <span class="font-semibold whitespace-nowrap {% if status.security_active %}text-emerald-400{% else %}text-slate-500{% endif %}">
       {% if status.security_active %}{{ t('security_on') }}{% else %}{{ t('security_off') }}{% endif %}
     </span>
@@ -193,7 +193,7 @@
      The OTA Update Notice entity stays in Home Assistant (#277) — it is OFF, not wrong.
      → tests/test_the_overview_does_not_claim_the_car_is_up_to_date.py #}
   <div class="flex justify-between gap-2 text-slate-400 col-span-2">
-    <span class="min-w-0">{{ t('last_seen') }}</span>
+    <span class="min-w-0 break-words">{{ t('last_seen') }}</span>
     <!-- WHEN THE CAR LAST REPORTED, not when we last wrote a row. The poller records a row every
          30 s even while the cloud re-serves one frozen frame, so this used to read "22 seconds
          ago" over data that was hours old (#232) — and a figure that is wrong is worse than one

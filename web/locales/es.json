@@ -527,7 +527,7 @@
     "state": "Estado",
     "speed": "Velocidad",
     "gear": "Marcha",
-    "odometer": "Cuentakilómetros",
+    "odometer": "Kilometraje",
     "inside_temp": "Interior",
     "ac_target": "Temperatura de consigna",
     "battery_temp": "Temp. batería",

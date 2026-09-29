@@ -44,6 +44,7 @@ def _render(gross=None, energy=8.0, cost=None, cost_oob=False, location="AC"):
                 "location_type": location, "ac_energy_kwh": None},
         # the same global the app registers, for the same reason as `gross_kwh_ok` elsewhere
         charge_energy=db_reader.charge_energy_view, billed_kwh=db_reader._billed_kwh,
+        billed_basis=db_reader.billed_basis,
         t=lambda k: k, cost_oob=cost_oob)
 
 
