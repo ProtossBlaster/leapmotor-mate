@@ -20,7 +20,26 @@ jobs:
         run: pip install pytest httpx playwright -r poller/requirements.txt -r web/requirements.txt
       - name: Install browser for command UI regressions
         run: python -m playwright install --with-deps chromium
+      # The desktop shell's dependency contract, so tests/test_desktop_payload_contract.py can
+      # actually run here. It asserts that every import web/ and poller/ make is already declared
+      # in the shell MateDesktop ships — the failure mode the shell-compat job below describes, six
+      # times in 176 releases. Without this checkout the test skipped on EVERY CI run and only ever
+      # ran on a machine that happened to have MateDesktop cloned next door (29/09/2026).
+      #
+      # shell-compat and this test answer different questions: that job compares against the shell
+      # already PUBLISHED and, on an ordinary push, only warns — it turns red on a tag. This one is
+      # red the moment the import lands, which is when it is cheap to fix.
+      #
+      # Public repository, so the default token is enough. `testpaths = tests` in pytest.ini keeps
+      # MateDesktop's own root-level test_*.py out of collection — measured: 4491 collected either
+      # way, with the checkout sitting in the workspace.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          repository: ProtossBlaster/MateDesktop
+          path: mate-desktop
       - name: Run tests
+        env:
+          MATE_DESKTOP_REPO: ${{ github.workspace }}/mate-desktop
         run: pytest -q
 
   # ── Does the desktop app still fit this code? ────────────────────────────────────────────
