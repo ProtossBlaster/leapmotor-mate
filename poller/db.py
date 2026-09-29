@@ -2055,10 +2055,36 @@ class Database:
                 if end_odo is not None and trip["start_odometer_km"] is not None \
                         and end_odo < trip["start_odometer_km"]:
                     end_odo = None
+                # The fuel the drive ended on, from the same poll rows and for the same reason as
+                # the odometer above: `trip_positions` does not carry it, and a trip closed here
+                # kept its START reading and lost its end, so `_reev_trip_fuel` held one side of a
+                # subtraction and answered "unknown" for ever. Measured on @ebagnoli's history
+                # (29/09/2026): 11 of his 150 trips, all carrying this path's own fingerprint — a
+                # distance rounded to THREE decimals, which `finalize_trip` never produces.
+                #
+                # The two signals are read independently by the car — 3235 the tank percentage,
+                # 3263 the millilitre counter — and one arrives without the other often enough to
+                # matter (9 more of his trips), so each takes the last poll that carried IT.
+                #
+                # No "went backwards" guard, unlike the odometer: a tank that ROSE is a refuel, and
+                # `_reev_trip_fuel` is what decides that no consumption can be read from such a
+                # drive. Dropping the reading here would delete that evidence and republish the
+                # drive as pure electric instead (beta #30, @pdifeo).
+                # → tests/test_a_trip_closed_by_crash_recovery_keeps_its_end_fuel.py
+                _pct = self._conn.execute(
+                    "SELECT fuel_level_pct FROM positions WHERE vehicle_id=? AND recorded_at BETWEEN ? AND ?"
+                    " AND fuel_level_pct IS NOT NULL ORDER BY recorded_at DESC LIMIT 1",
+                    (vehicle_id, trip["started_at"], ended_at_iso)).fetchone()
+                _lit = self._conn.execute(
+                    "SELECT fuel_liters FROM positions WHERE vehicle_id=? AND recorded_at BETWEEN ? AND ?"
+                    " AND fuel_liters IS NOT NULL ORDER BY recorded_at DESC LIMIT 1",
+                    (vehicle_id, trip["started_at"], ended_at_iso)).fetchone()
                 self._conn.execute(
                     """UPDATE trips SET ended_at=?, end_lat=?, end_lon=?, end_geohash=?, end_soc=?,
                        distance_km=?, duration_min=?, efficiency_kwh_100km=?,
-                       end_odometer_km=COALESCE(?, end_odometer_km)
+                       end_odometer_km=COALESCE(?, end_odometer_km),
+                       fuel_end_pct=COALESCE(?, fuel_end_pct),
+                       fuel_end_l=COALESCE(?, fuel_end_l)
                        WHERE id=?""",
                     (
                         ended_at_iso,
@@ -2066,6 +2092,8 @@ class Database:
                         round(distance_km, 3), round(duration_min, 1),
                         round(efficiency, 2) if efficiency else None,
                         end_odo,
+                        _pct["fuel_level_pct"] if _pct else None,
+                        _lit["fuel_liters"] if _lit else None,
                         trip_id,
                     ),
                 )
