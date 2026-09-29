@@ -261,7 +261,9 @@ class Database:
         # to `database is locked`, on a NAS share, which is exactly a filesystem that cannot give
         # SQLite the shared memory WAL needs). Kept, logged, and printed in the bundle.
         self.journal_mode = (self._conn.execute("PRAGMA journal_mode=WAL").fetchone() or [None])[0]
-        if str(self.journal_mode).lower() != "wal":
+        # `:memory:` answers `memory` and there is no filesystem to blame — the tests open one all
+        # the time, and accusing it was noise in every run and a false alarm to anyone reading a log.
+        if str(self.journal_mode).lower() not in ("wal", "memory"):
             log.warning("SQLite is in '%s' journal mode, not WAL — this database is on a filesystem "
                         "that cannot honour it. Readers will block writers, and a busy moment "
                         "surfaces as 'database is locked'.", self.journal_mode)
@@ -2037,15 +2039,33 @@ class Database:
                 duration_min = (ended_at_dt - started_at).total_seconds() / 60
 
                 end_gh = geohash.encode(last_pos["latitude"], last_pos["longitude"])
+                # The odometer the drive ended on. `trip_positions` does not carry it, so it comes
+                # from the poll rows in the same window — the table this function already reaches
+                # into for the range-extender's fuel just above. Without it the trip keeps an empty
+                # end and the odometer chain that finds unattributed kilometres breaks exactly
+                # there (#298: `odo 3233→—`, 41.4 km, closed by this path after a restart 74
+                # minutes into the drive). A reading that would run the trip backwards, or no
+                # reading at all, leaves the end empty: nothing better exists for it.
+                # → tests/test_a_trip_closed_by_crash_recovery_keeps_its_end_odometer.py
+                _odo = self._conn.execute(
+                    "SELECT odometer_km FROM positions WHERE vehicle_id=? AND recorded_at BETWEEN ? AND ?"
+                    " AND odometer_km IS NOT NULL ORDER BY recorded_at DESC LIMIT 1",
+                    (vehicle_id, trip["started_at"], ended_at_iso)).fetchone()
+                end_odo = _odo["odometer_km"] if _odo else None
+                if end_odo is not None and trip["start_odometer_km"] is not None \
+                        and end_odo < trip["start_odometer_km"]:
+                    end_odo = None
                 self._conn.execute(
                     """UPDATE trips SET ended_at=?, end_lat=?, end_lon=?, end_geohash=?, end_soc=?,
-                       distance_km=?, duration_min=?, efficiency_kwh_100km=?
+                       distance_km=?, duration_min=?, efficiency_kwh_100km=?,
+                       end_odometer_km=COALESCE(?, end_odometer_km)
                        WHERE id=?""",
                     (
                         ended_at_iso,
                         last_pos["latitude"], last_pos["longitude"], end_gh, end_soc,
                         round(distance_km, 3), round(duration_min, 1),
                         round(efficiency, 2) if efficiency else None,
+                        end_odo,
                         trip_id,
                     ),
                 )

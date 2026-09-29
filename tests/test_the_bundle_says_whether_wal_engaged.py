@@ -81,3 +81,21 @@ def test_the_poller_keeps_the_mode_it_got(tmp_path):
             "the poller must keep the answer the pragma gave, so it can complain about it"
     finally:
         pdb._conn.close()
+
+
+def test_an_in_memory_database_is_not_accused_of_a_bad_filesystem(caplog):
+    """`:memory:` answers `memory` to the WAL pragma, and that is the right answer for it — there
+    is no filesystem to blame. The warning added for #338 fired on every test that opens one, which
+    is noise in the logs and a false alarm to anyone reading them.
+    """
+    import logging
+
+    import db as D
+    with caplog.at_level(logging.WARNING):
+        d = D.Database(":memory:")
+    try:
+        assert d.journal_mode is not None
+        accusations = [r.getMessage() for r in caplog.records if "not WAL" in r.getMessage()]
+        assert not accusations, accusations
+    finally:
+        d._conn.close()
