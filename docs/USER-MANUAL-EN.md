@@ -1,8 +1,41 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.6.0 · **Language:** English
+> **Mate version:** v4.7.0 · **Language:** English
 
-## New in 4.6.0
+## New in 4.7.0
+
+**If you drive a Leapmotor with a range extender, Mate is now for you too.** Those models could only
+be read with the BetaTester build; their pages — the REEV page, the petrol per trip and per period,
+and the **REEV battery packs in the setup wizard** — are now on the ordinary add-on and the ordinary
+Docker image.
+
+**The petrol figure is the car's own.** Leapmotor's history holds, for each drive, how much petrol the
+car says it burned, and that is the number the official app shows you. Mate used to work it out
+itself, from the tank level at the two ends of the drive, and on the one drive where all three could
+be compared it came out **20.7% lower** — 3.886 L against 4.9. The car's figure wins now; the tank
+stays as the fallback for a drive Leapmotor has no record of, and each figure says which of the two
+you are looking at. ⚠️ **Some old trips will read differently after this update**: Leapmotor's window
+is about 28 days, so older drives keep the tank's answer, about a fifth lower.
+
+**A drive that burned nothing says so.** A range extender runs mostly on electricity, and those drives
+used to show nothing at all — the same as a drive whose tank Mate could not read. When the car's own
+counter reads the same value at both ends of a drive, that is a measurement, and it now reads `0 L`
+with *all electric* beside it. The blank is back to meaning only one thing: we do not know.
+
+**Regen is braking again.** On a range extender the generator recharges the battery while you drive,
+and Mate was counting that as energy recovered from braking — on the one drive we could measure, 89%
+of it was petrol. It no longer counts it. The figure stays hidden on a range extender, as before, but
+what is stored is now honest.
+
+**A trip is no longer damaged by a restart.** When Mate restarts in the middle of a drive, that trip
+is closed afterwards from what was already recorded. It used to lose its arrival odometer, its
+arrival fuel level and its whole regen figure, which read 0.00 kWh — **that last one on fully electric
+cars too**. All three are now rebuilt from the readings of the drive itself.
+
+Also: if your database refuses writes — some network shares do — the daily clean-up no longer retries
+on every single poll, which was 266 attempts in four hours on the installation that reported it.
+
+### New in 4.6.0
 
 At every poll while you drive, Mate reads the power going out of the battery, the temperature of its
 coldest cell, the range estimate and the outside air. It stored all of it and showed you almost none.
@@ -126,9 +159,12 @@ scheduling…) and, if you like, integrate the data with **Home Assistant** (via
 - **It does not talk to the car directly.** Everything goes through the Leapmotor cloud. When Mate
   "queries" the cloud (polling) it reads the **last known status**: it does *not* wake the car up and
   does *not* drain the battery. It's a safe and inexpensive operation.
-- **Only 100% electric cars (BEV).** The supported models are **T03, B05, B10, C10** in their
-  electric versions. The **REEV** versions (with a petrol range extender) are **not** supported: the
-  energy/consumption/cost calculations would use the wrong battery capacity and come out distorted.
+- **Battery-electric and range-extender.** The supported models are **T03, B05, B10, C10**. Their
+  **REEV** versions, with a petrol range extender, are supported from **4.7.0**: the REEV page, the
+  petrol figures per trip and per period, and the REEV battery packs in the wizard are all on the
+  ordinary build. A range extender does **not** get a regen figure — with a generator refilling the
+  pack while you drive, charging cannot be told apart from braking — and the electric rate of a
+  generator drive stays on the BetaTester build, where it can be watched.
 - **European cloud only (Leapmotor International / Stellantis).** Accounts registered on servers of
   other regions (e.g. China) cannot log in. Outside Europe, Mate currently can't be used.
 - **It is not an accounting tool.** It estimates cost *from the telemetry*; it does not keep track of
@@ -1124,8 +1160,16 @@ often the reason is that the car lost **0.1%**, one single step of its charge se
 drop cannot be told apart from noise, and Mate would rather draw nothing than a number it invented.
 
 **I have a Leapmotor REEV (hybrid with a range extender).**
-It's not supported: the energy calculations would use the BEV battery capacity and come out wrong.
-Mate is **only for the 100% electric versions**.
+Supported from **4.7.0**, on the ordinary build: the REEV page, the petrol per trip and per period,
+and the REEV battery packs in the wizard. The BetaTester build is no longer needed for them.
+The petrol figure is the car's own, taken from Leapmotor's per-trip history — the same number the
+official app shows. Where the cloud has no record of a drive, Mate works the litres out from the tank
+instead, and each figure says which of the two is on screen. The cloud's window is about 28 days, so
+on a long history the older drives read the tank's answer, which measures about 20% lower.
+A drive that burned nothing reads `0 L` with *all electric* beside it, which is not the same as a
+drive whose tank could not be read — that one stays blank.
+Not shown on a range extender: the **regen**, because a generator refilling the pack while you drive
+cannot be told apart from braking.
 
 **I'm not in Europe.**
 At the moment Mate only works with the **European** Leapmotor cloud. Accounts on servers in other

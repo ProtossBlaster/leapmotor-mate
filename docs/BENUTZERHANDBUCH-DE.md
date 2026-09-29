@@ -1,8 +1,43 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.6.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.6.0
+## Neu in Version 4.7.0
+
+**Wenn Sie eine Leapmotor mit Range-Extender fahren, ist Mate jetzt auch für Sie.** Diese Modelle
+ließen sich nur mit dem BetaTester-Build lesen; ihre Seiten — die REEV-Seite, das Benzin je Fahrt und
+je Zeitraum und die **REEV-Batteriepakete im Einrichtungsassistenten** — sind nun im gewöhnlichen
+Add-on und im gewöhnlichen Docker-Image.
+
+**Der Benzinwert ist der des Autos selbst.** Leapmotors Historie hält für jede Fahrt fest, wie viel
+Benzin das Auto verbraucht haben will — das ist die Zahl, die die offizielle App zeigt. Mate rechnete
+sie sich selbst aus, aus dem Tankstand an beiden Enden der Fahrt, und auf der einen Fahrt, auf der sich
+alle drei vergleichen ließen, kam sie **20,7 % niedriger** heraus: 3,886 L gegen 4,9. Jetzt gewinnt
+der Wert des Autos; der Tank bleibt als Rückfall für eine Fahrt, zu der Leapmotor keinen Eintrag hat,
+und jede Zahl sagt, welche der beiden Sie sehen. ⚠️ **Manche alten Fahrten lesen sich nach dem Update
+anders**: Leapmotors Fenster umfasst etwa 28 Tage, ältere Fahrten behalten also die Antwort des Tanks,
+rund ein Fünftel niedriger.
+
+**Eine Fahrt, die nichts verbrannt hat, sagt das jetzt.** Ein Range-Extender fährt meist elektrisch,
+und solche Fahrten zeigten gar nichts an — genau wie eine Fahrt, deren Tank Mate nicht lesen konnte.
+Liest der Zähler des Autos an beiden Enden denselben Wert, ist das eine Messung, und sie steht jetzt
+als `0 L` mit *rein elektrisch* daneben. Das Leere bedeutet wieder nur eines: wir wissen es nicht.
+
+**Rekuperation ist wieder Bremsen.** Bei einem Range-Extender lädt der Generator den Akku während der
+Fahrt nach, und Mate zählte das als beim Bremsen zurückgewonnene Energie — auf der einen messbaren
+Fahrt waren es 89 %. Das zählt es nicht mehr. Der Wert bleibt bei einem Range-Extender verborgen wie
+bisher, aber was gespeichert wird, ist jetzt ehrlich.
+
+**Ein Neustart beschädigt keine Fahrt mehr.** Startet Mate mitten in einer Fahrt neu, wird diese Fahrt
+danach aus dem bereits Aufgezeichneten geschlossen. Früher verlor sie den Kilometerstand am Ende, den
+Tankstand am Ende und die gesamte Rekuperation, die 0,00 kWh anzeigte — **Letzteres auch bei rein
+elektrischen Autos**. Alle drei werden jetzt aus den Messwerten der Fahrt selbst rekonstruiert.
+
+Außerdem: Wenn Ihre Datenbank keine Schreibvorgänge annimmt — manche Netzwerkfreigaben tun das —
+versucht die tägliche Bereinigung es nicht mehr bei jeder einzelnen Abfrage erneut; auf der
+Installation, die das gemeldet hat, waren es 266 Versuche in vier Stunden.
+
+### Neu in Version 4.6.0
 
 Bei jeder Abfrage während der Fahrt liest Mate die Leistung, die aus der Batterie geht, die Temperatur
 ihrer kältesten Zelle, die Reichweitenschätzung und die Außenluft. Gespeichert wurde alles, gezeigt
@@ -129,9 +164,13 @@ Planungen…) und, wenn Sie möchten, die Daten mit **Home Assistant** (über MQ
 - **Es spricht nicht direkt mit dem Auto.** Alles läuft über die Leapmotor-Cloud. Wenn Mate die Cloud
   „abfragt" (Polling), liest es den **zuletzt bekannten Zustand**: Es weckt das Auto *nicht* auf und entlädt die
   Batterie *nicht*. Es ist ein sicherer und günstiger Vorgang.
-- **Nur 100 % elektrische Autos (BEV).** Unterstützt werden **T03, B05, B10, C10** in den elektrischen
-  Versionen. Die **REEV**-Versionen (mit Range-Extender auf Benzin) werden **nicht** unterstützt: Die
-  Berechnungen von Energie/Verbrauch/Kosten würden die falsche Batteriekapazität verwenden und wären verfälscht.
+- **Batterieelektrisch und mit Range-Extender.** Unterstützt werden **T03, B05, B10, C10**. Ihre
+  **REEV**-Versionen, mit Range-Extender auf Benzin, werden ab **4.7.0** unterstützt: die REEV-Seite,
+  die Benzinwerte je Fahrt und je Zeitraum sowie die REEV-Batteriepakete im Einrichtungsassistenten
+  sind alle im gewöhnlichen Build. Bei einem Range-Extender wird **keine** Rekuperation angezeigt —
+  ein Generator, der den Akku während der Fahrt nachlädt, lässt sich nicht vom Bremsen unterscheiden
+  — und der elektrische Verbrauch einer Generator-Fahrt bleibt im BetaTester-Build, wo er beobachtet
+  werden kann.
 - **Nur europäische Cloud (Leapmotor International / Stellantis).** Konten, die auf Servern anderer Regionen
   (z. B. China) registriert sind, können sich nicht anmelden. Außerhalb Europas ist Mate derzeit nicht nutzbar.
 - **Es ist kein Buchhaltungswerkzeug.** Es schätzt die Kosten *anhand der Telemetrie*; es verfolgt keine
@@ -1163,8 +1202,17 @@ Grund, dass das Auto **0,1 %** verloren hat, also einen einzigen Schritt seines 
 Rückgang nicht vom Rauschen unterscheiden, und Mate zeichnet lieber nichts als eine erfundene Zahl.
 
 **Ich habe eine Leapmotor REEV (Hybrid mit Range-Extender).**
-Sie wird nicht unterstützt: Die Energieberechnungen würden die Kapazität der BEV-Batterie verwenden und wären
-verfälscht. Mate ist **nur für die 100 % elektrischen Versionen**.
+Ab **4.7.0** unterstützt, im gewöhnlichen Build: die REEV-Seite, das Benzin je Fahrt und je Zeitraum
+und die REEV-Batteriepakete im Assistenten. Das BetaTester-Build wird dafür nicht mehr gebraucht.
+Der Benzinwert ist der des Autos selbst, aus Leapmotors Historie je Fahrt — dieselbe Zahl, die die
+offizielle App zeigt. Wo die Cloud keinen Eintrag zu einer Fahrt hat, rechnet Mate die Liter aus dem
+Tank aus, und jede Zahl sagt, welche der beiden auf dem Bildschirm steht. Das Fenster der Cloud
+umfasst etwa 28 Tage, in einer langen Historie lesen ältere Fahrten also die Antwort des Tanks, die
+rund 20 % niedriger ausfällt.
+Eine Fahrt, die nichts verbrannt hat, liest `0 L` mit *rein elektrisch* daneben — das ist nicht
+dasselbe wie eine Fahrt, deren Tank nicht gelesen werden konnte: die bleibt leer.
+Bei einem Range-Extender wird die **Rekuperation** nicht angezeigt, weil ein Generator, der den Akku
+während der Fahrt nachlädt, sich nicht vom Bremsen unterscheiden lässt.
 
 **Ich bin nicht in Europa.**
 Derzeit funktioniert Mate nur mit der **europäischen** Leapmotor-Cloud. Konten auf Servern anderer Regionen können

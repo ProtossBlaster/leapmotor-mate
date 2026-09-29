@@ -1,8 +1,45 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.6.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.0 · **Lingua:** Italiano
 
-## Novità della 4.6.0
+## Novità della 4.7.0
+
+**Se guidi una Leapmotor con range extender, adesso Mate è anche per te.** Quei modelli si potevano
+leggere solo con la build BetaTester; le loro pagine — la pagina REEV, la benzina per viaggio e per
+periodo, e i **pacchi batteria REEV nella procedura guidata** — stanno adesso sull'add-on normale e
+sull'immagine Docker normale.
+
+**La cifra della benzina è quella dell'auto.** Lo storico di Leapmotor tiene, per ogni guidata, quanta
+benzina l'auto dice di aver bruciato: è il numero che vedi nell'app ufficiale. Mate se lo calcolava da
+sé, dal livello del serbatoio ai due estremi della guidata, e sull'unica guidata in cui si sono potuti
+confrontare tutti e tre veniva fuori il **20,7% in meno** — 3,886 L contro 4,9. Adesso vince la cifra
+dell'auto; il serbatoio resta come riserva per una guidata di cui Leapmotor non ha record, e ogni
+cifra dice quale delle due stai guardando. ⚠️ **Alcuni viaggi vecchi leggeranno diverso dopo
+l'aggiornamento**: la finestra di Leapmotor è di circa 28 giorni, quindi le guidate più vecchie
+tengono la risposta del serbatoio, circa un quinto più bassa.
+
+**Un viaggio che non ha bruciato niente lo dice.** Una REEV va quasi sempre in elettrico, e quelle
+guidate non mostravano niente — uguale a una guidata di cui Mate non è riuscito a leggere il
+serbatoio. Quando il contatore dell'auto legge lo stesso valore ai due estremi, quella è una misura, e
+adesso legge `0 L` con accanto *tutto elettrico*. Il bianco è tornato a voler dire una cosa sola: non
+lo sappiamo.
+
+**Il recupero in frenata è di nuovo frenata.** Su una REEV il generatore ricarica la batteria mentre
+guidi, e Mate lo contava come energia recuperata dalla frenata — sull'unica guidata misurabile ne era
+l'89%. Adesso non lo conta più. La cifra resta nascosta su una REEV, come prima, ma quello che viene
+salvato adesso è onesto.
+
+**Un riavvio non rovina più un viaggio.** Quando Mate si riavvia in mezzo a una guidata, quel viaggio
+viene chiuso dopo, da quello che era già stato registrato. Prima perdeva il contachilometri d'arrivo,
+il livello del serbatoio all'arrivo e tutto il recupero in frenata, che leggeva 0,00 kWh — **e
+quest'ultimo anche sulle auto completamente elettriche**. Tutti e tre adesso si ricostruiscono dalle
+letture della guidata stessa.
+
+Inoltre: se il tuo database rifiuta le scritture — certe condivisioni di rete lo fanno — la pulizia
+quotidiana non riprova più a ogni singola interrogazione, che sull'installazione che l'ha segnalato
+erano 266 tentativi in quattro ore.
+
+### Novità della 4.6.0
 
 A ogni interrogazione mentre guidi, Mate legge la potenza che esce dalla batteria, la temperatura
 della sua cella più fredda, la stima di autonomia e l'aria esterna. Le conservava tutte e non te ne
@@ -131,9 +168,12 @@ programmazioni…) e, se vuoi, di integrare i dati con **Home Assistant** (via M
 - **Non parla direttamente con l'auto.** Tutto passa dal cloud Leapmotor. Quando Mate "interroga"
   il cloud (polling) legge l'**ultimo stato noto**: *non* sveglia l'auto e *non* scarica la
   batteria. È un'operazione sicura ed economica.
-- **Solo auto 100% elettriche (BEV).** Sono supportate **T03, B05, B10, C10** nelle versioni
-  elettriche. Le versioni **REEV** (con range extender a benzina) **non** sono supportate: i calcoli
-  di energia/consumo/costo userebbero la capacità della batteria sbagliata e risulterebbero falsati.
+- **Elettriche e con range extender.** Sono supportate **T03, B05, B10, C10**. Le loro versioni
+  **REEV**, con range extender a benzina, sono supportate dalla **4.7.0**: la pagina REEV, i litri per
+  viaggio e per periodo e i pacchi batteria REEV nella procedura guidata stanno tutti sulla build
+  normale. Su una REEV **non** viene mostrato il recupero in frenata — con un generatore che ricarica
+  il pacco mentre guidi, la ricarica non si distingue dalla frenata — e il consumo elettrico di un
+  viaggio col generatore resta sulla build BetaTester, dove lo si può tenere d'occhio.
 - **Solo cloud europeo (Leapmotor International / Stellantis).** Account registrati su server di
   altre regioni (es. Cina) non riescono ad accedere. Fuori Europa, al momento, non è utilizzabile.
 - **Non è uno strumento di contabilità.** Stima il costo *a partire dalla telemetria*; non tiene
@@ -1175,8 +1215,18 @@ non si distingue dal rumore, e Mate preferisce non disegnare niente piuttosto ch
 inventato.
 
 **Ho una Leapmotor REEV (ibrida con range extender).**
-Non è supportata: i calcoli di energia userebbero la capacità della batteria BEV e risulterebbero
-sballati. Mate è **solo per le versioni 100% elettriche**.
+È supportata dalla **4.7.0**, sulla build normale: la pagina REEV, la benzina per viaggio e per
+periodo, e i pacchi batteria REEV nella procedura guidata. Per queste cose la build BetaTester non
+serve più.
+I litri sono quelli dell'auto, presi dallo storico per viaggio di Leapmotor — lo stesso numero che
+vedi nell'app ufficiale. Dove il cloud non ha il record di una guidata, Mate li ricava dal serbatoio,
+e ogni cifra dice quale delle due è a schermo. La finestra del cloud è di circa 28 giorni, quindi su
+uno storico lungo i viaggi più vecchi leggono la risposta del serbatoio, che misura circa il 20% in
+meno.
+Un viaggio che non ha bruciato niente legge `0 L` con accanto *tutto elettrico*, che non è la stessa
+cosa di un viaggio di cui non si è potuto leggere il serbatoio: quello resta bianco.
+Su una REEV non viene mostrato il **recupero in frenata**, perché un generatore che ricarica il pacco
+mentre guidi non si distingue da una frenata.
 
 **Non sono in Europa.**
 Al momento Mate funziona solo con il cloud Leapmotor **europeo**. Account su server di altre regioni

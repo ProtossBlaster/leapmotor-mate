@@ -1,8 +1,46 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.6.0 · **Langue :** Français
+> **Version de Mate :** v4.7.0 · **Langue :** Français
 
-## Nouveautés de la version 4.6.0
+## Nouveautés de la version 4.7.0
+
+**Si vous conduisez une Leapmotor à prolongateur d'autonomie, Mate est désormais aussi pour vous.**
+Ces modèles ne pouvaient être lus qu'avec la version BetaTester ; leurs pages — la page REEV, le
+carburant par trajet et par période et les **packs de batterie REEV de l'assistant de configuration** —
+se trouvent maintenant dans le module complémentaire ordinaire et dans l'image Docker ordinaire.
+
+**Le chiffre du carburant est celui de la voiture.** L'historique de Leapmotor conserve, pour chaque
+trajet, la quantité d'essence que la voiture déclare avoir brûlée : c'est le nombre affiché par
+l'application officielle. Mate le calculait lui-même, à partir du niveau du réservoir aux deux
+extrémités du trajet, et sur le seul trajet où les trois ont pu être comparés il ressortait **20,7 %
+plus bas** : 3,886 L contre 4,9. C'est désormais le chiffre de la voiture qui l'emporte ; le réservoir
+reste le recours pour un trajet dont Leapmotor n'a pas d'enregistrement, et chaque chiffre dit lequel
+des deux vous regardez. ⚠️ **Certains anciens trajets se liront différemment après la mise à jour** :
+la fenêtre de Leapmotor est d'environ 28 jours, les trajets plus anciens gardent donc la réponse du
+réservoir, environ un cinquième plus basse.
+
+**Un trajet qui n'a rien brûlé le dit maintenant.** Un prolongateur d'autonomie roule presque toujours
+en électrique, et ces trajets n'affichaient rien du tout — exactement comme un trajet dont Mate n'a pas
+pu lire le réservoir. Lorsque le compteur de la voiture lit la même valeur aux deux extrémités, c'est
+une mesure, et elle s'affiche désormais `0 L` avec *tout électrique* à côté. Le vide ne veut plus dire
+qu'une chose : nous ne savons pas.
+
+**La régénération est de nouveau du freinage.** Sur un prolongateur d'autonomie, le générateur
+recharge la batterie pendant que vous roulez, et Mate comptait cela comme de l'énergie récupérée au
+freinage — sur le seul trajet mesurable, c'en était 89 %. Il ne le compte plus. Le chiffre reste masqué
+sur un prolongateur d'autonomie, comme avant, mais ce qui est enregistré est désormais honnête.
+
+**Un redémarrage n'abîme plus un trajet.** Lorsque Mate redémarre au milieu d'un trajet, ce trajet est
+clos ensuite à partir de ce qui avait déjà été enregistré. Il perdait auparavant son compteur
+kilométrique d'arrivée, son niveau de réservoir d'arrivée et toute sa régénération, qui affichait
+0,00 kWh — **ce dernier point sur les voitures entièrement électriques aussi**. Les trois sont
+désormais reconstruits à partir des relevés du trajet lui-même.
+
+Par ailleurs : si votre base de données refuse les écritures — certains partages réseau le font — le
+nettoyage quotidien ne réessaie plus à chaque interrogation ; sur l'installation qui l'a signalé, cela
+représentait 266 tentatives en quatre heures.
+
+### Nouveautés de la version 4.6.0
 
 À chaque interrogation pendant que vous roulez, Mate lit la puissance qui sort de la batterie, la
 température de sa cellule la plus froide, l'estimation d'autonomie et l'air extérieur. Il gardait
@@ -134,10 +172,13 @@ du véhicule, programmations…) et, si vous le souhaitez, d'intégrer les donn�
 - **Il ne parle pas directement à la voiture.** Tout passe par le cloud Leapmotor. Quand Mate « interroge »
   le cloud (polling), il lit le **dernier état connu** : il *ne* réveille *pas* la voiture et *ne* décharge
   *pas* la batterie. C'est une opération sûre et économique.
-- **Uniquement les voitures 100 % électriques (BEV).** Sont prises en charge les **T03, B05, B10, C10** dans
-  leurs versions électriques. Les versions **REEV** (avec prolongateur d'autonomie à essence) **ne** sont
-  **pas** prises en charge : les calculs d'énergie/consommation/coût utiliseraient la mauvaise capacité de
-  batterie et seraient faussés.
+- **Électriques et à prolongateur d'autonomie.** Sont prises en charge les **T03, B05, B10, C10**.
+  Leurs versions **REEV**, avec prolongateur d'autonomie à essence, sont prises en charge depuis la
+  **4.7.0** : la page REEV, le carburant par trajet et par période et les packs de batterie REEV de
+  l'assistant se trouvent tous dans la version ordinaire. Sur un prolongateur d'autonomie, la
+  régénération n'est **pas** affichée — un générateur qui recharge la batterie pendant que vous
+  roulez ne se distingue pas d'un freinage — et la consommation électrique d'un trajet avec le
+  générateur reste dans la version BetaTester, où on peut la surveiller.
 - **Uniquement le cloud européen (Leapmotor International / Stellantis).** Les comptes enregistrés sur des
   serveurs d'autres régions (ex. Chine) ne parviennent pas à se connecter. Hors d'Europe, pour le moment,
   Mate n'est pas utilisable.
@@ -1184,8 +1225,18 @@ motif est que la voiture a perdu **0,1 %**, soit un seul cran de son capteur de 
 ne se distingue pas du bruit, et Mate préfère ne rien dessiner plutôt qu'un chiffre inventé.
 
 **J'ai une Leapmotor REEV (hybride avec prolongateur d'autonomie).**
-Elle n'est pas prise en charge : les calculs d'énergie utiliseraient la capacité de batterie BEV et seraient
-faussés. Mate est **uniquement pour les versions 100 % électriques**.
+Prise en charge depuis la **4.7.0**, dans la version ordinaire : la page REEV, le carburant par trajet
+et par période, et les packs de batterie REEV de l'assistant. La version BetaTester n'est plus
+nécessaire pour cela.
+Le chiffre du carburant est celui de la voiture elle-même, tiré de l'historique par trajet de
+Leapmotor — le même nombre que celui affiché par l'application officielle. Là où le cloud n'a aucun
+enregistrement d'un trajet, Mate calcule les litres à partir du réservoir, et chaque chiffre dit
+lequel des deux est à l'écran. La fenêtre du cloud est d'environ 28 jours : sur un historique long,
+les trajets les plus anciens lisent donc la réponse du réservoir, qui mesure environ 20 % de moins.
+Un trajet qui n'a rien brûlé affiche `0 L` avec *tout électrique* à côté, ce qui n'est pas la même
+chose qu'un trajet dont le réservoir n'a pas pu être lu : celui-là reste vide.
+Sur un prolongateur d'autonomie, la **régénération** n'est pas affichée, car un générateur qui
+recharge la batterie pendant que vous roulez ne se distingue pas d'un freinage.
 
 **Je ne suis pas en Europe.**
 Pour le moment, Mate ne fonctionne qu'avec le cloud Leapmotor **européen**. Les comptes sur des serveurs

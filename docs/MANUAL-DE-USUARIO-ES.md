@@ -1,8 +1,43 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.6.0 · **Idioma:** Español
+> **Versión de Mate:** v4.7.0 · **Idioma:** Español
 
-## Novedades de la versión 4.6.0
+## Novedades de la versión 4.7.0
+
+**Si conduces un Leapmotor con extensor de autonomía, ahora Mate también es para ti.** Esos modelos
+solo se podían leer con la compilación BetaTester; sus páginas — la página REEV, la gasolina por viaje
+y por periodo y los **paquetes de batería REEV del asistente de configuración** — están ahora en el
+complemento normal y en la imagen Docker normal.
+
+**La cifra de gasolina es la del propio coche.** El historial de Leapmotor guarda, para cada viaje,
+cuánta gasolina dice el coche haber quemado: es el número que ves en la app oficial. Mate la calculaba
+por su cuenta, a partir del nivel del depósito en los dos extremos del viaje, y en el único viaje en
+el que se pudieron comparar los tres salía un **20,7 % menos**: 3,886 L frente a 4,9. Ahora gana la
+cifra del coche; el depósito queda como respaldo para un viaje del que Leapmotor no tiene registro, y
+cada cifra dice cuál de las dos estás mirando. ⚠️ **Algunos viajes antiguos se leerán distinto tras la
+actualización**: la ventana de Leapmotor es de unos 28 días, así que los viajes más antiguos conservan
+la respuesta del depósito, alrededor de una quinta parte más baja.
+
+**Un viaje que no ha quemado nada ahora lo dice.** Un extensor de autonomía circula casi siempre en
+eléctrico, y esos viajes no mostraban nada — igual que un viaje cuyo depósito Mate no pudo leer.
+Cuando el contador del coche lee el mismo valor en los dos extremos, eso es una medida, y ahora se lee
+`0 L` con *todo eléctrico* al lado. El blanco vuelve a significar una sola cosa: no lo sabemos.
+
+**La regeneración vuelve a ser frenada.** En un extensor de autonomía el generador recarga la batería
+mientras conduces, y Mate lo contaba como energía recuperada al frenar — en el único viaje medible era
+el 89 %. Ya no lo cuenta. La cifra sigue oculta en un extensor de autonomía, como antes, pero lo que
+se guarda ahora es honesto.
+
+**Un reinicio ya no estropea un viaje.** Cuando Mate se reinicia en mitad de un viaje, ese viaje se
+cierra después con lo ya registrado. Antes perdía el cuentakilómetros de llegada, el nivel de depósito
+de llegada y toda la regeneración, que marcaba 0,00 kWh — **esto último también en coches totalmente
+eléctricos**. Los tres se reconstruyen ahora a partir de las lecturas del propio viaje.
+
+Además: si tu base de datos rechaza las escrituras — algunos recursos compartidos de red lo hacen — la
+limpieza diaria ya no lo reintenta en cada consulta; en la instalación que lo notificó fueron 266
+intentos en cuatro horas.
+
+### Novedades de la versión 4.6.0
 
 En cada consulta mientras conduces, Mate lee la potencia que sale de la batería, la temperatura de su
 celda más fría, la estimación de autonomía y el aire exterior. Lo guardaba todo y casi nada te lo
@@ -129,10 +164,13 @@ programaciones…) y, si quieres, integrar los datos con **Home Assistant** (med
 - **No habla directamente con el coche.** Todo pasa por la nube de Leapmotor. Cuando Mate «consulta»
   la nube (polling) lee el **último estado conocido**: *no* despierta al coche y *no* descarga la
   batería. Es una operación segura y barata.
-- **Solo coches 100 % eléctricos (BEV).** Los modelos compatibles son **T03, B05, B10, C10** en sus
-  versiones eléctricas. Las versiones **REEV** (con extensor de autonomía de gasolina) **no** están
-  soportadas: los cálculos de energía, consumo y coste usarían la capacidad de batería equivocada y
-  saldrían distorsionados.
+- **Eléctricos y con extensor de autonomía.** Los modelos compatibles son **T03, B05, B10, C10**.
+  Sus versiones **REEV**, con extensor de autonomía de gasolina, están soportadas desde la **4.7.0**:
+  la página REEV, la gasolina por viaje y por periodo y los paquetes de batería REEV del asistente
+  están todos en la compilación normal. En un extensor de autonomía **no** se muestra la regeneración
+  — un generador que recarga la batería mientras conduces no se distingue de una frenada — y el
+  consumo eléctrico de un viaje con el generador se queda en la compilación BetaTester, donde puede
+  vigilarse.
 - **Solo la nube europea (Leapmotor International / Stellantis).** Las cuentas registradas en
   servidores de otras regiones (por ejemplo China) no pueden iniciar sesión. Fuera de Europa, hoy por
   hoy Mate no se puede usar.
@@ -1189,8 +1227,18 @@ ahí una caída no se puede distinguir del ruido, y Mate prefiere no dibujar nad
 inventado.
 
 **Tengo un Leapmotor REEV (híbrido con extensor de autonomía).**
-No está soportado: los cálculos de energía usarían la capacidad de batería de la versión BEV y saldrían
-mal. Mate es **solo para las versiones 100 % eléctricas**.
+Soportado desde la **4.7.0**, en la compilación normal: la página REEV, la gasolina por viaje y por
+periodo y los paquetes de batería REEV del asistente. Para eso ya no hace falta la compilación
+BetaTester.
+La cifra de gasolina es la del propio coche, tomada del historial por viaje de Leapmotor — el mismo
+número que muestra la app oficial. Donde la nube no tiene registro de un viaje, Mate calcula los
+litros a partir del depósito, y cada cifra dice cuál de las dos está en pantalla. La ventana de la
+nube es de unos 28 días, así que en un historial largo los viajes más antiguos leen la respuesta del
+depósito, que mide alrededor de un 20 % menos.
+Un viaje que no ha quemado nada lee `0 L` con *todo eléctrico* al lado, que no es lo mismo que un
+viaje cuyo depósito no se pudo leer: ese se queda en blanco.
+En un extensor de autonomía no se muestra la **regeneración**, porque un generador que recarga la
+batería mientras conduces no se distingue de una frenada.
 
 **No estoy en Europa.**
 Por ahora Mate solo funciona con la nube **europea** de Leapmotor. Las cuentas alojadas en servidores de
