@@ -7,6 +7,7 @@ import base64
 from process_lock import exclusive
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -494,8 +495,16 @@ class NewAPIClient(MateClientCompatibility):
             if isinstance(value, str) and re.fullmatch(r'[0-9]+', value):
                 return int(value)
             return value
-        return dict(chargeEnable=integer('isEnable'),chargesoc=integer('percent'),starttime=c.get('beginTime'),
-                    endtime=c.get('endTime'),cycles=c.get('cycles'),circulation=integer('circulation'),recharge=integer('recharge'))
+        def flag(key):
+            # The same 0/1 flag as a decimal string ("1.0") is still that flag. Anything else -- a
+            # boolean, absent, empty, 2 -- is kept as-is: the plan is re-sent whole, so a default
+            # would rewrite a setting the car really has, and set_charge_limit refuses it by name.
+            value = c.get(key)
+            if isinstance(value, str) and re.fullmatch(r'[0-9]+(\.0+)?', value):
+                value = int(float(value))
+            return value
+        return dict(chargeEnable=flag('isEnable'),chargesoc=integer('percent'),starttime=c.get('beginTime'),
+                    endtime=c.get('endTime'),cycles=c.get('cycles'),circulation=flag('circulation'),recharge=flag('recharge'))
 
     def _post(self,*,path,headers,data,cert):
         envelope=self.read(path,dict(parse_qsl(data,keep_blank_values=True)),form=True)
@@ -541,6 +550,26 @@ class NewAPIClient(MateClientCompatibility):
 
     def set_charge_limit(self,vin,charge_limit_percent):
         current=self._get_charge_appointment(vin)
+        # recharge: 0 never charges past the programmed window, so it is the safe value to send in
+        # place of anything the car published that is not 0/1 (absent, empty, 2, "abc"). The raw
+        # value is logged so a car that sends something odd can be reviewed. A real 1 is the car's
+        # own setting and stays.
+        # circulation: absent or empty gets save_charge_schedule's default (1), but a value the car
+        # DID send and we cannot read is not ours to overwrite: refused below, by name.
+        # chargeEnable has no default: guessing it would switch the plan on or off.
+        log=logging.getLogger(__name__)
+        if type(current.get('recharge')) is not int or current['recharge'] not in (0,1):
+            log.warning('charge plan: car published recharge=%r; sending 0', current.get('recharge'))
+            current['recharge']=0
+        if current.get('circulation') in (None,''):
+            log.warning('charge plan: car published circulation=%r; sending default 1', current.get('circulation'))
+            current['circulation']=1
+        for key in ('chargeEnable','circulation','recharge'):
+            if type(current.get(key)) is not int or current[key] not in (0,1):
+                # charge() below says only "invalid charge flag"; which one is what tells a person
+                # (or a bug report) what the car did not publish.
+                log.warning('charge plan: car published %s=%r', key, current.get(key))
+                raise LeapmotorApiError('Command not sent: invalid charge flag: '+key)
         charge(current)  # Never replace an unreadable schedule with defaults.
         current['chargesoc']=charge_limit_percent
         return self._remote_control_raw(vin=vin,cmd_id='190',cmd_content=json.dumps(current),action_label='set_charge_limit')

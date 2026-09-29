@@ -1348,6 +1348,16 @@ def save_charge_schedule(*, enabled: bool, soc_limit: int, start_time: str, end_
         cycles = cur.get("cycles") or "1,1,1,1,1,1,1"
     circulation = int(cur.get("circulation", 1) or 0)
     recharge    = int(cur.get("recharge", 0) or 0)
+    # The plan is re-sent whole, so a flag the car published outside 0/1 would refuse the entire
+    # save (#343: "invalid charge flag"). recharge 0 never charges past the programmed window, so it
+    # replaces anything unreadable, and the raw value is logged for review. circulation has no
+    # known-safe value: what the car sent is not ours to overwrite, so it is refused BY NAME.
+    if recharge not in (0, 1):
+        log.warning("charge plan: car published recharge=%r; sending 0", cur.get("recharge"))
+        recharge = 0
+    if circulation not in (0, 1):
+        log.warning("charge plan: car published circulation=%r", cur.get("circulation"))
+        return False, "Command not sent: invalid charge flag: circulation"
     return _session.execute(lambda api, vin: api.set_charge_schedule(
         vin, enabled=enabled, soc_limit=int(soc_limit),
         start_time=start_time, end_time=end_time,

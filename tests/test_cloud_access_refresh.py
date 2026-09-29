@@ -85,7 +85,7 @@ def test_charge_limit_normalizes_cloud_strings_and_preserves_plan():
     charge(state)
 
 
-@pytest.mark.parametrize('changes', [{'isEnable': True}, {'percent': '80.5'}, {'recharge': None}])
+@pytest.mark.parametrize('changes', [{'isEnable': True}, {'percent': '80.5'}, {'circulation': None, 'isEnable': None}])
 def test_invalid_charge_state_never_sends(changes):
     api = client()
     api.read = lambda *args, **kwargs: {'data': {'vin': VIN, 'config': {'3': configuration(**changes)}}}
