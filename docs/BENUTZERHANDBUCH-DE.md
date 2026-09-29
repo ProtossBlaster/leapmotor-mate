@@ -1,8 +1,47 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.2 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.1
+## Neu in Version 4.7.2
+
+Acht Dinge, die Mate bereits wusste und nicht nutzte.
+
+**Kilometer, die Sie gefahren sind, während Mate das Auto nicht sehen konnte, bleiben erhalten.**
+Hat sich der Kilometerstand bewegt, während Mate ohne Verbindung war, ist dieser Sprung die einzige
+Spur der Fahrt — und er ging in zwei Fällen verloren: wenn die zurückkehrende Meldung überhaupt
+keinen Kilometerstand trug, und wenn Sie sofort nach der Ankunft eingesteckt haben. Beides wird
+jetzt rekonstruiert. Liegt ein Ladevorgang zwischen den beiden Meldungen, bleiben die Kilometer ohne
+Energiewert: die Batteriedifferenz über eine Ladung hinweg ist nicht das, was die Fahrt verbraucht
+hat.
+
+**Eine Meldung, die das Auto nicht gesendet hat, wird nicht mehr als Null gespeichert.** Eine
+fehlende Geschwindigkeit und ein gemessener Stillstand sahen im Verlauf gleich aus; ein fehlender
+und ein unveränderter Kilometerstand ebenso.
+
+**Eine von einer Uhrumstellung unterbrochene Fahrt endet dort, wo sie wirklich endete.** Geht die Uhr
+Ihres Rechners während der Fahrt zurück — eine NTP-Korrektur, ein aufwachender Raspberry Pi — wurde
+die Fahrt auf der falschen Meldung geschlossen und nahm von dort auch Kilometerstand und SoC des
+Endes.
+
+**Ein Ladevorgang, den das Auto nicht mehr meldet, wird trotzdem gezeichnet.** Drosseln Sie die
+Wallbox mitten in der Sitzung und das Auto meldet den Ladevorgang unterhalb seines Erkennungsstroms
+nicht mehr, endete das Leistungsdiagramm in dieser Minute, während die Ladung noch Stunden lief. Das
+Diagramm, der Wallbox-Vergleich, die Zeitfenster-Aufteilung und die Kosten im dynamischen Tarif
+lesen jetzt die ganze Sitzung. Ihre Kilowattstunden und Ihre Summen waren nie betroffen.
+
+**Beschriftungen landen nicht mehr auf ihren Werten** in Sprachen mit langen Wörtern — vor allem
+Spanisch, auf der Übersichtskarte.
+
+**Eine Installation, die beim alten Cloud-Client geblieben ist, versucht es erneut.** Diese
+Entscheidung wurde ein einziges Mal getroffen, etliche Versionen früher, und eine Prüfung, die
+einfach in einen Timeout lief oder auf eine belegte Datenbank traf, wurde behandelt, als wäre sie
+eine Antwort.
+
+**Das €/kWh eines Ladevorgangs sagt jetzt, durch welche Kilowattstunden es teilt** — die von der
+Ladesäule abgegebenen oder die in der Batterie angekommenen. Beide Zahlen waren richtig; es fehlte
+das Wort.
+
+### Neu in Version 4.7.1
 
 Nichts Neues auf dem Bildschirm: fünf Stellen, an denen Mate vor dem Ende dessen aufhörte, was es
 gerade tat.

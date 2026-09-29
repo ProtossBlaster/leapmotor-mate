@@ -1,8 +1,43 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.1 · **Idioma:** Español
+> **Versión de Mate:** v4.7.2 · **Idioma:** Español
 
-## Novedades de la versión 4.7.1
+## Novedades de la versión 4.7.2
+
+Ocho cosas que Mate ya sabía y no usaba.
+
+**Los kilómetros recorridos mientras Mate no veía el coche se conservan.** Si el cuentakilómetros se
+movió mientras Mate estaba sin contacto, ese salto es el único rastro del trayecto — y se perdía en
+dos casos: cuando la lectura de vuelta no traía cuentakilómetros, y cuando enchufabas nada más
+llegar a casa. Ahora se reconstruyen los dos. Si entre las dos lecturas hay una carga, los
+kilómetros se conservan sin una cifra de energía: la diferencia de batería a través de una carga no
+es lo que gastó el trayecto.
+
+**Una lectura que el coche no envió ya no se guarda como un cero.** Una velocidad ausente y una
+parada medida eran idénticas en el historial; y un cuentakilómetros ausente y otro parado, también.
+
+**Un trayecto interrumpido por un cambio de hora acaba donde acabó de verdad.** Si el reloj de tu
+máquina retrocede a mitad de camino — una corrección NTP, una Raspberry Pi que se despierta — el
+trayecto se cerraba en la lectura equivocada, tomando de ahí también su cuentakilómetros y su SoC
+finales.
+
+**Una carga que el coche deja de declarar se sigue dibujando.** Si bajas la wallbox a mitad de
+sesión y el coche deja de declarar la carga por debajo de su corriente de detección, el gráfico de
+potencia terminaba en ese minuto mientras la carga seguía durante horas. El gráfico, la comparación
+con la wallbox, el reparto por franjas y el coste con tarifa dinámica leen ahora toda la sesión. Tus
+kilovatios-hora y tus totales nunca se vieron afectados.
+
+**Las etiquetas ya no caen encima de sus valores** en los idiomas de palabras largas — el español
+sobre todo, en la tarjeta de resumen.
+
+**Una instalación que se quedó en el cliente antiguo de la nube lo vuelve a intentar.** Esa decisión
+se tomó una sola vez, varias versiones atrás, y una comprobación que simplemente agotó el tiempo o
+encontró la base de datos ocupada se guardaba como si fuera una respuesta.
+
+**El €/kWh de una carga ya dice por qué kilovatios-hora divide** — los que entregó el cargador o los
+que llegaron a la batería. Las dos cifras eran correctas; faltaba la palabra.
+
+### Novedades de la versión 4.7.1
 
 Nada nuevo en pantalla: cinco puntos en los que Mate se paraba antes de terminar lo que estaba
 haciendo.

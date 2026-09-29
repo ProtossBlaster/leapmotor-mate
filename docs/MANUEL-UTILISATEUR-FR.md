@@ -1,8 +1,44 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.1 · **Langue :** Français
+> **Version de Mate :** v4.7.2 · **Langue :** Français
 
-## Nouveautés de la version 4.7.1
+## Nouveautés de la version 4.7.2
+
+Huit choses que Mate savait déjà et n'utilisait pas.
+
+**Les kilomètres parcourus pendant que Mate ne voyait pas la voiture sont conservés.** Si le
+compteur a bougé pendant que Mate était hors de contact, ce saut est la seule trace du trajet — et
+il était perdu dans deux cas : quand la lecture de retour ne portait pas de compteur du tout, et
+quand vous branchiez dès votre arrivée. Les deux sont désormais reconstruits. Si une recharge se
+trouve entre les deux lectures, les kilomètres sont conservés sans chiffre d'énergie : l'écart de
+batterie de part et d'autre d'une recharge n'est pas ce que le trajet a consommé.
+
+**Une lecture que la voiture n'a pas envoyée n'est plus enregistrée comme un zéro.** Une vitesse
+absente et un arrêt mesuré étaient identiques dans l'historique ; un compteur absent et un compteur
+immobile aussi.
+
+**Un trajet interrompu par un changement d'heure se termine là où il s'est vraiment terminé.** Si
+l'horloge de votre machine recule en cours de route — une correction NTP, un Raspberry Pi qui se
+réveille — le trajet était clos sur la mauvaise lecture, en y prenant aussi son compteur et son SoC
+de fin.
+
+**Une recharge que la voiture cesse de déclarer reste tracée.** Si vous baissez la wallbox en pleine
+session et que la voiture cesse de déclarer la recharge sous son courant de détection, le graphique
+de puissance s'arrêtait à cette minute alors que la recharge durait encore des heures. Le graphique,
+la comparaison wallbox, le découpage horaire et le coût en tarif dynamique lisent désormais toute la
+session. Vos kilowattheures et vos totaux n'ont jamais été touchés.
+
+**Les libellés ne débordent plus sur leurs valeurs** dans les langues à mots longs — l'espagnol
+surtout, sur la carte Résumé.
+
+**Une installation restée sur l'ancien client cloud réessaie.** Ce choix avait été fait une seule
+fois, plusieurs versions plus tôt, et une vérification simplement expirée ou tombée sur une base
+occupée était conservée comme si c'était une réponse.
+
+**Le €/kWh d'une recharge dit maintenant par quels kilowattheures il divise** — ceux délivrés par la
+borne, ou ceux arrivés dans la batterie. Les deux chiffres étaient justes ; il manquait le mot.
+
+### Nouveautés de la version 4.7.1
 
 Rien de neuf à l'écran : cinq endroits où Mate s'arrêtait avant la fin de ce qu'il faisait.
 

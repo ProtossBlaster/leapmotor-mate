@@ -1,8 +1,42 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.2 · **Lingua:** Italiano
 
-## Novità della 4.7.1
+## Novità della 4.7.2
+
+Otto cose che Mate già sapeva e non usava.
+
+**I chilometri fatti mentre Mate non vedeva l'auto vengono tenuti.** Se il contachilometri si è
+mosso mentre Mate non era in contatto, quel salto è l'unica traccia della guidata — e si perdeva in
+due casi: quando la lettura di ritorno non portava affatto il contachilometri, e quando attaccavi la
+spina appena arrivato a casa. Adesso vengono ricostruiti entrambi. Se fra le due letture c'è una
+ricarica, i chilometri restano senza una cifra di energia, perché la differenza di batteria
+attraverso una ricarica non è quello che ha speso la guidata.
+
+**Una lettura che l'auto non ha mandato non viene più salvata come zero.** Una velocità mancante e
+una sosta misurata erano identiche nello storico; e così un contachilometri mancante e uno fermo.
+
+**Una guidata interrotta da un cambio d'ora finisce dove è finita davvero.** Se l'orologio della tua
+macchina torna indietro durante la guidata — una correzione NTP, un Raspberry Pi che si risveglia —
+il viaggio veniva chiuso sulla lettura sbagliata, prendendo da lì anche contachilometri e SoC finali.
+
+**Una ricarica che l'auto smette di dichiarare viene comunque disegnata.** Se abbassi la wallbox a
+metà sessione e la tua auto smette di dichiarare la ricarica sotto la sua corrente di rilevamento,
+il grafico della potenza finiva in quel minuto mentre la ricarica andava avanti per ore. Adesso il
+grafico, il confronto con la wallbox, la divisione a fasce e il costo a tariffa dinamica leggono
+tutta la sessione. I tuoi kilowattora e i tuoi totali non sono mai stati toccati.
+
+**Le etichette non finiscono più sopra i loro valori** nelle lingue con parole lunghe — lo spagnolo
+soprattutto, sulla scheda di riepilogo.
+
+**Un'installazione rimasta sul vecchio client del cloud riprova.** Quella scelta era stata fatta una
+volta sola, parecchie versioni fa, e un controllo andato semplicemente in timeout o finito su un
+database occupato veniva tenuto come se fosse una risposta.
+
+**Il €/kWh di una ricarica adesso dice per quali kilowattora divide** — quelli erogati dalla
+colonnina, o quelli arrivati in batteria. Le due cifre erano giuste tutte e due; mancava la parola.
+
+### Novità della 4.7.1
 
 Niente di nuovo a schermo: cinque punti in cui Mate si fermava prima della fine di quello che stava
 facendo.

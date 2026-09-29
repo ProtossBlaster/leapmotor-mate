@@ -1,8 +1,43 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.1 · **Language:** English
+> **Mate version:** v4.7.2 · **Language:** English
 
-## New in 4.7.1
+## New in 4.7.2
+
+Eight things Mate already knew and did not use.
+
+**Kilometres you drove while Mate could not see the car are kept.** If the odometer has moved while
+Mate was out of touch, that jump is the only trace of the drive — and it used to be lost in two
+cases: when the reading that came back carried no odometer at all, and when you plugged in the
+moment you got home. Both are now rebuilt. Where a charge sits between the two readings the
+kilometres are kept without an energy figure, because the battery difference across a charge is not
+what the drive spent.
+
+**A reading your car did not send is no longer stored as a zero.** A missing speed and a measured
+standstill looked the same in the history; so did a missing odometer and one that had not moved.
+
+**A drive interrupted by a clock change ends where it really ended.** If your machine's clock steps
+back mid-drive — an NTP correction, a Raspberry Pi waking up — the trip used to be closed on the
+wrong reading, taking its end odometer and SoC from there too.
+
+**A charge your car stops declaring is still drawn.** If your wallbox is turned down mid-session and
+your car stops flagging the charge below its detection current, the power chart used to end at that
+minute while the charge ran on for hours. The chart, the wallbox comparison, the time-of-use split
+and the dynamic-tariff cost now all read the whole session. Your kilowatt-hours and your totals were
+never affected.
+
+**Labels no longer land on their values** in languages with longer words — Spanish above all, on the
+Summary card.
+
+**An installation left on the old cloud client tries again.** That choice was made once, years of
+releases ago, and a check that simply timed out or hit a busy database was kept as though it were an
+answer.
+
+**The €/kWh on a charge now says which kilowatt-hours it divides by** — the ones the charger
+delivered, or the ones that reached the battery. Both figures were right; only the word was
+missing.
+
+### New in 4.7.1
 
 Nothing new on screen: five places where Mate stopped before the end of what it was doing.
 
