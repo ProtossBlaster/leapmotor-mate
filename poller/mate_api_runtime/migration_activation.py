@@ -12,6 +12,7 @@ from pathlib import Path
 import shutil
 import sqlite3
 import tempfile
+import time
 
 from process_lock import exclusive
 from leapmotor_cloud.private_storage import ensure_private_directory
@@ -22,6 +23,23 @@ from leapmotor_cloud.private_storage import ensure_private_directory
 # so every other account was left on the bundled SDK and never asked again.
 RELEASE = '4.4.0'
 DECISION_KEY = 'mate_api_migration_decision'
+
+# …but a `legacy` decision is not one of those answers. Since 4.2.0 every model qualifies
+# (`_qualify_staged`: "Every model qualifies") and 4.4.0 removed the literal `['B10']` that had kept
+# the others out, so nothing an account can be makes it fail: every stored `legacy` decision is a
+# qualification that did not FINISH — a timeout, a database locked by the other process, a login the
+# cloud refused that minute. Keeping a missing answer for the life of a release pinned such an
+# installation to the bundled SDK for ever, and RELEASE has not moved since 4.4.0: @dommi1966 (#338)
+# is the only public bundle still reading `bundled SDK`, and his first one showed 747
+# `database is locked` — exactly the state that makes the qualification fail.
+#
+# So it is re-attempted; just not on every start, because the qualification performs a live cloud
+# login and that cloud rations them (#296). A decision written before this rule carries no
+# `attempted` at all and is re-attempted at once, which is what moves the installations stuck since
+# 4.4.0. A QUALIFIED decision is untouched by any of this: it promoted session material, it is
+# expensive, and it stays.
+# → tests/test_a_qualification_that_did_not_finish_is_asked_again.py
+RETRY_AFTER_S = 6 * 3600
 
 
 def _settings(database):
@@ -132,9 +150,12 @@ def activate_installation():
         except (ValueError, TypeError):
             previous = {}
         if (previous.get('release') == RELEASE and previous.get('identity') == identity
-                and previous.get('backend') in ('independent', 'legacy')):
+                and (previous.get('backend') == 'independent'
+                     or (previous.get('backend') == 'legacy'
+                         and time.time() - previous.get('attempted', 0) < RETRY_AFTER_S))):
             return _select(previous)
-        decision = dict(release=RELEASE, identity=identity, backend='legacy', state='retained')
+        decision = dict(release=RELEASE, identity=identity, backend='legacy', state='retained',
+                        attempted=time.time())
         stage = None
         try:
             generations = root / '.api-migration-generations'
@@ -144,6 +165,7 @@ def activate_installation():
             result = qualify_installation(database, stage)
             if result['state'] == 'qualified':
                 decision.update(backend='independent', state='qualified')
+                decision.pop('attempted', None)
                 _promote(database, stage, decision)
                 return _select(decision)
             decision['reason'] = result.get('reason', 'qualification_unavailable')
