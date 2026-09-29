@@ -309,3 +309,35 @@ def test_a_merged_drive_adds_up_its_segments(tmp_path, monkeypatch):
     con.row_factory = sqlite3.Row
     index = cloud_fuel_by_trip(con)
     assert index[1] == 4.5, f"the parent should carry all three segments' litres, got {index.get(1)}"
+
+
+def test_an_empty_cloud_record_does_not_block_the_real_one(tmp_path, monkeypatch):
+    """The cloud files a second record over the same drive that says nothing — 0 km and no litres —
+    and the ambiguity rule then refuses BOTH.
+
+    🔴 Measured on @ebagnoli's real history, which is the only reason this is here: **41 of his 98
+    records carry 0 km**, none of them carries any fuel, and one sits across the tail of the 19/09
+    drive. So the calibrated trip — the single drive in the bundle with a figure the owner can check —
+    matched nothing at all, and the cloud-first change did precisely nothing on his install. A demo
+    database invents no such records and showed a clean match; his did not.
+
+    ⚠️ The rule is *no distance AND no litres*, not *no distance*. A record with 0 km and fuel on it
+    is the generator charging a parked car — that fuel is real, Mate simply refuses to blame the
+    driving distance for it (see `_reev_engine_on`). Such a record still counts, still creates the
+    ambiguity, and the trip still falls back to the tank: an honest "cannot tell" instead of a
+    silent loss. Only a record that describes NOTHING is dropped, because it cannot be anyone's
+    answer.
+    """
+    empty = (MINUTES - 2, 2, 0.0, 0.0)                       # 0 km, 0 L, over the drive's tail
+    t = _trip(tmp_path, monkeypatch, records=[(0, MINUTES, KM, CLOUD_L), empty])
+    assert t["fuel_source"] == "cloud", "an empty record still blocks the real one"
+    assert t["fuel_used_l"] == CLOUD_L
+
+
+def test_a_parked_record_that_burned_fuel_still_counts(tmp_path, monkeypatch):
+    """The mirror, and the reason the rule is not simply "drop 0 km": litres on a stationary record
+    are real, so it is NOT dropped — it makes the drive ambiguous and the tank answers. Losing them
+    quietly would be worse than saying we cannot tell."""
+    parked = (MINUTES - 2, 2, 0.0, 0.8)                      # 0 km but 0.8 L really burned
+    t = _trip(tmp_path, monkeypatch, records=[(0, MINUTES, KM, CLOUD_L), parked])
+    assert t["fuel_source"] == "mate", "a stationary burn was dropped instead of blocking"

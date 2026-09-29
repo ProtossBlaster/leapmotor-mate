@@ -198,8 +198,24 @@ def cloud_fuel_by_trip(db):
             # unreadable one into the same None, and only the second is a reason to distrust the
             # record rather than simply have no fuel from it.
             oil = _number(record.get("driveReevOil")) if "driveReevOil" in record else None
+            distance = _number(record.get("totalMileage"))
+            # 🔴 A record that describes NOTHING — no distance and no litres — is dropped before it
+            # can make a drive ambiguous. The cloud files these constantly: **41 of the 98 records**
+            # in @ebagnoli's real history carry 0 km, none of them carries fuel, and one of them sits
+            # across the tail of the 19/09 drive — the single trip in that bundle whose figure the
+            # owner can check against his own app. The ambiguity rule refused both, so the calibrated
+            # trip matched nothing and this whole file did precisely nothing on his install. A seeded
+            # database invents no such records and matched cleanly, which is why this was only found
+            # by rebuilding his own data.
+            #
+            # ⚠️ No distance AND no litres, not no distance. 0 km with fuel on it is the generator
+            # charging a parked car: that fuel is real — Mate only refuses to blame the DRIVING
+            # distance for it (`_reev_engine_on`) — so such a record is kept, still makes the drive
+            # ambiguous, and the tank answers. An honest "cannot tell" beats a silent loss.
+            if not distance and not oil:
+                continue
             key = (vin, start, end)
-            value = (oil, _number(record.get("totalMileage")))
+            value = (oil, distance)
             if key in records and records[key] != value:
                 conflicts.add(key)
             records[key] = value
