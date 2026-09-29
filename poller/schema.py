@@ -247,6 +247,36 @@ CREATE INDEX IF NOT EXISTS idx_poll_log_at ON poll_log(at);
 """
 
 
+def _add_column(conn, sql: str) -> None:
+    """One `ALTER TABLE … ADD COLUMN`, tolerating the column already being there.
+
+    `ensure_schema` is run by the poller AND by the web — that is the whole reason it exists as its
+    own function. On an install being upgraded, both read `PRAGMA table_info(...)` at boot, both see
+    the same column missing, and both issue the same ALTER. Whoever arrives second is told
+    `duplicate column name`, which is not a failure: the column is there, which is all the caller
+    wanted. Raised, though, it left `ensure_schema` — and every migration BELOW that line never ran
+    for that process.
+
+    Measured on @dommi1966's install (#338, 29/09/2026): its web log carries exactly one line,
+    `Schema check skipped: duplicate column name: ac_port_mode`, and `ac_port_mode` sits two thirds
+    of the way down the function. The climate columns, the REEV columns, `fuel_liters`, `frame_ts`,
+    `abilities` and every trips / trip_positions migration come after it.
+
+    ⚠️ ONLY that one message, and only on an ADD COLUMN. A missing table, a bad type, an index the
+    table cannot take: all still raise, because a database that really cannot be migrated has to
+    say so. → tests/test_a_column_another_process_added_does_not_stop_the_migration.py
+    🔑 Caught by its MESSAGE, not by `sqlite3.OperationalError` — this module imports nothing, on
+    purpose (see the module docstring: `web/` has files named like the poller's and a stray import
+    here would load the wrong ones). The message is what decides in either case; only sqlite3 raises
+    out of `conn.execute` here, and anything that is not that one sentence goes straight back up.
+    """
+    try:
+        conn.execute(sql)
+    except Exception as exc:                          # noqa: BLE001 — re-raised below unless it is THE one
+        if "duplicate column name" not in str(exc).lower():
+            raise
+
+
 def ensure_schema(conn) -> None:
     """Create/alter everything Mate's tables need, and NOTHING else.
 
@@ -271,22 +301,22 @@ def ensure_schema(conn) -> None:
     for column, kind in (("charging_place_id", "INTEGER"), ("charging_place_name", "TEXT"),
                          ("charging_place_rate", "REAL"), ("charging_place_source", "TEXT")):
         if column not in place_cols:
-            conn.execute(f"ALTER TABLE charges ADD COLUMN {column} {kind}")
+            _add_column(conn, f"ALTER TABLE charges ADD COLUMN {column} {kind}")
 
     # migration: add battery_min_temp if missing (existing DBs)
     cols = {r[1] for r in conn.execute("PRAGMA table_info(positions)").fetchall()}
     if "climate_target_temp" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN climate_target_temp REAL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN climate_target_temp REAL")
     if "battery_min_temp" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN battery_min_temp REAL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN battery_min_temp REAL")
     if "is_locked" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN is_locked INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN is_locked INTEGER DEFAULT NULL")
     if "climate_on" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN climate_on INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN climate_on INTEGER DEFAULT NULL")
     if "climate_cooling" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN climate_cooling INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN climate_cooling INTEGER DEFAULT NULL")
     if "climate_heating" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN climate_heating INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN climate_heating INTEGER DEFAULT NULL")
     # The SoH estimate asks, once per charge, whether anyone was sitting in the car with the cabin
     # heater or cooler running — a charge like that has its energy/SoC ratio distorted and is left
     # out of the figure. `LIMIT 1` makes it look cheap; it is the opposite, because the answer is
@@ -300,40 +330,40 @@ def ensure_schema(conn) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_positions_cabin_use ON positions(vehicle_id, recorded_at)"
                  " WHERE climate_cooling = 1 OR climate_heating = 1")
     if "climate_defrost" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN climate_defrost INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN climate_defrost INTEGER DEFAULT NULL")
     if "trunk_open" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN trunk_open INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN trunk_open INTEGER DEFAULT NULL")
     if "windows_open" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN windows_open INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN windows_open INTEGER DEFAULT NULL")
     if "sunshade_open" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN sunshade_open INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN sunshade_open INTEGER DEFAULT NULL")
     if "plug_connected" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN plug_connected INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN plug_connected INTEGER DEFAULT NULL")
     if "remaining_charge_min" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN remaining_charge_min INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN remaining_charge_min INTEGER DEFAULT NULL")
     if "charge_voltage_v" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN charge_voltage_v REAL DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN charge_voltage_v REAL DEFAULT NULL")
     if "charge_current_a" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN charge_current_a REAL DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN charge_current_a REAL DEFAULT NULL")
     if "ready" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN ready INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN ready INTEGER DEFAULT NULL")
     if "charge_completed" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN charge_completed INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN charge_completed INTEGER DEFAULT NULL")
     if "security_active" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN security_active INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN security_active INTEGER DEFAULT NULL")
     if "windows_open_count" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN windows_open_count INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN windows_open_count INTEGER DEFAULT NULL")
     # Per-door + left-side window state (the live Overview car image; the poller already computes
     # these — see car_image.py). Names are fixed literals, never user input.
     for _c in ("door_driver_open", "door_passenger_open", "door_rear_left_open",
                "door_rear_right_open", "window_fl_open", "window_rl_open"):
         if _c not in cols:
-            conn.execute(f"ALTER TABLE positions ADD COLUMN {_c} INTEGER DEFAULT NULL")
+            _add_column(conn, f"ALTER TABLE positions ADD COLUMN {_c} INTEGER DEFAULT NULL")
     # migration: AC-port / V2L mode (signal 47). 0 idle / 1 AC charging / 2 V2L discharge. Lets the
     # V2L monitor read per-poll mode AND lets get_vampire_drain EXCLUDE V2L periods (a parked V2L
     # discharge must NOT be counted as standby/vampire drain).
     if "ac_port_mode" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN ac_port_mode INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN ac_port_mode INTEGER DEFAULT NULL")
     # V2L samples are a handful among hundreds of thousands of frames, and every page asks whether
     # the car has used V2L lately. Without this the question is a scan of the whole window — 19731
     # rows and 12.7 ms on a real database, four times that on an add-on, for an answer that is
@@ -345,23 +375,23 @@ def ensure_schema(conn) -> None:
     # migration: extended climate panel (validated on-car 2026-06-20) — fan level (1941 acAirVolume,
     # 1-7), recirculation (1943: 1=recirc / 0=fresh), base climate mode (3713: 0 auto/1 cool/3 heat/4 vent).
     if "fan_level" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN fan_level INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN fan_level INTEGER DEFAULT NULL")
     if "recirculation" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN recirculation INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN recirculation INTEGER DEFAULT NULL")
     if "climate_mode" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN climate_mode INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN climate_mode INTEGER DEFAULT NULL")
     # migration: REEV dual-energy for the live Overview — fuel tank level % (3235), range on fuel
     # alone (3259), and combined battery+fuel range (3261). All NULL on a BEV; the status card shows
     # them only when present (range-extender models). range_km stays the EV-only range (3260).
     for _c in ("fuel_level_pct", "fuel_range_km", "combined_range_km"):
         if _c not in cols:
-            conn.execute(f"ALTER TABLE positions ADD COLUMN {_c} REAL DEFAULT NULL")
+            _add_column(conn, f"ALTER TABLE positions ADD COLUMN {_c} REAL DEFAULT NULL")
     # migration: the litres the car itself counts (signal 3263, millilitres → litres). Everything
     # in litres was until now a percentage multiplied by an ASSUMED tank size, and the assumption
     # was wrong on the C10 (47.5 L, not 50) — so every litre figure a C10 owner ever saw was 5 %
     # high. With this the car does the counting. NULL on a BEV and on every row written before.
     if "fuel_liters" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN fuel_liters REAL DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN fuel_liters REAL DEFAULT NULL")
     # migration: the CAR's own timestamp on the frame this row came from (signal sts, or 1) — #178.
     # `recorded_at` is when MATE wrote the row, which is always a few seconds ago; it says nothing
     # about how old the data inside it is. When the car can't reach the cloud, the cloud keeps
@@ -369,44 +399,44 @@ def ensure_schema(conn) -> None:
     # frame's own time is what lets the web tell those two apart. NULL where the car doesn't
     # report it (and on every row written before this column existed).
     if "frame_ts" not in cols:
-        conn.execute("ALTER TABLE positions ADD COLUMN frame_ts INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN frame_ts INTEGER DEFAULT NULL")
     # migration: the car's DECLARED ability codes (VehicleAbility ints, stored as a JSON list) —
     # lets the diagnostic + future capability-gating show ONLY what a model actually supports,
     # instead of assuming every car has the same commands (#67; also covers models we don't own
     # yet, e.g. the B05). Refreshed by ensure_vehicle on every poller start.
     vcols = {r[1] for r in conn.execute("PRAGMA table_info(vehicles)").fetchall()}
     if "abilities" not in vcols:
-        conn.execute("ALTER TABLE vehicles ADD COLUMN abilities TEXT DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE vehicles ADD COLUMN abilities TEXT DEFAULT NULL")
     # migration: PER-VEHICLE battery capacity (usable + as-new nominal for SoH). Capacity is a
     # vehicle attribute — energy is written as ΔSoC×capacity — so with >1 car per account each
     # needs its OWN (a B10's ~65 kWh vs a T03's ~36 kWh is ~80% off, and it corrupts the STORED
     # trip/charge energy, not just the display). _backfill_vehicle_capacity() then seeds existing
     # rows from the legacy global so a single-car install stays byte-identical.
     if "capacity_kwh" not in vcols:
-        conn.execute("ALTER TABLE vehicles ADD COLUMN capacity_kwh REAL DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE vehicles ADD COLUMN capacity_kwh REAL DEFAULT NULL")
     if "capacity_nominal_kwh" not in vcols:
-        conn.execute("ALTER TABLE vehicles ADD COLUMN capacity_nominal_kwh REAL DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE vehicles ADD COLUMN capacity_nominal_kwh REAL DEFAULT NULL")
     # migration: per-charge wallbox AC energy (the "wallbox, to pay" figure) on existing DBs
     ccols = {r[1] for r in conn.execute("PRAGMA table_info(charges)").fetchall()}
     if "ac_energy_kwh" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN ac_energy_kwh REAL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN ac_energy_kwh REAL")
     if "wallbox_energy_start_kwh" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN wallbox_energy_start_kwh REAL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN wallbox_energy_start_kwh REAL")
     # migration: #215 — energy the car reported drawing while the wallbox counter stood still
     if "wb_stuck_kwh" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN wb_stuck_kwh REAL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN wb_stuck_kwh REAL")
     # migration: #295 — minutes a charge sat open at the wallbox with no counter reading taken
     if "wb_dark_min" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN wb_dark_min REAL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN wb_dark_min REAL")
     # migration: #222 — the charger's own kWh, typed in for a public charge
     if "gross_kwh" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN gross_kwh REAL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN gross_kwh REAL")
     # Backfill which pieces a legacy reading covers, without repricing stored costs. A group entry
     # cleared its children's costs: infer that scope when the parent has an automatic price.
     # With no parent price or a manual total, entry order is ambiguous; retain own positive readings.
     # Pieces with their own costs stay independent; unpriced pieces without readings use the parent.
     if "gross_kwh_from" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN gross_kwh_from INTEGER")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN gross_kwh_from INTEGER")
         conn.execute("UPDATE charges SET gross_kwh_from=id WHERE gross_kwh > 0")
         if "merged_into_id" in ccols:
             # Older schemas encode manual pricing in the type, before cost_manual is added below.
@@ -419,11 +449,11 @@ def ensure_schema(conn) -> None:
                          f"(SELECT id FROM charges WHERE cost IS NOT NULL AND {automatic}))")
     # migration: #272 — the owner's own solar kWh, subtracted from the wallbox energy before pricing
     if "solar_kwh" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN solar_kwh REAL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN solar_kwh REAL")
     # migration: flag charges reconstructed from a SoC jump (car was asleep/offline to the
     # cloud during the charge, so it was never seen live — recorded from the SoC delta instead).
     if "reconstructed" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN reconstructed INTEGER DEFAULT 0")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN reconstructed INTEGER DEFAULT 0")
     # migration: WHY the charge stopped (#289). Reading a duration cannot tell a cable that came
     # out from a car that fell asleep with Mate still watching — and on the bundle that started
     # this, 9 of 13 charges are the second. One word, written at the close; diagnostic only, so
@@ -431,28 +461,28 @@ def ensure_schema(conn) -> None:
     # every path that writes a charge names its reason.
     # → tests/test_a_charge_records_why_it_closed.py
     if "close_reason" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN close_reason TEXT DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN close_reason TEXT DEFAULT NULL")
     # migration: public charging-station label, resolved by the web layer from OSM
     # (web/charger_locator.py; '' = looked up, nothing found). Display-only — it never
     # feeds charge detection, costs or the HOME/AC/FAST/HPC location_type.
     if "location_name" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN location_name TEXT DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN location_name TEXT DEFAULT NULL")
     # migration: link back to the label's source page (openstreetmap.org / openchargemap.org),
     # when the winning candidate had one (web/charger_locator.py _osm_url / OCM's poi/details
     # URL). Display-only, like location_name — NULL on charges labelled before this column
     # existed, until they're re-swept or manually recalculated (📍 button).
     if "location_url" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN location_url TEXT DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN location_url TEXT DEFAULT NULL")
     # migration: #107 — optional free-text user note on a charge (station location, shade,
     # reliability, parking, weather, personal remarks). Display/context only, never computed on.
     if "note" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN note TEXT")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN note TEXT")
     # migration: #120 — mark a HOME charge as FREE (e.g. self-produced solar, or any free home
     # charge). The charge KEEPS its Home location (stays on the Home side of the Home-vs-Public
     # split) but its cost is pinned to 0 and protected from every recompute (compute_cost returns
     # 0 when is_free). "Free-away" stays the FREE location_type — this flag is HOME-only.
     if "is_free" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN is_free INTEGER DEFAULT 0")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN is_free INTEGER DEFAULT 0")
     # migration: #188 — mark a charge the user TYPED IN (the "add a past charge" form or the CSV
     # import) as opposed to one the poller measured. location_type='MANUAL' cannot answer this:
     # it doubles as the COST BASIS someone picks to type the price of a real charge, so an edit
@@ -461,7 +491,7 @@ def ensure_schema(conn) -> None:
     # MANUAL basis plus no telemetry whatsoever (the poller fills lat/lon at charge start and
     # duration/peak power at the end, and a reconstructed charge gets both too).
     if "manual_entry" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN manual_entry INTEGER DEFAULT 0")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN manual_entry INTEGER DEFAULT 0")
         conn.execute(
             "UPDATE charges SET manual_entry = 1 "
             "WHERE location_type = 'MANUAL' AND COALESCE(reconstructed, 0) = 0 "
@@ -483,7 +513,7 @@ def ensure_schema(conn) -> None:
     # single click, and cost_manual=1 (just above) means that click never touches the price they
     # already typed. Left to a human, not guessed at.
     if "cost_manual" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN cost_manual INTEGER DEFAULT 0")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN cost_manual INTEGER DEFAULT 0")
         conn.execute("UPDATE charges SET cost_manual = 1 WHERE location_type = 'MANUAL'")
     # migration: #237 — the car's own odometer at the moment the charge started. Written by the
     # poller from the same frame that opens the charge, TYPED by the owner on a charge they add by
@@ -496,20 +526,20 @@ def ensure_schema(conn) -> None:
     # every older charge on any install that prunes. And it is the ONLY way a charge from before
     # Mate existed can carry kilometres at all — no poll of it was ever made.
     if "odometer_km" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN odometer_km REAL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN odometer_km REAL")
     # migration: manual charge-merge link — twin of the trips one below. A child charge points at
     # the parent it was merged into; the merge writes ONLY this column, so unmerging restores the
     # original rows exactly. See the CREATE TABLE above for why the rows arrive split.
     if "merged_into_id" not in ccols:
-        conn.execute("ALTER TABLE charges ADD COLUMN merged_into_id INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE charges ADD COLUMN merged_into_id INTEGER DEFAULT NULL")
     # migration: manual trip-merge link — a child trip points to the parent it was merged into
     tcols = {r[1] for r in conn.execute("PRAGMA table_info(trips)").fetchall()}
     if "merged_into_id" not in tcols:
-        conn.execute("ALTER TABLE trips ADD COLUMN merged_into_id INTEGER DEFAULT NULL")
+        _add_column(conn, "ALTER TABLE trips ADD COLUMN merged_into_id INTEGER DEFAULT NULL")
     # migration: flag trips RECONSTRUCTED from an odometer jump (car offline/asleep to the cloud —
     # or poller down — for the whole drive, so no DRIVING poll ever fired). Twin of charges.reconstructed.
     if "reconstructed" not in tcols:
-        conn.execute("ALTER TABLE trips ADD COLUMN reconstructed INTEGER DEFAULT 0")
+        _add_column(conn, "ALTER TABLE trips ADD COLUMN reconstructed INTEGER DEFAULT 0")
     # migration: per-trip EC (driving) energy split from the cloud getEC endpoint (Phase 2).
     # efficiency_soc backs up the original SoC-derived efficiency so the EC override is fully
     # reversible; ec_tried counts enrichment attempts (cloud aggregation lags a fresh trip).
@@ -517,25 +547,25 @@ def ensure_schema(conn) -> None:
                    ("ec_ac", "REAL"), ("ec_other", "REAL"), ("ec_tried", "INTEGER DEFAULT 0"),
                    ("ec_stable", "INTEGER DEFAULT 0")):
         if _c not in tcols:
-            conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
+            _add_column(conn, f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
     # migration: #107 — per-trip user note + MANUAL driving tags. drive_mode/one_pedal are user-set
     # because the Leapmotor cloud does not expose drive mode or One-Pedal (verified on-car); they
     # explain consumption differences the raw data can't. Display/context only, never computed on.
     for _c, _t in (("note", "TEXT"), ("drive_mode", "TEXT"), ("one_pedal", "INTEGER")):
         if _c not in tcols:
-            conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
+            _add_column(conn, f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
     # migration: REEV Phase C — fuel tank level % (signal 3235) at trip start/end. The drop gives
     # the fuel burned (× tank litres) → per-trip L/100km and the EV/fuel split. NULL on a BEV.
     for _c, _t in (("fuel_start_pct", "REAL"), ("fuel_end_pct", "REAL")):
         if _c not in tcols:
-            conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
+            _add_column(conn, f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
     # migration: the same two ends in LITRES, straight off the car's own counter (3263) instead of
     # a percentage times an assumed tank. "× tank litres" above was the whole problem — the assumed
     # tank was 50 L for everyone and a C10's is 47.5. Where these are present the burn is measured;
     # where they aren't (a BEV, or any trip recorded before this) the percentages still answer.
     for _c, _t in (("fuel_start_l", "REAL"), ("fuel_end_l", "REAL")):
         if _c not in tcols:
-            conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
+            _add_column(conn, f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
     # migration: per-trip elevation gain/loss (metres) + outside temperature (°C), looked up
     # post-trip against Open-Meteo (the Leapmotor cloud exposes neither altitude nor an ambient
     # temperature — only lat/lon and cabin temp). Per-segment like regen_kwh — a merged group's
@@ -546,18 +576,18 @@ def ensure_schema(conn) -> None:
                    ("outside_temp_start_c", "REAL"), ("outside_temp_end_c", "REAL"),
                    ("elev_tried", "INTEGER DEFAULT 0"), ("elev_done", "INTEGER DEFAULT 0")):
         if _c not in tcols:
-            conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
+            _add_column(conn, f"ALTER TABLE trips ADD COLUMN {_c} {_t}")
     # migration: per-POINT altitude (metres) for the trip-profile chart. Only the downsampled
     # subset the enrichment sweep actually queried Open-Meteo for gets a value here — the rest
     # stay NULL and web/db_reader.py interpolates them at read time for a smooth chart line.
     tpcols = {r[1] for r in conn.execute("PRAGMA table_info(trip_positions)").fetchall()}
     if "elevation_m" not in tpcols:
-        conn.execute("ALTER TABLE trip_positions ADD COLUMN elevation_m REAL")
+        _add_column(conn, "ALTER TABLE trip_positions ADD COLUMN elevation_m REAL")
     # migration: the poll's readings the trip detail shows, kept with each point so they outlive the
     # positions retention — battery power (kW, + out of the pack), coldest cell, range, outside air.
     for _c in ("power_kw", "battery_temp_c", "range_km", "outside_temp_c"):
         if _c not in tpcols:
-            conn.execute(f"ALTER TABLE trip_positions ADD COLUMN {_c} REAL")
+            _add_column(conn, f"ALTER TABLE trip_positions ADD COLUMN {_c} REAL")
     # migration: geohash (7 chars ≈ 150m cell) of start/end lat-lon — the "similar trips"
     # comparator's fast pre-filter (web/db_reader.py get_similar_trips groups candidates by
     # this before validating the actual route). Set at trip creation/finalize (below) going
@@ -566,7 +596,7 @@ def ensure_schema(conn) -> None:
     # there's no reason to defer this to a web-side sweep).
     for _c in ("start_geohash", "end_geohash"):
         if _c not in tcols:
-            conn.execute(f"ALTER TABLE trips ADD COLUMN {_c} TEXT DEFAULT NULL")
+            _add_column(conn, f"ALTER TABLE trips ADD COLUMN {_c} TEXT DEFAULT NULL")
     conn.commit()
 
 
