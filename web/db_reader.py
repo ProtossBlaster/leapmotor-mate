@@ -4097,8 +4097,8 @@ def save_fresh_signals(signals: dict) -> None:
             door_driver_open, door_passenger_open, door_rear_left_open, door_rear_right_open,
             window_fl_open, window_rl_open, ac_port_mode,
             fan_level, recirculation, climate_mode,
-            fuel_level_pct, fuel_range_km, combined_range_km
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            fuel_level_pct, fuel_range_km, combined_range_km, frame_ts
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             vehicle_id,
             datetime.now(timezone.utc).isoformat(),
@@ -4132,6 +4132,8 @@ def save_fresh_signals(signals: dict) -> None:
             # BEV — sigf() would coerce absent → 0.0 and wrongly trip the "has fuel" guard at 0%.
             float(signals["3235"]) if signals.get("3235") is not None else None,
             sigf("3259") or None, sigf("3261") or None,   # fuel range (3259) + combined range (3261)
+            # The frame's own clock, read as the poller reads it: 0 or absent is no clock → NULL.
+            int(signals.get("sts") or signals.get("1") or 0) or None,
         ),
     )
     db.commit()
