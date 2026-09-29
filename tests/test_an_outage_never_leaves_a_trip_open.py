@@ -324,3 +324,42 @@ def test_an_open_trip_holds_back_the_pruning_of_its_own_car_only(tmp_path, monke
         "SELECT vehicle_id, COUNT(*), MIN(recorded_at) FROM positions GROUP BY vehicle_id")}
     assert left == kept
     assert deleted == before - sum(n for n, _ in kept.values())
+
+
+@pytest.mark.parametrize("left_open", [1, 2])
+@pytest.mark.parametrize("back", ["parked", "driving"])
+def test_open_trips_hold_back_the_retention_only_until_they_are_settled(rig, monkeypatch, back,
+                                                                       left_open):
+    """The retention keeps everything since the oldest open trip began, so a trip left open for good
+    would keep the whole history from then on. What bounds it across a restart is the first poll:
+    every trip an earlier run left open is closed there, except the newest when the car is found
+    driving, which is resumed until that drive ends."""
+    db, rec, _poll, wall = rig
+    for n in range(left_open):
+        _left_open(db, wall, rec._vehicle_id, n * 60, 1000 + n * 10)
+    days = 400
+    wall["now"] = T0 + timedelta(days=days)
+
+    class Later(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return wall["now"].astimezone(tz)
+
+    def prune():
+        with monkeypatch.context() as m:
+            m.setattr(D, "datetime", Later)
+            return db.prune_positions(180)
+
+    if back == "driving":
+        rec.process(_at(days * 1440, 1025))
+        assert len(_open_trips(db)) == 1, "a car found driving resumes the newest"
+        assert prune() == 3 * (left_open - 1), "a drive in progress keeps what it will be closed on"
+        for minute in range(1, 8):
+            wall["now"] += timedelta(minutes=1)
+            rec.process(_park(days * 1440 + minute, 1026))
+        assert _open_trips(db) == []
+        assert prune() == 3, "once the drive ends, its old readings age out too"
+    else:
+        rec.process(_park(days * 1440, 1025))
+        assert _open_trips(db) == []
+        assert prune() == 3 * left_open, "once they are settled, the old readings age out"

@@ -792,8 +792,11 @@ class Database:
         car's rows from its start on: the trip is closed on those readings (an outage can outlast
         the retention, see Recorder._settle_trip_after_outage). Only that car's: another car is
         pruned as if the trip did not exist, and a car the poller no longer reaches keeps just its
-        own rows, which no longer grow. VACUUMs when rows were actually removed. Returns the number
-        of rows deleted."""
+        own rows, which no longer grow. For a car it still polls, the recorder bounds the wait: a
+        trip stays open only while the car is heard driving or not heard at all, when nothing is
+        written for it, and every trip an earlier run left open is settled on the car's first poll
+        (Recorder._resume_or_close, close_orphan_trips). VACUUMs when rows were actually removed.
+        Returns the number of rows deleted."""
         if not retention_days or retention_days <= 0:
             return 0
         cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
@@ -1958,6 +1961,8 @@ class Database:
         crash using the last recorded trip_position as the end point, except
         `keep`, the one the recorder resumes.
         Returns number of trips closed.
+        prune_positions keeps a car's rows from its oldest open trip on, so for a
+        car still polled this is also what bounds that across a restart.
         """
         orphans = self._conn.execute(
             "SELECT id, start_soc, start_odometer_km, started_at FROM trips "
