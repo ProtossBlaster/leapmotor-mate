@@ -1239,6 +1239,9 @@ Un viaje que no ha quemado nada lee `0 L` con *todo eléctrico* al lado, que no 
 viaje cuyo depósito no se pudo leer: ese se queda en blanco.
 En un extensor de autonomía no se muestra la **regeneración**, porque un generador que recarga la
 batería mientras conduces no se distingue de una frenada.
+¿Ya usas la compilación BetaTester? No hace falta que te muevas: sigue funcionando. Si quieres
+hacerlo, es una copia de seguridad y una restauración, en ese orden:
+[De la compilación BetaTester a la oficial](BETA-TO-OFFICIAL.md).
 
 **No estoy en Europa.**
 Por ahora Mate solo funciona con la nube **europea** de Leapmotor. Las cuentas alojadas en servidores de

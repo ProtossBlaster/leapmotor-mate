@@ -1237,6 +1237,9 @@ Un trajet qui n'a rien brûlé affiche `0 L` avec *tout électrique* à côté, 
 chose qu'un trajet dont le réservoir n'a pas pu être lu : celui-là reste vide.
 Sur un prolongateur d'autonomie, la **régénération** n'est pas affichée, car un générateur qui
 recharge la batterie pendant que vous roulez ne se distingue pas d'un freinage.
+Vous utilisez déjà la version BetaTester ? Vous n'êtes pas obligé de changer, elle continue de
+fonctionner. Si vous le souhaitez, c'est une sauvegarde et une restauration, dans cet ordre :
+[De la version BetaTester à la version officielle](BETA-TO-OFFICIAL.md).
 
 **Je ne suis pas en Europe.**
 Pour le moment, Mate ne fonctionne qu'avec le cloud Leapmotor **européen**. Les comptes sur des serveurs

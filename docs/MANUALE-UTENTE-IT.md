@@ -1227,6 +1227,9 @@ Un viaggio che non ha bruciato niente legge `0 L` con accanto *tutto elettrico*,
 cosa di un viaggio di cui non si è potuto leggere il serbatoio: quello resta bianco.
 Su una REEV non viene mostrato il **recupero in frenata**, perché un generatore che ricarica il pacco
 mentre guidi non si distingue da una frenata.
+Stai già usando la build BetaTester? Non sei obbligato a spostarti, continua a funzionare. Se vuoi
+farlo è un backup e un ripristino, in quest'ordine: vedi
+[Dalla build BetaTester a quella ufficiale](BETA-TO-OFFICIAL.md#italiano).
 
 **Non sono in Europa.**
 Al momento Mate funziona solo con il cloud Leapmotor **europeo**. Account su server di altre regioni

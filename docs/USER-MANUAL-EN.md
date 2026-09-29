@@ -1170,6 +1170,9 @@ A drive that burned nothing reads `0 L` with *all electric* beside it, which is 
 drive whose tank could not be read — that one stays blank.
 Not shown on a range extender: the **regen**, because a generator refilling the pack while you drive
 cannot be told apart from braking.
+Already running the BetaTester build? You do not have to move — it keeps working. If you want to, it
+is a backup and a restore, in that order: see
+[From the BetaTester build to the official one](BETA-TO-OFFICIAL.md).
 
 **I'm not in Europe.**
 At the moment Mate only works with the **European** Leapmotor cloud. Accounts on servers in other

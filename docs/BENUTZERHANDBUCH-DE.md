@@ -1213,6 +1213,9 @@ Eine Fahrt, die nichts verbrannt hat, liest `0 L` mit *rein elektrisch* daneben 
 dasselbe wie eine Fahrt, deren Tank nicht gelesen werden konnte: die bleibt leer.
 Bei einem Range-Extender wird die **Rekuperation** nicht angezeigt, weil ein Generator, der den Akku
 während der Fahrt nachlädt, sich nicht vom Bremsen unterscheiden lässt.
+Sie nutzen bereits das BetaTester-Build? Sie müssen nicht wechseln — es funktioniert weiter. Wenn Sie
+möchten, ist es eine Sicherung und eine Wiederherstellung, in dieser Reihenfolge:
+[Vom BetaTester-Build zum offiziellen](BETA-TO-OFFICIAL.md).
 
 **Ich bin nicht in Europa.**
 Derzeit funktioniert Mate nur mit der **europäischen** Leapmotor-Cloud. Konten auf Servern anderer Regionen können
