@@ -27,7 +27,8 @@ import mate_api  # puts poller/mate_api_runtime on sys.path, as the poller proce
 import api_v2_bridge as bridge
 from leapmotor_cloud.authentication import LoginUnavailable
 
-NOW = datetime(2026, 9, 27, 12, tzinfo=timezone.utc)
+# The real clock: _renew_session() checks the refresh token's expiry against it.
+NOW = datetime.now(timezone.utc).replace(microsecond=0)
 KEY = base64.b64encode(bytes(range(32))).decode()
 
 
