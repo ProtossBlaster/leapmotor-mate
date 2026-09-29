@@ -133,8 +133,13 @@ def navigation(state):
 
 def charge(state):
     fields(state,CHARGE_KEYS)
+    # Name the flag and what it held. Only chargeEnable is the caller's to choose; circulation and
+    # recharge are read from the car and written straight back, so when a car publishes something
+    # else the owner is stopped by a sentence naming none of the three, and nor can the caller act
+    # on it (leapmotor-mate #343). Flags only: no VIN, no token, nothing to redact.
     for key in ('chargeEnable','circulation','recharge'):
-        if type(state[key])is not int or state[key] not in (0,1):fail('invalid charge flag')
+        if type(state[key])is not int or state[key] not in (0,1):
+            fail('invalid charge flag %s=%r'%(key,state[key]))
     if type(state['chargesoc'])is not int or not 50<=state['chargesoc']<=100:fail('charge target must be 50..100')
     for key in ('starttime','endtime'):
         if not isinstance(state[key],str) or not re.fullmatch(r'(?:[01]\d|2[0-3]):[0-5]\d',state[key]):fail('invalid charge time')

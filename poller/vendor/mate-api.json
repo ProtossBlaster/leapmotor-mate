@@ -1,7 +1,7 @@
 {
-  "version": "0.1.0a12",
+  "version": "0.1.0a13",
   "source": "https://github.com/ProtossBlaster/MATE-API",
-  "commit": "a74a9218f1a744054916f8e1d9f18edad18e675f",
+  "commit": "d091c2ce937ba5c347438a927fec4018006daf08",
   "sha256": {
     "leapmotor_cloud/__init__.py": "ab9c3e71a18f9e6eddf0edc96f9b4e92f0b4145e33f929c432f5a3b0357458e4",
     "leapmotor_cloud/account_material.py": "fe2ead6c0b5a3ff8ed0de27963d99553a8fc0713971d7206039f9a2e5bba6c65",
@@ -16,7 +16,7 @@
     "leapmotor_cloud/certificate_validation.py": "2fcf5eeec611b4bffc71d43781cb8a4c42521b3619999d1de59f8262a6c1aced",
     "leapmotor_cloud/certificates.py": "5a5da49e406be81291cb5a38e4b6e9d8b1c969b6bbaa1cba3e0bf2f50a502b03",
     "leapmotor_cloud/cloud.py": "14ad5210a69bbeed48d4b2364ad24d296e58574d45b8e6469752322f0562bd72",
-    "leapmotor_cloud/command_contracts.py": "cbd62151b395acbb6e1dee467d0f27f235dce16ea1865d659bd7a31329abe9ee",
+    "leapmotor_cloud/command_contracts.py": "3b79d893e4538e8b1b32622e1cc9f6f191bdf3cf2d18a38801de64e29be33af0",
     "leapmotor_cloud/commands.py": "a47d639195166d367540dc5efe81e3f4bb79634417183aa0f84f3ed31724e5b7",
     "leapmotor_cloud/errors.py": "4b623dd951b68486e907feec157244dc31b7252d69aea34b30c2023d457642e8",
     "leapmotor_cloud/history.py": "2fbcdec9ffd583e1f581449dd58768320726ffdaa9104a2c4ac77e8cc12b955d",
