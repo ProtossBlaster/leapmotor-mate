@@ -97,7 +97,7 @@ def test_a_missing_electric_figure_leaves_a_dash_not_a_blank():
     import pathlib
     src = (pathlib.Path(__file__).resolve().parent.parent
            / "web" / "templates" / "partials" / "trip_row.html").read_text()
-    block = src.split("{% if is_reev and research and trip.engine_ran %}", 1)[1].split("{% endif %}\n    <span", 1)[0]
+    block = src.split("{% if is_reev and trip.engine_ran %}", 1)[1].split("{% endif %}\n    <span", 1)[0]
     assert "{% else %}" in block, "no fallback: an absent electric figure would render nothing"
     assert "⚡ —" in block
     assert "reev_elec_pending" in block, "the dash must carry the reason, not just a dash"
@@ -108,6 +108,6 @@ def test_the_row_template_prints_both_lines():
     import pathlib
     src = (pathlib.Path(__file__).resolve().parent.parent
            / "web" / "templates" / "partials" / "trip_row.html").read_text()
-    block = src.split("{% if is_reev and research and trip.engine_ran %}", 1)[1].split("{% endif %}", 1)[0]
+    block = src.split("{% if is_reev and trip.engine_ran %}", 1)[1].split("{% endif %}", 1)[0]
     assert "reev_elec_kwh_100km" in block
     assert "fuel_l_100km" in src

@@ -60,7 +60,7 @@
          kilometres it covers — his own suggestion, and the right home for a technical value.
          Neutral colour on purpose: the good/amber/bad thresholds are about how efficiently the
          BATTERY drove you, which is not what this number answers. A BEV is untouched. #}
-      {% set eff_all = reev_total.kwh_100km if (is_reev and research and reev_total) else None %}
+      {% set eff_all = reev_total.kwh_100km if (is_reev and reev_total) else None %}
       {% if eff_all %}
       <div class="hero-val" style="color:#38bdf8">
         {{ eff_val(eff_all)|nice }}<span class="u">{{ eff_unit() }}</span>
@@ -77,7 +77,7 @@
   </div>
   {# On a range-extender the regen tile is hidden (a SoC delta stops measuring recovery once the
      generator is refilling the pack), which left an empty slot where the fuel belongs. #}
-  {% if is_reev and research and reev_summary and reev_summary.total_l %}
+  {% if is_reev and reev_summary and reev_summary.total_l %}
   <div class="hero-tile t-regen">
     <div class="hero-ico">⛽</div>
     <div>

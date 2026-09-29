@@ -37,7 +37,7 @@
     {% endif %}
     {# Same rule as the month strip above it and the Trips header: on a range-extender this divides
        by all the day's kilometres, the ones the litres next to it use. See trips_calendar_month. #}
-    {% set eff_all = day_totals.kwh_100km if (is_reev and research) else None %}
+    {% set eff_all = day_totals.kwh_100km if is_reev else None %}
     {% if eff_all %}
     <span class="eff-pill" style="color:#38bdf8">{{ eff_all | eff }}</span>
     {# Which kilometres the figure speaks for — same rule and same wording as the month strip above,
@@ -52,7 +52,7 @@
     {# The third place the trips of a day are summed up, and the one missed when the month strip and
        the page header got theirs (@michapr, beta #11, reporting it a third time). The totals already
        carried the litres — they simply were not printed here. #}
-    {% if is_reev and research and day_totals.fuel_l %}
+    {% if is_reev and day_totals.fuel_l %}
     <span class="text-amber-400 font-medium whitespace-nowrap" title="{{ t('trips_fuel_hint') }}">⛽ {{ day_totals.fuel_l | nice }} L{% if day_totals.fuel_l_100km %} · {{ day_totals.fuel_l_100km | nice }} L/100km{% endif %}</span>
     {% endif %}
     {% if day_totals.cost %}

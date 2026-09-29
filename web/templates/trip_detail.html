@@ -168,7 +168,7 @@
         {% endif %}
       </div>
 
-      {% if is_reev and research and trip.engine_ran %}
+      {% if is_reev and trip.engine_ran %}
       <!-- REEV Phase C+D — the range-extender ran (fuel dropped). Dual energy for this trip: 🔋 electric
            from the cloud's METERED getEC and ⛽ fuel from the tank % drop (over the generator-on km).
            ⚠️ getEC is NOT generator-proof — that claim was measured false on 30/07/26 against two

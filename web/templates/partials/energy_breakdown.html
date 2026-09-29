@@ -44,7 +44,7 @@
      burned: a range-extender week driven on the battery alone must not carry an empty tile, and a
      BEV never reaches this at all. The L/100 km is over the generator-on distance beside it, not
      over the whole window. #}
-  {% if is_reev and research and eb.fuel_l %}
+  {% if is_reev and eb.fuel_l %}
   <div>
     <div class="text-xs text-slate-400">{{ t('eb_fuel') }}</div>
     <div class="text-amber-400 font-bold mt-1">{{ eb.fuel_l | nice }}<span class="text-xs font-normal text-slate-400"> L</span></div>

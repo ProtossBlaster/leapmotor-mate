@@ -383,13 +383,13 @@ def _card_block() -> str:
 
 def test_the_card_is_for_every_car():
     assert "{% if totals.cost100 %}" in STATS
-    assert "{% if is_reev and research and totals.cost100 %}" not in STATS
+    assert "{% if is_reev and totals.cost100 %}" not in STATS
 
 
 def test_the_petrol_half_stays_behind_the_range_extender_gate():
     card = _card_block()
-    assert "{% if is_reev and research and c100.elec_100km and c100.fuel_100km %}" in card
-    assert "{% if is_reev and research and c100.fuel_missing %}" in card
+    assert "{% if is_reev and c100.elec_100km and c100.fuel_100km %}" in card
+    assert "{% if is_reev and c100.fuel_missing %}" in card
 
 
 def test_the_route_feeds_both_cars_from_the_one_function():

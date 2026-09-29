@@ -1416,14 +1416,15 @@ async def statistics(request: Request):
     totals["reev_spend"] = db_reader.reev_actual_spend() if _reev else None
     # …and what the GENERATOR itself drinks while it runs (@michapr, beta #26). Gated on the DATA,
     # not just on the markup: `wallbox_enabled` taught us that hiding a card while the figure is
-    # still computed is not a gate at all. REEV stays capability-gated AND beta-only.
-    totals["reev_fuel"] = (db_reader.reev_fuel_summary()
-                           if (_reev and research.research_enabled()) else None)
+    # still computed is not a gate at all. Capability only since 4.7.0 — the litres were calibrated
+    # against a drive whose figure the owner can read in the official app (@ebagnoli, 29/09/2026:
+    # 77 km / 0.3 kWh / 4.9 L, and the cloud's own record says the same three), so the BetaTester
+    # build has no job left here. A plain electric car still reaches none of it.
+    totals["reev_fuel"] = db_reader.reev_fuel_summary() if _reev else None
     # …and the one number that answers "plug in here, or just burn petrol?" (@ebagnoli, beta #13).
-    # Same gate as the card above — REEV capability AND the BetaTester build — and gated on the
-    # DATA, not the markup: computing it for a car that must not see it is not a gate.
-    totals["reev_breakeven"] = (db_reader.reev_breakeven_kwh_price()
-                                if (_reev and research.research_enabled()) else None)
+    # Same gate as the card above — the car's capability — and gated on the DATA, not the markup:
+    # computing it for a car that must not see it is not a gate.
+    totals["reev_breakeven"] = db_reader.reev_breakeven_kwh_price() if _reev else None
     # …and what all of it COST: every euro spent over every kilometre driven (@michapr's card, on
     # Silvio's basis — a cost is the whole cost, not the driving's share of it). The litres burned
     # are passed only so a car with no tank never reads the fuel table.
@@ -1440,7 +1441,7 @@ async def statistics(request: Request):
     # trips from the elevation enrichment). The petrol half follows the same REEV+research gate as
     # every other fuel figure — computed for nobody else, not merely hidden.
     efftemp = db_reader.get_efficiency_vs_temp(
-        include_fuel=(_reev and research.research_enabled()))
+        include_fuel=_reev)
     return templates.TemplateResponse(request, "statistics.html", _ctx(
         page="statistics", vehicle=vehicle,
         grouped=grouped, totals=totals, efftemp=efftemp,
@@ -1510,12 +1511,13 @@ async def reev_page(request: Request):
     behaviour is validated against real REEV data. Live signal fetch (no pipeline storage)."""
     import asyncio
     is_research = research.research_enabled()
-    # REEV is capability-gated (is_reev) AND beta-only (research): a BEV owner must NEVER reach any REEV
-    # surface, on any build, and the official build exposes none of it. Redirect anyone who isn't a REEV
-    # car on a research build — the sole exception is the ?demo layout preview (research-only, no car).
+    # REEV is capability-gated (is_reev): a BEV owner must NEVER reach any REEV surface, on any build.
+    # The BetaTester build is no longer part of THIS gate — the fuel figures were calibrated against
+    # the owner's own app on 29/09/2026 — but it still gates the research TOOLS inside the page and
+    # the ?demo layout preview, which invents signals for a car that has none.
     is_reev_car = db_reader.is_reev_car()
     demo = bool(is_research and request.query_params.get("demo"))
-    if not (is_reev_car and is_research) and not demo:
+    if not is_reev_car and not demo:
         return RedirectResponse(request.headers.get("x-ingress-path", "") + "/")
     vehicle, _ = db_reader.get_vehicle()
     # Research-only preview: /reev?demo=1 renders the dashboard with sample REEV values (from a real
@@ -1880,9 +1882,11 @@ async def research_consent_accept(request: Request):
 
 
 def _fuel_blocked() -> bool:
-    """REEV+research gate, mirroring reev_page: a BEV / non-research visitor must never reach fuel data,
-    on any build. Applied to the page AND the write endpoints."""
-    return not (db_reader.is_reev_car() and research.research_enabled())
+    """Capability gate, mirroring reev_page: a car with no tank must never reach fuel data, on any
+    build. Applied to the page AND the nine write endpoints — a gate on the page alone would leave
+    the POSTs open. The BetaTester build was the second half of this test until 4.7.0; it came off
+    when the litres were calibrated against a drive the owner can read in the official app."""
+    return not db_reader.is_reev_car()
 
 
 def _fuel_local_to_utc(ts_str: str) -> str:

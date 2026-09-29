@@ -26,14 +26,14 @@ HTML = (ROOT / "web" / "templates" / "trip_detail.html").read_text()
 
 
 def _block():
-    """The range-extender detail block: from its `is_reev and research and engine_ran` gate down to
+    """The range-extender detail block: from its `is_reev and engine_ran` gate down to
     the line that closes it.
 
     ⚠️ The first version cut at the first `{% endif %}` plus a few hundred characters, which used to
     reach the end and — once the block got shorter — stopped before `paid_kwh`, reporting a figure
     as DROPPED that was three lines further down. A test that fails on where it decided to stop
     reading is worse than no test."""
-    start = HTML.find("{% if is_reev and research and trip.engine_ran %}")
+    start = HTML.find("{% if is_reev and trip.engine_ran %}")
     assert start > 0, "the range-extender block is gone entirely"
     end = HTML.find("reev_elec_source_note", start)
     assert end > start, "the block lost its closing note"
@@ -41,7 +41,7 @@ def _block():
 
 
 def _header():
-    return HTML.split("{% if is_reev and research and trip.engine_ran %}", 1)[0]
+    return HTML.split("{% if is_reev and trip.engine_ran %}", 1)[0]
 
 
 def _fuel_section():

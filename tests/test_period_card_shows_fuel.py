@@ -103,8 +103,9 @@ def test_the_l_per_100km_is_over_the_windows_whole_distance():
     assert '_f["engine_km"] * 100' not in body
 
 
-def test_the_tile_appears_only_with_litres_and_only_on_a_beta_reev():
-    assert "{% if is_reev and research and eb.fuel_l %}" in EB_HTML
+def test_the_tile_appears_only_with_litres_and_only_on_a_reev():
+    """The beta half of the gate came off in 4.7.0; the litres and the capability did not."""
+    assert "{% if is_reev and eb.fuel_l %}" in EB_HTML
 
 
 @pytest.mark.parametrize("lang", ["en", "it", "fr", "de", "nl", "pl", "pt-PT"])

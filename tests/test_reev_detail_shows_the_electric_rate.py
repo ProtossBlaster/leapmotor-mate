@@ -150,11 +150,27 @@ def test_the_kwh_total_is_not_reprinted(tmp_path, monkeypatch):
 
 def test_the_official_build_is_left_alone(tmp_path, monkeypatch):
     """`research`-gated to match the trips list exactly. Gating one page and not the other would
-    just move the disagreement to the other build — which is the bug this closes."""
+    just move the disagreement to the other build — which is the bug this closes.
+
+    4.7.0 took the beta gate off the REEV surfaces, and this ⚡ rate was the one figure it did
+    NOT take it off: the litres were calibrated against the owner's own app, this was not. So the
+    row keeps its own `{% if research %}` around the rate while the ⛽ litres beside it ship — and
+    the assertion below reads THAT, not the block gate it used to share.
+
+    ⚠️ It used to end in `or "research" in LIST_ROW.read_text()`, which the word in the partial's
+    own header comment satisfies on its own: after the ungating the test passed while the rate
+    was live on every build."""
     trip = _trip(tmp_path, monkeypatch)
     assert "kWh/100km" not in _render_tile(trip, research=False)
-    assert "{% if is_reev and research and trip.engine_ran %}" in LIST_ROW.read_text() \
-        or "research" in LIST_ROW.read_text(), "the list lost its research gate"
+    row = LIST_ROW.read_text()
+    assert "{% if research %}" in row, \
+        "the list row has no research gate left at all — the electric rate is live on every build"
+    gate = row.index("{% if research %}")
+    rate = row.index("trip.reev_elec_kwh_100km | nice")
+    close = row.index("{% endif %}", row.index("reev_elec_pending"))
+    assert gate < rate < close, "the list lost its research gate on the electric rate"
+    assert row.index("t('reev_engine_ran')") > close, \
+        "the ⛽ litres were swept behind the research gate with it"
 
 
 def test_a_pure_electric_drive_on_a_reev_prints_no_rate(tmp_path, monkeypatch):

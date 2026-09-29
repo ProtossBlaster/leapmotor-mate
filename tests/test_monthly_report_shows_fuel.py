@@ -107,8 +107,10 @@ def test_a_bev_is_untouched(tmp_path, monkeypatch):
 
 # ── the page ─────────────────────────────────────────────────────────────────
 
-def test_the_block_is_gated_on_a_range_extender_and_on_beta():
-    assert "{% if is_reev and research and (c.fuel_l_burned or c.refuel_count) %}" in REPORT_HTML
+def test_the_block_is_gated_on_a_range_extender():
+    """Capability only since 4.7.0 — the litres ship on the official build. A car with no tank
+    still reaches none of it."""
+    assert "{% if is_reev and (c.fuel_l_burned or c.refuel_count) %}" in REPORT_HTML
 
 
 def test_the_l_per_100km_uses_the_whole_distance():

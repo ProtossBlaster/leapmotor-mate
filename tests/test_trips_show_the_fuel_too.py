@@ -103,14 +103,14 @@ def test_an_empty_set_divides_by_nothing(reev):
 
 def test_the_month_strip_shows_it_beside_the_electric_figure():
     assert "total.fuel_l" in MONTH and "total.fuel_l_100km" in MONTH
-    assert "{% if is_reev and research and total.fuel_l %}" in MONTH, \
+    assert "{% if is_reev and total.fuel_l %}" in MONTH, \
         "gated like every other REEV surface, and silent with no fuel"
 
 
 def test_the_hero_shows_it_where_the_regen_tile_is_hidden():
     """On a range-extender the regen tile is already suppressed, which left the slot free."""
     assert "reev_summary.total_l" in TRIPS
-    assert "{% if is_reev and research and reev_summary and reev_summary.total_l %}" in TRIPS
+    assert "{% if is_reev and reev_summary and reev_summary.total_l %}" in TRIPS
     i, j = TRIPS.index("reev_summary.total_l"), TRIPS.index("{% if not is_reev %}")
     assert i < j, "the fuel tile must come before the regen tile it stands in for"
 
@@ -139,7 +139,7 @@ def test_the_day_header_shows_it_too():
     the printing."""
     day = (ROOT / "web" / "templates" / "partials" / "trips_calendar_day_content.html").read_text()
     assert "day_totals.fuel_l" in day
-    assert "{% if is_reev and research and day_totals.fuel_l %}" in day
+    assert "{% if is_reev and day_totals.fuel_l %}" in day
 
 
 def test_all_three_places_print_the_same_two_numbers():
@@ -179,7 +179,7 @@ def test_the_hero_prefers_the_all_kilometres_figure_on_a_range_extender():
     prose (see the `data-holds-selection` test, 04/08)."""
     hero = TRIPS.split('<div class="hero-ico">⚡</div>', 1)[1].split('<div class="hero-label"', 1)[0]
     assert ("{% set eff_all = reev_total.kwh_100km "
-            "if (is_reev and research and reev_total) else None %}") in hero
+            "if (is_reev and reev_total) else None %}") in hero
     assert "{% if eff_all %}" in hero
     assert "{% elif summary.avg_eff %}" in hero, "a BEV must still get the measured efficiency"
     assert hero.index("{% if eff_all %}") < hero.index("{% elif summary.avg_eff %}")
@@ -277,6 +277,6 @@ def test_both_strips_prefer_the_all_kilometres_figure_on_a_range_extender():
     """Anchored to the Jinja tags: the words are also in the comments that explain them."""
     day = (ROOT / "web" / "templates" / "partials" / "trips_calendar_day_content.html").read_text()
     for tpl, var in ((MONTH, "total"), (day, "day_totals")):
-        assert ("{%% set eff_all = %s.kwh_100km if (is_reev and research) else None %%}" % var) in tpl
+        assert ("{%% set eff_all = %s.kwh_100km if is_reev else None %%}" % var) in tpl
         assert "{% if eff_all %}" in tpl
         assert ("{%% elif %s.avg_eff %%}" % var) in tpl

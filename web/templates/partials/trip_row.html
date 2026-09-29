@@ -64,11 +64,19 @@
       {{ trip.efficiency_kwh_100km | eff }}
     </span>
     {% endif %}
-    {% if is_reev and research and trip.engine_ran %}
+    {% if is_reev and trip.engine_ran %}
     {# REEV Phase C — an engine-on trip, with BOTH energies. The ⚡ pill above is blank here by
        design (finalize_trip drops the efficiency once the generator refills the pack underneath),
        so without this line the row showed petrol only and the electricity the car also used was
-       invisible until you opened the trip — @michapr, beta #11. Same figures as the detail page. #}
+       invisible until you opened the trip — @michapr, beta #11. Same figures as the detail page.
+       🔑 TWO gates, not one, since 4.7.0. The ⛽ litres ship on every build: they were calibrated
+       against a drive whose figure the owner reads in his own app (@ebagnoli, 29/09/2026). The ⚡
+       rate did NOT come with them — it is the energy that left the PACK over ALL the kilometres, it
+       reads 46, 82.7, even 386 kWh/100km on real trips, and it is still waiting to be held against
+       a dashboard. It stays on the BetaTester build, exactly as on the detail page: showing it in
+       the list and hiding it one click later is the disagreement
+       tests/test_reev_detail_shows_the_electric_rate.py exists to stop. #}
+    {% if research %}
     {% if trip.reev_elec_kwh_100km is not none %}
     <span class="block mt-0.5 text-blue-400 text-[11px] font-semibold">⚡ {{ trip.reev_elec_kwh_100km | nice }} kWh/100km</span>
     {# What that number IS, on the row itself (@gm27271, beta #31). It is the energy that left the
@@ -89,6 +97,7 @@
        and then the absence becomes silent. The dash keeps the slot, the tooltip names the reason. #}
     <span class="block mt-0.5 text-blue-400/50 text-[11px] font-semibold"
           title="{{ t('reev_elec_pending') }}">⚡ —</span>
+    {% endif %}
     {% endif %}
     <span class="block mt-0.5 text-amber-400 text-[11px] font-semibold" title="{{ t('reev_engine_ran') }}">⛽ {% if trip.fuel_l_100km is not none %}{{ trip.fuel_l_100km | nice }} L/100km{% else %}{{ trip.fuel_used_l | nice }} L{% endif %}</span>
     {% endif %}

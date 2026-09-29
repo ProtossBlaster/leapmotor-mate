@@ -137,7 +137,7 @@
    one day and burned over the following fortnight, and adding them would answer neither.
    Shown when there is something to show, so a REEV month driven entirely on the battery does not
    carry four empty tiles. #}
-{% if is_reev and research and (c.fuel_l_burned or c.refuel_count) %}
+{% if is_reev and (c.fuel_l_burned or c.refuel_count) %}
 <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">⛽ {{ t('report_fuel') }}</div>
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="card">

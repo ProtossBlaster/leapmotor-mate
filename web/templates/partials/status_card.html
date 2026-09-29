@@ -63,7 +63,7 @@
 </div>
 {% endif %}
 
-{% if is_reev and research and status.get('fuel_level_pct') is not none %}
+{% if is_reev and status.get('fuel_level_pct') is not none %}
 {# REEV dual-energy — the fuel tank shown alongside the battery (range-extender models). Beta-gated
    AND only when the car actually reports fuel, so a BEV never sees an empty block. range_km above
    stays the EV-only range (signal 3260); the combined figure is the REEV's real total reach. #}

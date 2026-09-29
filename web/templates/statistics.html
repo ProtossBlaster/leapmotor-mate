@@ -312,7 +312,7 @@
     <span class="text-slate-400 text-sm">/{{ dist100_unit() }}</span>
     {# The split only when both halves cost something — a "+ 0,00" would be noise, and on a BEV
        there is no second half to name at all. #}
-    {% if is_reev and research and c100.elec_100km and c100.fuel_100km %}
+    {% if is_reev and c100.elec_100km and c100.fuel_100km %}
     <span class="text-slate-600 text-sm mx-1">=</span>
     <span class="text-sky-400 text-sm">{{ cost100_val(c100.elec_100km) | money }}</span>
     <span class="text-slate-500 text-xs">{{ t('stats_cost100_elec') }}</span>
@@ -345,7 +345,7 @@
     {% if c100.elec_missing %}
     · <span class="text-amber-500">{{ t('stats_cost100_noelec') }}</span>
     {% endif %}
-    {% if is_reev and research and c100.fuel_missing %}
+    {% if is_reev and c100.fuel_missing %}
     · <span class="text-amber-500">{{ t('stats_cost100_nofuel') }}</span>
     {% endif %}
     {% if c100.partial %}
