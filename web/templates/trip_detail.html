@@ -133,6 +133,13 @@
           {% if trip.fuel_l_100km is not none %}<div class="text-[10px] text-slate-400 mt-0.5 truncate">{{ trip.fuel_l_100km|nice }} L/100km</div>{% endif %}
           {% if trip.fuel_cost is not none %}<div class="text-[10px] text-slate-300 mt-1 truncate">{{ trip.fuel_cost | money }}</div>{% endif %}
           {% if trip.fuel_price_per_l %}<div class="text-[10px] text-slate-400 truncate">{{ trip.fuel_price_per_l | price3 }} {{ currency.symbol }}/L</div>{% endif %}
+          {# Whose litres these are, on a line of its OWN. It first went beside the heading, mirroring
+             the ⚡ box — and the box is ~70px wide in the two-column summary, so `truncate` ate it:
+             the heading rendered as "⛽ Carburan…" and the label never appeared at all. Measured by
+             opening the page, which is the only thing that finds this
+             (feedback-a-layout-question-is-not-answered-by-measuring-harder). #}
+          {% if trip.fuel_source %}<div class="text-[10px] text-slate-500 truncate"
+               title="{{ t('trip_fuel_source_' ~ trip.fuel_source) }}">{{ t('trip_fuel_source_' ~ trip.fuel_source) }}</div>{% endif %}
           {% else %}<div class="text-base font-bold text-slate-500">—</div>{% endif %}
         </div>
         {% endif %}
@@ -169,8 +176,10 @@
       </div>
 
       {% if is_reev and trip.engine_ran %}
-      <!-- REEV Phase C+D — the range-extender ran (fuel dropped). Dual energy for this trip: 🔋 electric
-           from the cloud's METERED getEC and ⛽ fuel from the tank % drop (over the generator-on km).
+      <!-- REEV Phase C+D — the range-extender ran. Dual energy for this trip: 🔋 electric from the
+           cloud's METERED getEC and ⛽ fuel from whichever source the box above NAMES — the car's own
+           cloud record where one matches, the tank's own arithmetic otherwise. It was the tank alone
+           until 4.7.0, and the two differ by about a fifth, which is why the box says which.
            ⚠️ getEC is NOT generator-proof — that claim was measured false on 30/07/26 against two
            cars' bundles: it counts roughly what LEFT THE BATTERY, and the generator's direct feed to
            the wheels never passes through the pack, so it is invisible here. Which is why it is the

@@ -113,7 +113,13 @@
     {% endif %}
   </div>
 
-{% if trip.energy_source %}<span class="text-xs text-slate-400 ml-2">{{ t('trip_energy_source_' ~ trip.energy_source) }}</span>{% endif %}
+{% if trip.energy_source %}<span class="text-xs text-slate-400 ml-2">{{ t('trip_energy_source_' ~ trip.energy_source) }}</span>{# On a range-extender the slot above is empty by design — `select_energy` excludes REEV
+   cars, because the generator refills the pack mid-drive and the cloud's `totalEnergy` is not that
+   car's appetite — so the LITRES say where they came from there instead. They need to: the cloud's
+   figure and the tank's differ by about a fifth on the same drive (4.9 against 3.886 on the one
+   drive the official app also states), and two correct numbers under one unit with nothing naming
+   them is the defect. Gated on there BEING litres: the cloud answers 0.0 on an electric drive, which
+   is an answer, but a source beside no figure is noise. #}{% elif trip.fuel_source and trip.fuel_used_l %}<span class="text-xs text-slate-400 ml-2">{{ t('trip_fuel_source_' ~ trip.fuel_source) }}</span>{% endif %}
 </a>
 {% if trip.is_merged %}
 <div class="merge-sep" style="padding:0 0 4px 56px">

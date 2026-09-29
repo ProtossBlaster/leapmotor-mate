@@ -1328,6 +1328,8 @@
     "trip_energy_source_cloud": "Historial Leapmotor",
     "trip_energy_source_getec": "Medida por el coche",
     "trip_energy_source_mate": "Estimación Mate",
+    "trip_fuel_source_cloud": "Historial Leapmotor",
+    "trip_fuel_source_mate": "Del depósito",
     "cloud_zero_segments": "segmentos cloud de 0 km",
     "cloud_zero_hint": "Los registros originales se conservan por separado. Usa las opciones de fusion del dia: cada union requiere confirmacion y se puede deshacer.",
     "cloud_source": "Historial cloud Leapmotor",

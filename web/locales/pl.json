@@ -1328,6 +1328,8 @@
     "trip_energy_source_cloud": "Historia Leapmotor",
     "trip_energy_source_getec": "Pomiar samochodu",
     "trip_energy_source_mate": "Szacunek Mate",
+    "trip_fuel_source_cloud": "Historia Leapmotor",
+    "trip_fuel_source_mate": "Ze zbiornika",
     "cloud_zero_segments": "odcinki z chmury o dlugosci 0 km",
     "cloud_zero_hint": "Oryginalne dane pozostaja oddzielne. Uzyj opcji laczenia dla danego dnia: kazde polaczenie wymaga potwierdzenia i mozna je cofnac.",
     "cloud_source": "Historia z chmury Leapmotor",
