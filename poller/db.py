@@ -1919,13 +1919,16 @@ class Database:
         Rows written before `charge_current_a` existed carry no reading, and for those the older
         `charging` anchor is all there is — which is exactly what they had before.
         → tests/test_a_slow_charge_keeps_the_energy_it_delivered.py
+
+        "Last" is in the order the rows were written, as in `_charging_end_in_window`: after a step
+        back of our clock the latest time is an earlier reading. The window is still on our clock.
         """
         row = self._conn.execute(
             "SELECT soc FROM positions WHERE vehicle_id=? AND soc IS NOT NULL"
             " AND recorded_at>=? AND recorded_at<=?"
             " AND charge_current_a IS NOT NULL AND charge_current_a < 0"
             " AND COALESCE(plug_connected, 1) = 1"
-            " ORDER BY recorded_at DESC LIMIT 1",
+            " ORDER BY id DESC LIMIT 1",
             (vehicle_id, started_at, ended_at or _now_iso())).fetchone()
         if row is not None:
             return row["soc"]
@@ -1939,10 +1942,11 @@ class Database:
         100%-ending charges (the "107% efficiency" artifact). Mid-charge samples are
         immune: their last charging SoC equals the end SoC.
         The window MUST be bounded on both sides: without the upper bound a recompute
-        of an old charge would pick up charging samples from LATER charges."""
+        of an old charge would pick up charging samples from LATER charges.
+        "Last" is in the order the rows were written, as in `_last_energising_soc`."""
         row = self._conn.execute(
             "SELECT soc FROM positions WHERE vehicle_id=? AND charging=1 AND soc IS NOT NULL"
-            " AND recorded_at>=? AND recorded_at<=? ORDER BY recorded_at DESC LIMIT 1",
+            " AND recorded_at>=? AND recorded_at<=? ORDER BY id DESC LIMIT 1",
             (vehicle_id, started_at, ended_at or _now_iso())).fetchone()
         return row["soc"] if row else None
 

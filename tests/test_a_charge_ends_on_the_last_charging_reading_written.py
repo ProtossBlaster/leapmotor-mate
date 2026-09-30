@@ -4,7 +4,8 @@ A charge Mate finds already over (the car back on the road, back unplugged after
 up on while the cloud re-served one frame), or one a restart left open, is closed on the last
 `positions` row taken while charging (#208). That row was picked by our clock, which can step back
 (an NTP correction). The latest time is then an earlier reading: the charge ended on a SoC below the
-last one the car gave, and the energy it shows is short by the difference.
+last one the car gave, and the energy it shows is short by the difference. The energy of a charge
+that ends at 100 % runs to the last reading taken while current went in, picked the same way.
 
 CI-safe: pure recorder / db logic, no fastapi.
 """
@@ -36,6 +37,7 @@ def test_a_charge_the_car_drove_away_from_ends_on_its_last_charging_reading(rig)
     charge = _charge(db)
     assert charge["end_soc"] == 100.0, "the charge ended on the reading before the last one"
     assert charge["ended_at"] == last_read.isoformat()
+    assert charge["energy_added_kwh"] == pytest.approx(1.30), "98 → 100 %, not 98 → 99 %"
 
 
 def test_a_charge_a_restart_left_open_ends_on_its_last_charging_reading(rig):
@@ -47,3 +49,17 @@ def test_a_charge_a_restart_left_open_ends_on_its_last_charging_reading(rig):
     assert charge["end_soc"] == 100.0, "the charge ended on the reading before the last one"
     assert charge["ended_at"] == last_read.isoformat()
     assert charge["energy_added_kwh"] == pytest.approx(1.30), "98 → 100 %, not 98 → 99 %"
+
+
+def test_readings_without_a_current_count_the_energy_up_to_the_last_charging_one(rig):
+    """Rows written before `charge_current_a` existed carry no current, so the energy of a charge
+    that ends at 100 % is anchored on the last reading taken while charging instead."""
+    db, rec, *_ = rig
+    _charge_across_a_clock_step(rig)
+    db._conn.execute("UPDATE positions SET charge_current_a = NULL")
+    db._conn.commit()
+    for _ in range(3):
+        rec.mark_offline()
+    _read(rig, 1800, 300, 98.1, charging=False, odo=1010)
+
+    assert _charge(db)["energy_added_kwh"] == pytest.approx(1.30), "98 → 100 %, not 98 → 99 %"
