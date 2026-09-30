@@ -1116,33 +1116,50 @@ async def delete_charge(request: Request, charge_id: int):
 
 
 @app.get("/api/charges/merge-preview", response_class=HTMLResponse)
-async def charges_merge_preview(request: Request, a: int, b: int):
+async def charges_merge_preview(request: Request, a: int, b: int, station: str = "", calendar: int = 0):
     """The single charge the merge WOULD produce — figures plus the pause it swallows — so the
     confirm step shows what changes, not just that something will."""
     g = db_reader.preview_merge_charges(a, b)
     if not g:
         return HTMLResponse("")
     return templates.TemplateResponse(request, "partials/charge_merge_preview.html",
-                                      _ctx(g=g, a=a, b=b))
+                                      _ctx(g=g, a=a, b=b, station=station, calendar_context=bool(calendar)))
+
+
+def _retarget_charges_calendar(request: Request, charge_id: int, station: str):
+    """After a merge/unmerge, redraw the month grid + day drawer in place instead of reloading the
+    whole page — the reload used to drop the day/scroll the owner had open in Charges (they'd land
+    back at the top and have to find their place again). `None` when the affected charge can't be
+    dated (should not happen for a row that was just written) or the caller wasn't in the calendar
+    view to begin with (search results don't carry a #charges-calendar-month to redraw)."""
+    d = db_reader.get_charge_local_date(charge_id)
+    if not d:
+        return None
+    resp = _render_charges_calendar(request, d.year, d.month, station, d.day)
+    resp.headers["HX-Retarget"] = "#charges-calendar-month"
+    resp.headers["HX-Reswap"] = "outerHTML"
+    return resp
 
 
 @app.post("/api/charges/merge", response_class=HTMLResponse)
-async def charges_merge(request: Request, a: int, b: int):
+async def charges_merge(request: Request, a: int, b: int, station: str = "", calendar: int = 0):
     """Join two charge rows the car split when it declared the cable gone on a pause. The earlier
     becomes the parent. Reversible. Re-validates every guard here — the page only offers the
     button, it does not grant the permission."""
     res = db_reader.merge_charges(a, b)
     if res.get("ok"):
-        return Response(status_code=200, headers={"HX-Refresh": "true"})
+        resp = calendar and _retarget_charges_calendar(request, res["parent_id"], station)
+        return resp or Response(status_code=200, headers={"HX-Refresh": "true"})
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<div style="color:#f87171;font-size:13px;padding:6px 0">⚠️ {t("charge_merge_failed")}</div>')
 
 
 @app.post("/api/charges/unmerge", response_class=HTMLResponse)
-async def charges_unmerge(request: Request, parent: int):
+async def charges_unmerge(request: Request, parent: int, station: str = "", calendar: int = 0):
     """Split a merged charge back into the rows the car reported (reversible — nothing was lost)."""
     db_reader.unmerge_charges(parent)
-    return Response(status_code=200, headers={"HX-Refresh": "true"})
+    resp = calendar and _retarget_charges_calendar(request, parent, station)
+    return resp or Response(status_code=200, headers={"HX-Refresh": "true"})
 
 
 @app.post("/api/charges/{charge_id}/note", response_class=HTMLResponse)
@@ -1357,6 +1374,7 @@ async def charges_calendar_day(request: Request, year: int, month: int, day: int
         "t": i18n.get_t(lang), "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
         "charges": charges, "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
         "currency": db_reader.get_currency(),   # the price box is labelled in the reader's money
+        "station": station,   # so a merge/unmerge from here keeps any active station filter
     })
 
 

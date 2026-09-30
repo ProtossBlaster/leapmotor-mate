@@ -11224,22 +11224,31 @@ def save_charging_place(form):
 
 
 def assign_charging_place(charge_id, place_id):
+    """Assign (or clear) a place on a charge — and, when it is part of a merged group, on every
+    OTHER piece of that group too, the same way a type re-tag already cascades to them
+    (_update_charge_type's own `_segment` loop). A merged charge is drawn as ONE row; snapshotting
+    the place onto the clicked piece alone would leave the other pieces pointing at no place (or a
+    stale one), which the totals in charging_places_context group by — a merged group used to be
+    refused outright for exactly this reason ('unmerge first'), but cascading it is no different
+    from what type changes already do safely."""
     import charging_places
     with _conn_rw() as db:
         row = db.execute('SELECT * FROM charges WHERE id=? AND vehicle_id=?',
                          (charge_id, _current_vehicle_id())).fetchone()
         if not row or not row['ended_at']:
             raise ValueError('place_closed_only')
-        if row['merged_into_id'] or db.execute('SELECT 1 FROM charges WHERE merged_into_id=?', (charge_id,)).fetchone():
-            raise ValueError('place_unmerge_first')
+        row = dict(row)
+        group_ids = [charge_id, *_merged_piece_ids(db, charge_id)]
         if place_id:
             place = db.execute('SELECT * FROM charging_places WHERE id=? AND vehicle_id=?',
                                (place_id, row['vehicle_id'])).fetchone()
             if not place:
                 raise ValueError('place_invalid')
-            charging_places.snapshot(db, charge_id, place, 'manual')
+            for gid in group_ids:
+                charging_places.snapshot(db, gid, place, 'manual')
             return _update_charge_type(db, charge_id, place['charge_type'],
                                        _free=1 if row['location_type'] == 'FREE' else None)
-        db.execute('UPDATE charges SET charging_place_id=NULL, charging_place_name=NULL, '
-                   'charging_place_rate=NULL, charging_place_source=NULL WHERE id=?', (charge_id,))
+        db.executemany('UPDATE charges SET charging_place_id=NULL, charging_place_name=NULL, '
+                       'charging_place_rate=NULL, charging_place_source=NULL WHERE id=?',
+                       [(gid,) for gid in group_ids])
         return _update_charge_type(db, charge_id, row['location_type'])
