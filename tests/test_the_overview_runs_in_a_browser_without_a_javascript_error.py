@@ -106,7 +106,8 @@ def mate_url(tmp_path_factory):
     # To a file, not a pipe: when the server is the thing that went wrong, its own output is the
     # only account of why, and a pipe we are not draining is exactly where it gets lost.
     log = data / "web.log"
-    proc = subprocess.Popen([sys.executable, str(ROOT / "web" / "main.py")], env=env,
+    proc = subprocess.Popen([sys.executable, str(ROOT / "tests" / "no_internet.py"),
+                             str(ROOT / "web" / "main.py")], env=env,
                             stdout=log.open("w"), stderr=subprocess.STDOUT, text=True)
     url = f"http://127.0.0.1:{port}"
     try:

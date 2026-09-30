@@ -6,6 +6,8 @@ import pathlib
 import sys
 import tempfile
 
+import no_internet  # noqa: F401 — before web/main.py starts its threads at import
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 for _d in ("poller", "web"):
     p = str(ROOT / _d)
