@@ -1,8 +1,37 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.3 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.4 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.3
+## Neu in Version 4.7.4
+
+Drei Änderungen von einem Mitwirkenden. Zwei betreffen Mate, das weniger fragt; die dritte ein Signal,
+das, wenn das Auto es nicht sendete, notiert wurde, als hätte das Auto geantwortet.
+
+**Mate fragt die Außentemperatur nicht mehr nach, wenn der Wetterdienst ablehnt.** Der Wert kommt von
+einem kostenlosen Dienst mit einem Tageskontingent. Eine fehlgeschlagene Anfrage hinterließ nichts,
+also fragte die nächste Abfrage erneut, und jede danach ebenso — an einem Tag mit aufgebrauchtem
+Kontingent waren das 432 Ablehnungen in weniger als vier Stunden. Eine fehlgeschlagene Anfrage wartet
+jetzt zwanzig Minuten, genau so lange, wie einem guten Wert ohnehin schon vertraut wird; gemessen über
+vier Stunden abgelehnter Anfragen: vorher 480, jetzt 12. Schlägt die allererste Anfrage nach einem
+Start fehl, bleiben Sie zwanzig Minuten ohne Außentemperatur; ein bereits vorhandener Wert bleibt
+erhalten wie bisher.
+
+**Ein READY, das das Auto nicht gesendet hat, wird nicht mehr als „aus" notiert.** READY sagt, ob das
+Auto eingeschaltet ist, und Mate erkennt daran, ob zwei Fahrten zu einem Einschaltvorgang gehören —
+davon hängt ab, wann es das Zusammenführen zweier Fahrten anbietet. Ein Frame kann ohne ankommen, und
+dieses Fehlen wurde als Null gespeichert. Ein Halt in P, bei dem das Auto nicht sagte, ob es an war,
+hielt zwei Fahrten in einem Einschaltvorgang, wie lange er auch dauerte; das verhält sich jetzt genau
+wie ein sichtbares Ausschalten, und ein paar Sekunden in P zum Umschalten eines Fahrmodus lassen die
+Fahrt zusammen. Die Statuskarte zeigt einen Strich für einen Wert, den das Auto nie gesendet hat. Für
+ein Auto, das READY meldet, ändert sich nichts: die gesamte echte Historie wird identisch
+rekonstruiert.
+
+Ebenfalls in dieser Version, von Ihrer Installation aus unsichtbar: Mates eigene Testsuite ruft die
+Außenwelt nicht mehr an. Sie löste bei jedem Lauf 187 externe Adressen auf — genug, dass zwei Läufe in
+einer Stunde das Stundenkontingent aufbrauchten, das GitHub einer Adresse gewährt, und eine
+Installation hinter derselben Adresse danach ihre eigene Update-Prüfung abgelehnt bekam.
+
+### Neu in Version 4.7.3
 
 Zwei Änderungen, beide von Menschen, die Mate benutzen, und eine davon korrigiert etwas, das dieses
 Projekt öffentlich falsch gesagt hat.

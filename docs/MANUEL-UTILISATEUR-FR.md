@@ -1,8 +1,37 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.3 · **Langue :** Français
+> **Version de Mate :** v4.7.4 · **Langue :** Français
 
-## Nouveautés de la version 4.7.3
+## Nouveautés de la version 4.7.4
+
+Trois changements venus d'un contributeur. Deux portent sur Mate qui demande moins ; le troisième sur
+un signal qui, lorsque la voiture ne l'envoyait pas, était noté comme si elle avait répondu.
+
+**Mate cesse de redemander la température extérieure quand le service météo refuse.** La lecture
+vient d'un service gratuit avec un quota quotidien. Une requête échouée ne laissait rien derrière
+elle, donc le relevé suivant redemandait, et tous les suivants aussi — un jour où le quota était
+épuisé, cela faisait 432 refus en moins de quatre heures. Une requête échouée attend maintenant vingt
+minutes, exactement la durée pendant laquelle une bonne lecture est déjà jugée valable ; mesuré sur
+quatre heures de requêtes refusées, 480 avant et 12 maintenant. Si la toute première requête après un
+démarrage échoue, vous restez vingt minutes sans température extérieure ; une lecture déjà obtenue est
+conservée, comme avant.
+
+**Un READY que la voiture n'a pas envoyé n'est plus noté comme « éteinte ».** READY dit si la voiture
+est allumée, et Mate s'en sert pour savoir si deux trajets appartiennent à une même mise en route —
+ce qui décide quand il propose de fusionner deux trajets. Une trame peut arriver sans, et cette
+absence était enregistrée comme un zéro. Un arrêt en P pendant lequel la voiture n'a pas dit si elle
+était allumée gardait deux trajets dans une même mise en route, quelle qu'en soit la durée ; cela se
+comporte maintenant exactement comme un arrêt visible, et quelques secondes en P pour changer un mode
+de conduite laissent le trajet entier. La carte d'état affiche un tiret pour une valeur que la voiture
+n'a jamais envoyée. Rien ne change pour une voiture qui rapporte READY : tout l'historique réel se
+reconstruit à l'identique.
+
+Également dans cette version, invisible depuis votre installation : la suite de tests de Mate
+n'appelle plus l'extérieur. Elle résolvait 187 adresses externes à chaque exécution, assez pour que
+deux exécutions en une heure épuisent le quota horaire accordé par GitHub à une adresse — et une
+installation partageant cette adresse voyait ensuite son propre contrôle de mise à jour refusé.
+
+### Nouveautés de la version 4.7.3
 
 Deux changements, tous deux venus de personnes qui utilisent Mate, et l'un des deux corrige une chose
 que ce projet avait dite à tort en public.

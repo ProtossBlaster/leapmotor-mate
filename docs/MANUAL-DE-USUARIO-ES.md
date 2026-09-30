@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.3 · **Idioma:** Español
+> **Versión de Mate:** v4.7.4 · **Idioma:** Español
 
-## Novedades de la versión 4.7.3
+## Novedades de la versión 4.7.4
+
+Tres cambios de una persona que contribuye. Dos tienen que ver con que Mate pregunte menos; el tercero
+con una señal que, cuando el coche no la enviaba, se anotaba como si el coche hubiera respondido.
+
+**Mate deja de volver a pedir la temperatura exterior cuando el servicio meteorológico rechaza.** La
+lectura viene de un servicio gratuito con un cupo diario. Una petición fallida no dejaba nada, así que
+el siguiente sondeo volvía a pedir, y todos los siguientes también — en un día con el cupo agotado,
+eso fueron 432 rechazos en menos de cuatro horas. Una petición fallida ahora espera veinte minutos,
+exactamente lo que ya se confía en una lectura buena; medido sobre cuatro horas de peticiones
+rechazadas, 480 antes y 12 ahora. Si falla la primerísima petición tras un arranque te quedas veinte
+minutos sin temperatura exterior; una lectura que ya existe se conserva, como antes.
+
+**Un READY que el coche no envió ya no se anota como «apagado».** READY dice si el coche está
+encendido, y Mate lo usa para saber si dos trayectos pertenecen al mismo encendido — que es lo que
+decide cuándo te propone unir dos trayectos. Una trama puede llegar sin él, y esa ausencia se guardaba
+como un cero. Una parada en P durante la cual el coche no dijo si estaba encendido mantenía dos
+trayectos en un mismo encendido, durase lo que durase; ahora se comporta exactamente como un apagado
+que se ve, y un par de segundos en P para cambiar un modo de conducción dejan el trayecto entero. La
+tarjeta de estado muestra un guion para un valor que el coche nunca envió. Para un coche que informa
+READY no cambia nada: todo el historial real se reconstruye idéntico.
+
+También en esta versión, invisible desde tu instalación: la suite de pruebas de Mate ya no llama al
+exterior. Resolvía 187 direcciones externas en cada ejecución, suficiente para que dos ejecuciones en
+una hora agotaran el cupo por hora que GitHub concede a una dirección — y una instalación que
+compartía esa dirección veía luego rechazada su propia comprobación de actualizaciones.
+
+### Novedades de la versión 4.7.3
 
 Dos cambios, los dos de personas que usan Mate, y uno de ellos corrige algo que este proyecto dijo
 mal en público.

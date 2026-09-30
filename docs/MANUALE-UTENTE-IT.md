@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.3 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.4 · **Lingua:** Italiano
 
-## Novità della 4.7.3
+## Novità della 4.7.4
+
+Tre modifiche di chi contribuisce. Due riguardano Mate che chiede di meno; la terza un segnale che,
+quando l'auto non lo mandava, veniva scritto come se l'auto avesse risposto.
+
+**Mate smette di richiedere la temperatura esterna quando il servizio meteo rifiuta.** La lettura
+arriva da un servizio gratuito con una quota giornaliera. Una richiesta fallita non lasciava traccia,
+quindi il poll successivo richiedeva, e così ogni poll dopo — in una giornata in cui la quota è
+finita, 432 rifiuti in meno di quattro ore. Una richiesta fallita adesso aspetta venti minuti, che è
+esattamente per quanto Mate già si fida di una lettura buona; misurato su quattro ore di richieste
+rifiutate, 480 prima e 12 adesso. Se fallisce la primissima richiesta dopo un avvio resti senza
+temperatura esterna per venti minuti; una lettura che c'è già viene tenuta, come prima.
+
+**Un READY che l'auto non ha mandato non viene più scritto come «spenta».** READY dice se l'auto è
+accesa, e Mate lo usa per capire se due guidate appartengono alla stessa accensione — che è quello
+che decide quando ti propone di fondere due viaggi. Un frame può arrivare senza, e quell'assenza
+veniva salvata come uno zero. Una sosta in P in cui l'auto non ha detto se era accesa teneva due
+guidate nella stessa accensione per quanto durasse; adesso si comporta esattamente come uno
+spegnimento che si vede, e due secondi in P per cambiare modalità di guida tengono comunque insieme
+la guidata. La scheda di stato mostra un trattino per un valore che l'auto non ha mai mandato. Per
+un'auto che dichiara READY non cambia niente: tutto lo storico vero si ricostruisce identico.
+
+C'è anche, e dalla tua installazione non si vede: la suite dei test di Mate non chiama più l'esterno.
+Risolveva 187 indirizzi esterni a ogni giro, abbastanza che due giri in un'ora esaurissero la quota
+oraria che GitHub concede a un indirizzo — e un'installazione che condivideva quell'indirizzo si
+vedeva poi rifiutare il proprio controllo aggiornamenti.
+
+### Novità della 4.7.3
 
 Due modifiche, entrambe di chi usa Mate, e una delle due corregge una cosa che questo progetto aveva
 sbagliato in pubblico.

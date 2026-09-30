@@ -1,8 +1,35 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.3 · **Language:** English
+> **Mate version:** v4.7.4 · **Language:** English
 
-## New in 4.7.3
+## New in 4.7.4
+
+Three changes from a contributor. Two are about Mate asking less; the third is about a signal that,
+when the car did not send it, was written down as though the car had answered.
+
+**Mate stops re-asking for the outside temperature when the weather service refuses.** The reading
+comes from a free service with a daily allowance. A request that failed left nothing behind, so the
+next poll asked again, and so did every poll after it — on a day the allowance ran out that was 432
+refusals in under four hours. A failed request now waits twenty minutes, which is exactly how long a
+good reading is already trusted; measured over four hours of refused requests, 480 before and 12 now.
+If the very first request after a start fails you are without an outside temperature for twenty
+minutes; an existing reading is kept as before.
+
+**A READY the car did not send is no longer written down as "off".** READY says whether the car is
+switched on, and Mate uses it to tell whether two drives belong to one power-on — which is what
+decides when it offers to merge two trips. A frame can arrive without it, and that absence was stored
+as a zero. A stop in Park where the car did not say whether it was on used to keep two drives in one
+power-on however long it lasted; it now behaves exactly as a switch-off you can see does, and a
+couple of seconds in Park to change a driving mode still keeps one drive whole. The status card shows
+a dash for a value the car never sent. Nothing changes for a car that reports READY: the whole real
+history reconstructs identically.
+
+Also in this release, and invisible from your installation: Mate's own test suite no longer calls out
+to the internet. It was asking 187 external addresses on every run, enough that two runs in an hour
+used up the hourly allowance GitHub gives an address — and an installation sharing that address then
+found its own update check refused.
+
+### New in 4.7.3
 
 Two changes, both from people who use Mate, and one of them corrects something this project got
 wrong in public.
