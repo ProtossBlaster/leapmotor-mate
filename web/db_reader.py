@@ -2111,7 +2111,11 @@ def _charging_sample(alias: str = "") -> str:
     """SQL predicate: this row is a sample of the charge whose window contains it.
 
     ⚠️ Only sound INSIDE a charge's window. On its own it matches every regen frame of every drive
-    (the motion gate is a guard against a bled window, not a substitute for the window)."""
+    (the motion gate is a guard against a bled window, not a substitute for the window).
+
+    🔴 Matched by idx_positions_charge_sample (schema.py) literally, not derived from this
+    function — moving `_CHARGE_SAMPLE_MIN_A` or this shape without moving the index's WHERE
+    clause the same way turns every per-charge query back into a table walk."""
     q = f"{alias}." if alias else ""
     return (f"({q}charging = 1 OR ({q}charge_current_a <= -{_CHARGE_SAMPLE_MIN_A} "
             f"AND COALESCE({q}speed_kmh, 0) <= 2 AND COALESCE({q}gear, 'P') = 'P'))")

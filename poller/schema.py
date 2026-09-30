@@ -354,6 +354,19 @@ def ensure_schema(conn) -> None:
         _add_column(conn, "ALTER TABLE positions ADD COLUMN charge_voltage_v REAL DEFAULT NULL")
     if "charge_current_a" not in cols:
         _add_column(conn, "ALTER TABLE positions ADD COLUMN charge_current_a REAL DEFAULT NULL")
+    # The battery-health estimate asks this — _charging_sample()'s own "the flag, OR current +
+    # stationary + park" — up to four times per charge (energy, SoC-jump, cold-temp/odometer; the
+    # cabin-use probe below has its own index already). Same shape as idx_positions_cabin_use and
+    # idx_positions_v2l just below/above: a charge with no matching sample made SQLite walk forward
+    # through however much of the table came after it, because idx_positions_charging_recorded's
+    # own predicate is `charging = 1` alone, not this whole OR. Measured on a synthetic
+    # 1,000-charge/200k-position database: get_battery_health 16.6s -> 0.09s with this index. The
+    # literal -0.5 has to stay in step with db_reader._CHARGE_SAMPLE_MIN_A if that ever moves.
+    # 🔴 HERE, not in SCHEMA: charge_current_a arrives with the ALTER just above, so an index on it
+    # inside the schema script fails on a fresh database and takes the WHOLE script down with it.
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_positions_charge_sample ON positions(vehicle_id, recorded_at)"
+                 " WHERE charging = 1 OR (charge_current_a <= -0.5 AND "
+                 "COALESCE(speed_kmh, 0) <= 2 AND COALESCE(gear, 'P') = 'P')")
     if "ready" not in cols:
         _add_column(conn, "ALTER TABLE positions ADD COLUMN ready INTEGER DEFAULT NULL")
     if "charge_completed" not in cols:
