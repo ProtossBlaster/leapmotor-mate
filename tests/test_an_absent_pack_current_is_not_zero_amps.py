@@ -69,7 +69,9 @@ class _SpyDB:
     def add_trip_position(self, trip_id, data): pass
     def get_open_charge(self, vid): return None
     def trip_end_from_last_seen(self, trip_id): return None
-    def finalize_trip(self, trip_id, data, regen_kwh=0.0, end_at_override=None): return 17.0
+    def finalize_trip(self, trip_id, data, regen_kwh=0.0, end_at_override=None, drop_points=()):
+        return 17.0
+    def trip_switched_off(self, trip_id): return None
 
 
 def test_the_regen_gate_takes_an_unknown_current_as_no_regen():
