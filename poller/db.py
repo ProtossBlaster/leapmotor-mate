@@ -1295,8 +1295,8 @@ class Database:
         row = self._conn.execute("SELECT id FROM vehicles WHERE vin = ?", (vin,)).fetchone()
         return row["id"]
 
-    def save_position(self, vehicle_id: int, data) -> None:
-        self._conn.execute(
+    def save_position(self, vehicle_id: int, data) -> int:
+        cur = self._conn.execute(
             """INSERT INTO positions
                (vehicle_id, recorded_at, latitude, longitude, speed_kmh, odometer_km,
                 soc, outside_temp, inside_temp, climate_target_temp, battery_min_temp,
@@ -1352,6 +1352,7 @@ class Database:
             ),
         )
         self._conn.commit()
+        return cur.lastrowid
 
     def get_last_soc(self, vehicle_id: int):
         """The most recent recorded (soc, recorded_at) for this vehicle, or (None, None).
@@ -1611,14 +1612,14 @@ class Database:
                  trip_id, distance_km, start_soc, end_soc, energy)
         return trip_id
 
-    def add_trip_position(self, trip_id: int, data) -> None:
+    def add_trip_position(self, trip_id: int, data) -> Optional[int]:
         # Skip missing GPS: a (0,0) point draws the route to the Gulf of Guinea and
         # breaks fitBounds on the map. Only record real fixes.
         if not data.latitude or not data.longitude:
-            return
+            return None
         volts, amps = getattr(data, "charge_voltage_v", None), getattr(data, "charge_current_a", None)
         power = round(volts * amps / 1000.0, 1) if volts is not None and amps is not None else None
-        self._conn.execute(
+        cur = self._conn.execute(
             """INSERT INTO trip_positions (trip_id, recorded_at, latitude, longitude, speed_kmh, soc,
                                            power_kw, battery_temp_c, range_km, outside_temp_c)
                VALUES (?,?,?,?,?,?,?,?,?,?)""",
@@ -1627,6 +1628,7 @@ class Database:
              getattr(data, "outside_temp", None)),
         )
         self._conn.commit()
+        return cur.lastrowid
 
     def trip_end_from_last_seen(self, trip_id: int) -> Optional[str]:
         """When the car was last actually HEARD inside this trip — the twin of

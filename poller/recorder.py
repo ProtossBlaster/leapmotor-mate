@@ -39,6 +39,15 @@ class OdometerReading(NamedTuple):
                    data.timestamp_ms or None)
 
 
+class _TripPoll(NamedTuple):
+    """What one poll added to the active trip: the `positions` row it wrote, its route point (None
+    without a GPS fix) and its regen. Known by the rows, in the order they were written, so a part
+    of the trip can be told apart without asking any clock."""
+    position_id: int
+    point_id: Optional[int]
+    regen_kwh: float
+
+
 class Recorder:
     def __init__(self, db: Database, vehicle_id: int):
         self._db = db
@@ -46,7 +55,7 @@ class Recorder:
         self._sm = StateMachine()
         self._active_trip_id: Optional[int] = None
         self._active_charge_id: Optional[int] = None
-        self._regen_kwh: float = 0.0
+        self._trip_polls: list[_TripPoll] = []
         # The last litre reading the car gave, from any poll — the baseline the regen gate uses to
         # tell braking from the range-extender's generator. NOT reset per trip on purpose: the poll
         # that opens a drive then already has something to compare against. None on a BEV for ever.
@@ -80,6 +89,10 @@ class Recorder:
     @property
     def state(self) -> State:
         return self._sm.state
+
+    @property
+    def _regen_kwh(self) -> float:
+        return sum(poll.regen_kwh for poll in self._trip_polls)
 
     @property
     def poll_interval(self) -> int:
@@ -169,8 +182,9 @@ class Recorder:
         # readings to close the trip — hiding them would strand the trip open until the link returns,
         # which is the very bug #128 reports.
         self._polled_at = _now_iso()
+        position_id = None
         if not (stale and self._sm.state == State.DRIVING):
-            self._db.save_position(self._vehicle_id, data)
+            position_id = self._db.save_position(self._vehicle_id, data)
 
         # Read the baseline before advancing it: the regen gate below asks what the counter said
         # at the PREVIOUS reading, not at this one.
@@ -190,7 +204,7 @@ class Recorder:
         # on-road verification — gating this way stays conservative: at worst it counts 0,
         # never mistaking driving discharge for regen.
         if self._sm.state == State.DRIVING and self._active_trip_id and not stale:
-            self._db.add_trip_position(self._active_trip_id, data)
+            point_id = self._db.add_trip_position(self._active_trip_id, data)
             # …and on a range-extender, only when the generator was NOT running. It refills the
             # pack while driving, unplugged, with the same sign as braking, so petrol burned to make
             # electricity was being recorded as recovered energy. Measured on @ebagnoli's signal log
@@ -210,9 +224,11 @@ class Recorder:
             # is only ever too small is one an owner can act on; one inflated by petrol is not.
             # → tests/test_a_reevs_regen_is_braking_not_its_own_generator.py
             _generator_ran = _generator_was_running(fuel_before, data.fuel_liters)
+            regen = 0.0
             if (not data.plug_connected and (data.charge_current_a or 0) < -3.0
                     and data.charge_power_kw is not None and not _generator_ran):
-                self._regen_kwh += data.charge_power_kw * (self._sm.poll_driving / 3600)
+                regen = data.charge_power_kw * (self._sm.poll_driving / 3600)
+            self._trip_polls.append(_TripPoll(position_id, point_id, regen))
 
         # During active charge: track peak power, and sum the wallbox counter's rises so the billed
         # energy is MEASURED (reset/race-proof). Both are persisted → survive a poller restart mid-charge.
@@ -467,7 +483,7 @@ class Recorder:
             self._finalize_trip(last, end_at=ended_at, reading=OdometerReading(
                 last.odometer_km, last.soc, last.recorded_at, False, last.frame_ts))
         self._active_trip_id = None
-        self._regen_kwh = 0.0
+        self._trip_polls = []
 
     def sample_wallbox_meter(self) -> None:
         """Read the home wallbox counter on a cycle where the CAR said nothing (#295 @gm27271).
@@ -651,7 +667,7 @@ class Recorder:
                 # the same thing since #208, one branch below: re-entering with one still open
                 # means we never stopped.
                 return
-            self._regen_kwh = 0.0
+            self._trip_polls = []
             # Before the trip is created, so both baselines still hold the last poll's reading:
             # anything the odometer gained while the cloud was quiet is declared on its own instead
             # of becoming the front of this trip.
@@ -682,14 +698,14 @@ class Recorder:
             if self._active_trip_id and data:
                 self._finalize_trip(data)
             self._active_trip_id = None
-            self._regen_kwh = 0.0
+            self._trip_polls = []
 
         elif to == State.CHARGING:
             if self._active_trip_id and data:
                 # Plug inserted while driving → trip closed immediately, no 20s wait
                 self._finalize_trip(data)
                 self._active_trip_id = None
-                self._regen_kwh = 0.0
+                self._trip_polls = []
             # Only OPEN a new charge if none is already open. Re-entering CHARGING with a
             # charge still open means we never unplugged — typically an OFFLINE gap mid-charge
             # (3 API errors → OFFLINE → recovery → CHARGING). Opening a second row there would
