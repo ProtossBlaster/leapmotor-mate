@@ -289,7 +289,8 @@ class NewAPIClient(MateClientCompatibility):
         self.account_cert_file=str(cert);self.account_key_file=str(key)
 
     def login(self):
-        """Resume the saved session when it is still good, else authenticate."""
+        """Resume the saved session when it is still good, renew it when it has run out but can
+        be renewed, else authenticate. The one place that decides between the three."""
         with self._mutex:
             lock_path = Path(DB).parent/'api-v2-session.lock'
             with exclusive(lock_path):
@@ -297,12 +298,21 @@ class NewAPIClient(MateClientCompatibility):
                     raw=setting(db,SESSION_KEY)
                     try:
                         saved=json.loads(crypto.decrypt(raw))
-                        valid=(saved['username_hash']==hashlib.sha256(self.username.encode()).hexdigest()
-                               and saved['expires_at']>time.time()+90
-                               and certificate_usable(saved['cert'],saved['private_key']))
-                        if valid:
+                        usable=(saved['username_hash']==hashlib.sha256(self.username.encode()).hexdigest()
+                                and certificate_usable(saved['cert'],saved['private_key']))
+                        if usable and saved['expires_at']>time.time()+90:
                             self._apply_session(saved)
                             return
+                        # Its refresh token outlives it by days, and a renewal spends none of the
+                        # logins the cloud rations. A token that did not renew is offered once:
+                        # while the login below fails too, every read would ask it again.
+                        if usable and saved.get('refresh_token'):
+                            self._apply_session(saved)
+                            if self._renew_session():
+                                return
+                            saved.pop('refresh_token');saved.pop('refresh_expires_at',None)
+                            set_setting(db,SESSION_KEY,crypto.encrypt(json.dumps(saved)))
+                            db.commit()   # before the deferral below can raise and roll it back
                     except (ValueError,KeyError,TypeError):
                         pass
                     try:
@@ -380,12 +390,11 @@ class NewAPIClient(MateClientCompatibility):
         return True
 
     def token_refresh(self):
-        # Renew where the cloud lets us; a login is what is left when it does not.
+        # The session this adapter holds stops counting as good, and login() renews it where the
+        # cloud lets us and logs in where it does not. Under the lock, so the expiry never lands on
+        # a session another process has just renewed; one it has, login() simply resumes.
         lock_path=Path(DB).parent/'api-v2-session.lock'
-        with exclusive(lock_path):
-            if self._renew_session():
-                return
-        with connect_db() as db:
+        with exclusive(lock_path),connect_db() as db:
             raw=setting(db,SESSION_KEY)
             if raw:
                 saved=json.loads(crypto.decrypt(raw))
