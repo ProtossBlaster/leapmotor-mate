@@ -1,8 +1,31 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.2 · **Idioma:** Español
+> **Versión de Mate:** v4.7.3 · **Idioma:** Español
 
-## Novedades de la versión 4.7.2
+## Novedades de la versión 4.7.3
+
+Dos cambios, los dos de personas que usan Mate, y uno de ellos corrige algo que este proyecto dijo
+mal en público.
+
+**Mate deja de pedirle al cloud que inicie sesión cada dos horas.** La versión 4.4.0 le había
+enseñado a renovar una sesión en lugar de volver a comprarla con un inicio de sesión, y decía que eso
+significaba unos un inicio de sesión por semana. No era así: la renovación solo se usaba cuando el
+cloud rechazaba un token a mitad de una petición, así que una sesión que caducaba con normalidad
+seguía costando un inicio de sesión — medido en una instalación real, uno cada 119 minutos, doce al
+día, mientras el billete de renovación guardado al lado seguía sirviendo otra semana. Ese cloud
+raciona los inicios de sesión, y uno rechazado es un tramo en el que Mate no recibe nada: ni mapa, ni
+duración, ni velocidad. Tras la corrección, en la misma instalación: seis renovaciones seguidas en
+una noche y ningún inicio de sesión. No hay nada que hacer por tu parte.
+
+**Un lugar de carga puede decir qué tipo de cargador es.** Los lugares se pensaron para una segunda
+casa, así que cada lugar guardado tipificaba sus cargas como Casa — incluido un cargador del trabajo
+o uno municipal gratuito. Un lugar lleva ahora su propio tipo (Casa, AC, DC, HPC o Gratis), y el tipo
+fija el precio además de la etiqueta: un lugar tipificado AC a 0,45 cobra 10 kWh a 4,50, y uno Gratis
+no cuesta nada sea cual sea la tarifa que le quedara puesta. Los lugares que ya tienes leen Casa,
+exactamente como antes. Asignar un lugar a una carga ya no recarga toda la página, así que el día que
+tuvieras abierto en Cargas sigue abierto.
+
+### Novedades de la versión 4.7.2
 
 Nueve cosas que Mate ya sabía y no usaba.
 

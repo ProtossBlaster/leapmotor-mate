@@ -1344,7 +1344,7 @@
     "cloud_import_save": "Salva",
     "cloud_import_saved": "Preferenza salvata",
     "places_title": "Luoghi di ricarica",
-    "places_help": "Luoghi privati con tariffa fissa per veicolo. Il riconoscimento vale solo per nuove ricariche AC con GPS recente e una sola zona compatibile. Modificare un luogo non cambia le sessioni precedenti.",
+    "places_help": "I tuoi luoghi, ognuno con il suo tipo e una tariffa fissa per veicolo. Il riconoscimento vale solo per nuove ricariche AC con GPS recente e una sola zona compatibile. Modificare un luogo non cambia le sessioni precedenti.",
     "places_estimate": "Senza energia misurata dal caricatore, il costo è stimato dall’energia della batteria; le perdite di ricarica non sono misurate.",
     "place_add": "Aggiungi luogo",
     "place_name": "Nome",

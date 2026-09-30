@@ -1344,7 +1344,7 @@
     "cloud_import_title": "Cloud trip history",
     "cloud_import_enabled": "Import trips from Leapmotor cloud",
     "places_title": "Laadlocaties",
-    "places_help": "Privélocaties met een vast tarief per voertuig. Automatische toewijzing alleen voor nieuwe AC-sessies met recente GPS en één passende zone. Wijzigingen veranderen eerdere sessies niet.",
+    "places_help": "Je eigen locaties, elk met een eigen type en een vast tarief per voertuig. Automatische toewijzing alleen voor nieuwe AC-sessies met recente GPS en één passende zone. Wijzigingen veranderen eerdere sessies niet.",
     "places_estimate": "Zonder gemeten laadenergie worden kosten geschat uit batterijenergie; laadverliezen worden niet gemeten.",
     "place_add": "Locatie toevoegen",
     "place_name": "Naam",

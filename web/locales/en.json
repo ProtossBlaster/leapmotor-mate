@@ -1344,7 +1344,7 @@
     "cloud_import_save": "Save",
     "cloud_import_saved": "Preference saved",
     "places_title": "Charging places",
-    "places_help": "Private places with a fixed tariff per vehicle. Automatic matching applies only to new AC sessions with a recent GPS position and one matching zone. Editing a place does not change previous sessions.",
+    "places_help": "Your own places, each with its own type and a fixed tariff per vehicle. Automatic matching applies only to new AC sessions with a recent GPS position and one matching zone. Editing a place does not change previous sessions.",
     "places_estimate": "Without a measured charger energy total, cost is estimated from battery energy; charging losses are not measured.",
     "place_add": "Add place",
     "place_name": "Name",

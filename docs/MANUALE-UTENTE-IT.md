@@ -1,8 +1,31 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.2 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.3 · **Lingua:** Italiano
 
-## Novità della 4.7.2
+## Novità della 4.7.3
+
+Due modifiche, entrambe di chi usa Mate, e una delle due corregge una cosa che questo progetto aveva
+sbagliato in pubblico.
+
+**Mate smette di chiedere al cloud di accedere ogni due ore.** La 4.4.0 gli aveva insegnato a
+rinnovare una sessione invece di ricomprarla con un login, e diceva che voleva dire circa un login a
+settimana. Non era così: il rinnovo veniva usato solo quando il cloud rifiutava un token a metà
+richiesta, quindi una sessione che scadeva normalmente costava comunque un login — misurato su
+un'installazione vera, uno ogni 119 minuti, dodici al giorno, mentre il biglietto di rinnovo salvato
+accanto era buono per un'altra settimana. Quel cloud raziona i login, e un login rifiutato è un
+tratto in cui Mate non riceve niente: né mappa, né durata, né velocità. Dopo la correzione, sulla
+stessa installazione: sei rinnovi di fila in una notte e nessun login. Non c'è niente da fare da
+parte tua.
+
+**Un luogo di ricarica può dire che tipo di colonnina è.** I luoghi erano nati per una seconda casa,
+quindi ogni luogo salvato tipizzava le sue ricariche come Casa — anche una colonnina al lavoro o una
+comunale gratuita. Un luogo adesso porta il proprio tipo (Casa, AC, DC, HPC o Gratis), e il tipo
+decide il prezzo oltre al badge: un luogo tipizzato AC a 0,45 fa costare 10 kWh 4,50, e uno Gratis
+non costa niente qualunque tariffa gli fosse rimasta addosso. I luoghi che hai già leggono Casa,
+esattamente come prima. Assegnare un luogo a una ricarica non ricarica più tutta la pagina, così il
+giorno che avevi aperto in Ricariche resta aperto.
+
+### Novità della 4.7.2
 
 Nove cose che Mate già sapeva e non usava.
 

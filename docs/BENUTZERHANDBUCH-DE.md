@@ -1,8 +1,32 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.2 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.3 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.2
+## Neu in Version 4.7.3
+
+Zwei Änderungen, beide von Menschen, die Mate benutzen, und eine davon korrigiert etwas, das dieses
+Projekt öffentlich falsch gesagt hat.
+
+**Mate fragt den Cloud-Dienst nicht mehr alle zwei Stunden nach einer Anmeldung.** Version 4.4.0
+hatte gelernt, eine Sitzung zu erneuern statt sie mit einer Anmeldung neu zu kaufen, und nannte dafür
+etwa eine Anmeldung pro Woche. So war es nicht: die Erneuerung wurde nur genutzt, wenn die Cloud
+mitten in einer Anfrage ein Token ablehnte, also kostete eine ganz normal ablaufende Sitzung trotzdem
+eine Anmeldung — gemessen auf einer echten Installation, eine alle 119 Minuten, zwölf pro Tag,
+während das daneben gespeicherte Erneuerungsticket noch eine Woche gültig war. Diese Cloud rationiert
+Anmeldungen, und eine abgelehnte Anmeldung ist ein Zeitraum, in dem Mate überhaupt nichts empfängt:
+keine Karte, keine Dauer, keine Geschwindigkeit. Nach der Korrektur, auf derselben Installation:
+sechs Erneuerungen in einer Nacht und keine einzige Anmeldung. Für Sie gibt es nichts zu tun.
+
+**Ein Ladeort kann sagen, was für eine Ladestation er ist.** Ladeorte waren für ein zweites Zuhause
+gedacht, also setzte jeder gespeicherte Ort seine Ladevorgänge auf Zuhause — auch eine Station bei
+der Arbeit oder eine kostenlose kommunale. Ein Ort trägt jetzt seinen eigenen Typ (Zuhause, AC, DC,
+HPC oder Kostenlos), und der Typ bestimmt den Preis genauso wie das Abzeichen: ein als AC mit 0,45
+angelegter Ort berechnet 10 kWh mit 4,50, und ein als Kostenlos angelegter kostet nichts, welcher
+Tarif auch an ihm hängen geblieben ist. Ihre vorhandenen Orte lesen Zuhause, genau wie vorher. Einen
+Ort einem Ladevorgang zuzuweisen lädt nicht mehr die ganze Seite neu, der in Ladevorgänge geöffnete
+Tag bleibt also offen.
+
+### Neu in Version 4.7.2
 
 Neun Dinge, die Mate bereits wusste und nicht nutzte.
 

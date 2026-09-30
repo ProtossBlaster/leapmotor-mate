@@ -1,8 +1,31 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.2 · **Langue :** Français
+> **Version de Mate :** v4.7.3 · **Langue :** Français
 
-## Nouveautés de la version 4.7.2
+## Nouveautés de la version 4.7.3
+
+Deux changements, tous deux venus de personnes qui utilisent Mate, et l'un des deux corrige une chose
+que ce projet avait dite à tort en public.
+
+**Mate cesse de demander au cloud de se connecter toutes les deux heures.** La version 4.4.0 lui
+avait appris à renouveler une session au lieu d'en racheter une par une connexion, et annonçait
+environ une connexion par semaine. Ce n'était pas le cas : le renouvellement ne servait que lorsque
+le cloud refusait un jeton en cours de requête, donc une session qui expirait normalement coûtait
+quand même une connexion — mesuré sur une installation réelle, une toutes les 119 minutes, douze par
+jour, alors que le billet de renouvellement enregistré à côté restait valable une semaine. Ce cloud
+rationne les connexions, et une connexion refusée est une période où Mate ne reçoit rien du tout :
+ni carte, ni durée, ni vitesse. Après la correction, sur la même installation : six renouvellements
+d'affilée en une nuit et aucune connexion. Rien à faire de votre côté.
+
+**Un lieu de recharge peut dire quel type de borne il est.** Les lieux avaient été conçus pour une
+seconde maison, donc chaque lieu enregistré typait ses recharges en Maison — y compris une borne au
+travail ou une borne municipale gratuite. Un lieu porte maintenant son propre type (Maison, AC, DC,
+HPC ou Gratuit), et le type fixe le prix autant que le badge : un lieu typé AC à 0,45 facture 10 kWh
+à 4,50, et un lieu typé Gratuit ne coûte rien quel que soit le tarif qui y était resté. Les lieux que
+vous avez déjà lisent Maison, exactement comme avant. Attribuer un lieu à une recharge ne recharge
+plus toute la page, donc le jour que vous aviez ouvert dans Recharges reste ouvert.
+
+### Nouveautés de la version 4.7.2
 
 Neuf choses que Mate savait déjà et n'utilisait pas.
 

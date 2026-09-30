@@ -1344,7 +1344,7 @@
     "cloud_import_title": "Cloud trip history",
     "cloud_import_enabled": "Import trips from Leapmotor cloud",
     "places_title": "Miejsca ładowania",
-    "places_help": "Prywatne miejsca ze stałą taryfą dla pojazdu. Automatyczne przypisanie tylko dla nowych sesji AC z aktualnym GPS i jednym pasującym obszarem. Zmiany nie dotyczą wcześniejszych sesji.",
+    "places_help": "Twoje miejsca, każde z własnym typem i stałą taryfą dla pojazdu. Automatyczne przypisanie tylko dla nowych sesji AC z aktualnym GPS i jednym pasującym obszarem. Zmiany nie dotyczą wcześniejszych sesji.",
     "places_estimate": "Bez pomiaru energii ładowarki koszt jest szacowany z energii baterii; straty ładowania nie są mierzone.",
     "place_add": "Dodaj miejsce",
     "place_name": "Nazwa",

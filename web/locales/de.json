@@ -1344,7 +1344,7 @@
     "cloud_import_title": "Cloud trip history",
     "cloud_import_enabled": "Import trips from Leapmotor cloud",
     "places_title": "Ladeorte",
-    "places_help": "Private Orte mit festem Tarif pro Fahrzeug. Automatische Zuordnung nur für neue AC-Ladungen mit aktueller GPS-Position und genau einem passenden Bereich. Änderungen gelten nicht rückwirkend.",
+    "places_help": "Eigene Orte, jeder mit eigenem Typ und festem Tarif pro Fahrzeug. Automatische Zuordnung nur für neue AC-Ladungen mit aktueller GPS-Position und genau einem passenden Bereich. Änderungen gelten nicht rückwirkend.",
     "places_estimate": "Ohne gemessene Ladeenergie wird der Preis aus der Batterieenergie geschätzt; Ladeverluste werden nicht gemessen.",
     "place_add": "Ort hinzufügen",
     "place_name": "Name",

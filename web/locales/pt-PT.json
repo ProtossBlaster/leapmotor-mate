@@ -1344,7 +1344,7 @@
     "cloud_import_title": "Cloud trip history",
     "cloud_import_enabled": "Import trips from Leapmotor cloud",
     "places_title": "Locais de carregamento",
-    "places_help": "Locais privados com tarifa fixa por veículo. Associação automática apenas para novas sessões AC com GPS recente e uma única zona correspondente. As alterações não modificam sessões anteriores.",
+    "places_help": "Os seus locais, cada um com o seu tipo e uma tarifa fixa por veículo. Associação automática apenas para novas sessões AC com GPS recente e uma única zona correspondente. As alterações não modificam sessões anteriores.",
     "places_estimate": "Sem energia medida pelo carregador, o custo é estimado pela energia da bateria; as perdas não são medidas.",
     "place_add": "Adicionar local",
     "place_name": "Nome",

@@ -1,8 +1,29 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.2 · **Language:** English
+> **Mate version:** v4.7.3 · **Language:** English
 
-## New in 4.7.2
+## New in 4.7.3
+
+Two changes, both from people who use Mate, and one of them corrects something this project got
+wrong in public.
+
+**Mate stops asking the cloud to sign in every two hours.** Version 4.4.0 taught it to renew a
+session instead of buying a new one with a login, and said that meant about one login a week. It did
+not: the renewal was only ever used when the cloud rejected a token mid-request, so an ordinary
+session running out still cost a login — measured on a real installation, one every 119 minutes,
+twelve a day, while the renewal ticket saved alongside it was good for another week. That cloud
+rations logins, and a refused login is a stretch where Mate receives nothing at all: no map, no
+duration, no speed. After the fix, on the same installation: six renewals in a row overnight and no
+login. Nothing for you to do.
+
+**A charging place can say what kind of charger it is.** Places were built for a second home, so
+every place you saved typed its charges as Home — including a charger at work or a free municipal
+one. A place now carries its own type (Home, AC, DC, HPC or Free), and the type sets the price as
+well as the badge: a place typed AC at 0,45 prices 10 kWh at 4,50, and one typed Free costs nothing
+whatever rate was left on it. Places you already have read Home, exactly as before. Assigning a place
+to a charge no longer reloads the whole page, so the day you had open in Charges stays open.
+
+### New in 4.7.2
 
 Nine things Mate already knew and did not use.
 
