@@ -202,6 +202,27 @@ def _gps_track_km(rows) -> float:
                for i in range(len(pts) - 1))
 
 
+# What a trip is closed on, read from `positions` under the names finalize_trip reads from a frame.
+_READING_COLUMNS = ("recorded_at, frame_ts, soc, odometer_km, latitude, longitude,"
+                    " fuel_level_pct, fuel_liters")
+
+
+def _reading(row: sqlite3.Row, started_at: str) -> tuple[str, sqlite3.Row]:
+    """A `positions` row of a trip as the moment it stands for, and the row to close the trip on.
+
+    The car's own clock (`frame_ts`) is preferred over ours, for the same reason the charge
+    prefers it — it is the measurement's own time, not the time we happened to poll. ⚠️ And it
+    is CHECKED the same way: a frame timestamp from before the trip opened (host skew, or a
+    partial frame carrying someone else's clock) would end the trip before it began, so it is
+    only taken when it lands inside the trip."""
+    moment = row["recorded_at"]
+    if row["frame_ts"]:
+        frame_iso = datetime.fromtimestamp(int(row["frame_ts"]) / 1000, timezone.utc).isoformat()
+        if frame_iso > started_at:
+            moment = frame_iso
+    return moment, row
+
+
 def trip_distance_km(gps_km: float, has_gps: bool, start_odo: float, end_odo: float):
     """Pick the trip distance from the odometer vs the GPS track.
 
@@ -1634,30 +1655,17 @@ class Database:
 
         `before` (our clock) leaves out the rows saved from then on: the recorder saves the frame in
         hand before it decides what that frame means, so "the last row" alone would be that frame.
-
-        The car's own clock (`frame_ts`) is preferred over ours, for the same reason the charge
-        prefers it — it is the measurement's own time, not the time we happened to poll. ⚠️ And it
-        is CHECKED the same way: a frame timestamp from before the trip opened (host skew, or a
-        partial frame carrying someone else's clock) would end the trip before it began, so it is
-        only taken when it lands inside the trip."""
+        The moment follows `_reading`."""
         trip = self._conn.execute(
             "SELECT vehicle_id, started_at FROM trips WHERE id=?", (trip_id,)).fetchone()
         if trip is None or not trip["started_at"]:
             return None
         bound, args = ("", ()) if before is None else (" AND recorded_at<?", (before,))
         row = self._conn.execute(
-            "SELECT recorded_at, frame_ts, soc, odometer_km, latitude, longitude,"
-            " fuel_level_pct, fuel_liters FROM positions"
+            f"SELECT {_READING_COLUMNS} FROM positions"
             " WHERE vehicle_id=? AND recorded_at>=?" + bound + " ORDER BY id DESC LIMIT 1",
             (trip["vehicle_id"], trip["started_at"], *args)).fetchone()
-        if row is None:
-            return None
-        ended_at = row["recorded_at"]
-        if row["frame_ts"]:
-            frame_iso = datetime.fromtimestamp(int(row["frame_ts"]) / 1000, timezone.utc).isoformat()
-            if frame_iso > trip["started_at"]:
-                ended_at = frame_iso
-        return ended_at, row
+        return None if row is None else _reading(row, trip["started_at"])
 
     def trip_opening(self, trip_id: int) -> tuple[str, sqlite3.Row]:
         """The trip's opening, shaped like `trip_last_seen`'s answer: what a trip heard last when no
