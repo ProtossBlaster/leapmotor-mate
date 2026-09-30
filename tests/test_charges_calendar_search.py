@@ -26,6 +26,39 @@ def _seed(pdb, cid, started, *, lat=45.0, lon=9.0, kwh=10.0, cost=None, name=Non
     pdb._conn.commit()
 
 
+# ── the expensive field is skipped for the whole history, computed only for what's kept ────────
+
+def test_calendar_day_and_search_still_compute_the_active_window(tmp_path, monkeypatch):
+    """get_charges_calendar_month/get_charges_calendar_day/search_charges now localize the
+    WHOLE history with with_window=False (cheap — no positions query) and only re-run
+    _localized_charges WITH the window for whatever the day/search filter actually keeps.
+    Regression target: the raw, pre-localization timestamps have to survive that second pass
+    unchanged, or active_window ends up comparing already-local strings against positions'
+    UTC ones (silently wrong) instead of just being absent."""
+    pdb = _setup(tmp_path, monkeypatch)
+    _seed(pdb, 1, "2026-07-04T18:48:39+02:00", ended="2026-07-04T23:53:43+02:00", kwh=10, cost=5)
+    # Real power flowed well inside the plug window — the display should flag the difference.
+    pdb._conn.execute(
+        "INSERT INTO positions (vehicle_id, recorded_at, charging) VALUES (1,?,1),(1,?,1)",
+        ("2026-07-04T16:48:59+00:00", "2026-07-04T21:18:36+00:00"))
+    pdb._conn.commit()
+
+    day = db_reader.get_charges_calendar_day(2026, 7, 4)
+    assert len(day) == 1 and day[0]["active_window"]["differs"] is True
+
+    found = db_reader.search_charges(date_from="2026-07-01", date_to="2026-07-31")
+    assert len(found) == 1 and found[0]["active_window"]["differs"] is True
+
+
+def test_calendar_day_skips_charges_outside_the_day(tmp_path, monkeypatch):
+    pdb = _setup(tmp_path, monkeypatch)
+    _seed(pdb, 1, "2026-07-04T10:00:00+00:00", kwh=10)
+    _seed(pdb, 2, "2026-07-05T10:00:00+00:00", kwh=20)
+
+    day = db_reader.get_charges_calendar_day(2026, 7, 4)
+    assert [c["id"] for c in day] == [1]
+
+
 # ── get_charges_calendar_month: per-day totals ────────────────────────────────
 
 def test_calendar_month_day_totals(tmp_path, monkeypatch):

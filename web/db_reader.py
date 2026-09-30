@@ -9265,12 +9265,21 @@ def get_charges_grouped(station: str | None = None) -> list[dict]:
     return list(years.values())
 
 
-def _localized_charges(charges: list[dict]) -> list[dict]:
+def _localized_charges(charges: list[dict], with_window: bool = True) -> list[dict]:
     """Per-charge localization shared by the Charges calendar and search: local start/end
     times + the real-charging-window display, same convention get_charges_grouped applies
     inline — so charge_card.html renders identically wherever it's included. Adds a private
     `_dt` (aware, local-tz datetime) for the caller's OWN day/date bucketing or filtering;
     never rendered, so its presence in the dict is harmless to charge_card.html.
+
+    `with_window=False` skips `active_window` — one query against `positions` per charge,
+    the whole cost of this function on an install with any real history — for a caller that
+    only needs the cheap fields (`_dt`, localized start/end, `km_since_prev`). Filter or
+    bucket the FULL history with that first, and only re-run this WITH the window on the
+    handful of charges actually going to the page (see get_charges_calendar_day,
+    search_charges) — computing it for every charge just to draw a month's day-counts, or to
+    throw away everything but one day or one search's worth, was the whole reason opening
+    Charges or a calendar day went from milliseconds to tens of seconds as the history grew.
 
     🔴 This is where the kilometres-since-the-last-charge land, and finding that out cost a
     round trip through a running container: the figure was first attached in
@@ -9287,7 +9296,8 @@ def _localized_charges(charges: list[dict]) -> list[dict]:
         dt = _local_dt(c["started_at"])
         if dt is None:
             continue
-        c["active_window"] = _charge_window_display(db, c.get("started_at"), c.get("ended_at"))
+        if with_window:
+            c["active_window"] = _charge_window_display(db, c.get("started_at"), c.get("ended_at"))
         c["started_at"] = dt.isoformat()
         c["ended_at"] = _local_iso(c.get("ended_at"))
         c["_dt"] = dt
@@ -9330,8 +9340,10 @@ def get_charges_calendar_month(year: int, month: int, station: str | None = None
     cost landed on each day of `year`/`month` (local time, same billed-kWh convention as
     get_charges_grouped) plus the month's own total — the grid only needs counts, the
     day's actual charges are fetched lazily (see get_charges_calendar_day) when a cell is
-    clicked, so a month never ships more than ~31 small numbers to the template."""
-    charges = _localized_charges(get_charges(limit=1_000_000))
+    clicked, so a month never ships more than ~31 small numbers to the template. Never reads
+    `active_window` — with_window=False skips computing it for the whole history just to sum
+    counts/kWh/cost per day."""
+    charges = _localized_charges(get_charges(limit=1_000_000), with_window=False)
     if station:
         charges = _filter_by_station(charges, station)
     days: dict[int, dict] = {}
@@ -9360,12 +9372,22 @@ def get_charges_calendar_month(year: int, month: int, station: str | None = None
 
 def get_charges_calendar_day(year: int, month: int, day: int, station: str | None = None) -> list[dict]:
     """The charge_card.html-ready charges for ONE calendar day — backs the Month view's
-    day drawer, most-recent-first."""
-    charges = _localized_charges(get_charges(limit=1_000_000))
+    day drawer, most-recent-first.
+
+    Two passes on purpose: with_window=False picks out WHICH charges belong to this one day
+    from the cheap fields alone, and only THOSE few go through _localized_charges again to add
+    `active_window` — the expensive half, one query per charge. Running it on the whole history
+    just to keep one day's worth was the difference between this taking milliseconds and tens of
+    seconds on a real install (see _localized_charges)."""
+    cheap = _localized_charges(get_charges(limit=1_000_000), with_window=False)
     if station:
-        charges = _filter_by_station(charges, station)
-    charges = [c for c in charges
-               if c["_dt"].year == year and c["_dt"].month == month and c["_dt"].day == day]
+        cheap = _filter_by_station(cheap, station)
+    ids = {c["id"] for c in cheap
+           if c["_dt"].year == year and c["_dt"].month == month and c["_dt"].day == day}
+    if not ids:
+        return []
+    raw = [c for c in get_charges(limit=1_000_000) if c["id"] in ids]
+    charges = _localized_charges(raw)
     charges.sort(key=lambda c: c["started_at"], reverse=True)
     return charges
 
@@ -9382,8 +9404,13 @@ def search_charges(text: str = "", charge_type: str = "",
     (_billed_kwh); `date_from`/`date_to` are inclusive "YYYY-MM-DD" LOCAL calendar dates.
     Loads the full history like get_charges_grouped (#67 — no default limit may hide
     older charges) and filters in Python — same convention as the calendar/accordion,
-    no SQL date-math needed since _local_dt already localizes the timezone."""
-    charges = _localized_charges(get_charges(limit=1_000_000))
+    no SQL date-math needed since _local_dt already localizes the timezone.
+
+    Filters on the cheap pass first (with_window=False — none of the filters below read
+    `active_window`) and only re-localizes WITH it for whatever survives, same reasoning as
+    get_charges_calendar_day: the alternative pays for every charge in the whole history on
+    every search, most of which the filters are about to throw away."""
+    charges = _localized_charges(get_charges(limit=1_000_000), with_window=False)
     if station:
         charges = _filter_by_station(charges, station)
     q = (text or "").strip().lower()
@@ -9422,6 +9449,11 @@ def search_charges(text: str = "", charge_type: str = "",
         if d_to and day > d_to:
             continue
         out.append(c)
+    ids = {c["id"] for c in out}
+    if not ids:
+        return []
+    raw = [c for c in get_charges(limit=1_000_000) if c["id"] in ids]
+    out = _localized_charges(raw)
     out.sort(key=lambda c: c["started_at"], reverse=True)
     return out
 
