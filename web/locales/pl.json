@@ -1352,6 +1352,7 @@
     "place_lon": "Długość",
     "place_radius": "Promień (m)",
     "place_rate": "Cena / kWh",
+    "place_type": "Typ",
     "place_auto": "Automatycznie",
     "place_map_hint": "Kliknij mapę lub wpisz współrzędne. Wyłącz Automatycznie, aby przypisywać miejsce tylko ręcznie.",
     "places_totals": "Zarejestrowane koszty według miejsca (cała historia)",

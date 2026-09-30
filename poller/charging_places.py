@@ -7,9 +7,17 @@ import math
 import time
 
 
-def validate(name, latitude, longitude, radius_m, rate):
+# Kept in step with web/db_reader.py's CHARGE_TYPES — a place's type is written straight into
+# charges.location_type on assignment, so it can only ever be one of these five.
+CHARGE_TYPES = ("HOME", "AC", "FAST", "HPC", "FREE")
+
+
+def validate(name, latitude, longitude, radius_m, rate, charge_type='HOME'):
     name = str(name or '').strip()
     if not name or len(name) > 80:
+        raise ValueError('place_invalid')
+    charge_type = str(charge_type or 'HOME').upper()
+    if charge_type not in CHARGE_TYPES:
         raise ValueError('place_invalid')
     try:
         lat, lon, radius, price = map(float, (latitude, longitude, radius_m, rate))
@@ -19,7 +27,7 @@ def validate(name, latitude, longitude, radius_m, rate):
             or not -90 <= lat <= 90 or not -180 <= lon <= 180
             or (lat == 0 and lon == 0) or not 25 <= radius <= 500 or not 0 <= price <= 100):
         raise ValueError('place_invalid')
-    return name, lat, lon, radius, price
+    return name, lat, lon, radius, price, charge_type
 
 
 def distance_m(lat, lon, other_lat, other_lon):

@@ -1352,6 +1352,7 @@
     "place_lon": "Lengtegraad",
     "place_radius": "Straal (m)",
     "place_rate": "Prijs / kWh",
+    "place_type": "Type",
     "place_auto": "Automatisch",
     "place_map_hint": "Klik op de kaart of voer coördinaten in. Schakel Automatisch uit voor alleen handmatige toewijzing.",
     "places_totals": "Geregistreerde kosten per locatie (alles)",

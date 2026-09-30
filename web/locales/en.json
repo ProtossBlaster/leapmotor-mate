@@ -1352,6 +1352,7 @@
     "place_lon": "Longitude",
     "place_radius": "Radius (m)",
     "place_rate": "Price / kWh",
+    "place_type": "Type",
     "place_auto": "Automatic",
     "place_map_hint": "Click the map or enter coordinates. Disable Automatic to keep a place available for manual assignment only.",
     "places_totals": "Recorded spending by place (all time)",

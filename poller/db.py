@@ -1750,7 +1750,8 @@ class Database:
         place = charging_places.match(self._conn, vehicle_id, data)
         if place:
             charging_places.snapshot(self._conn, charge_id, place, 'gps')
-            self._conn.execute("UPDATE charges SET location_type='HOME' WHERE id=?", (charge_id,))
+            self._conn.execute("UPDATE charges SET location_type=? WHERE id=?",
+                               (place['charge_type'], charge_id))
         self._conn.commit()
         log.info("Charge #%d started — SOC %.1f%%", charge_id, data.soc)
         # lastrowid: Optional only for a cursor that last ran a non-INSERT — see insert_energy_snapshot.
