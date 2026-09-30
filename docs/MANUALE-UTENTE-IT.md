@@ -643,6 +643,15 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   chilometri fatti durante l'interruzione ne fanno parte. Dopo un silenzio più lungo, il viaggio
   finisce all'ultima notizia dell'auto prima di esso, e i chilometri successivi sono trattati come
   tutti quelli fatti senza collegamento.
+- **Un viaggio finisce sulla lettura che mostra l'auto spenta 🆕.** Mate chiude ancora un viaggio dopo
+  circa un minuto in P, ma la sua fine (ora, livello di carica, contachilometri, posizione e
+  carburante) viene dalla prima lettura di quella sosta che mostra l'auto **spenta**, così il minuto
+  che Mate attende in P non fa più parte del viaggio. È la prima lettura che ha *visto* l'auto spenta:
+  dopo un'interruzione del collegamento arriva quindi più tardi dello spegnimento stesso. Un'auto
+  lasciata accesa in P, riaccesa prima che il viaggio si chiuda o che non dice se è accesa mantiene la
+  fine all'ultima lettura, e lo stesso vale quando alla lettura dello spegnimento manca un dato o una
+  successiva mostra un altro chilometraggio. Un viaggio che Mate trova ancora aperto al riavvio, con
+  l'auto già parcheggiata, viene chiuso sul suo ultimo punto registrato.
 - **I chilometri che Mate non ha visto non vengono aggiunti ai viaggi vicini.** Quando il
   collegamento col cloud si interrompe più a lungo di una breve interruzione dentro lo stesso
   viaggio (vedi sopra), l'auto continua a girare ma Mate non lo vede; al ritorno trova solo un

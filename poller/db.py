@@ -8,7 +8,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import NamedTuple, Optional
 
 import crypto
 import geohash
@@ -221,6 +221,17 @@ def _reading(row: sqlite3.Row, started_at: str) -> tuple[str, sqlite3.Row]:
         if frame_iso > started_at:
             moment = frame_iso
     return moment, row
+
+
+class SwitchOff(NamedTuple):
+    """Where a trip ends when its car was seen switched off; see Database.trip_switched_off."""
+    ended_at: str          # the moment of the first reading that shows it switched off
+    row: sqlite3.Row       # that reading, to close the trip on
+    position_id: int       # its `positions` row: what was written after it is not the trip's
+
+
+# What the end of a trip takes from the reading it is closed on, besides the odometer.
+_END_VALUES = ("soc", "latitude", "longitude", "fuel_level_pct", "fuel_liters")
 
 
 def trip_distance_km(gps_km: float, has_gps: bool, start_odo: float, end_odo: float):
@@ -1680,8 +1691,71 @@ class Database:
             " FROM trips WHERE id=?", (trip_id,)).fetchone()
         return row["started_at"], row
 
+    def trip_switched_off(self, trip_id: int) -> Optional[SwitchOff]:
+        """The first reading that shows the car switched off in the standstill this trip closes on.
+
+        The car's own record of a drive ends when it is switched off (READY 1 → 0), not when it is
+        put in P; Mate closes a trip once P has held for a while, so its end falls up to a minute
+        after the car's. When the final run of P readings, the one the trip is being closed on,
+        shows the car going off, the trip ends on the first reading that shows it off. That is an
+        observation of a car already off: on a healthy link within one poll of the switch-off, after
+        a silence as late as the silence was.
+
+        Only a MEASURED switch-off counts: the first READY=0 after the trip's last measured READY=1,
+        and only when it falls inside the final P run. A car switched on again later in that run was
+        not switched off for good, so the search starts after its last READY=1; a zero before that
+        run already ended the power-on, and a later one with no READY=1 between is not a new
+        switch-off. A NULL (the car did not send READY) proves nothing, and a car still on when the
+        trip closes keeps the usual end.
+
+        Nor does the end move when the move would cost something. The reading must carry every
+        value the last one does, or the trip would lose it, and no later reading may show another
+        odometer: that is a cloud still catching up, and ending short of it would leave kilometres
+        out of the trip. Rows are taken in the order they were written, as trip_last_seen takes
+        them; the last is the frame in hand, and ending on it is the usual end."""
+        trip = self._conn.execute(
+            "SELECT vehicle_id, started_at FROM trips WHERE id=?", (trip_id,)).fetchone()
+        if trip is None or not trip["started_at"]:
+            return None
+        rows = self._conn.execute(
+            f"SELECT id, {_READING_COLUMNS}, gear, ready FROM positions"
+            " WHERE vehicle_id=? AND recorded_at>=? ORDER BY id",
+            (trip["vehicle_id"], trip["started_at"])).fetchall()
+        start = len(rows)
+        while start > 0 and rows[start - 1]["gear"] == "P":
+            start -= 1
+        last_on = max((i for i, r in enumerate(rows) if r["ready"] == 1), default=None)
+        if last_on is None:
+            return None
+        off = next((i for i in range(last_on + 1, len(rows)) if rows[i]["ready"] == 0), None)
+        if off is None or off < start or off == len(rows) - 1:
+            return None
+        row = rows[off]
+        # Missing is NULL, or the 0 an odometer was stored as before 4.7.2 and a fixless position is.
+        if any(r["odometer_km"] and r["odometer_km"] != row["odometer_km"] for r in rows[off + 1:]):
+            return None
+        if any(rows[-1][name] and not row[name] for name in _END_VALUES):
+            return None
+        ended_at, row = _reading(row, trip["started_at"])
+        return SwitchOff(ended_at, row, row["id"])
+
     def finalize_trip(self, trip_id: int, data, regen_kwh: float = 0.0,
-                      end_at_override: Optional[str] = None) -> Optional[float]:
+                      end_at_override: Optional[str] = None,
+                      drop_points: tuple[int, ...] = ()) -> Optional[float]:
+        """`drop_points` are route points of this trip that came after its end (trip_switched_off):
+        they go before anything is measured on the route, and the close lands whole or not at all."""
+        try:
+            if drop_points:
+                self._conn.execute(
+                    f"DELETE FROM trip_positions WHERE trip_id = ? AND id IN"
+                    f" ({','.join('?' * len(drop_points))})", (trip_id, *drop_points))
+            return self._write_trip_end(trip_id, data, regen_kwh, end_at_override)
+        except Exception:
+            self._conn.rollback()
+            raise
+
+    def _write_trip_end(self, trip_id: int, data, regen_kwh: float,
+                        end_at_override: Optional[str]) -> Optional[float]:
         rows = self._conn.execute(
             "SELECT latitude, longitude FROM trip_positions WHERE trip_id = ? ORDER BY id",
             (trip_id,),

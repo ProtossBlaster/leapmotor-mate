@@ -442,12 +442,23 @@ class Recorder:
             self._odometer_reading = None
         elif prev is None or prev.odometer_km != reading.odometer_km:
             self._odometer_reading = reading
+        regen, dropped = self._regen_kwh, ()
+        off = self._db.trip_switched_off(self._active_trip_id) if end_at is None else None
+        if off is not None:
+            # Switched off in the standstill the trip closes on: it ended on that reading, and what
+            # the polls written after it added is not the trip's. The baseline above stays: no later
+            # reading shows another odometer.
+            end_at, data = off.ended_at, SimpleNamespace(**dict(off.row))
+            regen = sum(p.regen_kwh for p in self._trip_polls if p.position_id <= off.position_id)
+            dropped = tuple(p.point_id for p in self._trip_polls
+                            if p.position_id > off.position_id and p.point_id is not None)
         # End the trip when the car was last HEARD, not when we noticed. On a healthy link the two
         # are the same poll, so nothing moves; behind a frozen frame the difference is everything
         # the 30-minute guard used to fold into the trip. Same shape as the charge close (#208).
         distance_km = self._db.finalize_trip(
-            self._active_trip_id, data, self._regen_kwh,
-            end_at_override=end_at or self._db.trip_end_from_last_seen(self._active_trip_id))
+            self._active_trip_id, data, regen,
+            end_at_override=end_at or self._db.trip_end_from_last_seen(self._active_trip_id),
+            drop_points=dropped)
         if distance_km is not None and distance_km < self._MIN_TRIP_KM:
             self._db.delete_trip(self._active_trip_id)
             log.info("Trip #%d discarded — short hop %.2f km (< %.1f km)",
