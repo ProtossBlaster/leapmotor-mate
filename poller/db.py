@@ -158,12 +158,13 @@ def _now_iso() -> str:
 
 
 def _odo_or_none(data) -> Optional[float]:
-    """The odometer to stamp on a charge, or None when the car did not send one (#237).
+    """The odometer a reading gives, or None when the car did not send one (#237).
 
     `client` reads signal 1318 as `float(sig.get("1318") or 0)`, so an ABSENT odometer arrives as
-    0.0 — and a charge stamped 0 would later read as "this session happened at kilometre zero",
+    0.0 — and a charge or a trip stamped 0 would later read as "this happened at kilometre zero",
     which is a wrong number rather than a missing one. A real odometer is never 0 on a car that has
-    been driven off the lot, so zero is treated as silence.
+    been driven off the lot, so zero is treated as silence. A reading taken back from `positions`
+    carries NULL for it instead, and gives None as well.
     """
     odo = getattr(data, "odometer_km", None)
     return float(odo) if odo else None
@@ -1521,7 +1522,7 @@ class Database:
         # Gulf of Guinea" bucket.
         start_gh = geohash.encode(start_lat, start_lon) if start_lat and start_lon else None
         start_soc = head["soc"] if head else data.soc
-        start_odo = head["odometer_km"] if head else data.odometer_km
+        start_odo = head["odometer_km"] if head else _odo_or_none(data)
         cur = self._conn.execute(
             """INSERT INTO trips (vehicle_id, started_at, start_lat, start_lon, start_geohash,
                start_soc, start_odometer_km, drive_mode, one_pedal, fuel_start_pct, fuel_start_l)
@@ -1705,7 +1706,7 @@ class Database:
                efficiency_kwh_100km=?, regen_kwh=?, fuel_end_pct=?, fuel_end_l=?
                WHERE id=?""",
             (ended_at, data.latitude, data.longitude, end_gh, data.soc,
-             data.odometer_km, round(distance_km, 2) if distance_km is not None else None,
+             _odo_or_none(data), round(distance_km, 2) if distance_km is not None else None,
              round(duration_min, 1),
              round(efficiency, 2) if efficiency else None, round(regen_kwh, 3),
              getattr(data, "fuel_level_pct", None),   # REEV Phase C — fuel % at trip end (NULL on BEV)
