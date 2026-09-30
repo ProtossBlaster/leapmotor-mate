@@ -40,7 +40,7 @@ class _SpyDB:
         self.trip_points = 0
         self.finalized = []
 
-    def save_position(self, vid, data):
+    def save_position(self, vid, data, recorded_at=None):
         self.positions += 1
 
     def finalize_trip(self, trip_id, data, regen_kwh=0.0, end_at_override=None):

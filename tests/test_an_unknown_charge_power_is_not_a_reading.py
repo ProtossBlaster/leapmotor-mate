@@ -28,7 +28,7 @@ class _SpyDB:
     """What a mid-charge recorder touches; the peak writes are what the test watches."""
     def __init__(self):
         self.peaks = []
-    def save_position(self, vid, data): pass
+    def save_position(self, vid, data, recorded_at=None): pass
     def get_open_charge(self, vid): return None
     def update_charge_max_power(self, charge_id, kw): self.peaks.append(kw)
     def add_trip_position(self, trip_id, data): pass

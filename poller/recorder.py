@@ -33,10 +33,9 @@ class OdometerReading(NamedTuple):
     frame_ts: Optional[int] = None
 
     @classmethod
-    def of(cls, data) -> "OdometerReading":
-        """The reading in hand, at this moment on our clock."""
-        return cls(data.odometer_km, data.soc, _now_iso(), data.charging_status > 0,
-                   data.timestamp_ms or None)
+    def of(cls, data, at: Optional[str]) -> "OdometerReading":
+        """A reading taken at `at` on our clock: the time its row is recorded with."""
+        return cls(data.odometer_km, data.soc, at, data.charging_status > 0, data.timestamp_ms or None)
 
 
 class Recorder:
@@ -170,7 +169,8 @@ class Recorder:
         # which is the very bug #128 reports.
         self._polled_at = _now_iso()
         if not (stale and self._sm.state == State.DRIVING):
-            self._db.save_position(self._vehicle_id, data)
+            # One time for the reading and its row: the baseline's own row is no charging reading after it.
+            self._db.save_position(self._vehicle_id, data, recorded_at=self._polled_at)
 
         # Read the baseline before advancing it: the regen gate below asks what the counter said
         # at the PREVIOUS reading, not at this one.
@@ -340,7 +340,7 @@ class Recorder:
         interval (#244). The baseline is the first reading of a frame to carry an odometer; one
         without the car's clock is never taken for a repeat."""
         prev = self._odometer_reading
-        self._odometer_reading = self._baseline_after(OdometerReading.of(data))
+        self._odometer_reading = self._baseline_after(OdometerReading.of(data, self._polled_at))
         if prev is None or prev.soc is None or prev.at is None:
             return
         prev_odo, prev_soc, prev_ts = prev.odometer_km, prev.soc, prev.at
@@ -426,7 +426,7 @@ class Recorder:
         # A baseline already at this odometer keeps its time: behind a frozen frame, when news stopped.
         # `reading` is that reading when `data` is a stored row rather than the frame in hand.
         if reading is None:
-            reading = OdometerReading.of(data)
+            reading = OdometerReading.of(data, self._polled_at)
         prev = self._odometer_reading
         if not reading.odometer_km:
             self._odometer_reading = None

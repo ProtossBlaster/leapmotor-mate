@@ -65,7 +65,7 @@ def test_the_mqtt_v2l_accumulator_takes_an_unknown_current_as_no_load():
 
 class _SpyDB:
     """What a mid-trip recorder touches; nothing is stored."""
-    def save_position(self, vid, data): pass
+    def save_position(self, vid, data, recorded_at=None): pass
     def add_trip_position(self, trip_id, data): pass
     def get_open_charge(self, vid): return None
     def trip_end_from_last_seen(self, trip_id): return None

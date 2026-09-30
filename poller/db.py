@@ -1269,7 +1269,7 @@ class Database:
         row = self._conn.execute("SELECT id FROM vehicles WHERE vin = ?", (vin,)).fetchone()
         return row["id"]
 
-    def save_position(self, vehicle_id: int, data) -> None:
+    def save_position(self, vehicle_id: int, data, recorded_at: Optional[str] = None) -> None:
         self._conn.execute(
             """INSERT INTO positions
                (vehicle_id, recorded_at, latitude, longitude, speed_kmh, odometer_km,
@@ -1286,7 +1286,7 @@ class Database:
                 frame_ts, fuel_liters)
                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
-                vehicle_id, _now_iso(),
+                vehicle_id, recorded_at or _now_iso(),
                 data.latitude, data.longitude,
                 data.speed_kmh if data.speed_reported else None,
                 data.odometer_km if data.odometer_reported else None,
