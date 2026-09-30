@@ -66,14 +66,14 @@ def _build_tlm(data, facts: CarFacts | None = None) -> dict:
         # the time of the reading (a sleeping car repeats one frame for hours), not of the send
         "utc": data.timestamp_ms // 1000 if data.timestamp_ms else int(time.time()),
         "soc": data.soc,
-        "speed": data.speed_kmh,
+        "speed": data.speed_kmh if data.speed_reported else None,
         "lat": data.latitude,
         "lon": data.longitude,
         "is_charging": data.charging_status > 0,
         "is_dcfc": (data.charging_status > 0 and data.dc_gun_connected
                     if data.dc_gun_connected is not None else None),
         "is_parked": data.vehicle_state == "parked",
-        "odometer": data.odometer_km,
+        "odometer": data.odometer_km if data.odometer_reported else None,
         "ext_temp": data.outside_temp,
         "cabin_temp": data.inside_temp,
     }

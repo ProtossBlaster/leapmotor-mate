@@ -19,7 +19,7 @@ as-is. For the plug/charging state EVCC needs `true`/`false` booleans (its Go pa
 |--------------|------------------------------------|---------------|
 | State of charge | `‹prefix›/‹VIN›/soc`            | number (%)    |
 | Range        | `‹prefix›/‹VIN›/range`             | number (km)   |
-| Odometer     | `‹prefix›/‹VIN›/odometer`          | number (km)   |
+| Odometer     | `‹prefix›/‹VIN›/odometer`          | number (km)¹  |
 | Plugged in   | `‹prefix›/‹VIN›/evcc/plugged`      | `true`/`false`|
 | Charging     | `‹prefix›/‹VIN›/evcc/charging`     | `true`/`false`|
 | Climate on   | `‹prefix›/‹VIN›/evcc/climate`      | `true`/`false`|
@@ -27,6 +27,11 @@ as-is. For the plug/charging state EVCC needs `true`/`false` booleans (its Go pa
 `‹prefix›` is the **Topic prefix** from Mate's MQTT settings (default `leapmotor`); `‹VIN›` is
 your car's VIN. You can confirm both with any MQTT client, e.g.
 `mosquitto_sub -h ‹broker› -t 'leapmotor/#' -v`.
+
+¹ When the car does not report its odometer, Mate publishes an empty retained message on that topic
+instead of a 0. EVCC skips empty messages, so a running EVCC keeps the last odometer it read until
+the `timeout` below runs out. The empty retained message also clears the value the broker kept, so
+an EVCC started after it has no odometer until the car reports one again.
 
 ## evcc.yaml
 

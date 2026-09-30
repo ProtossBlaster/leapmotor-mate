@@ -381,7 +381,9 @@ class MqttService:
             self.client.publish(f"{base}/{sub}", v, retain=True)
 
         pub("soc", data.soc);                  pub("range", data.range_km)
-        pub("odometer", data.odometer_km);     pub("speed", data.speed_kmh)
+        # a reading the car did not send is 0 in memory, for the state machine; it is not a 0 to publish
+        pub("odometer", data.odometer_km if data.odometer_reported else None)
+        pub("speed", data.speed_kmh if data.speed_reported else None)
         pub("gear", data.gear);                pub("state", data.vehicle_state)
         # The car is powered up — signal 1258 (ON3), the same one the Ready automation triggers on.
         # `state` above cannot stand in for it: it only turns to "driving" once a gear is engaged or
@@ -530,8 +532,10 @@ class MqttService:
         sensors = [
             ("soc", "Battery", {"dc": "battery", "unit": "%"}),
             ("range", "Range", {"unit": "km", "icon": "mdi:map-marker-distance"}),
-            ("odometer", "Odometer", {"dc": "distance", "unit": "km", "icon": "mdi:counter"}),
-            ("speed", "Speed", {"dc": "speed", "unit": "km/h"}),
+            # Empty-to-none: HA ignores the "" of a frame without 1318/1319 and would keep the last value
+            ("odometer", "Odometer", {"dc": "distance", "unit": "km", "icon": "mdi:counter",
+                                      "tpl": _EMPTY_NONE}),
+            ("speed", "Speed", {"dc": "speed", "unit": "km/h", "tpl": _EMPTY_NONE}),
             # Empty-to-none like the current and voltage below: a power the car cannot vouch for is ""
             ("charge_power", "Charge Power", {"dc": "power", "unit": "kW", "tpl": _EMPTY_NONE}),
             # Empty-to-none like climate_power below: a frame without 1177/1178 is published as ""
