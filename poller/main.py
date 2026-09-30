@@ -1238,7 +1238,7 @@ def main():
     log.info("Starting LeapMotor Mate poller")
 
     db = Database(db_path)
-    db.set_setting("poller_started_ts", str(time.time()))   # uptime, for the Overview's link tile
+    db.start_poller(str(time.time()))   # uptime, for the Overview's link tile
 
     # Factory reset requested from Settings: the web side set this marker, cleared the setup gate
     # and relaunched the app (run.sh restarts both processes). The destructive wipe happens HERE,

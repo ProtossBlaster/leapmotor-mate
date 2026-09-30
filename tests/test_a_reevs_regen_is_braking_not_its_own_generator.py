@@ -44,7 +44,7 @@ def _vd(ts, *, litres=None, current=-20.0, power=8.0, odo=1000.0, soc=80.0):
 
 
 class _SpyDB:
-    def save_position(self, vid, data, recorded_at=None): pass
+    def save_position(self, vid, data, recorded_at=None, odometer_baseline=None): pass
     def add_trip_position(self, trip_id, data): pass
     def get_open_charge(self, vid): return None
     def get_open_trip(self, vid): return None

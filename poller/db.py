@@ -134,6 +134,8 @@ _RECONSTRUCT_MAX_TRIP_KM = 1500.0
 _OFFLINE_GAP_MIN_KM = 1.0
 _RECONSTRUCT_TRIP_MIN_KMH = 8.0
 _RECONSTRUCT_TRIP_MAX_KMH = 160.0
+# An argument left out, where None is a value: the recorder's odometer baseline can be none.
+_UNSET = object()
 
 # #119: drive mode / One-Pedal are NOT reported by the cloud (verified on-car) — they can only be
 # tagged manually. To spare drivers with a fixed habit from re-tagging every trip, two app-level
@@ -1269,7 +1271,10 @@ class Database:
         row = self._conn.execute("SELECT id FROM vehicles WHERE vin = ?", (vin,)).fetchone()
         return row["id"]
 
-    def save_position(self, vehicle_id: int, data, recorded_at: Optional[str] = None) -> None:
+    def save_position(self, vehicle_id: int, data, recorded_at: Optional[str] = None,
+                      odometer_baseline=_UNSET) -> None:
+        """`odometer_baseline` (optional) is the recorder's, kept in the same transaction as the row
+        (get_odometer_baseline)."""
         self._conn.execute(
             """INSERT INTO positions
                (vehicle_id, recorded_at, latitude, longitude, speed_kmh, odometer_km,
@@ -1325,6 +1330,8 @@ class Database:
                 getattr(data, "fuel_liters", None),   # litres the car counts itself (3263) — NULL on a BEV
             ),
         )
+        if odometer_baseline is not _UNSET:
+            self._put_odometer_baseline(vehicle_id, odometer_baseline)
         self._conn.commit()
 
     def get_last_soc(self, vehicle_id: int):
@@ -1338,11 +1345,52 @@ class Database:
             return None, None
         return float(row["soc"]), row["recorded_at"]
 
+    def start_poller(self, started: str) -> None:
+        """Record that a poller started (`poller_started_ts`, the Overview's uptime).
+
+        The odometer baselines kept per car (get_odometer_baseline) hold only while every poller on
+        this database keeps them. An older version does not: it records trips past a kept baseline
+        and leaves it behind, and measuring from it again would count those kilometres twice. So
+        when the poller that started last was not one that keeps them, they are forgotten and the
+        rows seed them again. Versions before `poller_started_ts` (4.5.0) are not told apart."""
+        with self._conn:
+            last = self.get_setting("poller_started_ts")
+            if self.get_setting("odometer_baselines_kept_since") != last:
+                self._conn.execute("DELETE FROM settings WHERE key GLOB 'odometer_baseline_[0-9]*'")
+            self._conn.executemany("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                                   [("poller_started_ts", started),
+                                    ("odometer_baselines_kept_since", started)])
+
+    def get_odometer_baseline(self, vehicle_id: int):
+        """The odometer baseline the recorder last kept for this vehicle, so that a restart goes on
+        from where the running poller was: (True, (odometer km, soc, recorded_at, charging,
+        frame_ts)), or (True, None) when it had none on purpose, a trip having closed on a reading
+        without an odometer. (False, None) on a database from before it was kept."""
+        row = self._conn.execute("SELECT value FROM settings WHERE key = ?",
+                                 (f"odometer_baseline_{vehicle_id}",)).fetchone()
+        if row is None:
+            return False, None
+        baseline = json.loads(row["value"])
+        return True, (tuple(baseline) if baseline is not None else None)
+
+    def keep_odometer_baseline(self, vehicle_id: int, baseline) -> None:
+        """Keep the recorder's odometer baseline (see get_odometer_baseline) for a poll that wrote
+        nothing else to keep it with."""
+        self._put_odometer_baseline(vehicle_id, baseline)
+        self._conn.commit()
+
+    def _put_odometer_baseline(self, vehicle_id: int, baseline) -> None:
+        # No commit: the baseline is committed with the write that decided it.
+        self._conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                           (f"odometer_baseline_{vehicle_id}",
+                            json.dumps(None if baseline is None else list(baseline))))
+
     def get_last_odometer_reading(self, vehicle_id: int):
         """The most recent reading with an odometer for this vehicle, as (odometer km, soc,
         recorded_at, charging, frame_ts) all from one row, or None. Seeds the recorder's odometer
-        baseline across a poller restart so a drive that happened while the poller was DOWN is
-        still caught (odometer-jump trip reconstruction). Ignores 0/glitch readings.
+        baseline on a database from before it was kept (get_odometer_baseline), so a drive that
+        happened while the poller was DOWN is still caught (odometer-jump trip reconstruction).
+        Ignores 0/glitch readings.
 
         A repeated frame moves nothing, as in the running recorder, so the reading is the first
         row of the run of that frame to carry an odometer."""
@@ -1666,7 +1714,8 @@ class Database:
         return row["started_at"], row
 
     def finalize_trip(self, trip_id: int, data, regen_kwh: float = 0.0,
-                      end_at_override: Optional[str] = None) -> Optional[float]:
+                      end_at_override: Optional[str] = None,
+                      odometer_baseline=_UNSET) -> Optional[float]:
         rows = self._conn.execute(
             "SELECT latitude, longitude FROM trip_positions WHERE trip_id = ? ORDER BY id",
             (trip_id,),
@@ -1712,6 +1761,8 @@ class Database:
              getattr(data, "fuel_liters", None),      # …and the car's own litre count (3263)
              trip_id),
         )
+        if odometer_baseline is not _UNSET:          # committed with the close, which decided it
+            self._put_odometer_baseline(trip["vehicle_id"], odometer_baseline)
         self._conn.commit()
         log.info(
             "Trip #%d ended — %.1f km | SOC %.1f→%.1f%% | %.0f min | eff %.1f kWh/100km",

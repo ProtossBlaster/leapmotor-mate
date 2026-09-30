@@ -145,7 +145,10 @@ class Recorder:
             # Seed the odometer baseline too, so a DRIVE during poller downtime is caught on the first
             # poll back (odometer-jump trip reconstruction, #118). None on a fresh DB → first poll just seeds it.
             # One row for all three: the SoC baseline above may come from a later row that had none.
-            last = self._db.get_last_odometer_reading(self._vehicle_id)
+            # As the last run kept it; taken from the rows only on a database from before it was kept.
+            kept, last = self._db.get_odometer_baseline(self._vehicle_id)
+            if not kept:
+                last = self._db.get_last_odometer_reading(self._vehicle_id)
             self._odometer_reading = OdometerReading(*last) if last else None
             # And the frame baseline, for the same reason the other two are seeded: it lives in memory,
             # so without this the FIRST poll after any restart can never be a repeat — and a frame the
@@ -168,9 +171,14 @@ class Recorder:
         # readings to close the trip — hiding them would strand the trip open until the link returns,
         # which is the very bug #128 reports.
         self._polled_at = _now_iso()
+        # Kept with the row: the baseline this reading leaves, unless a trip closes on it below.
+        baseline = self._baseline_after(OdometerReading.of(data, self._polled_at))
         if not (stale and self._sm.state == State.DRIVING):
             # One time for the reading and its row: the baseline's own row is no charging reading after it.
-            self._db.save_position(self._vehicle_id, data, recorded_at=self._polled_at)
+            self._db.save_position(self._vehicle_id, data, recorded_at=self._polled_at,
+                                   odometer_baseline=baseline)
+        elif baseline is not self._odometer_reading:
+            self._db.keep_odometer_baseline(self._vehicle_id, baseline)
 
         # Read the baseline before advancing it: the regen gate below asks what the counter said
         # at the PREVIOUS reading, not at this one.
@@ -420,11 +428,11 @@ class Recorder:
     _MIN_TRIP_KM = 0.2
 
     def _finalize_trip(self, data, end_at: Optional[str] = None,
-                       reading: Optional[OdometerReading] = None) -> None:
+                       reading: Optional[OdometerReading] = None, in_hand=None) -> None:
         # The trip ends on this reading, so everything driven up to it is the trip's: unseen kilometres
         # are measured from here on. Without an odometer nothing says where it ended, so from nowhere.
         # A baseline already at this odometer keeps its time: behind a frozen frame, when news stopped.
-        # `reading` is that reading when `data` is a stored row rather than the frame in hand.
+        # `reading` is that reading when `data` is a stored row rather than the frame in hand, `in_hand`.
         if reading is None:
             reading = OdometerReading.of(data, self._polled_at)
         prev = self._odometer_reading
@@ -435,9 +443,11 @@ class Recorder:
         # End the trip when the car was last HEARD, not when we noticed. On a healthy link the two
         # are the same poll, so nothing moves; behind a frozen frame the difference is everything
         # the 30-minute guard used to fold into the trip. Same shape as the charge close (#208).
+        # Kept with the close: the baseline this poll leaves, the frame in hand taken into account.
         distance_km = self._db.finalize_trip(
             self._active_trip_id, data, self._regen_kwh,
-            end_at_override=end_at or self._db.trip_end_from_last_seen(self._active_trip_id))
+            end_at_override=end_at or self._db.trip_end_from_last_seen(self._active_trip_id),
+            odometer_baseline=self._baseline_after(OdometerReading.of(in_hand or data, self._polled_at)))
         if distance_km is not None and distance_km < self._MIN_TRIP_KM:
             self._db.delete_trip(self._active_trip_id)
             log.info("Trip #%d discarded — short hop %.2f km (< %.1f km)",
@@ -471,7 +481,7 @@ class Recorder:
             last = SimpleNamespace(**dict(row))
             # Read inside the drive, so not while charging, and when we stored it.
             self._finalize_trip(last, end_at=ended_at, reading=OdometerReading(
-                last.odometer_km, last.soc, last.recorded_at, False, last.frame_ts))
+                last.odometer_km, last.soc, last.recorded_at, False, last.frame_ts), in_hand=data)
         self._active_trip_id = None
         self._regen_kwh = 0.0
 

@@ -40,10 +40,10 @@ class _SpyDB:
         self.trip_points = 0
         self.finalized = []
 
-    def save_position(self, vid, data, recorded_at=None):
+    def save_position(self, vid, data, recorded_at=None, odometer_baseline=None):
         self.positions += 1
 
-    def finalize_trip(self, trip_id, data, regen_kwh=0.0, end_at_override=None):
+    def finalize_trip(self, trip_id, data, regen_kwh=0.0, end_at_override=None, odometer_baseline=None):
         self.finalized.append(trip_id)
         return 17.0        # a real distance, so the short-hop discard stays out of the way
 
@@ -63,6 +63,12 @@ class _SpyDB:
 
     def get_last_soc(self, vid):
         return None, None
+
+    def get_odometer_baseline(self, vid):
+        return False, None          # a database from before it was kept
+
+    def keep_odometer_baseline(self, vid, baseline):
+        pass
 
     def get_last_odometer_reading(self, vid):
         return None
