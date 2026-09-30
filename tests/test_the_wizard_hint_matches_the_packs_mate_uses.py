@@ -58,8 +58,11 @@ def test_the_hint_covers_every_model(i):
     """A model missing from the list reads as "Mate has no figure for mine" to the one person who
     got here — the owner of a car the cloud did not recognise."""
     hint = _hints()[i]
-    for model in ("B10", "C10", "T03", "B05"):
+    for model in ("B10", "C10", "T03", "B05", "B03X"):
         assert model in hint, f"language block #{i} never mentions the {model}"
+    # ...and no bare "B03": that is the A05, a different car with no published pack, deliberately
+    # absent from the map. "B03" as a plain substring is satisfied by "B03X", so the check is exact.
+    assert not re.search(r"B03(?!X)", hint), f"language block #{i} quotes the B03, which Mate has no pack for"
 
 
 def test_the_field_is_not_pre_filled_with_somebody_elses_battery():
@@ -82,6 +85,7 @@ def test_the_packs_are_the_usable_figures_measured_or_published():
     assert got["B10"] == {"55.0", "65.0", "18.8"}
     assert got["B05"] == {"55.0", "65.0"}
     assert got["T03"] == {"36.0"}
+    assert got["A10"] == {"39.0", "52.0"}      # the B03X: gross 39.8 / 53.0, buffer ~2%
 
 
 def test_the_reev_packs_are_marked_as_such():

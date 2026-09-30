@@ -20,6 +20,11 @@ log = logging.getLogger(__name__)
 # first-run fallback if the setup wizard didn't set a per-variant value.
 BATTERY_CAPACITY_DEFAULTS: dict[str, float] = {
     "T03": 36.0,   # EU only variant (gross 37.3)
+    "A10": 52.0,   # = B03X in Europe (the cloud sends the Chinese project name). 382 km WLTP
+                   # (EU; gross 53.0, 1.0 kWh / 1.9% buffer). The smaller pack is 39.0 (gross 39.8),
+                   # so the wizard ASKS — this is only what an unasked car gets. See #338.
+                   # ⚠️ NOT the B03: that one is the A05, a DIFFERENT car (the hatchback), not on
+                   # sale yet and with no published pack. See the table in web/battery_packs.py.
     "B05": 65.0,   # Pro Max 482 km WLTP (EU; gross 67.1; shares the B10 pack)
     "B10": 65.0,   # Pro Max 434 km WLTP (EU; gross 67.1, 3.1% buffer)
     "C10": 67.0,   # RWD (EU; gross 69.9, 4.1% buffer — see the note in web/main.py)
