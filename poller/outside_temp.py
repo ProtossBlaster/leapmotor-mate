@@ -7,10 +7,10 @@ per install). Opt-in, because the position leaves the device.
 
 Cached hard: weather moves by the hour and a parked car doesn't move at all, so a fresh lookup only
 happens when the last one is STALE (older than _MAX_AGE_S) or the car has MOVED more than
-_MAX_MOVE_KM. A day of driving is then a few dozen calls, nowhere near the cap; a parked car makes
-none. The live samples are stored on each position, so they also become the trip's temperature
-(averaged along the real route) — elevation_enrich.fetch_trip_temperature stays as the fallback for
-trips with no live sample.
+_MAX_MOVE_KM, and a failed one is not asked again before _RETRY_S. A day of driving is then a few
+dozen calls, nowhere near the cap; a parked car makes none. The live samples are stored on each
+position, so they also become the trip's temperature (averaged along the real route) —
+elevation_enrich.fetch_trip_temperature stays as the fallback for trips with no live sample.
 """
 import json
 import logging
@@ -27,6 +27,7 @@ _UA = "leapmotor-mate"
 _TIMEOUT_S = 8
 _MAX_AGE_S = 20 * 60          # refetch after 20 minutes…
 _MAX_MOVE_KM = 10.0          # …or after moving 10 km
+_RETRY_S = _MAX_AGE_S         # after a failed lookup, as long as a good reading is trusted
 
 
 def fetch_current_temp(lat: float, lon: float) -> Optional[float]:
@@ -66,6 +67,7 @@ class OutsideTempSampler:
         self._ts: Optional[float] = None
         self._lat: Optional[float] = None
         self._lon: Optional[float] = None
+        self._failed_ts: Optional[float] = None
 
     def sample(self, lat, lon, now_ts) -> Optional[float]:
         # `None` never arrives: `client._resolve_coord` returns 0.0 when no usable value exists, so
@@ -77,8 +79,14 @@ class OutsideTempSampler:
         # `latitude != 0 AND longitude != 0` in the trip query).
         if not lat or not lon:
             return self._temp   # no fix → keep the last reading, don't guess a new place
+        # Moving does not end the wait (a refusal is not the car's); a clock set back does.
+        if self._failed_ts is not None and 0 <= now_ts - self._failed_ts < _RETRY_S:
+            return self._temp
         if _should_refetch(self._ts, self._lat, self._lon, lat, lon, now_ts):
             t = self._fetch(lat, lon)
-            if t is not None:   # a failed lookup keeps the old value AND the old anchor → retry next poll
+            if t is not None:
                 self._temp, self._ts, self._lat, self._lon = t, now_ts, lat, lon
+                self._failed_ts = None
+            else:               # the old value and anchor stay
+                self._failed_ts = now_ts
         return self._temp
