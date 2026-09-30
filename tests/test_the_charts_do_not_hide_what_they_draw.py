@@ -120,7 +120,8 @@ def mate_url(tmp_path_factory):
         env.pop(leak, None)
 
     log = data / "web.log"
-    proc = subprocess.Popen([sys.executable, str(ROOT / "web" / "main.py")], env=env,
+    proc = subprocess.Popen([sys.executable, str(ROOT / "tests" / "no_internet.py"),
+                             str(ROOT / "web" / "main.py")], env=env,
                             stdout=log.open("w"), stderr=subprocess.STDOUT, text=True)
     url = f"http://127.0.0.1:{port}"
     try:

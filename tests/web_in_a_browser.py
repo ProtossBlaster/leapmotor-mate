@@ -54,7 +54,8 @@ def _spawn(data_dir, db_path):
         with socket.socket() as s:
             s.bind(("127.0.0.1", 0))
             port = s.getsockname()[1]
-        proc = subprocess.Popen([sys.executable, str(ROOT / "web" / "main.py")],
+        proc = subprocess.Popen([sys.executable, str(ROOT / "tests" / "no_internet.py"),
+                                 str(ROOT / "web" / "main.py")],
                                 env={**env, "WEB_PORT": str(port)},
                                 stdout=log.open("w"), stderr=subprocess.STDOUT, text=True)
         url = f"http://127.0.0.1:{port}"

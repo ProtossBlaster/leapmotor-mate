@@ -110,7 +110,8 @@ def page(tmp_path_factory):
     for leak in ("MATE_AUTH_PASSWORD", "MATE_DEMO", "SUPERVISOR_TOKEN", "HASSIO_TOKEN"):
         env.pop(leak, None)
     log = (tmp / "web.log").open("w")
-    proc = subprocess.Popen([sys.executable, str(ROOT / "web" / "main.py")], env=env,
+    proc = subprocess.Popen([sys.executable, str(ROOT / "tests" / "no_internet.py"),
+                             str(ROOT / "web" / "main.py")], env=env,
                             stdout=log, stderr=subprocess.STDOUT, text=True)
     url = f"http://127.0.0.1:{port}"
     deadline = time.time() + 30
