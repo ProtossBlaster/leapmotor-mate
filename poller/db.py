@@ -2186,9 +2186,10 @@ class Database:
                 # minutes into the drive). A reading that would run the trip backwards, or no
                 # reading at all, leaves the end empty: nothing better exists for it.
                 # → tests/test_a_trip_closed_by_crash_recovery_keeps_its_end_odometer.py
+                # > 0, not IS NOT NULL: versions before 4.7.2 stored a missing odometer as 0.
                 _odo = self._conn.execute(
                     "SELECT odometer_km FROM positions WHERE vehicle_id=? AND recorded_at BETWEEN ? AND ?"
-                    " AND odometer_km IS NOT NULL ORDER BY recorded_at DESC LIMIT 1",
+                    " AND odometer_km > 0 ORDER BY recorded_at DESC LIMIT 1",
                     (vehicle_id, trip["started_at"], ended_at_iso)).fetchone()
                 end_odo = _odo["odometer_km"] if _odo else None
                 if end_odo is not None and trip["start_odometer_km"] is not None \

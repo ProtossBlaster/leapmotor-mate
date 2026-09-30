@@ -69,6 +69,15 @@ def test_a_drive_whose_polls_carried_no_odometer_is_left_alone():
     assert _trip(pdb)["ended_at"] is not None, "the trip must still be closed"
 
 
+def test_an_odometer_stored_as_0_by_an_older_version_is_no_reading():
+    """Versions before 4.7.2 stored a missing odometer as 0, and a trip left open by one is closed
+    by the first start of a newer one. The 0 would run the trip backwards and leave its end empty."""
+    pdb, vid = _rig()
+    pdb._conn.execute("UPDATE positions SET odometer_km = 0 WHERE odometer_km = 1002.0")
+    pdb.close_orphan_trips(vid)
+    assert _trip(pdb)["end_odometer_km"] == 1001.0
+
+
 def test_the_end_odometer_is_never_below_the_start():
     """A reading that would run the trip backwards is not written: the chain would read worse
     with it than without it."""
