@@ -1352,6 +1352,7 @@
     "place_lon": "Longitude",
     "place_radius": "Rayon (m)",
     "place_rate": "Prix / kWh",
+    "place_type": "Type",
     "place_auto": "Automatique",
     "place_map_hint": "Cliquez sur la carte ou saisissez les coordonnées. Désactivez Automatique pour une attribution uniquement manuelle.",
     "places_totals": "Dépenses enregistrées par lieu (tout l’historique)",

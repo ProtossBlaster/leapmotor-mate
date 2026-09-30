@@ -1352,6 +1352,7 @@
     "place_lon": "Longitud",
     "place_radius": "Radio (m)",
     "place_rate": "Precio / kWh",
+    "place_type": "Tipo",
     "place_auto": "Automático",
     "place_map_hint": "Pulsa el mapa o introduce coordenadas. Desactiva Automático para asignar el lugar solo manualmente.",
     "places_totals": "Gasto registrado por lugar (todo el historial)",

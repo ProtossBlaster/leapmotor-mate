@@ -12,7 +12,7 @@
   <details>
     <summary class="cursor-pointer font-medium">{{ t('place_add') }}</summary>
     <form id="new-place" method="post" action="api/settings/charging-places" class="flex flex-wrap gap-2 mt-3">
-      {% set p = {'name':'', 'latitude':'', 'longitude':'', 'radius_m':100, 'rate':'', 'enabled':true} %}
+      {% set p = {'name':'', 'latitude':'', 'longitude':'', 'radius_m':100, 'rate':'', 'charge_type':'HOME', 'enabled':true} %}
       {% include 'partials/charging_place_fields.html' %}
       <button style="background:#14b8a6;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;align-self:end" type="submit">{{ t('note_save') }}</button>
       <p class="w-full text-xs text-slate-400">{{ t('place_map_hint') }}</p>

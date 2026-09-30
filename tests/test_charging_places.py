@@ -129,6 +129,38 @@ def test_validation(args):
     with pytest.raises(ValueError):P.validate(*args)
 
 
+def test_validate_rejects_an_unknown_charge_type():
+    with pytest.raises(ValueError):P.validate('X',45,9,100,.3,'BOGUS')
+
+
+def test_validate_defaults_charge_type_to_home():
+    assert P.validate('X',45,9,100,.3)[-1]=='HOME'
+
+
+# A place types its own charges instead of always landing on HOME (disc #288 scoped v1 to
+# private "second home" places) — a public AC point or a free municipal charger you use often
+# can be typed and priced without confirming it by hand every time.
+def test_place_type_is_written_on_auto_match(store):
+    pid=place(store)
+    store._conn.execute("UPDATE charging_places SET charge_type='AC' WHERE id=?",(pid,));store._conn.commit()
+    cid=store.create_charge(1,frame())
+    assert row(store,cid)['location_type']=='AC'
+
+
+def test_place_type_is_written_on_manual_assignment(store):
+    pid=place(store)
+    store._conn.execute("UPDATE charging_places SET charge_type='HPC' WHERE id=?",(pid,));store._conn.commit()
+    cid=closed(store)
+    W.assign_charging_place(cid,pid)
+    assert row(store,cid)['location_type']=='HPC'
+
+
+def test_place_type_defaults_to_home_for_a_place_saved_without_one(store):
+    pid=place(store)  # the place() helper's own INSERT omits charge_type on purpose
+    assert store._conn.execute('SELECT charge_type FROM charging_places WHERE id=?',
+                               (pid,)).fetchone()[0]=='HOME'
+
+
 def test_costs_page_and_picker_render_and_save_is_vehicle_scoped(store):
     from starlette.testclient import TestClient
     import main
@@ -142,6 +174,26 @@ def test_costs_page_and_picker_render_and_save_is_vehicle_scoped(store):
     assert 'Weekend' in client.get(f'/api/charges/{cid}/place').text
     pid=place(store,vehicle=2)
     assert client.post('/api/settings/charging-places',data=dict(payload,id=pid)).status_code==400
+
+
+# Assigning a place used to answer with `HX-Refresh` — a full page reload that lost whatever
+# day/tab was open just to redraw a few kB of HTML. It now redraws the place line and
+# (out-of-band) the type badge, same as /type, /cost and /free already do.
+def test_assigning_a_place_redraws_in_place_instead_of_reloading_the_page(store):
+    from starlette.testclient import TestClient
+    import main
+    W.set_setting('setup_complete','1')
+    pid=place(store,name='Ufficio')
+    store._conn.execute("UPDATE charging_places SET charge_type='AC' WHERE id=?",(pid,));store._conn.commit()
+    cid=closed(store)
+    client=TestClient(main.app)
+    r=client.post(f'/api/charges/{cid}/place',data=dict(place_id=pid))
+    assert r.status_code==200
+    assert 'HX-Refresh' not in r.headers
+    assert 'Ufficio' in r.text
+    assert f'id="charge-type-{cid}"' in r.text
+    assert 'hx-swap-oob="true"' in r.text
+    assert row(store,cid)['location_type']=='AC'
 
 
 def test_finalize_uses_snapshot_after_meter_validation_and_preserves_manual(store):

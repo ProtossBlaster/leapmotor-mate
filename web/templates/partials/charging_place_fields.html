@@ -4,4 +4,14 @@
 <label class="text-xs">{{ t('place_lon') }}<input required type="number" step="any" min="-180" max="180" name="longitude" value="{{ p.longitude }}" class="block bg-slate-900 rounded p-2 w-28"></label>
 <label class="text-xs">{{ t('place_radius') }}<input required type="number" min="25" max="500" name="radius_m" value="{{ p.radius_m }}" class="block bg-slate-900 rounded p-2 w-20"></label>
 <label class="text-xs">{{ t('place_rate') }}<input required type="number" step="any" min="0" max="100" name="rate" value="{{ p.rate }}" class="block bg-slate-900 rounded p-2 w-24"></label>
+{# A place used to always assign HOME on match (disc #288 scoped v1 to private/"second home"
+   places). A public place you charge at often — a workplace charger, a free municipal AC point —
+   wants its own type instead, so the badge and the type-keyed prices/statistics read correctly. #}
+<label class="text-xs">{{ t('place_type') }}
+  <select name="charge_type" class="block bg-slate-900 rounded p-2">
+    {% for key, info in charge_types.items() %}
+    <option value="{{ key }}" {% if (p.charge_type or 'HOME') == key %}selected{% endif %}>{{ info.icon }} {{ info.label }}</option>
+    {% endfor %}
+  </select>
+</label>
 <label class="text-xs inline-flex items-center gap-1"><input type="checkbox" name="enabled" {% if p.enabled %}checked{% endif %}>{{ t('place_auto') }}</label>

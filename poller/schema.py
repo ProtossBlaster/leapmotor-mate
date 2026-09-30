@@ -300,6 +300,12 @@ def ensure_schema(conn) -> None:
         name TEXT NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL,
         radius_m REAL NOT NULL, rate REAL NOT NULL, enabled INTEGER NOT NULL DEFAULT 1
     )""")
+    # A place used to always land a charge on HOME (disc #288 scoped v1 to a "second home", not
+    # a public charger). A place may instead declare its OWN type (AC/FAST/HPC/FREE), for a public station
+    # you charge at often and want typed and priced without confirming it by hand each
+    # time — existing places default to HOME, matching the behaviour before this column.
+    if "charge_type" not in {r[1] for r in conn.execute("PRAGMA table_info(charging_places)")}:
+        _add_column(conn, "ALTER TABLE charging_places ADD COLUMN charge_type TEXT NOT NULL DEFAULT 'HOME'")
     place_cols = {r[1] for r in conn.execute("PRAGMA table_info(charges)")}
     for column, kind in (("charging_place_id", "INTEGER"), ("charging_place_name", "TEXT"),
                          ("charging_place_rate", "REAL"), ("charging_place_source", "TEXT")):

@@ -1,5 +1,9 @@
 {% set ct = charge_types.get(charge.location_type) %}
-<div id="charge-type-{{ charge.id }}" class="charge-type-selector">
+{# `badge_oob`: this partial is the PRIMARY target for /type, /cost and /free (its own root IS what
+   gets swapped in) but only a passenger for /place, whose target is the place line beside it — there
+   it needs hx-swap-oob so htmx redirects it here instead of nesting it inside that other swap. #}
+<div id="charge-type-{{ charge.id }}" class="charge-type-selector"
+     {% if badge_oob %}hx-swap-oob="true"{% endif %}>
   {# The real total paid, independent of the type badge next to it — sits BEFORE it, since the
      price is typed once and never changes what the type dropdown offers. #}
   {% with cost_oob=false %}{% include "partials/charge_cost_manual.html" %}{% endwith %}

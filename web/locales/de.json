@@ -1352,6 +1352,7 @@
     "place_lon": "Längengrad",
     "place_radius": "Radius (m)",
     "place_rate": "Preis / kWh",
+    "place_type": "Typ",
     "place_auto": "Automatisch",
     "place_map_hint": "Auf die Karte klicken oder Koordinaten eingeben. Automatisch deaktivieren, um den Ort nur manuell zuzuweisen.",
     "places_totals": "Erfasste Ausgaben je Ort (gesamt)",

@@ -38,9 +38,7 @@
         </div>
         <div class="mt-0.5">{% with charge=c %}{% include "partials/charge_location.html" %}{% endwith %}</div>
         <div id="place-{{ c.id }}" class="text-xs text-slate-400 mt-1">
-          {% if c.charging_place_name %}📍 {{ c.charging_place_name }} · {{ c.charging_place_rate|dec(4) }}/kWh{% endif %}
-          <button type="button" class="underline" hx-get="api/charges/{{ c.id }}/place"
-                  hx-target="#place-{{ c.id }}">{{ t('place_assign') }}</button>
+          {% with charge=c %}{% include "partials/charge_place_line.html" %}{% endwith %}
         </div>
         {# #237 — the distance covered since the previous charge, from the car's own odometer. Only
            where both readings exist and only where the car actually moved: two sessions the same
@@ -60,7 +58,7 @@
     {# The type selector — pencil, badge, menu, the #120 free tick — is ONE partial, drawn here and
        redrawn by every route that changes it. The card used to carry its own copy of it, and a fix
        to one copy is a fix the other forgets (the Manual row of add-on #2 had to go into both). #}
-    {% with charge=c, cost_oob=false %}{% include "partials/charge_type_badge.html" %}{% endwith %}
+    {% with charge=c, cost_oob=false, badge_oob=false %}{% include "partials/charge_type_badge.html" %}{% endwith %}
   </div>
 
   <!-- SOC bar -->

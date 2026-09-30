@@ -1,0 +1,6 @@
+{# The place-assignment line — its OWN partial so the closed state charge_card.html draws first
+   and the state set_charge_place redraws after a save are the same markup (the type-badge fix
+   above hit this exact "two copies, one forgotten" trap once already). Expects `charge` and `t`. #}
+{% if charge.charging_place_name %}📍 {{ charge.charging_place_name }} · {{ charge.charging_place_rate|dec(4) }}/kWh{% endif %}
+<button type="button" class="underline" hx-get="api/charges/{{ charge.id }}/place"
+        hx-target="#place-{{ charge.id }}">{{ t('place_assign') }}</button>

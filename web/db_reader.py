@@ -11205,7 +11205,8 @@ def save_charging_place(form):
     vehicle_id = _current_vehicle_id()
     if vehicle_id is None or str(form.get('vehicle_id')) != str(vehicle_id):
         raise ValueError('place_invalid')
-    values = charging_places.validate(*(form.get(k) for k in ('name','latitude','longitude','radius_m','rate')))
+    values = charging_places.validate(*(form.get(k) for k in
+                                         ('name','latitude','longitude','radius_m','rate','charge_type')))
     enabled = 1 if form.get('enabled') == 'on' else 0
     try:
         place_id = int(form.get('id') or 0)
@@ -11213,13 +11214,14 @@ def save_charging_place(form):
         raise ValueError('place_invalid') from None
     with _conn_rw() as db:
         if place_id:
-            cur = db.execute('UPDATE charging_places SET name=?,latitude=?,longitude=?,radius_m=?,rate=?,enabled=? '
-                             'WHERE id=? AND vehicle_id=?', (*values, enabled, place_id, vehicle_id))
+            cur = db.execute('UPDATE charging_places SET name=?,latitude=?,longitude=?,radius_m=?,rate=?,'
+                             'charge_type=?,enabled=? WHERE id=? AND vehicle_id=?',
+                             (*values, enabled, place_id, vehicle_id))
             if cur.rowcount != 1:
                 raise ValueError('place_invalid')
         else:
-            db.execute('INSERT INTO charging_places (name,latitude,longitude,radius_m,rate,enabled,vehicle_id) '
-                       'VALUES (?,?,?,?,?,?,?)', (*values, enabled, vehicle_id))
+            db.execute('INSERT INTO charging_places (name,latitude,longitude,radius_m,rate,charge_type,enabled,'
+                       'vehicle_id) VALUES (?,?,?,?,?,?,?,?)', (*values, enabled, vehicle_id))
 
 
 def assign_charging_place(charge_id, place_id):
@@ -11237,7 +11239,7 @@ def assign_charging_place(charge_id, place_id):
             if not place:
                 raise ValueError('place_invalid')
             charging_places.snapshot(db, charge_id, place, 'manual')
-            return _update_charge_type(db, charge_id, 'HOME',
+            return _update_charge_type(db, charge_id, place['charge_type'],
                                        _free=1 if row['location_type'] == 'FREE' else None)
         db.execute('UPDATE charges SET charging_place_id=NULL, charging_place_name=NULL, '
                    'charging_place_rate=NULL, charging_place_source=NULL WHERE id=?', (charge_id,))

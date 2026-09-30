@@ -2692,18 +2692,31 @@ async def charge_place_picker(request: Request, charge_id: int):
     if not row:
         return HTMLResponse("", status_code=404)
     return templates.TemplateResponse(request, "partials/charge_place_picker.html", _ctx(
-        charge=dict(row), **db_reader.charging_places_context()))
+        charge=dict(row), charge_types=db_reader.charge_types_localised(),
+        **db_reader.charging_places_context()))
 
 
 @app.post("/api/charges/{charge_id}/place", response_class=HTMLResponse)
 async def set_charge_place(request: Request, charge_id: int):
+    """Assigning (or clearing) a place used to answer with `HX-Refresh` — a full page reload that
+    lost whatever day/tab the owner had open, just to update a few kB of HTML. It changes the same
+    things a badge click does (type + cost) plus the place line beside it, so it now redraws
+    exactly those, the same way /type, /cost and /free already do: the place line is this
+    request's own target, the badge is a passenger swapped out-of-band."""
     form = await request.form()
     try:
-        db_reader.assign_charging_place(charge_id, int(form.get("place_id") or 0))
+        charge = db_reader.assign_charging_place(charge_id, int(form.get("place_id") or 0))
     except ValueError as exc:
         key = str(exc) if str(exc).startswith('place_') else 'place_invalid'
         return HTMLResponse(i18n.get_t(db_reader.get_language())(key), status_code=400)
-    return Response(status_code=204, headers={"HX-Refresh": "true"})
+    t = i18n.get_t(db_reader.get_language())
+    cost_title = t("cost_basis_ac") if (charge.get("location_type") == "HOME" and charge.get("ac_energy_kwh")) \
+        else t("cost_basis_dc")
+    place_html = templates.env.get_template("partials/charge_place_line.html").render(charge=charge, t=t)
+    badge_html = templates.env.get_template("partials/charge_type_badge.html").render(
+        charge=charge, charge_types=db_reader.charge_types_localised(),
+        currency=db_reader.get_currency(), t=t, cost_oob=True, cost_title=cost_title, badge_oob=True)
+    return HTMLResponse(place_html + badge_html)
 
 
 @app.get("/wallbox", response_class=HTMLResponse)
@@ -3244,6 +3257,7 @@ async def set_charge_type(request: Request, charge_id: int):
         "t": t,                   # the partial's #120 free toggle (HOME) needs the translator
         "cost_oob": True,         # also refresh the cost cell (it changes with the type/basis)
         "cost_title": cost_title,
+        "badge_oob": False,       # this route's own div IS the primary target, not a passenger
     })
 
 
@@ -3279,6 +3293,7 @@ async def set_charge_cost(request: Request, charge_id: int):
         "t": t,
         "currency": db_reader.get_currency(),
         "cost_oob": True,   # the cost cell's default/billed indicator changes with this
+        "badge_oob": False,
     })
 
 
@@ -3355,6 +3370,7 @@ async def set_charge_free(request: Request, charge_id: int):
         "t": t,                   # the partial's #120 free toggle needs the translator
         "cost_oob": True,         # free flips the cost to 0 → refresh the cost cell too
         "cost_title": cost_title,
+        "badge_oob": False,
     })
 
 
