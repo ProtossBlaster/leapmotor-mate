@@ -1592,11 +1592,12 @@ class Database:
             return
         volts, amps = getattr(data, "charge_voltage_v", None), getattr(data, "charge_current_a", None)
         power = round(volts * amps / 1000.0, 1) if volts is not None and amps is not None else None
+        speed = data.speed_kmh if getattr(data, "speed_reported", True) else None
         self._conn.execute(
             """INSERT INTO trip_positions (trip_id, recorded_at, latitude, longitude, speed_kmh, soc,
                                            power_kw, battery_temp_c, range_km, outside_temp_c)
                VALUES (?,?,?,?,?,?,?,?,?,?)""",
-            (trip_id, _now_iso(), data.latitude, data.longitude, data.speed_kmh, data.soc, power,
+            (trip_id, _now_iso(), data.latitude, data.longitude, speed, data.soc, power,
              getattr(data, "battery_min_temp", None), getattr(data, "range_km", None) or None,
              getattr(data, "outside_temp", None)),
         )
