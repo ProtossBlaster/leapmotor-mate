@@ -109,7 +109,7 @@
   </div>
   <div class="bg-slate-750 rounded-lg p-3">
     <div class="stat-label">{{ t('speed') }}</div>
-    <div class="font-semibold text-white">{{ speed_val(status.speed_kmh)|int }} <span class="text-xs text-slate-400">{{ speed_unit() }}</span></div>
+    <div class="font-semibold text-white">{% if status.speed_kmh is not none %}{{ speed_val(status.speed_kmh)|int }} <span class="text-xs text-slate-400">{{ speed_unit() }}</span>{% else %}—{% endif %}</div>
   </div>
   <div class="bg-slate-750 rounded-lg p-3">
     <div class="stat-label">{{ t('gear') }}</div>
@@ -135,7 +135,7 @@
      grid closes flush whether three rows are hidden or none. #}
   <div class="flex justify-between gap-2 text-slate-400{{ ' col-span-2' if absent|length is odd else '' }}">
     <span class="min-w-0 break-words">{{ t('odometer') }}</span>
-    <span class="text-white font-medium whitespace-nowrap">{{ (status.odometer_km or 0) | dist(0) }}</span>
+    <span class="text-white font-medium whitespace-nowrap">{{ status.odometer_km | dist(0) if status.odometer_km is not none else '—' }}</span>
   </div>
   {% if 'inside_temp' not in absent %}
   <div class="flex justify-between gap-2 text-slate-400">
