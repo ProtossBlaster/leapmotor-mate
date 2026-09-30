@@ -311,6 +311,15 @@ class Recorder:
             return True     # a session open since, live or rebuilt from the SoC in this poll
         return self._db.charging_read_since(self._vehicle_id, reading.at, reading.frame_ts)
 
+    def _baseline_after(self, reading: OdometerReading) -> Optional[OdometerReading]:
+        """The odometer baseline once `reading` is taken: the first reading of a frame to carry an
+        odometer (see _maybe_reconstruct_trip)."""
+        prev = self._odometer_reading
+        if (reading.odometer_km or 0) > 0 and (prev is None or reading.frame_ts is None
+                                               or reading.frame_ts != prev.frame_ts):
+            return reading
+        return prev
+
     def _maybe_reconstruct_trip(self, data: VehicleData) -> None:
         """Catch a DRIVE that was never seen live — the trip twin of _maybe_reconstruct_charge (#118).
         While the car is offline to the cloud the poller gets no live signals (or only stale ones), so a
@@ -331,10 +340,7 @@ class Recorder:
         interval (#244). The baseline is the first reading of a frame to carry an odometer; one
         without the car's clock is never taken for a repeat."""
         prev = self._odometer_reading
-        reading = OdometerReading.of(data)
-        if (data.odometer_km or 0) > 0 and (prev is None or reading.frame_ts is None
-                                             or reading.frame_ts != prev.frame_ts):
-            self._odometer_reading = reading
+        self._odometer_reading = self._baseline_after(OdometerReading.of(data))
         if prev is None or prev.soc is None or prev.at is None:
             return
         prev_odo, prev_soc, prev_ts = prev.odometer_km, prev.soc, prev.at
