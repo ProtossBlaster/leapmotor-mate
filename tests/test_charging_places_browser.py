@@ -48,7 +48,8 @@ def test_place_forms_and_manual_assignment_in_browser(store,width,tmp_path):
         assert page.locator('option').count()==2
         pid=W.charging_places_context()['charging_places'][0]['id']
         r=client.post(f'/api/charges/{cid}/place',data={'place_id':pid})
-        assert r.status_code==204
+        assert r.status_code==200
+        assert 'HX-Refresh' not in r.headers
         assert row(store,cid)['cost']==7
         assert row(store,cid)['charging_place_name']=='Weekend house'
         assert errors==[]
