@@ -247,6 +247,28 @@ def cloud_fuel_by_trip(db):
     return per_trip
 
 
+def _manoeuvres_inside_a_drive(records, conflicts):
+    """Records that are an unambiguous zero (0 km AND 0 kWh, both present) wholly inside another
+    record of the same car that has a distance of its own. The car files a parking manoeuvre near
+    the end of a drive that way; sorted by start, it would stand as the drive's last record and
+    overlap it. Records that lie side by side along a drive are inside none of them and stay, and
+    a record with conflicting versions is neither set aside nor a container."""
+    out = set()
+    vin = reach = None
+    for key in sorted(records, key=lambda k: (k[0], k[1], -k[2])):
+        if key[0] != vin:
+            vin, reach = key[0], None
+        if key in conflicts:
+            continue
+        energy, distance = records[key]
+        if energy == 0 and distance == 0:
+            if reach is not None and key[2] <= reach:
+                out.add(key)
+        elif distance:
+            reach = key[2] if reach is None else max(reach, key[2])
+    return out
+
+
 def select_energy(db, displayed):
     """Annotate EV rows only, with conservative full-trip cloud matching.
 
@@ -297,6 +319,8 @@ def select_energy(db, displayed):
                 records[key] = value
             except (TypeError, ValueError, KeyError):
                 continue
+    for key in _manoeuvres_inside_a_drive(records, conflicts):
+        del records[key]
     # The window, the bisection and the 90-second tolerance live in _TripIndex — the fuel selection
     # asks the same question of the same records, and two copies of it would drift.
     index = _TripIndex(raw, bounds, vehicles)
