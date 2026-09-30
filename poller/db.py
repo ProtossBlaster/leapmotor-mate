@@ -1953,7 +1953,12 @@ class Database:
         @mikeeeeekoo (#208) a whole morning of driving, which would close his overnight charge at
         92.3 % and half past noon. `ended_at` is the CAR's own clock when the frame carries one:
         while the cloud re-serves a frozen snapshot our `recorded_at` keeps advancing and the car's
-        does not, and the car's is the one that says when the charge really stopped."""
+        does not, and the car's is the one that says when the charge really stopped.
+
+        "Last" is in the order the rows were written, not by our clock, which can step back: the
+        latest time is then an earlier reading, and a charge closed on it ends below the SoC the car
+        last gave. The window and the first read of the frame are still on our clock, so a step back
+        further than the charge so far hides rows from it."""
         # Stop at the end of THIS session, not at the last charging sample in the database. Without
         # this the search walks forward for as long as no later charge row exists to cap it, and
         # @mikeeeeekoo's overnight charge (#208) closed on the first sample of that EVENING's
@@ -1974,7 +1979,7 @@ class Database:
         if before:
             sql += " AND recorded_at<?"
             args.append(before)
-        row = self._conn.execute(sql + " ORDER BY recorded_at DESC LIMIT 1", args).fetchone()
+        row = self._conn.execute(sql + " ORDER BY id DESC LIMIT 1", args).fetchone()
         if row is None:
             return None
         ended_at = row["recorded_at"]
