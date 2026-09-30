@@ -182,7 +182,7 @@
   <div class="flex justify-between gap-2 text-slate-400 col-span-2">
     <span>READY</span>
     <span class="font-semibold whitespace-nowrap {% if status.ready %}text-emerald-400{% else %}text-slate-500{% endif %}">
-      {% if status.ready %}{{ t('ready_state_on') }}{% else %}{{ t('ready_state_off') }}{% endif %}
+      {% if status.ready is none %}—{% elif status.ready %}{{ t('ready_state_on') }}{% else %}{{ t('ready_state_off') }}{% endif %}
     </span>
   </div>
   {# No OTA row. It never said anything about the CAR: the versions are told only to the account that

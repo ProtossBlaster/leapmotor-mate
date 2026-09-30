@@ -656,7 +656,9 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
     l'intera **sessione di accensione** (dall'accensione allo spegnimento), quindi può includere il tempo
     ad auto accesa prima di partire. Se **non spegni mai l'auto tra due viaggi** (ti fermi, resti in P,
     riparti), il cloud li conta come **un'unica** sessione — Mate ti avvisa di **unire i due viaggi** per
-    avere il consumo reale combinato.
+    avere il consumo reale combinato. Mate lo dice solo quando è l'auto a segnalarlo: una sosta in P
+    di oltre un minuto durante la quale l'auto non ha detto se era accesa non conta come un'unica
+    sessione.
 - **La tua nota + tag di guida 🆕** (#107) — nel dettaglio di un viaggio puoi scrivere una **nota libera**
   (traffico, meteo, tipo di strada, qualsiasi appunto) e indicare la **modalità di guida** (Comfort /
   Normale / Sport) e il **One-Pedal** (attivo/disattivo) usati. Mate non può leggerli dall'auto —
