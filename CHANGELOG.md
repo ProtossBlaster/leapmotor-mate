@@ -3,6 +3,52 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.5] — 2026-09-30
+
+- **The car the cloud calls A10 is the B03X, and it now has its battery.** The Leapmotor cloud reports
+  the CHINESE project name of a car, and for the crossover sold in Europe as the **B03X** that name is
+  `A10` — renamed for Europe because "A10" read as an A-segment while the car is a B, the same
+  convention by which the B10 is a C and the C10 a D. Every table Mate keys on the model saw only what
+  the cloud sends, and none had a row for it, so two things happened to the first B03X to reach us
+  (#338): `default_capacity_for` answered the unknown-model **fallback of 65.0 kWh**, a pack this car
+  has never been built with and 25% above even its larger one; and the wizard offered no variant, so
+  its owner typed a figure by hand — **53.0**, which is the NAMEPLATE capacity, not the usable one.
+  That field decides every kWh, €/kWh and consumption figure an installation will ever print. The
+  usable figures, taken from the two sources that print both columns and agree on both variants:
+  **39.8 gross → 39.0 usable** (0.8 kWh, 2.0%) and **53.0 gross → 52.0 usable** (1.0 kWh, 1.9%) — and
+  the two buffers agree with each other, which is the cross-check the C10 RWD failed in #246. The
+  wizard now shows the **selector**, labelled B03X because that is the word on the owner's papers, and
+  the 52.0 default is only what a car nobody was asked about gets. ⚠️ **Nothing is migrated**: an
+  installation that already typed a capacity keeps it, as always — a B03X running on 53.0 reads about
+  2% low on energy until its owner changes it in **Settings → Battery**.
+- **The B03 is a different car, and it is deliberately not here.** `B03` and `B03X` are one character
+  apart and are not the same model: the B03 is the **A05**, the hatchback, 4175 mm against the B03X's
+  4270. They share the platform, the 2605 mm wheelbase, the motors and — per the press — the two
+  Gotion LFP packs, which is exactly what makes copying the row tempting. It stays out because the car
+  is not on sale yet (Italy at the end of 2026, the UK in 2027) and its specification is not
+  published: no usable figure in either source, no European WLTP, trims unannounced, and one report
+  that the smaller pack may not even reach Europe. An `A05` therefore takes the 65.0 fallback and the
+  log names it by model, which is how the A10 was found; the fix will be one row, read the same way.
+- **A guard the two tables never had**: a model's default pack must be one the wizard offers for that
+  model. A default outside the wizard's list is a pack no owner can pick and no page explains, applied
+  in silence. It holds for all five models today.
+- **The bundle says why an installation is still on the bundled SDK** (#338). @dommi1966's
+  installation has been on the bundled `leapmotor-api` for three releases while the activation
+  re-attempts every six hours and fails, and the bundle said only which client was running, never why.
+  Since 4.2.0 a `legacy` decision is **never a verdict on the account** — every model qualifies — so
+  it is always a qualification that did not finish, and the three facts that say so are not secrets:
+  the state, the reason and the time it last tried. The `Cloud client` line now carries them, e.g.
+  `bundled SDK (leapmotor-api) · retained (qualification_failed), last tried 3.2 h ago`, and a
+  decision written by 4.4.0 with no timestamp at all reads `never attempted`, which is exactly what
+  pinned those installations. The account **identity is never printed** — it is an HMAC of the
+  account's own credentials and nothing in a support bundle needs it — and a `qualified` decision is
+  not described as "never attempted" although it stores no attempt time, on purpose.
+- ⚠️ **Not in this release, and named so it is not assumed**: the windows open-% scale has no B03X row
+  either, so a B03X uses the T03's 0–100 where the other B-family cars use 0–10. That is not measured
+  on this car, and a guessed scale writes wrong commands. There is also no validated maintenance
+  schedule for the B03X: its owner gets the "no pack" message, as before.
+- **No schema change**, no new setting, and nothing is rewritten in stored data on upgrade.
+
 ## [4.7.4] — 2026-09-30
 
 - **A refused weather lookup is not asked again for twenty minutes** (PR #353, @arekm). A failed Open-Meteo lookup stored neither a time nor an anchor, so the check that decides whether to fetch stayed true and every poll asked again until one succeeded. On a day the free allowance runs out that is every answered poll, refused: on a live installation, 432 HTTP 429 replies in under four hours, each with a warning, until midnight UTC. Measured here on the real sampler over four hours of polls thirty seconds apart with the service refusing: **480 requests before, 12 now**, parked or driving alike. The wait is `_RETRY_S`, equal to `_MAX_AGE_S` — as long as a good reading is already trusted — and it does not end because the car moved, since a refusal comes from the service or the network, not from where the car is; a clock set back ends it rather than stretching it. ⚠️ The cost, measured too: when the FIRST lookup after a start fails there is no outside temperature for twenty minutes, where the next poll used to ask again. An existing good reading is kept as before.

@@ -18,6 +18,7 @@ body:
         - "B10"
         - "C10"
         - "B05"
+        - "B03X"
         - "T03"
         - "Other / not sure"
     validations:

@@ -1,8 +1,35 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.4 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.5 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.4
+## Neu in Version 4.7.5
+
+Zwei Änderungen, beide in einem einzigen Diagnosepaket eines Nutzers gefunden.
+
+**Mate kennt jetzt den B03X.** Die Leapmotor-Cloud meldet den *chinesischen* Projektnamen eines
+Fahrzeugs — der in Europa als B03X verkaufte Crossover kommt also als `A10` an, und Mate hatte
+keinen Eintrag dafür. Seine Batterie fiel damit auf den Wert für ein Mate unbekanntes Fahrzeug
+zurück, 65,0 kWh, den der B03X nie hatte; und der Assistent bot keine Variante an, also gab der
+erste angekommene Besitzer eine Zahl von Hand ein. Er gab 53,0 ein, den Wert aus dem Datenblatt —
+die **Nenn**kapazität — während dieses Feld die **nutzbare** erwartet, also die Energie, die das Auto
+tatsächlich entnehmen lässt. Der Assistent bietet nun beide B03X-Batterien an: **39,0 kWh**
+(Nennwert 39,8, 292 km WLTP) und **52,0 kWh** (Nennwert 53,0, 382 km).
+
+⚠️ **Eine bereits eingetragene Kapazität lässt Mate unberührt** — eine selbst gewählte Zahl wird nie
+überschrieben. Ein B03X mit 53,0 liest jede Energieangabe etwa 2 % zu niedrig; auf 52,0 ändern unter
+**Einstellungen → Batterie**, und ab dann stimmt sie.
+
+**Der B03 ist nicht der B03X.** Ein Zeichen Unterschied, und zwei verschiedene Autos: der B03 ist die
+Schräghecklimousine, rund 10 cm kürzer. Er ist absichtlich noch nicht in Mate — er ist nicht im
+Verkauf und die Werte seiner Batterie sind nirgends veröffentlicht. Zwei Dinge, die auch der B03X
+nicht hat: einen geprüften Wartungsplan und eine gemessene Fensteröffnungsskala, weshalb der
+Fensterprozentsatz falsch sein kann.
+
+**Wenn Sie ein Diagnosepaket senden, steht darin jetzt, warum Ihre Installation noch den älteren
+Cloud-Client nutzt** — Zustand, Grund und der letzte Umstellungsversuch. Die Identität Ihres Kontos
+steht weiterhin nie in einem Paket.
+
+### Neu in Version 4.7.4
 
 Drei Änderungen von einem Mitwirkenden. Zwei betreffen Mate, das weniger fragt; die dritte ein Signal,
 das, wenn das Auto es nicht sendete, notiert wurde, als hätte das Auto geantwortet.
@@ -289,7 +316,7 @@ Planungen…) und, wenn Sie möchten, die Daten mit **Home Assistant** (über MQ
 - **Es spricht nicht direkt mit dem Auto.** Alles läuft über die Leapmotor-Cloud. Wenn Mate die Cloud
   „abfragt" (Polling), liest es den **zuletzt bekannten Zustand**: Es weckt das Auto *nicht* auf und entlädt die
   Batterie *nicht*. Es ist ein sicherer und günstiger Vorgang.
-- **Batterieelektrisch und mit Range-Extender.** Unterstützt werden **T03, B05, B10, C10**. Ihre
+- **Batterieelektrisch und mit Range-Extender.** Unterstützt werden **T03, B03X, B05, B10, C10**. Ihre
   **REEV**-Versionen, mit Range-Extender auf Benzin, werden ab **4.7.0** unterstützt: die REEV-Seite,
   die Benzinwerte je Fahrt und je Zeitraum sowie die REEV-Batteriepakete im Einrichtungsassistenten
   sind alle im gewöhnlichen Build. Bei einem Range-Extender wird **keine** Rekuperation angezeigt —

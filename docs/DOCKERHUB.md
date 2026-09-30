@@ -4,7 +4,7 @@
 companion (think *TeslaMate* for Leapmotor). Runs as a **standalone Docker container** or as a
 **Home Assistant add-on**.
 
-Supported models: **B05 · B10 · C10 · T03**, European spec (the Leapmotor lineup distributed by Stellantis/Leapmotor) — battery‑electric and, since **4.7.0**, the **REEV** range‑extender versions. A range extender does not get a regen figure: a generator refilling the pack while you drive cannot be told apart from braking.
+Supported models: **B03X · B05 · B10 · C10 · T03**, European spec (the Leapmotor lineup distributed by Stellantis/Leapmotor) — battery‑electric and, since **4.7.0**, the **REEV** range‑extender versions. A range extender does not get a regen figure: a generator refilling the pack while you drive cannot be told apart from braking.
 
 ![Overview](https://raw.githubusercontent.com/ProtossBlaster/leapmotor-mate/main/docs/screenshots/overview.png)
 

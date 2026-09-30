@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.4 · **Langue :** Français
+> **Version de Mate :** v4.7.5 · **Langue :** Français
 
-## Nouveautés de la version 4.7.4
+## Nouveautés de la version 4.7.5
+
+Deux changements, trouvés tous les deux dans un même paquet de diagnostic envoyé par un utilisateur.
+
+**Mate connaît désormais la B03X.** Le cloud Leapmotor transmet le nom de projet *chinois* d'une
+voiture : le crossover vendu en Europe sous le nom de B03X arrive donc comme `A10`, et Mate n'avait
+aucune entrée pour lui. Sa batterie retombait sur le chiffre utilisé pour une voiture inconnue de
+Mate, 65,0 kWh, que la B03X n'a jamais eue ; et l'assistant ne proposait aucune variante, si bien que
+le premier propriétaire arrivé a saisi un nombre à la main. Il a saisi 53,0, le chiffre de la fiche
+technique — la capacité **nominale** — alors que ce champ attend la capacité **utile**, l'énergie que
+la voiture laisse réellement prélever. L'assistant propose maintenant les deux batteries de la B03X :
+**39,0 kWh** (nominale 39,8, 292 km WLTP) et **52,0 kWh** (nominale 53,0, 382 km).
+
+⚠️ **Si vous avez déjà saisi une capacité, Mate n'y touche pas** — il n'écrase jamais un nombre que
+vous avez choisi. Une B03X réglée sur 53,0 affiche environ 2 % de moins sur chaque chiffre d'énergie ;
+mettez-la à 52,0 dans **Paramètres → Batterie** et elle est juste à partir de là.
+
+**La B03 n'est pas la B03X.** Un caractère les sépare et ce sont deux voitures différentes : la B03
+est la berline compacte, environ 10 cm plus courte. Elle n'est pas encore dans Mate, volontairement —
+elle n'est pas en vente et les chiffres de sa batterie ne sont publiés nulle part. Deux choses que la
+B03X n'a pas non plus : un programme d'entretien validé, et une échelle d'ouverture des vitres
+mesurée, donc le pourcentage des vitres peut être faux.
+
+**Si vous envoyez un paquet de diagnostic, il indique maintenant pourquoi votre installation utilise
+encore l'ancien client cloud** — l'état, la raison et la date du dernier essai de bascule. L'identité
+de votre compte continue de ne jamais figurer dans un paquet.
+
+### Nouveautés de la version 4.7.4
 
 Trois changements venus d'un contributeur. Deux portent sur Mate qui demande moins ; le troisième sur
 un signal qui, lorsque la voiture ne l'envoyait pas, était noté comme si elle avait répondu.
@@ -292,7 +319,7 @@ du véhicule, programmations…) et, si vous le souhaitez, d'intégrer les donn�
 - **Il ne parle pas directement à la voiture.** Tout passe par le cloud Leapmotor. Quand Mate « interroge »
   le cloud (polling), il lit le **dernier état connu** : il *ne* réveille *pas* la voiture et *ne* décharge
   *pas* la batterie. C'est une opération sûre et économique.
-- **Électriques et à prolongateur d'autonomie.** Sont prises en charge les **T03, B05, B10, C10**.
+- **Électriques et à prolongateur d'autonomie.** Sont prises en charge les **T03, B03X, B05, B10, C10**.
   Leurs versions **REEV**, avec prolongateur d'autonomie à essence, sont prises en charge depuis la
   **4.7.0** : la page REEV, le carburant par trajet et par période et les packs de batterie REEV de
   l'assistant se trouvent tous dans la version ordinaire. Sur un prolongateur d'autonomie, la

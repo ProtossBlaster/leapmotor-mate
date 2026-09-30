@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.4 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.5 · **Lingua:** Italiano
 
-## Novità della 4.7.4
+## Novità della 4.7.5
+
+Due modifiche, trovate entrambe in uno stesso pacchetto di diagnostica mandato da un utente.
+
+**Mate adesso conosce la B03X.** Il cloud Leapmotor manda il nome di progetto *cinese* di un'auto,
+quindi il crossover venduto in Europa come B03X arriva come `A10` — e Mate non aveva una voce per lui.
+La batteria ripiegava così sulla cifra usata per un'auto che Mate non ha mai sentito, 65,0 kWh, che la
+B03X non ha mai avuto; e la procedura guidata non offriva nessuna variante, quindi il primo
+proprietario arrivato ha scritto un numero a mano. Ha scritto 53,0, che è la cifra della scheda
+tecnica — la capacità **di targa** — mentre quel campo vuole quella **utilizzabile**, l'energia che
+l'auto ti lascia davvero prelevare. Adesso la procedura guidata offre entrambi i pacchi della B03X:
+**39,0 kWh** (targa 39,8, 292 km WLTP) e **52,0 kWh** (targa 53,0, 382 km).
+
+⚠️ **Se hai già scritto una capacità, Mate non la tocca** — non sovrascrive mai un numero scelto da te.
+Una B03X impostata su 53,0 legge circa il 2% in meno su ogni cifra di energia; portala a 52,0 da
+**Impostazioni → Batteria** e da lì in avanti è giusta.
+
+**La B03 non è la B03X.** Sono a un carattere di distanza e sono due auto diverse: la B03 è la
+hatchback, circa 10 cm più corta. In Mate non c'è ancora, di proposito — non è in vendita e le cifre
+della sua batteria non sono pubblicate da nessuna parte. Due cose che la B03X non ha nemmeno lei: un
+programma di manutenzione validato, e una scala di apertura dei finestrini misurata, quindi la
+percentuale dei finestrini potrebbe essere sbagliata.
+
+**Se mandi un pacchetto di diagnostica, adesso dice perché la tua installazione è ancora sul client
+del cloud più vecchio** — lo stato, il motivo e quando ha tentato il passaggio l'ultima volta.
+L'identità del tuo account continua a non finire mai in un pacchetto.
+
+### Novità della 4.7.4
 
 Tre modifiche di chi contribuisce. Due riguardano Mate che chiede di meno; la terza un segnale che,
 quando l'auto non lo mandava, veniva scritto come se l'auto avesse risposto.
@@ -282,7 +309,7 @@ programmazioni…) e, se vuoi, di integrare i dati con **Home Assistant** (via M
 - **Non parla direttamente con l'auto.** Tutto passa dal cloud Leapmotor. Quando Mate "interroga"
   il cloud (polling) legge l'**ultimo stato noto**: *non* sveglia l'auto e *non* scarica la
   batteria. È un'operazione sicura ed economica.
-- **Elettriche e con range extender.** Sono supportate **T03, B05, B10, C10**. Le loro versioni
+- **Elettriche e con range extender.** Sono supportate **T03, B03X, B05, B10, C10**. Le loro versioni
   **REEV**, con range extender a benzina, sono supportate dalla **4.7.0**: la pagina REEV, i litri per
   viaggio e per periodo e i pacchi batteria REEV nella procedura guidata stanno tutti sulla build
   normale. Su una REEV **non** viene mostrato il recupero in frenata — con un generatore che ricarica

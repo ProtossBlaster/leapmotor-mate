@@ -1,8 +1,33 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.4 · **Language:** English
+> **Mate version:** v4.7.5 · **Language:** English
 
-## New in 4.7.4
+## New in 4.7.5
+
+Two changes, both found in one support bundle a user sent.
+
+**Mate now knows the B03X.** The Leapmotor cloud reports a car's *Chinese* project name, so the
+crossover sold in Europe as the B03X arrives as `A10` — and Mate had no entry for it. Its battery
+therefore fell back to the figure used for a car Mate has never heard of, 65.0 kWh, which the B03X has
+never been built with; and the wizard offered no variant, so the first owner to arrive typed a number
+by hand. He typed 53.0, which is the figure on the spec sheet — the **nameplate** capacity — while the
+field wants the **usable** one, the energy the car actually lets you take out. The wizard now offers
+both B03X packs: **39.0 kWh** (nameplate 39.8, 292 km WLTP) and **52.0 kWh** (nameplate 53.0, 382 km).
+
+⚠️ **If you already typed a capacity, Mate leaves it alone** — it never overwrites a number you chose.
+A B03X set to 53.0 reads about 2% low on every energy figure; change it to 52.0 in
+**Settings → Battery** and it is right from there on.
+
+**The B03 is not the B03X.** They are one character apart and they are two different cars: the B03 is
+the hatchback, about 10 cm shorter. It is not in Mate yet, on purpose — it is not on sale and its
+battery figures are not published anywhere. Two things the B03X does not have either: a validated
+maintenance schedule, and a measured window-opening scale, so its window percentage may be wrong.
+
+**If you send a support bundle, it now says why your installation is still on the older cloud
+client** — the state, the reason and when the switch was last attempted. Your account identity is
+still never written into a bundle.
+
+### New in 4.7.4
 
 Three changes from a contributor. Two are about Mate asking less; the third is about a signal that,
 when the car did not send it, was written down as though the car had answered.
@@ -271,7 +296,7 @@ scheduling…) and, if you like, integrate the data with **Home Assistant** (via
 - **It does not talk to the car directly.** Everything goes through the Leapmotor cloud. When Mate
   "queries" the cloud (polling) it reads the **last known status**: it does *not* wake the car up and
   does *not* drain the battery. It's a safe and inexpensive operation.
-- **Battery-electric and range-extender.** The supported models are **T03, B05, B10, C10**. Their
+- **Battery-electric and range-extender.** The supported models are **T03, B03X, B05, B10, C10**. Their
   **REEV** versions, with a petrol range extender, are supported from **4.7.0**: the REEV page, the
   petrol figures per trip and per period, and the REEV battery packs in the wizard are all on the
   ordinary build. A range extender does **not** get a regen figure — with a generator refilling the
