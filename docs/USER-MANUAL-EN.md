@@ -1,8 +1,17 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.11 · **Language:** English
+> **Mate version:** v4.7.12 · **Language:** English
 
-## New in 4.7.11
+## New in 4.7.12
+
+**A T03 shows its readings.** With 4.7.11 a T03 was read again, but Mate showed 0%, 0 km and 0 °C:
+the cloud answers a T03 in named fields, and 4.7.11 read them as numbered ones. Now they are read by
+name, and the positions stored at 0% are removed once, at the first start.
+
+**Diagnostic bundles leave out coordinates that come by name.** If you posted a bundle taken on a T03
+with 4.7.11, it contains your car's position: delete it.
+
+### New in 4.7.11
 
 **A T03 is read again.** Since 4.7.7 a T03 got "No data found" from the cloud at every poll, and Mate
 recorded nothing. Mate now asks for a car it has never read as the model the cloud lists it as, and

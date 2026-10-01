@@ -32,7 +32,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "4.7.11"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "4.7.12"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo

@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.7.11:** a T03 is read again. Since 4.7.7 a T03 got "No data found" from the cloud at every poll and recorded nothing ([#368](https://github.com/ProtossBlaster/leapmotor-mate/issues/368), [#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)); Mate now asks for it as a T03, and at the address the earlier library used. And **Charging data**: the chart under a charge, in bands — the power with the car's own countdown, the charge level, the battery's and the outside temperature ([#367](https://github.com/ProtossBlaster/leapmotor-mate/pull/367), @arekm). [Release notes](docs/releases/v4.7.11.md)
-See [release notes and upgrade impact](docs/releases/v4.7.11.md).
+**v4.7.12:** a T03 shows its readings. With 4.7.11 a T03 was read again but showed 0%, 0 km and 0 °C: the cloud answers it in named fields, read as numbered ones ([#368](https://github.com/ProtossBlaster/leapmotor-mate/issues/368)). Now they are read by name, and the positions stored at 0% are removed once. And a diagnostic bundle leaves out coordinates that come by name: **if you posted a bundle taken on a T03 with 4.7.11, delete it** — it contains the car's position. [Release notes](docs/releases/v4.7.12.md)
+See [release notes and upgrade impact](docs/releases/v4.7.12.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -357,8 +357,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.7.11:** una T03 viene letta di nuovo. Dalla 4.7.7 una T03 riceveva dal cloud «No data found» a ogni lettura e non registrava niente ([#368](https://github.com/ProtossBlaster/leapmotor-mate/issues/368), [#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)); adesso Mate la chiede come T03, e all'indirizzo usato dalla libreria di prima. E **Dati della ricarica**: il grafico sotto una ricarica, a fasce — la potenza con i minuti stimati dall'auto, la percentuale, la temperatura della batteria ed esterna ([#367](https://github.com/ProtossBlaster/leapmotor-mate/pull/367), @arekm). [Note di rilascio](docs/releases/v4.7.11.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.11.md#italiano).
+**v4.7.12:** una T03 mostra le sue letture. Con la 4.7.11 una T03 veniva letta di nuovo ma mostrava 0%, 0 km e 0 °C: il cloud le risponde con campi con nome, letti come numerati ([#368](https://github.com/ProtossBlaster/leapmotor-mate/issues/368)). Adesso li legge per nome, e le posizioni salvate a 0% vengono tolte una volta sola. E il pacchetto di diagnostica tiene fuori le coordinate con nome: **se hai pubblicato un pacchetto preso su una T03 con la 4.7.11, cancellalo** — contiene la posizione dell'auto. [Note di rilascio](docs/releases/v4.7.12.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.12.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

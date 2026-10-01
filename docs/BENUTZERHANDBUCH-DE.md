@@ -1,8 +1,18 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.11 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.12 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.11
+## Neu in Version 4.7.12
+
+**Ein T03 zeigt seine Messwerte.** Mit 4.7.11 wurde ein T03 wieder gelesen, aber Mate zeigte 0 %, 0 km
+und 0 °C: Die Cloud antwortet einem T03 mit benannten Feldern, und 4.7.11 las sie als nummerierte. Jetzt
+werden sie über ihren Namen gelesen, und die mit 0 % gespeicherten Positionen werden beim ersten Start
+einmalig entfernt.
+
+**Das Diagnosepaket lässt auch benannte Koordinaten weg.** Wenn du ein Paket veröffentlicht hast, das auf
+einem T03 mit 4.7.11 erstellt wurde, enthält es die Position deines Autos: lösche es.
+
+### Neu in Version 4.7.11
 
 **Ein T03 wird wieder gelesen.** Seit 4.7.7 bekam ein T03 bei jeder Abfrage von der Cloud „No data
 found", und Mate zeichnete nichts auf. Mate fragt ein Auto, das es noch nie gelesen hat, jetzt unter

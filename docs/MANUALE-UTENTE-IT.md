@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.11 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.12 · **Lingua:** Italiano
 
-## Novità della 4.7.11
+## Novità della 4.7.12
+
+**Una T03 mostra le sue letture.** Con la 4.7.11 una T03 veniva letta di nuovo, ma Mate mostrava 0%, 0 km
+e 0 °C: il cloud risponde a una T03 con campi con nome, e la 4.7.11 li leggeva come numerati. Adesso li
+legge per nome, e le posizioni salvate a 0% vengono tolte una volta sola, al primo avvio.
+
+**Il pacchetto di diagnostica tiene fuori le coordinate con nome.** Se hai pubblicato un pacchetto preso
+su una T03 con la 4.7.11, contiene la posizione della tua auto: cancellalo.
+
+### Novità della 4.7.11
 
 **Una T03 viene letta di nuovo.** Dalla 4.7.7 una T03 riceveva dal cloud «No data found» a ogni
 lettura, e Mate non registrava niente. Adesso Mate chiede un'auto che non ha mai letto come il modello
