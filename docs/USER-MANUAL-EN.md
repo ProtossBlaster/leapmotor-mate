@@ -1,8 +1,20 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.8 · **Language:** English
+> **Mate version:** v4.7.9 · **Language:** English
 
-## New in 4.7.8
+## New in 4.7.9
+
+**Earlier months of trips from the Leapmotor cloud.** In **Settings → Cloud trip history**, with
+**Import trips from Leapmotor cloud** on, the new menu **Also import earlier months, starting from**
+lists the months from September 2026 to last month. Choose once: Mate downloads that month and every
+one after it, once each, and the months that end later come in on their own. The line under the menu
+says what the choice adds. The Leapmotor cloud holds no single trip before September 2026.
+
+**Battery health opens faster**, and so does a charge's power chart
+([#363](https://github.com/ProtossBlaster/leapmotor-mate/pull/363), by @hubcasale): measured on four
+months of history, from about 1.4 s to 0.05 s.
+
+### New in 4.7.8
 
 **A new installation starts cleanly.** On a first start, with an empty data folder, Mate's two
 processes could open the new database at the same instant and the recording one stopped with

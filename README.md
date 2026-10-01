@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.7.8:** a new installation starts cleanly — on a first start the two processes could open the new database at the same instant and the recording one stopped with "database is locked"; it now waits the few milliseconds the other needs. [Release notes](docs/releases/v4.7.8.md)
-See [release notes and upgrade impact](docs/releases/v4.7.8.md).
+**v4.7.9:** earlier months of trips from the cloud. In **Settings → Cloud trip history** you can now import the months before the current one too, from September 2026 — the cloud holds nothing earlier: one choice, each month downloaded once, and the months that end come in on their own. And two contributions: **battery health opens in about 0.05 s instead of 1.4** ([#363](https://github.com/ProtossBlaster/leapmotor-mate/pull/363), @hubcasale), and **a parking manoeuvre no longer hides its drive** from the cloud's energy ([#364](https://github.com/ProtossBlaster/leapmotor-mate/pull/364), @arekm). [Release notes](docs/releases/v4.7.9.md)
+See [release notes and upgrade impact](docs/releases/v4.7.9.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -357,8 +357,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.7.8:** un'installazione nuova parte pulita — al primo avvio i due processi potevano aprire il database nuovo nello stesso istante e quello che registra si fermava con «database is locked»; adesso aspetta i pochi millisecondi che servono all'altro. [Note di rilascio](docs/releases/v4.7.8.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.8.md#italiano).
+**v4.7.9:** i mesi precedenti dei viaggi dal cloud. In **Impostazioni → Storico viaggi cloud** adesso puoi importare anche i mesi prima di quello in corso, da settembre 2026 — prima il cloud non ha niente: una scelta sola, ogni mese scaricato una volta, e i mesi che finiscono si aggiungono da soli. E due contributi: **la salute della batteria si apre in circa 0,05 s invece di 1,4** ([#363](https://github.com/ProtossBlaster/leapmotor-mate/pull/363), @hubcasale), e **una manovra di parcheggio non nasconde più il suo viaggio** all'energia del cloud ([#364](https://github.com/ProtossBlaster/leapmotor-mate/pull/364), @arekm). [Note di rilascio](docs/releases/v4.7.9.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.9.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

@@ -1,8 +1,21 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.8 · **Langue :** Français
+> **Version de Mate :** v4.7.9 · **Langue :** Français
 
-## Nouveautés de la version 4.7.8
+## Nouveautés de la version 4.7.9
+
+**Les mois précédents des trajets, depuis le cloud Leapmotor.** Dans **Paramètres → Historique des
+trajets du cloud**, avec **Importer les trajets du cloud Leapmotor** activé, le nouveau menu
+**Importer aussi les mois précédents, à partir de** liste les mois de septembre 2026 au mois dernier.
+On choisit une seule fois : Mate télécharge ce mois et tous les suivants, une seule fois chacun, et
+les mois qui se terminent s'ajoutent d'eux-mêmes. La ligne sous le menu indique ce que le choix
+ajoute. Le cloud Leapmotor n'a aucun trajet individuel avant septembre 2026.
+
+**La santé de la batterie s'ouvre plus vite**, tout comme le graphique de puissance d'une recharge
+([#363](https://github.com/ProtossBlaster/leapmotor-mate/pull/363), par @hubcasale) : mesuré sur
+quatre mois d'historique, d'environ 1,4 s à 0,05 s.
+
+### Nouveautés de la version 4.7.8
 
 **Une nouvelle installation démarre proprement.** Au premier démarrage, avec un dossier de données
 vide, les deux processus de Mate pouvaient ouvrir la nouvelle base au même instant et celui qui

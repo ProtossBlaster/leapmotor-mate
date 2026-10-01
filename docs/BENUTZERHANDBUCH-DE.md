@@ -1,8 +1,21 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.8 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.9 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.8
+## Neu in Version 4.7.9
+
+**Frühere Monate der Fahrten aus der Leapmotor-Cloud.** Unter **Einstellungen → Fahrtenverlauf aus
+der Cloud**, mit eingeschaltetem **Fahrten aus der Leapmotor-Cloud importieren**, listet das neue Menü
+**Auch frühere Monate importieren, ab** die Monate von September 2026 bis zum letzten Monat. Einmal
+wählen genügt: Mate lädt diesen Monat und alle folgenden je einmal, und abgelaufene Monate kommen von
+selbst hinzu. Die Zeile unter dem Menü sagt, was die Wahl hinzufügt. Die Leapmotor-Cloud hat keine
+einzelne Fahrt vor September 2026.
+
+**Die Batteriegesundheit öffnet sich schneller**, ebenso das Leistungsdiagramm einer Ladung
+([#363](https://github.com/ProtossBlaster/leapmotor-mate/pull/363), von @hubcasale): gemessen an vier
+Monaten Verlauf, von etwa 1,4 s auf 0,05 s.
+
+### Neu in Version 4.7.8
 
 **Eine neue Installation startet sauber.** Beim ersten Start mit leerem Datenordner konnten die
 beiden Prozesse von Mate die neue Datenbank im selben Moment öffnen, und der aufzeichnende brach mit

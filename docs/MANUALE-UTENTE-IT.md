@@ -1,8 +1,21 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.8 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.9 · **Lingua:** Italiano
 
-## Novità della 4.7.8
+## Novità della 4.7.9
+
+**I mesi precedenti dei viaggi, dal cloud Leapmotor.** In **Impostazioni → Storico viaggi cloud**, con
+**Importa viaggi dal cloud Leapmotor** attivo, il menu nuovo **Importa anche i mesi precedenti, a
+partire da** elenca i mesi da settembre 2026 al mese scorso. Si sceglie una volta: Mate scarica quel
+mese e tutti quelli dopo, una volta sola ciascuno, e i mesi che finiscono si aggiungono da soli. La
+riga sotto il menu dice cosa aggiunge la scelta. Il cloud Leapmotor non ha viaggi singoli prima di
+settembre 2026.
+
+**La salute della batteria si apre più in fretta**, e così il grafico della potenza di una ricarica
+([#363](https://github.com/ProtossBlaster/leapmotor-mate/pull/363), di @hubcasale): misurato su
+quattro mesi di storico, da circa 1,4 s a 0,05 s.
+
+### Novità della 4.7.8
 
 **Un'installazione nuova parte pulita.** Al primo avvio, con la cartella dei dati vuota, i due
 processi di Mate potevano aprire il database nuovo nello stesso istante e quello che registra si

@@ -3,6 +3,36 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.9] — 2026-10-01
+
+- **Earlier months of trips can be imported from the cloud, from September 2026.** The history
+  worker asks the cloud from the first day of the current month, so an installation made on the 1st
+  never saw the month before it: a new MateDesktop on 1 October imported one trip. The cloud trip
+  history card in Settings now offers the earlier months, from September 2026 to last month. One
+  choice is enough: the chosen month and every one after it are asked once each, as whole months in
+  the user's time zone, and the months that end later come in on their own. Nothing is asked while
+  the import itself is off, and nothing earlier than September 2026 is offered: measured on
+  1 October, the cloud returns no single trip before 1 September 2026. A line under the menu says
+  what the choice adds. The card, still in English in six of the eight languages, is translated.
+- **Battery health and the charge power curves no longer read every position**
+  ([#363](https://github.com/ProtossBlaster/leapmotor-mate/pull/363), @hubcasale). Their queries ask
+  the charging-sample predicate under `vehicle_id = COALESCE(?, vehicle_id)`, which no index could
+  serve, so each one read the whole positions table. A partial index matching the predicate is built
+  once at start. On a 382,578-position database: battery health 1,408 ms → 53 ms (1,589 → 59 on the
+  image's SQLite 3.46.1), one power curve 30 → 3.6 ms, outputs identical; the index takes 28–43 ms
+  and 0.6 MB there. The wallbox's "has a power curve" check loses a dead `OR`, and
+  `charges_with_power` gets an upper bound an index can use: a home charge with no sample went from
+  17.7 ms to 0.1 ms.
+- **A parking manoeuvre the car files on its own no longer hides its drive**
+  ([#364](https://github.com/ProtossBlaster/leapmotor-mate/pull/364), @arekm). A 0 km, 0 kWh cloud
+  record wholly inside a drive record that has both a distance and an energy is set aside for the
+  energy matching, so the drive's own record matches its trip. A record with kilometres but no
+  energy shelters nothing: a 1 km drive keeps Mate's estimate instead of reading 0.00 kWh/100 km.
+  The switch-off rule drops a check the usual end already makes (2 of 198 replayed closes reach it,
+  same end either way).
+- **Correction to the 4.5.4 notes**: the per-trip cloud history does not go back about a year. On
+  1 October 2026 it started on 1 September 2026.
+
 ## [4.7.8] — 2026-10-01
 
 - **A new installation's poller no longer dies on its first statement.** Started together on an
