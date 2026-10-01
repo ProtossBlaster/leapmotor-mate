@@ -7,6 +7,7 @@ import base64
 from process_lock import exclusive
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -83,6 +84,17 @@ READ_PATHS = {
 CONTROL_PATH = '/app/app-control-service/v3/api/appremotectl'
 VERIFY_PATH = '/carownerservice/oversea/vehicle/v1/operPwd/verify'
 COMMAND_ABILITIES = {cmd:rule[1] for cmd,rule in COMMAND_RULES.items()}
+# Where the old library read a car's status, its model in the path (B10 and B11 read as c10). It still
+# answers Mate's client — measured 01/10/2026 on a B10: 94 signals, each equal to the signal service's —
+# and it is where every T03 was read until 4.7.7 (#368, #338). Only a plain model name opens it.
+OLD_STATUS_PATH = '/carownerservice/oversea/vehicle/v1/status/get/'
+_OLD_STATUS_MODEL = re.compile(r'[a-z0-9]{2,8}')
+log = logging.getLogger('mate.cloud')
+
+
+def _read_allowed(path):
+    return path in READ_PATHS or (path.startswith(OLD_STATUS_PATH)
+                                  and bool(_OLD_STATUS_MODEL.fullmatch(path[len(OLD_STATUS_PATH):])))
 
 
 def connect_db():
@@ -152,9 +164,9 @@ class NewAPIClient(MateClientCompatibility):
                        (datetime.now(timezone.utc).isoformat(),method,path,status,str(code)))
             db.execute('DELETE FROM api_v2_http_log WHERE id < (SELECT MAX(id)-10000 FROM api_v2_http_log)')
 
-    def _wire(self, origin, path, body, *, method='POST', form=False, login=False, binary=False):
+    def _wire(self, origin, path, body, *, method='POST', form=False, login=False, binary=False, cartype='B10'):
         origin = validate_url(origin, ALLOWED_HOSTS, origin=True)
-        if path not in READ_PATHS | {LOGIN_PATH,CONTROL_PATH,VERIFY_PATH,CONTROL_PATH+'/query',APPOINTMENT_PATH}:
+        if not _read_allowed(path) and path not in {LOGIN_PATH,CONTROL_PATH,VERIFY_PATH,CONTROL_PATH+'/query',APPOINTMENT_PATH}:
             raise LeapmotorApiError('Endpoint not migrated; legacy fallback disabled')
         core = dict(source='leapmotor',channel='1',acceptLanguage=self.language,
                     version='V1.16.4-1',deviceType='android',nonce=str(secrets.randbelow(10**15)),
@@ -166,7 +178,7 @@ class NewAPIClient(MateClientCompatibility):
         else:
             sign = sign_authenticated(self._new_key, core, {k:str(v) for k,v in body.items()})
             cert = (Path(self.account_cert_file), Path(self.account_key_file))
-        headers = dict(core,sign=sign,carvin=body.get('vin',body.get('carvin','')),cartype='' if login else 'B10')
+        headers = dict(core,sign=sign,carvin=body.get('vin',body.get('carvin','')),cartype='' if login else cartype)
         headers.update({'Content-Type':'application/x-www-form-urlencoded' if form else 'application/json',
                         'x-region':'EU','x-api-signature-version':'2.0','X-P12_ENC_ALG':'1'})
         if not login:
@@ -430,11 +442,11 @@ class NewAPIClient(MateClientCompatibility):
     def _retry_on_token_expiry(self, func, *args, **kwargs):
         return func(*args,**kwargs)
 
-    def read(self,path,body,*,origin=CENTER_ORIGIN,method='POST',form=False):
-        if path not in READ_PATHS:raise LeapmotorApiError('Read endpoint not migrated')
+    def read(self,path,body,*,origin=CENTER_ORIGIN,method='POST',form=False,cartype='B10'):
+        if not _read_allowed(path):raise LeapmotorApiError('Read endpoint not migrated')
         with self._mutex:
             self.login()
-            return self._wire(origin,path,body,method=method,form=form)[0]
+            return self._wire(origin,path,body,method=method,form=form,cartype=cartype)[0]
 
     def _get_vehicle_list(self):
         self._access_refresh_attempt = time.monotonic()
@@ -447,6 +459,7 @@ class NewAPIClient(MateClientCompatibility):
                 for row in data.get(bucket,[]):
                     if not row.get('vin'):continue
                     vehicles.append(Vehicle.from_dict(row,is_shared=shared))
+                    self.__dict__.setdefault('_listed_car_types',{})[row['vin']]=str(row.get('carType') or '').upper()
                     raw={key:row.get(key) for key in ('vin','carType','rightList','moduleRights','abilities','rudder')}
                     set_setting(db,snapshot_key(row['vin']),json.dumps(dict(
                         account=account_hash(self.username),at=time.time(),shared=shared,vehicle=raw)))
@@ -478,17 +491,67 @@ class NewAPIClient(MateClientCompatibility):
     def _get_vehicle_raw_status(self,vehicle):
         self._refresh_command_access()
         route=self.route(vehicle.vin)
-        telemetry=self.read('/app/app-signal-service/signal/info/query',{'vin':vehicle.vin},origin=route['appRegion'])
-        data=dict(telemetry.get('data') or {})
-        if data.get('vin')!=vehicle.vin or not isinstance(data.get('signalMap'),dict):
-            raise LeapmotorApiError('New API telemetry mismatch')
+        data,cartype=self._live_readings(vehicle,route)
         config=self.read('/carownerservice/v3/api/vehicleinfo/commonConfig',
-            dict(vin=vehicle.vin,osType='Android',appVersion='V1.16.4-1'),origin=route['appCenter'],method='GET')
+            dict(vin=vehicle.vin,osType='Android',appVersion='V1.16.4-1'),origin=route['appCenter'],method='GET',
+            cartype=cartype)
         config_data=config.get('data') or {}
         if config_data.get('vin')!=vehicle.vin:raise LeapmotorApiError('New API configuration mismatch')
-        data['signal']=data['signalMap']
         data['config']=config_data.get('config',{})
         return dict(code=0,result=0,data=data)
+
+    def _live_readings(self,vehicle,route):
+        """The car's live readings, and the `cartype` they were asked with.
+
+        Every request says `cartype: B10`, and the signal service routes on it: asked as a T03, it
+        answers a B10 with 100 "No data found" (measured 01/10/2026, read only). B10, C10 and the B03X
+        (`A10`) read as a B10; three T03s got that 100 at every poll from 4.7.7 on, while the old
+        library had read them at OLD_STATUS_PATH (#368, #338 — on one account a B03X read and a T03 did
+        not, same session, same minute). So a car the B10 header has never read is asked as what the
+        cloud lists it as, then at the old address, and the way that answers is kept for it. A car that
+        has read once keeps its way; a refusal other than "No data found" is raised as it is.
+        → tests/test_a_t03_is_read_as_a_t03.py
+        """
+        vin=vehicle.vin
+        ways=self.__dict__.setdefault('_status_ways',{})
+        if vin in ways:
+            return self._readings_by(ways[vin],vin,route),ways[vin][1]
+        listed=(self.__dict__.get('_listed_car_types',{}).get(vin) or str(getattr(vehicle,'car_type','') or '')).upper()
+        candidates=[('signal','B10')]
+        if listed and listed!='B10':
+            candidates+=[('signal',listed),('old',listed)]
+        first=None
+        for way in candidates:
+            try:
+                data=self._readings_by(way,vin,route)
+            except LeapmotorApiError as error:
+                if 100 not in getattr(error,'api_codes',()):raise
+                first=first or error
+                continue
+            ways[vin]=way
+            if way!=candidates[0]:
+                log.warning('Status of the %s read %s — kept for this car', listed,
+                            'with cartype %s' % way[1] if way[0]=='signal' else 'at the old status address')
+            return data,way[1]
+        raise first
+
+    def _readings_by(self,way,vin,route):
+        kind,cartype=way
+        if kind=='signal':
+            telemetry=self.read('/app/app-signal-service/signal/info/query',{'vin':vin},origin=route['appRegion'],
+                                cartype=cartype)
+            data=dict(telemetry.get('data') or {})
+            if data.get('vin')!=vin or not isinstance(data.get('signalMap'),dict):
+                raise LeapmotorApiError('New API telemetry mismatch')
+            data['signal']=data['signalMap']
+            return data
+        model=cartype.lower()
+        model={'b10':'c10','b11':'c10'}.get(model,model)
+        envelope=self.read(OLD_STATUS_PATH+model,{'vin':vin},form=True,cartype=cartype)
+        data=dict(envelope.get('data') or {})
+        if data.get('vin',vin)!=vin:raise LeapmotorApiError('Old status address mismatch')
+        data['vin']=vin   # a T03 answers in named fields; the poller maps them (client._named_fields_to_signal)
+        return data
 
     def _get_charge_appointment(self,vin):
         route=self.route(vin)
