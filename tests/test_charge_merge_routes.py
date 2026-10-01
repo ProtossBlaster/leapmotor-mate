@@ -70,6 +70,56 @@ def test_the_unmerge_route_splits_them_again(tmp_path, monkeypatch):
     assert _ids() == [2, 1]
 
 
+# Merging/unmerging used to answer with HX-Refresh unconditionally — a full page reload that
+# dropped whatever day/tab was open in Charges. `calendar=1` (only set by a button that is
+# actually inside the calendar view — see charge_card.html's `calendar_context`) asks the route to
+# redraw the month grid + day drawer in place instead, the same way /type and /place already do.
+def test_a_calendar_merge_redraws_the_month_instead_of_reloading(tmp_path, monkeypatch):
+    p = _setup(tmp_path, monkeypatch); _pair(p)
+    from starlette.testclient import TestClient
+    db_reader.set_setting("setup_complete", "1")
+    client = TestClient(main.app)
+
+    r = client.post("/api/charges/merge", params={"a": 2, "b": 1, "calendar": 1})
+
+    assert r.status_code == 200
+    assert "HX-Refresh" not in r.headers
+    assert r.headers.get("HX-Retarget") == "#charges-calendar-month"
+    assert r.headers.get("HX-Reswap") == "outerHTML"
+    assert "12 Aug" in r.text or "Aug" in r.text   # the redrawn month, not an empty fragment
+    assert _ids() == [1]
+
+
+def test_a_calendar_unmerge_redraws_the_month_instead_of_reloading(tmp_path, monkeypatch):
+    p = _setup(tmp_path, monkeypatch); _pair(p)
+    from starlette.testclient import TestClient
+    db_reader.set_setting("setup_complete", "1")
+    client = TestClient(main.app)
+    db_reader.merge_charges(1, 2)
+
+    r = client.post("/api/charges/unmerge", params={"parent": 1, "calendar": 1})
+
+    assert r.status_code == 200
+    assert "HX-Refresh" not in r.headers
+    assert r.headers.get("HX-Retarget") == "#charges-calendar-month"
+    assert _ids() == [2, 1]
+
+
+def test_a_merge_outside_the_calendar_still_falls_back_to_a_reload(tmp_path, monkeypatch):
+    """Search results don't carry a #charges-calendar-month to redraw (charge_card.html sets
+    calendar_context=false there), so charge_card.html never sends `calendar=1` for them — the
+    route keeps the old, always-correct HX-Refresh for that one context."""
+    p = _setup(tmp_path, monkeypatch); _pair(p)
+    from starlette.testclient import TestClient
+    db_reader.set_setting("setup_complete", "1")
+    client = TestClient(main.app)
+
+    r = client.post("/api/charges/merge", params={"a": 2, "b": 1})
+
+    assert r.headers.get("HX-Refresh") == "true"
+    assert _ids() == [1]
+
+
 def test_a_refused_merge_answers_with_a_message_not_a_crash(tmp_path, monkeypatch):
     """Un cancello che scatta deve tornare indietro come una riga rossa nella pagina, non come
     un 500: l'utente ha cliccato una cosa lecita su dati che non lo permettono."""

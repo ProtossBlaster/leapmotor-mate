@@ -10,6 +10,9 @@
 {% set soc_start = c.start_soc or 0 %}
 {% set soc_end   = c.end_soc   or 0 %}
 {% set soc_delta = soc_end - soc_start %}
+{# Set false (before this include) by the one caller where it doesn't hold — search results,
+   which don't sit inside #charges-calendar-month. See the merge/unmerge buttons below. #}
+{% set calendar_context = calendar_context if calendar_context is defined else true %}
 
 <div data-charge-id="{{ c.id }}" id="charge-card-{{ c.id }}" class="charge-card"
      style="background:#060e1a;border:1px solid #111c2e;border-radius:12px;padding:16px">
@@ -207,7 +210,7 @@
   <div class="mt-2 pt-2 flex items-center gap-3" style="border-top:1px solid #111c2e">
     {% if c.can_merge_prev %}
     <button type="button" title="{{ t('charge_merge_help') }}"
-            hx-get="api/charges/merge-preview?a={{ c.id }}&b={{ c.prev_charge_id }}"
+            hx-get="api/charges/merge-preview?a={{ c.id }}&b={{ c.prev_charge_id }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{% endif %}"
             hx-target="#charge-merge-modal-body" hx-swap="innerHTML"
             onclick="document.getElementById('charge-merge-modal').style.display='flex'"
             style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
@@ -217,7 +220,7 @@
     {% if c.is_merged %}
     <span style="font-size:10px" class="text-yellow-400"
           title="{{ c.merged_count }} {{ t('charge_merge_segments') }}">🔗 {{ c.merged_count }}</span>
-    <button type="button" hx-post="api/charges/unmerge?parent={{ c.id }}"
+    <button type="button" hx-post="api/charges/unmerge?parent={{ c.id }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{% endif %}"
             hx-confirm="{{ t('charge_unmerge_confirm') }}" hx-swap="none"
             style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
             onmouseover="this.style.color='#fbbf24'" onmouseout="this.style.color='#64748b'">

@@ -28,6 +28,10 @@
   {% if search_total.has_cost %}<span class="text-green-400 font-semibold">{{ search_total.cost | money }}</span>{% endif %}
 </div>
 {% endif %}
+{# A search result doesn't sit inside #charges-calendar-month — a merge/unmerge triggered from
+   here can't redraw it in place the way the calendar day-drawer does, so charge_card.html falls
+   back to a full reload for exactly this one context. #}
+{% set calendar_context = false %}
 {% if charges %}
 <div class="space-y-3">
   {% for c in charges %}

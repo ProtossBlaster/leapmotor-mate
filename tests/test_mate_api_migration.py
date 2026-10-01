@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -64,8 +65,28 @@ class ProductMigrationTests(unittest.TestCase):
         for name,digest in manifest['sha256'].items():
             self.assertEqual(hashlib.sha256((root/name).read_bytes()).hexdigest(),digest,name)
 
+    def test_taking_the_lock_never_writes_to_the_lock_file(self):
+        """Acquisition must leave the lock file empty, because on Windows writing
+        to it is how two processes kill each other.
+
+        msvcrt.locking is mandatory: it gives the holder exclusive access to byte 0
+        of the lock file. A peer that seeds that byte on its way in — the file is
+        empty until someone writes it — has its write refused with
+        ERROR_LOCK_VIOLATION, reported by the CRT as PermissionError [Errno 13],
+        outside the retry loop that handles contention. The empty file is the
+        invariant that keeps the retry the only way the two can meet.
+        """
+        from process_lock import exclusive
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'lock'
+            with exclusive(path):
+                pass
+            self.assertEqual(path.read_bytes(), b'')  # created, never written
+            with exclusive(path):
+                pass
+            self.assertEqual(path.read_bytes(), b'')  # reused, still never written
+
     def test_two_processes_share_one_complete_backup(self):
-        import subprocess
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             db = root / 'custom.db'
@@ -77,11 +98,18 @@ class ProductMigrationTests(unittest.TestCase):
             code = 'import sys; from migration_state import backup_before_migration; backup_before_migration(sys.argv[1])'
             workers = [subprocess.Popen([sys.executable, '-c', code, str(db)], env=env,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE) for _ in range(2)]
-            results = [worker.communicate(timeout=20) for worker in workers]
-            for worker, (out, err) in zip(workers, results):
-                self.assertEqual(worker.returncode, 0, err.decode())
-            self.assertEqual(len(list(root.rglob('complete.json'))), 1)
-            self.assertFalse(list(root.rglob('.pending-*')))
+            try:
+                results = [worker.communicate(timeout=20) for worker in workers]
+                for worker, (out, err) in zip(workers, results):
+                    self.assertEqual(worker.returncode, 0, err.decode())
+                self.assertEqual(len(list(root.rglob('complete.json'))), 1)
+                self.assertFalse(list(root.rglob('.pending-*')))
+            finally:
+                # A worker still alive here holds the temporary directory open, and on
+                # Windows that alone makes its cleanup fail with PermissionError.
+                for worker in workers:
+                    if worker.poll() is None:
+                        worker.kill(); worker.wait(timeout=5)
 
     def test_reuse_refuses_backup_with_missing_database(self):
         from migration_state import backup_before_migration

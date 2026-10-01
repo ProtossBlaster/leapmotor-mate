@@ -16,8 +16,14 @@ def exclusive(path):
     with os.fdopen(fd, 'r+b') as lock:
         if os.name == 'nt':
             import msvcrt
-            if os.fstat(lock.fileno()).st_size == 0:
-                lock.write(b'0'); lock.flush()
+            # The lock file stays empty on purpose, and acquisition never writes to
+            # it. Windows byte-range locks are mandatory and valid past end of file,
+            # so locking byte 0 of an empty file works and gives the holder exclusive
+            # access to it. Seeding that byte before the lock attempt below therefore
+            # races: once a peer holds byte 0, the write fails with
+            # ERROR_LOCK_VIOLATION, which the CRT reports as PermissionError
+            # [Errno 13] — fatal, because it happens outside the retry loop.
+            # → test_taking_the_lock_never_writes_to_the_lock_file
             deadline = time.monotonic() + 120
             while True:
                 try:

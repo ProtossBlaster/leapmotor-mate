@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.5 · **Idioma:** Español
+> **Versión de Mate:** v4.7.6 · **Idioma:** Español
 
-## Novedades de la versión 4.7.5
+## Novedades de la versión 4.7.6
+
+**Un viaje termina ahora cuando apagas el coche.** Mate da un viaje por terminado cuando el coche ha
+estado en P alrededor de un minuto, y escribía ese minuto *entero* dentro del viaje. El final — hora,
+nivel de carga, cuentakilómetros, posición y combustible — viene ahora de la primera lectura de esa
+parada que muestra el coche **apagado**. Sobre cuatro meses de historial de un propietario, esto movió
+el final de 183 viajes, de 7 a 54 segundos (42 de media). Se ve en los viajes cortos: un salto de 1 km
+que marcaba 2,9 minutos a 21 km/h ahora marca 2,2 minutos a 27 km/h. Kilómetros, kWh y consumo no
+cambian.
+
+Si bajas a abrir una verja y vuelves a subir para meterte marcha atrás en el sitio, sigue siendo un
+solo viaje. Un coche que se queda encendido en P, o que no dice si está encendido, conserva el final
+que Mate escribía antes.
+⚠️ **Los viajes ya registrados no cambian** — se aplica a partir de esta versión.
+
+ℹ️ En un viaje de uno o dos kilómetros la nube da a veces su energía como 0,0 kWh, y Mate prefiere la
+cifra del coche a su propia estimación. Algunos viajes muy cortos pueden por tanto marcar
+`0,00 kWh/100 km` donde antes mostraban una estimación de unas centésimas.
+
+**La página Cargas se abre al instante.** Abrir las Cargas, o un día de su calendario, leía todo el
+registro de posiciones por cada carga de la página. En una base de datos con 381.076 filas de posición
+pasó de **880 ms a 1 ms**, con las mismas cifras en pantalla.
+
+**A una carga que has unido se le puede asignar su lugar directamente.** Antes había que separarla,
+asignar el lugar y volver a unirla; ahora el lugar vale para todo el grupo. Unir y separar tampoco
+recargan la página entera ni pierden el día que estabas viendo.
+
+### Novedades de la versión 4.7.5
 
 Dos cambios, ambos encontrados en un mismo paquete de diagnóstico enviado por un usuario.
 

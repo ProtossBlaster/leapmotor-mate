@@ -13,10 +13,11 @@ current position. GPS accuracy itself is not provided by every vehicle; owners
 must choose suitably separated zones and may correct the assignment.
 
 A charge saves its own place name and rate. Editing/disabling the place never
-rewrites these snapshots. A closed, unmerged charge offers a place picker, including
-removal of the place tariff. User-entered totals and free charges remain authoritative.
-Different place/rate snapshots cannot be merged. For a merged session, unmerge before
-changing its place. Spending by place appears on Costs for the selected vehicle.
+rewrites these snapshots. A closed charge offers a place picker, including removal of
+the place tariff; on a merged group, assigning (or clearing) a place applies to every
+piece of the group, the same way retyping it already does. User-entered totals and
+free charges remain authoritative. Different place/rate snapshots cannot be merged.
+Spending by place appears on Costs for the selected vehicle.
 
 This first version supports fixed private-place tariffs. It does not infer public
 roaming/subscription prices or change global time-of-use/solar/dynamic profiles.

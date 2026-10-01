@@ -1,8 +1,36 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.5 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.6 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.5
+## Neu in Version 4.7.6
+
+**Eine Fahrt endet jetzt, wenn Sie das Auto ausschalten.** Mate erklärt eine Fahrt für beendet, wenn
+das Auto etwa eine Minute in P gestanden hat — und schrieb diese *ganze* Minute bisher in die Fahrt.
+Das Ende — Zeit, Ladestand, Kilometerstand, Position und Kraftstoff — kommt nun aus der ersten Messung
+dieses Halts, die das Auto als **ausgeschaltet** zeigt. Über vier Monate Verlauf eines Besitzers hat
+das das Ende von 183 Fahrten verschoben, um 7 bis 54 Sekunden (im Schnitt 42). Zu sehen ist es bei
+kurzen Fahrten: ein 1-km-Stück, das 2,9 Minuten bei 21 km/h anzeigte, zeigt jetzt 2,2 Minuten bei
+27 km/h. Kilometer, kWh und Verbrauch bleiben unverändert.
+
+Wenn Sie aussteigen, um ein Tor zu öffnen, und wieder einsteigen, um in die Lücke zurückzusetzen,
+bleibt es eine Fahrt. Ein Auto, das in P eingeschaltet bleibt, oder eines, das nicht meldet, ob es an
+ist, behält das Ende, das Mate vorher geschrieben hat.
+⚠️ **Bereits aufgezeichnete Fahrten ändern sich nicht** — es gilt ab dieser Version.
+
+ℹ️ Bei einer Fahrt von einem oder zwei Kilometern gibt die Cloud ihre Energie manchmal als 0,0 kWh an,
+und Mate bevorzugt den Wert des Autos gegenüber der eigenen Schätzung. Einige sehr kurze Fahrten können
+daher `0,00 kWh/100 km` anzeigen, wo vorher eine Schätzung von wenigen Hundertsteln stand.
+
+**Die Seite „Ladevorgänge" öffnet sofort.** Das Öffnen der Ladevorgänge oder eines Tages im Kalender
+las bisher das gesamte Positionsprotokoll für jeden Ladevorgang der Seite. Auf einer Datenbank mit
+381.076 Positionszeilen ging es von **880 ms auf 1 ms**, bei gleichen Zahlen auf dem Bildschirm.
+
+**Einem zusammengeführten Ladevorgang können Sie den Ort direkt zuweisen.** Vorher musste man ihn
+trennen, den Ort zuweisen und wieder zusammenführen; jetzt gilt der Ort für die ganze Gruppe.
+Zusammenführen und Trennen laden außerdem nicht mehr die ganze Seite neu und verlieren den
+betrachteten Tag nicht.
+
+### Neu in Version 4.7.5
 
 Zwei Änderungen, beide in einem einzigen Diagnosepaket eines Nutzers gefunden.
 

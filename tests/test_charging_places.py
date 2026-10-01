@@ -105,15 +105,43 @@ def test_zero_rate_free_flag_and_measured_energy(store):
     W.update_charge_type(cid,'HOME',_free=1);assert row(store,cid)['cost']==0
 
 
-def test_manual_assignment_rejects_other_car_and_open_or_merged_charge(store):
+def test_manual_assignment_rejects_other_car_and_open_charge(store):
     pid=place(store,vehicle=2)
     cid=closed(store)
     with pytest.raises(ValueError):W.assign_charging_place(cid,pid)
     pid=place(store)
     active=store.create_charge(1,frame())
     with pytest.raises(ValueError):W.assign_charging_place(active,pid)
-    store._conn.execute('UPDATE charges SET merged_into_id=? WHERE id=?',(active,cid));store._conn.commit()
-    with pytest.raises(ValueError):W.assign_charging_place(cid,pid)
+
+
+# A merged charge used to refuse a place outright ('unmerge first') — cascading the snapshot to
+# every piece, the same way a type re-tag already does, is no riskier and spares the round trip.
+def test_assigning_a_place_to_a_merged_group_applies_to_every_piece(store):
+    pid=place(store,name='Office')
+    store._conn.execute("UPDATE charging_places SET charge_type='AC' WHERE id=?",(pid,));store._conn.commit()
+    a=closed(store);b=closed(store)
+    store._conn.execute('UPDATE charges SET merged_into_id=? WHERE id=?',(a,b));store._conn.commit()
+    W.assign_charging_place(a,pid)
+    assert row(store,a)['charging_place_name']==row(store,b)['charging_place_name']=='Office'
+    assert row(store,a)['location_type']==row(store,b)['location_type']=='AC'
+
+
+def test_assigning_from_the_child_id_cascades_to_the_parent_too(store):
+    pid=place(store)
+    a=closed(store);b=closed(store)
+    store._conn.execute('UPDATE charges SET merged_into_id=? WHERE id=?',(a,b));store._conn.commit()
+    W.assign_charging_place(b,pid)          # b is the CHILD
+    assert row(store,a)['charging_place_id']==row(store,b)['charging_place_id']==pid
+
+
+def test_clearing_a_place_on_a_merged_group_clears_every_piece(store):
+    pid=place(store)
+    a=closed(store);b=closed(store)
+    store._conn.execute('UPDATE charges SET merged_into_id=? WHERE id=?',(a,b));store._conn.commit()
+    W.assign_charging_place(a,pid)
+    W.assign_charging_place(a,0)
+    assert row(store,a)['charging_place_id'] is None
+    assert row(store,b)['charging_place_id'] is None
 
 
 def test_schema_is_repeatable_and_does_not_classify_history(store):

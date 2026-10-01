@@ -3,6 +3,43 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.6] — 2026-10-01
+
+- **A trip ends on the reading that shows the car switched off.** Mate closes a drive once Park has
+  held for about a minute — six consecutive readings at the ten-second driving cadence — and it wrote
+  the **sixth** of those readings as the trip's end, although the switch-off was already on disk four
+  readings earlier on average. It still waits the same minute and *when* it closes a trip has not
+  changed; what changed is which of the six readings the trip is stamped with. The end takes that
+  reading's time, charge level, odometer, position and fuel, and the route points written after it are
+  left out. Replayed over a second B10's history (603 closed trips, 381,295 position rows): the end
+  moves on **183 of the 197** trips that can be replayed, 7–54 s earlier (median 42 s); of the 85 that
+  have a cloud record of their own, **85 land closer** to the end of the car's own record, median gap
+  49 s → **9 s**; duration was inflated by a median 6.8% and up to 25.6%, the average speed understated
+  by the same proportion. Kilometres, kWh and consumption do not change; one distance moves by 10 m, no
+  trip is dropped, 0.7 ms per close. Only a measured switch-off counts — the first READY=0 after the
+  trip's **last** READY=1, inside the final run of Park readings — so stepping out and getting back in
+  to reverse into a space leaves the trip alone (239 such trips in that history, all unchanged).
+  Contributed by @arekm (#364).
+- **The Charges page opens at once.** Opening Charges, or a day in its calendar, ran a correlated
+  subquery over the whole position log for every charge on the page, including charges the page had
+  already filtered out. Measured on 381,076 position rows with byte-identical output:
+  `get_charges_calendar_month` **880 ms → 1 ms**, `get_charges_calendar_day` **878 ms → 1 ms**.
+  Contributed by @hubcasale (#363).
+- **A merged charge can change its place directly.** Giving a place to a charge that had been merged
+  was refused outright — it had to be separated, assigned and merged again. The place now cascades to
+  the group, and merging or unmerging no longer reloads the whole page or loses the day on screen.
+  Contributed by @hubcasale (#363).
+- **A Windows lock no longer refuses the byte it is about to lock.** `exclusive()` seeded a byte into
+  the lock file before acquiring the lock. On Windows `msvcrt.locking` is mandatory, so once a peer held
+  byte 0 that write was refused with `ERROR_LOCK_VIOLATION` — reported as `PermissionError [Errno 13]`
+  and raised outside the retry loop that handles contention. The byte was never needed. Only the
+  Windows path of the migration lock was affected.
+
+⚠️ Trips already closed do not change: the new end applies to drives recorded from this version on.
+ℹ️ On a one- or two-kilometre drive the cloud sometimes reports its energy as 0.0 kWh, and Mate prefers
+the car's own figure over its own estimate, so a few very short trips can now read `0.00 kWh/100 km`
+where they previously showed an estimate of a few hundredths.
+
 ## [4.7.5] — 2026-09-30
 
 - **The car the cloud calls A10 is the B03X, and it now has its battery.** The Leapmotor cloud reports
