@@ -33,10 +33,10 @@ If you use the research diary or send encrypted packs, stay where you are.
    `leapmotor_mate.db` (or `.db.gz`). Keep it somewhere safe.
 2. **Install the official build.** The ordinary add-on from the repository, or the ordinary Docker
    image. Give it **its own data folder**: do not point it at the beta's.
-3. **Run the setup wizard on it** — the certificate, then your Leapmotor account, password and
-   operation PIN. Finish it, and check the car appears.
-4. **Restore** — *Settings → Backup / Restore* → upload the file from step 1. Mate restarts by
-   itself and reopens the restored database.
+3. **Run the setup wizard on it** — your Leapmotor account, password and operation PIN (from 4.7.7
+   the app certificate ships with Mate and is not asked for). Finish it, and check the car appears.
+4. **Restore** — *Settings → Export / Backup → Restore database* → upload the file from step 1.
+   Mate restarts by itself and reopens the restored database.
 5. **Check it landed**: the number of trips, the charges, your prices and your places should be the
    ones you had in the beta.
 6. **Stop the beta install** once you are satisfied. Leave both polling the same car and you have
@@ -132,10 +132,11 @@ Se usi il diario di ricerca o mandi pacchetti cifrati, resta dove sei.
    Ottieni un `leapmotor_mate.db` (o `.db.gz`). Tienilo al sicuro.
 2. **Installa la build ufficiale.** L'add-on normale dal repository, oppure l'immagine Docker
    normale. Dagli **una cartella dati sua**: non puntarla su quella della beta.
-3. **Fai la procedura guidata** — il certificato, poi account Leapmotor, password e PIN operativo.
-   Finiscila e controlla che l'auto compaia.
-4. **Ripristina** — *Impostazioni → Backup / Ripristino* → carica il file del passo 1. Mate si riavvia
-   da solo e riapre il database ripristinato.
+3. **Fai la procedura guidata** — account Leapmotor, password e PIN operativo (dalla 4.7.7 il
+   certificato dell'app è incluso in Mate e non viene chiesto). Finiscila e controlla che l'auto
+   compaia.
+4. **Ripristina** — *Impostazioni → Esporta / Backup → Ripristina database* → carica il file del
+   passo 1. Mate si riavvia da solo e riapre il database ripristinato.
 5. **Controlla che sia arrivato**: numero di viaggi, ricariche, i tuoi prezzi e i tuoi luoghi devono
    essere quelli che avevi nella beta.
 6. **Ferma l'installazione beta** quando sei soddisfatto. Se le lasci tutte e due a interrogare la
