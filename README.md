@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.7.10:** a C10 range extender keeps its charge current. Since 4.0.0 Mate dropped the pack current and the power of a C10 range extender on an AC charge, so Home Assistant read *Charge Current* and *Charge Power* as unknown and every charge's peak as 0.0 kW; the car's sensor measures, and both are back ([beta #13](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/13)). [Release notes](docs/releases/v4.7.10.md)
-See [release notes and upgrade impact](docs/releases/v4.7.10.md).
+**v4.7.11:** a T03 is read again. Since 4.7.7 a T03 got "No data found" from the cloud at every poll and recorded nothing ([#368](https://github.com/ProtossBlaster/leapmotor-mate/issues/368), [#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)); Mate now asks for it as a T03, and at the address the earlier library used. And **Charging data**: the chart under a charge, in bands — the power with the car's own countdown, the charge level, the battery's and the outside temperature ([#367](https://github.com/ProtossBlaster/leapmotor-mate/pull/367), @arekm). [Release notes](docs/releases/v4.7.11.md)
+See [release notes and upgrade impact](docs/releases/v4.7.11.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -357,8 +357,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.7.10:** una C10 con range extender tiene la sua corrente di ricarica. Dalla 4.0.0 Mate scartava la corrente del pacco e la potenza di una C10 con range extender in ricarica AC, quindi Home Assistant leggeva *Charge Current* e *Charge Power* come «sconosciuto» e la potenza massima di ogni ricarica era 0,0 kW; il sensore dell'auto misura, e tornano tutte e due ([beta #13](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/13)). [Note di rilascio](docs/releases/v4.7.10.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.10.md#italiano).
+**v4.7.11:** una T03 viene letta di nuovo. Dalla 4.7.7 una T03 riceveva dal cloud «No data found» a ogni lettura e non registrava niente ([#368](https://github.com/ProtossBlaster/leapmotor-mate/issues/368), [#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)); adesso Mate la chiede come T03, e all'indirizzo usato dalla libreria di prima. E **Dati della ricarica**: il grafico sotto una ricarica, a fasce — la potenza con i minuti stimati dall'auto, la percentuale, la temperatura della batteria ed esterna ([#367](https://github.com/ProtossBlaster/leapmotor-mate/pull/367), @arekm). [Note di rilascio](docs/releases/v4.7.11.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.11.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

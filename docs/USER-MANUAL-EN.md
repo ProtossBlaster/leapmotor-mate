@@ -1,8 +1,19 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.10 · **Language:** English
+> **Mate version:** v4.7.11 · **Language:** English
 
-## New in 4.7.10
+## New in 4.7.11
+
+**A T03 is read again.** Since 4.7.7 a T03 got "No data found" from the cloud at every poll, and Mate
+recorded nothing. Mate now asks for a car it has never read as the model the cloud lists it as, and
+at the address the earlier library used; the way that answers is kept for that car. Cars that were
+read before are read exactly as before.
+
+**Charging data.** Under each charge, *📈 Charging data* opens a chart in bands like a trip's: the
+power with the minutes the car said were left, the charge level, and the temperatures — the coldest
+cell's and, if switched on, the outside air's.
+
+### New in 4.7.10
 
 **A C10 with range extender shows its charge current and power again.** Since 4.0.0, during an AC
 charge of a C10 range extender, Mate discarded the pack current and the power computed from it:

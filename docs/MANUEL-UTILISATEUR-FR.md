@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.10 · **Langue :** Français
+> **Version de Mate :** v4.7.11 · **Langue :** Français
 
-## Nouveautés de la version 4.7.10
+## Nouveautés de la version 4.7.11
+
+**Une T03 est de nouveau lue.** Depuis la 4.7.7, une T03 recevait du cloud « No data found » à chaque
+relevé, et Mate n'enregistrait rien. Mate demande maintenant une voiture qu'il n'a jamais lue sous le
+modèle avec lequel le cloud la liste, puis à l'adresse qu'utilisait l'ancienne bibliothèque ; la voie
+qui répond est gardée pour cette voiture. Les voitures déjà lues le sont exactement comme avant.
+
+**Données de la recharge.** Sous chaque recharge, *📈 Données de la recharge* ouvre un graphique en
+bandes comme celui d'un trajet : la puissance avec les minutes qu'il restait selon la voiture, le
+niveau de charge et les températures — celle de la cellule la plus froide et, si elle est activée,
+celle de l'air extérieur.
+
+### Nouveautés de la version 4.7.10
 
 **Une C10 à prolongateur d'autonomie affiche de nouveau son courant et sa puissance de recharge.**
 Depuis la 4.0.0, pendant une recharge AC d'une C10 à prolongateur d'autonomie, Mate écartait le

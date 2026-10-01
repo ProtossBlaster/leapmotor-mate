@@ -1,8 +1,20 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.10 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.11 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.10
+## Neu in Version 4.7.11
+
+**Ein T03 wird wieder gelesen.** Seit 4.7.7 bekam ein T03 bei jeder Abfrage von der Cloud „No data
+found", und Mate zeichnete nichts auf. Mate fragt ein Auto, das es noch nie gelesen hat, jetzt unter
+dem Modell an, unter dem die Cloud es führt, und danach an der Adresse, die die frühere Bibliothek
+nutzte; der Weg, der antwortet, bleibt für dieses Auto. Autos, die schon gelesen wurden, werden genau
+wie bisher gelesen.
+
+**Ladedaten.** Unter jeder Ladung öffnet *📈 Ladedaten* ein Diagramm in Bändern wie bei einer Fahrt:
+die Leistung mit den Minuten, die das Auto noch veranschlagte, der Ladestand und die Temperaturen —
+die der kältesten Zelle und, wenn eingeschaltet, die der Außenluft.
+
+### Neu in Version 4.7.10
 
 **Ein C10 mit Range Extender zeigt wieder Ladestrom und Ladeleistung.** Seit 4.0.0 hat Mate beim
 AC-Laden eines C10 mit Range Extender den Batteriestrom und die daraus berechnete Leistung verworfen:

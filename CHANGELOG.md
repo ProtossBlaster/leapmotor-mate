@@ -3,6 +3,21 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.11] — 2026-10-01
+
+- **A T03 is read again** ([#368](https://github.com/ProtossBlaster/leapmotor-mate/issues/368), [#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)). Since 4.7.7 every installation runs
+  Mate's own cloud client, and the T03s the previous library had kept reading got "No data found" at
+  every poll, so Mate recorded nothing: the client tells the cloud in every request that the car is a
+  B10, and the signal service answers a car asked as the wrong model with "No data found" (measured
+  on a B10, read only). A car never read as a B10 is now asked as the model the cloud lists it as,
+  then at the address the previous library used; the way that answers is kept for that car, and cars
+  that are read today are read as before. Tested against the real cloud on a B10, not on a T03.
+- **A charge's chart is Charging data, in bands like a trip's** ([#367](https://github.com/ProtossBlaster/leapmotor-mate/pull/367), @arekm): the power
+  with the car's own countdown, the charge level, and the battery's and the outside temperature, on
+  one time axis with one hover box; the AC-vs-DC comparison on the Wallbox page is the same chart.
+  Without the car's range, which climbs with the charge level through a charge (r >= 0.998 on 29
+  charges of a B10). The trip chart shares its drawing code, identical to the pixel on our data.
+
 ## [4.7.10] — 2026-10-01
 
 - **A C10 range extender on an AC charge keeps the charge current it measures, and the power

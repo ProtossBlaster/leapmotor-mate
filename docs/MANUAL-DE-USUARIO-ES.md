@@ -1,8 +1,19 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.10 · **Idioma:** Español
+> **Versión de Mate:** v4.7.11 · **Idioma:** Español
 
-## Novedades de la versión 4.7.10
+## Novedades de la versión 4.7.11
+
+**Un T03 vuelve a leerse.** Desde la 4.7.7, un T03 recibía de la nube «No data found» en cada
+consulta, y Mate no registraba nada. Ahora Mate pide un coche que nunca ha leído con el modelo con el
+que la nube lo lista, y después en la dirección que usaba la biblioteca anterior; el camino que
+responde se guarda para ese coche. Los coches que ya se leían se leen exactamente como antes.
+
+**Datos de la carga.** Bajo cada carga, *📈 Datos de la carga* abre un gráfico en bandas como el de un
+viaje: la potencia con los minutos que según el coche faltaban, el nivel de carga y las temperaturas —
+la de la celda más fría y, si está activada, la del aire exterior.
+
+### Novedades de la versión 4.7.10
 
 **Un C10 con extensor de autonomía vuelve a mostrar la corriente y la potencia de carga.** Desde la
 4.0.0, durante una carga AC de un C10 con extensor de autonomía, Mate descartaba la corriente de la

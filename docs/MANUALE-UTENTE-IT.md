@@ -1,8 +1,19 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.10 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.11 · **Lingua:** Italiano
 
-## Novità della 4.7.10
+## Novità della 4.7.11
+
+**Una T03 viene letta di nuovo.** Dalla 4.7.7 una T03 riceveva dal cloud «No data found» a ogni
+lettura, e Mate non registrava niente. Adesso Mate chiede un'auto che non ha mai letto come il modello
+con cui la elenca il cloud, e all'indirizzo usato dalla libreria di prima; la strada che risponde viene
+tenuta per quell'auto. Le auto che venivano già lette lo sono esattamente come prima.
+
+**Dati della ricarica.** Sotto ogni ricarica, *📈 Dati della ricarica* apre un grafico a fasce come
+quello di un viaggio: la potenza con i minuti che secondo l'auto mancavano, la percentuale di carica e
+le temperature — della cella più fredda e, se attiva, dell'aria esterna.
+
+### Novità della 4.7.10
 
 **Una C10 con range extender mostra di nuovo corrente e potenza di ricarica.** Dalla 4.0.0, durante
 una ricarica AC di una C10 con range extender, Mate scartava la corrente del pacco e la potenza
