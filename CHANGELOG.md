@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.8] — 2026-10-01
+
+- **A new installation's poller no longer dies on its first statement.** Started together on an
+  empty data directory, the web creates the schema at import in a write transaction, and the
+  poller's `PRAGMA journal_mode=WAL` was refused at once — SQLite does not wait on a journal-mode
+  switch while another connection writes — so the poller exited with `database is locked`. Seen in
+  the Desktop 1.2.0 build's frozen-app check on macOS. The race predates 4.7.7, which made it likelier:
+  both processes now provision the application material behind one lock and leave it together. The
+  poller now asks again for up to 15 s and still reports a lock that never goes away. Only a new
+  installation meets it; an existing database is already in WAL.
+
 ## [4.7.7] — 2026-10-01
 
 - **A new installation is never asked for a certificate.** The setup wizard still sent every new user

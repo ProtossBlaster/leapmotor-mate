@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.7 · **Langue :** Français
+> **Version de Mate :** v4.7.8 · **Langue :** Français
 
-## Nouveautés de la version 4.7.7
+## Nouveautés de la version 4.7.8
+
+**Une nouvelle installation démarre proprement.** Au premier démarrage, avec un dossier de données
+vide, les deux processus de Mate pouvaient ouvrir la nouvelle base au même instant et celui qui
+enregistre s'arrêtait sur « database is locked ». Il attend désormais les quelques millisecondes dont
+l'autre a besoin. Les installations existantes ne l'ont jamais rencontré.
+
+### Nouveautés de la version 4.7.7
 
 **Rien à télécharger pour configurer Mate.** Le certificat de l'application Leapmotor dont Mate a
 besoin pour se connecter — identique pour tout le monde, il identifie l'application et non vous — est

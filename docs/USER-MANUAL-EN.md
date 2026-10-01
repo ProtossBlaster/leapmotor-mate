@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.7 · **Language:** English
+> **Mate version:** v4.7.8 · **Language:** English
 
-## New in 4.7.7
+## New in 4.7.8
+
+**A new installation starts cleanly.** On a first start, with an empty data folder, Mate's two
+processes could open the new database at the same instant and the recording one stopped with
+"database is locked". It now waits the few milliseconds the other needs. Existing installations never
+met this.
+
+### New in 4.7.7
 
 **Nothing to download to set Mate up.** The Leapmotor app certificate Mate needs to log in — the
 same for everyone, it identifies the app, not you — now comes with Mate and is installed by itself on

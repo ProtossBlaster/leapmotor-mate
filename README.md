@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.7.7:** nothing to download, and one cloud client. **A new installation is never asked for a certificate**: the Leapmotor app certificate Mate needs to log in — the same for everyone, it identifies the app, not you — now ships with Mate and is installed by itself on first start, so the setup wizard goes straight to your account. An installation that already has it keeps it. **Everything runs on Mate's own cloud client**: the third-party library an installation could still be put back on, and the fallback to it, are gone — the `Cloud client` line of the diagnostic bundle reads `independent (mate-api)` for everyone. And two corrections: **a C10 no longer reads 0 km beside a full battery** — the frame it sends as it goes to sleep carries a range of 0, and the Overview now keeps the last range the car reported ([#365](https://github.com/ProtossBlaster/leapmotor-mate/issues/365)) — and **the cost card counts a merged charge once**, as the Charges page shows it ([#366](https://github.com/ProtossBlaster/leapmotor-mate/issues/366)). [Release notes](docs/releases/v4.7.7.md)
-See [release notes and upgrade impact](docs/releases/v4.7.7.md).
+**v4.7.8:** a new installation starts cleanly — on a first start the two processes could open the new database at the same instant and the recording one stopped with "database is locked"; it now waits the few milliseconds the other needs. [Release notes](docs/releases/v4.7.8.md)
+See [release notes and upgrade impact](docs/releases/v4.7.8.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -357,8 +357,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.7.7:** niente da scaricare, e un solo client del cloud. **Un'installazione nuova non chiede più nessun certificato**: il certificato dell'app Leapmotor che serve a Mate per il login — uguale per tutti, identifica l'app e non te — adesso è incluso in Mate e si installa da solo al primo avvio, quindi la procedura guidata va dritta al tuo account. Un'installazione che lo ha già lo tiene. **Tutto gira sul client del cloud di Mate**: la libreria di terze parti su cui un'installazione poteva ancora essere rimessa, e il ripiego su di essa, non ci sono più — la riga `Cloud client` del pacchetto di diagnostica dice `independent (mate-api)` per tutti. E due correzioni: **una C10 non legge più 0 km accanto alla batteria piena** — il frame con cui va a dormire porta un'autonomia di 0, e la Panoramica adesso tiene l'ultima autonomia riportata dall'auto ([#365](https://github.com/ProtossBlaster/leapmotor-mate/issues/365)) — e **il riquadro dei costi conta una volta sola una ricarica unita**, come la mostra la pagina Ricariche ([#366](https://github.com/ProtossBlaster/leapmotor-mate/issues/366)). [Note di rilascio](docs/releases/v4.7.7.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.7.md#italiano).
+**v4.7.8:** un'installazione nuova parte pulita — al primo avvio i due processi potevano aprire il database nuovo nello stesso istante e quello che registra si fermava con «database is locked»; adesso aspetta i pochi millisecondi che servono all'altro. [Note di rilascio](docs/releases/v4.7.8.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.8.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

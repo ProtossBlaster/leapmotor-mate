@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.7 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.8 · **Lingua:** Italiano
 
-## Novità della 4.7.7
+## Novità della 4.7.8
+
+**Un'installazione nuova parte pulita.** Al primo avvio, con la cartella dei dati vuota, i due
+processi di Mate potevano aprire il database nuovo nello stesso istante e quello che registra si
+fermava con «database is locked». Adesso aspetta i pochi millisecondi che servono all'altro. Le
+installazioni esistenti non l'hanno mai incontrato.
+
+### Novità della 4.7.7
 
 **Niente da scaricare per configurare Mate.** Il certificato dell'app Leapmotor che serve a Mate per
 il login — uguale per tutti, identifica l'app e non te — adesso è incluso in Mate e si installa da
