@@ -8229,7 +8229,12 @@ def flag_short_cloud_total(eb: dict, tot: dict, dist_km: float) -> dict:
 
 
 def get_charge_power_curve(charge_id: int) -> dict:
-    """Per-sample charging power for one session, for the expandable power chart.
+    """Per-sample readings of one session, for the chart under the charge: the charging power and
+    the SoC, and beside them what the car said at each poll — the coldest cell's temperature, its
+    range estimate, the minutes it thought were left — and the outside temperature of its spot from
+    the weather, where that is switched on. A reading the poll did not carry is None, a hole in the
+    line, never a 0; the car's countdown is stored only while it runs, so its line ends where the
+    car stopped counting.
     Power = |pack_voltage(1177) x pack_current(1178)| / 1000 — the same value as the
     HA `sensor.leapmotor_charging_power`. NOT rounded to 1 decimal (that flattens the
     curve); kept at 3 decimals so the real variation shows. Samples come from the
@@ -8238,7 +8243,10 @@ def get_charge_power_curve(charge_id: int) -> dict:
     ch = db.execute("SELECT started_at, ended_at FROM charges WHERE id = ? AND vehicle_id = COALESCE(?, vehicle_id)",
                     (charge_id, _current_vehicle_id())).fetchone()
     if not ch:
-        return {"labels": [], "power": [], "soc": []}
+        return {"power": [], "soc": [], "times": [], "battery_temp": [], "outside_temp": [],
+                "range_km": [], "remaining_min": []}
+    cols = ("recorded_at, charge_voltage_v, charge_current_a, soc, battery_min_temp, outside_temp, "
+            "range_km, remaining_charge_min")
     start, end, pieces = _charge_group_span(db, charge_id, ch["started_at"], ch["ended_at"])
     if end:
         # Cap the upper bound at the next charge's start so an orphan/overlapping charge
@@ -8249,7 +8257,7 @@ def get_charge_power_curve(charge_id: int) -> dict:
         # charge the next charge starts after ended_at → no cap, identical behaviour.
         lo, hi, excl = _power_window_bounds(db, start, end, pieces)
         rows = db.execute(
-            "SELECT recorded_at, charge_voltage_v, charge_current_a, soc FROM positions "
+            f"SELECT {cols} FROM positions "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? AND recorded_at "
             + ("<" if excl else "<=")
             + " ? ORDER BY recorded_at",
@@ -8257,19 +8265,22 @@ def get_charge_power_curve(charge_id: int) -> dict:
         ).fetchall()
     else:  # charge still in progress — open upper bound
         rows = db.execute(
-            "SELECT recorded_at, charge_voltage_v, charge_current_a, soc FROM positions "
+            f"SELECT {cols} FROM positions "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? ORDER BY recorded_at",
             (_current_vehicle_id(), start),
         ).fetchall()
-    labels, power, soc, times = [], [], [], []
+    power, soc, times = [], [], []
     for r in rows:
         v = r["charge_voltage_v"] or 0
         a = r["charge_current_a"] or 0
-        labels.append((_local_iso(r["recorded_at"]) or "")[11:16])  # HH:MM local
         power.append(round(abs(v * a) / 1000.0, 3))
         soc.append(r["soc"])
-        times.append(r["recorded_at"])  # raw UTC ISO — used to align external (wallbox) history
-    return {"labels": labels, "power": power, "soc": soc, "times": times}
+        times.append(r["recorded_at"])  # raw UTC ISO — the chart's clock, and the wallbox history's alignment
+    return {"power": power, "soc": soc, "times": times,
+            "battery_temp": [r["battery_min_temp"] for r in rows],
+            "outside_temp": [r["outside_temp"] for r in rows],
+            "range_km": [r["range_km"] for r in rows],
+            "remaining_min": [r["remaining_charge_min"] for r in rows]}
 
 
 def latest_charge_id_with_power() -> int | None:

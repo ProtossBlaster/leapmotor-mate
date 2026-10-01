@@ -1,85 +1,95 @@
+{# The chart under a charge: one chart in bands on the session's time axis, like the trip's —
+   charging (the car's DC power, the wallbox's AC power beside it where a wallbox is mapped and the
+   charge is at home, the minutes the car said were left), battery (SoC, the car's range) and
+   temperatures (the coldest cell's, the outside air at the car's spot from the weather). Drawn by
+   static/band-chart.js; the Wallbox page's AC-vs-DC comparison is this same chart. #}
 {% if power and power|length > 1 %}
+{% set has_wb = (wb_power or [])|reject('none')|list %}
+{# Each entry switches its line on and off; an empty square is a line switched off. The bars
+   separate the bands, top to bottom. A line the session has no readings for stays hidden. #}
+<div class="flex justify-end mb-1">
+<span id="pcl-{{ cid }}" class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[11px] text-slate-500">
+  <button type="button" class="whitespace-nowrap" data-series="power" aria-pressed="true"><span data-swatch style="color:#fbbf24">■</span> {{ t('wb_series_car') if has_wb else t('power') }}</button>
+  <button type="button" class="whitespace-nowrap" data-series="wallbox" aria-pressed="true" style="display:none"><span data-swatch style="color:#34d399">■</span> {{ t('wb_series_wallbox') }}</button>
+  <button type="button" class="whitespace-nowrap" data-series="remaining" aria-pressed="true" data-tip="{{ t('chart_time_remaining_help') }}" style="display:none"><span data-swatch style="color:#f472b6">■</span> {{ t('time_remaining') }}</button>
+  <span class="text-slate-700" aria-hidden="true">|</span>
+  <button type="button" class="whitespace-nowrap" data-series="soc" aria-pressed="true" style="display:none"><span data-swatch style="color:#22c55e">■</span> {{ t('soc') }}</button>
+  <button type="button" class="whitespace-nowrap" data-series="range" aria-pressed="true" style="display:none"><span data-swatch style="color:#a78bfa">■</span> {{ t('range') }}</button>
+  <span id="pcl-bar3-{{ cid }}" class="text-slate-700" aria-hidden="true" style="display:none">|</span>
+  <button type="button" class="whitespace-nowrap" data-series="batt" aria-pressed="true" data-tip="{{ t('chart_battery_temp_help') }}" style="display:none"><span data-swatch style="color:#facc15">■</span> {{ t('battery_temp') }}</button>
+  <button type="button" class="whitespace-nowrap" data-series="outside" aria-pressed="true" data-tip="{{ t('chart_outside_temp_help') }}" style="display:none"><span data-swatch style="color:#38bdf8">■</span> {{ t('outside_temp_label') }}</button>
+</span>
+</div>
 <div id="pc-{{ cid }}" class="-mx-1"></div>
 <script>
 (function () {
   var el = document.getElementById('pc-{{ cid }}');
-  if (!el || typeof ApexCharts === 'undefined') return;
+  if (!el || typeof ApexCharts === 'undefined' || typeof mateBandChart === 'undefined') return;
   if (el._c) { try { el._c.destroy(); } catch (e) {} }
-  var power  = {{ power|tojson }};
-  var soc    = {{ soc|tojson }};
-  var labels = {{ labels|tojson }};
-  var wbpow  = {{ (wb_power or [])|tojson }};
+  var times = {{ times|tojson }};
+  // The axis is categorical, so a hole in the recording gets blanks, as on the trip's chart.
+  var sp = mateBandChart.spread(times.map(function (t) { return new Date(t).getTime(); }));
+  function col(arr) { return sp.at.map(function (i) { return i == null || arr[i] == null ? null : arr[i]; }); }
 
-  var nmCar = {{ t('wb_series_car')|tojson }};
-  var nmWb  = {{ t('wb_series_wallbox')|tojson }};
-  var nmSoc = 'SOC %';
-
-  var hasWb = Array.isArray(wbpow) && wbpow.some(function (v) { return v != null; });
-
-  // Build series/styling, inserting the wallbox line only when we have data.
-  var series = [{ name: nmCar, type: 'area', data: power }];
-  var colors = ['#fbbf24'];          // car DC = amber
-  var fills  = ['gradient'];
-  var widths = [2];
-  if (hasWb) {
-    series.push({ name: nmWb, type: 'line', data: wbpow });
-    colors.push('#34d399');          // wallbox AC = green
-    fills.push('solid');
-    widths.push(2);
-  } else {
-    // Plain charge chart (no wallbox) keeps the SOC line; the comparison drops it for clarity.
-    series.push({ name: nmSoc, type: 'line', data: soc });
-    colors.push('#38bdf8');          // SOC = blue
-    fills.push('solid');
-    widths.push(1.5);
+  // The axis and the hover box tell the time of day in Mate's zone, each moment at its own offset
+  // (a night's charge can cross a clock change); the hover box adds the time since the first reading.
+  var zone = {{ display_tz_name()|tojson }};
+  function clock(opts) {
+    try { return new Intl.DateTimeFormat('en-GB', Object.assign({ timeZone: zone }, opts)); }
+    catch (e) { return new Intl.DateTimeFormat('en-GB', opts); }   // a zone this browser does not know: its own
   }
-
-  // Shared kW scale so car (DC) and wallbox (AC) are directly comparable.
-  var kwMax = 0;
-  power.forEach(function (v) { if (v != null && v > kwMax) kwMax = v; });
-  if (hasWb) wbpow.forEach(function (v) { if (v != null && v > kwMax) kwMax = v; });
-  kwMax = Math.max(1, Math.ceil(kwMax + 0.5));
-
-  // One y-axis per series (reliable binding); car + wallbox share the left kW
-  // scale (wallbox axis hidden), SOC sits on the right 0–100 axis.
-  var yaxis = [
-    { seriesName: nmCar, min: 0, max: kwMax, forceNiceScale: true,
-      labels: { style: { colors: '#fbbf24', fontSize: '10px' }, formatter: function (v) { return v.toFixed(2); } },
-      title: { text: 'kW', style: { color: '#fbbf24', fontSize: '10px' } } },
-  ];
-  if (hasWb) {
-    yaxis.push({ seriesName: nmWb, min: 0, max: kwMax, show: false });
-  } else {
-    yaxis.push({ opposite: true, seriesName: nmSoc, min: 0, max: 100,
-      labels: { style: { colors: '#38bdf8', fontSize: '10px' }, formatter: function (v) { return v.toFixed(0); } },
-      title: { text: 'SOC', style: { color: '#38bdf8', fontSize: '10px' } } });
+  var axisClock = clock({ hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  var hoverClock = clock({ hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  var labels = sp.slots.map(function (ms) { return isNaN(ms) ? '' : axisClock.format(ms); });
+  var t0 = sp.slots[0];
+  function since(ms) {
+    var m = Math.max(0, Math.round((ms - t0) / 60000));
+    return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min';
   }
+  function clockAt(i) { var ms = sp.slots[i]; return isNaN(ms) ? '' : hoverClock.format(ms) + ' (' + since(ms) + ')'; }
 
-  el._c = new ApexCharts(el, {
-    chart: { type: 'line', height: 190, toolbar: { show: false }, zoom: { enabled: false },
-             fontFamily: 'inherit', background: 'transparent', parentHeightOffset: 0,
-             animations: { enabled: false } },
-    series: series,
-    stroke: { curve: 'smooth', width: widths },
-    colors: colors,
-    fill: { type: fills,
-            gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
-    dataLabels: { enabled: false },
-    markers: { size: 0 },
-    xaxis: { categories: labels, tickAmount: 6, tooltip: { enabled: false },
-             labels: { style: { colors: '#64748b', fontSize: '10px' }, rotate: 0, hideOverlappingLabels: true },
-             axisBorder: { show: false }, axisTicks: { show: false } },
-    yaxis: yaxis,
-    grid: { borderColor: '#1e293b', strokeDashArray: 4, padding: { left: 8, right: 8 } },
-    legend: { labels: { colors: '#94a3b8' }, fontSize: '11px', markers: { width: 9, height: 9 } },
-    tooltip: { theme: 'dark', shared: true, intersect: false,
-               y: { formatter: function (v, o) {
-                      if (v == null) return '';
-                      var nm = o.w.config.series[o.seriesIndex].name;
-                      return nm.indexOf('SOC') >= 0 ? v.toFixed(1) + ' %' : v.toFixed(3) + ' kW';
-                    } } },
+  // Display units (data stays metric); the temperature map is linear (°F = °C × 9/5 + 32).
+  var tempA = {{ temp_val(1, 6) - temp_val(0, 6) }}, tempB = {{ temp_val(0, 6) }}, tempUnit = {{ temp_unit()|tojson }};
+  var distFactor = {{ dist_val(1, 6) }}, distUnit = {{ dist_unit()|tojson }};
+  function scaled(arr, a, b) { return arr.map(function (v) { return v != null ? v * a + (b || 0) : v; }); }
+  var niceScale = mateBandChart.niceScale, extent = mateBandChart.extent, present = mateBandChart.present;
+
+  var C = {
+    power:     { name: {{ (t('wb_series_car') if has_wb else t('power'))|tojson }}, color: '#fbbf24', data: col({{ power|tojson }}), unit: 'kW', dec: 2 },
+    wallbox:   { name: {{ t('wb_series_wallbox')|tojson }}, color: '#34d399', data: col({{ (wb_power or [])|tojson }}), unit: 'kW', dec: 2 },
+    remaining: { name: {{ t('time_remaining')|tojson }}, color: '#f472b6', data: col({{ remaining_min|tojson }}), unit: 'min', dec: 0 },
+    soc:       { name: {{ t('soc')|tojson }}, color: '#22c55e', data: col({{ soc|tojson }}), unit: '%', dec: 1 },
+    range:     { name: {{ t('range')|tojson }}, color: '#a78bfa', data: scaled(col({{ range_km|tojson }}), distFactor), unit: distUnit, dec: 0 },
+    batt:      { name: {{ t('battery_temp')|tojson }}, color: '#facc15', data: scaled(col({{ battery_temp|tojson }}), tempA, tempB), unit: tempUnit, dec: 0 },
+    outside:   { name: {{ t('outside_temp_label')|tojson }}, color: '#38bdf8', data: scaled(col({{ outside_temp|tojson }}), tempA, tempB), unit: tempUnit, dec: 1 },
+  };
+  // Lines of one unit in a band share a scale, so the two powers and the two temperatures compare by eye.
+  // A power and a countdown start at zero: their scale grows upwards to its least span, never below.
+  function top(id) { return present(C[id].data) ? extent(C[id].data)[1] : 0; }
+  C.power.scale = C.wallbox.scale = niceScale(0, Math.max(top('power'), top('wallbox'), 4), 4);
+  if (present(C.remaining.data)) C.remaining.scale = niceScale(0, Math.max(top('remaining'), 20), 20);
+  if (present(C.soc.data)) {
+    var s = extent(C.soc.data);
+    C.soc.scale = niceScale(s[0], s[1], 4);
+    if (C.soc.scale[1] > 100) C.soc.scale = [100 - (C.soc.scale[1] - C.soc.scale[0]), 100];
+  }
+  if (present(C.range.data)) { var r = extent(C.range.data); C.range.scale = niceScale(r[0], r[1], 20); }
+  var temps = C.batt.data.concat(C.outside.data);
+  if (present(temps)) { var te = extent(temps); C.batt.scale = C.outside.scale = niceScale(te[0], te[1], 4); }
+
+  // No band holds more than two units, one scale on each side; the temperatures' band has one.
+  var BANDS = [{ ids: ['power', 'wallbox', 'remaining'], left: 'power', right: 'remaining' },
+               { ids: ['soc', 'range'], left: 'soc', right: 'range' },
+               { ids: ['batt', 'outside'], left: 'batt', right: null }];
+  if (present(temps)) document.getElementById('pcl-bar3-{{ cid }}').style.display = '';
+
+  // Which lines show is remembered in this browser for every charge.
+  mateBandChart(el, {
+    labels: labels, lines: C, bands: BANDS,
+    legend: document.getElementById('pcl-{{ cid }}'),
+    storageKey: 'mate.chargeChart.shown',
+    hoverTitle: clockAt,
   });
-  el._c.render();
 })();
 </script>
 {% else %}

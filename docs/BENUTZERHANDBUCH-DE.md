@@ -930,6 +930,16 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   zum 21. abgerechnet wird — oder jeder andere Zeitraum, der kein Kalendermonat ist — muss nicht
   mehr von Hand addiert werden.
 
+- **Diagramm Ladedaten 🆕** — unter jedem Ladevorgang öffnet *📈 Ladedaten* ein Diagramm in
+  Bändern auf der Zeitachse der Sitzung, wie bei einer Fahrt: **Laden** (die DC-Leistung des Autos,
+  bei einer Heimladung mit zugeordneter Wallbox daneben deren AC-Leistung, und wie viele Minuten das
+  Auto noch veranschlagte), **Batterie** (SoC und die Reichweitenschätzung des Autos) und
+  **Temperaturen** (die der kältesten Zelle und, wenn die Außentemperatur in den Einstellungen
+  eingeschaltet ist, die Außenluft am Standort des Autos). Jeder Eintrag der Legende schaltet seine
+  Linie ein und aus, ein Band ohne eingeschaltete Linie klappt zusammen, die Wahl merkt sich der
+  Browser, und das Hover-Feld beginnt mit der Uhrzeit und der Zeit seit der ersten Messung. Der
+  AC-DC-Vergleich auf der Wallbox-Seite ist dasselbe Diagramm.
+
 ### Ladepreise
 **(Menü: Ladepreise)** — Hier legen Sie fest, **was Sie für die Energie zahlen**, damit Mate die Kosten berechnen
 kann. Sie können einen Preis **für jeden Ladetyp** (Zuhause, AC, Schnell, HPC) festlegen und wählen zwischen:

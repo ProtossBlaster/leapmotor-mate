@@ -884,6 +884,15 @@ label:
   delivered (with the battery figure beside it) and cost**. Electricity billed from the 22nd to the
   21st, or any other period that is not a calendar month, no longer has to be added up by hand.
 
+- **Charging data chart 🆕** — under each charge, *📈 Charging data* opens one chart in bands on
+  the session's time axis, like a trip's: **charging** (the car's DC power, the wallbox's AC power
+  beside it on a home charge with a mapped wallbox, and how many minutes the car said were left),
+  **battery** (SoC and the car's range estimate) and **temperatures** (the coldest cell's and, when
+  the outside temperature is switched on in Settings, the outside air at the car's spot). Each entry
+  of the legend switches its line on and off, a band with every line off folds away, the choice is
+  remembered in the browser, and the hover box opens with the time of day and the time since the
+  first reading. The AC-vs-DC comparison on the Wallbox page is this same chart.
+
 ### Charge Prices
 **(menu: Charge Prices)** — Here you set **how much you pay for energy**, so Mate can calculate the
 costs. You can define a price **for each type** of charge (Home, AC, Fast, HPC) and choose between:

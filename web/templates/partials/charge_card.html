@@ -300,14 +300,14 @@
   </div>
   {% endif %}
 
-  <!-- Power curve (expandable, lazy-loaded on first open) -->
+  <!-- Charging data (expandable, lazy-loaded on first open) -->
   <details class="mt-3">
     <summary hx-get="api/charge/{{ c.id }}/power-chart"
              hx-trigger="click once"
              hx-target="#pchart-{{ c.id }}"
              hx-swap="innerHTML"
              style="cursor:pointer;color:#38bdf8;font-size:12px;list-style:none;user-select:none">
-      📈 {{ t('power_curve') }}
+      📈 {{ t('charge_profile') }}
     </summary>
     <div id="pchart-{{ c.id }}" class="mt-2">
       <div class="text-xs text-slate-500 py-2">…</div>

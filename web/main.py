@@ -3219,9 +3219,7 @@ async def wallbox_compare_chart(request: Request):
         return HTMLResponse('<div class="text-sm text-slate-500 py-2">—</div>')
     curve = db_reader.get_charge_power_curve(cid)
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=cid, labels=curve["labels"], power=curve["power"], soc=curve["soc"],
-        wb_power=_wallbox_overlay(curve, cid),
-    ))
+        cid=cid, wb_power=_wallbox_overlay(curve, cid), **curve))
 
 
 @app.get("/api/wallbox/control", response_class=HTMLResponse)
@@ -3689,14 +3687,12 @@ async def charges_import_api(request: Request):
 
 @app.get("/api/charge/{charge_id}/power-chart", response_class=HTMLResponse)
 async def charge_power_chart(request: Request, charge_id: int):
-    """Lazy-loaded power-over-time chart for one charge session (expandable in the list).
-    When a wallbox is configured, overlays its delivered AC power vs the car's DC power."""
+    """Lazy-loaded chart in bands for one charge session (expandable in the list): the power, the
+    SoC, the temperatures and the rest of the readings over time. When a wallbox is configured,
+    its delivered AC power is drawn beside the car's DC power."""
     curve = db_reader.get_charge_power_curve(charge_id)
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=charge_id,
-        labels=curve["labels"], power=curve["power"], soc=curve["soc"],
-        wb_power=_wallbox_overlay(curve, charge_id),
-    ))
+        cid=charge_id, wb_power=_wallbox_overlay(curve, charge_id), **curve))
 
 
 @app.post("/api/settings/prices", response_class=HTMLResponse)
