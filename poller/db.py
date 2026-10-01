@@ -347,6 +347,7 @@ class Database:
         self._repair_charges_anchored_below_the_detection_floor()
         self._drop_phantom_charges()
         self._repair_phantom_zero_soc_charges()
+        self._repair_zero_range_beside_charge()
         self._repair_negative_efficiency()
         self._repair_reev_engine_efficiency()
         self._repair_bogus_wallbox_energy()
@@ -600,6 +601,23 @@ class Database:
         if nulled or dropped:
             log.info("Zero-SoC phantom repair: nulled %d bogus soc=0 position(s), dropped %d phantom charge(s)",
                      nulled, dropped)
+
+    def _repair_zero_range_beside_charge(self) -> None:
+        """One-time cleanup for #365, now fixed at source in `capability_profile.battery_range_km`:
+        the C10's going-to-sleep frame reports a range of 0 beside a SoC of 83-100%, and every such
+        poll was stored as a measured 0 km. Null those rows (a range of 0 beside a SoC above 5%,
+        the rule the parser now applies), so the Overview's fallback and anything reading the range
+        history skip them. Runs once."""
+        if self.get_setting("positions_zero_range_repair_v1") == "1":
+            return
+        nulled = self._conn.execute(
+            "UPDATE positions SET range_km=NULL WHERE range_km=0 AND soc > 5"
+        ).rowcount
+        self.set_setting("positions_zero_range_repair_v1", "1")
+        self._conn.commit()
+        if nulled:
+            log.info("Zero-range repair: nulled %d position(s) that read 0 km beside a charged battery",
+                     nulled)
 
     def _repair_negative_efficiency(self) -> None:
         """One-time cleanup: some trip rows got a NEGATIVE efficiency_kwh_100km (SoC ROSE over the

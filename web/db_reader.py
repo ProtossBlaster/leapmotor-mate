@@ -4148,7 +4148,7 @@ def save_fresh_signals(signals: dict) -> None:
             _coord_from_signals(signals, "lon"),   # unsigned magnitude, or west cars land at sea
             sigf_or_none("1319"), sigf_or_none("1318"),
             sigf("100003") or sigf("1204"),
-            sigf("3260"),
+            capability_profile.battery_range_km(signals),   # the poller's rule (#365)
             gear_map.get(sig("1010"), "P"),
             int(_is_charging()),
             sigf("1182"), sigf("2183"), sigf("1349"),
@@ -4228,6 +4228,16 @@ def get_latest_status() -> Optional[dict]:
             fix = dict(last)
             d["latitude"], d["longitude"] = fix["latitude"], fix["longitude"]
             d["position_stale"] = True
+    # Range fallback, the same way as the GPS above (#365): a frame that reported no range (the
+    # C10's going-to-sleep frame sends 0 beside a full battery) must not blank the Overview — show
+    # the last range the car did report, and say it is stale.
+    if "range_km" in d and d["range_km"] is None:
+        last_range = db.execute(
+            "SELECT range_km FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "AND range_km IS NOT NULL ORDER BY id DESC LIMIT 1", (_current_vehicle_id(),)).fetchone()
+        if last_range:
+            d["range_km"] = last_range["range_km"]
+            d["range_stale"] = True
     # Charge power: positions stores current/voltage, not a power column. Compute it
     # (|I×V|), only when the charge current is meaningful (>=3A). Signal 49 is NOT a
     # power (it's the left-mirror-heating flag) and must never be used here.

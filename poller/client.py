@@ -10,6 +10,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass
+from typing import Optional
 
 from api_backend import LeapmotorApiClient
 
@@ -23,7 +24,7 @@ class VehicleData:
     vin: str
     timestamp_ms: int
     soc: float
-    range_km: float
+    range_km: Optional[float]           # None when the car reports none (#365)
     odometer_km: float
     speed_kmh: float
     gear: str            # P R N D
@@ -763,7 +764,7 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         vin=vin,
         timestamp_ms=int(sig.get("sts") or sig.get("1") or 0),
         soc=float(sig.get("100003") or sig.get("1204") or 0),
-        range_km=float(sig.get("3260") or 0),
+        range_km=capability_profile.battery_range_km(sig),   # None: not reported (#365)
         is_reev=(sig.get("3235") is not None),   # fuel level FIELD present → range-extender variant
         fuel_level_pct=fuel_pct,                                        # REEV tank %
         fuel_liters=(fuel_ml / 1000.0 if fuel_ml is not None else None),  # 3263 = mL

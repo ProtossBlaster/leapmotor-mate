@@ -374,7 +374,11 @@ class MqttService:
                 v = "" if val is None else str(val)
             self.client.publish(f"{base}/{sub}", v, retain=True)
 
-        pub("soc", data.soc);                  pub("range", data.range_km)
+        pub("soc", data.soc)
+        # A frame with no range keeps the retained last one instead of turning the sensor
+        # `unknown` at every sleep of the car (#365).
+        if data.range_km is not None:
+            pub("range", data.range_km)
         pub("odometer", data.odometer_km);     pub("speed", data.speed_kmh)
         pub("gear", data.gear);                pub("state", data.vehicle_state)
         # The car is powered up — signal 1258 (ON3), the same one the Ready automation triggers on.

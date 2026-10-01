@@ -205,6 +205,33 @@ def is_shown(vin: str, feature: str, get_setting: Optional[Callable] = None,
 _WINDOW_PAIRS = (("1693", "3727"), ("1694", "3728"), ("1695", "1879"), ("1696", "1880"))
 
 
+def battery_range_km(signals: dict):
+    """The battery range the car reports (signal 3260), or None when it reports none.
+
+    Absent is not zero, and a zero beside a charged battery is not a reading either (#365): the C10
+    publishes 3260 = 0 in the frame it sends as it goes to sleep, its SoC still at 83-100%, and the
+    Overview read "100% · 0 km". The mirror of the rule `client.get_status` applies to a SoC of 0
+    beside a range above 5 km: a range of 0 beside a SoC above 5% is dropped. Below that a zero is
+    kept, since an empty battery can mean it. Measured on the C10 alone; no other model in the
+    bundles at hand has ever sent it. One rule for the two writers of `positions.range_km`.
+    """
+    raw = signals.get("3260")
+    if raw is None or raw == "":
+        return None
+    try:
+        km = float(raw)
+    except (TypeError, ValueError):
+        return None
+    soc = signals.get("100003")
+    if soc is None or soc == "":
+        soc = signals.get("1204")
+    try:
+        charged = soc is not None and soc != "" and float(soc) > 5
+    except (TypeError, ValueError):
+        charged = False
+    return None if km == 0 and charged else km
+
+
 def window_open_states(signals: dict, use_pct: bool) -> list:
     """Per-window open state [FL, FR, RL, RR]: True / False, or None when the car reports neither
     the flag nor the position for that window. `use_pct` gates the position-% fallback — the caller

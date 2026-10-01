@@ -89,6 +89,11 @@ _API_LOCK = threading.Lock()
 _CLIM_MODE_TOKEN = {1: "cold", 3: "hot", 4: "wind"}   # signal 3713 → ac_on mode; auto(0)/unknown → wind
 
 
+def _range_text(range_km) -> str:
+    """The poll line's range: a dash when the frame reported none (#365), never a fake 0."""
+    return "—" if range_km is None else f"{range_km:.0f}"
+
+
 def _charge_fields(data) -> str:
     """The three inputs that decide whether a charge session opens, for the poll log line.
 
@@ -1087,9 +1092,9 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         frame_age = (f"{(int(time.time() * 1000) - data.timestamp_ms) / 1000:.0f}s"
                      if data.timestamp_ms else "?")
         log.info(
-            "SOC %.1f%% | Range %d km | Speed %.0f km/h | Odo %.0f km | State: %-8s | "
+            "SOC %.1f%% | Range %s km | Speed %.0f km/h | Odo %.0f km | State: %-8s | "
             "Gear: %s | %s | Frame age: %s | Next poll: %ds%s",
-            data.soc, data.range_km, data.speed_kmh, data.odometer_km,
+            data.soc, _range_text(data.range_km), data.speed_kmh, data.odometer_km,
             ctx.recorder.state.value, data.gear, _charge_fields(data), frame_age, ctx.interval,
             " (boost)" if boosting else "",
         )
