@@ -580,59 +580,23 @@
 
       // X labels = minutes since trip start (or sample index if timestamps absent). The axis is
       // categorical, so every sample takes an equal slot no matter the time between them — hence
-      // the blank filling below, without which a gap would silently close up.
+      // the blanks for a hole in the recording: the car was off-grid and the cloud was re-serving its
+      // last frame, so the poller wrote nothing rather than invent samples (#128). ApexCharts breaks a
+      // line on null, so the hole shows at its true width. Joining the two ends instead would draw a
+      // straight, plausible-looking line over minutes that never existed.
       var t0 = pts[0].recorded_at ? new Date(pts[0].recorded_at).getTime() : NaN;
       var useTime = !isNaN(t0);
-      var labels = [], socArr = [], spdArr = [], elevArr = [], powArr = [], batArr = [], rngArr = [];
-      var plot = [];        // mirrors the series (blanks included) so hover indices stay aligned
-
-      // Typical spacing between samples — the yardstick for telling a gap from a sample. Median,
-      // so the gaps we are looking for don't skew the very measure meant to find them.
-      var step = 0;
-      if (useTime) {
-        var deltas = [];
-        for (var j = 1; j < pts.length; j++) {
-          var d = new Date(pts[j].recorded_at).getTime() - new Date(pts[j - 1].recorded_at).getTime();
-          if (d > 0) deltas.push(d);
-        }
-        deltas.sort(function (a, b) { return a - b; });
-        step = deltas.length ? deltas[Math.floor(deltas.length / 2)] : 0;
-      }
-
-      var labelMs = [];     // the instant behind each category, so a pause can be pinned to one
-      function pushLabel(ms) {
-        labelMs.push(useTime && !isNaN(ms) ? ms : NaN);
-        labels.push(useTime && !isNaN(ms)
-          ? Math.max(0, Math.round((ms - t0) / 60000)) + " min"
-          : String(labels.length));
-      }
-
-      pts.forEach(function (p, i) {
-        var t = useTime ? new Date(p.recorded_at).getTime() : NaN;
-        // A hole in the recording: the car was off-grid and the cloud was re-serving its last frame,
-        // so the poller wrote nothing rather than invent samples (#128). Fill the stretch with blanks
-        // — ApexCharts breaks a line on null — so the hole shows at its true width. Joining the two
-        // ends instead would draw a straight, plausible-looking line over minutes that never existed.
-        if (useTime && step > 0 && i > 0 && !isNaN(t)) {
-          var prev = new Date(pts[i - 1].recorded_at).getTime();
-          if (!isNaN(prev) && t - prev > step * 3) {
-            var blanks = Math.min(Math.round((t - prev) / step) - 1, 300);   // sanity cap
-            for (var k = 1; k <= blanks; k++) {
-              pushLabel(prev + step * k);
-              socArr.push(null); spdArr.push(null); elevArr.push(null); plot.push(null);
-              powArr.push(null); batArr.push(null); rngArr.push(null);
-            }
-          }
-        }
-        pushLabel(t);
-        socArr.push(p.soc != null ? p.soc : null);
-        spdArr.push(p.speed_kmh != null ? p.speed_kmh : 0);
-        elevArr.push(p.elevation_m != null ? p.elevation_m : null);
-        powArr.push(p.power_kw != null ? p.power_kw : null);
-        batArr.push(p.battery_temp_c != null ? p.battery_temp_c : null);
-        rngArr.push(p.range_km != null ? p.range_km : null);
-        plot.push(p);
-      });
+      var sp = mateBandChart.spread(pts.map(function (p) { return useTime ? new Date(p.recorded_at).getTime() : NaN; }));
+      var labelMs = sp.slots.map(function (t) { return useTime && !isNaN(t) ? t : NaN; });   // the instant behind each category, so a pause can be pinned to one
+      var labels = labelMs.map(function (t, k) { return isNaN(t) ? String(k) : Math.max(0, Math.round((t - t0) / 60000)) + " min"; });
+      function col(read) { return sp.at.map(function (i) { return i == null ? null : read(pts[i]); }); }
+      var plot = sp.at.map(function (i) { return i == null ? null : pts[i]; });   // mirrors the series (blanks included) so hover indices stay aligned
+      var socArr = col(function (p) { return p.soc != null ? p.soc : null; });
+      var spdArr = col(function (p) { return p.speed_kmh != null ? p.speed_kmh : 0; });
+      var elevArr = col(function (p) { return p.elevation_m != null ? p.elevation_m : null; });
+      var powArr = col(function (p) { return p.power_kw != null ? p.power_kw : null; });
+      var batArr = col(function (p) { return p.battery_temp_c != null ? p.battery_temp_c : null; });
+      var rngArr = col(function (p) { return p.range_km != null ? p.range_km : null; });
 
       // ⏸ The stops INSIDE a joined journey. Without them this stretch is a blank identical to a
       // signal dropout — and that is exactly how it was read: @pdifeo (#159) was told twice that
@@ -729,38 +693,19 @@
         if (cursorMarker && map.hasLayer(cursorMarker)) map.removeLayer(cursorMarker);
       }
 
-      // Four equal steps of a round, whole size covering [lo, hi], so a band's inner ticks read as round
-      // numbers and print exactly (a step of 2.5 would print its line at 62.5 as 63).
-      function niceScale(lo, hi, minSpan) {
-        if (hi - lo < minSpan) { var mid = (lo + hi) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
-        var mag = Math.pow(10, Math.floor(Math.log10((hi - lo) / 4)));
-        var steps = [1, 2, 2.5, 3, 4, 5, 10, 20].map(function (m) { return m * mag; })
-                                                 .filter(function (s) { return s % 1 === 0; });
-        for (var s = 0; s < steps.length; s++) {
-          var a = Math.floor(lo / steps[s]) * steps[s];
-          if (a + 4 * steps[s] >= hi) return [a, a + 4 * steps[s]];
-        }
-        return [lo, hi];
-      }
-      function extent(arr) {
-        var v = arr.filter(function (x) { return x != null; });
-        return [Math.min.apply(null, v), Math.max.apply(null, v)];
-      }
-      function present(arr) { return arr.some(function (v) { return v != null; }); }
-
+      var niceScale = mateBandChart.niceScale, extent = mateBandChart.extent, present = mateBandChart.present;
       // Every line on its own scale inside its band. Labels print on the side named, three to a band.
       var C = {
         speed: { name: nmSpd, color: '#38bdf8', data: spdArr, unit: spdUnit, dec: 0 },
-        power: { name: nmPow, color: '#f87171', data: powArr, unit: 'kW', dec: 0 },
+        power: { name: nmPow, color: '#f87171', data: powArr, unit: 'kW', dec: 0, zeroLine: true },
         soc:   { name: nmSoc, color: '#22c55e', data: socArr, unit: '%', dec: 1 },
         batt:  { name: nmBat, color: '#facc15', data: batDisp, unit: tempUnit, dec: 0 },
         range: { name: nmRng, color: '#a78bfa', data: rngDisp, unit: distUnit, dec: 0 },
-        elev:  { name: nmElev, color: '#c9975f', data: elevArr, unit: elevUnit, dec: 0 },
+        elev:  { name: nmElev, color: '#c9975f', data: elevArr, unit: elevUnit, dec: 0, dashed: hasElevDash ? elevDashArr : null },
       };
       Object.keys(C).forEach(function (id) {
         var c = C[id];
-        c.present = present(c.data);
-        if (!c.present) return;
+        if (!present(c.data)) return;
         var e = extent(c.data);
         if (id === 'speed') { c.scale = niceScale(0, Math.max(e[1], 1), 20); }
         else if (id === 'power') {   // symmetric, so zero sits mid-band and regeneration reads as "below"
@@ -775,14 +720,7 @@
       var BANDS = [{ ids: ['speed', 'power'], left: 'speed', right: 'power' },
                    { ids: ['soc', 'range'], left: 'soc', right: 'range' },
                    { ids: ['elev', 'batt'], left: 'elev', right: 'batt' }];
-      if (C.elev.present || C.batt.present) document.getElementById('trip-profile-third-bar').style.display = '';
-
-      // Which lines show is remembered in this browser for every trip; one never switched keeps its default.
-      var SHOWN_KEY = 'mate.tripChart.shown';
-      var shownByDefault = { speed: true, power: true, soc: true, batt: true, range: true, elev: true };
-      var shown = {};
-      try { shown = JSON.parse(localStorage.getItem(SHOWN_KEY)) || {}; } catch (e) { shown = {}; }
-      function isShown(id) { return C[id].present && (id in shown ? !!shown[id] : shownByDefault[id]); }
+      if (present(elevArr) || present(batDisp)) document.getElementById('trip-profile-third-bar').style.display = '';
 
       // The hover box heads each point with its time of day in Mate's zone, each moment at its own offset
       // (a drive can cross a clock change), then the minute of the drive.
@@ -794,132 +732,15 @@
         return ms == null || isNaN(ms) ? labels[i] : clock.format(ms) + ' (' + labels[i] + ')';
       }
 
-      // The hover box: the clock, then the lines band by band, a rule between the bands.
-      function esc(text) { return String(text).replace(/[&<>"]/g, function (ch) { return '&#' + ch.charCodeAt(0) + ';'; }); }
-      function hoverBox(bands, i) {
-        var html = '<div class="apexcharts-tooltip-title" style="font-size:12px">' + esc(clockAt(i)) + '</div>';
-        bands.forEach(function (b, n) {
-          var rows = b.ids.filter(isShown).map(function (id) {
-            var c = C[id], v = c.data[i];
-            var value = v == null ? '—' : v.toFixed(c.dec) + (c.unit === '%' ? '' : ' ') + c.unit;   // "76.0%", like the rest of Mate
-            return '<div style="display:flex;align-items:center;gap:6px;padding:2px 10px;font-size:12px">'
-              + '<span style="width:9px;height:9px;border-radius:50%;background:' + c.color + '"></span>'
-              + '<span>' + esc(c.name) + ':</span><b style="margin-left:auto;padding-left:10px">' + esc(value) + '</b></div>';
-          });
-          if (rows.length) {
-            html += '<div class="mate-tip-band" style="padding:4px 0;' + (n ? 'border-top:1px solid #475569' : '') + '">' + rows.join('') + '</div>';
-          }
-        });
-        return html;
-      }
-
-      function render() {
-        if (el._c) { try { el._c.destroy(); } catch (e) {} el._c = null; }
-        // A band with every line switched off folds away; the rest share the height.
-        var bands = BANDS.filter(function (b) { return b.ids.some(isShown); });
-        var nb = bands.length;
-        el.style.display = nb ? '' : 'none';
-        if (!nb) { hideCursor(); return; }
-        bands.forEach(function (b, i) { b.base = nb - 1 - i; });   // band 0 is the bottom one
-        // A band is five ticks tall: its lines use the lower four, the fifth is an empty gap above them.
-        var FILL = 0.8;
-        function toBand(c, base) {
-          return function (v) { return v != null ? base + FILL * (v - c.scale[0]) / (c.scale[1] - c.scale[0]) : null; };
-        }
-        function lineAt(side, q) {
-          var b = bands.filter(function (x) { return x.base === Math.floor(q / 5); })[0];
-          var id = b && b[side];
-          return id && isShown(id) && q % 5 ? id : null;
-        }
-        function labelColors(side) {   // each band's numbers in the colour of the line they measure
-          var out = [];
-          for (var q = 0; q <= 5 * nb; q++) out.push(lineAt(side, q) ? C[lineAt(side, q)].color : '#94a3b8');
-          return out;
-        }
-        function label(side) {   // three numbers up a band's scale, its unit at the top
-          return function (t) {
-            var q = Math.round(t * 5), id = lineAt(side, q);
-            if (!id) return '';
-            var c = C[id], k = q % 5;
-            return k < 4 ? (c.scale[0] + k / 4 * (c.scale[1] - c.scale[0])).toFixed(0) : c.unit;
-          };
-        }
-        // Two carrier series hold the labelled axes, so switching a line off never moves the plot.
-        var axisRange = { min: 0, max: nb, tickAmount: 5 * nb };
-        var series = [{ name: '_left', type: 'line', data: labels.map(function () { return null; }) },
-                      { name: '_right', type: 'line', data: labels.map(function () { return null; }) }];
-        var colors = ['transparent', 'transparent'], widths = [0, 0], dashes = [0, 0];
-        var yaxis = [
-          Object.assign({ seriesName: '_left', labels: { minWidth: 28, maxWidth: 28, style: { colors: labelColors('left'), fontSize: '10px' }, formatter: label('left') } }, axisRange),
-          Object.assign({ seriesName: '_right', opposite: true, labels: { minWidth: 28, maxWidth: 28, style: { colors: labelColors('right'), fontSize: '10px' }, formatter: label('right') } }, axisRange),
-        ];
-        var tipSeries = [], lines = [];
-        bands.forEach(function (b) {
-          b.ids.forEach(function (id) {
-            if (!isShown(id)) return;
-            var c = C[id], f = toBand(c, b.base);
-            tipSeries.push(series.length);
-            series.push({ name: c.name, type: 'line', data: c.data.map(f) });
-            colors.push(c.color); widths.push(2); dashes.push(0);
-            yaxis.push(Object.assign({ seriesName: c.name, show: false }, axisRange));
-            if (id === 'elev' && hasElevDash) {   // same scale, dashed, kept out of the hover box
-              series.push({ name: c.name + '__dash', type: 'line', data: elevDashArr.map(f) });
-              colors.push(c.color); widths.push(2); dashes.push(4);
-              yaxis.push(Object.assign({ seriesName: c.name + '__dash', show: false }, axisRange));
-            }
-            if (id === 'power') {
-              lines.push({ y: b.base + FILL / 2, yAxisIndex: 0, borderColor: c.color, strokeDashArray: 3, opacity: 0.6 });
-            }
-          });
-        });
-
-        el._c = new ApexCharts(el, {
-          chart: { type: 'line', height: 36 + 125 * nb, toolbar: { show: false }, zoom: { enabled: false },
-                   fontFamily: 'inherit', background: 'transparent', parentHeightOffset: 0,
-                   animations: { enabled: false },
-                   events: {
-                     mouseMove: function (event, ctx, config) { showCursor(config.dataPointIndex); },
-                     mouseLeave: function () { hideCursor(); }
-                   } },
-          series: series,
-          colors: colors,
-          stroke: { curve: 'smooth', width: widths, dashArray: dashes },
-          fill: { type: 'solid', opacity: 1 },
-          dataLabels: { enabled: false },
-          markers: { size: 0 },
-          annotations: { xaxis: pauseAnns, yaxis: lines },
-          xaxis: { categories: labels, tickAmount: 6, tooltip: { enabled: false },
-                   labels: { style: { colors: '#64748b', fontSize: '10px' }, rotate: 0, hideOverlappingLabels: true },
-                   axisBorder: { show: false }, axisTicks: { show: false } },
-          yaxis: yaxis,
-          // Grid rows from the top, five a band: the gap, then the band's four rows as a darker box.
-          grid: { borderColor: '#1e293b', strokeDashArray: 4, padding: { left: 8, right: 8 },
-                  row: { colors: ['transparent', '#0f172a', '#0f172a', '#0f172a', '#0f172a'], opacity: 1 } },
-          legend: { show: false },
-          tooltip: { theme: 'dark', shared: true, intersect: false, enabledOnSeries: tipSeries,
-                     custom: function (o) { return hoverBox(bands, o.dataPointIndex); } },
-        });
-        el._c.render();
-      }
-
-      function paintLegend(id) {
-        var b = document.querySelector('#trip-profile-legend [data-series="' + id + '"]');
-        if (C[id].present && b) b.style.display = '';
-        if (!b) return;
-        b.setAttribute('aria-pressed', isShown(id) ? 'true' : 'false');
-        b.querySelector('[data-swatch]').textContent = isShown(id) ? '■' : '□';
-      }
-      Object.keys(C).forEach(function (id) {
-        if (!C[id].present) return;
-        paintLegend(id);
-        document.querySelector('#trip-profile-legend [data-series="' + id + '"]').onclick = function () {
-          shown[id] = !isShown(id);
-          try { localStorage.setItem(SHOWN_KEY, JSON.stringify(shown)); } catch (e) {}
-          paintLegend(id);
-          render();
-        };
+      // Which lines show is remembered in this browser for every trip.
+      mateBandChart(el, {
+        labels: labels, lines: C, bands: BANDS,
+        legend: document.getElementById('trip-profile-legend'),
+        storageKey: 'mate.tripChart.shown',
+        hoverTitle: clockAt,
+        annotations: pauseAnns,
+        onHover: showCursor, onLeave: hideCursor,
       });
-      render();
     })();
     </script>
 
