@@ -1,8 +1,33 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.5 · **Language:** English
+> **Mate version:** v4.7.6 · **Language:** English
 
-## New in 4.7.5
+## New in 4.7.6
+
+**A drive now ends when you switch the car off.** Mate declares a drive over once the car has been in
+Park for about a minute, and it used to stamp that *whole* minute onto the trip. The end — its time,
+charge level, odometer, position and fuel — now comes from the first reading of that stop which shows
+the car **switched off**. On one owner's four months of history this moved the end of 183 trips, by 7
+to 54 seconds (42 on average). You see it on short drives: a 1 km hop that read 2.9 minutes at
+21 km/h now reads 2.2 minutes at 27 km/h. Kilometres, kWh and consumption are unchanged.
+
+If you step out to open a gate and get back in to reverse into the space, the drive stays one drive. A
+car left on in Park, or one that does not report whether it is on, keeps the end Mate wrote before.
+⚠️ **Drives already recorded do not change** — this applies from this version on.
+
+ℹ️ On a drive of a kilometre or two the cloud sometimes gives its energy as 0.0 kWh, and Mate prefers
+the car's own figure to its own estimate. A few very short trips can therefore read `0.00 kWh/100 km`
+where they showed an estimate of a few hundredths before.
+
+**The Charges page opens at once.** Opening Charges, or a day in its calendar, used to read the whole
+position log for every charge on the page. On a database with 381,076 position rows it went from
+**880 ms to 1 ms**, with the same figures on screen.
+
+**A charge you merged can be given its place directly.** Before, you had to separate it, assign the
+place and merge it again; now the place applies to the whole group. Merging and unmerging also stop
+reloading the whole page and no longer lose the day you were looking at.
+
+### New in 4.7.5
 
 Two changes, both found in one support bundle a user sent.
 

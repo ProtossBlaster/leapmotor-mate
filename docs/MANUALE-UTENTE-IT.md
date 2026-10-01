@@ -1,8 +1,33 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.5 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.6 · **Lingua:** Italiano
 
-## Novità della 4.7.5
+## Novità della 4.7.6
+
+**Un viaggio finisce quando spegni l'auto.** Mate dichiara finita una guida quando l'auto è stata in P
+per circa un minuto, e quel minuto lo scriveva *tutto* dentro il viaggio. Adesso la fine — ora, livello
+di carica, contachilometri, posizione e carburante — viene dalla prima lettura di quella sosta che
+mostra l'auto **spenta**. Su quattro mesi di storico di un proprietario questo ha spostato la fine di
+183 viaggi, da 7 a 54 secondi (42 in media). Si vede sulle guide corte: un salto di 1 km che leggeva
+2,9 minuti a 21 km/h adesso legge 2,2 minuti a 27 km/h. Chilometri, kWh e consumi non cambiano.
+
+Se scendi ad aprire un cancello e risali per fare la retromarcia nel posto, la guida resta una sola.
+Un'auto lasciata accesa in P, o una che non dice se è accesa, mantiene la fine che Mate scriveva prima.
+⚠️ **Le guide già registrate non cambiano** — vale da questa versione in avanti.
+
+ℹ️ Su una guida di un chilometro o due il cloud a volte dà la sua energia come 0,0 kWh, e Mate
+preferisce la cifra dell'auto alla propria stima. Qualche viaggio molto corto può quindi leggere
+`0,00 kWh/100 km` dove prima mostrava una stima di qualche centesimo.
+
+**La pagina Ricariche si apre subito.** Aprire le Ricariche, o un giorno del loro calendario, leggeva
+tutto il registro delle posizioni per ogni ricarica della pagina. Su un database con 381.076 righe di
+posizione è passata da **880 ms a 1 ms**, con le stesse cifre a schermo.
+
+**Una ricarica che hai unito può ricevere il suo luogo direttamente.** Prima bisognava separarla,
+assegnare il luogo e riunirla; adesso il luogo vale per tutto il gruppo. Unire e separare non ricaricano
+più la pagina intera e non perdono il giorno che stavi guardando.
+
+### Novità della 4.7.5
 
 Due modifiche, trovate entrambe in uno stesso pacchetto di diagnostica mandato da un utente.
 

@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.5 · **Langue :** Français
+> **Version de Mate :** v4.7.6 · **Langue :** Français
 
-## Nouveautés de la version 4.7.5
+## Nouveautés de la version 4.7.6
+
+**Un trajet se termine désormais quand vous éteignez la voiture.** Mate déclare un trajet terminé
+lorsque la voiture est restée en P environ une minute, et il inscrivait cette minute *entière* dans le
+trajet. La fin — heure, niveau de charge, compteur, position et carburant — provient maintenant de la
+première lecture de cet arrêt qui montre la voiture **éteinte**. Sur quatre mois d'historique d'un
+propriétaire, cela a déplacé la fin de 183 trajets, de 7 à 54 secondes (42 en moyenne). Cela se voit
+sur les trajets courts : un saut de 1 km qui affichait 2,9 minutes à 21 km/h affiche maintenant
+2,2 minutes à 27 km/h. Kilomètres, kWh et consommation ne changent pas.
+
+Si vous descendez ouvrir un portail et remontez pour faire la marche arrière dans la place, cela reste
+un seul trajet. Une voiture laissée allumée en P, ou qui ne dit pas si elle est allumée, conserve la
+fin que Mate écrivait avant.
+⚠️ **Les trajets déjà enregistrés ne changent pas** — cela s'applique à partir de cette version.
+
+ℹ️ Sur un trajet d'un ou deux kilomètres, le cloud donne parfois son énergie à 0,0 kWh, et Mate
+préfère le chiffre de la voiture à sa propre estimation. Quelques trajets très courts peuvent donc
+afficher `0,00 kWh/100 km` là où ils montraient avant une estimation de quelques centièmes.
+
+**La page Recharges s'ouvre immédiatement.** Ouvrir les Recharges, ou un jour de leur calendrier,
+lisait tout le journal des positions pour chaque recharge de la page. Sur une base de 381 076 lignes de
+position, elle est passée de **880 ms à 1 ms**, avec les mêmes chiffres à l'écran.
+
+**Une recharge fusionnée peut recevoir son lieu directement.** Avant, il fallait la séparer, attribuer
+le lieu et la refusionner ; maintenant le lieu s'applique à tout le groupe. Fusionner et séparer ne
+rechargent plus toute la page et ne perdent plus le jour que vous consultiez.
+
+### Nouveautés de la version 4.7.5
 
 Deux changements, trouvés tous les deux dans un même paquet de diagnostic envoyé par un utilisateur.
 
