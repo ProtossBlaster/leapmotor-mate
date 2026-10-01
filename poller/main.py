@@ -12,7 +12,6 @@ _PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 
 import abrp
 import energy_snapshots
-import quirks
 import ready_automation
 import session_share
 from client import (LeapmotorMateClient, set_charge_current_min, EmptyStatusError,
@@ -979,8 +978,6 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
             data = client.get_status(ctx.vehicle)
         answered = True
         acct.note_link(db, "ok")            # the session let the request in, whatever follows
-        # what this car is known to misreport is corrected here, before anyone reads the frame
-        data = quirks.fix_frame(data, ctx.vehicle)
         frame_age = _frame_age_s(data.timestamp_ms)
         # Live outside-air temperature for the car's spot (Open-Meteo; the cloud carries none — see
         # client.py). Opt-in and cached hard, so a parked car makes no calls. Set BEFORE the recorder
