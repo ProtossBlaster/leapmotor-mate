@@ -316,7 +316,31 @@ def _generator_was_running(fuel_before, fuel_now) -> bool:
     return fuel_before - fuel_now >= _REEV_GENERATOR_MIN_DROP_L
 
 
+# How long the poller keeps asking for WAL while another process holds a write transaction. On a new
+# installation the web creates the schema at import, in milliseconds; a database held for good is
+# still reported, after this long, instead of being waited on for ever.
+_WAL_SWITCH_WAIT_S = 15.0
+
+
 class Database:
+    def _switch_to_wal(self):
+        """`PRAGMA journal_mode=WAL`, asked again while another connection writes.
+
+        SQLite refuses the switch AT ONCE when another connection holds a write transaction — no
+        busy timeout, because waiting could deadlock — and on a new installation the web is
+        creating the schema at that very moment: the Desktop 1.2.0 build saw the poller die on its
+        first statement. An existing database is already in WAL and asks for nothing here.
+        → tests/test_the_poller_waits_for_the_web_to_finish_the_schema.py
+        """
+        deadline = time.monotonic() + _WAL_SWITCH_WAIT_S
+        while True:
+            try:
+                return (self._conn.execute("PRAGMA journal_mode=WAL").fetchone() or [None])[0]
+            except sqlite3.OperationalError as error:
+                if "locked" not in str(error) or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.05)
+
     def __init__(self, path: str = "leapmotor_mate.db"):
         self._path = path
         self._conn = sqlite3.connect(path, check_same_thread=False)
@@ -327,7 +351,7 @@ class Database:
         # turns a long-lived read connection into a writer starved for hours (#338: 747 frames lost
         # to `database is locked`, on a NAS share, which is exactly a filesystem that cannot give
         # SQLite the shared memory WAL needs). Kept, logged, and printed in the bundle.
-        self.journal_mode = (self._conn.execute("PRAGMA journal_mode=WAL").fetchone() or [None])[0]
+        self.journal_mode = self._switch_to_wal()
         # `:memory:` answers `memory` and there is no filesystem to blame — the tests open one all
         # the time, and accusing it was noise in every run and a false alarm to anyone reading a log.
         if str(self.journal_mode).lower() not in ("wal", "memory"):
