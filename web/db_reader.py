@@ -8243,7 +8243,7 @@ def get_charge_power_curve(charge_id: int) -> dict:
     ch = db.execute("SELECT started_at, ended_at FROM charges WHERE id = ? AND vehicle_id = COALESCE(?, vehicle_id)",
                     (charge_id, _current_vehicle_id())).fetchone()
     if not ch:
-        return {"labels": [], "power": [], "soc": [], "times": [], "battery_temp": [], "outside_temp": [],
+        return {"power": [], "soc": [], "times": [], "battery_temp": [], "outside_temp": [],
                 "range_km": [], "remaining_min": []}
     cols = ("recorded_at, charge_voltage_v, charge_current_a, soc, battery_min_temp, outside_temp, "
             "range_km, remaining_charge_min")
@@ -8269,15 +8269,14 @@ def get_charge_power_curve(charge_id: int) -> dict:
             "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? ORDER BY recorded_at",
             (_current_vehicle_id(), start),
         ).fetchall()
-    labels, power, soc, times = [], [], [], []
+    power, soc, times = [], [], []
     for r in rows:
         v = r["charge_voltage_v"] or 0
         a = r["charge_current_a"] or 0
-        labels.append((_local_iso(r["recorded_at"]) or "")[11:16])  # HH:MM local
         power.append(round(abs(v * a) / 1000.0, 3))
         soc.append(r["soc"])
-        times.append(r["recorded_at"])  # raw UTC ISO — used to align external (wallbox) history
-    return {"labels": labels, "power": power, "soc": soc, "times": times,
+        times.append(r["recorded_at"])  # raw UTC ISO — the chart's clock, and the wallbox history's alignment
+    return {"power": power, "soc": soc, "times": times,
             "battery_temp": [r["battery_min_temp"] for r in rows],
             "outside_temp": [r["outside_temp"] for r in rows],
             "range_km": [r["range_km"] for r in rows],

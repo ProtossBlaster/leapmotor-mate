@@ -936,6 +936,16 @@ etiqueta:
   facturada del 22 al 21, o cualquier otro periodo que no sea un mes natural, ya no hay que sumarla
   a mano.
 
+- **Gráfico Datos de la carga 🆕** — bajo cada carga, *📈 Datos de la carga* abre un gráfico en
+  bandas sobre el eje de tiempo de la sesión, como el de un viaje: **carga** (la potencia DC del
+  coche, al lado la potencia AC del wallbox en una carga en casa con wallbox asignado, y cuántos
+  minutos decía el coche que faltaban), **batería** (SoC y la estimación de autonomía del coche) y
+  **temperaturas** (la de la celda más fría y, si la temperatura exterior está activada en Ajustes,
+  el aire exterior donde está el coche). Cada entrada de la leyenda enciende y apaga su línea, una
+  banda con todas las líneas apagadas se pliega, el navegador recuerda la elección y el cuadro al
+  pasar el ratón empieza por la hora y el tiempo desde la primera lectura. La comparación AC-DC de
+  la página Wallbox es este mismo gráfico.
+
 ### Precios de la carga
 **(menú: Precios de la carga)** — Aquí indicas **cuánto pagas por la energía**, para que Mate pueda
 calcular los costes. Puedes definir un precio **para cada tipo** de carga (En casa, AC, DC rápida,

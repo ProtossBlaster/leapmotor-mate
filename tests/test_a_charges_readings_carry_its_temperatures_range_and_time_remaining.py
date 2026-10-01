@@ -50,5 +50,5 @@ def test_every_reading_lines_up_with_the_power(tmp_path, monkeypatch):
 def test_a_charge_nobody_recorded_has_every_series_empty(tmp_path, monkeypatch):
     _install(tmp_path, monkeypatch)
     curve = db_reader.get_charge_power_curve(404)
-    assert curve == {"labels": [], "power": [], "soc": [], "times": [], "battery_temp": [],
+    assert curve == {"power": [], "soc": [], "times": [], "battery_temp": [],
                      "outside_temp": [], "range_km": [], "remaining_min": []}

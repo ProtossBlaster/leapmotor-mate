@@ -944,6 +944,17 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   facturée du 22 au 21, ou toute autre période qui n'est pas un mois civil, ne se calcule plus à la
   main.
 
+- **Graphique Données de la recharge 🆕** — sous chaque recharge, *📈 Données de la recharge*
+  ouvre un graphique en bandes sur l'axe du temps de la session, comme celui d'un trajet :
+  **recharge** (la puissance DC de la voiture, à côté la puissance AC de la wallbox pour une recharge
+  à domicile avec wallbox associée, et combien de minutes il restait selon la voiture), **batterie**
+  (SoC et estimation d'autonomie de la voiture) et **températures** (celle de la cellule la plus
+  froide et, si la température extérieure est activée dans les Réglages, l'air extérieur à
+  l'emplacement de la voiture). Chaque entrée de la légende allume et éteint sa ligne, une bande dont
+  toutes les lignes sont éteintes se replie, le navigateur retient le choix, et l'encadré au survol
+  s'ouvre sur l'heure et le temps écoulé depuis le premier relevé. La comparaison AC-DC de la page
+  Wallbox est ce même graphique.
+
 ### Prix de recharge
 **(menu : Prix de recharge)** — Ici, vous définissez **combien vous payez l'énergie**, afin que Mate puisse
 calculer les coûts. Vous pouvez définir un prix **pour chaque type** de recharge (Domicile, AC, Rapide, HPC)
