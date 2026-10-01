@@ -434,12 +434,12 @@ def test_the_page_does_not_reload_itself_while_a_slow_command_is_completing(comm
     page look idle: no interaction for 20 s, and the refetch after the answer takes the focus off the
     control pressed. The reload would drop the busy state, so the page opts out of it."""
     page, _ = commands(0, fake_clock=True)
-    page.clock.pause_at(page.evaluate("Date.now()") / 1000)   # seconds, not ms; from here on time moves only when ticked
+    page.clock.pause_at(page.evaluate("Date.now()") / 1000 + 1)   # a second ahead: pausing at the time just read races the page's 300 ms tick
     page.evaluate("window.samePage = true")
     page.hold = True                     # the cloud is still on it
     page.click(MIRROR)
     page.wait_for_timeout(300)
-    _tick(page, 22_000)                  # longer than an interaction counts for
+    _tick(page, 21_000)                  # longer than an interaction counts for; a second shorter for the second the pause skipped
     page.hold = False
     page.held[0].fulfill(status=200, content_type="text/html", body=DONE)
     page.wait_for_timeout(300)
