@@ -1706,13 +1706,16 @@ class Database:
         not switched off for good, so the search starts after its last READY=1; a zero before that
         run already ended the power-on, and a later one with no READY=1 between is not a new
         switch-off. A NULL (the car did not send READY) proves nothing, and a car still on when the
-        trip closes keeps the usual end.
+        trip closes keeps the usual end. A blip, a zero the car takes back within seconds, needs no
+        rule of its own here (ready_session has one, with a window): the search starts after the
+        LAST READY=1, so a zero followed by any 1 inside the trip is never the one picked.
 
         Nor does the end move when the move would cost something. The reading must carry every
         value the last one does, or the trip would lose it, and no later reading may show another
         odometer: that is a cloud still catching up, and ending short of it would leave kilometres
         out of the trip. Rows are taken in the order they were written, as trip_last_seen takes
-        them; the last is the frame in hand, and ending on it is the usual end."""
+        them; when the switch-off is the last row, the frame in hand, this answer and the usual end
+        are the same reading."""
         trip = self._conn.execute(
             "SELECT vehicle_id, started_at FROM trips WHERE id=?", (trip_id,)).fetchone()
         if trip is None or not trip["started_at"]:
@@ -1728,7 +1731,7 @@ class Database:
         if last_on is None:
             return None
         off = next((i for i in range(last_on + 1, len(rows)) if rows[i]["ready"] == 0), None)
-        if off is None or off < start or off == len(rows) - 1:
+        if off is None or off < start:
             return None
         row = rows[off]
         # Missing is NULL, or the 0 an odometer was stored as before 4.7.2 and a fixless position is.
