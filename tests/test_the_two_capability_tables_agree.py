@@ -46,3 +46,26 @@ def test_the_poller_hides_a_passenger_seat_command_where_it_hides_the_drivers(ke
     driver = key.replace("passenger", "driver")
     shown = lambda k: POLLER.command_shown("VIN", k, lambda s, d="": d, car_type="T03")
     assert shown(key) is shown(driver) is False
+
+
+def test_every_name_the_poller_reads_is_in_the_poller_copy():
+    """The poller process imports ITS copy; the test suite imports the web one (web/ comes first on
+    the path in conftest). #365's range rule was first written into the web copy alone: every test
+    passed, and in the container the poller failed every poll on `module 'capability_profile' has
+    no attribute 'battery_range_km'` — caught on a live installation before release."""
+    import re
+    used = set()
+    for path in (ROOT / "poller").glob("*.py"):
+        if path.name != "capability_profile.py":
+            used |= set(re.findall(r"capability_profile\.([A-Za-z_]\w*)", path.read_text()))
+    assert used, "the scan found nothing to check"
+    assert sorted(n for n in used if not hasattr(POLLER, n)) == []
+
+
+@pytest.mark.parametrize("sig", [{"1204": 100, "3260": 0}, {"1204": 100}, {"1204": 3, "3260": 0},
+                                 {"100003": "97.4", "3260": 426}, {"1204": 100, "3260": ""},
+                                 {"100003": "", "1204": 90, "3260": 0}])
+def test_the_range_rule_reads_the_same_in_both_processes(sig):
+    """One rule for the two writers of `positions.range_km` (#365): the poller stores the poll, the
+    web stores a refresh."""
+    assert POLLER.battery_range_km(sig) == WEB.battery_range_km(sig)
