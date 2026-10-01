@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.7.9:** earlier months of trips from the cloud. In **Settings → Cloud trip history** you can now import the months before the current one too, from September 2026 — the cloud holds nothing earlier: one choice, each month downloaded once, and the months that end come in on their own. And two contributions: **battery health opens in about 0.05 s instead of 1.4** ([#363](https://github.com/ProtossBlaster/leapmotor-mate/pull/363), @hubcasale), and **a parking manoeuvre no longer hides its drive** from the cloud's energy ([#364](https://github.com/ProtossBlaster/leapmotor-mate/pull/364), @arekm). [Release notes](docs/releases/v4.7.9.md)
-See [release notes and upgrade impact](docs/releases/v4.7.9.md).
+**v4.7.10:** a C10 range extender keeps its charge current. Since 4.0.0 Mate dropped the pack current and the power of a C10 range extender on an AC charge, so Home Assistant read *Charge Current* and *Charge Power* as unknown and every charge's peak as 0.0 kW; the car's sensor measures, and both are back ([beta #13](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/13)). [Release notes](docs/releases/v4.7.10.md)
+See [release notes and upgrade impact](docs/releases/v4.7.10.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -357,8 +357,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.7.9:** i mesi precedenti dei viaggi dal cloud. In **Impostazioni → Storico viaggi cloud** adesso puoi importare anche i mesi prima di quello in corso, da settembre 2026 — prima il cloud non ha niente: una scelta sola, ogni mese scaricato una volta, e i mesi che finiscono si aggiungono da soli. E due contributi: **la salute della batteria si apre in circa 0,05 s invece di 1,4** ([#363](https://github.com/ProtossBlaster/leapmotor-mate/pull/363), @hubcasale), e **una manovra di parcheggio non nasconde più il suo viaggio** all'energia del cloud ([#364](https://github.com/ProtossBlaster/leapmotor-mate/pull/364), @arekm). [Note di rilascio](docs/releases/v4.7.9.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.9.md#italiano).
+**v4.7.10:** una C10 con range extender tiene la sua corrente di ricarica. Dalla 4.0.0 Mate scartava la corrente del pacco e la potenza di una C10 con range extender in ricarica AC, quindi Home Assistant leggeva *Charge Current* e *Charge Power* come «sconosciuto» e la potenza massima di ogni ricarica era 0,0 kW; il sensore dell'auto misura, e tornano tutte e due ([beta #13](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/13)). [Note di rilascio](docs/releases/v4.7.10.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.10.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

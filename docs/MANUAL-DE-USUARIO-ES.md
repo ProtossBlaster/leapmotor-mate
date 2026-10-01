@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.9 · **Idioma:** Español
+> **Versión de Mate:** v4.7.10 · **Idioma:** Español
 
-## Novedades de la versión 4.7.9
+## Novedades de la versión 4.7.10
+
+**Un C10 con extensor de autonomía vuelve a mostrar la corriente y la potencia de carga.** Desde la
+4.0.0, durante una carga AC de un C10 con extensor de autonomía, Mate descartaba la corriente de la
+batería y la potencia calculada a partir de ella: Home Assistant mostraba *Charge Current* y *Charge
+Power* como desconocidos, y la potencia máxima de cada carga era 0,0 kW. El sensor del coche sí mide,
+y ambas vuelven. Las cargas registradas antes de esta actualización se quedan en 0,0 kW: su corriente
+no se había guardado.
+
+### Novedades de la versión 4.7.9
 
 **Los meses anteriores de los trayectos, desde la nube de Leapmotor.** En **Ajustes → Historial de
 trayectos en la nube**, con **Importar trayectos de la nube de Leapmotor** activado, el nuevo menú

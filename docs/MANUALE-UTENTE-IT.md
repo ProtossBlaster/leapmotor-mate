@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.9 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.10 · **Lingua:** Italiano
 
-## Novità della 4.7.9
+## Novità della 4.7.10
+
+**Una C10 con range extender mostra di nuovo corrente e potenza di ricarica.** Dalla 4.0.0, durante
+una ricarica AC di una C10 con range extender, Mate scartava la corrente del pacco e la potenza
+calcolata da essa: Home Assistant mostrava *Charge Current* e *Charge Power* come «sconosciuto» e la
+potenza massima di ogni ricarica era 0,0 kW. Il sensore dell'auto invece misura, e adesso tornano
+tutte e due. Le ricariche registrate prima di questo aggiornamento restano a 0,0 kW: la loro corrente
+non era stata salvata.
+
+### Novità della 4.7.9
 
 **I mesi precedenti dei viaggi, dal cloud Leapmotor.** In **Impostazioni → Storico viaggi cloud**, con
 **Importa viaggi dal cloud Leapmotor** attivo, il menu nuovo **Importa anche i mesi precedenti, a

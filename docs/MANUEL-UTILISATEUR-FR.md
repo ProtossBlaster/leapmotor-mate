@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.9 · **Langue :** Français
+> **Version de Mate :** v4.7.10 · **Langue :** Français
 
-## Nouveautés de la version 4.7.9
+## Nouveautés de la version 4.7.10
+
+**Une C10 à prolongateur d'autonomie affiche de nouveau son courant et sa puissance de recharge.**
+Depuis la 4.0.0, pendant une recharge AC d'une C10 à prolongateur d'autonomie, Mate écartait le
+courant de la batterie et la puissance calculée à partir de lui : Home Assistant affichait *Charge
+Current* et *Charge Power* comme inconnus, et la puissance maximale de chaque recharge valait 0,0 kW.
+Le capteur de la voiture mesure bien, et les deux reviennent. Les recharges enregistrées avant cette
+mise à jour gardent 0,0 kW : leur courant n'avait pas été conservé.
+
+### Nouveautés de la version 4.7.9
 
 **Les mois précédents des trajets, depuis le cloud Leapmotor.** Dans **Paramètres → Historique des
 trajets du cloud**, avec **Importer les trajets du cloud Leapmotor** activé, le nouveau menu

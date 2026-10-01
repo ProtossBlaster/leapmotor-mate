@@ -3,6 +3,19 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.10] — 2026-10-01
+
+- **A C10 range extender on an AC charge keeps the charge current it measures, and the power
+  from it** ([beta #13](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/13), @ebagnoli).
+  Mate 4.0.0 dropped both while the cable was in, on the strength of frames from July in which the
+  pack current read ~0 A through an AC charge. Home Assistant has shown Charge Current and Charge
+  Power as unknown on every charge since, and every charge has recorded a peak of 0.0 kW. His
+  bundle of 1 October shows the sensor measuring: 1,373 polls charging on AC from 19 to 26 September,
+  none under 2 A (2.6 to 18.8 A), and a frame at -16.299 A and 340.9 V taken while Mate logged no
+  current at all. The rule is gone, with the table it was the only row of; charge detection on this
+  car is unchanged. Charges recorded since 4.0.0 keep their 0.0 kW peak: their current was not
+  stored.
+
 ## [4.7.9] — 2026-10-01
 
 - **Earlier months of trips can be imported from the cloud, from September 2026.** The history

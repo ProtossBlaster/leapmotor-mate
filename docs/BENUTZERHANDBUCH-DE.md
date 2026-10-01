@@ -1,8 +1,16 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.9 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.10 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.9
+## Neu in Version 4.7.10
+
+**Ein C10 mit Range Extender zeigt wieder Ladestrom und Ladeleistung.** Seit 4.0.0 hat Mate beim
+AC-Laden eines C10 mit Range Extender den Batteriestrom und die daraus berechnete Leistung verworfen:
+Home Assistant zeigte *Charge Current* und *Charge Power* als unbekannt, und die Höchstleistung jeder
+Ladung stand bei 0,0 kW. Der Sensor des Autos misst sehr wohl, und beide sind zurück. Ladungen, die
+vor diesem Update aufgezeichnet wurden, behalten 0,0 kW: ihr Strom wurde nicht gespeichert.
+
+### Neu in Version 4.7.9
 
 **Frühere Monate der Fahrten aus der Leapmotor-Cloud.** Unter **Einstellungen → Fahrtenverlauf aus
 der Cloud**, mit eingeschaltetem **Fahrten aus der Leapmotor-Cloud importieren**, listet das neue Menü

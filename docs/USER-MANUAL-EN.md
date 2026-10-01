@@ -1,8 +1,16 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.9 · **Language:** English
+> **Mate version:** v4.7.10 · **Language:** English
 
-## New in 4.7.9
+## New in 4.7.10
+
+**A C10 with range extender shows its charge current and power again.** Since 4.0.0, during an AC
+charge of a C10 range extender, Mate discarded the pack current and the power computed from it:
+Home Assistant showed *Charge Current* and *Charge Power* as unknown, and each charge's peak power
+read 0.0 kW. The car's sensor does measure, and both are back. Charges recorded before this update
+keep their 0.0 kW peak: their current was not saved.
+
+### New in 4.7.9
 
 **Earlier months of trips from the Leapmotor cloud.** In **Settings → Cloud trip history**, with
 **Import trips from Leapmotor cloud** on, the new menu **Also import earlier months, starting from**
