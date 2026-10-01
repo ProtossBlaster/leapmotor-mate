@@ -7,7 +7,8 @@
 {% set has_wb = (wb_power or [])|reject('none')|list %}
 {# Each entry switches its line on and off; an empty square is a line switched off. The bars
    separate the bands, top to bottom. A line the session has no readings for stays hidden. #}
-<div id="pcl-{{ cid }}" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 mb-1">
+<div class="flex justify-end mb-1">
+<span id="pcl-{{ cid }}" class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[11px] text-slate-500">
   <button type="button" class="whitespace-nowrap" data-series="power" aria-pressed="true"><span data-swatch style="color:#fbbf24">■</span> {{ t('wb_series_car') if has_wb else t('power') }}</button>
   <button type="button" class="whitespace-nowrap" data-series="wallbox" aria-pressed="true" style="display:none"><span data-swatch style="color:#34d399">■</span> {{ t('wb_series_wallbox') }}</button>
   <button type="button" class="whitespace-nowrap" data-series="remaining" aria-pressed="true" data-tip="{{ t('chart_time_remaining_help') }}" style="display:none"><span data-swatch style="color:#f472b6">■</span> {{ t('time_remaining') }}</button>
@@ -17,6 +18,7 @@
   <span id="pcl-bar3-{{ cid }}" class="text-slate-700" aria-hidden="true" style="display:none">|</span>
   <button type="button" class="whitespace-nowrap" data-series="batt" aria-pressed="true" data-tip="{{ t('chart_battery_temp_help') }}" style="display:none"><span data-swatch style="color:#facc15">■</span> {{ t('battery_temp') }}</button>
   <button type="button" class="whitespace-nowrap" data-series="outside" aria-pressed="true" data-tip="{{ t('chart_outside_temp_help') }}" style="display:none"><span data-swatch style="color:#38bdf8">■</span> {{ t('outside_temp_label') }}</button>
+</span>
 </div>
 <div id="pc-{{ cid }}" class="-mx-1"></div>
 <script>
