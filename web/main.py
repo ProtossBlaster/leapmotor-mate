@@ -2602,9 +2602,31 @@ async def settings_page(request: Request):
                 "default_drive_mode": db_reader.get_setting("default_drive_mode", ""),
                 "default_one_pedal": db_reader.get_setting("default_one_pedal", ""),
                 "db_size_mb": round(db_reader.get_db_size_bytes() / 1048576, 1)}
-    from cloud_import_policy import trips_enabled
+    from datetime import date
+    from cloud_import_policy import import_from, past_months, trips_enabled
     settings["cloud_import_available"] = True
     settings["cloud_import_trips"] = trips_enabled(db_reader._get())
+    # The earlier months on offer: September 2026 to last month (cloud_import_policy.FIRST_MONTH).
+    # Each says what it adds, on a line under the menu: the count does not fit inside it — at
+    # 1024 px the closed menu has 138 px and "Da settembre 2026 (6 mesi)" needs 182.
+    lang = db_reader.get_language()
+    t = i18n.get_t(lang)
+    offered = [(y, m, i18n.fmt_month_year(lang, date(y, m, 1)))
+               for y, m in past_months(db_reader.today_local())]
+
+    def span(i):
+        n, first, last = len(offered) - i, offered[i][2], offered[-1][2]
+        return (t("cloud_import_span_one").format(first=first) if n == 1
+                else t("cloud_import_span_many").format(n=n, first=first, last=last))
+
+    settings["cloud_import_months"] = [(f"{y:04d}-{m:02d}", label, span(i))
+                                       for i, (y, m, label) in enumerate(offered)]
+    chosen = import_from(db_reader._get())
+    settings["cloud_import_from"] = f"{chosen[0]:04d}-{chosen[1]:02d}" if chosen else ""
+    settings["cloud_import_span"] = next((sp for value, _, sp in settings["cloud_import_months"]
+                                          if value == settings["cloud_import_from"]),
+                                         t("cloud_import_span_none"))
+    settings["cloud_import_span_none"] = t("cloud_import_span_none")
     # Per-card open/collapsed state for the settings accordion — saved in the DB (shared
     # across devices). Cards start collapsed so the page stays compact, EXCEPT 'vehicle': it's
     # tiny (model + VIN + the Logout/change-account button) and keeping it open makes the logout
@@ -3795,9 +3817,15 @@ async def save_cost_dynamic(request: Request):
 
 @app.post("/api/settings/cloud-import", response_class=HTMLResponse)
 async def save_cloud_import(request: Request):
-    from cloud_import_policy import KEY
+    from cloud_import_policy import FROM_KEY, KEY, past_months
     form = await request.form()
     db_reader.set_setting(KEY, "1" if form.get("cloud_import_trips") == "1" else "0")
+    # Only a month the card offers, or "" for the current month only. Absent when the card had no
+    # earlier month to offer (September 2026 itself): the setting is then left as it is.
+    chosen = form.get("cloud_import_from")
+    offered = {f"{y:04d}-{m:02d}" for y, m in past_months(db_reader.today_local())}
+    if chosen == "" or chosen in offered:
+        db_reader.set_setting(FROM_KEY, chosen)
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<span style="color:#22c55e">{t("cloud_import_saved")}</span>')
 
