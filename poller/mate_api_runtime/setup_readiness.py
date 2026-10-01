@@ -9,17 +9,17 @@ from session_material import certificate_usable
 def _manual_upload_required():
     """Whether a supplied three-file bundle is the ONLY way to complete this installation.
 
-    False wherever the certificate step can finish on its own: saving `app.crt`/`app.key` runs
-    `provision_automatic`, which adds the common parameters from the profile packaged in the build.
+    False wherever the build completes it by itself: `provision_automatic` installs the Leapmotor
+    app certificate and the common parameters packaged with it, so nobody is asked for either.
     The setup page forks on this and not on `managed` — `managed` is true for every installation of
     the independent client, so forking on it offered a new user only the bundle box, and that bundle
     has to carry private parameters no user can produce (D #328).
     """
     try:
-        from automatic_material import packaged_profile_usable
+        from automatic_material import packaged_certificate_usable, packaged_profile_usable
     except Exception:
         return True
-    return not packaged_profile_usable()
+    return not (packaged_profile_usable() and packaged_certificate_usable())
 
 
 def readiness(cert_dir, *, parameters_directory=None):

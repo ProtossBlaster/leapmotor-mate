@@ -1,5 +1,6 @@
 """Paths derive from the configured database, never a laboratory mount."""
 from dataclasses import dataclass
+import logging
 import os
 from pathlib import Path
 
@@ -46,6 +47,14 @@ def prepare_installation():
                        for directory in candidates for name in ('app.crt', 'app.key'))
     if has_material or (p.data / '.application-transaction').exists():
         return provision_automatic(p.data, certificate_directory=certificate_directory)
-    # A genuinely fresh install still offers its normal certificate/account setup.
+    # A genuinely fresh install is completed from the build: the Leapmotor app certificate and the
+    # common parameters ship with it, so nobody is asked for them. Both processes run this at
+    # import, so a build that cannot install its own material must not take the page down with it:
+    # the page shows the state instead.
+    try:
+        return provision_automatic(p.data)
+    except Exception as error:
+        logging.getLogger(__name__).warning('Packaged application material not installed: %s',
+                                            type(error).__name__)
     from setup_readiness import readiness
     return readiness(p.cert_dir, parameters_directory=p.data / 'api-v2-private')

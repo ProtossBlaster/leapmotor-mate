@@ -1,24 +1,19 @@
-"""A new installation of Mate 4 could not be set up from its own page (D #328).
+"""A new installation is never asked for a certificate: the build carries it.
 
-@gonzalocav, 27/09/2026, fresh Docker on 4.1.0: the instructions say to upload `app.crt` and
-`app.key`, the page offered only a `.zip` box, and a zip of those two files answered "Invalid
-application bundle; existing material preserved".
+01/10/2026, Silvio's order, given at 4.0 and found undone in 4.7.6: the wizard still sent every new
+user to github.com/markoceri/leapmotor-certs for `app.crt` and `app.key`. That pair is the Leapmotor
+app's own TLS certificate — one for everyone, the very one inside every copy of the app — so it
+ships with the build (`poller/mate_api_runtime/application_certificate/`, hash-pinned like the
+profile) and a new installation installs it at startup. The certificate step, its upload endpoint
+and the link are gone. Where the build cannot install its own material the page says so; it never
+asks the user for files.
 
-Measured on the released `:4.2.0` image with an empty volume, before this test existed:
-
-    GET /api/setup/cert-status
-    {"present":false,"managed":true,"state":"provisioning_required","manual_upload_required":false}
-
-`setup.html` forks on `managed`, which `readiness()` returns as `True` in *every* branch under the
-independent client, so `cert-step` was unreachable from 4.0.0 on. The bundle it offered instead has
-to carry exactly three members (`bootstrap_independent.NAMES`), one of them
-`api-v2-private/p12-parameters.json` — private parameters a user cannot produce.
-
-Nothing was actually missing: on the same empty container `POST /api/setup/cert` with the public
-certificate pair answered `{"ok":true}` and cert-status turned to `state: ready`, because
-`provision_automatic` installs the parameters from the profile packaged in the image. Only the
-page's fork was wrong, and `manual_upload_required` — the field that should decide it — was
-hardcoded `False` and read by nobody.
+How it got here — D #328. @gonzalocav, 27/09/2026, fresh Docker on 4.1.0: the instructions said to
+upload `app.crt` and `app.key`, the page offered only a `.zip` box, and a zip of those two files
+answered "Invalid application bundle; existing material preserved". `setup.html` forked on
+`managed`, which `readiness()` returns as `True` in *every* branch under the independent client;
+the field that should decide — `manual_upload_required` — was hardcoded `False` and read by nobody.
+The page now forks on it, and it is true only where this build cannot complete its material alone.
 """
 import pathlib
 import shutil
@@ -98,8 +93,8 @@ def _certificate_pair(directory):
 
 
 def test_a_fresh_install_does_not_need_a_supplied_bundle(tmp_path):
-    """An empty installation can finish from the certificate form, so it must not be told to
-    upload material it has no way of building."""
+    """An empty installation is completed by the build itself, so it must not be told to upload
+    material it has no way of building."""
     import setup_readiness
     answer = setup_readiness.readiness(tmp_path / "certs",
                                        parameters_directory=tmp_path / "api-v2-private")
@@ -118,15 +113,53 @@ def test_manual_upload_is_required_when_the_packaged_profile_cannot_be_used(tmp_
     assert answer["manual_upload_required"] is True
 
 
-def test_missing_parameters_next_to_a_good_certificate_still_point_at_the_form(tmp_path):
-    """Certificates readable, parameters absent: re-running the certificate step installs them,
-    so this is not a case for the supplied bundle either."""
+def test_missing_parameters_next_to_a_good_certificate_are_not_a_case_for_the_bundle(tmp_path):
+    """Certificates readable, parameters absent: provisioning installs them from the packaged
+    profile, so this is not a case for the supplied bundle either."""
     import setup_readiness
     _certificate_pair(tmp_path / "certs")
     answer = setup_readiness.readiness(tmp_path / "certs",
                                        parameters_directory=tmp_path / "api-v2-private")
     assert answer["state"] == "application_parameters_required"
     assert answer["manual_upload_required"] is False
+
+
+def test_manual_upload_is_required_when_the_packaged_certificate_cannot_be_used(tmp_path, monkeypatch):
+    """Same honesty for the certificate: a build whose packaged pair is damaged cannot complete a new
+    installation by itself."""
+    import automatic_material
+    import setup_readiness
+    monkeypatch.setattr(automatic_material, "CERTIFICATE_SHA256",
+                        {"app.crt": "0" * 64, "app.key": "0" * 64}, raising=False)
+    answer = setup_readiness.readiness(tmp_path / "certs",
+                                       parameters_directory=tmp_path / "api-v2-private")
+    assert answer["manual_upload_required"] is True
+
+
+def test_an_unreadable_saved_pair_is_not_counted_as_present(tmp_path, monkeypatch):
+    """#283, @fabiodim: two files on disk, one unreadable. "Present" sent the wizard straight to the
+    login and every login after died on `[SSL] PEM lib`. The legacy client's cert-status loads the
+    pair exactly as its login does."""
+    import command_client
+    _certificate_pair(tmp_path / "certs")
+    crt = tmp_path / "certs" / "app.crt"
+    crt.write_text(" ".join(crt.read_text().strip().splitlines()) + "\n")
+    monkeypatch.setattr(command_client, "_DATA_CERT_DIR", str(tmp_path / "certs"))
+    monkeypatch.setattr(command_client, "_FALLBACK_CERT_DIR", str(tmp_path / "no-fallback"))
+    assert command_client.certs_present() is False
+
+
+def test_the_page_never_asks_for_a_certificate(tmp_path):
+    """No step, no upload, no link: the wizard has nothing to ask about the app certificate."""
+    page = (ROOT / "web" / "templates" / "setup.html").read_text()
+    for gone in ("markoceri", 'id="cert-step"', "api/setup/cert'", "saveCert", 'id="file-crt"'):
+        assert gone not in page, f"the setup page still carries {gone!r}"
+
+
+def test_the_server_takes_no_certificate_from_the_user():
+    pytest.importorskip("fastapi", reason="web.main needs the production web dependencies")
+    import main
+    assert "/api/setup/cert" not in {getattr(route, "path", None) for route in main.app.routes}
 
 
 def test_the_page_and_the_installer_agree_about_the_packaged_profile(tmp_path, monkeypatch):

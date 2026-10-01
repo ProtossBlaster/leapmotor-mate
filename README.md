@@ -122,11 +122,7 @@ The data lives in a local SQLite database. Nothing is sent anywhere except to th
 ## Requirements
 
 1. **A Leapmotor account — dedicated to Mate and used by *nothing else*.** ⚠️ Leapmotor allows only ~one active session per account, so **any other client on the same account — the official phone app, another add-on, a Docker container, or any other integration — fights Mate for the session**: they evict each other in a loop, the car goes **offline to Mate**, and you get **missing or inconsistent data**. Use a separate account for Mate only (not the one on your phone). Create a separate account, then **share the car with it from the official app**: logged in on the account that *owns* the car, share/authorise the vehicle to the new account with **all permissions** and a **permanent** duration (a temporary share expires and breaks Mate later). **Check it worked:** **set the *second* account up in the official Leapmotor app on a device** (not just logging into the account on the web) and confirm the car appears there — if it doesn't, the share isn't active yet and Mate will report *“No vehicle found on this account.”* **Then sign out of that account in the app and leave it to Mate.** That check is a one-off: an app left signed in on Mate's account *is* the “other client” described above, and you're back to the session fight.
-2. **The Leapmotor app TLS certificate** (`app.crt` + `app.key`). This is the *same for everyone* (it identifies the Leapmotor app, not you) and is **not** included in this repository. Download the two files from:
-
-   👉 **https://github.com/markoceri/leapmotor-certs**
-
-   You upload them once during the setup wizard (see below).
+2. **Nothing to download.** The Leapmotor app TLS certificate Mate needs to log in — the *same for everyone*, it identifies the Leapmotor app, not you — ships with Mate and is installed by itself on first start. You are never asked for it.
 
 ---
 
@@ -238,14 +234,13 @@ manual, for now, exists in these five.
 
 ## Setup wizard
 
-The first launch opens on a choice — **Set up my car** or **Try the demo**. Choosing *Set up my car* walks you through two steps:
+The first launch opens on a choice — **Set up my car** or **Try the demo**. Choosing *Set up my car* asks for one thing:
 
-1. **Certificate** — upload `app.crt` and `app.key` (or paste their PEM text). Get them from [markoceri/leapmotor-certs](https://github.com/markoceri/leapmotor-certs). Stored persistently in `/data/certs`.
-2. **Login** — your Leapmotor account email, password and operation **PIN**. The wizard reads your **model** and VIN from the cloud. The **battery** it can only fill in by itself where the European version has a single variant (T03) — where there are several (B03X 39.0 / 52.0, B05 and B10 Pro / Pro Max, C10 RWD / AWD) you pick yours. Correctable at any time in Settings → Battery.
+- **Login** — your Leapmotor account email, password and operation **PIN**. The wizard reads your **model** and VIN from the cloud. The **battery** it can only fill in by itself where the European version has a single variant (T03) — where there are several (B03X 39.0 / 52.0, B05 and B10 Pro / Pro Max, C10 RWD / AWD) you pick yours. Correctable at any time in Settings → Battery.
 
 That's it — the poller starts and data begins to appear.
 
-To switch to a **different Leapmotor account** later, use **Settings → Vehicle → Log out**: it clears only the stored login and re‑opens this wizard (your app certificate stays). All your trips and charges are kept — they're tied to the car's VIN, so the same car carries straight over.
+To switch to a **different Leapmotor account** later, use **Settings → Vehicle → Log out**: it clears only the stored login and re‑opens this wizard. All your trips and charges are kept — they're tied to the car's VIN, so the same car carries straight over.
 
 ## Configuration
 
@@ -345,13 +340,13 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 - **Remote access: put an authenticating proxy in front, don't expose Mate directly.** Mate holds your Leapmotor credentials and can command the car, so for access from outside your network the safest route is to keep authentication *out* of Mate and delegate it. A **VPN** (Tailscale, WireGuard) means no public exposure at all. If you'd rather reach it from any browser without a VPN, an **identity‑aware proxy** — [Pomerium](https://www.pomerium.com/), Cloudflare Access, or Authelia — sits in front and logs you in with an account you already have (GitHub, Google, …), so your user accounts stay separate from Mate and you get sessions, lockout and password reset done properly. *(Thanks to @DerMAp for the Pomerium tip.)*
 - Use a **dedicated Leapmotor account** (see Requirements).
 - This is an **unofficial** project, not affiliated with Leapmotor. It relies on reverse‑engineered cloud APIs and may break if Leapmotor changes them. Use at your own risk.
-- Built on the [`leapmotor-api`](https://github.com/markoceri/leapmotor-api) Python client.
+- Built on [`MATE-API`](https://github.com/ProtossBlaster/MATE-API), Mate's own Leapmotor cloud client (since 4.0).
 
 ## Credits
 
 - [`kerniger/leapmotor-ha`](https://github.com/kerniger/leapmotor-ha) — original Leapmotor cloud API reverse-engineering / Home Assistant integration.
-- [`markoceri/leapmotor-api`](https://github.com/markoceri/leapmotor-api) — Python cloud client.
-- [`markoceri/leapmotor-certs`](https://github.com/markoceri/leapmotor-certs) — app certificate.
+- [`ProtossBlaster/MATE-API`](https://github.com/ProtossBlaster/MATE-API) — Mate's own cloud client.
+- [`markoceri/leapmotor-api`](https://github.com/markoceri/leapmotor-api) — Python cloud client: Mate's fallback since 4.0, and the source of its packaged application profile.
 - Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate) and the Leapmotor Home Assistant integrations.
 
 ## License
@@ -465,11 +460,7 @@ I dati restano in un database SQLite locale. Nulla viene inviato altrove se non 
 ## Requisiti
 
 1. **Un account Leapmotor — dedicato a Mate e usato da *nient'altro*.** ⚠️ Leapmotor consente circa una sola sessione attiva per account: **qualsiasi altro client sullo stesso account — l'app ufficiale del telefono, un altro add-on, un container Docker o qualsiasi altra integrazione — litiga con Mate per la sessione**: si sfrattano a vicenda in loop, l'auto va **offline per Mate** e ottieni **dati mancanti o incoerenti**. Usa un account separato solo per Mate (non quello del telefono). Crea un account separato, poi **condividi l'auto con esso dall'app ufficiale**: dall'account che *possiede* l'auto, condividi/autorizza il veicolo al nuovo account con **tutti i permessi** e durata **permanente** (una condivisione temporanea scade e poi rompe Mate). **Verifica che funzioni:** **configura il *secondo* account nell'app ufficiale Leapmotor su un dispositivo** (non solo accedere all'account via web) e controlla che l'auto compaia — se non c'è, la condivisione non è ancora attiva e Mate dirà *«No vehicle found on this account».*
-2. **Il certificato TLS dell'app Leapmotor** (`app.crt` + `app.key`). È *uguale per tutti* (identifica l'app, non te) e **non** è incluso in questo repository. Scarica i due file da:
-
-   👉 **https://github.com/markoceri/leapmotor-certs**
-
-   Li carichi una volta sola durante il wizard di setup.
+2. **Niente da scaricare.** Il certificato TLS dell'app Leapmotor che serve a Mate per il login — *uguale per tutti*, identifica l'app, non te — è incluso in Mate e si installa da solo al primo avvio. Non ti viene mai chiesto.
 
 ## Installazione
 
@@ -578,10 +569,9 @@ scritto, per ora, esiste in queste cinque.
 
 ## Wizard di setup
 
-Al primo avvio compare una scelta — **Configura la mia auto** o **Prova la demo**. Scegliendo *Configura la mia auto*, due passi:
+Al primo avvio compare una scelta — **Configura la mia auto** o **Prova la demo**. Scegliendo *Configura la mia auto* ti chiede una cosa sola:
 
-1. **Certificato** — carica `app.crt` e `app.key` (oppure incolla il testo PEM). Li trovi su [markoceri/leapmotor-certs](https://github.com/markoceri/leapmotor-certs). Salvati in modo persistente in `/data/certs`.
-2. **Login** — email account Leapmotor, password e **PIN** operativo. Il wizard legge dal cloud **modello** e VIN. La **batteria** riesce a metterla da solo soltanto dove la versione europea ha una variante unica (T03) — dove ce ne sono più d'una (B03X 39,0 / 52,0, B05 e B10 Pro / Pro Max, C10 RWD / AWD) la scegli tu. Si corregge quando vuoi da Impostazioni → Batteria.
+- **Login** — email account Leapmotor, password e **PIN** operativo. Il wizard legge dal cloud **modello** e VIN. La **batteria** riesce a metterla da solo soltanto dove la versione europea ha una variante unica (T03) — dove ce ne sono più d'una (B03X 39,0 / 52,0, B05 e B10 Pro / Pro Max, C10 RWD / AWD) la scegli tu. Si corregge quando vuoi da Impostazioni → Batteria.
 
 Fatto — il poller parte e i dati iniziano a comparire.
 
@@ -678,7 +668,7 @@ Funziona con qualsiasi broker MQTT (es. l'add‑on Mosquitto). Usa **Prova conne
 - **Accesso remoto: metti davanti un proxy con autenticazione, non esporre Mate direttamente.** Mate custodisce le tue credenziali Leapmotor e può comandare l'auto, quindi per l'accesso da fuori rete la strada più sicura è tenere l'autenticazione *fuori* da Mate e delegarla. Una **VPN** (Tailscale, WireGuard) elimina del tutto l'esposizione pubblica. Se preferisci raggiungerlo da qualsiasi browser senza VPN, un **proxy identity‑aware** — [Pomerium](https://www.pomerium.com/), Cloudflare Access o Authelia — si mette davanti e ti fa accedere con un account che hai già (GitHub, Google, …): così i tuoi account utente restano separati da Mate e ottieni sessioni, blocco tentativi e reset password fatti come si deve. *(Grazie a @DerMAp per il suggerimento su Pomerium.)*
 - Usa un **account Leapmotor dedicato** (vedi Requisiti).
 - Progetto **non ufficiale**, non affiliato a Leapmotor. Usa API cloud ricavate per reverse‑engineering e può smettere di funzionare se Leapmotor le cambia. Usalo a tuo rischio.
-- Basato sul client Python [`leapmotor-api`](https://github.com/markoceri/leapmotor-api).
+- Basato su [`MATE-API`](https://github.com/ProtossBlaster/MATE-API), il client cloud Leapmotor di Mate (dalla 4.0).
 
 ## Licenza
 

@@ -11,9 +11,9 @@ data/
 **/*.db-shm
 secret.key
 **/secret.key
-# App TLS certificate — user-provided at setup (README / markoceri/leapmotor-certs). NEVER
-# bundle it in the image, even when building locally from a working dir that has the files
-# (they're gitignored, so CI never sees them — this guards a local `docker build`). Keep .gitkeep.
+# A developer's local certificate copy (gitignored, so CI never sees it — this guards a local
+# `docker build`). The image carries the build's own pair, hash-pinned, in
+# poller/mate_api_runtime/application_certificate/; nothing else may stand in for it. Keep .gitkeep.
 certs/app.crt
 certs/app.key
 certs/*.pem

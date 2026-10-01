@@ -1,8 +1,9 @@
-"""Provision common application parameters while preserving installation identity.
+"""Provision application material while preserving installation identity.
 
-The caller supplies a trusted, integrity-checked packaged profile directory. Only
-its api-v2-private/p12-parameters.json is read; certificates always come from
-this installation. No discovery of other users' sessions or network requests.
+The common parameters come from the integrity-checked packaged profile. The certificate
+pair an installation already holds is kept; a new installation takes the Leapmotor app
+certificate packaged with this build (application_certificate/, hash-pinned), so nobody
+is ever asked for it. No discovery of other users' sessions or network requests.
 """
 import hashlib
 import json
@@ -22,6 +23,15 @@ PARAMETERS = NAMES[2]
 PACKAGED_PROFILE = 'application_profile.json'
 DEFAULT_PROFILE_DIRECTORY = Path(__file__).parent
 PROFILE_SHA256 = "c856adee9057ae48893e6dd65fdc7fe9bb5f5956bdfb64d90a3daa2ec2b053f6"
+# The Leapmotor app's own TLS pair (V1.16.4-1, serial 7FFAB6B2EEC9, valid to 06/03/2029): one for
+# every user, the one inside every copy of the app. Shipped with the build instead of asked of the
+# user (01/10/2026). When Leapmotor replaces it, a release replaces these two files and hashes.
+# → APPLICATION-CERTIFICATE-NOTICE, tests/test_a_fresh_install_is_never_asked_for_a_certificate.py
+PACKAGED_CERTIFICATE = 'application_certificate'
+CERTIFICATE_SHA256 = {
+    'app.crt': "922875fc9a14d948ce9c213046936ef4b27db4cc5ad76bdd1bc712b9146a9dd0",
+    'app.key': "362307aaff20a3122bbc20531cad62efa828c1abb6b6a21e42ad236c8d201a7d",
+}
 
 
 def _safe_path(path):
@@ -90,12 +100,39 @@ def packaged_profile_usable(profile_directory=DEFAULT_PROFILE_DIRECTORY):
     return True
 
 
-def provision_automatic(destination, *, profile_directory=DEFAULT_PROFILE_DIRECTORY, certificate_directory=None):
-    """Reuse local certificates and install missing common parameters atomically.
+def _packaged_certificate():
+    """The build's certificate pair, refused unless both files are exactly the pinned ones."""
+    directory = _safe_path(DEFAULT_PROFILE_DIRECTORY / PACKAGED_CERTIFICATE)
+    payloads = {name: _read(directory / Path(name).name) for name in NAMES[:2]}
+    if any(hashlib.sha256(payloads[name]).hexdigest() != CERTIFICATE_SHA256.get(Path(name).name)
+           for name in NAMES[:2]):
+        raise ValueError('Packaged application certificate integrity check failed')
+    return payloads
 
-    Existing complete material wins over any packaged profile. Invalid or partial
-    destination certificate pairs fail closed. Source files are never modified.
-    Bootstrap's durable transaction resumes safely following interruption.
+
+def packaged_certificate_usable():
+    """Whether this build can give a new installation its certificate pair by itself.
+
+    The same integrity check `provision_automatic` makes, then the pair loaded as the login loads it,
+    so an expired or damaged packaged pair is caught here and not at a user's first login.
+    """
+    try:
+        _packaged_certificate()
+        from session_material import certificate_usable
+        directory = DEFAULT_PROFILE_DIRECTORY / PACKAGED_CERTIFICATE
+        return bool(certificate_usable(directory / 'app.crt', directory / 'app.key'))
+    except Exception:
+        return False
+
+
+def provision_automatic(destination, *, profile_directory=DEFAULT_PROFILE_DIRECTORY, certificate_directory=None):
+    """Reuse local certificates and install missing material atomically.
+
+    Existing complete material wins over anything packaged. A destination with no
+    certificate pair takes the one from `certificate_directory` when given, else the
+    pair packaged with this build. Invalid or partial destination certificate pairs
+    fail closed. Source files are never modified. Bootstrap's durable transaction
+    resumes safely following interruption.
     """
     destination = _safe_path(destination)
     destination.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -111,9 +148,11 @@ def provision_automatic(destination, *, profile_directory=DEFAULT_PROFILE_DIRECT
         local_pair = [targets[name].exists() for name in NAMES[:2]]
         if any(local_pair) and not all(local_pair):
             raise ValueError('Incomplete existing application certificate pair')
-        cert_dir = destination / 'certs' if all(local_pair) else _safe_path(
-            certificate_directory if certificate_directory is not None else destination / 'certs')
-        payloads = {name: _read(cert_dir / Path(name).name) for name in NAMES[:2]}
+        if all(local_pair) or certificate_directory is not None:
+            cert_dir = destination / 'certs' if all(local_pair) else _safe_path(certificate_directory)
+            payloads = {name: _read(cert_dir / Path(name).name) for name in NAMES[:2]}
+        else:
+            payloads = _packaged_certificate()
         existing_parameters = targets[PARAMETERS].exists()
         packaged = Path(profile_directory) == DEFAULT_PROFILE_DIRECTORY
         parameter_path = targets[PARAMETERS] if existing_parameters else _safe_path(profile_directory) / (

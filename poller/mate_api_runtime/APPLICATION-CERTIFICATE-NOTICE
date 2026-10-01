@@ -1,0 +1,20 @@
+Leapmotor application TLS certificate
+
+What: the client certificate and key of the Leapmotor Android app — the pair inside every copy
+of the app, identical for every user. It is not an account certificate: it opens the login only.
+The account certificate the cloud then issues for each device stays in that installation's own
+volume and is never shipped.
+
+Source: recovered from the official Leapmotor app V1.16.4-1 at runtime, 26/09/2026.
+APK SHA-256:               0424d60a33f0ac92eb464fb095445722af0994350c2127e7dab5420e15e007e1
+Certificate (DER) SHA-256: f74f5b537d830e4082b9bd7dbe5ffaa01e4dc946e6e9a915ef0013d4fc9d7ce0
+Serial: 7FFAB6B2EEC9 · Subject CN: LeapmotorAppCrtCN · Valid until: 2029-03-06 01:59:39 UTC
+
+application_certificate/app.crt SHA-256: 922875fc9a14d948ce9c213046936ef4b27db4cc5ad76bdd1bc712b9146a9dd0
+application_certificate/app.key SHA-256: 362307aaff20a3122bbc20531cad62efa828c1abb6b6a21e42ad236c8d201a7d
+
+Mate installs this pair into a new installation at startup (automatic_material.provision_automatic),
+so nobody is asked for it; an installation that already holds a pair keeps its own. When Leapmotor
+replaces the certificate, a Mate release replaces both files and the hashes pinned in
+automatic_material.CERTIFICATE_SHA256 — tests/test_automatic_material.py turns red in CI six months
+before the packaged pair expires.

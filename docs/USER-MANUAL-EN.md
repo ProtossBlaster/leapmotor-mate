@@ -346,10 +346,10 @@ To set Mate up you need three things:
    **lost data** (trips and charges not recorded). It's the number-one cause of the problems people
    report. *Solution:* a secondary account with a **password used only in Mate**.
 
-2. **The Leapmotor app certificate** (`app.crt` + `app.key`). It's a certificate that is **the same
-   for everyone** (it belongs to the app, not to your account) and is needed to talk to the cloud.
-   You download it from a public repository — the wizard gives you the direct link
-   ([github.com/markoceri/leapmotor-certs](https://github.com/markoceri/leapmotor-certs)).
+2. **Nothing to download for the app certificate.** Mate needs the Leapmotor app's TLS certificate
+   (`app.crt` + `app.key`) to log in — it is **the same for everyone** (it belongs to the app, not to
+   your account). It ships with Mate and is installed by itself on first start: you are never asked
+   for it.
 
 3. **Email, password and the account's operation PIN.** The **4-digit PIN** is the one you also use
    in the official app to authorize remote commands (locking, climate…).
@@ -450,20 +450,7 @@ Two buttons:
 - **▶ Configure my car** — the actual setup (continues below).
 - **🧪 Try the demo** — enters demo mode with fake data. You can leave whenever you want.
 
-### Step 1 — App certificate
-
-Mate asks you for the Leapmotor app's TLS certificate. You have two ways:
-
-- **Upload the files** `app.crt` and `app.key` (the default mode), or
-- **Paste the PEM text** of the two files (the *"Paste the PEM text instead"* button).
-
-Download them from the link shown, upload them and press **Save certificate**. Mate opens the two
-files before keeping them: if one can't be read — a file cut short, or the web page that shows it
-saved instead of the file — it is refused, and the red message says which one. This step only
-appears if Mate doesn't already have a certificate it can read: a broken one saved earlier doesn't
-count.
-
-### Step 2 — Account sign-in
+### Step 1 — Account sign-in
 
 Enter:
 
@@ -478,7 +465,7 @@ Press **🔍 Detect my car**. Mate checks the credentials and reads the **model 
 (VIN)** from the cloud. If all goes well you see a "Car detected" card showing `Leapmotor <model> ·
 VIN ···xxxxxx`.
 
-### Step 3 — Battery
+### Step 2 — Battery
 
 Depending on the model:
 
@@ -500,7 +487,7 @@ Depending on the model:
 > is the **C10 RWD**: 69.9 kWh is the nameplate figure, and real charges put the usable pack at 67.0.
 
 
-### Step 4 — Connect
+### Step 3 — Connect
 
 Press **Connect & Start**. Mate saves the configuration, connects and takes you to the **Overview**.
 From this moment the "poller" starts collecting data in the background: the first trips and charges

@@ -1,7 +1,8 @@
 // The wizard's own fork, run for real: the page's script is handed in on argv[2], already rendered
 // by Jinja, so what runs here is what the browser gets. `chooseSetup()` decides, from one
-// `/api/setup/cert-status` answer, which of three things a new user is shown — and that decision
-// is a line of browser JavaScript no Python test can reach.
+// `/api/setup/cert-status` answer, what a new user is shown — and that decision is a line of
+// browser JavaScript no Python test can reach. None of the answers is ever a certificate form:
+// the build carries the app certificate and installs it at startup (01/10/2026).
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
@@ -60,15 +61,15 @@ async function choose(readiness) {
 }
 
 (async () => {
-  // ── 1. A genuinely fresh install (D #328) ────────────────────────────────────────────────────
-  // Measured on the released 4.2.0 image with an empty volume: cert-status answers
-  // {"present":false,"managed":true,"state":"provisioning_required","manual_upload_required":false}
-  // and POST /api/setup/cert completes the install on its own, because the image carries the
-  // packaged application profile. So the certificate form is the step this user needs.
+  // ── 1. Not ready and no bundle needed: the build should have completed it ────────────────────
+  // A new installation is provisioned from the build at startup, so cert-status answers `ready`.
+  // If it still answers `provisioning_required`, the build could not install its own material:
+  // the page says so. It never asks the user for a certificate.
   await choose({present: false, managed: true, state: 'provisioning_required',
                 manual_upload_required: false});
-  assert.equal(shown('cert-step'), 'block',
-    'a fresh install was not offered the app.crt/app.key form (D #328)');
+  assert.equal(shown('managed-setup-error'), 'block',
+    'an installation the build could not complete was not told so');
+  assert.notEqual(shown('cert-step'), 'block', 'a new user was asked for a certificate');
   assert.notEqual(shown('application-bundle-step'), 'block',
     'a fresh install was sent to the ZIP bundle it cannot build');
 
@@ -78,14 +79,13 @@ async function choose(readiness) {
                 manual_upload_required: true});
   assert.equal(shown('application-bundle-step'), 'block',
     'an installation that needs a supplied bundle was not offered the upload');
-  assert.notEqual(shown('cert-step'), 'block',
-    'a certificate form was offered where it cannot complete the install');
 
   // ── 3. Material already there → straight to the account form ─────────────────────────────────
   await choose({present: true, managed: true, state: 'ready', manual_upload_required: false});
   assert.equal(shown('setup-form'), 'block', 'a ready installation was not shown the login form');
 
-  // ── 4. The legacy client answers `present` alone; its own certificate step must still show ───
+  // ── 4. The legacy client answers `present` alone: no certificate step for it either ──────────
   await choose({present: false});
-  assert.equal(shown('cert-step'), 'block', 'the legacy certificate step was lost');
+  assert.equal(shown('managed-setup-error'), 'block', 'a legacy install without material was not told so');
+  assert.notEqual(shown('cert-step'), 'block', 'the legacy client asked for a certificate');
 })().catch(error => { console.error(error.message); process.exit(1); });

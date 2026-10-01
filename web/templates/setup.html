@@ -74,7 +74,7 @@
     <p id="demo-cta-note" class="text-[11px] text-slate-500 mt-3 text-center">Sample data only — nothing is real. You can exit anytime.</p>
   </div>
 
-  <!-- Back to the landing (shown only once the setup/cert form is revealed) -->
+  <!-- Back to the landing (shown only once a setup step is revealed) -->
   <button type="button" id="back-link" onclick="backToChoice()" style="display:none"
           class="mb-4 text-sm text-slate-400 hover:text-white">← <span id="back-label">Back</span></button>
 
@@ -86,49 +86,7 @@
     <p id="application-bundle-result" role="status" class="mt-2 text-sm text-slate-300"></p>
   </div>
 
-  <!-- ── Step 1: App certificate ──────────────────────────────────────────── -->
-  <div id="cert-step" style="display:none">
-    <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:18px 18px 20px">
-      <div id="cert-title" style="color:#f1f5f9;font-size:15px;font-weight:700;margin-bottom:6px">App certificate</div>
-      <p id="cert-desc" style="color:#94a3b8;font-size:13px;line-height:1.5;margin-bottom:10px"></p>
-      <a id="cert-link" href="https://github.com/markoceri/leapmotor-certs" target="_blank" rel="noopener"
-         style="display:inline-flex;align-items:center;gap:6px;color:#14b8a6;font-size:13px;font-weight:600;margin-bottom:16px">
-        github.com/markoceri/leapmotor-certs ↗
-      </a>
-
-      <div id="cert-error" style="display:none;background:#ef444422;border:1px solid #ef444455;border-radius:10px;padding:10px 14px;color:#fca5a5;font-size:13px;margin-bottom:12px"></div>
-
-      <!-- Mode: file upload (default) -->
-      <div id="cert-mode-file">
-        <label class="block text-xs font-medium text-slate-400 mb-1" id="lbl-crt">app.crt (certificate)</label>
-        <input type="file" id="file-crt" accept=".crt,.pem,.cert"
-               class="w-full text-sm text-slate-300 mb-3 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-brand/20 file:text-brand file:cursor-pointer cursor-pointer">
-        <label class="block text-xs font-medium text-slate-400 mb-1" id="lbl-key">app.key (private key)</label>
-        <input type="file" id="file-key" accept=".key,.pem"
-               class="w-full text-sm text-slate-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-brand/20 file:text-brand file:cursor-pointer cursor-pointer">
-      </div>
-
-      <!-- Mode: paste PEM -->
-      <div id="cert-mode-paste" style="display:none">
-        <label class="block text-xs font-medium text-slate-400 mb-1">app.crt (PEM)</label>
-        <textarea id="paste-crt" rows="3" placeholder="-----BEGIN CERTIFICATE-----"
-                  class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-slate-200 text-xs font-mono mb-3 focus:outline-none focus:border-brand"></textarea>
-        <label class="block text-xs font-medium text-slate-400 mb-1">app.key (PEM)</label>
-        <textarea id="paste-key" rows="3" placeholder="-----BEGIN PRIVATE KEY-----"
-                  class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-slate-200 text-xs font-mono focus:outline-none focus:border-brand"></textarea>
-      </div>
-
-      <button type="button" onclick="toggleCertMode()" id="cert-toggle-mode"
-              class="text-xs text-slate-400 hover:text-slate-200 mt-3 cursor-pointer underline"></button>
-
-      <button type="button" onclick="saveCert()" id="btn-cert"
-              class="w-full py-3 mt-4 rounded-xl bg-brand text-white font-semibold text-sm hover:bg-teal-500 transition-all cursor-pointer">
-        <span id="cert-btn-label">Save certificate</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- ── Step 2: Account login ────────────────────────────────────────────── -->
+  <!-- ── Account login ────────────────────────────────────────────────────── -->
   <!-- Form -->
   <form method="post" action="setup" class="space-y-4" id="setup-form" style="display:none"
         onsubmit="return validateSubmit()">
@@ -280,19 +238,6 @@ const strings = {
     submit:        "Connect & Start",
     required:      "Email, password and PIN are required.",
     noBattery:     "Please select a battery variant first.",
-    certTitle:     "Step 1 — App certificate",
-    certDesc:      "Mate needs the Leapmotor app TLS certificate (the same for everyone, not your account). Download the two files app.crt and app.key from:",
-    certBtn:       "Save certificate",
-    certSaving:    "⏳ Saving…",
-    certToPaste:   "Paste the PEM text instead",
-    certToFile:    "Upload the files instead",
-    certBoth:      "Both app.crt and app.key are required.",
-    certUnreadable: "app.crt is not a readable certificate. Download the file itself again (not the web page that shows it) and upload it.",
-    keyUnreadable: "app.key is not a readable private key. Download the file itself again (not the web page that shows it) and upload it.",
-    keyMismatch:   "app.key does not belong to this app.crt. Upload the two files that go together.",
-    certSaved:     "✓ Certificate saved",
-    certCrtLabel:  "app.crt (certificate)",
-    certKeyLabel:  "app.key (private key)",
     setupChoice:   "Set up my car",
     back:          "Back",
     demoBtn:       "Try the demo",
@@ -323,19 +268,6 @@ const strings = {
     submit:        "Connetti e avvia",
     required:      "Email, password e PIN sono obbligatori.",
     noBattery:     "Seleziona prima una variante batteria.",
-    certTitle:     "Passo 1 — Certificato app",
-    certDesc:      "Mate ha bisogno del certificato TLS dell'app Leapmotor (uguale per tutti, non del tuo account). Scarica i due file app.crt e app.key da:",
-    certBtn:       "Salva certificato",
-    certSaving:    "⏳ Salvataggio…",
-    certToPaste:   "Incolla il testo PEM invece",
-    certToFile:    "Carica i file invece",
-    certBoth:      "Servono entrambi app.crt e app.key.",
-    certUnreadable: "app.crt non è un certificato leggibile. Scarica di nuovo il file vero e proprio (non la pagina web che lo mostra) e caricalo.",
-    keyUnreadable: "app.key non è una chiave privata leggibile. Scarica di nuovo il file vero e proprio (non la pagina web che lo mostra) e caricalo.",
-    keyMismatch:   "app.key non appartiene a questo app.crt. Carica i due file che vanno insieme.",
-    certSaved:     "✓ Certificato salvato",
-    certCrtLabel:  "app.crt (certificato)",
-    certKeyLabel:  "app.key (chiave privata)",
     setupChoice:   "Configura la mia auto",
     back:          "Indietro",
     demoBtn:       "Prova la demo",
@@ -366,19 +298,6 @@ const strings = {
     submit:        "Connecter et démarrer",
     required:      "E-mail, mot de passe et PIN sont obligatoires.",
     noBattery:     "Veuillez d'abord sélectionner une variante de batterie.",
-    certTitle:     "Étape 1 — Certificat de l'app",
-    certDesc:      "Mate a besoin du certificat TLS de l'app Leapmotor (le même pour tous, pas celui de votre compte). Téléchargez les deux fichiers app.crt et app.key depuis :",
-    certBtn:       "Enregistrer le certificat",
-    certSaving:    "⏳ Enregistrement…",
-    certToPaste:   "Coller le texte PEM à la place",
-    certToFile:    "Téléverser les fichiers à la place",
-    certBoth:      "app.crt et app.key sont tous deux requis.",
-    certUnreadable: "app.crt n'est pas un certificat lisible. Téléchargez à nouveau le fichier lui-même (pas la page web qui l'affiche) et envoyez-le.",
-    keyUnreadable: "app.key n'est pas une clé privée lisible. Téléchargez à nouveau le fichier lui-même (pas la page web qui l'affiche) et envoyez-le.",
-    keyMismatch:   "app.key ne correspond pas à ce app.crt. Envoyez les deux fichiers qui vont ensemble.",
-    certSaved:     "✓ Certificat enregistré",
-    certCrtLabel:  "app.crt (certificat)",
-    certKeyLabel:  "app.key (clé privée)",
     setupChoice:   "Configurer ma voiture",
     back:          "Retour",
     demoBtn:       "Essayer la démo",
@@ -409,19 +328,6 @@ const strings = {
     submit:        "Verbinden & starten",
     required:      "E-Mail, Passwort und PIN sind erforderlich.",
     noBattery:     "Bitte wählen Sie zuerst eine Batterievariante.",
-    certTitle:     "Schritt 1 — App-Zertifikat",
-    certDesc:      "Mate benötigt das TLS-Zertifikat der Leapmotor-App (für alle gleich, nicht Ihr Konto). Laden Sie die beiden Dateien app.crt und app.key herunter von:",
-    certBtn:       "Zertifikat speichern",
-    certSaving:    "⏳ Speichern…",
-    certToPaste:   "Stattdessen PEM-Text einfügen",
-    certToFile:    "Stattdessen Dateien hochladen",
-    certBoth:      "app.crt und app.key sind beide erforderlich.",
-    certUnreadable: "app.crt ist kein lesbares Zertifikat. Laden Sie die Datei selbst erneut herunter (nicht die Webseite, die sie anzeigt) und laden Sie sie hoch.",
-    keyUnreadable: "app.key ist kein lesbarer privater Schlüssel. Laden Sie die Datei selbst erneut herunter (nicht die Webseite, die sie anzeigt) und laden Sie sie hoch.",
-    keyMismatch:   "app.key gehört nicht zu diesem app.crt. Laden Sie die beiden zusammengehörenden Dateien hoch.",
-    certSaved:     "✓ Zertifikat gespeichert",
-    certCrtLabel:  "app.crt (Zertifikat)",
-    certKeyLabel:  "app.key (privater Schlüssel)",
     setupChoice:   "Mein Auto einrichten",
     back:          "Zurück",
     demoBtn:       "Demo ausprobieren",
@@ -452,19 +358,6 @@ const strings = {
     submit:        "Połącz i uruchom",
     required:      "E-mail, hasło i PIN są wymagane.",
     noBattery:     "Najpierw wybierz wariant baterii.",
-    certTitle:     "Krok 1 — Certyfikat aplikacji",
-    certDesc:      "Mate potrzebuje certyfikatu TLS aplikacji Leapmotor (takiego samego dla wszystkich, nie Twojego konta). Pobierz dwa pliki app.crt i app.key z:",
-    certBtn:       "Zapisz certyfikat",
-    certSaving:    "⏳ Zapisywanie…",
-    certToPaste:   "Zamiast tego wklej tekst PEM",
-    certToFile:    "Zamiast tego prześlij pliki",
-    certBoth:      "Wymagane są oba pliki: app.crt i app.key.",
-    certUnreadable: "app.crt nie jest czytelnym certyfikatem. Pobierz ponownie sam plik (nie stronę internetową, która go wyświetla) i prześlij go.",
-    keyUnreadable: "app.key nie jest czytelnym kluczem prywatnym. Pobierz ponownie sam plik (nie stronę internetową, która go wyświetla) i prześlij go.",
-    keyMismatch:   "app.key nie pasuje do tego app.crt. Prześlij dwa pliki, które należą do siebie.",
-    certSaved:     "✓ Certyfikat zapisany",
-    certCrtLabel:  "app.crt (certyfikat)",
-    certKeyLabel:  "app.key (klucz prywatny)",
     setupChoice:   "Skonfiguruj mój samochód",
     back:          "Wstecz",
     demoBtn:       "Wypróbuj demo",
@@ -495,19 +388,6 @@ const strings = {
     submit:        "Ligar e iniciar",
     required:      "O email, a palavra-passe e o PIN são obrigatórios.",
     noBattery:     "Selecione primeiro a variante da bateria.",
-    certTitle:     "Passo 1 — Certificado da aplicação",
-    certDesc:      "O Mate necessita do certificado TLS da aplicação Leapmotor (é igual para todos os utilizadores, não é específico da sua conta). Transfira os ficheiros app.crt e app.key em:",
-    certBtn:       "Guardar certificado",
-    certSaving:    "⏳ A guardar…",
-    certToPaste:   "Colar o conteúdo PEM em vez disso",
-    certToFile:    "Carregar os ficheiros em vez disso",
-    certBoth:      "Os ficheiros app.crt e app.key são obrigatórios.",
-    certUnreadable: "O app.crt não é um certificado legível. Transfira novamente o próprio ficheiro (não a página web que o mostra) e carregue-o.",
-    keyUnreadable: "O app.key não é uma chave privada legível. Transfira novamente o próprio ficheiro (não a página web que o mostra) e carregue-o.",
-    keyMismatch:   "O app.key não corresponde a este app.crt. Carregue os dois ficheiros que pertencem um ao outro.",
-    certSaved:     "✓ Certificado guardado",
-    certCrtLabel:  "app.crt (certificado)",
-    certKeyLabel:  "app.key (chave privada)",
     setupChoice:   "Configurar o meu carro",
     back:          "Voltar",
     demoBtn:       "Experimentar a demonstração",
@@ -538,19 +418,6 @@ const strings = {
     submit:        "Verbinden en starten",
     required:      "E-mailadres, wachtwoord en pincode zijn verplicht.",
     noBattery:     "Kies eerst een batterijvariant.",
-    certTitle:     "Stap 1 — App-certificaat",
-    certDesc:      "Mate heeft het TLS-certificaat van de Leapmotor-app nodig (voor iedereen hetzelfde, niet van jouw account). Download de twee bestanden app.crt en app.key bij:",
-    certBtn:       "Certificaat opslaan",
-    certSaving:    "⏳ Opslaan…",
-    certToPaste:   "Plak in plaats daarvan de PEM-tekst",
-    certToFile:    "Upload in plaats daarvan de bestanden",
-    certBoth:      "Zowel app.crt als app.key zijn verplicht.",
-    certUnreadable: "app.crt is geen leesbaar certificaat. Download het bestand zelf opnieuw (niet de webpagina die het toont) en upload het.",
-    keyUnreadable: "app.key is geen leesbare privésleutel. Download het bestand zelf opnieuw (niet de webpagina die het toont) en upload het.",
-    keyMismatch:   "app.key hoort niet bij dit app.crt. Upload de twee bestanden die bij elkaar horen.",
-    certSaved:     "✓ Certificaat opgeslagen",
-    certCrtLabel:  "app.crt (certificaat)",
-    certKeyLabel:  "app.key (privésleutel)",
     setupChoice:   "Mijn auto instellen",
     back:          "Terug",
     demoBtn:       "De demo proberen",
@@ -581,19 +448,6 @@ const strings = {
     submit:        "Conectar y empezar",
     required:      "El correo, la contraseña y el PIN son obligatorios.",
     noBattery:     "Elige antes una variante de batería.",
-    certTitle:     "Paso 1 — Certificado de la app",
-    certDesc:      "Mate necesita el certificado TLS de la app de Leapmotor (el mismo para todo el mundo, no el de tu cuenta). Descarga los dos archivos app.crt y app.key de:",
-    certBtn:       "Guardar el certificado",
-    certSaving:    "⏳ Guardando…",
-    certToPaste:   "Pegar el texto PEM en su lugar",
-    certToFile:    "Subir los archivos en su lugar",
-    certBoth:      "Hacen falta tanto app.crt como app.key.",
-    certUnreadable: "app.crt no es un certificado legible. Vuelve a descargar el archivo en sí (no la página web que lo muestra) y súbelo.",
-    keyUnreadable: "app.key no es una clave privada legible. Vuelve a descargar el archivo en sí (no la página web que lo muestra) y súbelo.",
-    keyMismatch:   "app.key no corresponde a este app.crt. Sube los dos archivos que van juntos.",
-    certSaved:     "✓ Certificado guardado",
-    certCrtLabel:  "app.crt (certificado)",
-    certKeyLabel:  "app.key (clave privada)",
     setupChoice:   "Configurar mi coche",
     back:          "Atrás",
     demoBtn:       "Probar la demostración",
@@ -603,63 +457,6 @@ const strings = {
 };
 
 let currentLang = 'en';
-let certPasteMode = false;
-
-// ── Certificate step ──────────────────────────────────────────────────────────
-function toggleCertMode() {
-  certPasteMode = !certPasteMode;
-  document.getElementById('cert-mode-file').style.display  = certPasteMode ? 'none' : 'block';
-  document.getElementById('cert-mode-paste').style.display = certPasteMode ? 'block' : 'none';
-  document.getElementById('cert-toggle-mode').textContent  =
-    certPasteMode ? strings[currentLang].certToFile : strings[currentLang].certToPaste;
-}
-
-function showCertError(msg) {
-  const el = document.getElementById('cert-error');
-  el.textContent = msg;
-  el.style.display = msg ? 'block' : 'none';
-}
-
-const CERT_REFUSALS = { cert_unreadable: 'certUnreadable', key_unreadable: 'keyUnreadable',
-                        key_mismatch: 'keyMismatch' };
-
-async function saveCert() {
-  const s = strings[currentLang];
-  showCertError('');
-  const fd = new FormData();
-  if (certPasteMode) {
-    const crt = document.getElementById('paste-crt').value.trim();
-    const key = document.getElementById('paste-key').value.trim();
-    if (!crt || !key) { showCertError(s.certBoth); return; }
-    fd.append('crt_pem', crt);
-    fd.append('key_pem', key);
-  } else {
-    const crt = document.getElementById('file-crt').files[0];
-    const key = document.getElementById('file-key').files[0];
-    if (!crt || !key) { showCertError(s.certBoth); return; }
-    fd.append('crt_file', crt);
-    fd.append('key_file', key);
-  }
-
-  const btn = document.getElementById('btn-cert');
-  document.getElementById('cert-btn-label').textContent = s.certSaving;
-  btn.disabled = true; btn.style.opacity = '0.6';
-  try {
-    const resp = await fetch('api/setup/cert', { method: 'POST', body: fd });
-    const data = await resp.json();
-    // #283: the server loads the pair before saving it and names what is wrong with `code`;
-    // its English `error` is only for a refusal this page has no words for.
-    if (!resp.ok || data.error) { showCertError(s[CERT_REFUSALS[data.code]] || data.error || 'Error'); return; }
-    // Cert saved → reveal the login step
-    document.getElementById('cert-step').style.display = 'none';
-    document.getElementById('setup-form').style.display = 'block';
-  } catch (err) {
-    showCertError(err.message);
-  } finally {
-    document.getElementById('cert-btn-label').textContent = s.certBtn;
-    btn.disabled = false; btn.style.opacity = '1';
-  }
-}
 
 // ── Language switch ───────────────────────────────────────────────────────────
 function setLang(lang) {
@@ -679,12 +476,6 @@ function setLang(lang) {
   document.getElementById('inp-pin').placeholder         = s.pinPh;
   document.getElementById('detect-label').textContent    = s.detectBtn;
   document.getElementById('submit-label').textContent    = s.submit;
-  document.getElementById('cert-title').textContent      = s.certTitle;
-  document.getElementById('cert-desc').textContent       = s.certDesc;
-  document.getElementById('cert-btn-label').textContent  = s.certBtn;
-  document.getElementById('cert-toggle-mode').textContent = certPasteMode ? s.certToFile : s.certToPaste;
-  document.getElementById('lbl-crt').textContent          = s.certCrtLabel;
-  document.getElementById('lbl-key').textContent          = s.certKeyLabel;
   document.getElementById('choice-setup-label').textContent = s.setupChoice;
   document.getElementById('demo-cta-label').textContent     = s.demoBtn;
   document.getElementById('demo-cta-note').textContent      = s.demoNote;
@@ -1084,7 +875,7 @@ const initLang = navigator.language.startsWith('it') ? 'it'
 setLang('{{ prefill.language if prefill else "" }}' || initLang);
 
 // ── Landing choice ────────────────────────────────────────────────────────────
-// "Set up my car" reveals the cert/login form (cert step first unless already present);
+// "Set up my car" reveals the login form once the application material is in place;
 // the account form is never shown to a demo-curious user until they choose to configure.
 async function saveApplicationBundle() {
   const file = document.getElementById('application-bundle').files[0];
@@ -1110,11 +901,13 @@ async function chooseSetup() {
     if (d.present) {
       document.getElementById('setup-form').style.display = 'block';
     } else if (d.manual_upload_required) {
-      // Only where this build cannot complete a certificate pair by itself: the bundle carries
+      // Only where this build cannot complete its own material: the bundle carries
       // private parameters a user has no way of producing, so it is never the ordinary path.
       document.getElementById('application-bundle-step').style.display = 'block';
     } else {
-      document.getElementById('cert-step').style.display = 'block';
+      // The build installs its own material at startup, so this is a build that could not: say
+      // so. The user is never asked for a certificate (01/10/2026).
+      showManagedSetupError(d.state || 'unavailable');
     }
   } catch {
     showManagedSetupError('unavailable');
@@ -1122,7 +915,6 @@ async function chooseSetup() {
 }
 
 function showManagedSetupError(state) {
-  document.getElementById('cert-step').style.display = 'none';
   document.getElementById('setup-form').style.display = 'none';
   let box = document.getElementById('managed-setup-error');
   if (!box) {
@@ -1143,7 +935,6 @@ function backToChoice() {
   document.getElementById('application-bundle-step').style.display = 'none';
   const managedError = document.getElementById('managed-setup-error');
   if (managedError) managedError.style.display = 'none';
-  document.getElementById('cert-step').style.display = 'none';
   document.getElementById('setup-form').style.display = 'none';
   document.getElementById('back-link').style.display = 'none';
   document.getElementById('choice-step').style.display = 'block';

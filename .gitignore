@@ -19,7 +19,8 @@ venv/
 pyrightconfig.json
 # certs/ are bundled in the image — tracked by git intentionally
 
-# App certificate (provided by user at setup — see README / markoceri/leapmotor-certs)
+# A developer's local certificate copy. The build ships its own pair in
+# poller/mate_api_runtime/application_certificate/ (hash-pinned); this one never goes in git.
 certs/app.crt
 certs/app.key
 !certs/.gitkeep

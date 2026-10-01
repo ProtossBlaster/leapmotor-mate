@@ -150,13 +150,66 @@ def test_startup_automatically_provisions_existing_certificate_install(material,
         assert not (data/'migration-backups/mate-4.0.0'/mod.PARAMETERS).exists()
 
 
-def test_fresh_startup_keeps_setup_available(tmp_path,monkeypatch):
+def test_a_new_installation_takes_the_certificate_packaged_with_the_build(tmp_path):
+    """Nobody is asked for app.crt/app.key: the build carries the Leapmotor app's own pair."""
+    destination=tmp_path/'data'
+    result=mod.provision_automatic(destination)
+    assert result['automatic']
+    packaged=mod.DEFAULT_PROFILE_DIRECTORY/mod.PACKAGED_CERTIFICATE
+    for name in ('app.crt','app.key'):
+        assert (destination/'certs'/name).read_bytes()==(packaged/name).read_bytes()
+        validate_private_file(destination/'certs'/name)
+    assert (destination/mod.PARAMETERS).read_bytes()==(mod.DEFAULT_PROFILE_DIRECTORY/'application_profile.json').read_bytes()
+
+
+def test_a_damaged_packaged_certificate_is_never_installed(tmp_path,monkeypatch):
+    monkeypatch.setattr(mod,'CERTIFICATE_SHA256',{'app.crt':'0'*64,'app.key':'0'*64},raising=False)
+    with pytest.raises(ValueError,match='integrity'):
+        mod.provision_automatic(tmp_path/'data')
+    assert not any((tmp_path/'data'/name).exists() for name in mod.NAMES)
+
+
+def test_the_build_carries_a_usable_application_certificate():
+    """Turns red in CI six months before the packaged pair stops being usable — it expires on
+    06/03/2029 — so a release replaces it before a single installation finds out at its login."""
+    from session_material import certificate_usable
+    assert mod.packaged_certificate_usable()
+    packaged=mod.DEFAULT_PROFILE_DIRECTORY/mod.PACKAGED_CERTIFICATE
+    assert certificate_usable(packaged/'app.crt',packaged/'app.key',
+                              now=datetime.now(timezone.utc)+timedelta(days=183))
+
+
+def test_the_packaged_certificate_is_the_one_the_leapmotor_app_carries():
+    """The certificate recovered from the official app V1.16.4-1 at runtime (26/09/2026): its DER
+    SHA-256 is the one that extraction recorded. Every copy of the app carries the same one."""
+    from cryptography import x509 as _x509
+    der=_x509.load_pem_x509_certificate(
+        (mod.DEFAULT_PROFILE_DIRECTORY/mod.PACKAGED_CERTIFICATE/'app.crt').read_bytes()
+    ).public_bytes(serialization.Encoding.DER)
+    import hashlib
+    assert hashlib.sha256(der).hexdigest()=='f74f5b537d830e4082b9bd7dbe5ffaa01e4dc946e6e9a915ef0013d4fc9d7ce0'
+
+
+def test_fresh_startup_installs_the_build_material_without_asking(tmp_path,monkeypatch):
     import runtime_paths
+    from setup_readiness import readiness
+    monkeypatch.setenv('DB_PATH',str(tmp_path/'mate.db'))
+    for name in ('DATA_CERT_DIR','CERT_DIR','MATE_APPLICATION_BUNDLE','MATE_DEMO'):
+        monkeypatch.delenv(name,raising=False)
+    assert runtime_paths.prepare_installation()['automatic']
+    assert readiness(tmp_path/'certs',parameters_directory=tmp_path/'api-v2-private')['state']=='ready'
+
+
+def test_fresh_startup_with_damaged_build_material_still_serves_the_page(tmp_path,monkeypatch):
+    """Both processes run this at import: a raise here would take the setup page down with it,
+    and the page is where the state is shown."""
+    import runtime_paths
+    monkeypatch.setattr(mod,'CERTIFICATE_SHA256',{'app.crt':'0'*64,'app.key':'0'*64},raising=False)
     monkeypatch.setenv('DB_PATH',str(tmp_path/'mate.db'))
     for name in ('DATA_CERT_DIR','CERT_DIR','MATE_APPLICATION_BUNDLE','MATE_DEMO'):
         monkeypatch.delenv(name,raising=False)
     assert runtime_paths.prepare_installation()['state']=='provisioning_required'
-    assert not (tmp_path/mod.PARAMETERS).exists()
+    assert not (tmp_path/'certs/app.crt').exists()
 
 
 def test_explicit_bundle_remains_supported(material,tmp_path,monkeypatch):

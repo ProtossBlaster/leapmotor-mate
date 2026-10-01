@@ -6177,9 +6177,6 @@ async def demo_status():
     return JSONResponse({"demo": _IS_DEMO})
 
 
-_DATA_CERT_DIR = os.environ.get("DATA_CERT_DIR", "/data/certs")
-
-
 @app.post("/api/setup/application-bundle")
 async def setup_application_bundle(request: Request):
     from application_bundle import install_bundle, MAX_BYTES
@@ -6199,82 +6196,14 @@ async def setup_application_bundle(request: Request):
 
 @app.get("/api/setup/cert-status")
 async def cert_status_api():
-    """Whether the app certificate is already available (wizard can skip the cert step)."""
+    """Whether the application material is in place, so the wizard can go to the account step.
+
+    It is installed at startup from the build itself; the user is never asked for a certificate."""
     if os.environ.get("MATE_API_V2") == "1":
         from setup_readiness import readiness
         from runtime_paths import paths
         return JSONResponse(readiness(command_client.cert_dir(), parameters_directory=paths().data / 'api-v2-private'))
     return JSONResponse({"present": command_client.certs_present()})
-
-
-_CERT_REFUSALS = {
-    "cert_unreadable": "app.crt is not a readable certificate. Download the file itself again "
-                       "(not the web page that shows it) and upload it.",
-    "key_unreadable":  "app.key is not a readable private key. Download the file itself again "
-                       "(not the web page that shows it) and upload it.",
-    "key_mismatch":    "app.key does not belong to this app.crt. Upload the two files that go together.",
-}
-
-
-@app.post("/api/setup/cert")
-async def setup_cert_api(request: Request):
-    """Receive the Leapmotor app certificate + key (file upload or pasted PEM) and store
-    them in the persistent /data/certs dir. The cert is the same for everyone — users get
-    it from github.com/markoceri/leapmotor-certs (documented in the wizard/README)."""
-    form = await request.form()
-
-    async def _read(field_file: str, field_text: str) -> str:
-        f = form.get(field_file)
-        if f is not None and hasattr(f, "read"):
-            return (await f.read()).decode("utf-8", "replace").strip()
-        return (form.get(field_text) or "").strip()
-
-    crt = await _read("crt_file", "crt_pem")
-    key = await _read("key_file", "key_pem")
-
-    if not crt or not key:
-        return JSONResponse({"error": "Both the certificate and the key are required."}, status_code=400)
-
-    # #283: the pair is written beside the real one and loaded exactly as the login will load it;
-    # only a pair that opens replaces what is there. A substring check used to let a broken
-    # certificate through, and the only symptom was "[SSL] PEM lib" at every login after.
-    # The wizard shows `code` in the page's language; `error` is the fallback it can always print.
-    crt_path = os.path.join(_DATA_CERT_DIR, "app.crt")
-    key_path = os.path.join(_DATA_CERT_DIR, "app.key")
-    pending = (crt_path + ".new", key_path + ".new")
-    try:
-        if os.environ.get("MATE_API_V2") == "1":
-            from migration_state import backup_before_migration
-            from runtime_paths import paths
-            await run_in_threadpool(backup_before_migration, paths().db)
-        os.makedirs(_DATA_CERT_DIR, exist_ok=True)
-        for path, pem in zip(pending, (crt, key)):
-            with open(path, "w") as fh:
-                fh.write(pem + "\n")
-        problem = command_client.cert_pair_problem(*pending)
-        if not problem:
-            os.replace(pending[0], crt_path)
-            os.replace(pending[1], key_path)
-    except OSError as e:
-        return JSONResponse({"error": f"Could not save the certificate: {e}"}, status_code=500)
-    finally:
-        for path in pending:
-            if os.path.exists(path):
-                os.remove(path)
-    if problem:
-        return JSONResponse({"error": _CERT_REFUSALS[problem], "code": problem}, status_code=400)
-
-    if os.environ.get("MATE_API_V2") == "1":
-        from automatic_material import provision_automatic
-        from runtime_paths import paths
-        try:
-            await run_in_threadpool(provision_automatic, paths().data, certificate_directory=_DATA_CERT_DIR)
-        except Exception:
-            return JSONResponse({"error": "Application material could not be prepared"}, status_code=400)
-
-    # Drop any half-built session so the next call picks up the new cert
-    command_client._session._reset()
-    return JSONResponse({"ok": True})
 
 
 @app.post("/api/setup/detect-vehicle")

@@ -3,3 +3,6 @@ poller/vendor/** text eol=lf
 
 # The automatic profile is checksum-pinned on every platform.
 poller/mate_api_runtime/application_profile.json text eol=lf
+
+# So is the packaged application certificate pair (automatic_material.CERTIFICATE_SHA256).
+poller/mate_api_runtime/application_certificate/* text eol=lf

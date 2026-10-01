@@ -359,10 +359,9 @@ Per configurare Mate ti servono tre cose:
    ricariche non registrati). È la causa numero uno dei problemi segnalati. *Soluzione:* un account
    secondario con una **password usata solo in Mate**.
 
-2. **Il certificato dell'app Leapmotor** (`app.crt` + `app.key`). È un certificato **uguale per
-   tutti** (è quello dell'app, non del tuo account), necessario per dialogare col cloud. Si scarica
-   da un repository pubblico — il wizard ti dà il link diretto
-   ([github.com/markoceri/leapmotor-certs](https://github.com/markoceri/leapmotor-certs)).
+2. **Niente da scaricare per il certificato dell'app.** Mate ha bisogno del certificato TLS dell'app
+   Leapmotor (`app.crt` + `app.key`) per il login — è **uguale per tutti** (è quello dell'app, non del
+   tuo account). È incluso in Mate e si installa da solo al primo avvio: non ti viene mai chiesto.
 
 3. **Email, password e PIN operativo dell'account.** Il **PIN a 4 cifre** è quello che usi anche
    nell'app ufficiale per autorizzare i comandi a distanza (chiusura, clima…).
@@ -463,19 +462,7 @@ Due pulsanti:
 - **▶ Configura la mia auto** — la configurazione vera e propria (continua sotto).
 - **🧪 Prova la demo** — entra in modalità dimostrativa con dati finti. Puoi uscire quando vuoi.
 
-### Passo 1 — Certificato app
-
-Mate ti chiede il certificato TLS dell'app Leapmotor. Hai due modi:
-
-- **Carica i file** `app.crt` e `app.key` (modalità predefinita), oppure
-- **Incolla il testo PEM** dei due file (pulsante *"Incolla il testo PEM invece"*).
-
-Scaricali dal link mostrato, caricali e premi **Salva certificato**. Mate apre i due file prima di
-tenerli: se uno non si legge — un file tagliato, o la pagina web che lo mostra salvata al posto del
-file — viene rifiutato, e il messaggio in rosso dice quale. Questo passo compare solo se Mate non ha
-già un certificato che riesce a leggere: uno rotto salvato prima non conta.
-
-### Passo 2 — Accesso all'account
+### Passo 1 — Accesso all'account
 
 Inserisci:
 
@@ -490,7 +477,7 @@ Premi **🔍 Rileva la mia auto**. Mate verifica le credenziali e legge dal clou
 di telaio (VIN)**. Se tutto va bene vedi una scheda "Auto rilevata" con `Leapmotor <modello> · VIN
 ···xxxxxx`.
 
-### Passo 3 — Batteria
+### Passo 2 — Batteria
 
 In base al modello:
 
@@ -512,7 +499,7 @@ In base al modello:
 > Oggi riguarda la **C10 RWD**: 69,9 kWh è il valore di targa, e le ricariche vere danno un pacco
 > utile di 67,0.
 
-### Passo 4 — Connetti
+### Passo 3 — Connetti
 
 Premi **Connetti e avvia**. Mate salva la configurazione, si collega e ti porta alla **Panoramica**.
 Da questo momento il "poller" inizia a raccogliere dati in sottofondo: i primi viaggi e ricariche

@@ -361,10 +361,10 @@ Para configurar Mate necesitas tres cosas:
    **datos perdidos** (trayectos y cargas no registrados). Es la causa número uno de los problemas que
    nos llegan. *Solución:* una cuenta secundaria con una **contraseña usada solo en Mate**.
 
-2. **El certificado de la app de Leapmotor** (`app.crt` + `app.key`). Es un certificado que es **el
-   mismo para todo el mundo** (pertenece a la app, no a tu cuenta) y hace falta para hablar con la
-   nube. Se descarga de un repositorio público — el asistente te da el enlace directo
-   ([github.com/markoceri/leapmotor-certs](https://github.com/markoceri/leapmotor-certs)).
+2. **Nada que descargar para el certificado de la app.** Mate necesita el certificado TLS de la app
+   de Leapmotor (`app.crt` + `app.key`) para iniciar sesión — es **el mismo para todo el mundo**
+   (pertenece a la app, no a tu cuenta). Viene incluido en Mate y se instala solo en el primer
+   arranque: nunca se te pide.
 
 3. **Correo, contraseña y el PIN de operaciones de la cuenta.** El **PIN de 4 dígitos** es el mismo
    que usas en la app oficial para autorizar los comandos a distancia (cierre, climatización…).
@@ -473,19 +473,7 @@ Dos botones:
 - **🧪 Probar la demostración** — entra en el modo demostración con datos falsos. Puedes salir cuando
   quieras.
 
-### Paso 1 — Certificado de la app
-
-Mate te pide el certificado TLS de la app de Leapmotor. Tienes dos maneras:
-
-- **Subir los archivos** `app.crt` y `app.key` (el modo por defecto), o
-- **Pegar el texto PEM** de los dos archivos (el botón *«Pegar el texto PEM en su lugar»*).
-
-Descárgalos del enlace que aparece, súbelos y pulsa **Guardar el certificado**. Mate abre los dos
-archivos antes de guardarlos: si uno no se puede leer —un archivo cortado, o la página web que lo
-muestra guardada en lugar del archivo—, lo rechaza y el mensaje en rojo dice cuál. Este paso solo
-aparece si Mate no tiene ya un certificado que pueda leer: uno roto guardado antes no cuenta.
-
-### Paso 2 — Iniciar sesión con la cuenta
+### Paso 1 — Iniciar sesión con la cuenta
 
 Escribe:
 
@@ -500,7 +488,7 @@ Pulsa **🔍 Detectar mi coche**. Mate comprueba las credenciales y lee de la nu
 número de bastidor (VIN)**. Si todo va bien verás una tarjeta «Coche detectado» que muestra
 `Leapmotor <modelo> · VIN ···xxxxxx`.
 
-### Paso 3 — Batería
+### Paso 2 — Batería
 
 Según el modelo:
 
@@ -523,7 +511,7 @@ Según el modelo:
 > se trata del **C10 RWD**: 69,9 kWh es el valor nominal, y las cargas reales dan una batería
 > utilizable de 67,0.
 
-### Paso 4 — Conectar
+### Paso 3 — Conectar
 
 Pulsa **Conectar y empezar**. Mate guarda la configuración, se conecta y te lleva al **Resumen**.
 A partir de ese momento el «poller» empieza a recoger datos en segundo plano: los primeros trayectos
