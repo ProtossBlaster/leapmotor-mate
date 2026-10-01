@@ -5245,6 +5245,20 @@ def _charge_children_by_parent(db) -> dict:
     return out
 
 
+def _merged_into_column(db) -> str:
+    """`merged_into_id` for a SELECT, or a NULL in its place on a database not migrated yet."""
+    return "merged_into_id" if _charges_have_merge(db) else "NULL AS merged_into_id"
+
+
+def _charges_as_shown(rows) -> list:
+    """Stored charge rows folded into the charges the Charges page shows: each merged group's
+    pieces together, every other row on its own. Needs `id` and `merged_into_id` on each row."""
+    groups: dict = {}
+    for r in rows:
+        groups.setdefault(r["merged_into_id"] or r["id"], []).append(r)
+    return list(groups.values())
+
+
 def _charge_group_stats(parent: dict, children: list) -> dict:
     """Parent dict enriched with the combined figures of [parent + children] — one plug-in the car
     reported as several rows, read back as the single session it was.
@@ -6341,16 +6355,23 @@ def cost_per_100km(fuel_l_burned=None) -> Optional[dict]:
     priced_n = total_n = 0
     since_charge = None
     try:
-        for c in db.execute(
-                "SELECT cost, ended_at FROM charges "
+        # Counted the way the Charges page shows them (#366): a merged group is ONE charge, priced
+        # when any of its pieces carries a price — `_charge_group_stats`, the page's own rule. The
+        # euros are every piece's either way; counting stored rows announced the merged piece
+        # without a price of its own as a charge nobody priced ("missing 1 of 6" beside 5 shown).
+        for pieces in _charges_as_shown(db.execute(
+                "SELECT id, cost, ended_at, " + _merged_into_column(db) + " FROM charges "
                 "WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL"
-                + basis["where"], (_current_vehicle_id(), *basis["params"])).fetchall():
+                + basis["where"], (_current_vehicle_id(), *basis["params"])).fetchall()):
             total_n += 1
-            if c["cost"] is None or c["cost"] < 0:   # negative is nonsense, not a discount
+            priced = [c for c in pieces
+                      if c["cost"] is not None and c["cost"] >= 0]   # negative is nonsense, not a discount
+            if not priced:
                 continue
-            priced_n, elec_cost = priced_n + 1, elec_cost + c["cost"]
-            if since_charge is None or c["ended_at"] < since_charge:
-                since_charge = c["ended_at"]
+            priced_n, elec_cost = priced_n + 1, elec_cost + sum(c["cost"] for c in priced)
+            first = min(c["ended_at"] for c in priced)
+            if since_charge is None or first < since_charge:
+                since_charge = first
     except sqlite3.Error:
         pass
 
@@ -6482,23 +6503,28 @@ def _energy_balance_kwh(db, km: float, basis: dict) -> tuple:
     # Entirely inside, on both edges. ISO strings compare correctly because the DB is UTC
     # throughout by construction — the same assumption `since` above already relies on.
     try:
-        row = db.execute(
-            "SELECT SUM(CASE WHEN energy_added_kwh IS NOT NULL THEN energy_added_kwh END) AS kwh, "
-            "       SUM(CASE WHEN energy_added_kwh IS NOT NULL THEN 1 ELSE 0 END) AS counted, "
-            "       SUM(CASE WHEN energy_added_kwh IS NULL THEN 1 ELSE 0 END) AS missing "
-            "  FROM charges "
+        rows = db.execute(
+            "SELECT id, energy_added_kwh, " + _merged_into_column(db) + " FROM charges "
             " WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
             "   AND started_at >= ? AND ended_at <= ?",
-            (vid, from_ts, to_ts)).fetchone()
+            (vid, from_ts, to_ts)).fetchall()
     except sqlite3.Error:
         return None, 0, 0
 
-    counted, missing = int(row["counted"] or 0), int(row["missing"] or 0)
+    # Charges as the page shows them (#366): a merged group with a measured piece is counted, one
+    # with none is missing — never one more charge than the page lists. The kWh are every piece's.
+    kwh, counted, missing = 0.0, 0, 0
+    for pieces in _charges_as_shown(rows):
+        measured = [c["energy_added_kwh"] for c in pieces if c["energy_added_kwh"] is not None]
+        if measured:
+            kwh, counted = kwh + sum(measured), counted + 1
+        else:
+            missing += 1
     if not counted:
         return None, 0, missing
 
     net = (soc_to - soc_from) / 100.0 * get_battery_capacity_kwh()
-    consumed = (row["kwh"] or 0.0) - net
+    consumed = kwh - net
     if consumed <= 0:
         return None, counted, missing
     return round(consumed * 100.0 / km, 1), counted, missing
