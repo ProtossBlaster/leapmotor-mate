@@ -18,12 +18,15 @@ for _d in ("poller", "web"):
 # forgets to point them somewhere opens whatever sits in the current directory. Running the suite
 # from the repo, 30 files created and wrote a 610 KB database there; run from a folder holding a
 # real Mate database — a bind-mount, a copy taken for triage — the same tests would write into
-# that one. Set here, and NOT in a fixture, because it has to be true before the first import:
-# db_reader reads the variable at module level, once. `setdefault` leaves an explicit DB_PATH
-# alone, which is how a test that wants a specific file still gets it.
+# that one. Set at session start, and NOT in a fixture, because it has to be true before the first
+# import: db_reader reads the variable at module level, once. `setdefault` leaves an explicit
+# DB_PATH alone, which is how a test that wants a specific file still gets it.
 # → tests/test_the_suite_never_writes_into_the_working_directory.py
-os.environ.setdefault("DB_PATH", str(pathlib.Path(
-    tempfile.mkdtemp(prefix="mate-suite-")) / "leapmotor_mate.db"))
+def pytest_sessionstart(session):
+    # A controller that hands tests to workers ("dsession", registered by xdist at configure) imports
+    # nothing itself, and a file chosen there would reach every worker. Every other process chooses.
+    if not session.config.pluginmanager.hasplugin("dsession"):
+        os.environ.setdefault("DB_PATH", str(pathlib.Path(tempfile.mkdtemp(prefix="mate-suite-")) / "leapmotor_mate.db"))
 
 # Whatever databases were sitting in the repository when the suite started, and when they were last
 # written. A test compares against this: the suite must leave every one of them untouched, because
