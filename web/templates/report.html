@@ -46,26 +46,25 @@
 </div>
 
 {% if ec_periods %}
-<!-- Consumo di guida (dato ufficiale Leapmotor via getEC). Sul mese CORRENTE: giorno/settimana/mese
-     a scelta (come prima). Su un mese PASSATO navigato con ◀▶: niente tab (oggi/settimana non hanno
-     senso fuori dal mese corrente) — mostra direttamente quel mese, stessa finestra dei tile GUIDA
-     sotto, cosicché i due numeri non possano mai disallinearsi (GitHub: notato da Silvio 01/07). -->
+<!-- Official driving consumption (getEC). Opens on the page's month, the window of the Driving tiles
+     below, so the two figures agree. Current month: Today / This week / This month tabs; a past month
+     has no tabs (Today and This week make no sense there). -->
 <div class="card mb-6">
   <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
     <h2 class="font-semibold text-white">{{ t('ec_section_title') }}</h2>
     {% if is_current_month %}
     <div class="inline-flex rounded-lg border border-slate-700 overflow-hidden text-sm">
-      <button type="button" class="ec-tab px-3 py-1.5 bg-slate-700 text-white"
+      <button type="button" class="ec-tab px-3 py-1.5 text-slate-300 hover:bg-slate-700/50"
               hx-get="api/energy-period?period=day" hx-target="#ec-period-body" hx-swap="innerHTML">{{ t('ec_today') }}</button>
       <button type="button" class="ec-tab px-3 py-1.5 text-slate-300 hover:bg-slate-700/50 border-l border-slate-700"
               hx-get="api/energy-period?period=week" hx-target="#ec-period-body" hx-swap="innerHTML">{{ t('ec_this_week') }}</button>
-      <button type="button" class="ec-tab px-3 py-1.5 text-slate-300 hover:bg-slate-700/50 border-l border-slate-700"
+      <button type="button" class="ec-tab px-3 py-1.5 bg-slate-700 text-white border-l border-slate-700"
               hx-get="api/energy-period?period=month&month={{ r.month }}" hx-target="#ec-period-body" hx-swap="innerHTML">{{ t('ec_this_month') }}</button>
     </div>
     {% endif %}
   </div>
   <div id="ec-period-body"
-       hx-get="api/energy-period?period={{ 'day' if is_current_month else 'month' }}{% if not is_current_month %}&month={{ r.month }}{% endif %}"
+       hx-get="api/energy-period?period=month&month={{ r.month }}"
        hx-trigger="load" hx-swap="innerHTML">
     <div class="text-center py-4 text-slate-500 text-sm">{{ t('loading') }}…</div>
   </div>
