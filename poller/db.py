@@ -372,6 +372,7 @@ class Database:
         self._drop_phantom_charges()
         self._repair_phantom_zero_soc_charges()
         self._repair_zero_range_beside_charge()
+        self._repair_rows_written_from_a_misread_map()
         self._repair_negative_efficiency()
         self._repair_reev_engine_efficiency()
         self._repair_bogus_wallbox_energy()
@@ -625,6 +626,24 @@ class Database:
         if nulled or dropped:
             log.info("Zero-SoC phantom repair: nulled %d bogus soc=0 position(s), dropped %d phantom charge(s)",
                      nulled, dropped)
+
+    def _repair_rows_written_from_a_misread_map(self) -> None:
+        """One-time cleanup for #368. Mate 4.7.11 handed a T03's named signal map on as numbered, and
+        the web stored a position from each one it read: SoC 0 and no odometer, which no real reading
+        has (a car always carries its odometer; an empty battery that was really read does too). The
+        newest such row seeds the poller's SoC baseline at the next start, and the first true reading of
+        a parked car would be taken for a charge from 0 %. Only rows from 4.7.11's release on. Runs once.
+        """
+        if self.get_setting("positions_misread_map_repair_v1") == "1":
+            return
+        dropped = self._conn.execute(
+            "DELETE FROM positions WHERE soc = 0 AND odometer_km IS NULL "
+            "AND recorded_at >= '2026-10-01T18:00:00+00:00'"
+        ).rowcount
+        self.set_setting("positions_misread_map_repair_v1", "1")
+        self._conn.commit()
+        if dropped:
+            log.info("Misread-map repair: dropped %d position(s) stored with SoC 0 and no odometer", dropped)
 
     def _repair_zero_range_beside_charge(self) -> None:
         """One-time cleanup for #365, now fixed at source in `capability_profile.battery_range_km`:

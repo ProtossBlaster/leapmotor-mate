@@ -21,6 +21,9 @@ import db_reader
 # bundle can be shared publicly without revealing where the car (home) is. 3724/3725 = lon/lat,
 # 2190/2191 = fallbacks, 2/3 = the signed pair. Everything else in the dict is non-locating.
 _GPS_SIGNAL_IDS = {"2", "3", "2190", "2191", "3724", "3725"}
+# …and a T03 can send the same coordinates by NAME (its signal map is named, #368): a 4.7.11 bundle
+# posted in public carried a car's exact position under these two keys.
+_GPS_SIGNAL_NAMES = {"latitude", "longitude"}
 
 
 def data_dir() -> Path:
@@ -291,7 +294,8 @@ def _signals_section(signals: dict | None, vin: str | None) -> str:
     if not signals:
         return ("(no live signals — car asleep or unreachable; use the car briefly, then download "
                 "again)")
-    clean = {k: v for k, v in signals.items() if k not in _GPS_SIGNAL_IDS}
+    clean = {k: v for k, v in signals.items()
+             if k not in _GPS_SIGNAL_IDS and str(k).lower() not in _GPS_SIGNAL_NAMES}
     return _redact(json.dumps(clean, indent=2, sort_keys=True), vin)
 
 

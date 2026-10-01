@@ -543,7 +543,15 @@ class NewAPIClient(MateClientCompatibility):
             data=dict(telemetry.get('data') or {})
             if data.get('vin')!=vin or not isinstance(data.get('signalMap'),dict):
                 raise LeapmotorApiError('New API telemetry mismatch')
-            data['signal']=data['signalMap']
+            signals=data.pop('signalMap')
+            if sum(not str(key).isdigit() for key in signals)*2>len(signals):
+                # A T03 answers in names — soc, totalMileage, expectedMileage… with eight numbered keys
+                # among 71 — the shape the old address answers in, which the poller and the web map by
+                # name. A B10's map is numbered: 98 keys, 3 of them named (privacyData, privacyGPS,
+                # sts; measured 01/10/2026). Handed on as numbers, 4.7.11 read a T03 as 0 % (#368).
+                data.update(signals)
+            else:
+                data['signal']=signals
             return data
         model=cartype.lower()
         model={'b10':'c10','b11':'c10'}.get(model,model)

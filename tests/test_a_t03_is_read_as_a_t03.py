@@ -209,3 +209,101 @@ def test_the_poller_records_a_t03_read_at_the_old_address(tmp_path, monkeypatch)
     reading = poller.get_status()
     assert (reading.soc, reading.odometer_km) == (60, 2296)
     assert not poller._status_fallback_tried, "the poller had to fall back: the bridge did not read the car"
+
+
+# ── 4.7.12: a T03 answers its signal map in names (#368) ──────────────────────
+# @DJ-Elo-Ostfriesland's T03 on 4.7.11, 01/10/2026 20:57 (his bundle): asked as a T03, the signal service
+# answered with the car's real readings — 56 %, 2,314 km, 160 km of range — in NAMED fields, the shape the
+# old address answered in, with eight numbered keys among them. 4.7.11 handed that map on as `signal`, read
+# as numbers by the poller and the web: nothing matched, the poller called the car asleep and the web
+# stored 0 % and 0 km. Coordinates and the Bluetooth address below are made up.
+T03_MAP = {
+    "100010": "0.0", "100011": "0.0", "100012": "0.0", "100013": "0.0", "100014": "0.0",
+    "100015": "0.0", "100016": "0.0", "2188": 0,
+    "acAirVolume": 3, "acAirVolumeSetting": 0, "acCircleMode": False, "acCoolingAndHeating": 0,
+    "acSetting": 23, "acSwitch": False, "acTempMode": False, "acWindDirection": 4,
+    "batteryCurrent": 0.0, "batteryVoltage": 368.2, "bbcmBackDoorStatus": False,
+    "bcmDoorCtrlAllow": False, "bcmKeyPositionOn1": False, "bcmKeyPositionOn3": False,
+    "bluetoothAddr": "02:00:00:00:00:00", "bluetoothState": True, "chargeRemainTime": 0,
+    "chargeState": 0, "chargeTimeSetting": "00:00", "chargesocSetting": 80,
+    "collectTime": "2026-10-01 16:57:04", "collectTimeMs": 1790873824581, "createTime": "2026-10-01 16:57:05",
+    "dcInputFastCharge": 0, "driverDoorLockStatus": True, "driverWindowStatus": False, "dumpEnergy": 21000,
+    "expectedMileage": 160, "expectedMileageMile": "99.4", "gearStatus": 0, "hotspotState": False,
+    "isSupportWindowsRemoteControl": 2, "latitude": 45.123456, "lbcmDriverDoorStatus": False,
+    "lbcmLeftRearDoorStatus": False, "leftFrontTirePressure": 253, "leftFrontTirePressureState": 0,
+    "leftFrontWindowPercent": 0, "leftRearTirePressure": 253, "leftRearTirePressureState": 0,
+    "leftRearWindowPercent": 0, "leftRearWindowStatus": False, "longitude": 9.123456, "minSingleTemp": 19,
+    "outdoorTemp": 20, "privacyData": 1, "privacyGPS": 1, "ptcPowerSettingValue": 0, "ptcState": 2,
+    "rbcmDriverDoorStatus": False, "rbcmRightRearDoorStatus": False, "rightFrontTirePressure": 253,
+    "rightFrontTirePressureState": 0, "rightFrontWindowPercent": 0, "rightFrontWindowStatus": False,
+    "rightRearTirePressure": 255, "rightRearTirePressureState": 0, "rightRearWindowPercent": 0,
+    "rightRearWindowStatus": False, "soc": 56, "speed": 0, "sunShade": 10, "totalMileage": 2314,
+}
+
+
+def _t03_answering_in_names(path, cartype):
+    if path == SIGNAL and cartype == "T03":
+        return {"vin": VIN, "signalMap": dict(T03_MAP)}
+    _no_data()
+
+
+def test_a_t03_map_in_names_reaches_the_poller_as_its_readings(tmp_path, monkeypatch):
+    api, asked = _api(tmp_path, monkeypatch, "T03", _t03_answering_in_names)
+    poller = object.__new__(poller_client.LeapmotorMateClient)
+    poller._api, poller._named_mode_logged = api, False
+    poller._vehicle = SimpleNamespace(vin=VIN, car_type="T03")
+    poller._status_car_type, poller._status_fallback_tried = {}, set()
+    reading = poller.get_status()
+    assert (reading.soc, reading.odometer_km, reading.gear) == (56, 2314, "P")
+
+
+def test_the_web_reads_the_same_t03_map_by_name(tmp_path, monkeypatch):
+    import command_client
+    api, asked = _api(tmp_path, monkeypatch, "T03", _t03_answering_in_names)
+    data = _read(api, asked)
+    signals = data.get("signal") or command_client._named_fields_to_signal(data)
+    assert (signals["1204"], signals["1318"], signals["3260"]) == (56, 2314, 160)
+
+
+def test_a_numbered_map_with_a_few_names_is_still_read_as_numbers(tmp_path, monkeypatch):
+    """A B10's map is numbered, with three named keys among its 98 (measured 01/10/2026)."""
+    numbered = dict({str(1000 + i): i for i in range(93)}, **SIGNALS, privacyData=1, privacyGPS=1, sts=0)
+    assert len(numbered) == 98
+    api, asked = _api(tmp_path, monkeypatch, "B10", lambda path, cartype: {"vin": VIN, "signalMap": numbered})
+    assert _read(api, asked)["signal"] == numbered
+
+
+def test_the_bundle_leaves_out_coordinates_that_come_by_name():
+    """The bundle is posted in public issues: a named latitude/longitude is as locating as 3725/3724."""
+    import diagnostics
+    section = diagnostics._signals_section(dict(T03_MAP), None)
+    assert "latitude" not in section and "longitude" not in section
+    assert "45.123456" not in section and "9.123456" not in section
+    assert '"soc": 56' in section, "the rest of the map is still there"
+
+
+def test_the_rows_written_from_a_misread_map_are_dropped_once(tmp_path):
+    """The web stored a position from each misread map: SoC 0 and no odometer, which no real reading
+    has. Left in place, the newest seeds the poller's SoC baseline, and the first true reading of a
+    parked car (56 %) is taken for a charge from 0 %."""
+    import db as D
+    database = D.Database(str(tmp_path / "zero.db"))
+    vid = database.ensure_vehicle(VIN, "T03")
+    rows = [("2026-09-30T08:00:00+00:00", 0.0, None),     # before 4.7.11: not ours to judge
+            ("2026-10-01T19:01:00+00:00", 56.0, 2314.0),   # a real reading
+            ("2026-10-01T19:02:00+00:00", 0.0, 5000.0),    # an empty battery, really read
+            ("2026-10-01T19:03:00+00:00", 0.0, None)]      # misread: SoC 0, no odometer
+    for at, soc, odo in rows:
+        database._conn.execute("INSERT INTO positions (vehicle_id, recorded_at, soc, odometer_km) VALUES (?,?,?,?)",
+                               (vid, at, soc, odo))
+    database._conn.commit()
+    assert database.get_last_soc(vid)[0] == 0.0
+    database._conn.execute("DELETE FROM settings WHERE key = 'positions_misread_map_repair_v1'")
+    database._repair_rows_written_from_a_misread_map()
+    left = [r[0] for r in database._conn.execute("SELECT recorded_at FROM positions ORDER BY id")]
+    assert left == [rows[0][0], rows[1][0], rows[2][0]]
+    assert database.get_last_soc(vid)[0] == 0.0, "the empty battery that was really read is the last reading"
+    database._conn.execute("INSERT INTO positions (vehicle_id, recorded_at, soc, odometer_km) VALUES (?,?,?,?)",
+                           (vid, "2026-10-01T19:04:00+00:00", 0.0, None))
+    database._repair_rows_written_from_a_misread_map()
+    assert database._conn.execute("SELECT COUNT(*) FROM positions").fetchone()[0] == 4, "it runs once"
