@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.6 · **Idioma:** Español
+> **Versión de Mate:** v4.7.7 · **Idioma:** Español
 
-## Novedades de la versión 4.7.6
+## Novedades de la versión 4.7.7
+
+**Nada que descargar para configurar Mate.** El certificado de la app de Leapmotor que Mate necesita
+para iniciar sesión — el mismo para todo el mundo, identifica la app y no a ti — ahora viene incluido
+en Mate y se instala solo en el primer arranque. El asistente va directo a tu cuenta: el paso del
+certificado y su enlace ya no están. Una instalación que ya tiene el certificado lo conserva; uno
+subido en el antiguo formato de exportación, con líneas de atributos al principio, se reescribe como
+la copia que trae Mate — es el mismo certificado — y los archivos anteriores quedan en una carpeta de
+copia de seguridad junto a los datos.
+
+**Mate funciona solo con su propio cliente de la nube.** El cliente es el de Mate desde la 4.0, pero
+una instalación cuya primera comprobación nunca terminó se volvía a poner en la biblioteca de terceros
+que Mate usaba antes. Esa biblioteca y ese recurso ya no existen: cada instalación usa el cliente de
+Mate. Una que seguía en la biblioteca antigua inicia sesión una vez con el cliente nuevo en el primer
+arranque. En el paquete de diagnóstico la línea `Cloud client` dice `independent (mate-api)` para
+todos.
+
+**Un C10 ya no muestra 0 km junto a una batería llena.** Al dormirse, el C10 envía su autonomía a 0
+con la batería todavía cargada, y la vista general mostraba «100 % · 0 km». Mate ya no toma ese cero
+por una lectura: la vista general mantiene la última autonomía que informó el coche, y Home Assistant
+mantiene su último valor. Por debajo del 5 % de carga un cero sigue contando, porque una batería
+vacía puede significarlo.
+
+**La tarjeta de costes cuenta una sola vez una carga unida.** En Estadísticas, la tarjeta del coste por
+100 km decía que a una carga le faltaba el precio cuando era una de las dos filas que habías unido.
+Ahora cuenta las cargas como las muestra la página Cargas; los euros y los kWh no cambian.
+
+### Novedades de la versión 4.7.6
 
 **Un viaje termina ahora cuando apagas el coche.** Mate da un viaje por terminado cuando el coche ha
 estado en P alrededor de un minuto, y escribía ese minuto *entero* dentro del viaje. El final — hora,

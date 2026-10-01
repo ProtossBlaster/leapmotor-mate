@@ -3,6 +3,42 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.7] — 2026-10-01
+
+- **A new installation is never asked for a certificate.** The setup wizard still sent every new user
+  to a third-party repository for `app.crt` and `app.key`. That pair is the Leapmotor app's own TLS
+  certificate — one for everyone, the one inside every copy of the app — so it now ships with Mate,
+  hash-pinned next to the application profile (`poller/mate_api_runtime/application_certificate/`,
+  the copy recovered from the official app V1.16.4-1, valid to 06/03/2029), and a new installation
+  installs it at startup. The certificate step, its upload endpoint and the link are gone; where a
+  build could not install its own material the page says so instead of asking for files. An
+  installation that already holds a pair keeps it; a pair uploaded in the old export format, with
+  its PKCS#12 bag attributes in front, is the same certificate in another file and is rewritten as
+  the packaged copy, the previous files kept in the transaction backup. CI turns red six months
+  before the packaged pair expires.
+- **Everything runs on Mate's own cloud client.** The client has been Mate's own since 4.0
+  (MATE-API, V3 commands), but an installation whose qualification did not finish was put back on
+  the bundled third-party SDK. The SDK, the `MATE_API_V2` switch that selected it and the
+  qualification that chose between the two (`migration_activation`, `migration_preflight`) are
+  gone, together with every branch that only ran on the SDK. A `legacy` decision stored by an older
+  version changes nothing; the diagnostic bundle's `Cloud client` line reads
+  `independent (mate-api)` for everyone. `poller/requirements.txt` no longer installs the SDK.
+- **A range of 0 km beside a charged battery is not a reading** (#365, @arzthilfe). The C10 sends
+  its battery range (`3260`) as 0 in the frame it publishes as it goes to sleep, with the SoC still
+  at 83-100%, and the Overview read "100% · 0 km". His ten days: eight such stops, 1,996 polls,
+  while the smallest range the car reported otherwise was 180 km; six B10 bundles, a T03, a B03X and
+  382,288 stored B10 rows never carry it. The parser turned that zero — and an absent range — into a
+  measured 0 km. Now, as the SoC is already guarded the other way round, a range of 0 beside a SoC
+  above 5% is no reading (one rule, `capability_profile.battery_range_km`, for both writers); the
+  Overview keeps the last range the car did report, the way it keeps the last GPS fix; Home
+  Assistant keeps its retained value instead of turning `unknown`; the poll line prints a dash; and
+  the stored zeros are repaired once (`positions_zero_range_repair_v1`).
+- **The cost card counts a merged charge once** (#366, @marco783). Five priced charges on the
+  Charges page, "missing 1 of 6" on the Statistics card: a merge keeps the rows and the page folds
+  them into one charge, but the card counted rows, so the merged piece without a price of its own
+  was announced as a charge nobody priced. The card now counts charges as the page shows them, for
+  the prices and for the kWh; the euros and the kWh were always every piece's and do not change.
+
 ## [4.7.6] — 2026-10-01
 
 - **A trip ends on the reading that shows the car switched off.** Mate closes a drive once Park has

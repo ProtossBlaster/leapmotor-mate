@@ -1,8 +1,36 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.6 · **Langue :** Français
+> **Version de Mate :** v4.7.7 · **Langue :** Français
 
-## Nouveautés de la version 4.7.6
+## Nouveautés de la version 4.7.7
+
+**Rien à télécharger pour configurer Mate.** Le certificat de l'application Leapmotor dont Mate a
+besoin pour se connecter — identique pour tout le monde, il identifie l'application et non vous — est
+désormais fourni avec Mate et s'installe tout seul au premier démarrage. L'assistant passe directement
+à votre compte : l'étape du certificat et son lien ont disparu. Une installation qui possède déjà le
+certificat le garde ; un certificat envoyé dans l'ancien format d'export, avec des lignes d'attributs
+en tête, est réécrit comme la copie que Mate embarque — c'est le même certificat — et les fichiers
+précédents restent dans un dossier de sauvegarde à côté des données.
+
+**Mate ne fonctionne plus qu'avec son propre client cloud.** Le client est celui de Mate depuis la
+4.0, mais une installation dont la première vérification n'avait jamais abouti était remise sur la
+bibliothèque tierce que Mate utilisait auparavant. Cette bibliothèque et ce repli ont disparu : chaque
+installation utilise le client de Mate. Celle qui était encore sur l'ancienne bibliothèque se connecte
+une fois avec le nouveau client au premier démarrage. Dans le paquet de diagnostic, la ligne
+`Cloud client` indique `independent (mate-api)` pour tout le monde.
+
+**Une C10 n'affiche plus 0 km à côté d'une batterie pleine.** En s'endormant, la C10 envoie son
+autonomie à 0 alors que la batterie est encore chargée, et l'aperçu affichait « 100 % · 0 km ». Mate ne
+prend plus ce zéro pour une mesure : l'aperçu garde la dernière autonomie transmise par la voiture, et
+Home Assistant garde sa dernière valeur. Sous 5 % de charge un zéro compte encore, car une batterie
+vide peut le signifier.
+
+**La carte des coûts compte une recharge fusionnée une seule fois.** Dans les statistiques, la carte du
+coût aux 100 km disait qu'il manquait le prix d'une recharge alors qu'il s'agissait de l'une des deux
+lignes que vous aviez fusionnées. Elle compte désormais les recharges comme la page Recharges les
+affiche ; les euros et les kWh ne changent pas.
+
+### Nouveautés de la version 4.7.6
 
 **Un trajet se termine désormais quand vous éteignez la voiture.** Mate déclare un trajet terminé
 lorsque la voiture est restée en P environ une minute, et il inscrivait cette minute *entière* dans le

@@ -1,8 +1,32 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.6 · **Language:** English
+> **Mate version:** v4.7.7 · **Language:** English
 
-## New in 4.7.6
+## New in 4.7.7
+
+**Nothing to download to set Mate up.** The Leapmotor app certificate Mate needs to log in — the
+same for everyone, it identifies the app, not you — now comes with Mate and is installed by itself on
+first start. The setup wizard goes straight to your account: the certificate step and its link are
+gone. An installation that already has the certificate keeps it; one uploaded in the old export
+format, with attribute lines in front of it, is rewritten as the copy Mate carries — the same
+certificate — and the previous files are kept in a backup folder next to the data.
+
+**Mate runs only on its own cloud client.** The client has been Mate's own since 4.0, but an
+installation whose first check never finished was still put back on the third-party library Mate
+used before. That library and the fallback to it are gone: every installation runs Mate's own
+client. One that was still on the old library logs in once with the new client at its first start.
+In the diagnostic bundle the `Cloud client` line reads `independent (mate-api)` for everyone.
+
+**A C10 no longer reads 0 km beside a full battery.** As it goes to sleep the C10 sends its range as
+0 while the battery is still charged, and the Overview showed "100% · 0 km". Mate no longer takes that
+zero for a reading: the Overview keeps the last range the car reported, and Home Assistant keeps its
+last value. Below 5% charge a zero still counts, since an empty battery can mean it.
+
+**The cost card counts a merged charge once.** On Statistics, the cost-per-100-km card said a charge
+was missing its price when it was one of two rows you had merged. It now counts charges as the
+Charges page shows them; the euros and the kWh do not change.
+
+### New in 4.7.6
 
 **A drive now ends when you switch the car off.** Mate declares a drive over once the car has been in
 Park for about a minute, and it used to stamp that *whole* minute onto the trip. The end — its time,

@@ -17,7 +17,7 @@ LABEL \
     io.hass.name="LeapMotor Mate" \
     io.hass.description="Trip tracking and remote control for Leapmotor vehicles" \
     io.hass.type="addon" \
-    io.hass.version="4.7.6"
+    io.hass.version="4.7.7"
 
 WORKDIR /app
 

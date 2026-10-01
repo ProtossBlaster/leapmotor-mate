@@ -1,8 +1,34 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.6 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.7 · **Lingua:** Italiano
 
-## Novità della 4.7.6
+## Novità della 4.7.7
+
+**Niente da scaricare per configurare Mate.** Il certificato dell'app Leapmotor che serve a Mate per
+il login — uguale per tutti, identifica l'app e non te — adesso è incluso in Mate e si installa da
+solo al primo avvio. La procedura guidata va dritta al tuo account: il passo del certificato e il suo
+link non ci sono più. Un'installazione che ha già il certificato lo tiene; uno caricato nel vecchio
+formato di esportazione, con righe di attributi in testa, viene riscritto come la copia che Mate
+porta con sé — è lo stesso certificato — e i file precedenti restano in una cartella di backup
+accanto ai dati.
+
+**Mate gira solo sul proprio client del cloud.** Il client è di Mate dalla 4.0, ma un'installazione
+il cui primo controllo non era mai finito veniva rimessa sulla libreria di terze parti che Mate usava
+prima. Quella libreria e il ripiego su di essa non ci sono più: ogni installazione usa il client di
+Mate. Una che era ancora sulla libreria vecchia fa un login col client nuovo al primo avvio. Nel
+pacchetto di diagnostica la riga `Cloud client` dice `independent (mate-api)` per tutti.
+
+**Una C10 non legge più 0 km accanto alla batteria piena.** Quando va a dormire la C10 manda
+l'autonomia a 0 con la batteria ancora carica, e la Panoramica mostrava «100% · 0 km». Mate non prende
+più quello zero per una lettura: la Panoramica tiene l'ultima autonomia riportata dall'auto, e Home
+Assistant tiene il suo ultimo valore. Sotto il 5% di carica uno zero conta ancora, perché una batteria
+vuota può volerlo dire.
+
+**Il riquadro dei costi conta una volta sola una ricarica unita.** Nelle Statistiche il riquadro del
+costo per 100 km diceva che a una ricarica mancava il prezzo quando era una delle due righe che avevi
+unito. Adesso conta le ricariche come le mostra la pagina Ricariche; gli euro e i kWh non cambiano.
+
+### Novità della 4.7.6
 
 **Un viaggio finisce quando spegni l'auto.** Mate dichiara finita una guida quando l'auto è stata in P
 per circa un minuto, e quel minuto lo scriveva *tutto* dentro il viaggio. Adesso la fine — ora, livello

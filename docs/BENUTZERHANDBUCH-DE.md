@@ -1,8 +1,36 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.6 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.7 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.6
+## Neu in Version 4.7.7
+
+**Für die Einrichtung ist nichts mehr herunterzuladen.** Das Zertifikat der Leapmotor-App, das Mate
+für die Anmeldung braucht — für alle gleich, es identifiziert die App und nicht Sie —, ist jetzt in
+Mate enthalten und wird beim ersten Start von selbst installiert. Der Einrichtungsassistent geht
+direkt zu Ihrem Konto: Der Zertifikatsschritt und sein Link sind entfallen. Eine Installation, die das
+Zertifikat bereits hat, behält es; eines, das im alten Exportformat mit Attributzeilen am Anfang
+hochgeladen wurde, wird als die Kopie neu geschrieben, die Mate mitbringt — es ist dasselbe
+Zertifikat —, und die bisherigen Dateien bleiben in einem Sicherungsordner neben den Daten.
+
+**Mate läuft nur noch mit seinem eigenen Cloud-Client.** Der Client ist seit 4.0 der von Mate, doch
+eine Installation, deren erste Prüfung nie abgeschlossen wurde, wurde auf die Drittanbieter-Bibliothek
+zurückgesetzt, die Mate früher verwendete. Diese Bibliothek und der Rückfall darauf sind entfernt:
+Jede Installation verwendet den Client von Mate. Eine, die noch auf der alten Bibliothek lief, meldet
+sich beim ersten Start einmal mit dem neuen Client an. Im Diagnosepaket lautet die Zeile
+`Cloud client` für alle `independent (mate-api)`.
+
+**Ein C10 zeigt neben einem vollen Akku nicht mehr 0 km an.** Beim Einschlafen sendet der C10 seine
+Reichweite als 0, obwohl der Akku noch geladen ist, und die Übersicht zeigte „100 % · 0 km". Mate
+nimmt diese Null nicht mehr als Messwert: Die Übersicht behält die letzte vom Auto gemeldete
+Reichweite, und Home Assistant behält seinen letzten Wert. Unter 5 % Ladung zählt eine Null weiterhin,
+denn ein leerer Akku kann sie bedeuten.
+
+**Die Kostenkarte zählt einen zusammengeführten Ladevorgang nur einmal.** In der Statistik meldete die
+Karte der Kosten pro 100 km einen fehlenden Preis, wenn es sich um eine von zwei Zeilen handelte, die
+Sie zusammengeführt hatten. Sie zählt Ladevorgänge jetzt so, wie die Seite Ladevorgänge sie zeigt;
+Euro und kWh ändern sich nicht.
+
+### Neu in Version 4.7.6
 
 **Eine Fahrt endet jetzt, wenn Sie das Auto ausschalten.** Mate erklärt eine Fahrt für beendet, wenn
 das Auto etwa eine Minute in P gestanden hat — und schrieb diese *ganze* Minute bisher in die Fahrt.
