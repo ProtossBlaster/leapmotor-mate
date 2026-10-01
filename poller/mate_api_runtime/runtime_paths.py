@@ -27,8 +27,6 @@ def configure():
 
 
 def prepare_installation():
-    if os.environ.get("MATE_API_V2") == "0":
-        return {"state": "legacy"}
     from migration_state import backup_before_migration
     from bootstrap_independent import bootstrap
     p = paths()

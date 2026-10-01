@@ -18,7 +18,7 @@ import command_client
 
 
 class _FakeApi:
-    """Just enough of the leapmotor_api client for the probe helpers."""
+    """Just enough of a cloud client for the probe helpers."""
 
     def __init__(self, body):
         self.sign_key, self.device_id, self.language = "K", "DEV", "en"

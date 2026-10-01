@@ -123,7 +123,7 @@ def _condition_met(cfg: dict, inside_temp) -> bool:
 def _ensure_web_on_path() -> None:
     """Same cross-directory trick Recorder._read_wallbox_energy uses for ha_client — web/ isn't
     normally on the poller's sys.path, but command_client.py's own imports are lightweight
-    (leapmotor_api + stdlib, no fastapi), so it's safe to reach into from here."""
+    (the cloud client + stdlib, no fastapi), so it's safe to reach into from here."""
     import sys
     import pathlib
     web = str(pathlib.Path(__file__).resolve().parent.parent / "web")

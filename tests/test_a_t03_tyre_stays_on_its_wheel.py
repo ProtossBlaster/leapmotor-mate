@@ -37,7 +37,7 @@ def test_abrp_gets_them_on_the_same_wheels():
 
 def test_the_web_adapter_files_them_under_the_ids_the_parser_reads():
     """The Vehicle page reads 2646=FL / 2653=FR / 2660=RL / 2667=RR — the same pairing as the
-    poller, from the web's own copy of the adapter. The alarms keep the ids leapmotor-api,
+    poller, from the web's own copy of the adapter. The alarms keep the ids the old SDK,
     leapmotor-ha and ioBroker all use (2641=FL, 2648=FR, 2655=RL, 2662=RR)."""
     sig = command_client._named_fields_to_signal(_T03)
     assert (sig["2646"], sig["2653"], sig["2660"], sig["2667"]) == (210, 220, 230, 240)

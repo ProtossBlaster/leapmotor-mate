@@ -2,11 +2,11 @@
 the car's existing day mask (`cycles`), `circulation` and `recharge` — never guess them.
 See command_client.save_charge_schedule.
 
-Skipped where leapmotor_api isn't installed (the CI test env per pytest.ini); verified
+Skipped where command_client cannot be imported; verified
 in-container against the real client."""
 import pytest
 
-cc = pytest.importorskip("command_client", reason="needs leapmotor_api")
+cc = pytest.importorskip("command_client", reason="needs the web runtime")
 
 
 def test_charge_schedule_merge_preserves_car_fields(monkeypatch):

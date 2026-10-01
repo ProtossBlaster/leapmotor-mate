@@ -3,7 +3,7 @@
 A `text` entity that takes a JSON plan: {"start","stop","soc","active","days"} — every key optional.
 Whatever you omit KEEPS its current value (read-modify-write), so an automation can send just
 {"start":"23:00"} without disturbing the rest. It never goes through the library's set_charge_limit,
-which wipes start-time-only plans (leapmotor-api #18 — see test_mqtt_charge_limit.py).
+which wipes start-time-only plans (see test_mqtt_charge_limit.py).
 
 The target SoC is the one field we won't invent: when the payload omits it we use the limit the
 poller last read from the car, and if even that is unknown the command is refused.

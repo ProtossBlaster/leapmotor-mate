@@ -125,6 +125,31 @@ def packaged_certificate_usable():
         return False
 
 
+def _the_packaged_certificate_in_other_bytes(payloads):
+    """Whether a pair is this build's certificate and key, written differently.
+
+    Pairs uploaded through the old setup step were exports carrying their PKCS#12 bag attributes in front of the
+    PEM: the same certificate and key in another file. Those are rewritten as the packaged copy, so
+    every installation runs on the one recovered from the app. Any other pair is left alone.
+    """
+    try:
+        packaged = _packaged_certificate()
+        if all(payloads[name] == packaged[name] for name in NAMES[:2]):
+            return False
+        from cryptography import x509
+        from cryptography.hazmat.primitives import serialization
+
+        def identity(pair):
+            certificate = x509.load_pem_x509_certificate(pair[NAMES[0]])
+            key = serialization.load_pem_private_key(pair[NAMES[1]], password=None)
+            return (certificate.public_bytes(serialization.Encoding.DER),
+                    key.public_key().public_bytes(serialization.Encoding.DER,
+                                                  serialization.PublicFormat.SubjectPublicKeyInfo))
+        return identity(payloads) == identity(packaged)
+    except Exception:
+        return False
+
+
 def provision_automatic(destination, *, profile_directory=DEFAULT_PROFILE_DIRECTORY, certificate_directory=None):
     """Reuse local certificates and install missing material atomically.
 
@@ -148,9 +173,13 @@ def provision_automatic(destination, *, profile_directory=DEFAULT_PROFILE_DIRECT
         local_pair = [targets[name].exists() for name in NAMES[:2]]
         if any(local_pair) and not all(local_pair):
             raise ValueError('Incomplete existing application certificate pair')
+        replace = False
         if all(local_pair) or certificate_directory is not None:
             cert_dir = destination / 'certs' if all(local_pair) else _safe_path(certificate_directory)
             payloads = {name: _read(cert_dir / Path(name).name) for name in NAMES[:2]}
+            if _the_packaged_certificate_in_other_bytes(payloads):
+                payloads = _packaged_certificate()
+                replace = all(local_pair)
         else:
             payloads = _packaged_certificate()
         existing_parameters = targets[PARAMETERS].exists()
@@ -181,5 +210,5 @@ def provision_automatic(destination, *, profile_directory=DEFAULT_PROFILE_DIRECT
                 _private_owned(directory, directory=True)
             for target in targets.values():
                 _private_owned(target)
-            result = bootstrap(source=source, destination=destination)
+            result = bootstrap(source=source, destination=destination, replace=replace)
         return {**result, 'account_data_copied': False, 'automatic': True}

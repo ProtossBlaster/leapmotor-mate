@@ -11,7 +11,7 @@ WHAT THE APP ACTUALLY ASKS (mate_desktop/updater.py:unsatisfied_requirements). N
 change" but "can THIS interpreter satisfy every line": a `==`/`~=` pin that disagrees with what is
 installed blocks, a `>=` floor that is not met blocks, and a distribution with no metadata blocks
 only when it cannot even be imported. Upper bounds are not examined at all. So a line moving from
-`leapmotor-api[image]==0.3.1` to `leapmotor-api==0.3.1` + `Pillow>=10.0.0,<13` — which is what
+the old SDK's `[image]` extra to an explicit `Pillow>=10.0.0,<13` — which is what
 tripped the old check — is a no-op to the app: Pillow was already there, as that extra.
 
 HOW THIS ASKS IT.
@@ -20,14 +20,14 @@ HOW THIS ASKS IT.
      the very code the shipped shell runs, not from a copy that can drift;
   3. we build a virtualenv from the SEED commit's requirements, which is what the shell build
      installed, so pip resolves the same transitive libraries the shell ended up carrying
-     (anyio arrives with fastapi, Pillow with leapmotor-api[image] — neither is named in the file,
+     (anyio arrives with fastapi, Pillow then with the old SDK — neither is named in the file,
      which is exactly why reading the file alone gets it wrong);
   4. inside that interpreter we call the guard on HEAD's payload and print what it says.
 
 HOW CLOSE THE REPRODUCTION IS — measured, not assumed. On 16/09/2026 the published v1.0.0 arm64
 shell was mounted and questioned from inside (`--mate-child` runs a script with the app's own frozen
 interpreter), and its versions were compared with what this venv resolves from the same seed:
-fastapi, uvicorn, jinja2, python-multipart, leapmotor-api, tzdata, starlette, paho-mqtt and the two
+fastapi, uvicorn, jinja2, python-multipart, tzdata, starlette, paho-mqtt and the two
 that float — cryptography 48.0.1 and Pillow 12.3.0 — agreed **10 out of 10**. The same check also
 confirmed the verdict end to end: the guard returned [], the v3.16.0 payload imported in that shell,
 and GET /charges answered 200. Re-measure this if the seed ever moves; pip resolves on the day it

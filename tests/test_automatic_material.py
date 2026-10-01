@@ -234,3 +234,20 @@ def test_startup_uses_certificate_fallback_when_data_cert_dir_is_empty(material,
     assert runtime_paths.prepare_installation()['automatic']
     assert readiness(material/'certs',parameters_directory=data/'api-v2-private')['present']
     assert (data/'certs/app.crt').read_bytes()==(material/'certs/app.crt').read_bytes()
+
+
+def test_the_same_certificate_in_other_bytes_is_replaced_by_the_packaged_copy(tmp_path):
+    """A pair uploaded through the old setup step is the same certificate in a different file — exported with its
+    PKCS#12 bag attributes in front. It is rewritten as the copy recovered from the app."""
+    packaged=mod.DEFAULT_PROFILE_DIRECTORY/mod.PACKAGED_CERTIFICATE
+    destination=tmp_path/'data'
+    (destination/'certs').mkdir(parents=True)
+    for name in ('app.crt','app.key'):
+        (destination/'certs'/name).write_bytes(b'Bag Attributes\n    localKeyID: 01 00 00 00 \n'
+                                               +(packaged/name).read_bytes())
+    mod.provision_automatic(destination)
+    for name in ('app.crt','app.key'):
+        assert (destination/'certs'/name).read_bytes()==(packaged/name).read_bytes()
+        # the previous file is kept in the transaction's backup, not thrown away
+        assert any(p.read_bytes().startswith(b'Bag Attributes')
+                   for p in destination.glob('.application-backup-*/original/certs/'+name))

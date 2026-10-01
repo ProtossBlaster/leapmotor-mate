@@ -566,7 +566,7 @@ def _ctx(**kwargs):
     # default pack. On every page, because the figures it bends are on every page.
     _unconfigured = db_reader.unconfigured_vehicles()
     _command_css = ""
-    if os.environ.get("MATE_API_V2") == "1" and not _IS_DEMO:
+    if not _IS_DEMO:
         from ui_command_access import hidden_controls_css
         _vin = (_veh or {}).get("vin", "")
         _command_css = hidden_controls_css(
@@ -2380,8 +2380,8 @@ def _parse_vehicle_status(sig: dict, vin: str | None = None, cmd_pct: int | None
     return {
         # Wheel→signal mapping corrected from a TWO-B10 vs official-app cross-check (GitHub #32:
         # the UK reporter's car + Silvio's IT car, both showing 280 kPa at the rear-right):
-        # pressures map ascending 2646=FL/2653=FR/2660=RL/2667=RR (the leapmotor-api doc order was
-        # wrong). The alarm flags do NOT move with them: leapmotor-api, leapmotor-ha and ioBroker all
+        # pressures map ascending 2646=FL/2653=FR/2660=RL/2667=RR (the order older third-party docs gave was
+        # wrong). The alarm flags do NOT move with them: the old SDK, leapmotor-ha and ioBroker all
         # pair them as 2641=FL/2648=FR/2655=RL/2662=RR; that check did not cover them (no alarm was on).
         "tyres": {
             "fl": {"bar": bar("2646"), "low": i("2641") == 1},
@@ -2602,10 +2602,9 @@ async def settings_page(request: Request):
                 "default_drive_mode": db_reader.get_setting("default_drive_mode", ""),
                 "default_one_pedal": db_reader.get_setting("default_one_pedal", ""),
                 "db_size_mb": round(db_reader.get_db_size_bytes() / 1048576, 1)}
-    if os.environ.get("MATE_API_V2") == "1":
-        from cloud_import_policy import trips_enabled
-        settings["cloud_import_available"] = True
-        settings["cloud_import_trips"] = trips_enabled(db_reader._get())
+    from cloud_import_policy import trips_enabled
+    settings["cloud_import_available"] = True
+    settings["cloud_import_trips"] = trips_enabled(db_reader._get())
     # Per-card open/collapsed state for the settings accordion — saved in the DB (shared
     # across devices). Cards start collapsed so the page stays compact, EXCEPT 'vehicle': it's
     # tiny (model + VIN + the Logout/change-account button) and keeping it open makes the logout
@@ -3796,8 +3795,6 @@ async def save_cost_dynamic(request: Request):
 
 @app.post("/api/settings/cloud-import", response_class=HTMLResponse)
 async def save_cloud_import(request: Request):
-    if os.environ.get("MATE_API_V2") != "1":
-        return HTMLResponse("unavailable", status_code=404)
     from cloud_import_policy import KEY
     form = await request.form()
     db_reader.set_setting(KEY, "1" if form.get("cloud_import_trips") == "1" else "0")
@@ -4807,7 +4804,7 @@ _COMMANDS = {
     "seat_vent_driver_off": command_client.seat_vent_driver_off,
     # Staged but NOT surfaced in any UI — the B10 accepts these yet doesn't actuate
     # them (like the old A/C-off). Kept wired so they can be exposed instantly if a
-    # future leapmotor-api / vehicle update makes them work.
+    # future cloud / vehicle update makes them work.
     "battery_preheat_off": command_client.battery_preheat_off,
     "sentry_on":         command_client.sentry_on,
     "sentry_off":        command_client.sentry_off,
@@ -5970,20 +5967,19 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
 
     # Ability gate (defence in depth, mirrors the hidden button): refuse a command the car doesn't
     # declare it can do — e.g. unlock-charge-cable on a T03, which never declares code 48 (#142) —
-    # instead of bouncing a no-op off the car. Only the ability-gated commands (COMMAND_ABILITY keys)
-    # look up the vehicle, so every other command's path is untouched. None abilities → allowed.
-    if os.environ.get("MATE_API_V2") == "1" or name in capability_profile.COMMAND_ABILITY:
-        _veh, _ = db_reader.get_vehicle()
-        if not capability_profile.command_shown(
-                (_veh or {}).get("vin", ""), name,
-                abilities=capability_profile.parse_abilities((_veh or {}).get("abilities")),
-                car_type=(_veh or {}).get("car_type", "")):
-            _msg = {"it": "Non supportato su questo modello", "fr": "Non pris en charge sur ce modèle",
-                    "de": "Von diesem Modell nicht unterstützt"}.get(
-                        db_reader.get_language(), "Not supported on this model")
-            return _cmd_response(request, status=400,
-                                 payload={"ok": False, "error": _msg, "unsupported": True},
-                                 html=f'<span data-warn="1" style="color:#fbbf24">⚠️ {_msg}</span>')
+    # instead of bouncing a no-op off the car. Every command looks the vehicle up: the cloud's own
+    # per-vehicle data decides what is shown and what is sent. None abilities → allowed.
+    _veh, _ = db_reader.get_vehicle()
+    if not capability_profile.command_shown(
+            (_veh or {}).get("vin", ""), name,
+            abilities=capability_profile.parse_abilities((_veh or {}).get("abilities")),
+            car_type=(_veh or {}).get("car_type", "")):
+        _msg = {"it": "Non supportato su questo modello", "fr": "Non pris en charge sur ce modèle",
+                "de": "Von diesem Modell nicht unterstützt"}.get(
+                    db_reader.get_language(), "Not supported on this model")
+        return _cmd_response(request, status=400,
+                             payload={"ok": False, "error": _msg, "unsupported": True},
+                             html=f'<span data-warn="1" style="color:#fbbf24">⚠️ {_msg}</span>')
 
     # The car locks some controls (sunshade, trunk, windows, lock) while moving —
     # intercept the press and show the same notice the official app does, instead of
@@ -6072,9 +6068,9 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
         # Climate commands take several seconds to reflect in signals → show the
         # spinner and refresh from real signals after a delay (like slow commands).
         slow = name in _SLOW_COMMANDS or field is not None
-        refresh_delay = 2 if os.environ.get("MATE_API_V2") == "1" else (12 if slow else 3)
+        refresh_delay = 2
         background_tasks.add_task(_post_command_refresh, expected, epoch, refresh_delay)
-        if os.environ.get("MATE_API_V2") == "1" and "cloud accepted" in msg.lower():
+        if "cloud accepted" in msg.lower():
             from html import escape
             message = i18n.get_t(db_reader.get_language())("command_accepted_unconfirmed")
             return _cmd_response(request,
@@ -6085,16 +6081,15 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
                 html='<span data-slow="1" style="color:#60a5fa;display:inline-flex;align-items:center;gap:4px"><svg style="animation:spin 1s linear infinite;width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span><style>@keyframes spin{to{transform:rotate(360deg)}}</style>')
         return _cmd_response(request, payload={"ok": True, "status": "done"},
                              html='<span data-ok="1" style="color:#22c55e">✓ Done</span>')
-    if os.environ.get("MATE_API_V2") == "1":
-        # The cloud is the authority on what a model has. A refusal with code 40 means this car
-        # has not got this command, so stop offering it — the button would fail every time.
-        refusal = command_client.last_cloud_refusal()
-        if refusal:
-            import ui_command_access
-            refused_vin, code = refusal
-            ui_command_access.remember_refusal(
-                refused_vin, ui_command_access.account_username(db_reader.get_setting),
-                name, code, get_setting=db_reader.get_setting, set_setting=db_reader.set_setting)
+    # The cloud is the authority on what a model has. A refusal with code 40 means this car
+    # has not got this command, so stop offering it — the button would fail every time.
+    refusal = command_client.last_cloud_refusal()
+    if refusal:
+        import ui_command_access
+        refused_vin, code = refusal
+        ui_command_access.remember_refusal(
+            refused_vin, ui_command_access.account_username(db_reader.get_setting),
+            name, code, get_setting=db_reader.get_setting, set_setting=db_reader.set_setting)
     return _cmd_response(request, payload={"ok": False, "error": msg},
                          html=_cmd_error_html(msg))
 
@@ -6199,11 +6194,9 @@ async def cert_status_api():
     """Whether the application material is in place, so the wizard can go to the account step.
 
     It is installed at startup from the build itself; the user is never asked for a certificate."""
-    if os.environ.get("MATE_API_V2") == "1":
-        from setup_readiness import readiness
-        from runtime_paths import paths
-        return JSONResponse(readiness(command_client.cert_dir(), parameters_directory=paths().data / 'api-v2-private'))
-    return JSONResponse({"present": command_client.certs_present()})
+    from setup_readiness import readiness
+    from runtime_paths import paths
+    return JSONResponse(readiness(command_client.cert_dir(), parameters_directory=paths().data / 'api-v2-private'))
 
 
 @app.post("/api/setup/detect-vehicle")

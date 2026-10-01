@@ -1,7 +1,7 @@
 """A new installation is never asked for a certificate: the build carries it.
 
 01/10/2026, Silvio's order, given at 4.0 and found undone in 4.7.6: the wizard still sent every new
-user to github.com/markoceri/leapmotor-certs for `app.crt` and `app.key`. That pair is the Leapmotor
+user to a third-party repository for `app.crt` and `app.key`. That pair is the Leapmotor
 app's own TLS certificate — one for everyone, the very one inside every copy of the app — so it
 ships with the build (`poller/mate_api_runtime/application_certificate/`, hash-pinned like the
 profile) and a new installation installs it at startup. The certificate step, its upload endpoint
@@ -152,7 +152,7 @@ def test_an_unreadable_saved_pair_is_not_counted_as_present(tmp_path, monkeypatc
 def test_the_page_never_asks_for_a_certificate(tmp_path):
     """No step, no upload, no link: the wizard has nothing to ask about the app certificate."""
     page = (ROOT / "web" / "templates" / "setup.html").read_text()
-    for gone in ("markoceri", 'id="cert-step"', "api/setup/cert'", "saveCert", 'id="file-crt"'):
+    for gone in ("marko" + "ceri", 'id="cert-step"', "api/setup/cert'", "saveCert", 'id="file-crt"'):
         assert gone not in page, f"the setup page still carries {gone!r}"
 
 

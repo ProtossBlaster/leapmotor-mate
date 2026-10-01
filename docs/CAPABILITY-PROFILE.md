@@ -58,10 +58,10 @@ trips, charges, reports and charts, so a `broken` verdict on a CORE feature is i
 
 ## What the API does and doesn't do — empirical findings
 
-Tested live on the car: commands through the public `leapmotor-api` client, effects read back from
+Tested live on the car: commands through the cloud client, effects read back from
 the fresh signals. The hard cases (A/C full-off, comfort) were cracked on-car plus payloads captured
 by **@kerniger** (leapmotor-ha #41/#42); we shared the B10 READY PID `1258` back, and the A/C-off
-finding went upstream as **markoceri/leapmotor-api#3** (closed).
+finding went upstream too.
 
 ### Climate
 
@@ -75,7 +75,7 @@ finding went upstream as **markoceri/leapmotor-api#3** (closed).
   means nothing. It **honours `operate=manual`**, so on the T03 an auto write is rewritten to manual.
   ⚠️ Derived from the works-vs-fails difference in the #67 logs (rossiadobe, Gr1m214), **not verified
   on-car by us** — nobody here has a T03. Switching a T03 off is still unsolved: neither
-  `operate=off` nor `operate=close` does it (markoceri #9).
+  `operate=off` nor `operate=close` does it.
 
 ### Comfort — both axes work on the B10
 
@@ -98,7 +98,7 @@ per-window control. What differs is the native range (#62):
   Confirmed on-car on the B10 (us) and the C10 (kerniger); B05 shares the platform and pack.
   On the B10, only `0 / 2 / 5 / 10` actually move the car — closed / vent / half / open — so it is
   four discrete stops, not a continuous range.
-- **T03: 0–100**, continuous (per markoceri/leapconnect).
+- **T03: 0–100**, continuous.
 
 Mate presents one 0–100 % slider and maps it to the model's native scale (`_WINDOWS_SCALE`), snapping
 the B10 to its valid stops. The quick button is 20 % — a vent gap.

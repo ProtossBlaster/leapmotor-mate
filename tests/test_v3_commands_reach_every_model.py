@@ -14,7 +14,6 @@ Cosa NON afferma questo file: che un comando accettato venga eseguito fisicament
 provato solo sulla B10, e il cloud risponde `code: 0` anche a un comando che l'auto ignora.
 """
 import json
-import sqlite3
 import threading
 from types import SimpleNamespace
 
@@ -38,43 +37,6 @@ def snapshot(*, car_type, abilities=(SUNSHADE_ABILITY,), rights=None, at=1000.0,
         raw['rightList'] = rights
     return {'account': ui_command_access.account_hash(user),
             'at': at, 'vehicle': raw, 'shared': shared}
-
-
-class TestTheAccountQualifies:
-    """La qualifica dice QUALE client, non quali comandi."""
-
-    def _cloud(self, monkeypatch, vehicles, signals=None):
-        import automatic_material
-        monkeypatch.setattr(automatic_material, 'provision_automatic', lambda *args: None)
-        read = []
-
-        class Cloud:
-            def __init__(self, **kwargs): pass
-            def login(self): pass
-            def get_vehicle_list(self): return vehicles
-            def _get_vehicle_raw_status(self, vehicle):
-                read.append(vehicle.vin)
-                return {'data': {'vin': vehicle.vin,
-                                 'signal': {'1204': '65'} if signals is None else signals}}
-            def close(self): pass
-        monkeypatch.setattr(bridge, 'NewAPIClient', Cloud)
-        return read
-
-    def test_an_account_without_a_single_b10_qualifies(self, tmp_path, monkeypatch, preflight):
-        vehicles = [SimpleNamespace(car_type='C10', vin='fixture-1'),
-                    SimpleNamespace(car_type='T03', vin='fixture-2')]
-        read = self._cloud(monkeypatch, vehicles)
-        result = preflight._qualify_staged()
-        assert result['state'] == 'qualified'
-        assert sorted(result['capabilities']) == ['C10', 'T03'], \
-            'la qualifica deve registrare i modelli che ha visto, non una costante'
-        assert read == ['fixture-1', 'fixture-2'], 'ogni veicolo va comunque letto'
-
-    def test_unreadable_telemetry_still_refuses_on_every_model(self, monkeypatch, preflight):
-        for model in MODELS:
-            self._cloud(monkeypatch, [SimpleNamespace(car_type=model, vin='fixture-1')], signals={})
-            with pytest.raises(ValueError):
-                preflight._qualify_staged()
 
 
 class TestTheBridgeSends:
@@ -203,30 +165,12 @@ class TestARefusalIsRemembered:
             "i rifiuti sono di quell'abbinamento account-auto: un altro account riparte pulito"
 
 
-@pytest.fixture
-def preflight(tmp_path, monkeypatch):
-    import importlib
-    module = importlib.import_module('migration_preflight')
-    root = tmp_path / 'live'
-    root.mkdir()
-    db = root / 'mate.db'
-    with sqlite3.connect(db) as conn:
-        conn.execute('CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT)')
-        conn.executemany('INSERT INTO settings VALUES (?,?)',
-                         [('leapmotor_user', 'fixture@example.invalid'),
-                          ('leapmotor_pass', 'fixture-password')])
-    (root / 'secret.key').write_bytes(b'original-key')
-    monkeypatch.setenv('DB_PATH', str(db))
-    return module
-
-
 class TestTheRefusalTravelsFromTheCloudToThePage:
     """Il rifiuto deve arrivare fino al pulsante, altrimenti resta un dato che nessuno legge."""
 
     def test_the_command_layer_exposes_the_refusal_of_the_last_command(self, monkeypatch):
         import command_client
         session = command_client._session
-        monkeypatch.setenv('MATE_API_V2', '1')
         monkeypatch.setattr(session, '_connect', lambda: None)
         monkeypatch.setattr(session, '_target', lambda: SimpleNamespace(vin=VIN))
         monkeypatch.setattr(session, '_use_pin_of', lambda vin: None)
@@ -252,7 +196,6 @@ class TestThePageStopsOfferingARefusedCommand:
         import main
         import command_client
         import db_reader
-        monkeypatch.setenv('MATE_API_V2', '1')
         monkeypatch.setitem(main._COMMANDS, 'open_sunshade', lambda: (False, 'refused'))
         monkeypatch.setattr(command_client, 'last_cloud_refusal',
                             lambda: (web['vin'], 40))
@@ -335,7 +278,6 @@ class TestWhatWeShowKeepsWhatWeMeasured:
 
     def test_a_t03_keeps_hidden_what_it_has_no_hardware_for(self, monkeypatch):
         pytest.importorskip('paho.mqtt.client', reason='il ponte MQTT del poller vuole paho')
-        monkeypatch.setenv('MATE_API_V2', '1')
         monkeypatch.delenv('MATE_DEMO', raising=False)
         page = self._web_shows(monkeypatch)
         home_assistant = self._home_assistant_shows()
@@ -352,7 +294,6 @@ class TestWhatWeShowKeepsWhatWeMeasured:
         la T03 vedrebbe comparire i pulsanti che `command_shown` dichiara nascosti."""
         import importlib.util
         from pathlib import Path as P
-        monkeypatch.setenv('MATE_API_V2', '1')
         monkeypatch.delenv('MATE_DEMO', raising=False)
         path = P(__file__).resolve().parents[1] / 'web' / 'capability_profile.py'
         spec = importlib.util.spec_from_file_location('capability_profile_css', path)

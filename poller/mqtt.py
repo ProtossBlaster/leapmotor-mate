@@ -210,8 +210,6 @@ class MqttService:
     # ── Publishing ────────────────────────────────────────────────────────────
 
     def _access_signature(self, vin):
-        if os.environ.get("MATE_API_V2") != "1":
-            return None
         from ui_command_access import COMMANDS, allowed, snapshot_key, account_hash, account_username
         try:
             username = account_username(self.get_setting)
@@ -224,25 +222,21 @@ class MqttService:
             return ('unavailable',)
 
     def _command_visible(self, vin, key):
-        if os.environ.get("MATE_API_V2") == "1":
-            key = {'climate_auto': 'ac_on', 'climate_cool': 'quick_cool',
-                   'climate_heat': 'quick_heat', 'climate_vent': 'quick_vent',
-                   'fan_level': 'set_fan_level', 'recirculation': 'set_recirc',
-                   'door_lock': 'lock', 'lock_toggle': 'lock',
-                   'trunk': 'open_trunk', 'charge_limit': 'set_charge_limit',
-                   'charge_schedule': 'save_charge_schedule'}.get(key, key)
-            # The cloud decides what may be SENT; what Home Assistant SHOWS also keeps what was
-            # measured on the car, exactly as the page does — the European T03 declares
-            # STEERING_WHEEL and heated seats it has no hardware for (#144), and the two surfaces
-            # must not disagree about the same car.
-            feat = capability_profile.COMMAND_FEATURE.get(key)
-            if feat and capability_profile.model_hidden(self._facts(vin)[1], feat):
-                return False
-            from ui_command_access import command_allowed
-            return command_allowed(vin, key, self.get_setting)
-        abilities, car_type = self._facts(vin)
-        return capability_profile.command_shown(vin, key, self.get_setting,
-                                                abilities=abilities, car_type=car_type)
+        key = {'climate_auto': 'ac_on', 'climate_cool': 'quick_cool',
+               'climate_heat': 'quick_heat', 'climate_vent': 'quick_vent',
+               'fan_level': 'set_fan_level', 'recirculation': 'set_recirc',
+               'door_lock': 'lock', 'lock_toggle': 'lock',
+               'trunk': 'open_trunk', 'charge_limit': 'set_charge_limit',
+               'charge_schedule': 'save_charge_schedule'}.get(key, key)
+        # The cloud decides what may be SENT; what Home Assistant SHOWS also keeps what was
+        # measured on the car, exactly as the page does — the European T03 declares
+        # STEERING_WHEEL and heated seats it has no hardware for (#144), and the two surfaces
+        # must not disagree about the same car.
+        feat = capability_profile.COMMAND_FEATURE.get(key)
+        if feat and capability_profile.model_hidden(self._facts(vin)[1], feat):
+            return False
+        from ui_command_access import command_allowed
+        return command_allowed(vin, key, self.get_setting)
 
     def publish_status(self, data, abilities=None, car_type=None, absent_temps=None):
         """One car's state. `abilities` and `car_type` describe THIS car — with two on the account
@@ -519,8 +513,7 @@ class MqttService:
         device = self._device(vin)
 
         def cfg(component, key, conf):
-            if (os.environ.get("MATE_API_V2") == "1" and "command_topic" in conf
-                    and not self._command_visible(vin, key)):
+            if "command_topic" in conf and not self._command_visible(vin, key):
                 self.client.publish(f"{_DISC}/{component}/{device_id}/{key}/config", "", retain=True)
                 return
             conf.update({"unique_id": f"{device_id}_{key}", "device": device})

@@ -13,7 +13,7 @@ would go red on a slow network rather than on a defect. An uncaught exception is
 but our bug.
 
 Costs: fastapi + uvicorn + pytest-playwright + a Chromium. None of them are in CI's minimal env
-(.github/workflows/ci.yml installs pytest, cryptography, jinja2, leapmotor-api, paho-mqtt), so
+(.github/workflows/ci.yml installs pytest, cryptography, jinja2, paho-mqtt), so
 today this file SKIPS there and guards only the laptop it runs on — the same half-measure
 test_access_card_markup.py's docstring warns about. Adding them to the CI step is what turns it
 into a real guard; that is a separate, deliberate decision, not something this file assumes.

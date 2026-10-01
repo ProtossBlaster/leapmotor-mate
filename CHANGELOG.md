@@ -70,12 +70,12 @@ where they previously showed an estimate of a few hundredths.
   model. A default outside the wizard's list is a pack no owner can pick and no page explains, applied
   in silence. It holds for all five models today.
 - **The bundle says why an installation is still on the bundled SDK** (#338). @dommi1966's
-  installation has been on the bundled `leapmotor-api` for three releases while the activation
+  installation has been on the bundled SDK for three releases while the activation
   re-attempts every six hours and fails, and the bundle said only which client was running, never why.
   Since 4.2.0 a `legacy` decision is **never a verdict on the account** — every model qualifies — so
   it is always a qualification that did not finish, and the three facts that say so are not secrets:
   the state, the reason and the time it last tried. The `Cloud client` line now carries them, e.g.
-  `bundled SDK (leapmotor-api) · retained (qualification_failed), last tried 3.2 h ago`, and a
+  `bundled SDK · retained (qualification_failed), last tried 3.2 h ago`, and a
   decision written by 4.4.0 with no timestamp at all reads `never attempted`, which is exactly what
   pinned those installations. The account **identity is never printed** — it is an HMAC of the
   account's own credentials and nothing in a support bundle needs it — and a `qualified` decision is
@@ -108,7 +108,7 @@ where they previously showed an estimate of a few hundredths.
 - **A trip counts the frame it opened on as its own** (PR #349, @arekm). The recorder saves every frame to `positions` before the state machine decides what it means, so the row of the frame that opens a trip is written a moment before the trip exists — and the trip took a later clock read as its start, leaving its own opening row outside it. A trip now starts when the poll that opened it began. What it changes: a trip that heard only its opening frame, repeated until the frozen-drive guard fired, lasted 30 minutes instead of 0. The trip tests' rig read one fixed time per poll, so the opening row and the trip shared a timestamp there and the defect could not appear; it can tick on every read now, as a real clock does.
 - **A charge the car stopped flagging is still a charge** (#341, @arzthilfe). 4.7.1 fixed a power chart that stopped when a session was recorded as two rows joined together — a real defect, and not his: all 42 of his charges are single rows. His bundle carries the session in his screenshot, the night of 28→29 September: `22:17:21 plug=1 chg=1 A=-2.3` at 11 A, then `22:17:52 plug=1 chg=0 A=-1.7` when the wallbox went to 8 A, and `chg=0` with the current still negative all night, `State: charging` throughout, SoC 78.9 → 92.2 by morning. **146 of that session's 1177 polls carry the flag: 12.4 %.** The car's flag needs a pack current of at least the charge-detection setting (2.0 A by default) and at 8 A his C10 reports 1.7 A. The SESSION is right — the state machine also holds it on the cable, which is why it is one row with no unmerge button — but the thirteen queries that read it back by the raw flag lost seven hours of it: the power chart, the active window the wallbox comparison and the HOME cost align on, the time-of-use split, the dynamic-tariff cost, the energy below a given SoC, and the three that ask whether a charge has samples at all. One rule answers for all thirteen now: the flag, OR a charging-sign pack current while the car is stationary. Measured on a real 375 000-row history: of the 8581 unflagged rows carrying a charging-sign current the motion gate excludes 8580, and the one it keeps sits 69 s inside a session whose flag had not caught up; no parked sample anywhere sits between -0.5 A and 0, so the floor is below everything measured rather than fitted to it. ⚠️ On a car that always flags its charges that single sample is the whole difference.
 - **A long label no longer lands on its own value** (#340, @jcconca). In Spanish the Summary card read `Cuentakilómetros1930`, with `km` on a line of its own, and `Temperatura de consigna` / `24 °C` both wrapped. The rows distribute the FREE space between label and value, and a label that fills its half-width cell leaves none: measured in a browser at the two widths in the screenshots and three more, the gap is **0.0 px** on three of the rows at 320, 360, 381, 414 and 1149 px. The same markup in English has room to spare at every one of them. Each row now keeps a gap, the label may shrink so it wraps rather than push, and the value never wraps — a reading and its unit are one number.
-- **An installation kept on the old cloud client is asked again** (#338, @dommi1966). His 4.7.1 bundle is the only one of the public set reading `Cloud client : bundled SDK (leapmotor-api)`. Mate takes that decision once and stores it against a release marker that has read `4.4.0` since 4.4.0, so whatever it decided then has been returned untouched at every start through 4.5, 4.6, 4.7 and 4.7.1 — and his FIRST bundle showed 747 `database is locked` lines and a skipped schema check, exactly the state that makes the decision fail, since it copies the database into a staging area and performs a live cloud login inside a 15-second subprocess. There is no longer any such thing as an account that does not qualify (since 4.2.0 every model does, and 4.4.0 removed the literal `['B10']` that kept the others out — #327, #330), so every stored "keep the old client" decision is a check that did not finish: a timeout, a locked database, a login the cloud refused that minute. None is a verdict about the account. It is asked again now, though not on every start — the check logs in and that cloud rations logins (#296) — so a failure is honoured for six hours, and a decision stored before this rule carries no attempt time at all and is re-examined at once. ⚠️ A decision that SUCCEEDED is untouched.
+- **An installation kept on the old cloud client is asked again** (#338, @dommi1966). His 4.7.1 bundle is the only one of the public set reading `Cloud client : bundled SDK`. Mate takes that decision once and stores it against a release marker that has read `4.4.0` since 4.4.0, so whatever it decided then has been returned untouched at every start through 4.5, 4.6, 4.7 and 4.7.1 — and his FIRST bundle showed 747 `database is locked` lines and a skipped schema check, exactly the state that makes the decision fail, since it copies the database into a staging area and performs a live cloud login inside a 15-second subprocess. There is no longer any such thing as an account that does not qualify (since 4.2.0 every model does, and 4.4.0 removed the literal `['B10']` that kept the others out — #327, #330), so every stored "keep the old client" decision is a check that did not finish: a timeout, a locked database, a login the cloud refused that minute. None is a verdict about the account. It is asked again now, though not on every start — the check logs in and that cloud rations logins (#296) — so a failure is honoured for six hours, and a decision stored before this rule carries no attempt time at all and is re-examined at once. ⚠️ A decision that SUCCEEDED is untouched.
 - **The €/kWh on a charge says which kilowatt-hours it divides by** (#346, @Tommy73LMB05). An HPC session read 17,45 €, +41,2 kWh in the battery (DC) and 0,37 €/kWh, while the Overview's average price in the battery read 0,405. Reproduced by running Mate's own code on his three figures: 17,45 / 47,28 (what the column delivered, typed in) = 0,369; 17,45 / 41,2 (what reached the pack) = 0,424, blended to 0,405 because he plugged in at 16,6 %. Both are right, and the split is deliberate — one divides by what billed you, the other by what a trip actually consumes. What was missing is the word: the rate sat directly under *+41,2 kWh in the battery* while dividing by 47,28, and nothing on screen said so. Two correct numbers under one unit is a defect even when both are right. The card names the basis beside the rate now, read from the same place the figure itself is decided. The tooltip on the battery price had the same hole — it explained the gap for a charge "billed on a meter's kWh", a home wallbox, and his is a public session with the column's figure typed in — widened in all eight languages.
 - **A charge flag Mate reads from the car goes back as the car sent it** (#343, @jcconca). 4.7.1 made a refused charge schedule name the flag and what it held, "so that a diagnostics bundle carries the answer with no extra cloud call" — and it did, four days later, in his: `Command not sent: invalid charge flag circulation=2`. So the flag is **circulation** and the value is **2**, on a real C10, not `recharge` as everyone had assumed; his last accepted send was 27 September at 22:00 with circulation=1, and every nightly automation of his since has failed with that sentence. Command 190 re-sends the car's WHOLE plan, and only `chargeEnable` and `chargesoc` are Mate's to choose — `circulation` and `recharge` are read out of the car's own configuration and written straight back, so checking those two against {0, 1}, a domain that was assumed and never measured, stopped him changing the one field he did ask about. They accept any integer the car published now. An integer, and only an integer: an absent value, an empty one, a string or a boolean mean the value could not be READ, a different thing from a value the car said, and each is still refused by name and with the value. `chargeEnable` keeps 0/1 — it is a switch, and nothing reads it off the car to echo back. Fixed upstream in MATE-API 0.1.0a14 and re-vendored byte for byte, so all three routes to that command pass through the one contract — PR #344 had patched two of them.
 - **No schema change** beyond that one index, no new setting, and nothing is rewritten in stored data on upgrade. An older Mate reads this database unchanged.
@@ -819,7 +819,7 @@ path per VIN. The vehicle keeps its real model for commands, capabilities and ba
 Models whose own status path works are unchanged, and a failed fallback is not repeated on
 every request.
 
-**Changed:** Pillow is now an explicit dependency because `leapmotor-api 0.3.1` does not
+**Changed:** Pillow is now an explicit dependency because the SDK it came with does not
 publish the documented `image` extra. AnyIO is constrained below 4.15 while FastAPI 0.115.0
 uses Starlette 0.38, avoiding their incompatible deprecated alias without a framework upgrade.
 
@@ -2250,15 +2250,15 @@ now takes you to the charge.**
   the *shape* of the command that decides, not the value.
 
   This had been open for months, and not only here: every integration in the ecosystem sent one of
-  the two forms the T03 ignores (kerniger/leapmotor-ha#28, markoceri/leapmotor-api#9). It was
+  the two forms the T03 ignores (kerniger/leapmotor-ha#28 among them). It was
   genuinely hard to see, because the cloud answers "accepted" to all three — so no log, on anybody's
   machine, could tell a command that worked from one the car threw away. The only instrument that
   ever worked was somebody watching their own car.
 
   **Found and verified on-car by [@derekzoli](https://github.com/derekzoli)**, who tested the
   candidates on his own T03 on 6-7 August, confirmed the winner by re-reading the vehicle state a few
-  seconds later and watching the A/C actually stop — and then brought the answer back to the report
-  we had opened at markoceri/leapmotor-api#9, rather than keeping it. He also built his own app,
+  seconds later and watching the A/C actually stop — and then brought the answer back to the public report
+  we had opened, rather than keeping it. He also built his own app,
   [MyLeapCar](https://github.com/derekzoli/myleapcar), on the way there. Mate's own hunt (seven
   candidate payloads, offered to T03 owners since v2.1.6) had searched the same grid in the wrong
   direction and missed it; that page is now retired, along with its buttons.
@@ -3346,7 +3346,7 @@ The bundle reported the vampire-drain thresholds and **not that one**. It does n
   The shell only carries what it was built knowing about, and its updater's dependency guard reads
   `requirements.txt` — so it catches a new *package* and is blind to a new module of the standard
   library. Mate 3.4.10 started importing PIL directly and the contract never learned; it worked only
-  because Pillow arrives as an extra of `leapmotor-api[image]`. A test now re-runs the scan and goes
+  because Pillow arrived as an extra of the bundled SDK. A test now re-runs the scan and goes
   red before a tag rather than on someone's Mac. It skips where the two repositories are not side by
   side, which is everywhere except the machine releases are cut on.
 
@@ -4391,7 +4391,7 @@ Groundwork for the standalone Mac app, which packages Mate for people who run ne
 ## [2.5.8] — 2026-07-10
 
 ### Fixed
-- **Setting the charge limit no longer wipes a start-time-only charge schedule.** If you had scheduled charging enabled with only a start time (no end time and no specific days), changing the charge limit could silently **disable the schedule and reset its start time to 00:00**. The cause was in the underlying library's read-modify-write: it keyed on the day mask, and the cloud omits that mask for a start-time-only plan, so it fell back to an all-defaults branch. Mate now round-trips the current plan and changes **only** the target SoC — the schedule's enabled state, start/end window and days are preserved (leapmotor-api #18). Schedules that had specific days set were never affected.
+- **Setting the charge limit no longer wipes a start-time-only charge schedule.** If you had scheduled charging enabled with only a start time (no end time and no specific days), changing the charge limit could silently **disable the schedule and reset its start time to 00:00**. The cause was in the underlying library's read-modify-write: it keyed on the day mask, and the cloud omits that mask for a start-time-only plan, so it fell back to an all-defaults branch. Mate now round-trips the current plan and changes **only** the target SoC — the schedule's enabled state, start/end window and days are preserved. Schedules that had specific days set were never affected.
 
 ## [2.5.7] — 2026-07-10
 
@@ -5627,8 +5627,8 @@ This release makes Mate use the car's real **power-on (Ready) signal** to bound 
   slider; cool/heat lock to their preset temperature. The earlier "the B10 rejects the climate write
   (code -2)" turned out to be a stale/expired `start_time`, not a blocked endpoint — Mate now anchors
   the start to the next occurrence, so the write works. Read / write / edit / cancel all stay in sync
-  with the official Leapmotor app. (Reverse-engineered on-car; details shared upstream at
-  markoceri/leapmotor-api#5 and kerniger/leapmotor-ha#43.)
+  with the official Leapmotor app. (Reverse-engineered on-car; details shared at
+  kerniger/leapmotor-ha#43.)
 
 ### Changed
 - **Scheduling UX (charge + climate).** "Active" is now a clear master switch: turning it off resets
@@ -6072,7 +6072,7 @@ This release makes Mate use the car's real **power-on (Ready) signal** to bound 
 
 ### Fixed
 - **Tyre pressures were shown on the wrong wheels.** The B10 signal→wheel mapping is
-  corrected per markoceri/leapmotor-api's documented signal table — the pressure and
+  corrected per the documented signal table — the pressure and
   its low-pressure alarm now refer to the same (correct) wheel.
 - **Removed the bogus "outside temperature".** That signal (2101) is actually the
   driver-seat ventilation level; no ambient-temperature signal exists, so the value

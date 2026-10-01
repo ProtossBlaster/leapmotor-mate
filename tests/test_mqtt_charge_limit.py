@@ -6,7 +6,7 @@ discovery config, the command-topic routing, and the poller-side dispatch (range
 Mirrors test_mqtt_trunk_toggle.py (#71).
 
 The dispatch does a READ-MODIFY-WRITE through set_charge_schedule — never the lib's
-api.set_charge_limit, which wipes an enabled start-time-only plan (leapmotor-api #18). That
+api.set_charge_limit, which wipes an enabled start-time-only plan (a known upstream bug). That
 was fixed web-side in v2.5.8; this MQTT path was still calling the lib directly.
 """
 import json
@@ -114,7 +114,7 @@ def test_dispatch_sets_target_soc_preserving_the_plan(tmp_path):
 
 
 def test_start_time_only_plan_is_not_wiped(tmp_path):
-    """Regression (leapmotor-api #18): the cloud omits `cycles` for an ENABLED start-time-only plan.
+    """Regression (upstream #18): the cloud omits `cycles` for an ENABLED start-time-only plan.
     The lib's set_charge_limit falls into its all-defaults branch there — charge_enable=0 and
     starttime reset to 00:00 — silently killing the plan. Fixed web-side in v2.5.8; this MQTT path
     (the Home Assistant number) was still calling the lib directly."""

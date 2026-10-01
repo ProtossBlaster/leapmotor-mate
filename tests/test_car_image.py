@@ -77,7 +77,7 @@ def test_static_image_on_bad_bytes_returns_none():
     assert car_image.static_image(b"not a zip") is None
 
 
-# ── compose end-to-end (needs Pillow — present via leapmotor-api[image]) ─────────
+# ── compose end-to-end (needs Pillow — an explicit web requirement) ─────────
 def _tiny_package() -> bytes:
     """A minimal layer package (transparent stand-ins) so compose() can run without the real car."""
     PIL = pytest.importorskip("PIL")

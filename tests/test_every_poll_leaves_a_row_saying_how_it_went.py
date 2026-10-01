@@ -213,7 +213,6 @@ def test_a_login_the_history_sync_makes_is_the_pollers(tmp_path, monkeypatch):
         monkeypatch.setattr(mod, "DB", path)
         monkeypatch.setattr(mod, "connect_db", lambda: sqlite3.connect(path))
     monkeypatch.setattr(bridge, "certificate_usable", lambda cert, key: True)
-    monkeypatch.setenv("MATE_API_V2", "1")
     monkeypatch.setenv("MATE_LAB_LOGIN_ONCE", "1")
     # a token shaped like the cloud's (header.payload.signature) with no device binding inside
     session = types.SimpleNamespace(token="h.e30.s", user_id="U", device_id="D", key=b"k" * 32, client_cert=("c", "k"),

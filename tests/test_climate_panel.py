@@ -6,7 +6,7 @@ fuzz + reverse-from-PAD method:
                   (Fuzzing 2/3/auto on the command + reverse from the PAD both confirm binary.)
   • base mode   = 3713: 0=auto · 1=cool · 3=heat · 4=vent (2 = unseen gap). 1939=1 only in auto.
 
-markoceri's lib + kerniger MISLABEL 1941 as drive_status — the on-car diff proved it's the fan.
+The old SDK + kerniger MISLABEL 1941 as drive_status — the on-car diff proved it's the fan.
 CI-safe (pure parse, no network)."""
 import client
 

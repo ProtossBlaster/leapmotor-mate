@@ -346,7 +346,6 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 - [`kerniger/leapmotor-ha`](https://github.com/kerniger/leapmotor-ha) — original Leapmotor cloud API reverse-engineering / Home Assistant integration.
 - [`ProtossBlaster/MATE-API`](https://github.com/ProtossBlaster/MATE-API) — Mate's own cloud client.
-- [`markoceri/leapmotor-api`](https://github.com/markoceri/leapmotor-api) — Python cloud client: Mate's fallback since 4.0, and the source of its packaged application profile.
 - Inspired by [TeslaMate](https://github.com/teslamate-org/teslamate) and the Leapmotor Home Assistant integrations.
 
 ## License

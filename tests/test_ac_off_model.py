@@ -48,7 +48,7 @@ def _stub(monkeypatch, car_type):
 def test_t03_sends_operate_off_inside_the_full_body(monkeypatch):
     """On the T03 it is not the VALUE of operate that decides, it is the SHAPE of the payload — it
     needs `off`, and only with the other six fields present. Verified on-car by @derekzoli
-    (markoceri/leapmotor-api#9), watching acSwitch go false rather than trusting the cloud's code:0."""
+    (the upstream report), watching acSwitch go false rather than trusting the cloud's code:0."""
     fake = _stub(monkeypatch, "T03")
     cc.ac_off()
     action, vin, body = fake.api.calls[-1]

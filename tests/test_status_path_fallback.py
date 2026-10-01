@@ -1,7 +1,7 @@
 """A model the library doesn't map still reads its status (#177, @arnolds77).
 
 The status endpoint is the only call in the whole flow with the model in its address —
-`…/vehicle/v1/status/get/{car_type}`. leapmotor-api maps B10 and B11 onto `c10` and lets every other
+`…/vehicle/v1/status/get/{car_type}`. The old SDK mapped B10 and B11 onto `c10` and lets every other
 model fall through to its own name, so a model nobody has added asks the backend for an address it
 does not serve. @arnolds77's **B05** is exactly that: login fine, vehicle list fine, VIN, model and
 abilities all known, the official Leapmotor app on the same account showing live data — and

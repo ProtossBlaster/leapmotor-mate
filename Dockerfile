@@ -36,7 +36,6 @@ RUN chmod a+x /run.sh
 ENV PYTHONUNBUFFERED=1
 ENV CERT_DIR=/data/certs
 ENV DATA_CERT_DIR=/data/certs
-ENV MATE_API_V2=1
 ENV DB_PATH=/data/leapmotor_mate.db
 
 # MateBetaTesterOnly flag. 0 in the official image (the research code stays inert); the CI

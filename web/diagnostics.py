@@ -101,46 +101,6 @@ def _journal_line(mode) -> str:
             "(a network share usually cannot).")
 
 
-def _migration_decision_line(raw) -> str:
-    """What the activation decided about the cloud client, and when it last tried.
-
-    A `legacy` decision is never a verdict on the account — since 4.2.0 every model qualifies — so it
-    is always a qualification that did not FINISH, and 4.7.2 made it re-attempted every six hours
-    instead of kept for the life of a release. @dommi1966 (#338) is still on the bundled SDK three
-    releases later, which means the re-attempt runs and fails, and nothing said on what: the
-    activation stores no exception and logs nothing, because the payload could carry credentials.
-
-    It does store a `state`, a `reason` and the time it last tried, and those three are not secrets.
-    The identity is: it is an HMAC of the account's own credentials, and nothing here needs it.
-    """
-    try:
-        decision = json.loads(raw or "")
-    except (ValueError, TypeError):
-        return ""
-    if not isinstance(decision, dict) or not decision:
-        return ""
-    state = str(decision.get("state") or "?")
-    reason = decision.get("reason")
-    part = f"{state} ({reason})" if reason else state
-    attempted = decision.get("attempted")
-    if state == "qualified":
-        # A qualified decision DROPS `attempted` on purpose: it succeeded, it promoted session
-        # material, and it is never re-attempted. Reading that absence as "never attempted" would
-        # print the opposite of what happened, on the one decision that worked.
-        return f" · {part}"
-    if attempted is None:
-        # 4.4.0 wrote no `attempted` at all, and that absence is exactly what pinned an
-        # installation: the retry gate reads it as zero, so such a decision is due at once.
-        when = "never attempted"
-    else:
-        try:
-            when = f"last tried {(time.time() - float(attempted)) / 3600:.1f} h ago"
-        except (TypeError, ValueError):
-            when = "last tried at an unreadable time"
-    return f" · {part}, {when}"
-
-
-# ── system snapshot ──────────────────────────────────────────────────────────
 def build_system_info(version: str) -> dict:
     """Cheap (no live cloud call) support snapshot for the card + the bundle header."""
     vehicle, settings = db_reader.get_vehicle()
@@ -200,7 +160,6 @@ def build_system_info(version: str) -> dict:
         # which case the health page falls back to the capacity above.
         "battery_nominal_kwh": settings.get("battery_capacity_nominal_kwh", "— (not set)"),
         "language": settings.get("language", "en"),
-        "migration_decision": settings.get("mate_api_migration_decision", ""),
         "db_size_mb": round(db_reader.get_db_size_bytes() / 1048576, 1),
         "counts": {"trips": _count("trips"), "charges": _count("charges"),
                    "positions": _count("positions")},
@@ -798,7 +757,7 @@ def _missed_charges_section() -> str:
 
 
 def _abilities_section() -> str:
-    """The car's DECLARED ability codes (leapmotor_api VehicleAbility) — the ground truth for what
+    """The car's DECLARED ability codes (the cloud's VehicleAbility codes) — the ground truth for what
     THIS model actually supports, so we stop assuming every car has the same commands (#67). Shows the
     raw codes + names and calls out the climate/seat features that differ across models (the T03 lacks
     several the B10/C10 have; also lets us learn a new model like the B05 the moment it connects)."""
@@ -927,16 +886,8 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
             f"VIN          : {info['vin_masked']}",
             f"Battery kWh  : {info['battery_kwh']}  (SoH reference: {info['battery_nominal_kwh']})",
             f"Language     : {info['language']}",
-            # 🔴 Mate 4 runs one of two cloud clients, and they fail differently: #327 was a
-            # refusal that only happens on the bundled SDK. @arzthilfe's bundle did not say
-            # which he had, and it had to be inferred from the shape of a log line.
-            # `api_backend` selects the SDK only on an explicit '0'.
-            f"Cloud client : " + ("bundled SDK (leapmotor-api)"
-                                  if os.environ.get("MATE_API_V2") == "0"
-                                  else "independent (mate-api)")
-            # …and, when the activation left one, what it decided and when it last tried: a bundle
-            # that only says "bundled SDK" states the question, not the answer (#338).
-            + _migration_decision_line(info["migration_decision"]),
+            # Mate's own client, the only one since 01/10/2026 (#327 and #338 lived on the other).
+            "Cloud client : independent (mate-api)",
             f"DB size (MB) : {info['db_size_mb']}",
             f"Journal mode : {_journal_line(info['journal_mode'])}",
             f"Rows         : trips={info['counts']['trips']} "

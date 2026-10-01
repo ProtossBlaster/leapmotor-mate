@@ -1,9 +1,8 @@
 """The first question every triage asks, and the bundle did not answer it (#327).
 
-Mate 4 runs one of two cloud clients: the independent one, or the bundled SDK for an account
-the activation decided does not qualify. They fail differently — #327 was a refusal that only
-happens on the SDK — and @arzthilfe's bundle never says which one he had. It had to be worked
-out from the shape of a log line, which is guesswork dressed as evidence.
+@arzthilfe's bundle never said which cloud client he had, and it had to be worked out from the
+shape of a log line. Since 01/10/2026 there is one, Mate's own; the bundle still says so, whatever
+an older version left in the environment.
 """
 import db as PollerDB
 import db_reader
@@ -21,23 +20,12 @@ def car(tmp_path, monkeypatch):
     return path
 
 
-def _info_lines(monkeypatch, value):
-    if value is None:
+@pytest.mark.parametrize("left_over", [None, "0", "1"])
+def test_the_client_is_named(car, monkeypatch, left_over):
+    if left_over is None:
         monkeypatch.delenv("MATE_API_V2", raising=False)
     else:
-        monkeypatch.setenv("MATE_API_V2", value)
-    return [l for l in diagnostics.build_bundle("9.9.9", parts=("info",)).splitlines()
-            if l.startswith("Cloud client")]
-
-
-def test_the_independent_client_is_named(car, monkeypatch):
-    assert _info_lines(monkeypatch, "1") == ["Cloud client : independent (mate-api)"]
-
-
-def test_the_bundled_sdk_is_named(car, monkeypatch):
-    assert _info_lines(monkeypatch, "0") == ["Cloud client : bundled SDK (leapmotor-api)"]
-
-
-def test_an_unset_backend_says_so_instead_of_guessing(car, monkeypatch):
-    """Absent is not the same as legacy: `api_backend` treats anything but '0' as independent."""
-    assert _info_lines(monkeypatch, None) == ["Cloud client : independent (mate-api)"]
+        monkeypatch.setenv("MATE_API_V2", left_over)  # what an older version set at startup
+    lines = [l for l in diagnostics.build_bundle("9.9.9", parts=("info",)).splitlines()
+             if l.startswith("Cloud client")]
+    assert lines == ["Cloud client : independent (mate-api)"]

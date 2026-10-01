@@ -15,75 +15,10 @@ from migrate_cloud_trips import migrate
 from migrate_cloud_charges import migrate as migrate_charges
 
 
-class _Reader:
-    """One history page, read with whatever client this installation already runs.
-
-    The independent client signs its own wire request and knows each vehicle's route. The
-    previous client does not expose `read`, so the page is signed here with its own key and
-    handed to its transport. Both reach the same unified path — measured 27/09/2026 against
-    the real cloud: `/carownerservice/mileage/daily/detail/page` answers result=0 under the
-    previous client's signature too. Nothing new is logged in: the session is the one the
-    installation is already using.
-    """
-
-    def __init__(self, api):
-        self._api = api
-        self._signs_its_own = hasattr(api, 'read')
-
-    def route(self, vin):
-        return self._api.route(vin) if self._signs_its_own else {'appCenter': None}
-
-    def read(self, path, body, origin=None):
-        if self._signs_its_own:
-            return self._api.read(path, body, origin=origin)
-        from leapmotor_api.crypto import build_signed_headers
-        headers = build_signed_headers(sign_key=self._api.sign_key, device_id=self._api.device_id,
-                                       language=self._api.language,
-                                       body_params={k: str(v) for k, v in body.items()}).to_dict()
-        headers.update(self._api._auth_headers())
-        headers['Content-Type'] = 'application/json'
-        response = self._api._post_json(path=path, headers=headers, json_body=body,
-                                        cert=self._api.account_cert)
-        raw = response.get('body')
-        try:
-            envelope = json.loads(raw) if isinstance(raw, str) else (raw or {})
-        except ValueError:
-            raise LeapmotorApiError('Cloud history could not be decoded') from None
-        if not isinstance(envelope, dict):
-            raise LeapmotorApiError('Cloud history returned an invalid envelope')
-        codes = [envelope[key] for key in ('code', 'result') if key in envelope]
-        if not codes or any(type(code) is bool or str(code) != '0' for code in codes):
-            # A refusal — no permission for this model, a vehicle that lost its rights — is
-            # reported as unavailable, so the caller skips that vehicle and not the whole sync.
-            raise LeapmotorApiError('Cloud history unavailable for this vehicle')
-        if not isinstance(envelope.get('data'), dict):
-            raise LeapmotorApiError('Cloud history returned no page')
-        return envelope
-
-
-def _reader(api):
-    return _Reader(api)
-
-
 def _client(username, password, device, on_login=None):
-    """The client this installation selected for commands, holding its live session.
-
-    On a retained account the previous client is shared through `session_share`, so the
-    worker reuses the poller's token instead of knocking on the login endpoint the cloud
-    started rationing on 17/09/2026. A login it does spend is told to `on_login`, like the
-    poller's own.
-    """
+    """The installation's client, holding its live session: it signs its own reads and knows each
+    vehicle's route. A login it does spend is told to `on_login`, like the poller's own."""
     certs = Path(DB).parent / 'certs'
-    if os.environ.get('MATE_API_V2') == '0':
-        from leapmotor_api import LeapmotorApiClient
-        import session_share
-        api = LeapmotorApiClient(username=username, password=password,
-                                 app_cert_path=str(certs / 'app.crt'),
-                                 app_key_path=str(certs / 'app.key'),
-                                 language='en-US', device_id=device)
-        session_share.install(api)
-        api.on_login = on_login
-        return api
     api = NewAPIClient(username=username, password=password, device_id=device,
                        app_cert_path=str(certs / 'app.crt'),
                        app_key_path=str(certs / 'app.key'), language='en-US')
@@ -108,7 +43,6 @@ def sync_once(on_login=None):
         local_vins={row[0] for row in db.execute('SELECT vin FROM vehicles')}
     if not username or not password or not local_vins:return
     api=_client(username,password,device,on_login)
-    reader=_reader(api)
     # Persisted cars survive account changes; only current authenticated bindings
     # may authorize a cloud read. New cars wait until the poller registers them.
     vins=list(dict.fromkeys(vehicle.vin for vehicle in api.get_vehicle_list()
@@ -120,7 +54,7 @@ def sync_once(on_login=None):
     summary={}
     for vin in vins:
         try:
-            route=reader.route(vin)
+            route=api.route(vin)
             for kind in ('mileage','charge'):
                 records=[];seen=set();baseline=None;complete=False
                 for page in range(1,101):
@@ -128,7 +62,7 @@ def sync_once(on_login=None):
                     body=dict(vin=vin,pageNum=str(page) if kind=='charge' else page,
                               pageSize=str(size) if kind=='charge' else size,
                               startTime=str(int(start.timestamp())),endTime=str(int(now.timestamp())))
-                    data=reader.read('/carownerservice/'+kind+'/daily/detail/page',body,origin=route['appCenter'])['data']
+                    data=api.read('/carownerservice/'+kind+'/daily/detail/page',body,origin=route['appCenter'])['data']
                     if any(type(data.get(k))is not int for k in ('pageNum','pageSize','totalPage','total')):
                         raise ValueError('Invalid history pagination')
                     if data['pageNum']!=page or data['pageSize']!=size:raise ValueError('Unexpected history page')

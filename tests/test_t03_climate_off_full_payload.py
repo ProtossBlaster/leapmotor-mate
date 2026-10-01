@@ -1,6 +1,6 @@
 """T03 A/C full-OFF — solved by @derekzoli, and it was the SHAPE of the payload, not the value (#67).
 
-Open across the whole ecosystem for months: kerniger/leapmotor-ha#28, markoceri/leapmotor-api#9.
+Open across the whole ecosystem for months: kerniger/leapmotor-ha#28 and the upstream SDK's own report.
 Every integration sent `operate=off` **bare** or `operate=close`, and the T03 ignores both — the cloud
 answers `code:0` either way, which is why a log could never tell anyone apart. On 06-07/08/26
 @derekzoli tested on his own T03 and, in his words:

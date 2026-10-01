@@ -18,7 +18,7 @@ rather than on a user's machine.
 
 Real case: Mate 3.4.10 started importing PIL directly (`car_image.py`, measuring which way the
 charging animation runs) and the contract never learned. It worked anyway — Pillow arrives as an
-extra of `leapmotor-api[image]` — which is precisely the kind of luck that runs out quietly.
+extra of the old bundled SDK — which is precisely the kind of luck that runs out quietly.
 
 Needs the MateDesktop checkout next door; CI has neither, so it skips there. That is not the usual
 "skipped where it matters" trap: this check can only exist where both repositories do, and that is

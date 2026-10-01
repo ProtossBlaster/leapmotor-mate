@@ -1,12 +1,7 @@
-"""Choose one API backend at process startup; never retry through another backend.
+"""The cloud client both processes use: Mate's own (MATE-API, V3 commands).
 
-mate_api configures activation before importing clients. Only an explicit legacy
-startup decision selects the bundled SDK; new and unspecified installs keep the
-independent client's rights and qualification checks.
+Since 01/10/2026 there is no other. The bundled third-party SDK, the `MATE_API_V2` switch that
+selected it and the qualification that chose between the two are gone, so a `legacy` decision
+stored by an older version changes nothing.
 """
-import os
-
-if os.environ.get("MATE_API_V2") == "0":
-    from leapmotor_api import LeapmotorApiClient
-else:
-    from api_v2_bridge import NewAPIClient as LeapmotorApiClient
+from api_v2_bridge import NewAPIClient as LeapmotorApiClient

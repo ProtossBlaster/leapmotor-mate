@@ -4,11 +4,11 @@ schedule can be saved. Isolated on-car: recurring+past and one-shot+future both 
 one-shot+past combination fails. These stale one-shots are inherited from the official app (schedules
 live on the shared cloud), so Mate must filter them itself.
 
-Skipped where leapmotor_api isn't installed (the CI env per pytest.ini); the drop logic is pure and
+Skipped where command_client cannot be imported; the drop logic is pure and
 is exercised in-container / wherever the client is available."""
 import pytest
 
-cc = pytest.importorskip("command_client", reason="needs leapmotor_api")
+cc = pytest.importorskip("command_client", reason="needs the web runtime")
 
 PAST = "2020-01-01 12:00:00"      # unambiguously in the past, whenever the test runs
 FUTURE = "2099-12-31 07:00:00"    # unambiguously in the future

@@ -64,14 +64,8 @@ def test_abilities_section_when_not_reported(monkeypatch):
 
 
 def test_abilities_section_lists_unmapped_codes(monkeypatch):
-    # Codes the car declares but the library can't name yet (newer than the enum) get their own line so
-    # they pop out as leads. Needs the VehicleAbility enum to tell mapped from unmapped — skip on the old
-    # local lib (CI / the container run 0.3.1 where the enum exists).
-    import pytest
-    try:
-        from mate_vehicle_abilities import VehicleAbility  # noqa: F401
-    except ImportError:
-        pytest.skip("VehicleAbility enum not present in this leapmotor_api version")
+    # Codes the car declares but the enum can't name yet (newer than it) get their own line so
+    # they pop out as leads.
     monkeypatch.setattr(db_reader, "get_vehicle",
                         lambda: ({"abilities": json.dumps([6, 999])}, {}))   # 6=AC_ON known, 999 unknown
     out = diagnostics._abilities_section()
@@ -79,11 +73,6 @@ def test_abilities_section_lists_unmapped_codes(monkeypatch):
 
 
 def test_abilities_section_unmapped_none_when_all_known(monkeypatch):
-    import pytest
-    try:
-        from mate_vehicle_abilities import VehicleAbility  # noqa: F401
-    except ImportError:
-        pytest.skip("VehicleAbility enum not present in this leapmotor_api version")
     monkeypatch.setattr(db_reader, "get_vehicle",
                         lambda: ({"abilities": json.dumps([6, 14])}, {}))     # both known
     assert "unmapped: (none)" in diagnostics._abilities_section()

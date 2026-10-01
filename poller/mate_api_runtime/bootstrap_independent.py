@@ -60,7 +60,9 @@ def _archive(transaction, destination):
     _sync(destination)
 
 
-def bootstrap(source='/opt/mate-application', destination='/data'):
+def bootstrap(source='/opt/mate-application', destination='/data', *, replace=False):
+    """Install the source material. Complete existing material is kept unless `replace`, which
+    swaps it through the same durable transaction and keeps the previous files in its backup."""
     destination = Path(destination)
     if destination.is_symlink():
         raise ValueError('Unsafe data directory')
@@ -78,7 +80,7 @@ def bootstrap(source='/opt/mate-application', destination='/data'):
             _archive(transaction, destination)
         if not transaction.exists():
             present = [(destination / name).exists() for name in NAMES]
-            if all(present):
+            if all(present) and not replace:
                 load_material(destination)
                 return {'state': 'existing_material_preserved', 'downloaded': False}
             # Validate the whole trusted bundle before changing existing material.

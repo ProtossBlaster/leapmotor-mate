@@ -8,6 +8,7 @@ import logging
 import threading
 
 from api_backend import LeapmotorApiClient
+from leapmotor_cloud import mate_compat
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def certs_present() -> bool:
 
 
 # T03/EU status carries live data as named fields at the top level of `data` instead
-# of a numeric-id `signal` sub-dict (C10/B10). Map per leapmotor-api 0.3.1; kept in
+# of a numeric-id `signal` sub-dict (C10/B10). The cloud's own map; kept in
 # sync with poller/client.py's copy.
 _SIGNAL_TO_NAMED = {
     "47": "acInputSlowCharge", "1204": "soc", "100003": "preciseSoc",
@@ -145,29 +146,6 @@ def _get_credentials() -> tuple[str, str, str]:
         pwd  = os.environ.get("LEAPMOTOR_PASS", "")
         pin  = os.environ.get("LEAPMOTOR_PIN", "")
     return user, pwd, pin
-
-
-def _signed_headers_builder(name: str):
-    """The header builder these raw endpoints must sign with, for the backend THIS process runs.
-
-    Mate has two. `api_backend` picks the bundled SDK when the activation decided the account does
-    not qualify (MATE_API_V2=0) and the independent client otherwise. These six endpoints are
-    POSTed by Mate itself rather than by the client, so on the SDK the signed headers — `sign`
-    among them — are the caller's job. The independent client signs its own wire request, and its
-    `adapter_owned_headers` marker returns nothing on purpose.
-
-    4.0.0 replaced the SDK's builders with that marker at all six call sites at once, for both
-    backends, so an installation left on the SDK sent these reads unsigned. The cloud answers an
-    unsigned request `code 39, Information verification failed`, and Mate showed it as "no data":
-    no consumption chart on Trips, no driving energy in the Monthly Report, no per-trip
-    enrichment (#327, on two cars).
-    → tests/test_the_legacy_backend_still_signs_its_reads.py
-    """
-    if os.environ.get("MATE_API_V2") == "0":
-        import leapmotor_api.crypto as _crypto
-        return getattr(_crypto, name)
-    from leapmotor_cloud.mate_compat import adapter_owned_headers
-    return adapter_owned_headers
 
 
 def _make_client() -> LeapmotorApiClient:
@@ -406,89 +384,30 @@ class LeapmotorSession:
         return ok, msg
 
     def _execute_inner(self, action_fn) -> tuple[bool, str]:
-        if os.environ.get("MATE_API_V2") == "1":
-            with self._lock:
-                try:
-                    self._connect()
-                    target = self._target()
-                    if target is None:
-                        return False, "No vehicle selected"
-                    self._use_pin_of(target.vin)
-                    self._api.last_new_command_receipt = None
-                    self.last_refusal = None
-                    action_fn(self._api, target.vin)
-                    receipt = self._api.last_new_command_receipt
-                    if receipt is None:
-                        return False, "New API command returned no receipt; not retried"
-                    if receipt.outcome in ("accepted", "accepted_untracked"):
-                        return True, "Cloud accepted; physical execution not confirmed"
-                    if receipt.outcome == "rejected":
-                        # Keep the cloud's own code: 40 (no such permission) is the cloud saying
-                        # this car has not got this command, which the caller records per VIN.
-                        self.last_refusal = (target.vin, getattr(receipt, "api_code", None))
-                    return False, "Remote control result " + receipt.outcome + "; not retried"
-                except Exception as exc:
-                    # Do not log exception text: upstream errors may contain secrets.
-                    log.warning("API v2 command failed or was blocked (%s); no automatic retry", type(exc).__name__)
-                    return False, str(exc)
         with self._lock:
-            refreshed = False
-            for attempt in range(3):
-                try:
-                    self._connect()
-                    target = self._target()
-                    if target is None:
-                        return False, "no vehicle"
-                    self._use_pin_of(target.vin)
-                    action_fn(self._api, target.vin)
-                    return True, "OK"
-                except Exception as e:
-                    err = str(e)
-                    # Car-confirm timeout: the cloud accepted the command (HTTP 200) but the car
-                    # didn't acknowledge within the cloud's poll window. This is NOT a network fault
-                    # and NOT fixable by retrying — a resend just fires the command at the car a
-                    # second time, and the reset would force a needless re-login. Stop here,
-                    # best-effort. (riri19/#73: his car returns data:0 for the whole window — even
-                    # the cloud's 30s grants time out — so neither a resend nor a longer wait helps.)
-                    # The same message is mapped to 'timeout_car' by _classify_outcome for the log.
-                    if "remote control result" in err.lower():
-                        log.warning("Command not confirmed by the car in time (best-effort): %s", err)
-                        return False, err
-                    # A first failed attempt is usually transient (stale keep-alive or an expired
-                    # token) and recovers on retry — log those at warning/info, and reserve ERROR
-                    # for a command that actually gives up, so the diagnostics aren't alarming.
-                    if self._is_connection_error(err):
-                        # Stale keep-alive connection — reset and retry immediately
-                        self._reset()
-                        if attempt >= 1:
-                            log.error("Command failed (connection): %s", err)
-                            return False, err
-                        log.warning("Command hit a stale connection (attempt %d) — retrying", attempt + 1)
-                        continue
-                    if not self._is_auth_error(err):
-                        log.error("Command failed: %s", err)
-                        return False, err
-                    # Genuine token expiry → refresh the token (keeps the same session) BEFORE any
-                    # full re-login. login() evicts the user's official-app session on a shared
-                    # account; token_refresh() does not. session_share patches token_refresh to
-                    # persist the new token, so the poller picks it up too (no divergent login).
-                    if self._is_token_error(err) and not refreshed:
-                        refreshed = True
-                        try:
-                            self._api.token_refresh()
-                            log.info("Command auth: token expired → refreshed (no re-login), retrying")
-                            continue
-                        except Exception as re_err:  # noqa: BLE001
-                            log.warning("token refresh failed (%s) — falling back to re-login", re_err)
-                    # Fallback: full re-login (also heals a vanished cert / 'verification' errors)
-                    self._reset()
-                    if attempt >= 1:
-                        log.error("Command failed (auth): %s", err)
-                        return False, err
-                    log.warning("Command auth issue (attempt %d) — re-login then retry", attempt + 1)
-                    time.sleep(3)  # avoid rate limit before re-login
-            log.error("Command failed after all retries")
-            return False, "Unknown error"
+            try:
+                self._connect()
+                target = self._target()
+                if target is None:
+                    return False, "No vehicle selected"
+                self._use_pin_of(target.vin)
+                self._api.last_new_command_receipt = None
+                self.last_refusal = None
+                action_fn(self._api, target.vin)
+                receipt = self._api.last_new_command_receipt
+                if receipt is None:
+                    return False, "New API command returned no receipt; not retried"
+                if receipt.outcome in ("accepted", "accepted_untracked"):
+                    return True, "Cloud accepted; physical execution not confirmed"
+                if receipt.outcome == "rejected":
+                    # Keep the cloud's own code: 40 (no such permission) is the cloud saying
+                    # this car has not got this command, which the caller records per VIN.
+                    self.last_refusal = (target.vin, getattr(receipt, "api_code", None))
+                return False, "Remote control result " + receipt.outcome + "; not retried"
+            except Exception as exc:
+                # Do not log exception text: upstream errors may contain secrets.
+                log.warning("API v2 command failed or was blocked (%s); no automatic retry", type(exc).__name__)
+                return False, str(exc)
 
     _STATUS_PATH_FALLBACK = "c10"
 
@@ -716,10 +635,8 @@ class LeapmotorSession:
         get_energy_breakdown()."""
         import json as _json
         from urllib.parse import quote
-        try:
-            build_consumption_last_week_headers = _signed_headers_builder("build_consumption_last_week_headers")
-        except Exception:  # noqa: BLE001
-            return None
+        # The client signs its own wire request; the marker builds no headers on purpose.
+        build_consumption_last_week_headers = mate_compat.adapter_owned_headers
         with self._lock:
             refreshed = False
             for attempt in range(3):
@@ -780,7 +697,7 @@ class LeapmotorSession:
         its own — the caller holds the lock and has connected."""
         import json as _json
         from urllib.parse import quote
-        build_consumption_last_week_headers = _signed_headers_builder("build_consumption_last_week_headers")
+        build_consumption_last_week_headers = mate_compat.adapter_owned_headers
         api, vin = self._api, self._target().vin
         headers = build_consumption_last_week_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin,
@@ -796,7 +713,7 @@ class LeapmotorSession:
         """Raw, UNMAPPED 6-week 100km-EC + rank response (research probe helper)."""
         import json as _json
         from urllib.parse import quote
-        build_consumption_weekly_rank_headers = _signed_headers_builder("build_consumption_weekly_rank_headers")
+        build_consumption_weekly_rank_headers = mate_compat.adapter_owned_headers
         api, vin = self._api, self._target().vin
         headers = build_consumption_weekly_rank_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin, language=api.language).to_dict()
@@ -814,7 +731,7 @@ class LeapmotorSession:
         we're here to CONFIRM. Raw on purpose — captures any fuel field the BEV mapping would drop."""
         import json as _json
         from urllib.parse import quote
-        build_consumption_weekly_rank_headers = _signed_headers_builder("build_consumption_weekly_rank_headers")
+        build_consumption_weekly_rank_headers = mate_compat.adapter_owned_headers
         api, vin = self._api, self._target().vin
         headers = build_consumption_weekly_rank_headers(
             sign_key=api.sign_key, device_id=api.device_id, carvin=vin, language=api.language).to_dict()
@@ -838,7 +755,7 @@ class LeapmotorSession:
         (body_params) like the live call, or the reply carries mileage only."""
         import json as _json
         from urllib.parse import quote
-        build_signed_headers = _signed_headers_builder("build_signed_headers")
+        build_signed_headers = mate_compat.adapter_owned_headers
         api, vin = self._api, self._target().vin
         headers = build_signed_headers(
             sign_key=api.sign_key, device_id=api.device_id, vin=vin, language=api.language,
@@ -900,7 +817,7 @@ class LeapmotorSession:
         life) and the derived parked share (total − driving). Returns a dict or None."""
         import json as _json, time as _time
         from urllib.parse import quote
-        build_signed_headers = _signed_headers_builder("build_signed_headers")
+        build_signed_headers = mate_compat.adapter_owned_headers
         with self._lock:
             for attempt in range(2):
                 try:
@@ -1041,24 +958,8 @@ def get_charge_plan() -> dict | None:
     return _session.get_charge_plan()
 
 def set_charge_limit(percent: int):
-    """Change ONLY the charge-limit SoC, preserving the car's existing charge plan.
-
-    NOT the lib's api.set_charge_limit (0.3.1): that guards on `cycles`, so for an ENABLED
-    start-time-only plan — where the cloud omits cycles/endtime/recharge — it falls into an
-    all-defaults branch that silently resets starttime to 00:00 and DISABLES the schedule
-    (leapmotor-api #18). We round-trip the current plan through save_charge_schedule, which
-    preserves cycles/circulation/recharge, and keep the plan's own enable state + start/end
-    window — touching only the SoC."""
-    if os.environ.get("MATE_API_V2") == "1":
-        return _session.execute(lambda api, vin: api.set_charge_limit(vin, int(percent)))
-    cur = _session.get_charge_schedule() or {}
-    return save_charge_schedule(
-        enabled=bool(int(cur.get("chargeEnable", 0) or 0)),
-        soc_limit=int(percent),
-        start_time=cur.get("starttime") or "00:00",
-        end_time=cur.get("endtime") or "08:00",
-        cycles=cur.get("cycles"),   # None → save_charge_schedule re-reads & defaults to all-days
-    )
+    """Change ONLY the charge-limit SoC; the client's own command keeps the car's charge plan."""
+    return _session.execute(lambda api, vin: api.set_charge_limit(vin, int(percent)))
 
 
 # ── Scheduling (native B10 support) ───────────────────────────────────────────
@@ -1305,7 +1206,7 @@ def prepare_car_off() -> tuple:
         except Exception as e:
             failed.append(f"{name}: {e}")
     return (False, "; ".join(failed)) if failed else (True,
-        "Cloud accepted; physical execution not confirmed" if os.environ.get("MATE_API_V2") == "1" else "OK")
+        "Cloud accepted; physical execution not confirmed")
 
 
 # `cycles` is the charge schedule's per-weekday mask: a 7-field comma string where field i is
@@ -1341,7 +1242,7 @@ def save_charge_schedule(*, enabled: bool, soc_limit: int, start_time: str, end_
     returns "1,1,1,1,1,1,1"; upstream lib docs are inconsistent (some use day-NUMBER lists), so the
     mask format/order is anchored to the on-car confirmation (Mate sent pos0 → app showed Monday)."""
     cur = _session.get_charge_schedule() or {}
-    if os.environ.get("MATE_API_V2") == "1" and any(cur.get(k) is None for k in
+    if any(cur.get(k) is None for k in
             ("chargeEnable", "chargesoc", "cycles", "starttime", "endtime", "circulation", "recharge")):
         return False, "Command not sent: complete current charging configuration is required"
     if not cycles:
@@ -1378,7 +1279,7 @@ def ac_on():
 #    2026-06-06. The B10 IGNORES operate=close (tested live: it applies the setpoint and stays on),
 #    so ac_switch operate=off is its only real full-off. Left exactly as-is.
 #  • T03: operate=off inside the FULL seven-field body. Solved and verified on-car by **@derekzoli**
-#    (06-07/08/2026, markoceri/leapmotor-api#9 — the report we opened): *"on the T03 it's not the
+#    (06-07/08/2026, on the upstream report we opened): *"on the T03 it's not the
 #    value of operate that matters, it's the shape of the payload: it needs off, but only with the
 #    other fields present"*. He confirmed it the only way that counts — re-reading the vehicle status
 #    ~8 s later and watching acSwitch go false with the A/C actually stopping, not an ACK: the cloud
@@ -1386,7 +1287,7 @@ def ac_on():
 #    He measured the two near-misses too: `operate=close` in the same full body (what
 #    REMOTE_CTL_AC_OFF / api.ac_off sends, i.e. what Mate used to send here) and bare
 #    `{"operate":"off"}` (the B10's form) are both accepted and ignored. This closes a defect open
-#    across the whole ecosystem — kerniger/leapmotor-ha#28, markoceri/leapmotor-api#9 — and our own
+#    across the whole ecosystem — kerniger/leapmotor-ha#28 among them — and our own
 #    seven candidates (the retired web/t03_offtest.py) all missed it: we varied mode, fan, recirc and
 #    invented keys while holding operate at close/manual. He held the body still and moved operate.
 #  • B05: stays on the B10/C10 path (no data either way — don't change what we can't verify).
@@ -1527,7 +1428,7 @@ def _t03_force_manual(operate: str, mode: str) -> tuple[str, str]:
     mode confirmed to start the T03's A/C on-car (quick_cool). B10/C10/B05 are UNAFFECTED: they keep
     operate=auto, which they honor (deliberately unchanged). NOTE: not verified on-car by us (we have no
     T03); it is the direct consequence of the works-vs-fails diff in the #67 logs. Off is separate (neither
-    operate=off nor operate=close switches the T03 off — needs the real T03 off cmd, markoceri #9)."""
+    operate=off nor operate=close switches the T03 off — needs the real T03 off cmd)."""
     if operate == "auto" and _session_car_type() == "T03":
         return "manual", ("cold" if mode == "nohotcold" else mode)
     return operate, mode
@@ -1550,7 +1451,7 @@ def close_sunshade():    return _session.execute(lambda api, vin: api.close_suns
 def unlock_charger():    return _session.execute(lambda api, vin: api.unlock_charger(vin))
 # Staged but NOT exposed in any UI: live testing showed the B10 ACCEPTS these (cloud returns
 # OK) but does NOT actuate them — so they'd be misleading "Done" buttons. Kept ready so they
-# can be wired up instantly if a future leapmotor-api / vehicle update makes them work on the
+# can be wired up instantly if a future cloud / vehicle update makes them work on the
 # B10. (No sunroof: the existing open/close "sunshade" already operates the B10's panoramic roof.)
 def sentry_on():         return _session.execute(lambda api, vin: api.sentry_mode_on(vin))
 def sentry_off():        return _session.execute(lambda api, vin: api.sentry_mode_off(vin))

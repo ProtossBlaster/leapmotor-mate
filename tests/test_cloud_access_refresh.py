@@ -115,7 +115,6 @@ def test_mqtt_discovery_recovers_revokes_and_ignores_timestamp_only_refresh(monk
     import crypto
     import ui_command_access
     from ui_command_access import account_hash
-    monkeypatch.setenv('MATE_API_V2', '1')
     monkeypatch.setattr(crypto, 'decrypt', lambda value: value)
     clock = [1000.0]
     monkeypatch.setattr(ui_command_access.time, 'time', lambda: clock[0])

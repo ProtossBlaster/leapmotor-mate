@@ -4,7 +4,7 @@ Every car that ever landed in the sea before (#30, #43, #158, #203, #232) was a 
 numeric `signal` dict, where 2/3 carry the sign and 3724/3725 are bare magnitudes. The T03 has no
 such dict. Its cloud sends `latitude` / `longitude` as named fields, ALREADY SIGNED, and the adapter
 filed them only under 3724/3725 — the magnitude slots. The signed slots were mapped to
-`latitudeSigned` / `longitudeSigned`, names that exist nowhere: not in leapmotor-api 0.3.1, not in
+`latitudeSigned` / `longitudeSigned`, names that exist nowhere: not in the old SDK, not in
 any fixture, not in any response. So on a T03 the signed pair never arrived, every coordinate went
 through `abs(u) × remembered sign`, and the remembered sign could only ever be learned from a
 history already written with the minus dropped.

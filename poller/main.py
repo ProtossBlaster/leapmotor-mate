@@ -190,7 +190,7 @@ def _set_charge_limit_preserving(api, vin: str, pct: int):
 
     NOT the lib's api.set_charge_limit: that one guards on `cycles`, so for an ENABLED
     start-time-only plan (the cloud omits cycles for those) it falls into an all-defaults branch that
-    DISABLES the schedule and resets starttime to 00:00 (leapmotor-api #18). That was fixed web-side
+    DISABLES the schedule and resets starttime to 00:00 (a known upstream bug). That was fixed web-side
     in v2.5.8, but THIS path still called the lib directly — so changing the limit from the Home
     Assistant number could silently wipe a start-time-only plan. Round-trip the current plan through
     set_charge_schedule, preserving enable/window/cycles/circulation/recharge; only the SoC moves."""
@@ -387,7 +387,7 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                 # BOTH forms that work elsewhere — bare `operate=off` (the B10's) and `operate=close`
                 # (what api.ac_off sends, which is what Mate used to send here). What it honours is
                 # operate=off inside the FULL seven-field body: verified on-car by @derekzoli
-                # (markoceri/leapmotor-api#9), who watched acSwitch go false rather than trusting the
+                # (the upstream report), who watched acSwitch go false rather than trusting the
                 # code:0 the cloud returns for every one of them. Same literal as
                 # web/command_client.T03_AC_OFF_BODY — a test holds the two byte-identical.
                 # B10/C10/B05 keep the EXACT original path below (guard + ac_switch operate=off), untouched.

@@ -1,5 +1,8 @@
-"""Load the same pinned API runtime from either Mate process (also frozen Desktop)."""
-import os
+"""Load the pinned API runtime from either Mate process (also frozen Desktop).
+
+Puts the vendored client and its runtime on the path and configures the installation's paths.
+There is one cloud client, Mate's own; nothing is chosen at startup any more.
+"""
 import sys
 from pathlib import Path
 
@@ -9,6 +12,3 @@ for directory in (ROOT / 'poller' / 'vendor', ROOT / 'poller' / 'mate_api_runtim
         sys.path.insert(0, str(directory))
 from runtime_paths import configure
 configure()
-
-from migration_activation import activate_installation
-activate_installation()

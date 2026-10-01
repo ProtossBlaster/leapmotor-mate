@@ -1,6 +1,6 @@
 """
 Leapmotor API client wrapper.
-Uses leapmotor-api 0.3.1, which natively maps the B10/B11 status path to /c10 and
+The cloud client maps the B10/B11 status path to /c10 and
 serves the T03 named-field status, so no endpoint patching is needed here. We still
 parse the raw signal dict ourselves (_parse_signal) to stay independent of the
 library's typed model and insulated from its enum changes.
@@ -99,7 +99,7 @@ class VehicleData:
 
     # Climate detail (read+write validated on-car 2026-06-20): fan level (signal 1941 acAirVolume,
     # 1-7; HOLDS the last level even when A/C is off), recirculation (signal 1943: 1=recirc/in,
-    # 0=fresh/out), base mode (signal 3713: 0=auto·1=cool·3=heat·4=vent). NB: markoceri's lib
+    # 0=fresh/out), base mode (signal 3713: 0=auto·1=cool·3=heat·4=vent). NB: the old SDK
     # mislabels 1941 as drive_status — the on-car diff proved it's the fan air-volume.
     fan_level: int = 0
     recirculation: bool = False
@@ -287,7 +287,7 @@ class LeapmotorMateClient:
             # T03 / EU responses carry live data as NAMED fields at the top level of
             # `data` (e.g. "soc", "speed", "gearStatus") instead of a numeric-ID
             # `signal` sub-dict like C10/B10. Rebuild the signal dict our parser
-            # expects from those named fields (id↔name map per leapmotor-api 0.3.1).
+            # expects from those named fields (the cloud's id↔name map).
             sig = _named_fields_to_signal(data)
             if sig and not self._named_mode_logged:
                 log.info("T03/EU named-field status detected — mapped %d live fields", len(sig))
@@ -410,7 +410,7 @@ class LeapmotorMateClient:
         self._api.close()
 
 
-# Numeric signal-id → T03 named-field map (from leapmotor-api 0.3.1's
+# Numeric signal-id → T03 named-field map (from the cloud's
 # _SIGNAL_TO_NAMED). C10/B10 report these as numeric IDs inside `data["signal"]`;
 # the T03 / EU API reports the SAME data as these named fields at the top level of
 # `data`. We invert this to rebuild a numeric `signal` dict for the T03 so the shared
@@ -838,11 +838,11 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         window_fr_open=bool(win_states[1]),
         window_rl_open=bool(win_states[2]),
         window_rr_open=bool(win_states[3]),
-        # Tyre signal→wheel mapping. The leapmotor-api docs label these LF=2667/RF=2653/
+        # Tyre signal→wheel mapping. Older third-party docs label these LF=2667/RF=2653/
         # LR=2646/RR=2660, but that's WRONG: cross-checked on TWO real B10s against the official
         # app's per-wheel view — the #32 reporter's UK car AND Silvio's IT car, both with the
         # 280-kPa wheel at the REAR-RIGHT — the true order is the ascending-id one:
-        # 2646=FL, 2653=FR, 2660=RL, 2667=RR. (The alarm flags do not move with them: leapmotor-api,
+        # 2646=FL, 2653=FR, 2660=RL, 2667=RR. (The alarm flags do not move with them: the old SDK,
         # leapmotor-ha and ioBroker all pair them as 2641=FL, 2648=FR, 2655=RL, 2662=RR — see the
         # web's _parse_vehicle_status.)
         tire_fl_bar=round(float(sig.get("2646") or 0) / 100.0, 2),

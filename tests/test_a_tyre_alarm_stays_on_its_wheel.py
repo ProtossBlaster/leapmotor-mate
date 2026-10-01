@@ -2,7 +2,7 @@
 
 The Vehicle page paired each wheel's alarm flag with its pressure by assumption — "each pressure's
 paired state signal moves with it" — after the pressures were re-mapped from a check on two B10s
-(#32). That check saw pressures only; nobody had an alarm on at the time. leapmotor-api,
+(#32). That check saw pressures only; nobody had an alarm on at the time. The old SDK,
 leapmotor-ha and ioBroker all pair the alarms as 2641=FL, 2648=FR, 2655=RL, 2662=RR; the page read
 them as FL=2655, FR=2648, RL=2662, RR=2641, so only the right front lit the right wheel.
 
