@@ -1,7 +1,7 @@
 {# The chart under a charge: one chart in bands on the session's time axis, like the trip's —
    charging (the car's DC power, the wallbox's AC power beside it where a wallbox is mapped and the
-   charge is at home, the minutes the car said were left), battery (SoC, the car's range) and
-   temperatures (the coldest cell's, the outside air at the car's spot from the weather). Drawn by
+   charge is at home, the minutes the car said were left), battery (the SoC: the car's range climbs
+   with it through a charge, so its line would only repeat it) and temperatures (the coldest cell's, the outside air at the car's spot from the weather). Drawn by
    static/band-chart.js; the Wallbox page's AC-vs-DC comparison is this same chart. #}
 {% if power and power|length > 1 %}
 {% set has_wb = (wb_power or [])|reject('none')|list %}
@@ -14,7 +14,6 @@
   <button type="button" class="whitespace-nowrap" data-series="remaining" aria-pressed="true" data-tip="{{ t('chart_time_remaining_help') }}" style="display:none"><span data-swatch style="color:#f472b6">■</span> {{ t('time_remaining') }}</button>
   <span class="text-slate-700" aria-hidden="true">|</span>
   <button type="button" class="whitespace-nowrap" data-series="soc" aria-pressed="true" style="display:none"><span data-swatch style="color:#22c55e">■</span> {{ t('soc') }}</button>
-  <button type="button" class="whitespace-nowrap" data-series="range" aria-pressed="true" style="display:none"><span data-swatch style="color:#a78bfa">■</span> {{ t('range') }}</button>
   <span id="pcl-bar3-{{ cid }}" class="text-slate-700" aria-hidden="true" style="display:none">|</span>
   <button type="button" class="whitespace-nowrap" data-series="batt" aria-pressed="true" data-tip="{{ t('chart_battery_temp_help') }}" style="display:none"><span data-swatch style="color:#facc15">■</span> {{ t('battery_temp') }}</button>
   <button type="button" class="whitespace-nowrap" data-series="outside" aria-pressed="true" data-tip="{{ t('chart_outside_temp_help') }}" style="display:none"><span data-swatch style="color:#38bdf8">■</span> {{ t('outside_temp_label') }}</button>
@@ -50,7 +49,6 @@
 
   // Display units (data stays metric); the temperature map is linear (°F = °C × 9/5 + 32).
   var tempA = {{ temp_val(1, 6) - temp_val(0, 6) }}, tempB = {{ temp_val(0, 6) }}, tempUnit = {{ temp_unit()|tojson }};
-  var distFactor = {{ dist_val(1, 6) }}, distUnit = {{ dist_unit()|tojson }};
   function scaled(arr, a, b) { return arr.map(function (v) { return v != null ? v * a + (b || 0) : v; }); }
   var niceScale = mateBandChart.niceScale, extent = mateBandChart.extent, present = mateBandChart.present;
 
@@ -59,7 +57,6 @@
     wallbox:   { name: {{ t('wb_series_wallbox')|tojson }}, color: '#34d399', data: col({{ (wb_power or [])|tojson }}), unit: 'kW', dec: 2 },
     remaining: { name: {{ t('time_remaining')|tojson }}, color: '#f472b6', data: col({{ remaining_min|tojson }}), unit: 'min', dec: 0 },
     soc:       { name: {{ t('soc')|tojson }}, color: '#22c55e', data: col({{ soc|tojson }}), unit: '%', dec: 1 },
-    range:     { name: {{ t('range')|tojson }}, color: '#a78bfa', data: scaled(col({{ range_km|tojson }}), distFactor), unit: distUnit, dec: 0 },
     batt:      { name: {{ t('battery_temp')|tojson }}, color: '#facc15', data: scaled(col({{ battery_temp|tojson }}), tempA, tempB), unit: tempUnit, dec: 0 },
     outside:   { name: {{ t('outside_temp_label')|tojson }}, color: '#38bdf8', data: scaled(col({{ outside_temp|tojson }}), tempA, tempB), unit: tempUnit, dec: 1 },
   };
@@ -73,13 +70,12 @@
     C.soc.scale = niceScale(s[0], s[1], 4);
     if (C.soc.scale[1] > 100) C.soc.scale = [100 - (C.soc.scale[1] - C.soc.scale[0]), 100];
   }
-  if (present(C.range.data)) { var r = extent(C.range.data); C.range.scale = niceScale(r[0], r[1], 20); }
   var temps = C.batt.data.concat(C.outside.data);
   if (present(temps)) { var te = extent(temps); C.batt.scale = C.outside.scale = niceScale(te[0], te[1], 4); }
 
   // No band holds more than two units, one scale on each side; the temperatures' band has one.
   var BANDS = [{ ids: ['power', 'wallbox', 'remaining'], left: 'power', right: 'remaining' },
-               { ids: ['soc', 'range'], left: 'soc', right: 'range' },
+               { ids: ['soc'], left: 'soc', right: null },
                { ids: ['batt', 'outside'], left: 'batt', right: null }];
   if (present(temps)) document.getElementById('pcl-bar3-{{ cid }}').style.display = '';
 

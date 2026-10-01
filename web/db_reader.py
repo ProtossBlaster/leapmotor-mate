@@ -8230,9 +8230,10 @@ def flag_short_cloud_total(eb: dict, tot: dict, dist_km: float) -> dict:
 
 def get_charge_power_curve(charge_id: int) -> dict:
     """Per-sample readings of one session, for the chart under the charge: the charging power and
-    the SoC, and beside them what the car said at each poll — the coldest cell's temperature, its
-    range estimate, the minutes it thought were left — and the outside temperature of its spot from
-    the weather, where that is switched on. A reading the poll did not carry is None, a hole in the
+    the SoC, and beside them what the car said at each poll — the coldest cell's temperature, the
+    minutes it thought were left — and the outside temperature of its spot from the weather, where
+    that is switched on. Not its range estimate: through a charge it climbs with the SoC (r >= 0.998
+    on 29 real charges of a B10), so a line of it would only repeat the SoC's. A reading the poll did not carry is None, a hole in the
     line, never a 0; the car's countdown is stored only while it runs, so its line ends where the
     car stopped counting.
     Power = |pack_voltage(1177) x pack_current(1178)| / 1000 — the same value as the
@@ -8244,9 +8245,9 @@ def get_charge_power_curve(charge_id: int) -> dict:
                     (charge_id, _current_vehicle_id())).fetchone()
     if not ch:
         return {"power": [], "soc": [], "times": [], "battery_temp": [], "outside_temp": [],
-                "range_km": [], "remaining_min": []}
+                "remaining_min": []}
     cols = ("recorded_at, charge_voltage_v, charge_current_a, soc, battery_min_temp, outside_temp, "
-            "range_km, remaining_charge_min")
+            "remaining_charge_min")
     start, end, pieces = _charge_group_span(db, charge_id, ch["started_at"], ch["ended_at"])
     if end:
         # Cap the upper bound at the next charge's start so an orphan/overlapping charge
@@ -8279,7 +8280,6 @@ def get_charge_power_curve(charge_id: int) -> dict:
     return {"power": power, "soc": soc, "times": times,
             "battery_temp": [r["battery_min_temp"] for r in rows],
             "outside_temp": [r["outside_temp"] for r in rows],
-            "range_km": [r["range_km"] for r in rows],
             "remaining_min": [r["remaining_charge_min"] for r in rows]}
 
 

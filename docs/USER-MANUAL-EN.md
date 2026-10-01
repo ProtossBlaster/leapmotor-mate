@@ -887,7 +887,7 @@ label:
 - **Charging data chart 🆕** — under each charge, *📈 Charging data* opens one chart in bands on
   the session's time axis, like a trip's: **charging** (the car's DC power, the wallbox's AC power
   beside it on a home charge with a mapped wallbox, and how many minutes the car said were left),
-  **battery** (SoC and the car's range estimate) and **temperatures** (the coldest cell's and, when
+  **battery** (SoC) and **temperatures** (the coldest cell's and, when
   the outside temperature is switched on in Settings, the outside air at the car's spot). Each entry
   of the legend switches its line on and off, a band with every line off folds away, the choice is
   remembered in the browser, and the hover box opens with the time of day and the time since the

@@ -933,7 +933,7 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
 - **Diagramm Ladedaten 🆕** — unter jedem Ladevorgang öffnet *📈 Ladedaten* ein Diagramm in
   Bändern auf der Zeitachse der Sitzung, wie bei einer Fahrt: **Laden** (die DC-Leistung des Autos,
   bei einer Heimladung mit zugeordneter Wallbox daneben deren AC-Leistung, und wie viele Minuten das
-  Auto noch veranschlagte), **Batterie** (SoC und die Reichweitenschätzung des Autos) und
+  Auto noch veranschlagte), **Batterie** (SoC) und
   **Temperaturen** (die der kältesten Zelle und, wenn die Außentemperatur in den Einstellungen
   eingeschaltet ist, die Außenluft am Standort des Autos). Jeder Eintrag der Legende schaltet seine
   Linie ein und aus, ein Band ohne eingeschaltete Linie klappt zusammen, die Wahl merkt sich der

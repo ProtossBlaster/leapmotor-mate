@@ -939,7 +939,7 @@ etiqueta:
 - **Gráfico Datos de la carga 🆕** — bajo cada carga, *📈 Datos de la carga* abre un gráfico en
   bandas sobre el eje de tiempo de la sesión, como el de un viaje: **carga** (la potencia DC del
   coche, al lado la potencia AC del wallbox en una carga en casa con wallbox asignado, y cuántos
-  minutos decía el coche que faltaban), **batería** (SoC y la estimación de autonomía del coche) y
+  minutos decía el coche que faltaban), **batería** (SoC) y
   **temperaturas** (la de la celda más fría y, si la temperatura exterior está activada en Ajustes,
   el aire exterior donde está el coche). Cada entrada de la leyenda enciende y apaga su línea, una
   banda con todas las líneas apagadas se pliega, el navegador recuerda la elección y el cuadro al

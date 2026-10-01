@@ -920,8 +920,8 @@ un'etichetta:
 - **Grafico Dati della ricarica 🆕** — sotto ogni ricarica, *📈 Dati della ricarica* apre un
   grafico a fasce sull'asse del tempo della sessione, come quello di un viaggio: **ricarica** (la
   potenza DC dell'auto, accanto la potenza AC della wallbox in una ricarica a casa con wallbox
-  associata, e quanti minuti mancavano secondo l'auto), **batteria** (SoC e stima dell'autonomia
-  dell'auto) e **temperature** (quella della cella più fredda e, se la temperatura esterna è attiva
+  associata, e quanti minuti mancavano secondo l'auto), **batteria** (SoC) e
+  **temperature** (quella della cella più fredda e, se la temperatura esterna è attiva
   nelle Impostazioni, l'aria esterna dove si trova l'auto). Ogni voce della legenda accende e spegne
   la sua linea, una fascia con tutte le linee spente si ripiega, il browser ricorda la scelta e il
   riquadro al passaggio del mouse si apre con l'ora e il tempo dalla prima lettura. Il confronto

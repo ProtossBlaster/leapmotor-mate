@@ -1,5 +1,6 @@
 """The chart under a charge is one chart in bands — charging, battery, temperatures — with one
-hover box across them, like the trip's. Its legend switches each line on and off, a band whose
+hover box across them, like the trip's. The battery band holds the SoC alone: the car's range
+climbs with it through a charge, so its line would only repeat the SoC's. Its legend switches each line on and off, a band whose
 lines are all off folds away, and the choice is remembered in the browser for every charge. A
 line the session has no readings for is not offered, and a session without temperatures has no
 third band.
@@ -86,13 +87,14 @@ def test_the_legend_switches_a_line_folds_an_empty_band_and_remembers_it(mate):
         page.on("pageerror", lambda e: errors.append(str(e)))
 
         first = _open(page, mate, 1)
-        assert list(first["legend"]) == ["power", "remaining", "soc", "range", "batt", "outside"], \
+        assert list(first["legend"]) == ["power", "remaining", "soc", "batt", "outside"], \
             "a home charge with no wallbox mapped offers a wallbox line, or a reading is missing"
         assert all(v == ["true", "■"] for v in first["legend"].values())
-        assert first["lines"] == ["Power", "Time remaining", "SOC", "Range", "Battery temp", "Outside"], \
+        assert "range" not in first["legend"] and "Range" not in first["lines"], "the range repeats the SoC"
+        assert first["lines"] == ["Power", "Time remaining", "SOC", "Battery temp", "Outside"], \
             "the hover box does not follow the legend's order"
         assert first["bands"] == 3 and first["charts"] == 1
-        assert sorted(first["units"]) == sorted(["kW", "min", "%", "km", "°C"]), \
+        assert sorted(first["units"]) == sorted(["kW", "min", "%", "°C"]), \
             "a scale does not say its unit, or the two temperatures do not share one"
         assert first["clocks"] and all(re.fullmatch(r"\d\d:\d\d", c) for c in first["clocks"] if c), first["clocks"]
         page.hover("#pc-1", position={"x": 300, "y": 60})
@@ -103,13 +105,13 @@ def test_the_legend_switches_a_line_folds_an_empty_band_and_remembers_it(mate):
         assert re.fullmatch(r"\d\d:\d\d:\d\d \(\d+ min\)", head), head
         groups = page.eval_on_selector_all("#pc-1 .mate-tip-band",
                                            "gs => gs.map(g => Array.from(g.children).map(r => r.innerText.split(':')[0]))")
-        assert groups == [["Power", "Time remaining"], ["SOC", "Range"], ["Battery temp", "Outside"]], groups
+        assert groups == [["Power", "Time remaining"], ["SOC"], ["Battery temp", "Outside"]], groups
 
         off = _click(page, 1, "power")
         assert off["legend"]["power"] == ["false", "□"] and "Power" not in off["lines"] and off["bands"] == 3
 
         folded = _click(page, 1, "remaining")
-        assert folded["lines"] == ["SOC", "Range", "Battery temp", "Outside"] and folded["bands"] == 2, \
+        assert folded["lines"] == ["SOC", "Battery temp", "Outside"] and folded["bands"] == 2, \
             "a band with every line switched off still takes its height"
         assert "kW" not in folded["units"] and "min" not in folded["units"]
 
@@ -154,7 +156,7 @@ def test_a_scale_two_lines_share_stays_while_either_shows(mate):
         assert "°C" in off["units"], "the outside line lost the scale it shares with the battery line"
         numbers = page.eval_on_selector_all(
             "#pc-1 .apexcharts-yaxis-label tspan", "ts => ts.map(t => t.textContent).filter(t => /^-?\\d+$/.test(t))")
-        assert len(numbers) == 3 * 5, numbers   # three numbers for each of the five scales still shown
+        assert len(numbers) == 3 * 4, numbers   # three numbers for each of the four scales still shown
         again = _open(page, mate, 1)
         assert again["legend"]["batt"] == ["false", "□"] and "°C" in again["units"]
     finally:
@@ -197,10 +199,10 @@ def test_a_browser_that_blocks_storage_still_switches_lines(mate):
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
         _open(page, mate, 1)
-        _click(page, 1, "range")
+        _click(page, 1, "remaining")
         both = _click(page, 1, "soc")
-        assert "Range" not in both["lines"] and "SOC" not in both["lines"], both["lines"]
-        assert both["legend"]["range"] == ["false", "□"] and both["legend"]["soc"] == ["false", "□"]
+        assert "Time remaining" not in both["lines"] and "SOC" not in both["lines"], both["lines"]
+        assert both["legend"]["remaining"] == ["false", "□"] and both["legend"]["soc"] == ["false", "□"]
         assert errors == []
     finally:
         browser.close()

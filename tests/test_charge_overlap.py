@@ -40,7 +40,7 @@ def _db(charges, positions):
     con.execute("ALTER TABLE positions ADD COLUMN speed_kmh REAL DEFAULT 0")
     con.execute("ALTER TABLE positions ADD COLUMN gear TEXT DEFAULT 'P'")
     # The readings the curve carries beside the power; none in this fixture.
-    for col in ("battery_min_temp REAL", "outside_temp REAL", "range_km REAL", "remaining_charge_min INTEGER"):
+    for col in ("battery_min_temp REAL", "outside_temp REAL", "remaining_charge_min INTEGER"):
         con.execute(f"ALTER TABLE positions ADD COLUMN {col}")
     con.commit()
     return con
@@ -94,7 +94,7 @@ def test_power_curve_capped_at_next_charge_start(monkeypatch):
     con.execute("ALTER TABLE positions ADD COLUMN speed_kmh REAL DEFAULT 0")
     con.execute("ALTER TABLE positions ADD COLUMN gear TEXT DEFAULT 'P'")
     # The readings the curve carries beside the power; none in this fixture.
-    for col in ("battery_min_temp REAL", "outside_temp REAL", "range_km REAL", "remaining_charge_min INTEGER"):
+    for col in ("battery_min_temp REAL", "outside_temp REAL", "remaining_charge_min INTEGER"):
         con.execute(f"ALTER TABLE positions ADD COLUMN {col}")
     con.commit()
     monkeypatch.setattr(db_reader, "_get", lambda: con)
@@ -119,7 +119,7 @@ def test_window_without_charges_table_is_unclamped():
     con.execute("ALTER TABLE positions ADD COLUMN speed_kmh REAL DEFAULT 0")
     con.execute("ALTER TABLE positions ADD COLUMN gear TEXT DEFAULT 'P'")
     # The readings the curve carries beside the power; none in this fixture.
-    for col in ("battery_min_temp REAL", "outside_temp REAL", "range_km REAL", "remaining_charge_min INTEGER"):
+    for col in ("battery_min_temp REAL", "outside_temp REAL", "remaining_charge_min INTEGER"):
         con.execute(f"ALTER TABLE positions ADD COLUMN {col}")
     con.commit()
     rs, re = db_reader._charge_active_window(con, "2026-06-02T16:48:39+00:00", "2026-06-02T23:53:43+00:00")

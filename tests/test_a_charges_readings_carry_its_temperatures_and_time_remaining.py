@@ -1,6 +1,7 @@
 """The readings of a charge, poll by poll, carry more than the power and the SoC: the coldest cell's
-temperature, the car's range estimate, the minutes the car thought were left, and the outside
-temperature of its spot from the weather. They line up with the power, sample for sample, so a
+temperature, the minutes the car thought were left, and the outside temperature of its spot from the
+weather. Not the car's range: through a charge it climbs with the SoC — on 29 real charges of a B10
+the two correlate at r >= 0.998 — so a line of it would only repeat the SoC's. They line up with the power, sample for sample, so a
 chart can draw them on one time axis; a reading a poll did not carry is a hole, not a zero; and a
 sample after the session is not in it.
 """
@@ -42,7 +43,7 @@ def test_every_reading_lines_up_with_the_power(tmp_path, monkeypatch):
     assert curve["battery_temp"] == [20, 21, 22, 23, 24, 25, 26]
     assert curve["outside_temp"] == [None, 10.5, 11.5, 12.5, 13.5, 14.5, 15.5], \
         "a poll without a weather reading must be a hole in the line, not a value"
-    assert curve["range_km"] == [200, 205, 210, 215, 220, 225, 230]
+    assert "range_km" not in curve, "the range repeats the SoC through a charge: it is not carried"
     assert curve["remaining_min"] == [70, 60, 50, 40, 30, 20, 10]
     assert curve["soc"] == [50, 51, 52, 53, 54, 55, 56] and set(curve["power"]) == {4.0}
 
@@ -51,4 +52,4 @@ def test_a_charge_nobody_recorded_has_every_series_empty(tmp_path, monkeypatch):
     _install(tmp_path, monkeypatch)
     curve = db_reader.get_charge_power_curve(404)
     assert curve == {"power": [], "soc": [], "times": [], "battery_temp": [],
-                     "outside_temp": [], "range_km": [], "remaining_min": []}
+                     "outside_temp": [], "remaining_min": []}

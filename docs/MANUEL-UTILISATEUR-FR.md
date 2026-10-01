@@ -948,7 +948,7 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   ouvre un graphique en bandes sur l'axe du temps de la session, comme celui d'un trajet :
   **recharge** (la puissance DC de la voiture, à côté la puissance AC de la wallbox pour une recharge
   à domicile avec wallbox associée, et combien de minutes il restait selon la voiture), **batterie**
-  (SoC et estimation d'autonomie de la voiture) et **températures** (celle de la cellule la plus
+  (SoC) et **températures** (celle de la cellule la plus
   froide et, si la température extérieure est activée dans les Réglages, l'air extérieur à
   l'emplacement de la voiture). Chaque entrée de la légende allume et éteint sa ligne, une bande dont
   toutes les lignes sont éteintes se replie, le navigateur retient le choix, et l'encadré au survol
