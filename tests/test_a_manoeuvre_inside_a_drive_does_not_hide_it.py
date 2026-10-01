@@ -10,7 +10,7 @@ the drive. So the drive's own record, the one with every kilometre and kilowatt-
 matched to the trip.
 
 Only an unambiguous zero — 0 km AND 0 kWh, both present — wholly inside another record of the same
-car that has a distance of its own is set aside, and only for the matching: the stored record is
+car that has a distance and an energy of its own is set aside, and only for the matching: the stored record is
 not touched. A missing value is not a zero, a zero on its own goes through the usual checks, and
 a record with conflicting versions stays in the way, as it did.
 """
@@ -107,6 +107,12 @@ def test_a_zero_reaching_past_the_drive_still_blocks_the_match(db):
 def test_a_record_without_distance_shelters_nothing(db):
     """A record with energy but no kilometres is no drive for a manoeuvre to sit in."""
     assert _energy(db, 28, 0.3, [_record(0, 28, 0.5, 0.0), _record(22, 23, 0.0, 0.0)]) is None
+
+
+def test_a_record_without_energy_shelters_nothing(db):
+    """A 1 km record at 0 kWh with a manoeuvre inside it: matched, the trip would read 0 kWh for a
+    kilometre really driven. The overlap stands and the trip keeps Mate's own estimate."""
+    assert _energy(db, 2.2, 1.0, [_record(0, 2.15, 0.0, 1.0), _record(1.8, 2.15, 0.0, 0.0)]) is None
 
 
 def test_a_zero_record_on_its_own_goes_through_the_usual_checks(db):

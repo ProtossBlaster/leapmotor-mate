@@ -249,10 +249,12 @@ def cloud_fuel_by_trip(db):
 
 def _manoeuvres_inside_a_drive(records, conflicts):
     """Records that are an unambiguous zero (0 km AND 0 kWh, both present) wholly inside another
-    record of the same car that has a distance of its own. The car files a parking manoeuvre near
-    the end of a drive that way; sorted by start, it would stand as the drive's last record and
-    overlap it. Records that lie side by side along a drive are inside none of them and stay, and
-    a record with conflicting versions is neither set aside nor a container."""
+    record of the same car that has a distance and an energy of its own. The car files a parking
+    manoeuvre near the end of a drive that way; sorted by start, it would stand as the drive's last
+    record and overlap it. A record with kilometres but no energy shelters nothing: matched, it
+    would hand the trip 0 kWh for a real kilometre, where the overlap leaves it Mate's estimate.
+    Records that lie side by side along a drive are inside none of them and stay, and a record
+    with conflicting versions is neither set aside nor a container."""
     out = set()
     vin = reach = None
     for key in sorted(records, key=lambda k: (k[0], k[1], -k[2])):
@@ -264,7 +266,7 @@ def _manoeuvres_inside_a_drive(records, conflicts):
         if energy == 0 and distance == 0:
             if reach is not None and key[2] <= reach:
                 out.add(key)
-        elif distance:
+        elif distance and energy:
             reach = key[2] if reach is None else max(reach, key[2])
     return out
 
