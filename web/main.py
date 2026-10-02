@@ -3219,7 +3219,7 @@ async def wallbox_compare_chart(request: Request):
         return HTMLResponse('<div class="text-sm text-slate-500 py-2">—</div>')
     curve = db_reader.get_charge_power_curve(cid)
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=cid, wb_power=_wallbox_overlay(curve, cid), **curve))
+        cid=cid, wb_power=_wallbox_overlay(curve, db_reader.is_home_charge(cid)), **curve))
 
 
 @app.get("/api/wallbox/control", response_class=HTMLResponse)
@@ -3514,16 +3514,16 @@ async def set_manual_charge_location(request: Request, charge_id: int):
                                       {"charge": charge, "t": t})
 
 
-def _wallbox_overlay(curve: dict, charge_id: int) -> list | None:
+def _wallbox_overlay(curve: dict, home: bool) -> list | None:
     """Wallbox power (from HA history) resampled onto the car curve's timestamps,
     so it overlays the car's DC power on the same axis. None when unavailable.
-    Only HOME charges get the overlay — on a public/away charge the home wallbox
-    is irrelevant (and could even be charging another car)."""
+    Only a charge at home gets the overlay — on a public/away charge the home wallbox
+    is irrelevant (and could even be charging another car); the caller says which it is."""
     times = curve.get("times") or []
     mapping = ha_client.get_mapping()
     wallbox_on = db_reader.get_setting("wallbox_enabled", "0") == "1"
     if (not wallbox_on or not times or not ha_client.is_configured()
-            or not mapping.get("power") or not db_reader.is_home_charge(charge_id)):
+            or not mapping.get("power") or not home):
         return None
     hist = ha_client.get_history(mapping["power"], times[0], times[-1])
     if not hist:
@@ -3692,7 +3692,7 @@ async def charge_power_chart(request: Request, charge_id: int):
     its delivered AC power is drawn beside the car's DC power."""
     curve = db_reader.get_charge_power_curve(charge_id)
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=charge_id, wb_power=_wallbox_overlay(curve, charge_id), **curve))
+        cid=charge_id, wb_power=_wallbox_overlay(curve, db_reader.is_home_charge(charge_id)), **curve))
 
 
 @app.post("/api/settings/prices", response_class=HTMLResponse)
