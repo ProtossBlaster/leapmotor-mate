@@ -5,7 +5,13 @@
   <div class="flex items-center gap-2 mb-1">
     <span class="text-xl">📈</span>
     <span class="font-semibold text-white">{{ t('charge_profile') }}</span>
+    {% if live.data_age_s is not none %}
+    {# No fresh reading of the car: the age of the last one, as the Overview shows it; the hint names
+       the cloud only when the frame lags the row, as there. #}
+    <span class="ml-auto text-xs font-medium text-amber-400"{% if live.frame_lags %} title="{{ t('data_age_hint') }}"{% endif %}>{{ ago(live.data_age_s) }}</span>
+    {% else %}
     <span class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 animate-pulse">{{ t('live_badge') }}</span>
+    {% endif %}
   </div>
   {# When it began and the SoC so far, written as the card of a finished charge writes them. #}
   <div class="flex justify-between text-xs mb-3">

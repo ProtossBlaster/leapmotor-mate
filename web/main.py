@@ -4544,7 +4544,11 @@ async def battery_card(request: Request):
 
 
 def _charging_chart() -> dict | None:
-    """The chart of the charge in progress: None while no charge runs or it has one reading."""
+    """The chart of the charge in progress: None while the car is not charging or it has one reading."""
+    # The car's word, as the charging status panel reads it: an open row alone is not a charge.
+    status = db_reader.get_latest_status()
+    if not (status and status.get("charging")):
+        return None
     ch = db_reader.open_charge()
     if not ch:
         return None
@@ -4554,7 +4558,13 @@ def _charging_chart() -> dict | None:
     socs = [s for s in curve["soc"] if s is not None]
     # No wallbox line yet: the charge's type is sure only once it has ended, and a Home Assistant
     # history read on every poll of the panel is not worth a line that may belong to another car.
-    return dict(ch, cid=ch["id"], soc_now=socs[-1] if socs else None, wb_power=None, **curve)
+    # Out of touch: the frame lags the row (the cloud re-serving an old frame), or the rows stopped.
+    if status.get("data_age"):
+        age_s = status["data_age_s"]
+    else:
+        age_s = status["last_seen_s"] if (status.get("last_seen_s") or 0) >= db_reader.DATA_AGE_STALE_S else None
+    return dict(ch, cid=ch["id"], soc_now=socs[-1] if socs else None, wb_power=None,
+                data_age_s=age_s, frame_lags=bool(status.get("data_age")), **curve)
 
 
 @app.get("/api/charging-chart", response_class=HTMLResponse)
