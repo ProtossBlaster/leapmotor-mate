@@ -400,7 +400,7 @@ Unter der Energie einer Fahrt heißt die Bezeichnung **getEC** jetzt **Vom Auto 
 5. [Die Oberfläche kennenlernen](#5-die-oberfläche-kennenlernen)
 6. [Die Seiten, eine nach der anderen](#6-die-seiten-eine-nach-der-anderen)
    - [Übersicht](#übersicht) · [Fahrten](#fahrten) · [Karte](#karte) · [Ladevorgänge](#ladevorgänge)
-   - [Ladepreise](#ladepreise) · [Statistik](#statistik) · [Monatsbericht](#monatsbericht)
+   - [Ladepreise](#ladepreise) · [Statistik](#statistik) · [Bericht](#bericht)
    - [Batteriezustand](#batteriezustand) · [Wartung](#wartung) · [Befehle](#befehle)
    - [Planung](#planung) · [Fahrzeug vorbereiten](#fahrzeug-vorbereiten)
    - [Navigation](#navigation) · [Fahrzeug](#fahrzeug) · [Wallbox](#wallbox)
@@ -638,7 +638,7 @@ als auch für die aus Home Assistant. Gewünscht von **@alextchao** (#225).
 **Wenn zwei Leapmotor dasselbe Konto teilen 🆕** — in der Kopfzeile erscheint eine **Fahrzeugauswahl**,
 neben dem Modell-Abzeichen. Sie ist erst ab dem zweiten Auto da: mit einem Leapmotor ändert sich gar
 nichts. Wähle ein Auto, und alles folgt ihm — Übersicht, Statistiken, Fahrten, Ladevorgänge,
-Monatsbericht, die Befehle, die dieses Auto zulässt, und seine Home-Assistant-Entitäten. Deine Wahl
+Bericht, die Befehle, die dieses Auto zulässt, und seine Home-Assistant-Entitäten. Deine Wahl
 bleibt gespeichert. Auf dem Telefon steht die Auswahl im ☰-Menü, unter der Überschrift.
 
 Die Einstellungen bleiben gemeinsam, weil sie unter einem Dach selten abweichen: Preise, Währung,
@@ -1083,8 +1083,8 @@ Wert wird **ausgelassen** statt als Null gezählt, und die Kachel sagt, über wi
 spricht. Bei einem Auto, bei dem jede Fahrt ihren Verbrauch trägt — also fast immer — erscheint
 davon nichts.
 
-### Monatsbericht
-**(Menü: Monatsbericht)** — Eine Zusammenfassung **Monat für Monat**: wie viel Sie gefahren sind, wie viel Energie
+### Bericht
+**(Menü: Bericht)** — Eine Zusammenfassung **Monat für Monat**: wie viel Sie gefahren sind, wie viel Energie
 Sie verbraucht und geladen haben, wie viel Sie ausgegeben haben. Praktisch, um die Entwicklung im Auge zu behalten.
 Er enthält außerdem die Karten **offizieller Verbrauch** (Heute / Diese Woche / Dieser Monat) aus der Cloud.
 
