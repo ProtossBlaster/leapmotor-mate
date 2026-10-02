@@ -5618,6 +5618,15 @@ async def car_picture(refresh: int = 0):
         return Response(status_code=404)
 
 
+def _simple_charge_scheduler() -> bool:
+    """Whether the car has the simple charge scheduler (a start time and a target: the T03). Its
+    declared abilities decide, as they decide which form the Charges page shows (#146, #380); a car
+    that declared none is not taken for one."""
+    veh, _ = db_reader.get_vehicle()
+    return not capability_profile.charge_schedule_advanced(
+        capability_profile.parse_abilities((veh or {}).get("abilities")))
+
+
 @app.post("/api/charge-limit", response_class=HTMLResponse)
 async def set_charge_limit(request: Request):
     form = await request.form()
@@ -5628,8 +5637,9 @@ async def set_charge_limit(request: Request):
     if not (50 <= percent <= 100):
         return HTMLResponse('<span style="color:#ef4444">Must be 50–100%</span>', status_code=400)
     import asyncio
+    simple = _simple_charge_scheduler()
     ok, msg = await asyncio.get_event_loop().run_in_executor(
-        None, lambda: command_client.set_charge_limit(percent)
+        None, lambda: command_client.set_charge_limit(percent, simple=simple)
     )
     if ok:
         # Mirror the new limit into settings so the Overview hero shows the right "to X%" at once,
@@ -5670,10 +5680,7 @@ async def save_charge_schedule_api(request: Request):
         return HTMLResponse(f'<span style="color:#ef4444">✗ {t("sched_bad_time")}</span>', status_code=400)
     if not (50 <= soc <= 100):
         return HTMLResponse('<span style="color:#ef4444">✗ 50–100%</span>', status_code=400)
-    # The car's declared abilities decide, as they decide which form this page shows (#146, #380).
-    veh, _ = db_reader.get_vehicle()
-    simple = not capability_profile.charge_schedule_advanced(
-        capability_profile.parse_abilities((veh or {}).get("abilities")))
+    simple = _simple_charge_scheduler()
     ok, msg = await asyncio.get_event_loop().run_in_executor(
         None, lambda: command_client.save_charge_schedule(
             enabled=enabled, soc_limit=soc, start_time=start, end_time=end, cycles=cycles, simple=simple))

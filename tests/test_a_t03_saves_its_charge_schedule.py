@@ -96,3 +96,86 @@ def test_the_page_says_which_scheduler_the_car_has(tmp_path, monkeypatch, abilit
         "enabled": "1", "start_time": "23:30", "end_time": "08:00", "soc_limit": "100"})
     assert r.status_code == 200
     assert asked and asked[0]["simple"] is simple
+
+
+# ── The charge limit takes the same road (#380) ───────────────────────────────
+# Setting the limit rewrites the whole plan as well, and the client's own command refuses a plan it
+# could not read whole: on the simple scheduler, whose plan never is, the limit could not be set either.
+# The Home Assistant twins already complete a missing plan for every car and are left as they are.
+T03_PLAN = {"chargeEnable": 1, "chargesoc": None, "starttime": "23:30", "endtime": None,
+            "cycles": None, "circulation": None, "recharge": None}
+
+
+def _limit_session(monkeypatch, plan):
+    from api_v2_bridge import NewAPIClient
+    sent = []
+
+    class FakeApi(NewAPIClient):
+        def __init__(self):
+            pass
+
+        def _get_charge_appointment(self, vin):
+            return dict(plan)
+
+        def _remote_control_raw(self, **kwargs):
+            sent.append(json.loads(kwargs["cmd_content"]))
+
+    class FakeSession:
+        def get_charge_schedule(self):
+            return dict(plan)            # what the client reads out of the car's config.3
+
+        def execute(self, fn):
+            fn(FakeApi(), "VIN")
+            return True, "OK"
+
+    monkeypatch.setattr(cc, "_session", FakeSession())
+    return sent
+
+
+def test_the_simple_scheduler_sets_its_charge_limit(monkeypatch):
+    sent = _limit_session(monkeypatch, T03_PLAN)
+    ok, _ = cc.set_charge_limit(90, simple=True)
+    assert ok
+    assert sent == [{"chargeEnable": 1, "chargesoc": 90, "starttime": "23:30", "endtime": "08:00",
+                     "cycles": "1,1,1,1,1,1,1", "circulation": 0, "recharge": 0}]
+
+
+@pytest.mark.parametrize("missing", ["chargeEnable", "starttime"])
+def test_whether_it_is_on_and_when_it_starts_are_never_invented(monkeypatch, missing):
+    sent = _limit_session(monkeypatch, dict(T03_PLAN, **{missing: None}))
+    ok, message = cc.set_charge_limit(90, simple=True)
+    assert not ok and "complete current charging configuration" in message
+    assert sent == []
+
+
+def test_the_full_scheduler_keeps_refusing_a_plan_it_could_not_read(monkeypatch):
+    sent = _limit_session(monkeypatch, T03_PLAN)
+    with pytest.raises(Exception):
+        cc.set_charge_limit(90)
+    assert sent == []
+
+
+@pytest.mark.parametrize("abilities, simple", [(T03_ABILITIES, True), (B10_ABILITIES, False), (None, False)])
+def test_the_limit_route_says_which_scheduler_the_car_has(tmp_path, monkeypatch, abilities, simple):
+    pytest.importorskip("httpx", reason="Starlette TestClient needs httpx")
+    from starlette.testclient import TestClient
+    import db as D
+    import db_reader
+    import main
+
+    path = str(tmp_path / "t.db")
+    D.Database(path).close()
+    con = sqlite3.connect(path)
+    con.execute("INSERT INTO vehicles (id, vin, car_type, abilities) VALUES (1, 'VINTEST', 'T03', ?)",
+                (json.dumps(abilities) if abilities is not None else None,))
+    for key, value in (("setup_complete", "1"), ("language", "en"), ("timezone", "UTC")):
+        con.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
+    con.commit()
+    con.close()
+    monkeypatch.setattr(db_reader, "DB_PATH", path)
+    monkeypatch.setattr(db_reader, "_current_vehicle_id", lambda: 1)
+    asked = []
+    monkeypatch.setattr(cc, "set_charge_limit", lambda percent, **kw: (asked.append(kw), (True, "OK"))[1])
+    r = TestClient(main.app).post("/api/charge-limit", data={"percent": "90"})
+    assert r.status_code == 200
+    assert asked and asked[0]["simple"] is simple

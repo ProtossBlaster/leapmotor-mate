@@ -957,9 +957,20 @@ def get_fresh_signals() -> dict | None:
 def get_charge_plan() -> dict | None:
     return _session.get_charge_plan()
 
-def set_charge_limit(percent: int):
+def set_charge_limit(percent: int, simple: bool = False):
     """Change ONLY the charge-limit SoC; the client's own command keeps the car's charge plan."""
-    return _session.execute(lambda api, vin: api.set_charge_limit(vin, int(percent)))
+    if not simple:
+        return _session.execute(lambda api, vin: api.set_charge_limit(vin, int(percent)))
+    # The client's command refuses a plan it could not read whole, and the simple scheduler never
+    # reports one (#380): complete it as the schedule save does. Whether the schedule is on and when
+    # it starts are the car's to say; without them nothing is sent.
+    cur = _simple_plan(_session.get_charge_schedule())
+    if cur.get("chargeEnable") is None or not cur.get("starttime"):
+        return False, "Command not sent: complete current charging configuration is required"
+    return _session.execute(lambda api, vin: api.set_charge_schedule(
+        vin, enabled=bool(int(cur["chargeEnable"])), soc_limit=int(percent),
+        start_time=cur["starttime"], end_time=cur["endtime"], cycles=cur["cycles"],
+        circulation=int(cur["circulation"]), recharge=int(cur["recharge"])))
 
 
 # ── Scheduling (native B10 support) ───────────────────────────────────────────
@@ -1231,6 +1242,18 @@ def day_flags_from_cycles(cycles) -> list:
     return [(parts[i].strip() == "1") if i < len(parts) else False for i in range(7)]
 
 
+# What a car with the simple charge scheduler leaves out of the plan command 190 rewrites — the T03:
+# a start time and a target, no window, no days. Until 4.7.7 those cars saved through the earlier
+# library, which filled it itself and the cloud took it (#380): every day, the page's 08:00 end,
+# circulation 0, recharge 0.
+_SIMPLE_PLAN = {"cycles": "1,1,1,1,1,1,1", "endtime": "08:00", "circulation": 0, "recharge": 0}
+
+
+def _simple_plan(cur: dict | None) -> dict:
+    """A simple scheduler's plan, completed where the car reports nothing; what it reports goes back."""
+    return {**_SIMPLE_PLAN, **{k: v for k, v in (cur or {}).items() if v is not None}}
+
+
 def save_charge_schedule(*, enabled: bool, soc_limit: int, start_time: str, end_time: str,
                          cycles: str | None = None, simple: bool = False):
     """Read-modify-write the charge schedule: change enable/SoC/window (+ days when `cycles` is
@@ -1243,12 +1266,7 @@ def save_charge_schedule(*, enabled: bool, soc_limit: int, start_time: str, end_
     mask format/order is anchored to the on-car confirmation (Mate sent pos0 → app showed Monday)."""
     cur = _session.get_charge_schedule() or {}
     if simple:
-        # The simple scheduler (a start time and a target, no window, no days: the T03, #380) does not
-        # report the whole plan this command rewrites. Until 4.7.7 those cars saved through the earlier
-        # library, which filled the rest itself — every day, circulation 0, recharge 0 — and the cloud
-        # took it; the same goes where the car reports nothing, and what it does report goes back.
-        cur = {"cycles": "1,1,1,1,1,1,1", "circulation": 0, "recharge": 0,
-               **{k: v for k, v in cur.items() if v is not None}}
+        cur = _simple_plan(cur)
     elif any(cur.get(k) is None for k in
              ("chargeEnable", "chargesoc", "cycles", "starttime", "endtime", "circulation", "recharge")):
         return False, "Command not sent: complete current charging configuration is required"
