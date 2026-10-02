@@ -61,6 +61,8 @@ def certificate_usable(cert_path, key_path, **kwargs):
 DB = os.environ.get('DB_PATH', '/data/leapmotor_mate.db')
 SESSION_KEY = 'api_v2_shared_session'
 LOGIN_PATH = '/base/base-user/account/v1/login'
+# Where the earlier library read a car's appointments: cmdId 190 is the charge plan, one flat object.
+GET_APPOINTMENT_PATH = '/carownerservice/oversea/vehicle/v1/app/remote/ctl/getAppointment'
 READ_PATHS = {
     '/carownerservice/oversea/vehicle/v1/carpicture/key',
     '/carownerservice/oversea/vehicle/v1/carpicture/package',
@@ -79,7 +81,7 @@ READ_PATHS = {
     '/carownerservice/oversea/drivingRecord/v1/mileage/energy/detail',
     '/carownerservice/oversea/message/v1/list',
     '/carownerservice/oversea/message/v1/unread/count',
-    '/carownerservice/oversea/vehicle/v1/app/remote/ctl/getAppointment',
+    GET_APPOINTMENT_PATH,
 }
 CONTROL_PATH = '/app/app-control-service/v3/api/appremotectl'
 VERIFY_PATH = '/carownerservice/oversea/vehicle/v1/operPwd/verify'
@@ -99,6 +101,17 @@ def _read_allowed(path):
 
 def connect_db():
     return sqlite3.connect(DB, timeout=30)
+
+
+def _integer(value):
+    # Cloud configuration permits decimal strings; retain unknown values so
+    # strict command validation still rejects missing/invalid full state.
+    if isinstance(value, str) and re.fullmatch(r'[0-9]+', value):
+        return int(value)
+    return value
+
+
+_PLAN_KEYS = ('chargeEnable', 'chargesoc', 'starttime', 'endtime', 'cycles', 'circulation', 'recharge')
 
 
 def setting(db, key, default=''):
@@ -567,15 +580,40 @@ class NewAPIClient(MateClientCompatibility):
         if not isinstance(d, dict) or d.get('vin') != vin:
             raise LeapmotorApiError('New API configuration mismatch')
         c=d.get('config',{}).get('3',{})
-        def integer(key):
-            value = c.get(key)
-            # Cloud configuration permits decimal strings; retain unknown values so
-            # strict command validation still rejects missing/invalid full state.
-            if isinstance(value, str) and re.fullmatch(r'[0-9]+', value):
-                return int(value)
-            return value
-        return dict(chargeEnable=integer('isEnable'),chargesoc=integer('percent'),starttime=c.get('beginTime'),
-                    endtime=c.get('endTime'),cycles=c.get('cycles'),circulation=integer('circulation'),recharge=integer('recharge'))
+        plan=dict(chargeEnable=_integer(c.get('isEnable')),chargesoc=_integer(c.get('percent')),starttime=c.get('beginTime'),
+                  endtime=c.get('endTime'),cycles=c.get('cycles'),circulation=_integer(c.get('circulation')),
+                  recharge=_integer(c.get('recharge')))
+        if plan['chargeEnable'] is not None and plan['starttime']:
+            return plan
+        return self._charge_plan_from_appointment(vin, c, plan)
+
+    def _charge_plan_from_appointment(self, vin, config, configured):
+        """The charge plan from getAppointment 190, where the earlier library read it, for a car whose
+        configuration does not say whether its schedule is on or when it starts; else `configured`.
+
+        A T03's configuration carries no plan: its Charges page read "No schedule" right after a save
+        the car took (#380). Asked only then — on our B10 the two disagree on whether the schedule is on
+        (02/10/2026), and a car whose configuration carries its plan keeps reading it there. What each
+        answered is logged once per car, for the bundle.
+        → tests/test_a_t03_reads_its_charge_plan_back.py"""
+        try:
+            data=self.read(GET_APPOINTMENT_PATH,{'vin':vin,'cmdId':'190'},form=True)['data']
+            if isinstance(data,str) and data:
+                data=json.loads(data,object_pairs_hook=_unique_object,parse_constant=_invalid_constant)
+            answer=data if isinstance(data,dict) else {}
+            said=', '.join(f'{k}={answer[k]}' for k in _PLAN_KEYS if k in answer) or 'nothing'
+        except Exception as error:  # noqa: BLE001 — the configuration's answer stands, as before
+            answer,said={},f'a refusal ({type(error).__name__}: {error})'
+        plan={k:(_integer(answer.get(k)) if k in ('chargeEnable','chargesoc','circulation','recharge')
+                 else answer.get(k)) for k in _PLAN_KEYS}
+        found=plan['chargeEnable'] is not None and bool(plan['starttime'])
+        noted=self.__dict__.setdefault('_charge_plan_noted',set())
+        if vin not in noted:
+            noted.add(vin)
+            log.warning("Charge plan: the car's configuration carries %s; getAppointment 190 answered %s — %s",
+                        ', '.join(sorted(config)) or 'none of it', said,
+                        'read from there' if found else 'no plan to show')
+        return plan if found else configured
 
     def _post(self,*,path,headers,data,cert):
         envelope=self.read(path,dict(parse_qsl(data,keep_blank_values=True)),form=True)
