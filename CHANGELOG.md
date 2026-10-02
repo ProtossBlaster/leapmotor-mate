@@ -3,6 +3,27 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.16] — 2026-10-02
+
+- **A write that finds the database busy no longer stops every write after it** ([#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)).
+  When a write of the poller's connection waits longer than its 5 s for a lock someone else holds, it
+  fails, and the transaction it opened stays in place; the next read inside it pins the database as it
+  was, and once any other connection writes — the bridge logs every cloud request on its own — each later
+  write fails at once with `database is locked`, until the process restarts. @dommi1966's install lost
+  1,061 minutes that way on 02/10 (3,814 failures, nothing stored, two charges closed at stale values, a
+  trip missing), 118 on 30/09 and 170 on 01/10. Every poll of a car now begins by ending a transaction a
+  failed write left open, and says so in the log. Who held the lock for the first five seconds is still
+  unknown; it no longer costs more than the poll it hit.
+- **A car whose configuration carries no charge plan reads it where the earlier library did** ([#380](https://github.com/ProtossBlaster/leapmotor-mate/issues/380)).
+  @ViriatusOG's T03 on 4.7.15: the schedule saved and the car shows 23:30, on, but the Charges page read
+  the plan back empty. Mate reads the plan from the car's configuration (commonConfig, key 3) and a
+  T03's carries none; the earlier library read it from getAppointment cmdId 190. A car whose
+  configuration says whether its schedule is on and when it starts keeps reading it there; getAppointment
+  is asked only when it does not, and what each answered goes to the log once per car. Every reader goes
+  through it: the Charges page, the charge limit, the Overview's window and the Home Assistant commands.
+- **Report is called Reports** ([#370](https://github.com/ProtossBlaster/leapmotor-mate/pull/370)), as every other entry in the menu (@arekm): the menu
+  entry and the page title in the eight languages, the manuals and the README. The page is unchanged.
+
 ## [4.7.15] — 2026-10-02
 
 - **A T03 saves its charge schedule and sets its charge limit again** ([#380](https://github.com/ProtossBlaster/leapmotor-mate/issues/380)). Command

@@ -1,8 +1,21 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.15 · **Language:** English
+> **Mate version:** v4.7.16 · **Language:** English
 
-## New in 4.7.15
+## New in 4.7.16
+
+**A write that finds the database busy no longer stops every write after it.** One write that waited
+too long for the database left its transaction open, and from then on every write failed with
+"database is locked" until the container was restarted: 17 hours lost on one install. Every poll now
+ends such a transaction first, and says so in the log.
+
+**A T03 reads its charge schedule back.** After saving, the Charges page showed "No schedule" because the
+T03's configuration carries no plan. Mate now reads it where the earlier library did, only for a car
+whose configuration does not say whether the schedule is on or when it starts.
+
+**Report is called Reports**, in the menu and on the page, as every other entry in the menu.
+
+### New in 4.7.15
 
 **A T03 saves its charge schedule again.** Since 4.7.7 the Charges page refused to save a T03's charge
 schedule or set its charge limit ("complete current charging configuration is required"). Mate now

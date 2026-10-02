@@ -1,8 +1,23 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.15 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.16 · **Lingua:** Italiano
 
-## Novità della 4.7.15
+## Novità della 4.7.16
+
+**Una scrittura che trova il database occupato non blocca più tutte quelle dopo.** Una scrittura che
+aveva aspettato troppo il database lasciava aperta la sua transazione, e da lì in poi ogni scrittura
+falliva con «database is locked» fino al riavvio del container: 17 ore perse su un'installazione. Ogni
+giro di lettura adesso chiude prima quella transazione, e lo dice nel log.
+
+**Una T03 rilegge la sua programmazione di ricarica.** Dopo il salvataggio la pagina Ricariche mostrava
+«Nessuna programmazione», perché la configurazione della T03 non la porta. Mate adesso la legge dove la
+leggeva la libreria precedente, solo per un'auto la cui configurazione non dice se la programmazione è
+accesa o quando inizia.
+
+**Report è al plurale nelle altre lingue** (Reports, Berichte, Informes, Rapports…), come tutte le altre
+voci del menu; in italiano resta «Report».
+
+### Novità della 4.7.15
 
 **Una T03 salva di nuovo la programmazione di ricarica.** Dalla 4.7.7 la pagina Ricariche rifiutava di
 salvare la programmazione di ricarica di una T03 o di impostarne il limite di carica («complete current

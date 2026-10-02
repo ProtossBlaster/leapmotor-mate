@@ -1,8 +1,23 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.15 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.16 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.15
+## Neu in Version 4.7.16
+
+**Ein Schreibzugriff, der die Datenbank belegt vorfindet, blockiert nicht mehr alle nachfolgenden.** Ein
+Schreibzugriff, der zu lange auf die Datenbank gewartet hatte, ließ seine Transaktion offen, und von da an
+schlug jeder Schreibzugriff mit „database is locked“ fehl, bis der Container neu gestartet wurde: 17
+Stunden Verlust auf einer Installation. Jeder Abfragezyklus beendet diese Transaktion jetzt zuerst und
+vermerkt das im Protokoll.
+
+**Ein T03 liest seinen Ladeplan wieder aus.** Nach dem Speichern zeigte die Seite Ladevorgänge „Kein
+Ladeplan“, weil die Konfiguration des T03 keinen enthält. Mate liest ihn jetzt dort, wo die frühere
+Bibliothek ihn las, nur bei einem Auto, dessen Konfiguration nicht sagt, ob der Ladeplan aktiv ist oder
+wann er beginnt.
+
+**Bericht heißt Berichte**, im Menü und auf der Seite, wie jeder andere Menüeintrag.
+
+### Neu in Version 4.7.15
 
 **Ein T03 speichert seinen Ladeplan wieder.** Seit 4.7.7 lehnte die Seite Ladevorgänge es ab, den
 Ladeplan eines T03 zu speichern oder sein Ladelimit zu setzen („complete current charging configuration

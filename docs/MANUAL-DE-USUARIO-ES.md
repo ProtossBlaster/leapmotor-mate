@@ -1,8 +1,22 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.15 · **Idioma:** Español
+> **Versión de Mate:** v4.7.16 · **Idioma:** Español
 
-## Novedades de la versión 4.7.15
+## Novedades de la versión 4.7.16
+
+**Una escritura que encuentra la base de datos ocupada ya no bloquea todas las siguientes.** Una
+escritura que había esperado demasiado a la base de datos dejaba su transacción abierta, y desde entonces
+cada escritura fallaba con «database is locked» hasta reiniciar el contenedor: 17 horas perdidas en una
+instalación. Cada ciclo de lectura cierra ahora primero esa transacción, y lo dice en el registro.
+
+**Un T03 vuelve a leer su programación de carga.** Tras guardar, la página Cargas mostraba «Sin
+programación», porque la configuración del T03 no la contiene. Ahora Mate la lee donde la leía la
+biblioteca anterior, solo en un coche cuya configuración no dice si la programación está activa ni
+cuándo empieza.
+
+**Informe se llama Informes**, en el menú y en la página, como todas las demás entradas del menú.
+
+### Novedades de la versión 4.7.15
 
 **Un T03 vuelve a guardar su programación de carga.** Desde la 4.7.7, la página Cargas se negaba a
 guardar la programación de carga de un T03 o a fijar su límite de carga («complete current charging
