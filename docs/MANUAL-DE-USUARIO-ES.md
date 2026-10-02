@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.13 · **Idioma:** Español
+> **Versión de Mate:** v4.7.14 · **Idioma:** Español
 
-## Novedades de la versión 4.7.13
+## Novedades de la versión 4.7.14
+
+**El gráfico de la carga en curso, en directo.** Mientras el coche carga, la página Cargas muestra entre
+las tarjetas de arriba el gráfico *📈 Datos de la carga* de esa carga, que crece con cada consulta. En
+casa dibuja la línea de la wallbox junto a la del coche; una pausa con el cable enchufado cuenta como
+0 kW. Cuando las lecturas dejan de llegar, EN DIRECTO deja paso a la antigüedad de la última. De @arekm.
+
+**El Informe mensual ahora se llama Informe**, en el menú y en la página. Nada más cambia.
+
+### Novedades de la versión 4.7.13
 
 **Un T03 vuelve a recibir comandos.** Desde la 4.7.7 ningún comando llegaba a un T03; con la 4.7.12
 cada uno terminaba en «signal». Antes de un comando, Mate comprueba la última lectura del coche, y la

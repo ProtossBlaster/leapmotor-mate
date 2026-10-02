@@ -1,8 +1,18 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.13 · **Langue :** Français
+> **Version de Mate :** v4.7.14 · **Langue :** Français
 
-## Nouveautés de la version 4.7.13
+## Nouveautés de la version 4.7.14
+
+**Le graphique de la recharge en cours, en direct.** Pendant que la voiture charge, la page Recharges
+affiche parmi les cartes du haut le graphique *📈 Données de la recharge* de cette recharge, qui
+s'allonge à chaque relevé. À la maison, il trace la ligne de la wallbox à côté de celle de la voiture ;
+une pause câble branché vaut 0 kW. Quand les relevés s'arrêtent, LIVE laisse place à l'âge du dernier.
+Par @arekm.
+
+**Le Rapport mensuel s'appelle maintenant Rapport**, dans le menu et sur la page. Rien d'autre ne change.
+
+### Nouveautés de la version 4.7.13
 
 **Une T03 reçoit de nouveau les commandes.** Depuis la 4.7.7, aucune commande n'arrivait à une T03 ;
 avec la 4.7.12, chacune se terminait par « signal ». Avant une commande, Mate vérifie le dernier relevé

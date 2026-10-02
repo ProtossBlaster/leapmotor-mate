@@ -1,8 +1,17 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.13 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.14 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.13
+## Neu in Version 4.7.14
+
+**Das Diagramm des laufenden Ladevorgangs, live.** Während das Auto lädt, zeigt die Seite Ladevorgänge
+oben bei den Karten das Diagramm *📈 Ladedaten* dieses Ladevorgangs, das mit jeder Abfrage wächst. Zu
+Hause zeichnet es die Linie der Wallbox neben der des Autos; eine Pause mit eingestecktem Kabel steht als
+0 kW. Wenn keine Messwerte mehr kommen, steht statt LIVE das Alter des letzten. Von @arekm.
+
+**Der Monatsbericht heißt jetzt Bericht**, im Menü und auf der Seite. Sonst ändert sich nichts.
+
+### Neu in Version 4.7.13
 
 **Ein T03 nimmt wieder Befehle an.** Seit 4.7.7 kam kein Befehl bei einem T03 an; mit 4.7.12 endete
 jeder mit „signal". Vor einem Befehl prüft Mate den letzten Messwert des Autos, und den eines T03 suchte

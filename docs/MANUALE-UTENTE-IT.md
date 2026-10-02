@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.13 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.14 · **Lingua:** Italiano
 
-## Novità della 4.7.13
+## Novità della 4.7.14
+
+**Il grafico della ricarica in corso, dal vivo.** Mentre l'auto carica, la pagina Ricariche mostra tra le
+schede in cima il grafico *📈 Dati della ricarica* di quella ricarica, che cresce a ogni interrogazione. A
+casa disegna la linea della wallbox accanto a quella dell'auto; una pausa col cavo inserito vale 0 kW.
+Quando le letture si fermano, al posto di LIVE compare l'età dell'ultima. Di @arekm.
+
+**Il Report mensile ora si chiama Report**, nel menu e sulla pagina. Nient'altro cambia.
+
+### Novità della 4.7.13
 
 **Una T03 riceve di nuovo i comandi.** Dalla 4.7.7 nessun comando arrivava a una T03; con la 4.7.12
 ognuno finiva in «signal». Prima di un comando Mate controlla l'ultima lettura dell'auto, e quella di

@@ -1,8 +1,17 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.13 · **Language:** English
+> **Mate version:** v4.7.14 · **Language:** English
 
-## New in 4.7.13
+## New in 4.7.14
+
+**The chart of a running charge, live.** While the car charges, the Charges page shows the
+*📈 Charging data* chart of that charge among the cards at the top, growing with every poll. At home it
+draws the wallbox's line beside the car's; a pause with the cable in reads 0 kW. When the readings stop
+coming, LIVE gives way to the age of the last one. By @arekm.
+
+**The Monthly Report is now called Report**, in the menu and on the page. Nothing else changes.
+
+### New in 4.7.13
 
 **A T03 takes commands again.** Since 4.7.7 no command reached a T03; with 4.7.12 each one ended in
 "signal". Before a command Mate checks the car's last reading, and it looked for a T03's in the wrong
