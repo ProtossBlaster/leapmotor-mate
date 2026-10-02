@@ -22,9 +22,7 @@ qui répond est gardée pour cette voiture. Les voitures déjà lues le sont exa
 **Données de la recharge.** Sous chaque recharge, *📈 Données de la recharge* ouvre un graphique en
 bandes comme celui d'un trajet : la puissance avec les minutes qu'il restait selon la voiture, le
 niveau de charge et les températures — celle de la cellule la plus froide et, si elle est activée,
-celle de l'air extérieur. Pendant qu'une recharge est en cours, le même graphique s'affiche en direct
-parmi les cartes en haut de la page : il indique quand la recharge a commencé et à partir de quel niveau,
-et s'allonge à chaque relevé.
+celle de l'air extérieur.
 
 ### Nouveautés de la version 4.7.10
 
@@ -978,6 +976,10 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   toutes les lignes sont éteintes se replie, le navigateur retient le choix, et l'encadré au survol
   s'ouvre sur l'heure et le temps écoulé depuis le premier relevé. La comparaison AC-DC de la page
   Wallbox est ce même graphique.
+  Pendant qu'une recharge est en cours, le même graphique s'affiche en direct parmi les cartes en
+  haut de la page, avec la ligne de la wallbox à côté de celle de la voiture pour une recharge à
+  domicile : il indique quand la recharge a commencé et à partir de quel niveau, et s'allonge à
+  chaque relevé.
 
 ### Prix de recharge
 **(menu : Prix de recharge)** — Ici, vous définissez **combien vous payez l'énergie**, afin que Mate puisse

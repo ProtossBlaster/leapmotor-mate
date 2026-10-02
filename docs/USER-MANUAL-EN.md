@@ -20,8 +20,7 @@ read before are read exactly as before.
 
 **Charging data.** Under each charge, *📈 Charging data* opens a chart in bands like a trip's: the
 power with the minutes the car said were left, the charge level, and the temperatures — the coldest
-cell's and, if switched on, the outside air's. While a charge runs, the same chart sits with the cards
-at the top of the page, live: it says when the charge began and from which level, and grows with every poll.
+cell's and, if switched on, the outside air's.
 
 ### New in 4.7.10
 
@@ -913,6 +912,9 @@ label:
   of the legend switches its line on and off, a band with every line off folds away, the choice is
   remembered in the browser, and the hover box opens with the time of day and the time since the
   first reading. The AC-vs-DC comparison on the Wallbox page is this same chart.
+  While a charge runs, the same chart sits with the cards at the top of the page, live, the
+  wallbox's line beside the car's when the charge is at home: it says when the charge began and from
+  which level, and grows with every poll.
 
 ### Charge Prices
 **(menu: Charge Prices)** — Here you set **how much you pay for energy**, so Mate can calculate the

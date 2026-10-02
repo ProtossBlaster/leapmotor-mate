@@ -22,9 +22,7 @@ wie bisher gelesen.
 
 **Ladedaten.** Unter jeder Ladung öffnet *📈 Ladedaten* ein Diagramm in Bändern wie bei einer Fahrt:
 die Leistung mit den Minuten, die das Auto noch veranschlagte, der Ladestand und die Temperaturen —
-die der kältesten Zelle und, wenn eingeschaltet, die der Außenluft. Während eine Ladung läuft, steht
-dasselbe Diagramm live bei den Karten oben auf der Seite: es nennt, wann die Ladung begann und bei welchem
-Ladestand, und wächst mit jeder Abfrage.
+die der kältesten Zelle und, wenn eingeschaltet, die der Außenluft.
 
 ### Neu in Version 4.7.10
 
@@ -963,6 +961,9 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   Linie ein und aus, ein Band ohne eingeschaltete Linie klappt zusammen, die Wahl merkt sich der
   Browser, und das Hover-Feld beginnt mit der Uhrzeit und der Zeit seit der ersten Messung. Der
   AC-DC-Vergleich auf der Wallbox-Seite ist dasselbe Diagramm.
+  Während eine Ladung läuft, steht dasselbe Diagramm live bei den Karten oben auf der Seite, bei
+  einer Heimladung mit der Linie der Wallbox neben der des Autos: es nennt, wann die Ladung begann
+  und bei welchem Ladestand, und wächst mit jeder Abfrage.
 
 ### Ladepreise
 **(Menü: Ladepreise)** — Hier legen Sie fest, **was Sie für die Energie zahlen**, damit Mate die Kosten berechnen

@@ -1196,6 +1196,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
     stats   = db_reader.get_charge_stats()
     prices  = db_reader.get_charge_prices()
     status  = db_reader.get_latest_status()
+    live    = await run_in_threadpool(_charging_chart)   # it may read Home Assistant: not on the event loop
     total   = stats.get("session_count") or 0
     station_info = None
     if station:
@@ -1215,7 +1216,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
         page="charges", vehicle=vehicle,
         stats=stats, total=total, highlight=highlight,
         charge_types=db_reader.charge_types_localised(), prices=prices,
-        status=status, live=_charging_chart(), ac_dc=db_reader.get_ac_dc_stats(),
+        status=status, live=live, ac_dc=db_reader.get_ac_dc_stats(),
         unconfirmed=db_reader.unconfirmed_charges_count(),
         unconfirmed_id=db_reader.newest_unconfirmed_charge_id(),   # the banner links to it
         station=station, station_info=station_info,
@@ -4556,21 +4557,26 @@ def _charging_chart() -> dict | None:
     if len(curve["power"]) < 2:
         return None
     socs = [s for s in curve["soc"] if s is not None]
-    # No wallbox line yet: the charge's type is sure only once it has ended, and a Home Assistant
-    # history read on every poll of the panel is not worth a line that may belong to another car.
+    # At home while it runs: a type set at its start (a place recognised by GPS, or the
+    # always-at-home setting) decides; untyped, the wallbox delivering power to the plugged-in car does.
+    if ch["location_type"]:
+        home = ch["location_type"] == "HOME"
+    else:
+        home = bool(status.get("plug_connected")) and (ha_client.get_live().get("power_kw") or 0) > 0
     # Out of touch: the frame lags the row (the cloud re-serving an old frame), or the rows stopped.
     if status.get("data_age"):
         age_s = status["data_age_s"]
     else:
         age_s = status["last_seen_s"] if (status.get("last_seen_s") or 0) >= db_reader.DATA_AGE_STALE_S else None
-    return dict(ch, cid=ch["id"], soc_now=socs[-1] if socs else None, wb_power=None,
+    return dict(ch, cid=ch["id"], soc_now=socs[-1] if socs else None, wb_power=_wallbox_overlay(curve, home),
                 data_age_s=age_s, frame_lags=bool(status.get("data_age")), **curve)
 
 
 @app.get("/api/charging-chart", response_class=HTMLResponse)
 async def charging_chart(request: Request):
     """The Charges page polls this for the chart of the charge in progress; empty while none runs."""
-    return templates.TemplateResponse(request, "partials/charging_chart.html", _ctx(live=_charging_chart()))
+    live = await run_in_threadpool(_charging_chart)   # it may read Home Assistant: not on the event loop
+    return templates.TemplateResponse(request, "partials/charging_chart.html", _ctx(live=live))
 
 
 @app.get("/api/status-card", response_class=HTMLResponse)

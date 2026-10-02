@@ -8626,9 +8626,9 @@ def newest_unconfirmed_charge_id() -> int:
 
 
 def open_charge() -> dict | None:
-    """The charge in progress (ended_at IS NULL): its id, local start and start SoC, or None."""
+    """The charge in progress (ended_at IS NULL): its id, local start, start SoC and type, or None."""
     row = _get().execute(
-        "SELECT id, started_at, start_soc FROM charges WHERE ended_at IS NULL "
+        "SELECT id, started_at, start_soc, location_type FROM charges WHERE ended_at IS NULL "
         "AND vehicle_id = COALESCE(?, vehicle_id) ORDER BY id DESC LIMIT 1",
         (_current_vehicle_id(),)).fetchone()
     if not row:

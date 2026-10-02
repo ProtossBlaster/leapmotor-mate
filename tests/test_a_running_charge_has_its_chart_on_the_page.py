@@ -2,8 +2,8 @@
 finished charge gets under its card, live, with the time the charge began and its SoC so far. The
 card is there only for a charge in progress,
 and only once it has two readings to draw; a finished charge leaves the panel empty, and its chart is
-where it always was, under the card. The wallbox's line waits for the card too: the charge's type is
-sure only once it has ended, and the panel does not ask Home Assistant for the meter on every poll.
+where it always was, under the card. The wallbox's line is drawn while the charge runs when the charge
+is at home: typed HOME at its start, or the wallbox delivering power while the car is plugged in.
 """
 import datetime as dt
 import re
@@ -119,14 +119,61 @@ def test_a_finished_charge_leaves_the_panel_empty(car):
         "the finished charge's chart is where it always was, under its card"
 
 
-def test_the_live_chart_does_not_ask_for_the_wallbox(car, monkeypatch):
-    """Even a charge born HOME (the "I always charge at home" setting) gets no wallbox line while it
-    runs: the setting cannot tell a public AC charger from the wallbox, and the meter's history would
-    be read from Home Assistant on every poll of the panel."""
+def _wallbox(monkeypatch, car, power_kw):
+    """A wallbox mapped in Home Assistant, delivering `power_kw` now and 3.1 kW all along."""
+    import ha_client
+    car.db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('wallbox_enabled', '1')")
+    car.db.commit()
+    monkeypatch.setattr(ha_client, "is_configured", lambda: True)
+    monkeypatch.setattr(ha_client, "get_mapping", lambda: {"power": "sensor.wallbox_power"})
+    monkeypatch.setattr(ha_client, "get_live", lambda: {"configured": True, "power_kw": power_kw})
+    monkeypatch.setattr(ha_client, "get_history",
+                        lambda entity, start, end: [(ha_client.epoch(start) - 1, 3.1)])
+
+
+def _wallbox_line(polled):
+    return polled.split("wallbox:")[1].split("\n")[0]
+
+
+def test_a_charge_at_home_draws_the_wallbox_beside_the_car(car, monkeypatch):
+    """Typed HOME at its start, by a place recognised by GPS or the always-at-home setting."""
     car.db.execute("UPDATE charges SET location_type = 'HOME' WHERE id = 9")
     car.db.commit()
     car.polls(5)
-    monkeypatch.setattr(main, "_wallbox_overlay",
-                        lambda *a: pytest.fail("the chart of a running charge asked for the wallbox's history"))
+    _wallbox(monkeypatch, car, power_kw=0)
+    assert "data: col([3.1, 3.1, 3.1, 3.1, 3.1])" in _wallbox_line(TestClient(main.app).get("/api/charging-chart").text)
+
+
+def test_a_wallbox_delivering_power_to_the_plugged_in_car_is_home(car, monkeypatch):
+    """An untyped charge is at home when the wallbox delivers power while the car is plugged in."""
+    car.polls(4)
+    car.frame(charging=1, plug_connected=1, charge_voltage_v=430, charge_current_a=-7)
+    _wallbox(monkeypatch, car, power_kw=3.1)
+    assert "data: col([3.1, 3.1, 3.1, 3.1, 3.1])" in _wallbox_line(TestClient(main.app).get("/api/charging-chart").text)
+
+
+def test_a_place_recognised_as_public_outranks_the_wallbox(car, monkeypatch):
+    """A charge the GPS placed at a public charger gets no wallbox line even while the home wallbox
+    delivers power: that power is another car's."""
+    import ha_client
+    car.db.execute("UPDATE charges SET location_type = 'HPC', charging_place_source = 'gps' WHERE id = 9")
+    car.db.commit()
+    car.polls(4)
+    car.frame(charging=1, plug_connected=1, charge_voltage_v=430, charge_current_a=-7)
+    _wallbox(monkeypatch, car, power_kw=3.1)
+    monkeypatch.setattr(ha_client, "get_history",
+                        lambda *a: pytest.fail("the home wallbox's history was read for a charge at a public charger"))
     polled = TestClient(main.app).get("/api/charging-chart").text
-    assert 'id="pc-9"' in polled and "data: col([])" in polled.split("wallbox:")[1].split("\n")[0]
+    assert 'id="pc-9"' in polled and "data: col([])" in _wallbox_line(polled)
+
+
+def test_an_idle_wallbox_says_the_charge_is_elsewhere(car, monkeypatch):
+    """Plugged in somewhere else: the home wallbox delivers nothing, so its history is not even read."""
+    import ha_client
+    car.polls(4)
+    car.frame(charging=1, plug_connected=1, charge_voltage_v=430, charge_current_a=-7)
+    _wallbox(monkeypatch, car, power_kw=0)
+    monkeypatch.setattr(ha_client, "get_history",
+                        lambda *a: pytest.fail("the home wallbox's history was read for a charge elsewhere"))
+    polled = TestClient(main.app).get("/api/charging-chart").text
+    assert 'id="pc-9"' in polled and "data: col([])" in _wallbox_line(polled)

@@ -20,9 +20,7 @@ tenuta per quell'auto. Le auto che venivano già lette lo sono esattamente come 
 
 **Dati della ricarica.** Sotto ogni ricarica, *📈 Dati della ricarica* apre un grafico a fasce come
 quello di un viaggio: la potenza con i minuti che secondo l'auto mancavano, la percentuale di carica e
-le temperature — della cella più fredda e, se attiva, dell'aria esterna. Mentre una ricarica è in corso,
-lo stesso grafico compare in diretta tra le schede in cima alla pagina: dice quando è iniziata e da quale
-percentuale, e cresce a ogni interrogazione.
+le temperature — della cella più fredda e, se attiva, dell'aria esterna.
 
 ### Novità della 4.7.10
 
@@ -948,6 +946,9 @@ un'etichetta:
   la sua linea, una fascia con tutte le linee spente si ripiega, il browser ricorda la scelta e il
   riquadro al passaggio del mouse si apre con l'ora e il tempo dalla prima lettura. Il confronto
   AC-DC della pagina Wallbox è questo stesso grafico.
+  Mentre una ricarica è in corso, lo stesso grafico compare in diretta tra le schede in cima alla
+  pagina, con la linea della wallbox accanto a quella dell'auto in una ricarica a casa: dice quando
+  è iniziata e da quale percentuale, e cresce a ogni interrogazione.
 
 ### Prezzi di ricarica
 **(menu: Prezzi di ricarica)** — Qui imposti **quanto paghi l'energia**, così Mate può calcolare i
