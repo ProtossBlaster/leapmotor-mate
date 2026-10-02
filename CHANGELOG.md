@@ -3,6 +3,19 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.15] — 2026-10-02
+
+- **A T03 saves its charge schedule and sets its charge limit again** ([#380](https://github.com/ProtossBlaster/leapmotor-mate/issues/380)). Command
+  190 rewrites the car's whole charge plan, so Mate reads it first and refuses when a field is missing —
+  the guard that keeps a B10's own flags as the car sent them (#343). A T03 has the simple scheduler (a
+  start time and a target, no window, no days) and its plan never carries every field: since 4.7.7, when
+  the T03 left the earlier library, the Charges page refused to save its schedule or set its limit
+  ("complete current charging configuration is required"). With the simple scheduler Mate now completes
+  the plan as that library did — every day, an 08:00 end, circulation 0, recharge 0 — and keeps what the
+  car reports; whether the schedule is on and when it starts are never filled. A car with the full
+  scheduler keeps the guard. The Home Assistant commands already completed a missing plan and are
+  unchanged.
+
 ## [4.7.14] — 2026-10-02
 
 - **The chart of a running charge is on the Charges page, live** ([#379](https://github.com/ProtossBlaster/leapmotor-mate/pull/379), @arekm). While the

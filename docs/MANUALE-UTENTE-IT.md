@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.14 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.15 · **Lingua:** Italiano
 
-## Novità della 4.7.14
+## Novità della 4.7.15
+
+**Una T03 salva di nuovo la programmazione di ricarica.** Dalla 4.7.7 la pagina Ricariche rifiutava di
+salvare la programmazione di ricarica di una T03 o di impostarne il limite di carica («complete current
+charging configuration is required»). Adesso Mate completa i dati che la T03 non manda, come faceva la
+libreria precedente.
+
+### Novità della 4.7.14
 
 **Il grafico della ricarica in corso, dal vivo.** Mentre l'auto carica, la pagina Ricariche mostra tra le
 schede in cima il grafico *📈 Dati della ricarica* di quella ricarica, che cresce a ogni interrogazione. A

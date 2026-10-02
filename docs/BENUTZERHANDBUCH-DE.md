@@ -1,8 +1,14 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.14 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.15 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.14
+## Neu in Version 4.7.15
+
+**Ein T03 speichert seinen Ladeplan wieder.** Seit 4.7.7 lehnte die Seite Ladevorgänge es ab, den
+Ladeplan eines T03 zu speichern oder sein Ladelimit zu setzen („complete current charging configuration
+is required"). Mate ergänzt jetzt, was der T03 nicht meldet, wie es die frühere Bibliothek tat.
+
+### Neu in Version 4.7.14
 
 **Das Diagramm des laufenden Ladevorgangs, live.** Während das Auto lädt, zeigt die Seite Ladevorgänge
 oben bei den Karten das Diagramm *📈 Ladedaten* dieses Ladevorgangs, das mit jeder Abfrage wächst. Zu

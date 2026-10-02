@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.14 · **Langue :** Français
+> **Version de Mate :** v4.7.15 · **Langue :** Français
 
-## Nouveautés de la version 4.7.14
+## Nouveautés de la version 4.7.15
+
+**Une T03 enregistre de nouveau sa programmation de recharge.** Depuis la 4.7.7, la page Recharges
+refusait d'enregistrer la programmation de recharge d'une T03 ou de régler sa limite de charge
+(« complete current charging configuration is required »). Mate complète maintenant ce que la T03 ne
+transmet pas, comme le faisait la bibliothèque précédente.
+
+### Nouveautés de la version 4.7.14
 
 **Le graphique de la recharge en cours, en direct.** Pendant que la voiture charge, la page Recharges
 affiche parmi les cartes du haut le graphique *📈 Données de la recharge* de cette recharge, qui

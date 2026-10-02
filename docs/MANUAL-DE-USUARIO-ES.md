@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.14 · **Idioma:** Español
+> **Versión de Mate:** v4.7.15 · **Idioma:** Español
 
-## Novedades de la versión 4.7.14
+## Novedades de la versión 4.7.15
+
+**Un T03 vuelve a guardar su programación de carga.** Desde la 4.7.7, la página Cargas se negaba a
+guardar la programación de carga de un T03 o a fijar su límite de carga («complete current charging
+configuration is required»). Ahora Mate completa lo que el T03 no envía, como hacía la biblioteca
+anterior.
+
+### Novedades de la versión 4.7.14
 
 **El gráfico de la carga en curso, en directo.** Mientras el coche carga, la página Cargas muestra entre
 las tarjetas de arriba el gráfico *📈 Datos de la carga* de esa carga, que crece con cada consulta. En

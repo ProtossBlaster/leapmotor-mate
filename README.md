@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.7.14:** the chart of a running charge is on the Charges page, live, with the wallbox's line beside the car's when the charge is at home ([#379](https://github.com/ProtossBlaster/leapmotor-mate/pull/379), by @arekm); and the Monthly Report is now called Report ([#370](https://github.com/ProtossBlaster/leapmotor-mate/pull/370)). [Release notes](docs/releases/v4.7.14.md)
-See [release notes and upgrade impact](docs/releases/v4.7.14.md).
+**v4.7.15:** a T03 saves its charge schedule and sets its charge limit again: since 4.7.7 the Charges page refused both ([#380](https://github.com/ProtossBlaster/leapmotor-mate/issues/380)). Mate now fills in what the T03 does not report, as the earlier library did. [Release notes](docs/releases/v4.7.15.md)
+See [release notes and upgrade impact](docs/releases/v4.7.15.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -357,8 +357,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.7.14:** il grafico della ricarica in corso è nella pagina Ricariche, dal vivo, con la linea della wallbox accanto a quella dell'auto quando la ricarica è a casa ([#379](https://github.com/ProtossBlaster/leapmotor-mate/pull/379), di @arekm); e il Report mensile ora si chiama Report ([#370](https://github.com/ProtossBlaster/leapmotor-mate/pull/370)). [Note di rilascio](docs/releases/v4.7.14.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.14.md#italiano).
+**v4.7.15:** una T03 salva di nuovo la programmazione di ricarica e imposta il limite di carica: dalla 4.7.7 la pagina Ricariche rifiutava tutti e due ([#380](https://github.com/ProtossBlaster/leapmotor-mate/issues/380)). Adesso Mate completa i dati che la T03 non manda, come faceva la libreria precedente. [Note di rilascio](docs/releases/v4.7.15.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.15.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

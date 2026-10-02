@@ -1,8 +1,14 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.14 · **Language:** English
+> **Mate version:** v4.7.15 · **Language:** English
 
-## New in 4.7.14
+## New in 4.7.15
+
+**A T03 saves its charge schedule again.** Since 4.7.7 the Charges page refused to save a T03's charge
+schedule or set its charge limit ("complete current charging configuration is required"). Mate now
+fills in what the T03 does not report, as the earlier library did.
+
+### New in 4.7.14
 
 **The chart of a running charge, live.** While the car charges, the Charges page shows the
 *📈 Charging data* chart of that charge among the cards at the top, growing with every poll. At home it
