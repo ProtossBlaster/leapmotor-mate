@@ -1196,6 +1196,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
     stats   = db_reader.get_charge_stats()
     prices  = db_reader.get_charge_prices()
     status  = db_reader.get_latest_status()
+    live    = await run_in_threadpool(_charging_chart)   # it may read Home Assistant: not on the event loop
     total   = stats.get("session_count") or 0
     station_info = None
     if station:
@@ -1215,7 +1216,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
         page="charges", vehicle=vehicle,
         stats=stats, total=total, highlight=highlight,
         charge_types=db_reader.charge_types_localised(), prices=prices,
-        status=status, ac_dc=db_reader.get_ac_dc_stats(),
+        status=status, live=live, ac_dc=db_reader.get_ac_dc_stats(),
         unconfirmed=db_reader.unconfirmed_charges_count(),
         unconfirmed_id=db_reader.newest_unconfirmed_charge_id(),   # the banner links to it
         station=station, station_info=station_info,
@@ -3219,7 +3220,7 @@ async def wallbox_compare_chart(request: Request):
         return HTMLResponse('<div class="text-sm text-slate-500 py-2">—</div>')
     curve = db_reader.get_charge_power_curve(cid)
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=cid, wb_power=_wallbox_overlay(curve, cid), **curve))
+        cid=cid, wb_power=_wallbox_overlay(curve, db_reader.is_home_charge(cid)), **curve))
 
 
 @app.get("/api/wallbox/control", response_class=HTMLResponse)
@@ -3514,16 +3515,16 @@ async def set_manual_charge_location(request: Request, charge_id: int):
                                       {"charge": charge, "t": t})
 
 
-def _wallbox_overlay(curve: dict, charge_id: int) -> list | None:
+def _wallbox_overlay(curve: dict, home: bool) -> list | None:
     """Wallbox power (from HA history) resampled onto the car curve's timestamps,
     so it overlays the car's DC power on the same axis. None when unavailable.
-    Only HOME charges get the overlay — on a public/away charge the home wallbox
-    is irrelevant (and could even be charging another car)."""
+    Only a charge at home gets the overlay — on a public/away charge the home wallbox
+    is irrelevant (and could even be charging another car); the caller says which it is."""
     times = curve.get("times") or []
     mapping = ha_client.get_mapping()
     wallbox_on = db_reader.get_setting("wallbox_enabled", "0") == "1"
     if (not wallbox_on or not times or not ha_client.is_configured()
-            or not mapping.get("power") or not db_reader.is_home_charge(charge_id)):
+            or not mapping.get("power") or not home):
         return None
     hist = ha_client.get_history(mapping["power"], times[0], times[-1])
     if not hist:
@@ -3692,7 +3693,7 @@ async def charge_power_chart(request: Request, charge_id: int):
     its delivered AC power is drawn beside the car's DC power."""
     curve = db_reader.get_charge_power_curve(charge_id)
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=charge_id, wb_power=_wallbox_overlay(curve, charge_id), **curve))
+        cid=charge_id, wb_power=_wallbox_overlay(curve, db_reader.is_home_charge(charge_id)), **curve))
 
 
 @app.post("/api/settings/prices", response_class=HTMLResponse)
@@ -4541,6 +4542,41 @@ async def charging_live(request: Request):
 async def battery_card(request: Request):
     status = db_reader.get_latest_status()
     return templates.TemplateResponse(request, "partials/battery_card.html", _ctx(status=status))
+
+
+def _charging_chart() -> dict | None:
+    """The chart of the charge in progress: None while the car is not charging or it has one reading."""
+    # The car's word, as the charging status panel reads it: an open row alone is not a charge.
+    status = db_reader.get_latest_status()
+    if not (status and status.get("charging")):
+        return None
+    ch = db_reader.open_charge()
+    if not ch:
+        return None
+    curve = db_reader.get_charge_power_curve(ch["id"])
+    if len(curve["power"]) < 2:
+        return None
+    socs = [s for s in curve["soc"] if s is not None]
+    # At home while it runs: a type set at its start (a place recognised by GPS, or the
+    # always-at-home setting) decides; untyped, the wallbox delivering power to the plugged-in car does.
+    if ch["location_type"]:
+        home = ch["location_type"] == "HOME"
+    else:
+        home = bool(status.get("plug_connected")) and (ha_client.get_live().get("power_kw") or 0) > 0
+    # Out of touch: the frame lags the row (the cloud re-serving an old frame), or the rows stopped.
+    if status.get("data_age"):
+        age_s = status["data_age_s"]
+    else:
+        age_s = status["last_seen_s"] if (status.get("last_seen_s") or 0) >= db_reader.DATA_AGE_STALE_S else None
+    return dict(ch, cid=ch["id"], soc_now=socs[-1] if socs else None, wb_power=_wallbox_overlay(curve, home),
+                data_age_s=age_s, frame_lags=bool(status.get("data_age")), **curve)
+
+
+@app.get("/api/charging-chart", response_class=HTMLResponse)
+async def charging_chart(request: Request):
+    """The Charges page polls this for the chart of the charge in progress; empty while none runs."""
+    live = await run_in_threadpool(_charging_chart)   # it may read Home Assistant: not on the event loop
+    return templates.TemplateResponse(request, "partials/charging_chart.html", _ctx(live=live))
 
 
 @app.get("/api/status-card", response_class=HTMLResponse)

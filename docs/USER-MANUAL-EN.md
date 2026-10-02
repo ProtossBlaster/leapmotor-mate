@@ -922,6 +922,9 @@ label:
   of the legend switches its line on and off, a band with every line off folds away, the choice is
   remembered in the browser, and the hover box opens with the time of day and the time since the
   first reading. The AC-vs-DC comparison on the Wallbox page is this same chart.
+  While a charge runs, the same chart sits with the cards at the top of the page, live, the
+  wallbox's line beside the car's when the charge is at home: it says when the charge began and from
+  which level, and grows with every poll.
 
 ### Charge Prices
 **(menu: Charge Prices)** — Here you set **how much you pay for energy**, so Mate can calculate the

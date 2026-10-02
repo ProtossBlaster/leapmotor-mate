@@ -8272,17 +8272,21 @@ def get_charge_power_curve(charge_id: int) -> dict:
             + " ? ORDER BY recorded_at",
             (_current_vehicle_id(), lo, hi),
         ).fetchall()
-    else:  # charge still in progress — open upper bound
+    else:
+        # Still in progress, open upper bound: every parked reading since the start, so a pause
+        # (the car stopped, the cable still in) is drawn as 0 kW and the chart goes on growing.
         rows = db.execute(
-            f"SELECT {cols} FROM positions "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? ORDER BY recorded_at",
+            f"SELECT {cols}, charging, charge_current_a <= -{_CHARGE_SAMPLE_MIN_A} AS charging_current FROM positions "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND recorded_at >= ? "
+            "AND COALESCE(speed_kmh, 0) <= 2 AND COALESCE(gear, 'P') = 'P' ORDER BY recorded_at",
             (_current_vehicle_id(), start),
         ).fetchall()
     power, soc, times = [], [], []
     for r in rows:
         v = r["charge_voltage_v"] or 0
         a = r["charge_current_a"] or 0
-        power.append(round(abs(v * a) / 1000.0, 3))
+        paused = end is None and not (r["charging"] == 1 or r["charging_current"])
+        power.append(0.0 if paused else round(abs(v * a) / 1000.0, 3))
         soc.append(r["soc"])
         times.append(r["recorded_at"])  # raw UTC ISO — the chart's clock, and the wallbox history's alignment
     return {"power": power, "soc": soc, "times": times,
@@ -8631,6 +8635,19 @@ def newest_unconfirmed_charge_id() -> int:
         (_current_vehicle_id(),)
     ).fetchone()
     return row["id"] if row else 0
+
+
+def open_charge() -> dict | None:
+    """The charge in progress (ended_at IS NULL): its id, local start, start SoC and type, or None."""
+    row = _get().execute(
+        "SELECT id, started_at, start_soc, location_type FROM charges WHERE ended_at IS NULL "
+        "AND vehicle_id = COALESCE(?, vehicle_id) ORDER BY id DESC LIMIT 1",
+        (_current_vehicle_id(),)).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d["started_at"] = _local_iso(d["started_at"])
+    return d
 
 
 def open_charge_session_energy() -> Optional[float]:

@@ -971,6 +971,9 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   Linie ein und aus, ein Band ohne eingeschaltete Linie klappt zusammen, die Wahl merkt sich der
   Browser, und das Hover-Feld beginnt mit der Uhrzeit und der Zeit seit der ersten Messung. Der
   AC-DC-Vergleich auf der Wallbox-Seite ist dasselbe Diagramm.
+  Während eine Ladung läuft, steht dasselbe Diagramm live bei den Karten oben auf der Seite, bei
+  einer Heimladung mit der Linie der Wallbox neben der des Autos: es nennt, wann die Ladung begann
+  und bei welchem Ladestand, und wächst mit jeder Abfrage.
 
 ### Ladepreise
 **(Menü: Ladepreise)** — Hier legen Sie fest, **was Sie für die Energie zahlen**, damit Mate die Kosten berechnen

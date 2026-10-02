@@ -975,6 +975,9 @@ etiqueta:
   banda con todas las líneas apagadas se pliega, el navegador recuerda la elección y el cuadro al
   pasar el ratón empieza por la hora y el tiempo desde la primera lectura. La comparación AC-DC de
   la página Wallbox es este mismo gráfico.
+  Mientras una carga está en curso, el mismo gráfico aparece en directo junto a las tarjetas de
+  arriba de la página, con la línea del wallbox al lado de la del coche en una carga en casa: indica
+  cuándo empezó la carga y desde qué nivel, y crece con cada consulta.
 
 ### Precios de la carga
 **(menú: Precios de la carga)** — Aquí indicas **cuánto pagas por la energía**, para que Mate pueda
