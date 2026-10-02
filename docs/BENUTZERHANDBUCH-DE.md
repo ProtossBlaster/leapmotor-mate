@@ -22,7 +22,9 @@ wie bisher gelesen.
 
 **Ladedaten.** Unter jeder Ladung öffnet *📈 Ladedaten* ein Diagramm in Bändern wie bei einer Fahrt:
 die Leistung mit den Minuten, die das Auto noch veranschlagte, der Ladestand und die Temperaturen —
-die der kältesten Zelle und, wenn eingeschaltet, die der Außenluft.
+die der kältesten Zelle und, wenn eingeschaltet, die der Außenluft. Während eine Ladung läuft, steht
+dasselbe Diagramm live bei den Karten oben auf der Seite: es nennt, wann die Ladung begann und bei welchem
+Ladestand, und wächst mit jeder Abfrage.
 
 ### Neu in Version 4.7.10
 

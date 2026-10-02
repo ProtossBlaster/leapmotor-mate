@@ -1,0 +1,28 @@
+{# The charge in progress, among the cards at the top of the Charges page: the chart a finished charge
+   gets, redrawn with every poll of the panel. `live` is None while no charge runs, and the panel stays empty. #}
+{% if live %}
+<div class="card order-3 lg:order-last lg:col-span-3">
+  <div class="flex items-center gap-2 mb-1">
+    <span class="text-xl">📈</span>
+    <span class="font-semibold text-white">{{ t('charge_profile') }}</span>
+    <span class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 animate-pulse">{{ t('live_badge') }}</span>
+  </div>
+  {# When it began and the SoC so far, written as the card of a finished charge writes them. #}
+  <div class="flex justify-between text-xs mb-3">
+    <span class="text-slate-500">{{ t('sched_start') }} {{ live.started_at[11:16] }}</span>
+    {% if live.start_soc is not none and live.soc_now is not none %}
+    {% set d = live.soc_now - live.start_soc %}
+    <span class="text-white font-medium">
+      {{ live.start_soc|dec(1) }}%
+      <span class="text-slate-600 mx-1">→</span>
+      {{ live.soc_now|dec(1) }}%
+      <span class="text-yellow-400 ml-1 font-bold">{{ '+' if d > 0 else '' }}{{ d|dec(1) }}%</span>
+    </span>
+    {% endif %}
+  </div>
+  {% with cid=live.cid, wb_power=live.wb_power, power=live.power, soc=live.soc, times=live.times,
+          battery_temp=live.battery_temp, outside_temp=live.outside_temp, remaining_min=live.remaining_min %}
+  {% include "partials/charge_power_chart.html" %}
+  {% endwith %}
+</div>
+{% endif %}

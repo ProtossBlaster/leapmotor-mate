@@ -20,7 +20,8 @@ read before are read exactly as before.
 
 **Charging data.** Under each charge, *📈 Charging data* opens a chart in bands like a trip's: the
 power with the minutes the car said were left, the charge level, and the temperatures — the coldest
-cell's and, if switched on, the outside air's.
+cell's and, if switched on, the outside air's. While a charge runs, the same chart sits with the cards
+at the top of the page, live: it says when the charge began and from which level, and grows with every poll.
 
 ### New in 4.7.10
 

@@ -8625,6 +8625,19 @@ def newest_unconfirmed_charge_id() -> int:
     return row["id"] if row else 0
 
 
+def open_charge() -> dict | None:
+    """The charge in progress (ended_at IS NULL): its id, local start and start SoC, or None."""
+    row = _get().execute(
+        "SELECT id, started_at, start_soc FROM charges WHERE ended_at IS NULL "
+        "AND vehicle_id = COALESCE(?, vehicle_id) ORDER BY id DESC LIMIT 1",
+        (_current_vehicle_id(),)).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d["started_at"] = _local_iso(d["started_at"])
+    return d
+
+
 def open_charge_session_energy() -> Optional[float]:
     """The AC energy the wallbox has put into the charge IN PROGRESS — the reset-safe running sum the
     poller keeps on the open charge (ended_at IS NULL). This is what the live "Session energy" tile

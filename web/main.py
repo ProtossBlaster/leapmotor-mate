@@ -1215,7 +1215,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
         page="charges", vehicle=vehicle,
         stats=stats, total=total, highlight=highlight,
         charge_types=db_reader.charge_types_localised(), prices=prices,
-        status=status, ac_dc=db_reader.get_ac_dc_stats(),
+        status=status, live=_charging_chart(), ac_dc=db_reader.get_ac_dc_stats(),
         unconfirmed=db_reader.unconfirmed_charges_count(),
         unconfirmed_id=db_reader.newest_unconfirmed_charge_id(),   # the banner links to it
         station=station, station_info=station_info,
@@ -4541,6 +4541,26 @@ async def charging_live(request: Request):
 async def battery_card(request: Request):
     status = db_reader.get_latest_status()
     return templates.TemplateResponse(request, "partials/battery_card.html", _ctx(status=status))
+
+
+def _charging_chart() -> dict | None:
+    """The chart of the charge in progress: None while no charge runs or it has one reading."""
+    ch = db_reader.open_charge()
+    if not ch:
+        return None
+    curve = db_reader.get_charge_power_curve(ch["id"])
+    if len(curve["power"]) < 2:
+        return None
+    socs = [s for s in curve["soc"] if s is not None]
+    # No wallbox line yet: the charge's type is sure only once it has ended, and a Home Assistant
+    # history read on every poll of the panel is not worth a line that may belong to another car.
+    return dict(ch, cid=ch["id"], soc_now=socs[-1] if socs else None, wb_power=None, **curve)
+
+
+@app.get("/api/charging-chart", response_class=HTMLResponse)
+async def charging_chart(request: Request):
+    """The Charges page polls this for the chart of the charge in progress; empty while none runs."""
+    return templates.TemplateResponse(request, "partials/charging_chart.html", _ctx(live=_charging_chart()))
 
 
 @app.get("/api/status-card", response_class=HTMLResponse)

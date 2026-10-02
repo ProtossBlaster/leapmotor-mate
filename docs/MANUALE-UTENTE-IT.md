@@ -20,7 +20,9 @@ tenuta per quell'auto. Le auto che venivano già lette lo sono esattamente come 
 
 **Dati della ricarica.** Sotto ogni ricarica, *📈 Dati della ricarica* apre un grafico a fasce come
 quello di un viaggio: la potenza con i minuti che secondo l'auto mancavano, la percentuale di carica e
-le temperature — della cella più fredda e, se attiva, dell'aria esterna.
+le temperature — della cella più fredda e, se attiva, dell'aria esterna. Mentre una ricarica è in corso,
+lo stesso grafico compare in diretta tra le schede in cima alla pagina: dice quando è iniziata e da quale
+percentuale, e cresce a ogni interrogazione.
 
 ### Novità della 4.7.10
 

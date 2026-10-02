@@ -71,8 +71,18 @@
     {% include "partials/battery_card.html" %}
   </div>
 
+  <!-- The chart of the charge in progress: after the battery on a phone, a row of its own on a wide
+       screen, no cell while none runs; its ApexCharts instance is destroyed before a swap replaces it -->
+  <div id="charging-chart-panel" class="contents"
+       hx-get="api/charging-chart"
+       hx-trigger="every 30s"
+       hx-swap="innerHTML"
+       hx-on::before-swap="if (event.detail.shouldSwap) this.querySelectorAll('[id^=pc-]').forEach(function (e) { if (e._c) e._c.destroy(); })">
+    {% include "partials/charging_chart.html" %}
+  </div>
+
   <!-- Charge limit -->
-  <div class="card">
+  <div class="card order-4 lg:order-none">
     <div class="flex items-center gap-2 mb-4">
       <span class="text-xl">🎯</span>
       <span class="font-semibold text-white">{{ t('charge_limit') }}</span>

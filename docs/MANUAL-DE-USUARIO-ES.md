@@ -20,7 +20,9 @@ responde se guarda para ese coche. Los coches que ya se leían se leen exactamen
 
 **Datos de la carga.** Bajo cada carga, *📈 Datos de la carga* abre un gráfico en bandas como el de un
 viaje: la potencia con los minutos que según el coche faltaban, el nivel de carga y las temperaturas —
-la de la celda más fría y, si está activada, la del aire exterior.
+la de la celda más fría y, si está activada, la del aire exterior. Mientras una carga está en curso, el
+mismo gráfico aparece en directo junto a las tarjetas de arriba de la página: indica cuándo empezó la carga
+y desde qué nivel, y crece con cada consulta.
 
 ### Novedades de la versión 4.7.10
 
