@@ -284,8 +284,8 @@ def test_the_bundle_leaves_out_coordinates_that_come_by_name():
 
 def test_the_rows_written_from_a_misread_map_are_dropped_once(tmp_path):
     """The web stored a position from each misread map: SoC 0 and no odometer, which no real reading
-    has. Left in place, the newest seeds the poller's SoC baseline, and the first true reading of a
-    parked car (56 %) is taken for a charge from 0 %."""
+    has. They go once, from 4.7.11's release on. (They never made a charge from 0 %: the newest seeds
+    the poller's SoC baseline, but create_reconstructed_charge refuses a start below 1 %.)"""
     import db as D
     database = D.Database(str(tmp_path / "zero.db"))
     vid = database.ensure_vehicle(VIN, "T03")

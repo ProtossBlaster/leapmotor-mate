@@ -630,9 +630,10 @@ class Database:
     def _repair_rows_written_from_a_misread_map(self) -> None:
         """One-time cleanup for #368. Mate 4.7.11 handed a T03's named signal map on as numbered, and
         the web stored a position from each one it read: SoC 0 and no odometer, which no real reading
-        has (a car always carries its odometer; an empty battery that was really read does too). The
-        newest such row seeds the poller's SoC baseline at the next start, and the first true reading of
-        a parked car would be taken for a charge from 0 %. Only rows from 4.7.11's release on. Runs once.
+        has (none of a B10's 384,034 positions has both). They are not readings, so they go. They never
+        made a charge from 0 %: the newest does seed the poller's SoC baseline at the next start, but
+        `create_reconstructed_charge` refuses a start below 1 % (1.21.4). Only rows from 4.7.11's
+        release on. Runs once.
         """
         if self.get_setting("positions_misread_map_repair_v1") == "1":
             return

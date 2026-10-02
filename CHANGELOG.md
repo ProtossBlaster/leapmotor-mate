@@ -10,9 +10,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   #368), the shape the old status address answers in. 4.7.11 handed them on as numbered signals, so
   the poller called the car asleep and the web stored 0%, 0 km and 0 °C. A map in names now reaches
   the poller and the web as named fields; a B10's map (98 keys, 3 named) stays numbered.
-- **The positions stored at 0% with no odometer since 4.7.11 are removed, once**: the newest would
-  have seeded the SoC baseline and turned the first real reading of a parked car into a charge from
-  0%. No real reading has that shape (0 of a B10's 384,034 positions).
+- **The positions stored at 0% with no odometer since 4.7.11 are removed, once**: no real reading has
+  that shape (0 of a B10's 384,034 positions). *Corrected on 2 October: this entry said at first that
+  the newest would have turned the first real reading of a parked car into a charge from 0%. It would
+  not have: since 1.21.4 Mate does not reconstruct a charge that starts below 1%.*
 - **A diagnostic bundle leaves out coordinates that come by name**: it removed them by signal number
   only, and a T03 bundle from 4.7.11 posted in a public issue carried the car's exact position.
 
