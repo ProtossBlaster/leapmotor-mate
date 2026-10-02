@@ -37,7 +37,7 @@ def test_fresh_signals_persist_fuel_for_reev(tmp_path, monkeypatch):
     """The after-command write path (db_reader.save_fresh_signals) must carry fuel too, or the block
     would blink out for the ~30s between a command and the next poll."""
     db_reader = _setup(tmp_path, monkeypatch)
-    db_reader.save_fresh_signals({"3235": "91.4", "3259": "740", "3260": "92", "3261": "832"})
+    db_reader.save_fresh_signals({"1204": "60", "3235": "91.4", "3259": "740", "3260": "92", "3261": "832"})
     st = db_reader.get_latest_status()
     assert st["fuel_level_pct"] == 91.4
     assert st["fuel_range_km"] == 740.0
@@ -49,7 +49,7 @@ def test_fresh_signals_bev_fuel_is_none(tmp_path, monkeypatch):
     """A BEV must persist fuel as NULL, never 0.0 — otherwise the Overview guard
     (`status.get('fuel_level_pct') is not none`) would render an empty '0%' fuel block."""
     db_reader = _setup(tmp_path, monkeypatch)
-    db_reader.save_fresh_signals({"3260": "150"})   # no fuel signals at all
+    db_reader.save_fresh_signals({"1204": "60", "3260": "150"})   # no fuel signals at all
     st = db_reader.get_latest_status()
     assert st["fuel_level_pct"] is None
     assert st["combined_range_km"] is None

@@ -4039,6 +4039,14 @@ def _coord_from_signals(signals: dict, axis: str) -> float:
 
 def save_fresh_signals(signals: dict) -> None:
     """Write a fresh position row from raw API signals (called after a command)."""
+    # A frame without a charge level is no reading (capability_profile.has_soc_reading): the
+    # poller stores nothing from it, and neither does its second writer — which used to store a
+    # SoC the car did not send as 0 %.
+    if not capability_profile.has_soc_reading(signals):
+        logging.getLogger("db_reader").info(
+            "Fresh status not stored: no usable SoC (100003=%r, 1204=%r, 3260=%r)",
+            signals.get("100003"), signals.get("1204"), signals.get("3260"))
+        return
     db = _conn_rw()
     # See get_vehicle(): an unordered LIMIT 1 rides the UNIQUE(vin) covering index and can name
     # the wrong car. This one WRITES a position row, so the wrong id would file live telemetry

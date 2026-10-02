@@ -303,10 +303,8 @@ class LeapmotorMateClient:
         # often a poll perturbed by a just-issued command (e.g. changing the charge limit). Treat it
         # as "no live data" (like an asleep poll) so it can't be stored as a spurious soc=0 row that
         # then seeds a phantom "charged from 0%" reconstruction / "recover missed charges" hit.
-        _soc_raw = sig.get("100003")
-        if _soc_raw is None:
-            _soc_raw = sig.get("1204")
-        if _soc_raw is None or (float(_soc_raw or 0) == 0 and float(sig.get("3260") or 0) > 5):
+        # The rule lives in capability_profile: the web stores positions too and refuses the same.
+        if not capability_profile.has_soc_reading(sig):
             raise EmptyStatusError("vehicle status carries no usable SoC (partial/glitch read)")
         vd = _parse_signal(vehicle.vin, sig)
         vd.raw_signals = sig   # full dict for research-mode full-PID logging (ignored in normal builds)

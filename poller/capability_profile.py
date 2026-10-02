@@ -196,6 +196,20 @@ def is_shown(vin: str, feature: str, get_setting: Optional[Callable] = None,
 _WINDOW_PAIRS = (("1693", "3727"), ("1694", "3728"), ("1695", "1879"), ("1696", "1880"))
 
 
+def has_soc_reading(signals: dict) -> bool:
+    """Whether a frame carries a charge level, or is no reading at all.
+
+    No SoC (neither `100003` nor `1204`), or a SoC of 0 beside a battery range above 5 km, is a
+    partial read — often a poll perturbed by a just-issued command. The poller has refused it as no
+    live data since 1.21.4; the web stored it as 0 % until it read this too. One rule for the two
+    writers of `positions.soc`.
+    """
+    raw = signals.get("100003")
+    if raw is None:
+        raw = signals.get("1204")
+    return raw is not None and not (float(raw or 0) == 0 and float(signals.get("3260") or 0) > 5)
+
+
 def battery_range_km(signals: dict):
     """The battery range the car reports (signal 3260), or None when it reports none.
 

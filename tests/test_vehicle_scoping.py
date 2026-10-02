@@ -179,7 +179,7 @@ def test_get_vehicle_follows_the_current_car_not_the_first_vin(tmp_path, monkeyp
 def test_save_fresh_signals_files_the_row_under_the_current_car(tmp_path, monkeypatch):
     """It WRITES: the wrong id would file live telemetry against the other vehicle."""
     db = _two_car_db_car2_sorts_first(tmp_path, monkeypatch)
-    db_reader.save_fresh_signals({"1003": 55})            # SoC — enough for a position row
+    db_reader.save_fresh_signals({"1204": 55})            # a SoC: what a position row needs
     rows = db._conn.execute("SELECT vehicle_id FROM positions").fetchall()
     assert rows and all(r["vehicle_id"] == 1 for r in rows)
 

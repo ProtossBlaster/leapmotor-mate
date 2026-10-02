@@ -116,7 +116,7 @@ def test_the_refresh_button_moves_the_marker(mate):
     paint and its next poll both read that row."""
     pdb, client = mate
     _position(pdb, 52.40, 16.90)
-    db_reader.save_fresh_signals({"3": "52.5", "2": "17.1"})
+    db_reader.save_fresh_signals({"1204": 60, "3": "52.5", "2": "17.1"})
     assert (_served(client)["lat"], _served(client)["lon"]) == (52.5, 17.1)
     assert (_drawn(client.get("/").text)["lat"], _drawn(client.get("/").text)["lon"]) == (52.5, 17.1)
 

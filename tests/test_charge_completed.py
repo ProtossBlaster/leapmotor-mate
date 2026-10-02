@@ -35,13 +35,13 @@ def test_persists_and_reads_back(tmp_path, monkeypatch):
     monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
     db_reader.upsert_vehicle("VIN", "B10")
 
-    db_reader.save_fresh_signals({"3736": 1})
+    db_reader.save_fresh_signals({"1204": 50, "3736": 1})
     assert db_reader.get_latest_status()["charge_completed"] == 1
 
-    db_reader.save_fresh_signals({"3736": 0})
+    db_reader.save_fresh_signals({"1204": 50, "3736": 0})
     assert db_reader.get_latest_status()["charge_completed"] == 0
 
-    db_reader.save_fresh_signals({})                       # signal absent → 0, never NULL/crash
+    db_reader.save_fresh_signals({"1204": 50})             # signal absent → 0, never NULL/crash
     assert db_reader.get_latest_status()["charge_completed"] == 0
 
 

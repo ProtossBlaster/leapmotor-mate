@@ -102,13 +102,13 @@ def test_web_save_fresh_signals_t03_open_stores_count_four(tmp_path, monkeypatch
     # The Overview tile and Commands grid read these stored values. The T03 open at 20% must store
     # windows_open=1 and windows_open_count=4 (the "Finestrini aperti 4" badge) — not flag-only 0.
     path = _web_db(tmp_path, monkeypatch)
-    db_reader.save_fresh_signals(dict(T03_OPEN))
+    db_reader.save_fresh_signals({**T03_OPEN, "1204": 50})
     assert _latest_windows(path) == (1, 4)
 
 
 def test_web_save_fresh_signals_t03_closed_stores_zero(tmp_path, monkeypatch):
     path = _web_db(tmp_path, monkeypatch)
-    db_reader.save_fresh_signals(dict(T03_CLOSED))
+    db_reader.save_fresh_signals({**T03_CLOSED, "1204": 50})
     assert _latest_windows(path) == (0, 0)
 
 
@@ -158,5 +158,5 @@ def test_poller_parse_signal_b10_flag_2_open():
 def test_web_save_fresh_signals_b10_flag_2_stores_open(tmp_path, monkeypatch):
     # The Overview tile + "Finestrini aperti N" badge read these stored values; flag 2 = open → (1, 1).
     path = _web_db(tmp_path, monkeypatch)
-    db_reader.save_fresh_signals(dict(B10_FLAG2_OPEN))
+    db_reader.save_fresh_signals({**B10_FLAG2_OPEN, "1204": 50})
     assert _latest_windows(path) == (1, 1)

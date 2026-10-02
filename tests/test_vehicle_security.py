@@ -36,13 +36,13 @@ def test_persists_and_reads_back(tmp_path, monkeypatch):
     monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
     db_reader.upsert_vehicle("VIN", "B10")
 
-    db_reader.save_fresh_signals({"1255": 2})              # the B10 armed value
+    db_reader.save_fresh_signals({"1204": 50, "1255": 2})  # the B10 armed value
     assert db_reader.get_latest_status()["security_active"] == 1
 
-    db_reader.save_fresh_signals({"1255": 0})
+    db_reader.save_fresh_signals({"1204": 50, "1255": 0})
     assert db_reader.get_latest_status()["security_active"] == 0
 
-    db_reader.save_fresh_signals({})                       # signal absent → NULL (#256), never 0
+    db_reader.save_fresh_signals({"1204": 50})             # signal absent → NULL (#256), never 0
     assert db_reader.get_latest_status()["security_active"] is None
 
 

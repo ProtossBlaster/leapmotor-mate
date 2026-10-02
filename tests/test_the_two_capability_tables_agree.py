@@ -69,3 +69,12 @@ def test_the_range_rule_reads_the_same_in_both_processes(sig):
     """One rule for the two writers of `positions.range_km` (#365): the poller stores the poll, the
     web stores a refresh."""
     assert POLLER.battery_range_km(sig) == WEB.battery_range_km(sig)
+
+
+@pytest.mark.parametrize("sig", [{"1204": 62, "3260": 300}, {"1010": 0}, {"1204": None, "3260": 300},
+                                 {"1204": 0, "3260": 300}, {"1204": 0, "3260": 5}, {"1204": 0},
+                                 {"100003": "0.0", "1204": 62, "3260": 300}, {"100003": "61.5"}])
+def test_the_soc_rule_reads_the_same_in_both_processes(sig):
+    """One rule for the two writers of `positions.soc`: the poller refuses the poll, the web the
+    Refresh or the check after a command."""
+    assert POLLER.has_soc_reading(sig) == WEB.has_soc_reading(sig)

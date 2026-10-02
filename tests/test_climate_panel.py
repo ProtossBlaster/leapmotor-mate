@@ -46,7 +46,7 @@ def test_climate_venting_only_from_real_vent_mode(tmp_path, monkeypatch):
     db_reader.upsert_vehicle("VIN", "B10")
 
     def venting(ac_on, mode):                      # 1938 = acSwitch, 3713 = climate mode
-        db_reader.save_fresh_signals({"1938": ac_on, "3713": mode})
+        db_reader.save_fresh_signals({"1204": 50, "1938": ac_on, "3713": mode})
         return db_reader.get_latest_status()["climate_venting"]
 
     assert venting(1, 0) is False    # A/C on, AUTO → NOT venting (the reported bug)
