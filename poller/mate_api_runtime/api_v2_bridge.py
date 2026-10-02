@@ -640,7 +640,15 @@ class NewAPIClient(MateClientCompatibility):
             state=prepare(cmd_id,json.loads(cmd_content,object_pairs_hook=_unique_object,
                                            parse_constant=_invalid_constant),vehicle,
                           timezone_name=os.environ.get('TZ'))
-            signals=self._get_vehicle_raw_status(vehicle)['data']['signal']
+            data=self._get_vehicle_raw_status(vehicle)['data']
+            signals=data.get('signal')
+            if signals is None:
+                # A T03 answers in names (#368): the frame's time, its speed and ON3 are read by name,
+                # as the poller and the web read the rest of that map. A frame without its time is
+                # still refused below (#378).
+                on3=data.get('bcmKeyPositionOn3')
+                signals={'1':data.get('collectTimeMs'),'1319':data.get('speed'),
+                         '1258':int(on3) if type(on3) is bool else on3}
             def num(key):
                 try:
                     value=float(signals[key])

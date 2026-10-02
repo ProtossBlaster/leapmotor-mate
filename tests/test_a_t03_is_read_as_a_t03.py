@@ -307,3 +307,59 @@ def test_the_rows_written_from_a_misread_map_are_dropped_once(tmp_path):
                            (vid, "2026-10-01T19:04:00+00:00", 0.0, None))
     database._repair_rows_written_from_a_misread_map()
     assert database._conn.execute("SELECT COUNT(*) FROM positions").fetchone()[0] == 4, "it runs once"
+
+
+# ── A T03's command reads its gate by name (#378) ─────────────────────────────
+# @Bryla2507's T03 on 4.7.12, 1-2 October (his bundle): every command — Find car, lock, windows — ended
+# in KeyError('signal'), the "signal" on his screen, while every reading worked. Before a command the
+# bridge checks the car's last frame: when it was taken, that the car stands still, that it is not in
+# ON3. It read them as numbered signals under `signal`, and since 4.7.12 a T03's map comes in names
+# beside them: `collectTimeMs`, `speed`, `bcmKeyPositionOn3`. A frame without its time is still refused.
+FIND_CAR = ("120", '{"value":"true"}')
+
+
+def _t03_to_command(tmp_path, monkeypatch, frame):
+    import json
+    from leapmotor_cloud.transport import Response
+
+    def answer(path, cartype):
+        if path == SIGNAL and cartype == "T03":
+            return {"vin": VIN, "signalMap": dict(frame)}
+        _no_data()
+
+    api, _ = _api(tmp_path, monkeypatch, "T03", answer)
+    api.operation_password, api.token, api.login = "123456", "token", lambda: None
+    vehicle = bridge.Vehicle.from_dict({"vin": VIN, "carType": "T03", "abilities": [11]}, False)
+    api.get_vehicle_list = lambda: [vehicle]
+    sent = []
+
+    def wire(origin, path, body, **kwargs):
+        sent.append(path)
+        return {"code": 0}, Response(200, json.dumps({"code": 0, "data": {"eventId": "synthetic", "timeout": 30}}).encode())
+    api._wire = wire
+    monkeypatch.setattr(bridge, "encrypt_operate_password", lambda pw, token: "encrypted")
+    return api, sent
+
+
+def _commanded(api):
+    cmd_id, content = FIND_CAR
+    return api._remote_control_raw(vin=VIN, cmd_id=cmd_id, cmd_content=content, action_label="find_car")
+
+
+def test_a_parked_t03_is_sent_its_command(tmp_path, monkeypatch):
+    """@DJ-Elo-Ostfriesland's frame as the cloud sent it: parked, ON3 off, taken a while ago."""
+    api, sent = _t03_to_command(tmp_path, monkeypatch, T03_MAP)
+    _commanded(api)
+    assert [p for p in sent if "appremotectl" in p], "the command never left"
+    assert api.last_new_command_receipt.outcome == "accepted"
+
+
+@pytest.mark.parametrize("change, reason", [({"speed": 40}, "vehicle_operating_state_blocks_command"),
+                                            ({"bcmKeyPositionOn3": True}, "vehicle_operating_state_blocks_command"),
+                                            ({"collectTimeMs": None}, "state_timestamp_missing")])
+def test_a_t03_that_may_not_be_commanded_is_not(tmp_path, monkeypatch, change, reason):
+    frame = {k: v for k, v in dict(T03_MAP, **change).items() if v is not None}
+    api, sent = _t03_to_command(tmp_path, monkeypatch, frame)
+    with pytest.raises(bridge.LeapmotorApiError, match=reason):
+        _commanded(api)
+    assert not [p for p in sent if "appremotectl" in p]
