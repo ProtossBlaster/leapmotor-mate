@@ -373,6 +373,7 @@ class Database:
         self._repair_phantom_zero_soc_charges()
         self._repair_zero_range_beside_charge()
         self._repair_rows_written_from_a_misread_map()
+        self._repair_zero_soc_rows_the_car_never_read()
         self._repair_negative_efficiency()
         self._repair_reev_engine_efficiency()
         self._repair_bogus_wallbox_energy()
@@ -645,6 +646,44 @@ class Database:
         self._conn.commit()
         if dropped:
             log.info("Misread-map repair: dropped %d position(s) stored with SoC 0 and no odometer", dropped)
+
+    def _repair_zero_soc_rows_the_car_never_read(self) -> None:
+        """One-time cleanup of the positions stored at 0 % from a frame without a charge level. The
+        poller stopped storing them in 1.21.4, whose repair nulled the rows of that day only; the
+        web kept storing them (`save_fresh_signals`, now refused at source by
+        `capability_profile.has_soc_reading`), and 4.7.12's repair reaches back to 4.7.11 only.
+
+        A position at 0 % goes when the poller's rule refuses it on the row itself (a range above
+        5 km beside it), or when the car's previous reading was above 5 % and the car has not moved
+        since: a battery does not fall from there to empty standing still. A zero after the odometer
+        moved can be a battery driven empty while Mate was not looking, and stays, as does a zero
+        with no reading before it. Runs once.
+        → tests/test_a_frame_without_a_charge_level_is_not_stored.py
+        """
+        if self.get_setting("positions_zero_soc_repair_v1") == "1":
+            return
+        doomed = []
+        for z in self._conn.execute(
+                "SELECT id, vehicle_id, recorded_at, odometer_km, range_km FROM positions WHERE soc = 0"
+        ).fetchall():
+            if (z["range_km"] or 0) > 5:
+                doomed.append(z["id"])
+                continue
+            prev = self._conn.execute(
+                "SELECT soc, odometer_km FROM positions WHERE vehicle_id = ? AND recorded_at < ? "
+                "AND soc > 0 ORDER BY recorded_at DESC LIMIT 1",
+                (z["vehicle_id"], z["recorded_at"])).fetchone()
+            if prev is None or prev["soc"] <= 5:
+                continue
+            moved = ((z["odometer_km"] or 0) > 0 and prev["odometer_km"] is not None
+                     and z["odometer_km"] > prev["odometer_km"])
+            if not moved:
+                doomed.append(z["id"])
+        self._conn.executemany("DELETE FROM positions WHERE id = ?", [(i,) for i in doomed])
+        self.set_setting("positions_zero_soc_repair_v1", "1")
+        self._conn.commit()
+        if doomed:
+            log.info("Zero-SoC repair: dropped %d position(s) stored at 0 %% the car never read", len(doomed))
 
     def _repair_zero_range_beside_charge(self) -> None:
         """One-time cleanup for #365, now fixed at source in `capability_profile.battery_range_km`:
