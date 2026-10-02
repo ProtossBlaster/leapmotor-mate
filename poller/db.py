@@ -770,6 +770,22 @@ class Database:
         if fixed:
             log.info("Wallbox-energy repair: %d charge(s) fixed (implausible counter)", fixed)
 
+    def end_failed_transaction(self) -> bool:
+        """End the transaction a failed write left open on this connection; True when there was one.
+
+        Every write here commits as its last step, so nothing should still be open between two
+        polls — unless a write raised half-way. Python leaves that write's transaction in place, the
+        next read inside it holds on to the database as it was, and once any other connection writes
+        (the bridge's request log does at every cloud request) each later write fails at once with
+        `database is locked`, until the process restarts: 17 hours on 02/10 (#338).
+        → tests/test_a_failed_write_does_not_lock_the_poller_out.py"""
+        if not self._conn.in_transaction:
+            return False
+        self._conn.rollback()
+        log.warning("A write that failed had left the database connection in a transaction — "
+                    "rolled back, so the next writes can go through (#338)")
+        return True
+
     # ── Settings ─────────────────────────────────────────────────────────────
 
     def get_setting(self, key: str, default: str = "") -> str:

@@ -963,6 +963,9 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
     """
     answered = stored = False
     try:
+        # A write that failed since the last poll — this car's, the other car's, the daily prune —
+        # must not take every later write with it (#338).
+        db.end_failed_transaction()
         # Apply user-tunable poll cadence + charge-detection floor (Settings) live, each cycle
         try:
             ctx.recorder.set_poll_intervals(
