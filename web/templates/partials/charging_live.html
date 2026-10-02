@@ -1,5 +1,5 @@
 {% set is_charging = status and status.charging %}
-{% set is_complete = status and status.plug_connected and status.charge_completed and not is_charging %}
+{% set is_complete = status and status.cable_connected and status.charge_completed and not is_charging %}
 <span id="charging-state" data-charging="{{ 'true' if is_charging else 'false' }}" hidden></span>
 <div class="flex items-center gap-2 mb-4">
   <span class="text-xl">⚡</span>

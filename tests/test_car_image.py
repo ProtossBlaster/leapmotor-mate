@@ -14,7 +14,7 @@ import car_image
 
 # ── the status bridge (pure, no Pillow needed) ──────────────────────────────────
 def test_bridge_plug_and_charging():
-    st = car_image._status_obj({"plug_connected": 1, "charging": 0})
+    st = car_image._status_obj({"cable_connected": 1, "charging": 0})
     assert st.is_plugged is True and st.is_charging is False
 
     sc = car_image._status_obj({"charging": 1})

@@ -9,6 +9,8 @@
      width; in the narrow 3-column (lg) layout the hero card is only ~190px wide, so shrink the
      font a touch there to stop it wrapping and splitting "al 90%" across two lines over the car. */
   #hero-card .hero-chip--charge{white-space:nowrap;max-width:100%}
+  #hero-card .hero-chip--cable{flex-wrap:wrap;justify-content:center;row-gap:3px}
+  @media (max-width:480px){ #hero-card .hero-chip--cable{font-size:11px} }
   @media (min-width:1024px){ #hero-card .hero-chip--charge{font-size:11px;padding-left:7px;padding-right:7px} }
   #hero-card .hero-stream{position:relative;width:64px;height:8px;border-radius:999px;background:rgba(20,184,166,.15);overflow:hidden}
   #hero-card .hero-stream span{position:absolute;top:2px;width:4px;height:4px;border-radius:50%;background:#5eead4;animation:heroFlow 1.2s linear infinite}

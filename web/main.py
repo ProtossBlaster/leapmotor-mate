@@ -421,7 +421,6 @@ def _state_color(pos: dict) -> str:
     if pos.get("driving_stale"): return "text-amber-400"
     if pos.get("charging"): return "text-yellow-400"
     if _driving(pos): return "text-blue-400"
-    if pos.get("plug_connected"): return "text-teal-300"   # cable in, not actively charging
     return "text-green-400"
 
 def _opt_float(s: str) -> "float | None":
@@ -528,10 +527,6 @@ def _ctx(**kwargs):
         if pos.get("driving_stale"): return t("state_stale")
         if pos.get("charging"): return t("state_charging")
         if _driving(pos): return t("state_driving")
-        # Charge finished (or paused) but the cable is still plugged in — don't read as a plain
-        # "Parked"; surface that the car is still connected.
-        if pos.get("plug_connected"):
-            return t("state_charge_complete") if pos.get("charge_completed") else t("state_plugged")
         return t("state_parked")
 
     def ago(seconds) -> str:
@@ -3083,7 +3078,7 @@ async def wallbox_live(request: Request):
     status = db_reader.get_latest_status()
     # Session metrics only make sense when THIS car is on the wallbox — otherwise the
     # live reading could be another vehicle charging on the same wallbox.
-    car_plugged = bool(status and status.get("plug_connected"))
+    car_plugged = bool(status and status.get("cable_connected"))
     # …and the warning that says so has to name the car the owner actually has. It said "B10" to
     # everyone until #248 (@Ng-EY, a C10 owner): a line about WHICH vehicle the numbers belong to
     # is the worst place to get the vehicle wrong. Empty before the poller has seen the car.
@@ -5597,7 +5592,7 @@ async def car_picture(refresh: int = 0):
     # The VIN is part of the key, not decoration: two cars parked with everything shut share a body
     # state, so a memo keyed on the state alone served the second car the first one's picture.
     sig = (_selected_vin_for_assets(),) + tuple(bool(status.get(k)) for k in (
-        "plug_connected", "charging", "trunk_open",
+        "cable_connected", "charging", "trunk_open",
         "door_driver_open", "door_passenger_open", "door_rear_left_open", "door_rear_right_open",
         "window_fl_open", "window_rl_open"))
     if not refresh and sig in _car_image_memo:

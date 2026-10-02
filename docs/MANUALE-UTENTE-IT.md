@@ -689,7 +689,7 @@ lo stato dal vivo:
 - **comandi rapidi** (chiudi/apri, trova auto…), già "consapevoli" dello stato attuale;
 - quando l'auto è **in ricarica**, un'**animazione** mostra il flusso di energia e una targhetta con
   la stima del tempo "fino a X%" (X = il limite di carica che hai impostato in auto);
-- una targhetta **"Cavo collegato / Carica completa"** quando il cavo è inserito ma non si sta
+- una targhetta **"Cavo collegato (Non in ricarica / Carica completa)"** quando il cavo è inserito ma non si sta
   caricando attivamente. Accanto, se hai impostato una **ricarica programmata**, compare la fascia
   oraria dell'auto (per esempio **"Carica 01:50 – 12:00"**): è la risposta a «il cavo è dentro,
   perché non carica?».

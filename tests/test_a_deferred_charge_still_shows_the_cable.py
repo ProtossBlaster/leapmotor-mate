@@ -188,10 +188,8 @@ def test_the_overview_draws_the_cable_without_the_charging_animation(tmp_path, m
     animation is not. Driven from the real frame rather than a hand-written dict — otherwise it
     pins `car_image` alone and stays green however the plug is read."""
     import car_image
-    path = _web_db(tmp_path, monkeypatch)
+    _web_db(tmp_path, monkeypatch)
     db_reader.save_fresh_signals(_frozen_frame())
-    status = {"plug_connected": _latest(path, "plug_connected"),
-              "charging": _latest(path, "charging")}
-    st = car_image._status_obj(status)
+    st = car_image._status_obj(db_reader.get_latest_status())
     assert st.is_plugged is True
     assert st.is_charging is False
