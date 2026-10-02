@@ -15,8 +15,11 @@ conftest.py now points DB_PATH at a temporary file for the whole session, before
 db_reader. This file is what keeps it true: it fails the moment the default is relative again, or
 the environment stops being set.
 """
+import importlib.util
 import os
 import pathlib
+
+import pytest
 
 import db_reader
 
@@ -81,16 +84,25 @@ def test_a_run_without_a_path_gets_a_file_outside_the_working_directory(tmp_path
     assert not pathlib.Path(seen[0]).is_relative_to(tmp_path)
 
 
+# The three runs below ask for workers (`-n`). Without pytest-xdist installed the option does not
+# exist and pytest refuses the run, so they say why they did not run instead of failing.
+needs_xdist = pytest.mark.skipif(importlib.util.find_spec("xdist") is None,
+                                 reason="pytest-xdist is not installed")
+
+
+@needs_xdist
 def test_two_xdist_workers_do_not_share_a_database(tmp_path):
     seen = _db_paths_seen(tmp_path, "-n", "2")
     assert len(seen) == 2 and seen[0] != seen[1], seen
 
 
+@needs_xdist
 def test_a_path_somebody_set_on_purpose_reaches_every_worker(tmp_path):
     mine = str(tmp_path / "mine.db")
     assert _db_paths_seen(tmp_path, "-n", "2", DB_PATH=mine) == [mine, mine]
 
 
+@needs_xdist
 def test_a_controller_that_only_collects_has_a_path_too(tmp_path):
     """Under --collect-only xdist hands nothing out and the controller imports every module itself."""
     seen = _db_paths_seen(tmp_path, "-n", "2", "--collect-only")
