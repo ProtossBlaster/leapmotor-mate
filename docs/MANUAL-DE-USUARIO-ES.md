@@ -691,7 +691,7 @@ estado en directo:
 - **comandos rápidos** (abrir/cerrar, localizar el coche…), que ya «saben» cuál es el estado actual;
 - cuando el coche está **cargando**, una **animación** muestra el flujo de energía y una etiqueta con
   el tiempo estimado «hasta el X %» (X = el límite de carga que hayas puesto en el coche);
-- una etiqueta **«Cable conectado / Carga completada»** cuando el cable está enchufado pero no está
+- una etiqueta **«Cable conectado (Sin cargar / Carga completada)»** cuando el cable está enchufado pero no está
   cargando de verdad. A su lado, si tienes una **carga programada**, aparece la franja del propio
   coche (por ejemplo **«Carga 01:50 – 12:00»**) — la respuesta a «el cable está puesto, ¿por qué no
   carga?».

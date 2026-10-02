@@ -693,7 +693,7 @@ Live-Status:
 - **Schnellbefehle** (schließen/öffnen, Auto finden…), die bereits den aktuellen Zustand „kennen";
 - wenn das Auto **lädt**, zeigt eine **Animation** den Energiefluss und ein Schild mit der Schätzung der Zeit
   „bis X %" (X = das Ladelimit, das Sie im Auto eingestellt haben);
-- ein Schild **„Kabel angeschlossen / Laden abgeschlossen"**, wenn das Kabel eingesteckt ist, aber gerade nicht
+- ein Schild **„Kabel angeschlossen (Lädt nicht / Laden abgeschlossen)"**, wenn das Kabel eingesteckt ist, aber gerade nicht
   aktiv geladen wird. Daneben erscheint, wenn ein **geplantes Laden** eingestellt ist, das
   Zeitfenster des Autos (zum Beispiel **„Laden 01:50 – 12:00"**) — die Antwort auf „das Kabel
   steckt, warum wird nicht geladen?".

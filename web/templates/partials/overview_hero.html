@@ -118,9 +118,10 @@
   {% elif plug %}
   <!-- Plugged in but not actively charging (charge complete / paused) — the cable is still in. -->
   <div class="flex flex-col items-center gap-1 mt-1">
-    <span class="hero-chip bg-teal-400/10 text-teal-300 border border-teal-400/30">
+    <span class="hero-chip hero-chip--cable bg-teal-400/10 text-teal-300 border border-teal-400/30">
       {{ ico.mdi('ev-plug-type2', 'w-4 h-4') }}
       {{ t('state_plugged') }}{% if status.soc is not none %} · {{ status.soc | round | int }}%{% endif %}
+      <span class="whitespace-nowrap">({{ t('state_charge_complete') if status.charge_completed else t('not_charging') }})</span>
     </span>
     {# The car's own charge window, but ONLY here: cable in and nothing flowing is exactly the
        moment someone asks "why isn't it charging?", and the answer is usually "it starts at 22:05"

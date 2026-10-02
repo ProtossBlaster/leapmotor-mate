@@ -660,7 +660,7 @@ status:
 - **quick commands** (lock/unlock, find car…), already "aware" of the current state;
 - when the car is **charging**, an **animation** shows the energy flow and a tag with the estimated
   time "to X%" (X = the charge limit you set in the car);
-- a **"Cable connected / Charge complete"** tag when the cable is plugged in but it isn't actively
+- a **"Cable connected (Not charging / Charge complete)"** tag when the cable is plugged in but it isn't actively
   charging. Beside it, if you have set a **scheduled charge**, the car's own window appears (for
   example **"Charge 01:50 – 12:00"**) — the answer to "the cable is in, so why isn't it charging?".
 
