@@ -8264,17 +8264,21 @@ def get_charge_power_curve(charge_id: int) -> dict:
             + " ? ORDER BY recorded_at",
             (_current_vehicle_id(), lo, hi),
         ).fetchall()
-    else:  # charge still in progress — open upper bound
+    else:
+        # Still in progress, open upper bound: every parked reading since the start, so a pause
+        # (the car stopped, the cable still in) is drawn as 0 kW and the chart goes on growing.
         rows = db.execute(
-            f"SELECT {cols} FROM positions "
-            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " AND recorded_at >= ? ORDER BY recorded_at",
+            f"SELECT {cols}, charging, charge_current_a <= -{_CHARGE_SAMPLE_MIN_A} AS charging_current FROM positions "
+            "WHERE vehicle_id = COALESCE(?, vehicle_id) AND recorded_at >= ? "
+            "AND COALESCE(speed_kmh, 0) <= 2 AND COALESCE(gear, 'P') = 'P' ORDER BY recorded_at",
             (_current_vehicle_id(), start),
         ).fetchall()
     power, soc, times = [], [], []
     for r in rows:
         v = r["charge_voltage_v"] or 0
         a = r["charge_current_a"] or 0
-        power.append(round(abs(v * a) / 1000.0, 3))
+        paused = end is None and not (r["charging"] == 1 or r["charging_current"])
+        power.append(0.0 if paused else round(abs(v * a) / 1000.0, 3))
         soc.append(r["soc"])
         times.append(r["recorded_at"])  # raw UTC ISO — the chart's clock, and the wallbox history's alignment
     return {"power": power, "soc": soc, "times": times,
