@@ -4304,6 +4304,11 @@ def get_latest_status() -> Optional[dict]:
             "AND ended_at IS NULL LIMIT 1", (_current_vehicle_id(),)).fetchone()
         if open_charge:
             d["charging"] = 1
+    # The cable in the port, as the pages read it: the charge session (`plug_connected`), or the
+    # AC port reporting a cable while the charger withholds the current (a schedule on a wallbox).
+    parked = (d.get("gear") or "P") == "P" and (d.get("speed_kmh") or 0) <= 1
+    d["cable_connected"] = None if d.get("plug_connected") is None else bool(
+        d["plug_connected"] or (d.get("ac_port_mode") == 1 and parked))
     _data_age(d)
     # How old the POSITION is: the fix's own, when the map falls back to one — the poll without a
     # fix is seconds old, the position it falls back to may be days old.

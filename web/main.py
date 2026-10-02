@@ -3083,7 +3083,7 @@ async def wallbox_live(request: Request):
     status = db_reader.get_latest_status()
     # Session metrics only make sense when THIS car is on the wallbox — otherwise the
     # live reading could be another vehicle charging on the same wallbox.
-    car_plugged = bool(status and status.get("plug_connected"))
+    car_plugged = bool(status and status.get("cable_connected"))
     # …and the warning that says so has to name the car the owner actually has. It said "B10" to
     # everyone until #248 (@Ng-EY, a C10 owner): a line about WHICH vehicle the numbers belong to
     # is the worst place to get the vehicle wrong. Empty before the poller has seen the car.
@@ -5597,7 +5597,7 @@ async def car_picture(refresh: int = 0):
     # The VIN is part of the key, not decoration: two cars parked with everything shut share a body
     # state, so a memo keyed on the state alone served the second car the first one's picture.
     sig = (_selected_vin_for_assets(),) + tuple(bool(status.get(k)) for k in (
-        "plug_connected", "charging", "trunk_open",
+        "cable_connected", "charging", "trunk_open",
         "door_driver_open", "door_passenger_open", "door_rear_left_open", "door_rear_right_open",
         "window_fl_open", "window_rl_open"))
     if not refresh and sig in _car_image_memo:

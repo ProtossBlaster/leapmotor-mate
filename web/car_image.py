@@ -53,7 +53,7 @@ def _status_obj(status: dict):
     None for the per-door/window keys → treated as closed."""
     s = status or {}
     charging = bool(s.get("charging"))
-    plugged = bool(s.get("plug_connected")) or charging
+    plugged = bool(s.get("cable_connected")) or charging
 
     def _open(key):
         return 1 if s.get(key) else 0

@@ -5,7 +5,7 @@
 {% set wins     = status.windows_open   if status and status.windows_open   is not none else none %}
 {% set shade    = status.sunshade_open  if status and status.sunshade_open  is not none else none %}
 {% set charging = status.charging       if status else none %}
-{% set plugged  = status.plug_connected if status and status.plug_connected is not none else none %}
+{% set plugged  = status.cable_connected if status and status.cable_connected is not none else none %}
 {% set clim_cool    = status.climate_cooling if status and status.climate_cooling is not none else none %}
 {% set clim_heat    = status.climate_heating if status and status.climate_heating is not none else none %}
 {% set clim_defrost = status.climate_defrost if status and status.climate_defrost is not none else none %}

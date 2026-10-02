@@ -9,7 +9,7 @@
 {% set wins     = status.windows_open if status and status.windows_open is not none else none %}
 {% set trunk    = status.trunk_open   if status and status.trunk_open   is not none else none %}
 {% set charging = status.charging     if status else none %}
-{% set plug     = status.plug_connected if status and status.plug_connected is not none else none %}
+{% set plug     = status.cable_connected if status and status.cable_connected is not none else none %}
 {% set drv      = (status and is_driving(status)) | default(false, true) %}
 
 {# A quick-command button: pre-render the icon at the call site (Jinja macros don't see imports).
@@ -86,7 +86,7 @@
        browser to cache for five minutes, which is exactly how long you keep seeing the other car
        (@cookingeek, two real cars). #}
     {% set car_img_token = ([vehicle.id if vehicle else '',
-                             status.plug_connected, status.charging, status.trunk_open,
+                             status.cable_connected, status.charging, status.trunk_open,
                              status.door_driver_open, status.door_passenger_open,
                              status.door_rear_left_open, status.door_rear_right_open,
                              status.window_fl_open, status.window_rl_open] | join('-')) if status else '' %}
