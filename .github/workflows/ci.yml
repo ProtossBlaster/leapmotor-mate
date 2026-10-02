@@ -17,7 +17,7 @@ jobs:
       - name: Install test deps
         # Exercise the same dependency sets as production. httpx is test-only: Starlette's
         # TestClient needs it for the live middleware/API regression tests.
-        run: pip install pytest httpx playwright -r poller/requirements.txt -r web/requirements.txt
+        run: pip install pytest pytest-xdist httpx playwright -r poller/requirements.txt -r web/requirements.txt
       - name: Install browser for command UI regressions
         run: python -m playwright install --with-deps chromium
       # The desktop shell's dependency contract, so tests/test_desktop_payload_contract.py can
@@ -40,7 +40,8 @@ jobs:
       - name: Run tests
         env:
           MATE_DESKTOP_REPO: ${{ github.workspace }}/mate-desktop
-        run: pytest -q
+        # One worker per core; every test has a database of its own and every web process a port of its own.
+        run: pytest -q -n auto
 
   # ── Does the desktop app still fit this code? ────────────────────────────────────────────
   # MateDesktop ships a SHELL (Python + the compiled libraries) and fetches the payload — web/ +

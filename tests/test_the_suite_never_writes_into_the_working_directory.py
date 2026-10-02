@@ -15,8 +15,11 @@ conftest.py now points DB_PATH at a temporary file for the whole session, before
 db_reader. This file is what keeps it true: it fails the moment the default is relative again, or
 the environment stops being set.
 """
+import importlib.util
 import os
 import pathlib
+
+import pytest
 
 import db_reader
 
@@ -50,3 +53,57 @@ def test_the_suite_writes_to_no_database_that_was_already_there():
     assert touched == [], f"the suite wrote into {touched}, which it did not create"
     created = [p.name for p in repo.glob("*.db") if p.name not in conftest.DB_FILES_AT_START]
     assert created == [], f"the suite created {created} in the repository"
+
+
+_PROBE = """import os, sys
+sys.stderr.write("DBPATH " + os.environ.get("DB_PATH", "") + "\\n")   # at collection, which every worker does itself
+def test_a(): pass
+"""
+
+
+def _db_paths_seen(tmp_path, *args, **env):
+    """DB_PATH as a real pytest run sees it, one entry per process that collected the probe, with
+    conftest loaded as a plugin and exactly `env` on top of a shell that carries no DB_PATH and
+    no PYTEST_ADDOPTS of its own."""
+    import subprocess
+    import sys
+    probe = tmp_path / "probe.py"
+    probe.write_text(_PROBE)
+    clean = {k: v for k, v in os.environ.items() if k not in ("DB_PATH", "PYTEST_ADDOPTS")}
+    clean["PYTHONPATH"] = str(pathlib.Path(__file__).parent)
+    out = subprocess.run([sys.executable, "-m", "pytest", "-q", "-s", "-p", "no:cacheprovider", "-p", "conftest",
+                          "--rootdir", str(tmp_path), str(probe), *args],
+                         cwd=tmp_path, env={**clean, **env}, capture_output=True, text=True, check=False)
+    assert out.returncode == 0, out.stdout + out.stderr
+    return [line.split(" ", 1)[1] for line in out.stderr.splitlines() if line.startswith("DBPATH ")]
+
+
+def test_a_run_without_a_path_gets_a_file_outside_the_working_directory(tmp_path):
+    seen = _db_paths_seen(tmp_path)
+    assert len(seen) == 1 and seen[0]
+    assert not pathlib.Path(seen[0]).is_relative_to(tmp_path)
+
+
+# The three runs below ask for workers (`-n`). Without pytest-xdist installed the option does not
+# exist and pytest refuses the run, so they say why they did not run instead of failing.
+needs_xdist = pytest.mark.skipif(importlib.util.find_spec("xdist") is None,
+                                 reason="pytest-xdist is not installed")
+
+
+@needs_xdist
+def test_two_xdist_workers_do_not_share_a_database(tmp_path):
+    seen = _db_paths_seen(tmp_path, "-n", "2")
+    assert len(seen) == 2 and seen[0] != seen[1], seen
+
+
+@needs_xdist
+def test_a_path_somebody_set_on_purpose_reaches_every_worker(tmp_path):
+    mine = str(tmp_path / "mine.db")
+    assert _db_paths_seen(tmp_path, "-n", "2", DB_PATH=mine) == [mine, mine]
+
+
+@needs_xdist
+def test_a_controller_that_only_collects_has_a_path_too(tmp_path):
+    """Under --collect-only xdist hands nothing out and the controller imports every module itself."""
+    seen = _db_paths_seen(tmp_path, "-n", "2", "--collect-only")
+    assert len(seen) == 1 and seen[0]
