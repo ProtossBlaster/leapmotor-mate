@@ -419,7 +419,7 @@ Sous l'énergie d'un trajet, l'étiquette **getEC** devient **Mesurée par la vo
 5. [Découvrir l'interface](#5-découvrir-linterface)
 6. [Les pages, une par une](#6-les-pages-une-par-une)
    - [Aperçu](#aperçu) · [Trajets](#trajets) · [Carte](#carte) · [Recharges](#recharges)
-   - [Prix de recharge](#prix-de-recharge) · [Statistiques](#statistiques) · [Rapport](#rapport)
+   - [Prix de recharge](#prix-de-recharge) · [Statistiques](#statistiques) · [Rapports](#rapports)
    - [Santé de la batterie](#santé-de-la-batterie) · [Entretien](#entretien) · [Commandes](#commandes)
    - [Programmation](#programmation) · [Préparer le véhicule](#préparer-le-véhicule)
    - [Navigation](#navigation) · [Véhicule](#véhicule) · [Wallbox](#wallbox)
@@ -664,7 +664,7 @@ les commandes depuis la page que pour celles venant de Home Assistant. Demandé 
 **Si deux Leapmotor partagent votre compte 🆕** — un **sélecteur de voiture** apparaît dans l'en-tête,
 à côté du badge du modèle. Il n'est là qu'à partir de la deuxième voiture : avec une seule Leapmotor,
 rien ne change. Choisissez une voiture et tout la suit — l'Aperçu, les Statistiques, les trajets, les
-recharges, le rapport, les commandes que cette voiture autorise et ses entités Home
+recharges, les rapports, les commandes que cette voiture autorise et ses entités Home
 Assistant. Votre choix est mémorisé. Sur un téléphone, le sélecteur se trouve dans le menu ☰, sous l'en-tête.
 
 Les réglages restent partagés, car ils diffèrent rarement sous un même toit : tarifs, devise, fuseau
@@ -1118,8 +1118,8 @@ cette donnée est **exclu**, et non compté comme zéro, et la tuile indique de 
 parle. Sur une voiture où chaque trajet porte sa consommation — presque toujours — rien de tout cela
 ne s'affiche.
 
-### Rapport
-**(menu : Rapport)** — Une synthèse **mois par mois** : combien vous avez roulé, combien d'énergie vous
+### Rapports
+**(menu : Rapports)** — Une synthèse **mois par mois** : combien vous avez roulé, combien d'énergie vous
 avez consommée et rechargée, combien vous avez dépensé. Pratique pour suivre l'évolution. Il porte
 aussi les cartes **consommation officielle** (Aujourd'hui / Cette semaine / Ce mois-ci) du cloud.
 

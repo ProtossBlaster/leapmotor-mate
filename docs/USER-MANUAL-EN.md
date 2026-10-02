@@ -385,7 +385,7 @@ Under a trip's energy, the label that read **getEC** now reads **Measured by the
 5. [Getting to know the interface](#5-getting-to-know-the-interface)
 6. [The pages, one by one](#6-the-pages-one-by-one)
    - [Overview](#overview) · [Trips](#trips) · [Map](#map) · [Charges](#charges)
-   - [Charge Prices](#charge-prices) · [Statistics](#statistics) · [Report](#report)
+   - [Charge Prices](#charge-prices) · [Statistics](#statistics) · [Reports](#reports)
    - [Battery health](#battery-health) · [Maintenance](#maintenance) · [Commands](#commands)
    - [Scheduling](#scheduling) · [Prepare car](#prepare-car)
    - [Navigation](#navigation) · [Vehicle](#vehicle) · [Wallbox](#wallbox)
@@ -620,7 +620,7 @@ for the ones arriving from Home Assistant. Asked for by **@alextchao** (#225).
 **If two Leapmotors share your account 🆕** — a **car picker** appears in the header, next to the
 model badge. It is there only from the second car onwards: with one Leapmotor nothing changes at
 all. Pick a car and everything follows it — the Overview, Statistics, trips, charges, the
-report, the commands that car allows and its Home Assistant entities. Your choice is remembered. On a phone the picker is inside the ☰ menu, under the heading.
+reports, the commands that car allows and its Home Assistant entities. Your choice is remembered. On a phone the picker is inside the ☰ menu, under the heading.
 
 Settings stay shared, because they rarely differ under one roof: prices, currency, time zone, home
 location. What belongs to the car stays with the car — its battery capacity, its **operation PIN**, its **A Better Route Planner token**,
@@ -1041,8 +1041,8 @@ numbers, so you can see at a glance whether the figure covers most of the window
 rather than counted as zero, and the tile says how many trips it speaks for. On a car where every
 trip carries its own consumption — which is nearly always — none of this shows at all.
 
-### Report
-**(menu: Report)** — A summary **month by month**: how much you drove, how much energy you
+### Reports
+**(menu: Reports)** — A summary **month by month**: how much you drove, how much energy you
 used and charged, how much you spent. Handy for keeping an eye on the trend. It also carries the
 **official consumption** cards (Today / This week / This month) from the cloud.
 

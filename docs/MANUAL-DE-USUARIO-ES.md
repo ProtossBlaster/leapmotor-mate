@@ -404,7 +404,7 @@ Bajo la energía de un viaje, la etiqueta que decía **getEC** dice ahora **Medi
 5. [Conocer la interfaz](#5-conocer-la-interfaz)
 6. [Las páginas, una a una](#6-las-páginas-una-a-una)
    - [Resumen](#resumen) · [Trayectos](#trayectos) · [Mapa](#mapa) · [Cargas](#cargas)
-   - [Precios de la carga](#precios-de-la-carga) · [Estadísticas](#estadísticas) · [Informe](#informe)
+   - [Precios de la carga](#precios-de-la-carga) · [Estadísticas](#estadísticas) · [Informes](#informes)
    - [Salud de la batería](#salud-de-la-batería) · [Mantenimiento](#mantenimiento) · [Comandos](#comandos)
    - [Programación](#programación) · [Preparar el coche](#preparar-el-coche)
    - [Navegación](#navegación) · [Vehículo](#vehículo) · [Wallbox](#wallbox)
@@ -649,7 +649,7 @@ comandos de la página como para los que llegan desde Home Assistant. Lo pidió 
 **Si dos Leapmotor comparten tu cuenta 🆕** — aparece un **selector de coche** en la cabecera, al lado
 de la insignia del modelo. Solo está a partir del segundo coche: con un solo Leapmotor no cambia
 absolutamente nada. Eliges un coche y todo lo sigue — el Resumen, las Estadísticas, los trayectos, las
-cargas, el informe, los comandos que ese coche permite y sus entidades de Home Assistant. Tu
+cargas, los informes, los comandos que ese coche permite y sus entidades de Home Assistant. Tu
 elección se recuerda. En el teléfono el selector está dentro del menú ☰, bajo el encabezado.
 
 Los ajustes siguen siendo comunes, porque bajo un mismo techo rara vez difieren: precios, moneda, zona
@@ -1106,8 +1106,8 @@ ella queda **fuera** en vez de contar como cero, y la casilla dice de cuántos t
 coche donde cada trayecto lleva su propio consumo — que es casi siempre — nada de esto llega a
 aparecer.
 
-### Informe
-**(menú: Informe)** — Un resumen **mes a mes**: cuánto condujiste, cuánta energía consumiste y
+### Informes
+**(menú: Informes)** — Un resumen **mes a mes**: cuánto condujiste, cuánta energía consumiste y
 cargaste, cuánto gastaste. Útil para vigilar la tendencia. Lleva también las tarjetas de **consumo
 oficial** (Hoy / Esta semana / Este mes) de la nube.
 
