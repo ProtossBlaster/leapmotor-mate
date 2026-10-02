@@ -5670,9 +5670,13 @@ async def save_charge_schedule_api(request: Request):
         return HTMLResponse(f'<span style="color:#ef4444">✗ {t("sched_bad_time")}</span>', status_code=400)
     if not (50 <= soc <= 100):
         return HTMLResponse('<span style="color:#ef4444">✗ 50–100%</span>', status_code=400)
+    # The car's declared abilities decide, as they decide which form this page shows (#146, #380).
+    veh, _ = db_reader.get_vehicle()
+    simple = not capability_profile.charge_schedule_advanced(
+        capability_profile.parse_abilities((veh or {}).get("abilities")))
     ok, msg = await asyncio.get_event_loop().run_in_executor(
         None, lambda: command_client.save_charge_schedule(
-            enabled=enabled, soc_limit=soc, start_time=start, end_time=end, cycles=cycles))
+            enabled=enabled, soc_limit=soc, start_time=start, end_time=end, cycles=cycles, simple=simple))
     if ok:
         # Refresh the Overview's cached window straight away (#173). The poller re-reads it from the
         # car only every 30 min; without this the chip would keep showing the OLD times right after

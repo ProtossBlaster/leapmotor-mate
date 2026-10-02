@@ -1232,7 +1232,7 @@ def day_flags_from_cycles(cycles) -> list:
 
 
 def save_charge_schedule(*, enabled: bool, soc_limit: int, start_time: str, end_time: str,
-                         cycles: str | None = None):
+                         cycles: str | None = None, simple: bool = False):
     """Read-modify-write the charge schedule: change enable/SoC/window (+ days when `cycles` is
     given) and PRESERVE the car's `circulation` and `recharge`.
 
@@ -1242,8 +1242,15 @@ def save_charge_schedule(*, enabled: bool, soc_limit: int, start_time: str, end_
     returns "1,1,1,1,1,1,1"; upstream lib docs are inconsistent (some use day-NUMBER lists), so the
     mask format/order is anchored to the on-car confirmation (Mate sent pos0 → app showed Monday)."""
     cur = _session.get_charge_schedule() or {}
-    if any(cur.get(k) is None for k in
-            ("chargeEnable", "chargesoc", "cycles", "starttime", "endtime", "circulation", "recharge")):
+    if simple:
+        # The simple scheduler (a start time and a target, no window, no days: the T03, #380) does not
+        # report the whole plan this command rewrites. Until 4.7.7 those cars saved through the earlier
+        # library, which filled the rest itself — every day, circulation 0, recharge 0 — and the cloud
+        # took it; the same goes where the car reports nothing, and what it does report goes back.
+        cur = {"cycles": "1,1,1,1,1,1,1", "circulation": 0, "recharge": 0,
+               **{k: v for k, v in cur.items() if v is not None}}
+    elif any(cur.get(k) is None for k in
+             ("chargeEnable", "chargesoc", "cycles", "starttime", "endtime", "circulation", "recharge")):
         return False, "Command not sent: complete current charging configuration is required"
     if not cycles:
         cycles = cur.get("cycles") or "1,1,1,1,1,1,1"
