@@ -3,6 +3,21 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.13] — 2026-10-02
+
+- **A T03 takes commands again** ([#378](https://github.com/ProtossBlaster/leapmotor-mate/issues/378)). Before a command Mate checks the car's last
+  reading: when it was taken, that the car stands still, that it is not in ON3. It read them as
+  numbered signals, and a T03 sends them by name: with 4.7.12 every T03 command failed with
+  `KeyError('signal')`, with 4.7.11 it was refused for a reading without a time, and until 4.7.10 a
+  T03 could not be read at all. They are now read by name. A reading without its time is still
+  refused, and a moving car or one in ON3 still blocks.
+- **The web stores no position from a reading without a charge level.** The Refresh button and the
+  check after a command store a position too, and stored a missing SoC as 0%. The poller has refused
+  such a reading since 1.21.4; both now follow one rule.
+- **The positions stored at 0% that the car never read are removed, once**: a 0% beside a range above
+  5 km, or a 0% after a reading above 5% with the car not moved since. A battery that ran down keeps
+  its zero.
+
 ## [4.7.12] — 2026-10-01
 
 - **A T03's readings arrive** ([#368](https://github.com/ProtossBlaster/leapmotor-mate/issues/368)). Asked as a T03, the cloud answers with the car's real

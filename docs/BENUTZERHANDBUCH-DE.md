@@ -1,8 +1,18 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.12 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.13 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.12
+## Neu in Version 4.7.13
+
+**Ein T03 nimmt wieder Befehle an.** Seit 4.7.7 kam kein Befehl bei einem T03 an; mit 4.7.12 endete
+jeder mit „signal". Vor einem Befehl prüft Mate den letzten Messwert des Autos, und den eines T03 suchte
+es an der falschen Stelle.
+
+**Ein fehlender Ladestand ist nicht 0 %.** *Aktualisieren* speicherte einen Messwert ohne Ladestand als
+0 %. Jetzt speichert es nichts, wie der Poller, und die so gespeicherten Positionen werden einmalig beim
+ersten Start entfernt.
+
+### Neu in Version 4.7.12
 
 **Ein T03 zeigt seine Messwerte.** Mit 4.7.11 wurde ein T03 wieder gelesen, aber Mate zeigte 0 %, 0 km
 und 0 °C: Die Cloud antwortet einem T03 mit benannten Feldern, und 4.7.11 las sie als nummerierte. Jetzt

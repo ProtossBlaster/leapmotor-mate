@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.12 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.13 · **Lingua:** Italiano
 
-## Novità della 4.7.12
+## Novità della 4.7.13
+
+**Una T03 riceve di nuovo i comandi.** Dalla 4.7.7 nessun comando arrivava a una T03; con la 4.7.12
+ognuno finiva in «signal». Prima di un comando Mate controlla l'ultima lettura dell'auto, e quella di
+una T03 la cercava nel posto sbagliato.
+
+**Una carica che manca non è 0%.** *Aggiorna* salvava a 0% una lettura senza carica. Adesso non salva
+niente, come il poller, e le posizioni già salvate così vengono tolte una volta sola, al primo avvio.
+
+### Novità della 4.7.12
 
 **Una T03 mostra le sue letture.** Con la 4.7.11 una T03 veniva letta di nuovo, ma Mate mostrava 0%, 0 km
 e 0 °C: il cloud risponde a una T03 con campi con nome, e la 4.7.11 li leggeva come numerati. Adesso li

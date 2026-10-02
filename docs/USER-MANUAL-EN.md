@@ -1,8 +1,18 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.12 · **Language:** English
+> **Mate version:** v4.7.13 · **Language:** English
 
-## New in 4.7.12
+## New in 4.7.13
+
+**A T03 takes commands again.** Since 4.7.7 no command reached a T03; with 4.7.12 each one ended in
+"signal". Before a command Mate checks the car's last reading, and it looked for a T03's in the wrong
+place.
+
+**A missing charge level is not 0%.** *Refresh* stored a reading without a charge level as 0%. It now
+stores nothing, as the poller does, and the positions already stored that way are removed once, at the
+first start.
+
+### New in 4.7.12
 
 **A T03 shows its readings.** With 4.7.11 a T03 was read again, but Mate showed 0%, 0 km and 0 °C:
 the cloud answers a T03 in named fields, and 4.7.11 read them as numbered ones. Now they are read by
