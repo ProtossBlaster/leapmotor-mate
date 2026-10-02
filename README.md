@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.7.16:** a write that finds the database busy no longer stops every write after it, until a restart ([#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)); a T03 reads its charge schedule back where the earlier library did, so the Charges page shows what the car took ([#380](https://github.com/ProtossBlaster/leapmotor-mate/issues/380)); and Report is Reports, as every other entry in the menu ([#370](https://github.com/ProtossBlaster/leapmotor-mate/pull/370)).
-See [release notes and upgrade impact](docs/releases/v4.7.16.md).
+**v4.7.17:** the Overview shows the cable while a wallbox holds it without giving current, and says the charge is not running; the car reads as parked, with the cable in ([#382](https://github.com/ProtossBlaster/leapmotor-mate/pull/382), @arekm).
+See [release notes and upgrade impact](docs/releases/v4.7.17.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -357,8 +357,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.7.16:** una scrittura che trova il database occupato non blocca più tutte quelle dopo, fino al riavvio ([#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)); una T03 rilegge la programmazione di ricarica dove la leggeva la libreria precedente, e la pagina Ricariche mostra quello che l'auto ha preso ([#380](https://github.com/ProtossBlaster/leapmotor-mate/issues/380)); e Report è al plurale come tutte le altre voci del menu ([#370](https://github.com/ProtossBlaster/leapmotor-mate/pull/370)). [Note di rilascio](docs/releases/v4.7.16.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.16.md#italiano).
+**v4.7.17:** la Panoramica mostra il cavo mentre una wallbox lo tiene senza dare corrente, e dice che la ricarica non è in corso; l'auto si legge parcheggiata, col cavo dentro ([#382](https://github.com/ProtossBlaster/leapmotor-mate/pull/382), @arekm). [Note di rilascio](docs/releases/v4.7.17.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.17.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

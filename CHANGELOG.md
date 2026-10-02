@@ -3,6 +3,19 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.17] — 2026-10-03
+
+- **The Overview shows the cable while the charger holds the charge, and says the charge is not running**
+  ([#382](https://github.com/ProtossBlaster/leapmotor-mate/pull/382), @arekm). A wallbox on a schedule takes
+  the cable and gives no current until its window opens; the car then reports no charge session (signal
+  1149 at 0) while its AC port reports the cable (signal 47 at 1), for hours, and the Overview showed no
+  cable. The pages now read the cable from the session or from the AC port while the car is parked: the
+  tag over the car, the car picture, the Commands page badge, the "Fully charged" badge on the Charges page
+  and the wallbox tile. The tag reads "Cable connected · 87% (Not charging)", or "(Charge complete)"; the
+  word under the car and the State of the status card say "Parked". Measured on our B10 against the
+  wallbox's own log over four months: the port followed the physical cable in every observed case. The
+  charge session, the database and the Home Assistant sensor are unchanged.
+
 ## [4.7.16] — 2026-10-02
 
 - **A write that finds the database busy no longer stops every write after it** ([#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)).

@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.16 · **Lingua:** Italiano
+> **Versione di Mate:** v4.7.17 · **Lingua:** Italiano
 
-## Novità della 4.7.16
+## Novità della 4.7.17
+
+**La Panoramica mostra il cavo mentre la wallbox lo tiene.** Una wallbox programmata prende il cavo e non
+dà corrente finché non si apre la sua finestra; la Panoramica allora non mostrava il cavo. Adesso lo legge
+anche dalla presa AC dell'auto: la targhetta sopra l'auto dice «Cavo connesso (Non in ricarica)», o
+«(Carica completa)», e la parola sotto l'auto dice «Park». Di @arekm.
+
+### Novità della 4.7.16
 
 **Una scrittura che trova il database occupato non blocca più tutte quelle dopo.** Una scrittura che
 aveva aspettato troppo il database lasciava aperta la sua transazione, e da lì in poi ogni scrittura

@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.16 · **Idioma:** Español
+> **Versión de Mate:** v4.7.17 · **Idioma:** Español
 
-## Novedades de la versión 4.7.16
+## Novedades de la versión 4.7.17
+
+**El Resumen muestra el cable mientras el cargador lo retiene.** Un wallbox programado toma el cable y no
+da corriente hasta que se abre su ventana; el Resumen entonces no mostraba el cable. Ahora lo lee también
+desde la toma AC del coche: la etiqueta sobre el coche dice «Cable conectado (Sin cargar)», o «(Carga
+completada)», y la palabra bajo el coche dice «Aparcado». Por @arekm.
+
+### Novedades de la versión 4.7.16
 
 **Una escritura que encuentra la base de datos ocupada ya no bloquea todas las siguientes.** Una
 escritura que había esperado demasiado a la base de datos dejaba su transacción abierta, y desde entonces

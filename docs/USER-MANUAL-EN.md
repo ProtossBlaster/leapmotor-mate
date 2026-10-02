@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.16 · **Language:** English
+> **Mate version:** v4.7.17 · **Language:** English
 
-## New in 4.7.16
+## New in 4.7.17
+
+**The Overview shows the cable while the charger holds it.** A wallbox on a schedule takes the cable and
+gives no current until its window opens; the Overview showed no cable then. It now reads the cable from
+the car's AC port as well: the tag over the car says "Cable connected (Not charging)", or "(Charge
+complete)", and the word under the car says "Parked". By @arekm.
+
+### New in 4.7.16
 
 **A write that finds the database busy no longer stops every write after it.** One write that waited
 too long for the database left its transaction open, and from then on every write failed with

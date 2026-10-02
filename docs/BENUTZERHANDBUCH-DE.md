@@ -1,8 +1,15 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.16 · **Sprache:** Deutsch
+> **Mate-Version:** v4.7.17 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.16
+## Neu in Version 4.7.17
+
+**Die Übersicht zeigt das Kabel, solange die Wallbox es hält.** Eine Wallbox mit Zeitplan nimmt das Kabel
+und gibt keinen Strom, bis ihr Fenster beginnt; die Übersicht zeigte dann kein Kabel. Sie liest es jetzt
+auch vom AC-Anschluss des Autos: das Etikett über dem Auto sagt „Kabel angeschlossen (Lädt nicht)“ oder
+„(Laden abgeschlossen)“, und das Wort unter dem Auto sagt „Geparkt“. Von @arekm.
+
+### Neu in Version 4.7.16
 
 **Ein Schreibzugriff, der die Datenbank belegt vorfindet, blockiert nicht mehr alle nachfolgenden.** Ein
 Schreibzugriff, der zu lange auf die Datenbank gewartet hatte, ließ seine Transaktion offen, und von da an
