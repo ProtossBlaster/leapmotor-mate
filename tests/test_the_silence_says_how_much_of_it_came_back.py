@@ -111,6 +111,27 @@ def test_every_window_carries_its_own_figure(tmp_path, monkeypatch):
     assert [w["recovered_km"] for w in out["windows"]] == [7.0, 0.0]
 
 
+def test_the_two_cards_print_the_figure(tmp_path, monkeypatch):
+    """Both places the figure appears, rendered. The branch is behind an `{% if %}`, so every other
+    test on these pages renders them with it false — a mistake inside it would never be seen."""
+    car = Car(tmp_path, name="gaps.db")
+    client = web(car, monkeypatch)
+    gap(car, NOW, 34, 11.0)
+    cloud_trip(car, NOW + timedelta(minutes=10), 10, 7.0)
+    car.db._conn.commit()
+
+    # The apostrophe of "Leapmotor's" is escaped in the rendered HTML, so the match stops short
+    # of it rather than spelling the entity out.
+    printed = "of which 7 km have come back as trips in Leapmotor"
+    stats = client.get("/statistics")
+    assert stats.status_code == 200
+    assert printed in stats.text
+
+    month = client.get(f"/api/trips/calendar?year={NOW.year}&month={NOW.month}")
+    assert month.status_code == 200
+    assert printed in month.text
+
+
 def test_an_installation_that_never_imported_anything_is_unaffected(tmp_path, monkeypatch):
     """No link table at all — the cloud history was never switched on. Nothing to join against,
     and nothing must raise."""
