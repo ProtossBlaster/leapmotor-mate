@@ -91,37 +91,41 @@ def test_a_record_that_fits_two_trips_is_given_to_neither(db):
         [(t["id"], t.get("energy_source")) for t in displayed]
 
 
-def _cost_of_walking_the_whole_history(n: int) -> float:
-    """Seconds THIS machine needs for n × n comparisons, with nothing in the loop but the window
-    test. The floor under any implementation that pairs every record with every trip — a real one
-    also parses JSON and looks up dicts — and the yardstick the measurement below is read against,
-    because a budget in seconds measures the machine it ran on and not the algorithm. Here it is
-    0.33 s against the matcher's 0.02 s; on a loaded shared runner both grow together, and the
-    ratio does not."""
-    started = time.perf_counter()
-    hits = 0
-    for i in range(n):
-        for j in range(n):
-            if i * 60 <= j * 60 <= i * 60 + 1800:
-                hits += 1
-    assert hits                                   # so no optimiser can elide the loop
-    return time.perf_counter() - started
+def _time_a_match(tmp_path, n: int) -> float:
+    """Seconds to show three trips out of a history of `n`, on a database of its own. The SAME code
+    at two sizes is the only sound yardstick here: a budget in seconds measures the machine, and a
+    ratio against a pure-Python reference loop measures how fast that machine does arithmetic
+    against how fast it does SQLite — on CI the matcher came out at 0.35 of a bare n² loop where it
+    is 0.06 here, and the test failed for the second time on the instrument rather than on the
+    code."""
+    database = D.Database(str(tmp_path / f"h{n}.db"))
+    try:
+        conn = database._conn
+        _history(conn, [(i * 60, 30, 20.0, 4.0) for i in range(n)])
+        displayed = _displayed(conn, [1, 2, 3])
+        started = time.perf_counter()
+        trip_energy.select_energy(conn, displayed)
+        elapsed = time.perf_counter() - started
+        assert all(t.get("energy_source") == "cloud" for t in displayed), \
+            [t.get("energy_source") for t in displayed]
+        return elapsed
+    finally:
+        database._conn.close()
 
 
-def test_the_work_does_not_grow_with_the_square_of_the_history(db):
-    """2600 trips, 2600 records, each record on its own trip. Comparing every record with every
-    trip is 6.8 million pairs; the neighbourhood of each record is a handful."""
-    n = 2600
-    _history(db, [(i * 60, 30, 20.0, 4.0) for i in range(n)])
-    displayed = _displayed(db, [1, 2, 3])
-    started = time.perf_counter()
-    trip_energy.select_energy(db, displayed)
-    elapsed = time.perf_counter() - started
-    assert all(t.get("energy_source") == "cloud" for t in displayed), \
-        [t.get("energy_source") for t in displayed]
-    quadratic = _cost_of_walking_the_whole_history(n)
-    assert elapsed < quadratic / 4, (
-        f"{elapsed:.3f}s to show three trips out of {n}, against {quadratic:.3f}s for the barest "
-        f"possible full scan on this machine — the match is still walking the whole history for "
-        f"every record"
+def test_the_work_does_not_grow_with_the_square_of_the_history(tmp_path):
+    """Thirteen times the history, and the work must not grow thirteen times THIRTEEN.
+
+    200 trips and 200 records, then 2,600 of each, with three trips shown either way. Pairing every
+    record with every trip is 169 times the work at the larger size; keeping to the neighbourhood of
+    each record is thirteen. The bound sits between them with room on both sides, so it says which
+    of the two is happening and nothing about the machine it ran on."""
+    small, large = 200, 2600
+    quick = _time_a_match(tmp_path, small)
+    slow = _time_a_match(tmp_path, large)
+    grew = slow / max(quick, 1e-6)
+    assert grew < 60, (
+        f"{large // small}x the history took {grew:.0f}x the work ({quick:.3f}s -> {slow:.3f}s) — "
+        f"linear is {large // small}x and walking the whole history for every record is "
+        f"{(large // small) ** 2}x, so the match is doing the second one"
     )
