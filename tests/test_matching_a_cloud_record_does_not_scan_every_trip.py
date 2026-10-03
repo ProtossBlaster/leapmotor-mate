@@ -91,17 +91,37 @@ def test_a_record_that_fits_two_trips_is_given_to_neither(db):
         [(t["id"], t.get("energy_source")) for t in displayed]
 
 
+def _cost_of_walking_the_whole_history(n: int) -> float:
+    """Seconds THIS machine needs for n × n comparisons, with nothing in the loop but the window
+    test. The floor under any implementation that pairs every record with every trip — a real one
+    also parses JSON and looks up dicts — and the yardstick the measurement below is read against,
+    because a budget in seconds measures the machine it ran on and not the algorithm. Here it is
+    0.33 s against the matcher's 0.02 s; on a loaded shared runner both grow together, and the
+    ratio does not."""
+    started = time.perf_counter()
+    hits = 0
+    for i in range(n):
+        for j in range(n):
+            if i * 60 <= j * 60 <= i * 60 + 1800:
+                hits += 1
+    assert hits                                   # so no optimiser can elide the loop
+    return time.perf_counter() - started
+
+
 def test_the_work_does_not_grow_with_the_square_of_the_history(db):
     """2600 trips, 2600 records, each record on its own trip. Comparing every record with every
     trip is 6.8 million pairs; the neighbourhood of each record is a handful."""
-    _history(db, [(i * 60, 30, 20.0, 4.0) for i in range(2600)])
+    n = 2600
+    _history(db, [(i * 60, 30, 20.0, 4.0) for i in range(n)])
     displayed = _displayed(db, [1, 2, 3])
     started = time.perf_counter()
     trip_energy.select_energy(db, displayed)
     elapsed = time.perf_counter() - started
     assert all(t.get("energy_source") == "cloud" for t in displayed), \
         [t.get("energy_source") for t in displayed]
-    assert elapsed < 0.35, (
-        f"{elapsed:.2f}s to show three trips out of 2600 — the match is still walking the whole "
-        f"history for every record"
+    quadratic = _cost_of_walking_the_whole_history(n)
+    assert elapsed < quadratic / 4, (
+        f"{elapsed:.3f}s to show three trips out of {n}, against {quadratic:.3f}s for the barest "
+        f"possible full scan on this machine — the match is still walking the whole history for "
+        f"every record"
     )
