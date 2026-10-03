@@ -151,6 +151,7 @@
     "events_from_day": "dal {day} alle {time}",
     "events_parked": "in sosta",
     "events_waited": "ricarica partita dopo {dur}",
+    "events_after": "dopo {dur}",
     "events_outcome_confirmed": "confermato",
     "events_outcome_accepted_unconfirmed": "accettato, non confermato",
     "events_outcome_timeout_car": "nessuna risposta dall'auto",

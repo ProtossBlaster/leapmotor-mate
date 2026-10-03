@@ -151,6 +151,7 @@
     "events_from_day": "ab {day} {time}",
     "events_parked": "geparkt",
     "events_waited": "Laden begann nach {dur}",
+    "events_after": "nach {dur}",
     "events_outcome_confirmed": "bestätigt",
     "events_outcome_accepted_unconfirmed": "angenommen, nicht bestätigt",
     "events_outcome_timeout_car": "keine Antwort vom Auto",

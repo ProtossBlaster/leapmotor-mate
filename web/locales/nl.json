@@ -151,6 +151,7 @@
     "events_from_day": "vanaf {day} {time}",
     "events_parked": "geparkeerd",
     "events_waited": "laden begon na {dur}",
+    "events_after": "na {dur}",
     "events_outcome_confirmed": "bevestigd",
     "events_outcome_accepted_unconfirmed": "aanvaard, niet bevestigd",
     "events_outcome_timeout_car": "geen antwoord van de auto",

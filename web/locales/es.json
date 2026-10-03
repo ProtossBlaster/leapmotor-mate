@@ -151,6 +151,7 @@
     "events_from_day": "desde el {day} a las {time}",
     "events_parked": "aparcado",
     "events_waited": "la carga empezó tras {dur}",
+    "events_after": "tras {dur}",
     "events_outcome_confirmed": "confirmada",
     "events_outcome_accepted_unconfirmed": "aceptada, sin confirmar",
     "events_outcome_timeout_car": "sin respuesta del coche",

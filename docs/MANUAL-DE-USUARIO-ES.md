@@ -1207,7 +1207,7 @@ final de la lista aparece en pantalla.
 - **Un inicio y un final son dos filas, unidas por una línea.** A la izquierda de las horas, una línea del
   color del grupo une el punto de un final con el de su inicio, como en un gráfico del historial de git,
   así que lo que ocurrió a la vez, y durante cuánto tiempo, se ve de un vistazo. El final dice cuánto duró
-  el estado — «Portón cerrado · 35s» — y un clic en la línea o en un punto resalta el par y sus dos filas
+  el estado — «Portón cerrado · tras 35s» — y un clic en la línea o en un punto resalta el par y sus dos filas
   sin desplazar la lista. Si el inicio es anterior a los días mostrados, la línea sale atenuada por el
   borde inferior de la lista y el final lo indica: «desde el 02 oct 2026 a las 14:20:05». Un estado aún en
   curso lleva su línea hasta arriba y dice **(en curso)** solo si el último dato del coche es

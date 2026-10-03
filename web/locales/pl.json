@@ -151,6 +151,7 @@
     "events_from_day": "od {day} {time}",
     "events_parked": "na postoju",
     "events_waited": "ładowanie ruszyło po {dur}",
+    "events_after": "po {dur}",
     "events_outcome_confirmed": "potwierdzone",
     "events_outcome_accepted_unconfirmed": "przyjęte, niepotwierdzone",
     "events_outcome_timeout_car": "brak odpowiedzi auta",

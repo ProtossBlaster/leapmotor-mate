@@ -83,7 +83,7 @@ def test_the_climate_says_what_it_did_in_the_readers_language(tmp_path, monkeypa
     assert (off["cabin_from"], off["cabin_to"], off["duration_min"]) == (17.0, 21.5, 15)
     html = client.get(f"/events?date_from={DAY}&date_to={DAY}").text
     assert row_text(html, on["anchor"]) == "Klimatyzacja włączona · na postoju · cel 21 °C · Na zewnątrz 8 °C"
-    assert row_text(html, off["anchor"]) == "Klimatyzacja wyłączona · 15 min · Kabina 17 → 21,5 °C"
+    assert row_text(html, off["anchor"]) == "Klimatyzacja wyłączona · po 15 min · Kabina 17 → 21,5 °C"
 
 
 def test_parked_or_on_a_trip_comes_from_the_trip_pieces_whatever_the_filters(tmp_path, monkeypatch):

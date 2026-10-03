@@ -1225,7 +1225,7 @@ l'écran.
 - **Un début et une fin font deux lignes, reliées par un trait.** À gauche des heures, un trait de la
   couleur du groupe relie le point d'une fin à celui de son début, comme dans un graphe d'historique git :
   on voit d'un coup d'œil ce qui a duré en même temps, et combien de temps. La fin dit combien de temps
-  l'état a duré — « Hayon fermé · 35s » — et un clic sur le trait ou sur un point allume la paire et ses
+  l'état a duré — « Hayon fermé · après 35s » — et un clic sur le trait ou sur un point allume la paire et ses
   deux lignes sans faire défiler la liste. Quand le début précède les jours affichés, le trait sort,
   estompé, par le bas de la liste et la fin le nomme : « début 02 oct 2026 14:20:05 ». Un état encore en
   cours prolonge son trait jusqu'en haut et dit **(en cours)** seulement si la dernière donnée de la voiture

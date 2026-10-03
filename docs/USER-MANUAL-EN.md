@@ -1136,7 +1136,7 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
 - **A beginning and an end are two rows, joined by a line.** Left of the times, a line in the group's
   colour joins an end's dot to its beginning's, as in a graph of git history, so what went on at the same
   time, and for how long, shows at a glance. The end says how long the state lasted — "Tailgate closed ·
-  35s" — and a click on the line or a dot lights the pair and its two rows without scrolling the list.
+  after 35s" — and a click on the line or a dot lights the pair and its two rows without scrolling the list.
   When the beginning is before the days shown, the line runs faded off the bottom of the list and the end
   names it: "from 02 Oct 2026 14:20:05". A state still going runs its line to the top and says **(in progress)** only when the car's last frame is fresh; while the cloud repeats an old frame (the car asleep, or
   out of coverage) the row names the time of that frame instead.

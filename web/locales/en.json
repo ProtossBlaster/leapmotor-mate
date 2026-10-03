@@ -151,6 +151,7 @@
     "events_from_day": "from {day} {time}",
     "events_parked": "parked",
     "events_waited": "charging began after {dur}",
+    "events_after": "after {dur}",
     "events_outcome_confirmed": "confirmed",
     "events_outcome_accepted_unconfirmed": "accepted, not confirmed",
     "events_outcome_timeout_car": "no answer from the car",

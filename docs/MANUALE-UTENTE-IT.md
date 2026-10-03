@@ -1188,7 +1188,7 @@ entra nello schermo.
 - **Un inizio e una fine sono due righe, unite da una linea.** A sinistra degli orari, una linea del
   colore del gruppo unisce il punto di una fine a quello del suo inizio, come in un grafo della cronologia
   di git, così ciò che è durato insieme, e per quanto, si vede a colpo d'occhio. La fine dice quanto è
-  durato lo stato — «Portellone chiuso · 35s» — e un clic sulla linea o su un punto accende la coppia e
+  durato lo stato — «Portellone chiuso · dopo 35s» — e un clic sulla linea o su un punto accende la coppia e
   le sue due righe senza scorrere l'elenco. Se l'inizio è prima dei giorni mostrati, la linea esce
   sbiadita dal fondo dell'elenco e la fine lo indica: «dal 02 ott 2026 alle 14:20:05». Uno stato ancora in
   corso porta la sua linea fino in cima e dice **(in corso)** solo se l'ultimo dato dell'auto è
