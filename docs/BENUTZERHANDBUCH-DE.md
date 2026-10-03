@@ -1,8 +1,30 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.7.18 · **Sprache:** Deutsch
+> **Mate-Version:** v4.8.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.7.18
+## Neu in Version 4.8.0
+
+**Eine Ereignisseite erzählt Moment für Moment, was das Auto getan hat.** Verriegelt, entriegelt,
+Türen, Fenster, Kabel, Klima, READY, Fahrten, Ladevorgänge und die Befehle, die Sie geschickt haben
+— ein Anfang und ein Ende sind zwei Zeilen, verbunden durch eine Linie in der Farbe der Gruppe, so
+dass auf einen Blick zu sehen ist, was gleichzeitig geschah und wie lange. Eine Karte neben der
+Liste sagt wo; die Filter nach Wort, Gruppe und Art stehen in der Adresse, ein Link oder ein Neuladen
+behält sie also. Die Ereignisse werden aus den Positionen abgeleitet, die Mate ohnehin speichert:
+auf einer bestehenden Installation liest der erste Start die ganze Geschichte nach, eine Scheibe pro
+Abfrage, und die Seite sagt, wie weit sie ist. Mit Dank an **@arekm**, der sie geschrieben hat.
+
+**Eine Fahrt endet, wenn das Auto endet.** Jemanden abholen — nicht ausschalten, nur P und warten —
+schloss die Fahrt nach einer Minute und begann beim Weiterfahren eine zweite. Die Fahrt endet jetzt
+mit der Messung, die das Auto **ausgeschaltet** zeigt: in P zu warten, während das Auto an bleibt,
+ist ein Halt innerhalb der Fahrt, wie an einer roten Ampel. Eine Besorgung ist eine Fahrt, und der
+offizielle Verbrauch, den die Cloud vom Einschalten bis zum Ausschalten misst, gehört ihr ganz.
+
+**Ein Fehler, den Mate aufgeschoben hat, verdeckt nicht mehr den echten.** Mate hält eine Minute
+zwischen zwei Anmeldungen ein, und die Abfrage, die in diese Minute fiel, meldete „Login temporarily
+deferred after a recent attempt" — Worte über unseren eigenen Zeitgeber, die an die Stelle des
+Fehlers traten, der die Cloud wirklich fernhält.
+
+### Neu in Version 4.7.18
 
 **Das Wiederherstellen einer Sicherung funktioniert unter Windows.** Auf MateDesktop für Windows
 antwortete das Wiederherstellen einer Datenbanksicherung mit einem Fehler, weil die Datei nicht

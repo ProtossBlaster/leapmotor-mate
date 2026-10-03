@@ -3,6 +3,49 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.8.0] — 2026-10-03
+
+- **An Events page lists what the car did, moment by moment** ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385), @arekm). Locked
+  and unlocked, doors, windows, cable, V2L, climate, defrost, rapid heat and cool, READY, and beside
+  them the trips, the charges and the commands you sent. A beginning and an end are two rows joined
+  by a line in the group's colour, as in a graph of git history, and the end says how long the state
+  lasted and answers its own question — READY off: how far the car went and the charge before and
+  after; cable disconnected: the energy charged and how long a wallbox made it wait. A map beside the
+  list places every row with a position, and the filters — a word, the group pills, a date range and
+  single kinds — live in the address, so a link or a reload keeps them. A change counts only once two
+  consecutive frames hold it, because the cloud sends one-frame blinks, and the time is the first
+  frame's: the second confirms the change, it does not move it. The events are derived from the
+  `positions` Mate already stores, so an existing install reads its whole history back a slice per
+  poll and the page says how far it got; they are kept as long as the positions are. The roof
+  sunshade is deliberately not among them: it is opened and closed by hand and nothing closes it when
+  the car is locked, so it draws one line reading "open" for days — seven of them, at its longest, on
+  the car this was measured on — across a page about everything else.
+- **A trip ends when the car does, not when it is put in P.** Going to pick someone up — not
+  switching off, just Park and a wait — closed the trip after six readings of P, about a minute, and
+  opened a second one when you drove on: one errand came out as two drives, and the cloud's official
+  energy figure belonged to neither, because getEC measures a driving session from switch-on to
+  switch-off and covers both halves together. The six readings now only count once the car itself
+  says the drive is over (READY 1 → 0). Measured on a B10 over four months, 390,182 polls and 566
+  trips: of the 409 pauses between two consecutive trips, 34 have READY=1 in every frame — the car
+  was never switched off — with a median of 4.8 minutes, against 36.7 minutes for the 375 where a
+  READY=0 appears; 74 trips (13%) shared one power-on session with another, which is what had made
+  the official figure unavailable for them. Nothing changes for a car that does not report READY, nor
+  when the Park reading is a frame the cloud has been repeating for half an hour. A trip whose car
+  keeps reading ON without moving is closed after half a day, where it stopped moving: the longest
+  standstill ever recorded with the car on and fresh frames is 48 minutes.
+- **A cloud record without distance no longer stands between a trip and its official figure.** The
+  Leapmotor history import writes a trip per cloud record, including the 0 km ones kept for a
+  manoeuvre, and a session holding one of those refused the conversion with no way out: merging the
+  two real halves left the 0 km row inside the session and outside the group, so it refused again. 9
+  of that car's 74 shared sessions were blocked by such a row alone.
+- **An attempt Mate put off no longer hides why the cloud is unreachable** ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381), @maxencedelesgues-droid).
+  Mate keeps a minute between two sign-ins; at the parked cadence the poll that falls inside it
+  failed with "Login temporarily deferred after a recent attempt" — our words about our own timer —
+  and that was the last verdict written, so the Overview and the setup page showed it in place of the
+  failure that actually keeps the car away, the one 4.7.18 had just learned to name in a word. The
+  link settings now keep the reason already on record when the new one is only a deferral; the state
+  and the next attempt still move, and with nothing on record the deferral is still said.
+
 ## [4.7.18] — 2026-10-03
 
 - **A restored backup goes into the live database, not over it** ([#383](https://github.com/ProtossBlaster/leapmotor-mate/issues/383), @matttiaromano). The

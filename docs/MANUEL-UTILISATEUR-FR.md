@@ -1,8 +1,31 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.18 · **Langue :** Français
+> **Version de Mate :** v4.8.0 · **Langue :** Français
 
-## Nouveautés de la version 4.7.18
+## Nouveautés de la version 4.8.0
+
+**Une page Événements raconte, minute par minute, ce qu'a fait la voiture.** Verrouillée,
+déverrouillée, portes, vitres, câble, climatisation, READY, trajets, charges et les commandes que
+vous avez envoyées — un début et une fin sont deux lignes reliées par un trait de la couleur du
+groupe, si bien que ce qui s'est passé en même temps, et pendant combien de temps, se voit d'un coup
+d'œil. Une carte à côté de la liste dit où ; les filtres par mot, groupe et type vivent dans
+l'adresse, donc un lien ou un rechargement les garde. Les événements sont dérivés des positions que
+Mate enregistre déjà : sur une installation existante, le premier démarrage relit tout l'historique,
+une tranche par relevé, et la page dit où elle en est. Merci à **@arekm**, qui l'a écrite.
+
+**Un trajet se termine quand la voiture se termine.** Aller chercher quelqu'un — sans éteindre,
+juste P et une attente — clôturait le trajet après une minute et en ouvrait un second au redémarrage.
+Le trajet se termine désormais sur le relevé qui montre la voiture **éteinte** : attendre en P avec
+la voiture allumée est un arrêt à l'intérieur du trajet, comme un feu rouge. Une course est un seul
+trajet, et la consommation officielle que le cloud mesure de l'allumage à l'extinction lui appartient
+tout entière.
+
+**Une panne que Mate a reportée ne cache plus la vraie.** Mate garde une minute entre deux
+connexions, et le relevé qui tombait dans cette minute indiquait « Login temporarily deferred after a
+recent attempt » — des mots sur notre propre minuterie, qui prenaient la place de la panne qui tient
+réellement le cloud à distance.
+
+### Nouveautés de la version 4.7.18
 
 **La restauration d'une sauvegarde fonctionne sous Windows.** Sur MateDesktop pour Windows, la
 restauration d'une sauvegarde de la base répondait une erreur, parce que le fichier ne pouvait pas

@@ -1,8 +1,30 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.7.18 · **Idioma:** Español
+> **Versión de Mate:** v4.8.0 · **Idioma:** Español
 
-## Novedades de la versión 4.7.18
+## Novedades de la versión 4.8.0
+
+**Una página Eventos cuenta, momento a momento, lo que hizo el coche.** Cerrado, abierto, puertas,
+ventanillas, cable, climatización, READY, trayectos, cargas y las órdenes que enviaste — un comienzo
+y un final son dos filas unidas por una línea del color del grupo, así que lo que ocurrió a la vez,
+y durante cuánto tiempo, se ve de un vistazo. Un mapa junto a la lista dice dónde; los filtros por
+palabra, grupo y tipo viven en la dirección, de modo que un enlace o una recarga los conserva. Los
+eventos se derivan de las posiciones que Mate ya guarda: en una instalación existente el primer
+arranque relee todo el historial, una porción por lectura, y la página dice por dónde va. Gracias a
+**@arekm**, que la escribió.
+
+**Un trayecto termina cuando termina el coche.** Ir a buscar a alguien — sin apagar, solo Park y una
+espera — cerraba el trayecto al cabo de un minuto y abría otro al reanudar la marcha. Ahora el
+trayecto termina en la lectura que muestra el coche **apagado**: esperar en Park con el coche
+encendido es una parada dentro del trayecto, como un semáforo. Un recado es un solo trayecto, y el
+consumo oficial que la nube mide del encendido al apagado le pertenece entero.
+
+**Un fallo que Mate aplazó ya no esconde el de verdad.** Mate guarda un minuto entre dos inicios de
+sesión, y la lectura que caía dentro de ese minuto decía «Login temporarily deferred after a recent
+attempt» — palabras sobre nuestro propio temporizador, que ocupaban el lugar del fallo que de verdad
+mantiene lejos la nube.
+
+### Novedades de la versión 4.7.18
 
 **Restaurar una copia de seguridad funciona en Windows.** En MateDesktop para Windows, restaurar una
 copia de la base de datos respondía un error, porque el archivo no se podía sustituir mientras Mate

@@ -1,8 +1,30 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.7.18 · **Lingua:** Italiano
+> **Versione di Mate:** v4.8.0 · **Lingua:** Italiano
 
-## Novità della 4.7.18
+## Novità della 4.8.0
+
+**Una pagina Eventi racconta momento per momento cosa ha fatto l'auto.** Chiusa, aperta, portiere,
+finestrini, cavo, clima, READY, viaggi, ricariche e i comandi che hai mandato — un inizio e una fine
+sono due righe unite da una linea del colore del gruppo, così quello che è successo insieme, e per
+quanto, si vede a colpo d'occhio. Una mappa accanto all'elenco dice dove; i filtri per parola,
+gruppo e tipo stanno nell'indirizzo, quindi un link o un ricaricamento se li tiene. Gli eventi sono
+ricavati dalle posizioni che Mate già salva: su un'installazione esistente il primo avvio rilegge
+tutta la storia, una fetta per lettura, e la pagina dice a che punto è. Grazie a **@arekm**, che
+l'ha scritta.
+
+**Un viaggio finisce quando finisce l'auto.** Andare a prendere una persona — senza spegnere, solo
+P e un'attesa — chiudeva il viaggio dopo un minuto e ne apriva un secondo quando ripartivi. Adesso
+la guidata finisce sulla lettura che mostra l'auto **spenta**: aspettare in P con l'auto accesa è
+una sosta dentro il viaggio, come un semaforo. Una commissione è un viaggio solo, e il consumo
+ufficiale che il cloud misura da accensione a spegnimento gli appartiene tutto.
+
+**Un guasto che Mate ha rimandato non nasconde più quello vero.** Mate tiene un minuto fra due
+accessi, e la lettura che cadeva dentro quel minuto diceva «Login temporarily deferred after a
+recent attempt» — parole sul nostro timer, che prendevano il posto del guasto che davvero tiene
+lontano il cloud.
+
+### Novità della 4.7.18
 
 **Il ripristino di un backup funziona su Windows.** Su MateDesktop per Windows il ripristino di un
 backup del database rispondeva un errore, perché il file non si poteva sostituire mentre Mate lo

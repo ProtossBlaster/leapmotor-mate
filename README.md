@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.7.18:** restoring a database backup works on MateDesktop for Windows, where it answered an error ([#383](https://github.com/ProtossBlaster/leapmotor-mate/issues/383)); a cloud transport that fails says why, in one word, in the log, the wizard and the bundle ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381)); the update instructions no longer point at the archived Watchtower.
-See [release notes and upgrade impact](docs/releases/v4.7.18.md).
+**v4.8.0:** an **Events page** lists what the car did, moment by moment, with a line joining each end to its beginning and a map beside the list ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385), @arekm); a trip now ends when the **car** does — waiting in Park with the car still on is a stop inside the drive, not two trips ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381): and a login Mate itself put off no longer hides why the cloud is unreachable).
+See [release notes and upgrade impact](docs/releases/v4.8.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -358,8 +358,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.7.18:** il ripristino di un backup del database funziona su MateDesktop per Windows, dove rispondeva un errore ([#383](https://github.com/ProtossBlaster/leapmotor-mate/issues/383)); un trasporto verso il cloud che fallisce dice perché, in una parola, nel log, nella guidata e nel pacchetto ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381)); le istruzioni di aggiornamento non citano più Watchtower, archiviato. [Note di rilascio](docs/releases/v4.7.18.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.18.md#italiano).
+**v4.8.0:** una **pagina Eventi** racconta momento per momento cosa ha fatto l'auto, con una linea che unisce ogni fine al suo inizio e una mappa accanto all'elenco ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385), @arekm); un viaggio adesso finisce quando finisce l'**auto** — aspettare in P con l'auto accesa è una sosta dentro la guidata, non due viaggi ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381): e un accesso che Mate stessa ha rimandato non nasconde più perché il cloud non si raggiunge). [Note di rilascio](docs/releases/v4.8.0.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.8.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

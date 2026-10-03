@@ -1,8 +1,28 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.7.18 · **Language:** English
+> **Mate version:** v4.8.0 · **Language:** English
 
-## New in 4.7.18
+## New in 4.8.0
+
+**An Events page lists what the car did, moment by moment.** Locked, unlocked, doors, windows,
+cable, climate, READY, trips, charges and the commands you sent — a beginning and an end are two
+rows joined by a line in the group's colour, so what went on at the same time, and for how long,
+shows at a glance. A map beside the list places each row; filters by word, group and kind live in
+the address, so a link or a reload keeps them. The events are derived from the positions Mate
+already stores, so on an existing install the first start reads the whole history back, a slice per
+poll, and the page says how far it got. With thanks to **@arekm**, who wrote it.
+
+**A trip ends when the car does.** Going to pick someone up — not switching off, just Park and a
+wait — used to close the trip after a minute and start a second one when you drove on. The drive
+now ends on the reading that shows the car **switched off**: waiting in Park with the car still on
+is a stop inside the trip, like a red light. One errand is one trip, and the official consumption
+the cloud measures from switch-on to switch-off belongs to it whole.
+
+**A failure Mate put off no longer hides the real one.** Mate keeps a minute between two sign-ins,
+and the poll that fell inside it reported "Login temporarily deferred after a recent attempt" —
+words about Mate's own timer, which replaced the failure that actually keeps the cloud away.
+
+### New in 4.7.18
 
 **Restoring a backup works on Windows.** On MateDesktop for Windows, restoring a database backup
 answered an error, because the file could not be replaced while Mate held it open. The backup now
