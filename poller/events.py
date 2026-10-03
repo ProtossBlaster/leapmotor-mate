@@ -159,20 +159,20 @@ def _save_state(conn, vehicle_id: int, state: dict) -> None:
                  (STATE_KEY.format(vehicle_id=vehicle_id), json.dumps(state)))
 
 
-def prune(conn, cutoff: str) -> int:
-    """Drop the spans that ended before `cutoff`, as pairs: a span that crosses it keeps its start,
-    an open span keeps its start and later its end, so nothing in the kept period reopens or goes
-    missing. The neighbour is the next row of the kind in write order, as the page reads it.
+def prune(conn, vehicle_id: int, cutoff: str) -> int:
+    """Drop this car's spans that ended before `cutoff`, as pairs: a span that crosses it keeps its
+    start, an open span keeps its start and later its end, so nothing in the kept period reopens or
+    goes missing. The neighbour is the next row of the kind in write order, as the page reads it.
     Returns the rows deleted."""
     # The CTE sits inside the subquery: a statement that starts with WITH reports no row count.
     return conn.execute(
         """DELETE FROM events WHERE id IN (
                 WITH e AS (SELECT id, at, state, kind,
                                   LEAD(at) OVER w AS next_at, LAG(at) OVER w AS prev_at
-                           FROM events WINDOW w AS (PARTITION BY vehicle_id, kind ORDER BY id))
+                           FROM events WHERE vehicle_id = ? WINDOW w AS (PARTITION BY kind ORDER BY id))
                 SELECT id FROM e WHERE at < ? AND ((state = 1 AND next_at < ?)
                                                    OR (state = 0 AND COALESCE(prev_at, at) < ?)))""",
-        (cutoff, cutoff, cutoff)).rowcount
+        (vehicle_id, cutoff, cutoff, cutoff)).rowcount
 
 
 def clamp_cursors(conn) -> None:

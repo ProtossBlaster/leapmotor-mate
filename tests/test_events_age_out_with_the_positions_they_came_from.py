@@ -3,8 +3,9 @@
 The retention that prunes `positions` prunes `events` to the same date, but in pairs: a span that
 ended before the cut-off goes whole; a span that crosses it, or is still open, keeps its start —
 and later its end, so a cable plugged in before the cut-off and pulled after it stays in the kept
-period, and the end, deleted on its own, could not reopen the span. Retention 0 keeps everything,
-as it does for positions.
+period, and the end, deleted on its own, could not reopen the span. A car's open trip keeps its
+events from its start, as it keeps its positions. Retention 0 keeps everything, as it does for
+positions.
 """
 from datetime import datetime, timedelta, timezone
 
@@ -74,6 +75,23 @@ def test_a_kept_start_gets_its_end_after_the_prune_and_a_restart(tmp_path):
 def test_the_prune_is_the_modules_own_and_cuts_at_the_given_time(tmp_path):
     car = Car(tmp_path)
     _seed(car, [("cable", -3, 1), ("cable", -2, 0), ("cable", -1, 1)])
-    assert E.prune(car.db._conn, _at(0)) == 2
+    assert E.prune(car.db._conn, car.vid, _at(0)) == 2
     car.db._conn.commit()
     assert _left(car) == [("cable", -1, 1)]
+
+
+def test_a_cars_open_trip_keeps_its_events_as_it_keeps_its_positions(tmp_path):
+    """The positions of a trip still open are kept from its start, to close it on; the events
+    derived from them stay with them. Another car is cut at the retention alone."""
+    car = Car(tmp_path)
+    other = car.db.ensure_vehicle("VINEVENTS00000002", "C10")
+    car.db._conn.execute("INSERT INTO trips (vehicle_id, started_at) VALUES (?, ?)", (car.vid, _at(-20)))
+    car.db._conn.executemany(
+        "INSERT INTO events (vehicle_id, kind, at, state) VALUES (?, ?, ?, ?)",
+        [(vid, kind, _at(days), state) for vid in (car.vid, other)
+         for kind, days, state in [("trunk", -30, 1), ("trunk", -29, 0),     # before the trip
+                                   ("trunk", -10, 1), ("trunk", -9, 0)]])    # during it
+    car.db._conn.commit()
+    car.db.prune_positions(180)
+    left = car.db._conn.execute("SELECT vehicle_id, COUNT(*) FROM events GROUP BY vehicle_id").fetchall()
+    assert dict(left) == {car.vid: 2}

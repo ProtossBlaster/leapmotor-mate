@@ -1079,7 +1079,8 @@ class Database:
                 (cutoff, *open_since)).rowcount
             # The events derived from those rows age out with them, and a cursor past the newest
             # remaining row would skip the rows written next (see events.clamp_cursors).
-            events.prune(self._conn, cutoff)
+            for (vehicle_id,) in self._conn.execute("SELECT DISTINCT vehicle_id FROM events").fetchall():
+                events.prune(self._conn, vehicle_id, min(cutoff, open_since.get(vehicle_id, cutoff)))
             events.clamp_cursors(self._conn)
         if deleted > 0:
             self._conn.execute("VACUUM")
