@@ -1164,6 +1164,15 @@ wird geladen, sobald das Ende der Liste sichtbar wird.
   und Ladevorgängen. Diese Zahlen heben sich vom Rest der Zeile ab; Kosten sind grün, die Zeit bis zum
   Ladebeginn bernsteinfarben.
 - **Orte**: eine Zeile an einem Ihrer Ladeorte (*Ladepreise → Ladeorte*) nennt ihn.
+- **Die Karte** bleibt verborgen, bis **🗺 Karte zeigen** über der Liste sie öffnet (auf einem breiten
+  Bildschirm neben der Liste, auf dem Telefon oder einem schmaleren darüber), und beim nächsten Besuch ist
+  sie so, wie Sie sie verlassen haben. Jede Zeile mit einer Position hat ein 🌍: Es öffnet bei Bedarf die
+  Karte, hebt den Punkt der Zeile hervor, holt ihn ins Bild und hebt die Zeile und die andere Hälfte ihres
+  Paares hervor. Ein Klick auf einen Punkt hebt ihn und seine Zeilen hervor und blättert die Liste zu
+  seiner neuesten Zeile; die Zeile unter dem Zeiger hebt ihren Punkt hervor, solange der Zeiger dort
+  bleibt. Ein Punkt steht für eine Stelle von etwa 110 m oder für einen ganzen Ladeort. Die Zeile einer
+  Fahrt oder eines Ladevorgangs öffnet diese, und **← Ereignisse** dort führt zur Liste zurück, wie sie
+  war.
 - **Zwei Datensätze machen ein Ereignis.** Die Cloud sendet Einzelaussetzer — ein Sonnenrollo für eine
   einzige Abfrage „offen“ —, deshalb zählt eine Änderung erst, wenn zwei aufeinanderfolgende Datensätze
   sie halten. Eine Änderung, die das Auto zwischen zwei eigenen Meldungen zurücknahm, wird nie gesehen, und

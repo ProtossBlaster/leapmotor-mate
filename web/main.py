@@ -925,7 +925,7 @@ async def trip_route_svg(trip_id: int):
 
 
 @app.get("/trips/{trip_id}", response_class=HTMLResponse)
-async def trip_detail(request: Request, trip_id: int):
+async def trip_detail(request: Request, trip_id: int, back: str = ""):
     vehicle, _ = db_reader.get_vehicle()
     trip = db_reader.get_trip_detail(trip_id)
     if not trip:
@@ -938,6 +938,7 @@ async def trip_detail(request: Request, trip_id: int):
     return templates.TemplateResponse(request, "trip_detail.html", _ctx(
         page="trips", vehicle=vehicle, trip=trip,
         prev_trip_id=adjacent["prev_id"], next_trip_id=adjacent["next_id"],
+        events_back=_events_back(back),
     ))
 
 
@@ -1187,7 +1188,7 @@ async def charge_generate_auto_note(request: Request, charge_id: int):
 
 
 @app.get("/charges", response_class=HTMLResponse)
-async def charges_page(request: Request, highlight: int = 0, station: str = ""):
+async def charges_page(request: Request, highlight: int = 0, station: str = "", back: str = ""):
     vehicle, _ = db_reader.get_vehicle()
     stats   = db_reader.get_charge_stats()
     prices  = db_reader.get_charge_prices()
@@ -1210,7 +1211,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = ""):
             cal_year, cal_month, cal_open_day = hl_date.year, hl_date.month, hl_date.day
     return templates.TemplateResponse(request, "charges.html", _ctx(
         page="charges", vehicle=vehicle,
-        stats=stats, total=total, highlight=highlight,
+        stats=stats, total=total, highlight=highlight, events_back=_events_back(back),
         charge_types=db_reader.charge_types_localised(), prices=prices,
         status=status, live=live, ac_dc=db_reader.get_ac_dc_stats(),
         unconfirmed=db_reader.unconfirmed_charges_count(),
@@ -2217,10 +2218,16 @@ async def map_page(request: Request):
     ))
 
 
+def _events_back(back: str) -> str:
+    """`back` if it is a URL of the Events list, else "": a trip or a charge opened from there links
+    back to it, and the parameter must not lead out of Mate."""
+    return back if back == "events" or back.startswith(("events?", "events#")) else ""
+
+
 def _events_ctx(flt, request: Request, part: int = 0, version: str | None = None) -> dict:
     """What events.html and its list partials render: the `part` of the list for `flt`, the
     filter's state so the pills and fields show what the URL asked for, and the list's own URL,
-    without the part, to push and to load the next part from."""
+    without the part, for its links and for loading the next part."""
     lang = db_reader.get_language()
     query = urlencode([(k, v) for k, v in request.query_params.multi_items() if k not in ("part", "v")])
     return {"flt": flt, "back": "events" + (f"?{query}" if query else ""), "query": query,

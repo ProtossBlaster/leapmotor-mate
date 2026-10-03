@@ -1152,6 +1152,13 @@ entra nello schermo.
   è ambra.
 - **Luoghi**: una riga in uno dei tuoi luoghi di ricarica (*Prezzi di ricarica → Luoghi di ricarica*) lo
   nomina.
+- **La mappa** resta nascosta finché **🗺 Mostra mappa**, sopra l'elenco, non la apre (accanto all'elenco
+  su uno schermo largo, sopra sul telefono o su uno più stretto), e la volta dopo è come l'hai lasciata.
+  Ogni riga con una posizione ha un 🌍: apre la mappa se serve, accende il punto della riga, lo porta in
+  vista e accende la riga e l'altra metà della sua coppia. Un clic su un punto accende lui e le sue righe
+  e scorre l'elenco fino alla sua riga più recente; la riga sotto il puntatore accende il suo punto finché
+  il puntatore resta lì. Un punto rappresenta un posto di circa 110 m, o un intero luogo di ricarica. La
+  riga di un viaggio o di una ricarica lo apre, e **← Eventi** lì riporta all'elenco com'era.
 - **Due dati fanno un evento.** Il cloud manda lampeggi di un solo dato — una tendina «aperta» per una
   sola lettura — quindi un cambiamento conta solo quando due letture consecutive lo confermano. Un
   cambiamento che l'auto ha annullato fra due sue trasmissioni non si vede mai, e il cloud può perdere il

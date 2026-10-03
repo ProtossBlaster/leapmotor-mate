@@ -1100,6 +1100,13 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   The end of a trip or a charge carries the figures of Trips and Charges.
   These figures stand out from the rest of the row; a cost is green, the delay before charging amber.
 - **Places**: a row at one of your charging places (*Charge Prices → Charging places*) names it.
+- **The map** is hidden until **🗺 Show map** above the list shows it (beside the list on a wide screen,
+  above it on a phone or a narrower one), and next time it is as you left it. Every row with a position
+  has a 🌍: it shows the map if needed, lights the row's point and brings it into view, and lights the row
+  and the other half of its pair. A click on a point lights it and its rows and scrolls the list to its
+  newest row; the row under the pointer lights its own point while the pointer is there. A point stands
+  for a spot about 110 m across, or for a whole charging place. A trip's or a charge's row opens it, and
+  **← Events** there comes back to the list as it was.
 - **Two frames make an event.** The cloud sends one-frame blinks — a sunshade "open" for a single
   poll — so a change counts only once two consecutive frames hold it. A change the car reversed between
   two of its own reports is never seen, and the cloud can drop the lock signal for a poll or two, which

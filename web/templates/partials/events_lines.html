@@ -1,7 +1,8 @@
 {# One part of the Events list's card: a heading per local day, a thin separator per hour, one row
    per moment. On the left the tracks join each end to its start (cells drawn by the rules in
-   events.html); a click on a track or a dot lights its pair. When another part follows, the last line
-   loads it as it comes into view and is replaced by it, its cells carrying the tracks on meanwhile. #}
+   events.html); a click on a track or a dot lights its pair. 🌍 shows the row's point, by its index in
+   #events-points. When another part follows, the last line loads
+   it as it comes into view and is replaced by it, its cells carrying the tracks on meanwhile. #}
 {%- for p in ev.lines %}
 {%- set lanes %}<span class="ev-l">{% for c in p.cells %}<i{% if c %} class="{{ c }}"{% endif %}></i>{% endfor %}{% endset %}
 {%- if p.kind == 'day' %}
@@ -10,7 +11,7 @@
 <div class="event-hour">{{ lanes }}</span><span>{{ p.label }}</span></div>
 {%- else %}{% set e = p.e %}
 <div id="{{ e.anchor }}" class="event-row" data-kind="{{ e.kind }}">{{ lanes }}<i class="dot d-{{ group_of[e.kind] }}{% if p.joined %} j{% endif %}"></i></span>
-<time title="{{ e.time_title }}">{{ e.hms }}</time><span class="ev-ic">{{ e.icon }}</span><div class="ev-txt"><strong>{{ e.label }}</strong>
+<time title="{{ e.time_title }}">{{ e.hms }}</time>{% if e.point is not none %}<button data-p="{{ e.point }}">🌍</button>{% else %}<span></span>{% endif %}<span class="ev-ic">{{ e.icon }}</span><div class="ev-txt"><strong>{{ e.label }}</strong>
 {%- if e.still_open %} <span class="ev-now ev-live">({{ t('events_still_open') }})</span>{% elif e.last_frame_hhmm %} <span class="ev-now">({{ t('events_last_frame').format(time=e.last_frame_hhmm) }})</span>{% endif %}
 {%- if e.extra %} <span class="ev-wrap">{{ e.extra }}</span>{% endif %}
 {%- if e.distance_km is not none %} <b>{{ e.distance_km|dist }}</b>{% endif %}
@@ -26,7 +27,9 @@
 {%- endif %}
 {%- if e.cabin_from is not none and e.cabin_to is not none %} <span>{{ t('temp_cabin') }} <b>{{ (e.cabin_from|temp(1)).rsplit(' ', 1)[0] }} → {{ e.cabin_to|temp(1) }}</b></span>{% endif %}
 {%- if e.place %} <span class="ev-wrap">{{ e.place }}</span>{% endif %}
-{%- if e.from_anchor and not e.from_listed %} <span class="ev-chip ev-wrap">{% if e.from_day %}{{ t('events_from_day').format(day=e.from_day|replace(' ', '\u00a0'), time=e.from_hms) }}{% else %}{{ t('events_from').format(time=e.from_hms) }}{% endif %}</span>{% endif -%}
+{%- if e.from_anchor and not e.from_listed %} <span class="ev-chip ev-wrap">{% if e.from_day %}{{ t('events_from_day').format(day=e.from_day|replace(' ', '\u00a0'), time=e.from_hms) }}{% else %}{{ t('events_from').format(time=e.from_hms) }}{% endif %}</span>{% endif %}
+{%- if e.source == 'trip' %} <a href="trips/{{ e.id }}?back={{ (back ~ '#' ~ e.anchor)|urlencode }}">{{ t('events_open_trip') }} →</a>
+{%- elif e.source == 'charge' %} <a href="charges?highlight={{ e.id }}&amp;back={{ (back ~ '#' ~ e.anchor)|urlencode }}#charge-card-{{ e.id }}">{{ t('events_open_charge') }} →</a>{% endif -%}
 </div></div>
 {%- endif %}
 {%- endfor %}

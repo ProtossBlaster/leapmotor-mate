@@ -1170,6 +1170,13 @@ final de la lista aparece en pantalla.
   Esas cifras destacan del resto de la fila; el coste va en verde y el tiempo hasta que empezó la carga,
   en ámbar.
 - **Lugares**: una fila en uno de tus lugares de carga (*Precios de la carga → Lugares de carga*) lo nombra.
+- **El mapa** está oculto hasta que **🗺 Mostrar mapa**, sobre la lista, lo abre (junto a la lista en una
+  pantalla ancha, encima en el teléfono o en una más estrecha), y la próxima vez sigue como lo dejaste.
+  Cada fila con posición tiene un 🌍: abre el mapa si hace falta, resalta el punto de la fila, lo trae a la
+  vista y resalta la fila y la otra mitad de su par. Un clic en un punto lo resalta junto con sus filas y
+  lleva la lista a su fila más reciente; la fila bajo el puntero resalta su punto mientras el puntero
+  sigue ahí. Un punto representa un sitio de unos 110 m, o un lugar de carga entero. La fila de un
+  trayecto o de una carga lo abre, y **← Eventos** allí vuelve a la lista tal como estaba.
 - **Dos datos hacen un evento.** La nube envía parpadeos de un solo dato — una cortinilla «abierta» durante
   una sola lectura —, así que un cambio cuenta solo cuando dos lecturas consecutivas lo mantienen. Un cambio
   que el coche deshizo entre dos de sus propios envíos nunca se ve, y la nube puede perder la señal del

@@ -11702,20 +11702,21 @@ def _anchor(m) -> str:
     return f"ev-{m['source']}-{m['id']}" + ("" if m["source"] in ("signal", "command") else "-on" if m["on"] else "-off")
 
 
-def _nearest_place(places, lat, lon) -> str | None:
+def _nearest_place(places, lat, lon) -> dict | None:
+    """The charging place whose radius holds the point, the nearest of several."""
     import charging_places
     best = None
     for p in places:
         d = charging_places.distance_m(lat, lon, p["latitude"], p["longitude"])
         if d <= p["radius_m"] and (best is None or d < best[0]):
-            best = (d, p["name"])
+            best = (d, p)
     return best[1] if best else None
 
 
 # What a row may print beside its label; absent from a row, None.
 _EVENT_FIGURES = ("extra", "distance_km", "energy_kwh", "duration_min", "soc_from", "soc_to", "cost",
                   "waited_min", "ctx", "target_temp", "outside_temp", "cabin_from", "cabin_to",
-                  "from_anchor", "from_hms", "from_day", "note")
+                  "from_anchor", "from_hms", "from_day", "place_key", "place_at", "point", "note")
 
 
 def _present_event(m: dict, zone, live: dict, t, places, lang) -> None:
@@ -11750,9 +11751,14 @@ def _present_event(m: dict, zone, live: dict, t, places, lang) -> None:
         m["extra"] = outcome if action.startswith("events_cmd_") else f"{action} · {outcome}"
     s = m.get("session") or {}
     m["note"] = s.get("note")
+    m["has_fix"] = has_gps_fix(m["lat"], m["lon"])
     m["place"] = (s.get("charging_place_name") or s.get("location_name")) if m["source"] == "charge" else None
-    if has_gps_fix(m["lat"], m["lon"]):
-        m["place"] = m["place"] or _nearest_place(places, m["lat"], m["lon"])
+    if m["has_fix"]:
+        # Inside a charging place the place is the point (names repeat, so by id); elsewhere a ~110 m grid.
+        near = _nearest_place(places, m["lat"], m["lon"])
+        m["place_key"] = f"place:{near['id']}" if near else f"{round(m['lat'], 3):.3f},{round(m['lon'], 3):.3f}"
+        m["place_at"] = (near["latitude"], near["longitude"]) if near else None
+        m["place"] = m["place"] or (near and near["name"])
     m["still_open"] = m["open"] and live["caught_up"] and live["fresh"]
     m["last_frame_hhmm"] = (live["last_frame"].astimezone(zone).strftime("%H:%M")
                             if m["open"] and live["caught_up"] and not live["fresh"] and live["last_frame"] else None)
@@ -11862,10 +11868,11 @@ def _event_part(lines: list, lanes: int, runs: list, part: int) -> tuple[list, l
     return lines[starts[part]:cut], on[::-1]
 
 
-def _events_version(lines: list) -> str:
+def _events_version(lines: list, points: list) -> str:
     """What a later part must match to join the parts on the page: the lines in order with their
-    track cells. A row written meanwhile moves the cut or the tracks."""
-    crc = 0
+    track cells, and the map's points. A row written meanwhile moves the cut, the tracks or the
+    points' numbers."""
+    crc = zlib.crc32(repr(points).encode())
     for line in lines:
         key = line["e"]["anchor"] if line["kind"] == "row" else line["label"]
         crc = zlib.crc32(f"{key}|{line['cells']}|{line.get('joined')}\n".encode(), crc)
@@ -11877,10 +11884,10 @@ def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str
     default), newest first, one heading per LOCAL day — a state beginning and the same state ending
     are two rows, the end saying how long it lasted. Four sources composed in Python — the signal
     transitions, the trips, the charges and the commands — each through its own reader and all on
-    one UTC clock before sorting. The whole range is composed and its tracks laid out; `lines` is
-    the `part` asked for, `more` the cells of the line that loads the next one, `version` what the
-    parts of one list share: a part `asked` for with another version comes back as the first part,
-    the list having changed meanwhile."""
+    one UTC clock before sorting; the map's points are the places of the rows listed. The whole
+    range is composed and its tracks laid out; `lines` is the `part` asked for, `more` the cells
+    of the line that loads the next one, `version` what the parts of one list share: a part `asked`
+    for with another version comes back as the first part, the list having changed meanwhile."""
     zone = _local_tz()
     first, last = flt.days(zone)
     start = datetime(first.year, first.month, first.day, tzinfo=zone).astimezone(timezone.utc) if first else None
@@ -11901,7 +11908,7 @@ def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str
     _add_context(items, db, vehicle_id)
     live = events_live(db, vehicle_id)
     places = [dict(p) for p in db.execute(
-        "SELECT name, latitude, longitude, radius_m FROM charging_places"
+        "SELECT id, name, latitude, longitude, radius_m FROM charging_places"
         " WHERE vehicle_id = COALESCE(?, vehicle_id) AND enabled = 1", (vehicle_id,))]
     for m in items:
         _present_event(m, zone, live, t, places, lang)
@@ -11911,16 +11918,28 @@ def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str
     items.sort(key=lambda m: (m["t"], m["id"]), reverse=True)        # one second: the later write first
     listed = {m["anchor"] for m in items}
     by_day: dict = {}
+    points: dict = {}
     for m in items:
         m["from_listed"] = m.get("from_anchor") in listed
         by_day.setdefault(m["day"], []).append(m)
+        if m["has_fix"]:
+            # The first row of a point is its newest, where a click on the point scrolls the list.
+            p = points.setdefault(m["place_key"], {"key": m["place_key"], "row": m["anchor"], "at": m["place_at"],
+                                                   "lat": 0.0, "lon": 0.0, "n": 0, "i": len(points)})
+            p["lat"] += m["lat"]
+            p["lon"] += m["lon"]
+            p["n"] += 1
+            m["point"] = p["i"]
+    for p in points.values():                                       # a charging place stands where it is set
+        p["lat"], p["lon"] = p["at"] or (round(p["lat"] / p["n"], 6), round(p["lon"] / p["n"], 6))
     weekdays = i18n.weekday_abbrs(lang)
     days = [{"date": d, "label": f"{weekdays[d.weekday()]} {i18n.fmt_day_month_year(lang, d)}",
              "items": by_day[d]} for d in sorted(by_day, reverse=True)]
+    points = [{"key": p["key"], "row": p["row"], "lat": p["lat"], "lon": p["lon"]} for p in points.values()]
     lines, lanes, runs = _event_lines(items, start, end, weekdays, lang)
-    version = _events_version(lines)
+    version = _events_version(lines, points)
     if part and asked is not None and version != asked:
         part = 0
     lines, more = _event_part(lines, lanes, runs, part)
     return {"days": days, "lines": lines, "more": more, "part": part, "version": version, "lanes": lanes,
-            "count": len(items), "live": live, "first": first, "last": last}
+            "count": len(items), "live": live, "first": first, "last": last, "points": points}

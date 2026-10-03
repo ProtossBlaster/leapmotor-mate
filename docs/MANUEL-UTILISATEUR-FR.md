@@ -1185,6 +1185,14 @@ l'écran.
   chiffres de Trajets et de Recharges. Ces chiffres ressortent du reste de la ligne ; un coût est en vert
   et le délai avant le début de la recharge en ambre.
 - **Lieux** : une ligne à l'un de vos lieux de recharge (*Prix de recharge → Lieux de recharge*) le nomme.
+- **La carte** reste masquée jusqu'à ce que **🗺 Afficher la carte**, au-dessus de la liste, l'ouvre (à
+  côté de la liste sur un écran large, au-dessus sur un téléphone ou un écran plus étroit), et la fois
+  suivante elle est telle que vous l'avez laissée. Chaque ligne avec une position a un 🌍 : il ouvre la
+  carte si besoin, allume le point de la ligne, l'amène dans le champ et allume la ligne et l'autre moitié
+  de sa paire. Un clic sur un point l'allume avec ses lignes et fait défiler la liste jusqu'à sa ligne la
+  plus récente ; la ligne sous le pointeur allume son point tant que le pointeur y reste. Un point
+  représente un endroit d'environ 110 m, ou un lieu de recharge entier. La ligne d'un trajet ou d'une
+  recharge l'ouvre, et **← Événements** y ramène à la liste telle qu'elle était.
 - **Deux données font un événement.** Le cloud envoie des clignotements d'une seule donnée — un store
   « ouvert » le temps d'une seule lecture —, donc un changement ne compte que lorsque deux lectures
   consécutives le confirment. Un changement que la voiture a annulé entre deux de ses envois n'est jamais
