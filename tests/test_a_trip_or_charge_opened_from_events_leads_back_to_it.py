@@ -143,10 +143,12 @@ def test_back_leaves_the_row_in_view_below_the_bars_and_the_map(tmp_path, monkey
     with pw.sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": width, "height": 700})
-        page.route("**/*", _late(client))
+        page.route("**/*", serve(client))
         page.goto("http://mate.test/events")
         page.evaluate(f"() => localStorage.setItem('mate.events.map', '{int(map_on)}')")
         page.goto(f"http://mate.test/trips/{trip}?back=" + quote(f"events?range=3d#ev-trip-{trip}-off"))
+        page.unroute("**/*")
+        page.route("**/*", _late(client))                 # only the list the back link lands on is slow
         page.get_by_text("← Events").first.click()
         page.wait_for_url("**/events?*")
         place = f"""() => {{ const r = document.getElementById('ev-trip-{trip}-off').getBoundingClientRect();

@@ -135,8 +135,17 @@ def choose_car(mate):
     _setting(mate.db, "active_vehicle_vin", VIN)
 
 
+@pytest.fixture(scope="module")
+def browser():
+    """One Chromium for the file: each page opens in a context of its own, so no test sees another's."""
+    with sync_api.sync_playwright() as pw:
+        chromium = pw.chromium.launch()
+        yield chromium
+        chromium.close()
+
+
 @pytest.fixture
-def commands(mate):
+def commands(mate, browser):
     """Open the Commands page with the wheel reporting `raw` on 1816. Returns (page, sent commands)."""
     # Explicit synthetic owner snapshots satisfy the independent client's rights gate.
     # All command requests remain intercepted below; no cloud calls are made.
@@ -150,49 +159,50 @@ def commands(mate):
         _setting(mate.db, snapshot_key(vin), json.dumps({
             'account': account_hash(user), 'at': time.time(), 'shared': False,
             'vehicle': {'vin': vin, 'carType': 'B10', 'abilities': ABILITIES}}))
-    with sync_api.sync_playwright() as pw:
-        browser = pw.chromium.launch()
+    pages = []
 
-        def open_with(raw, fake_clock=False, answer=DONE):
-            _report(mate.db, raw)
-            page = browser.new_page()
-            if fake_clock:
-                page.clock.install()
-            errors, sent, held = [], [], []
+    def open_with(raw, fake_clock=False, answer=DONE):
+        _report(mate.db, raw)
+        page = browser.new_page()
+        pages.append(page)
+        if fake_clock:
+            page.clock.install()
+        errors, sent, held = [], [], []
 
-            def command(route):
-                sent.append(route.request.url.rsplit("/", 1)[1])
-                if page.hold:                 # the cloud is still working on it
-                    held.append(route)
-                else:
-                    route.fulfill(status=200, content_type="text/html", body=answer)
-            page.hold, page.held = False, held
-            page.on("pageerror", lambda e: errors.append(str(e)))
-            page.route("**/api/command/**", command)
-            response = page.goto(mate.url + "/commands")
-            assert response.status == 200, mate.log.read_text()[-3000:]
-            page.wait_for_selector("#cmd-grid")
-            # Fail promptly at the authorization seam instead of timing out on
-            # every later click when a fixture accidentally hides the controls.
-            assert page.locator(SLIDER).is_visible(), mate.log.read_text()[-3000:]
-            assert page.locator(MIRROR).first.is_visible(), mate.log.read_text()[-3000:]
-            # How many grid refetches are out (the page's clock can be fake, the network never is: _grid_back),
-            # how many came back with the grid, and how many command answers the page heard.
-            page.evaluate("""() => {
-                window.gridOut = window.gridsIn = window.cmdAnswers = 0;
-                const path = e => (e.detail.pathInfo || {}).requestPath || '';
-                const grid = e => path(e).indexOf('cmd-grid') !== -1, cmd = e => path(e).indexOf('api/command/') !== -1;
-                document.addEventListener('htmx:beforeRequest', e => { if (grid(e)) window.gridOut++; });
-                document.addEventListener('htmx:afterRequest', e => {
-                    if (grid(e)) { window.gridOut--; if (e.detail.successful) window.gridsIn++; }
-                    if (cmd(e)) window.cmdAnswers++;
-                });
-            }""")
-            page.errors = errors
-            return page, sent
+        def command(route):
+            sent.append(route.request.url.rsplit("/", 1)[1])
+            if page.hold:                 # the cloud is still working on it
+                held.append(route)
+            else:
+                route.fulfill(status=200, content_type="text/html", body=answer)
+        page.hold, page.held = False, held
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.route("**/api/command/**", command)
+        response = page.goto(mate.url + "/commands")
+        assert response.status == 200, mate.log.read_text()[-3000:]
+        page.wait_for_selector("#cmd-grid")
+        # Fail promptly at the authorization seam instead of timing out on
+        # every later click when a fixture accidentally hides the controls.
+        assert page.locator(SLIDER).is_visible(), mate.log.read_text()[-3000:]
+        assert page.locator(MIRROR).first.is_visible(), mate.log.read_text()[-3000:]
+        # How many grid refetches are out (the page's clock can be fake, the network never is: _grid_back),
+        # how many came back with the grid, and how many command answers the page heard.
+        page.evaluate("""() => {
+            window.gridOut = window.gridsIn = window.cmdAnswers = 0;
+            const path = e => (e.detail.pathInfo || {}).requestPath || '';
+            const grid = e => path(e).indexOf('cmd-grid') !== -1, cmd = e => path(e).indexOf('api/command/') !== -1;
+            document.addEventListener('htmx:beforeRequest', e => { if (grid(e)) window.gridOut++; });
+            document.addEventListener('htmx:afterRequest', e => {
+                if (grid(e)) { window.gridOut--; if (e.detail.successful) window.gridsIn++; }
+                if (cmd(e)) window.cmdAnswers++;
+            });
+        }""")
+        page.errors = errors
+        return page, sent
 
-        yield open_with
-        browser.close()
+    yield open_with
+    for page in pages:
+        page.close()                         # and its context with it
 
 
 def _grid_back(page):
