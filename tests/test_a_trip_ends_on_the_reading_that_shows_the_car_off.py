@@ -7,10 +7,12 @@ The moment a trip closes does not change, and neither does anything that decides
 moves, to the first reading of the final P run that shows the car off after it was last seen on,
 and the whole end with it: the SoC, odometer, position and fuel of that reading, and none of the
 regen or route points the polls after it added. Those are told apart by the order the rows were
-written, not by any clock. A car switched on again in that run was not switched off for good; one
-still on at the close, or one that never reports READY, keeps the usual end. So does a switch-off
-reading that lacks something the usual end has, or one whose odometer a later reading contradicts:
-the end moves only when nothing is lost with it and no kilometre is counted twice.
+written, not by any clock. A car switched on again in that run was not switched off for good; a car
+that never reports READY keeps the usual end, and a car still reading ON does not close a trip at
+all — the standstill is a stop inside it (PARKED_READY_LIMIT_S, and
+test_a_wait_in_park_does_not_end_a_trip). So the end stays where it was for a switch-off reading
+that lacks something the usual end has, or one whose odometer a later reading contradicts: the end
+moves only when nothing is lost with it and no kilometre is counted twice.
 """
 import copy
 from datetime import timedelta
@@ -70,7 +72,7 @@ def _park(send, odo, readies, **extra):
     return [send(10, odo=odo, gear="P", ready=r, **extra) for r in readies]
 
 
-OFF_ON_THE_THIRD = [True, True, False, False, False, False]
+OFF_ON_THE_THIRD = [True, True] + [False] * SM.PARKED_CONFIRM
 
 
 def test_the_trip_ends_on_the_first_reading_that_shows_the_car_off(car):
@@ -90,7 +92,7 @@ def test_the_end_takes_everything_from_the_switch_off_reading(car):
     send(10, odo=odo, gear="P", ready=True, fuel_level_pct=40.0, fuel_liters=20.0)
     send(10, odo=odo, gear="P", ready=False, soc=78.9, lat=45.1, fuel_level_pct=39.9,
          fuel_liters=19.9)
-    for _ in range(4):
+    for _ in range(SM.PARKED_CONFIRM - 1):
         send(10, odo=odo, gear="P", ready=False, soc=78.8, lat=45.2, fuel_level_pct=39.8,
              fuel_liters=19.8)
     trip, = _trips(db)
@@ -98,22 +100,23 @@ def test_the_end_takes_everything_from_the_switch_off_reading(car):
         (78.9, 45.1, 39.9, 19.9)
 
 
-def test_a_car_still_on_when_the_trip_closes_keeps_the_usual_end(car):
+def test_a_car_still_on_does_not_close_the_trip_at_all(car):
+    """The six readings are the car's word that the drive is over, and a car reading ON has not
+    given it: there is no end to place. Where that leaves the trip is the subject of
+    test_a_wait_in_park_does_not_end_a_trip."""
     db, _rec, send, _repeat, _wall = car
     odo = _drive(send)
-    times = _park(send, odo, [True] * SM.PARKED_CONFIRM)
-    assert _trips(db)[0]["ended_at"] == times[-1].isoformat()
+    _park(send, odo, [True] * (SM.PARKED_CONFIRM * 2))
+    assert _trips(db)[0]["ended_at"] is None
 
 
-@pytest.mark.parametrize("readies, end_on", [
-    ([True, False, True, False, False, False], 3),     # off, on again, off for good
-    ([True, False, True, True, True, True], None),      # off, then on again until the close
-], ids=["off for good the second time", "on again at the close"])
-def test_a_car_switched_on_again_was_not_switched_off_for_good(car, readies, end_on):
+def test_a_car_switched_on_again_was_not_switched_off_for_good(car):
+    """Off, on again, then off for good: the end is the second zero. The first one closed nothing —
+    the car came back on, and the readings it was on for do not confirm anything either."""
     db, _rec, send, _repeat, _wall = car
     odo = _drive(send)
-    times = _park(send, odo, readies)
-    assert _trips(db)[0]["ended_at"] == times[-1 if end_on is None else end_on].isoformat()
+    times = _park(send, odo, [True, False, True] + [False] * SM.PARKED_CONFIRM)
+    assert _trips(db)[0]["ended_at"] == times[3].isoformat()
 
 
 def test_a_short_stop_in_p_mid_drive_stays_inside_one_trip(car):
@@ -123,7 +126,7 @@ def test_a_short_stop_in_p_mid_drive_stays_inside_one_trip(car):
     odo = _drive(send)
     _park(send, odo, [False, False, True])              # a few seconds in P, off and on again
     odo = _drive(send, start=odo, km=3)
-    times = _park(send, odo, [True, False, False, False, False, False])
+    times = _park(send, odo, [True] + [False] * SM.PARKED_CONFIRM)
     trips = _trips(db)
     assert len(trips) == 1 and trips[0]["ended_at"] == times[1].isoformat()
     assert _ledger(db) == [(1000, 1008)]
@@ -161,8 +164,8 @@ def test_a_car_that_never_reports_ready_keeps_the_usual_end(car):
 
 
 @pytest.mark.parametrize("readies, end_on", [
-    ([True, None, None, False, False, False], 3),    # the first zero actually read
-    ([True, None, None, None, None, None], None),    # never read off
+    ([True, None, None] + [False] * SM.PARKED_CONFIRM, 3),   # the first zero actually read
+    ([True] + [None] * SM.PARKED_CONFIRM, None),             # never read off
 ], ids=["read off after a gap", "never read off"])
 def test_a_reading_without_ready_is_not_a_switch_off(car, readies, end_on):
     db, _rec, send, _repeat, _wall = car
@@ -193,8 +196,8 @@ REGEN = {"charge_current_a": -20.0, "charge_power_kw": 8.0}
 
 
 @pytest.mark.parametrize("readies, kept", [
-    ([True, False, False, False, False, False], 2),    # the P reading still on, and the end itself
-    ([True, False, True, False, False, False], 4),     # off, on again, off for good
+    ([True] + [False] * SM.PARKED_CONFIRM, 2),               # the P reading still on, and the end
+    ([True, False, True] + [False] * SM.PARKED_CONFIRM, 4),  # off, on again, off for good
 ], ids=["off for good", "switched on again"])
 def test_regen_counted_after_the_switch_off_is_not_the_trips(car, readies, kept):
     """The regen gate asks neither READY nor the gear, and the trip is still DRIVING while P is
@@ -221,7 +224,7 @@ def test_our_clock_stepping_back_after_the_switch_off_does_not_keep_what_came_af
     odo = _drive(send)
     times = _park(send, odo, [True, False], **REGEN)
     wall["now"] -= timedelta(seconds=45)                # ours, not the car's
-    _park(send, odo, [False] * 4, skew=45, **REGEN)
+    _park(send, odo, [False] * (SM.PARKED_CONFIRM - 1), skew=45, **REGEN)
     trip, = _trips(db)
     assert trip["ended_at"] == times[1].isoformat()
     assert _points(db) == 6 + 2 and trip["regen_kwh"] == pytest.approx(2 * STEP, abs=1e-3)
@@ -236,7 +239,7 @@ def test_the_gps_distance_is_measured_on_the_points_kept(car):
     end = 45.0 + 3 * 0.0009
     send(10, odo=1000, gear="P", ready=True, lat=end)
     send(10, odo=1000, gear="P", ready=False, lat=end)
-    for _ in range(4):
+    for _ in range(SM.PARKED_CONFIRM - 1):
         send(10, odo=1000, gear="P", ready=False, lat=end + 0.0036)
     trip, = _trips(db)
     assert trip["distance_km"] == pytest.approx(D.haversine_km(45.0, 9.0, end, 9.0), abs=0.01)
@@ -245,19 +248,19 @@ def test_the_gps_distance_is_measured_on_the_points_kept(car):
 def test_the_next_drive_counts_its_kilometres_once(car):
     db, _rec, send, _repeat, _wall = car
     odo = _drive(send)
-    _park(send, odo, [True, False, False, False, False, False])
+    _park(send, odo, [True] + [False] * SM.PARKED_CONFIRM)
     odo = _drive(send, start=odo, km=5)
-    _park(send, odo, [True, False, False, False, False, False])
+    _park(send, odo, [True] + [False] * SM.PARKED_CONFIRM)
     assert _ledger(db) == [(1000, 1005), (1005, 1010)]
 
 
 def test_a_closing_reading_without_an_odometer_does_not_hold_the_end_back(car):
     db, _rec, send, _repeat, _wall = car
     odo = _drive(send)
-    times = _park(send, odo, [True, False, False, False, False])
+    times = _park(send, odo, [True] + [False] * (SM.PARKED_CONFIRM - 1))
     send(10, odo=0, soc=79.0, gear="P", ready=False, odometer_reported=False)
     odo = _drive(send, start=odo, km=5)
-    _park(send, odo, [True] * SM.PARKED_CONFIRM)
+    _park(send, odo, [False] * SM.PARKED_CONFIRM)
     assert _trips(db)[0]["ended_at"] == times[1].isoformat()
     assert _ledger(db) == [(1000, 1005), (1005, 1010)]
 
@@ -282,7 +285,7 @@ def test_a_switch_off_reading_that_would_lose_something_leaves_the_end_alone(car
     send(10, odo=odo, gear="P", ready=True, fuel_liters=19.8)
     send(10, **{"odo": odo, "gear": "P", "ready": False, "fuel_liters": 19.8, **off})
     times = [send(10, **{"odo": odo, "gear": "P", "ready": False, "fuel_liters": 19.8, **later})
-             for _ in range(4)]
+             for _ in range(SM.PARKED_CONFIRM - 1)]
     trip, = _trips(db)
     assert trip["ended_at"] == times[-1].isoformat()
     assert _ledger(db) == [(1000, trip["end_odometer_km"])]
@@ -291,7 +294,7 @@ def test_a_switch_off_reading_that_would_lose_something_leaves_the_end_alone(car
 def test_the_close_is_all_or_nothing(car, monkeypatch):
     db, _rec, send, _repeat, _wall = car
     odo = _drive(send)
-    _park(send, odo, [True, False, False, False, False])
+    _park(send, odo, [True] + [False] * (SM.PARKED_CONFIRM - 1))
     points = _points(db)
 
     def boom(*_a, **_k):

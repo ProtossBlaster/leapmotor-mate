@@ -808,16 +808,19 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   recorridos durante el corte forman parte de él. Tras un silencio más largo, el trayecto termina en
   lo último que dijo el coche antes de ese silencio, y los kilómetros posteriores se tratan como
   todos los que se recorren sin conexión.
-- **Un trayecto termina en la lectura que muestra el coche apagado 🆕.** Mate sigue cerrando un
-  trayecto tras un minuto aproximadamente en Park, pero su final (hora, nivel de carga,
-  cuentakilómetros, posición y combustible) sale de la primera lectura de esa parada que muestra el
-  coche **apagado**, así que el minuto que Mate espera en Park ya no cuenta en el trayecto. Es la
-  primera lectura que *vio* el coche apagado: tras un corte del enlace llega, por tanto, más tarde que
-  el propio apagado. Un coche que se deja encendido en Park, que se vuelve a encender antes de que se
-  cierre el trayecto o que no indica si está encendido conserva el final en la última lectura, y lo
-  mismo ocurre si a la lectura del apagado le falta algún dato o una posterior muestra otro
-  kilometraje. Un trayecto que Mate encuentra aún abierto al reiniciarse, con el coche ya aparcado, se
-  cierra en su último punto registrado.
+- **Un trayecto termina cuando termina el coche 🆕.** Un trayecto se cierra en la lectura que
+  muestra el coche **apagado**, y de esa lectura sale su final: hora, nivel de carga,
+  cuentakilómetros, posición y combustible. Por tanto **esperar en Park con el coche encendido es
+  una parada dentro del trayecto**, no su final: ir a buscar a alguien y volver es un solo trayecto,
+  no dos, y el consumo oficial que la nube mide del encendido al apagado pertenece entero a ese
+  trayecto, sin mitades que unir. Es la primera lectura que *vio* el coche apagado: tras un corte
+  del enlace llega, por tanto, más tarde que el propio apagado. Un coche que no indica si está
+  encendido se cierra tras un minuto aproximadamente en Park, como antes, y lo mismo ocurre cuando
+  la lectura en Park es una imagen que la nube repite desde hace media hora. El final se queda en la
+  última lectura cuando a la lectura del apagado le falta algún dato o una posterior muestra otro
+  kilometraje. Un trayecto que Mate encuentra aún abierto al reiniciarse, con el coche ya aparcado,
+  se cierra en su último punto registrado; uno parado en Park durante media jornada en un coche que
+  sigue declarándose encendido se cierra donde se detuvo.
 - **Los kilómetros que Mate no vio no se suman a los trayectos de alrededor.** Cuando el enlace con
   la nube se cae durante más tiempo que un corte breve dentro de un mismo trayecto (ver arriba), el
   coche sigue moviéndose pero Mate no lo ve; cuando el enlace vuelve, lo único que encuentra es un

@@ -235,6 +235,17 @@ class SwitchOff(NamedTuple):
 _END_VALUES = ("soc", "latitude", "longitude", "fuel_level_pct", "fuel_liters")
 
 
+def _end_loses_nothing(rows, at: int) -> bool:
+    """Whether a trip can be closed on `rows[at]` without losing anything the readings after it
+    hold: no later reading shows another odometer — that is a cloud still catching up, and ending
+    short of it would leave kilometres out — and the reading carries every value the last one does.
+    Missing is NULL, or the 0 an odometer was stored as before 4.7.2 and a fixless position is."""
+    row = rows[at]
+    if any(r["odometer_km"] and r["odometer_km"] != row["odometer_km"] for r in rows[at + 1:]):
+        return False
+    return not any(rows[-1][name] and not row[name] for name in _END_VALUES)
+
+
 def trip_distance_km(gps_km: float, has_gps: bool, start_odo: float, end_odo: float):
     """Pick the trip distance from the odometer vs the GPS track.
 
@@ -1845,6 +1856,44 @@ class Database:
         out of the trip. Rows are taken in the order they were written, as trip_last_seen takes
         them; when the switch-off is the last row, the frame in hand, this answer and the usual end
         are the same reading."""
+        found = self._final_park_run(trip_id)
+        if found is None:
+            return None
+        trip, rows, start = found
+        last_on = max((i for i, r in enumerate(rows) if r["ready"] == 1), default=None)
+        if last_on is None:
+            return None
+        off = next((i for i in range(last_on + 1, len(rows)) if rows[i]["ready"] == 0), None)
+        if off is None or off < start:
+            return None
+        if not _end_loses_nothing(rows, off):
+            return None
+        ended_at, row = _reading(rows[off], trip["started_at"])
+        return SwitchOff(ended_at, row, row["id"])
+
+    def trip_stood_still(self, trip_id: int) -> Optional[SwitchOff]:
+        """Where a trip ends when it is closed because it STOOD still, not because the car was seen
+        switched off: the first reading of the final run of P readings — the moment the car stopped.
+
+        Only the guard of `state_machine.PARKED_READY_LIMIT_S` closes a trip this way, on a car that
+        has read switched on for half a day without moving. Everything after that first P reading is
+        the standstill, so dating the row from the frame in hand would bury twelve hours in the
+        drive; this is the same end the ordinary rule would have given a minute later, with the same
+        odometer and position. None when a later reading carries something this one does not, as for
+        a switch-off: an end moves only when nothing is lost with it."""
+        found = self._final_park_run(trip_id)
+        if found is None:
+            return None
+        trip, rows, start = found
+        if start >= len(rows) or not _end_loses_nothing(rows, start):
+            return None
+        ended_at, row = _reading(rows[start], trip["started_at"])
+        return SwitchOff(ended_at, row, row["id"])
+
+    def _final_park_run(self, trip_id: int):
+        """This trip's readings and where the run of P readings it is being closed on begins, in the
+        order the rows were written (`trip_last_seen` takes them the same way). None when the trip
+        has no start to read from."""
         trip = self._conn.execute(
             "SELECT vehicle_id, started_at FROM trips WHERE id=?", (trip_id,)).fetchone()
         if trip is None or not trip["started_at"]:
@@ -1856,20 +1905,7 @@ class Database:
         start = len(rows)
         while start > 0 and rows[start - 1]["gear"] == "P":
             start -= 1
-        last_on = max((i for i, r in enumerate(rows) if r["ready"] == 1), default=None)
-        if last_on is None:
-            return None
-        off = next((i for i in range(last_on + 1, len(rows)) if rows[i]["ready"] == 0), None)
-        if off is None or off < start:
-            return None
-        row = rows[off]
-        # Missing is NULL, or the 0 an odometer was stored as before 4.7.2 and a fixless position is.
-        if any(r["odometer_km"] and r["odometer_km"] != row["odometer_km"] for r in rows[off + 1:]):
-            return None
-        if any(rows[-1][name] and not row[name] for name in _END_VALUES):
-            return None
-        ended_at, row = _reading(row, trip["started_at"])
-        return SwitchOff(ended_at, row, row["id"])
+        return trip, rows, start
 
     def finalize_trip(self, trip_id: int, data, regen_kwh: float = 0.0,
                       end_at_override: Optional[str] = None,

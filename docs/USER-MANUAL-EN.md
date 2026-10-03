@@ -768,15 +768,18 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   then parked or charging, the trip ends there, and the kilometres covered in the gap are part of
   it. After a longer silence the trip ends at the last thing the car said before it, and the
   kilometres after that are treated like any others covered out of contact.
-- **A trip ends on the reading that shows the car switched off 🆕.** Mate still closes a drive after
-  about a minute in Park, but its end (time, charge level, odometer, position and fuel) comes from the
-  first reading of that stop that shows the car **switched off**, so the minute Mate waits in Park is
-  no longer part of the trip. It is the first reading that *saw* the car off, so after a gap in the
-  link it comes later than the switch-off itself. A car left on in Park, switched on again before the
-  trip closes, or not reporting whether it is on keeps the end at the last reading, and so does a stop
-  where the switch-off reading lacks something or a later reading shows another odometer. A trip Mate
-  finds still open when it restarts, with the car already parked, is closed on its last recorded
-  point instead.
+- **A trip ends when the car does 🆕.** A drive closes on the reading that shows the car **switched
+  off**, and that reading gives it its end: time, charge level, odometer, position and fuel. So
+  **waiting in Park with the car still on is a stop inside the trip**, not its end — going to pick
+  someone up and driving back is one trip, not two, and the official consumption the cloud measures
+  from switch-on to switch-off then belongs to that one trip whole, with no halves to merge. It is
+  the first reading that *saw* the car off, so after a gap in the link it comes later than the
+  switch-off itself. A car that does not report whether it is on closes after about a minute in
+  Park, as before, and so does one whose Park reading is a frame the cloud has been repeating for
+  half an hour. The end stays at the last reading when the switch-off reading lacks something, or
+  when a later one shows another odometer. A trip Mate finds still open when it restarts, with the
+  car already parked, is closed on its last recorded point; one standing in Park for half a day on a
+  car that keeps reporting itself on is closed where it stopped moving.
 - **Kilometres Mate did not see are not added to the trips around them.** When the link to the cloud
   drops for longer than a short gap inside one drive (see above), the car keeps moving but Mate
   cannot see it; when the link returns, all it finds is an odometer further along. That jump can

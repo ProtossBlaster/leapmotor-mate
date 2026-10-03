@@ -819,16 +819,20 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   parcourus pendant la coupure en font partie. Après un silence plus long, le trajet se termine à la
   dernière nouvelle de la voiture avant ce silence, et les kilomètres suivants sont traités comme
   tous ceux parcourus hors contact.
-- **Un trajet se termine sur le relevé qui montre la voiture éteinte 🆕.** Mate clôt toujours un
-  trajet après environ une minute en P, mais sa fin (heure, niveau de charge, kilométrage, position et
-  carburant) vient du premier relevé de cet arrêt qui montre la voiture **éteinte**, si bien que la
-  minute que Mate attend en P ne compte plus dans le trajet. C'est le premier relevé qui a *vu* la
-  voiture éteinte : après une coupure de la liaison, il arrive donc plus tard que l'extinction
-  elle-même. Une voiture laissée allumée en P, rallumée avant la clôture du trajet, ou qui n'indique
-  pas si elle est allumée garde la fin au dernier relevé ; de même lorsqu'il manque une donnée au
-  relevé de l'extinction ou qu'un relevé suivant montre un autre kilométrage. Un trajet que Mate
-  trouve encore ouvert à son redémarrage, voiture déjà garée, est clos sur son dernier point
-  enregistré.
+- **Un trajet se termine quand la voiture se termine 🆕.** Un trajet est clos sur le relevé qui
+  montre la voiture **éteinte**, et c'est de ce relevé que vient sa fin : heure, niveau de charge,
+  kilométrage, position et carburant. **Attendre en P avec la voiture allumée est donc un arrêt à
+  l'intérieur du trajet**, et non sa fin — aller chercher quelqu'un et rentrer est un seul trajet,
+  pas deux, et la consommation officielle que le cloud mesure de l'allumage à l'extinction
+  appartient alors tout entière à ce trajet, sans moitiés à fusionner. C'est le premier relevé qui a
+  *vu* la voiture éteinte : après une coupure de la liaison, il arrive donc plus tard que
+  l'extinction elle-même. Une voiture qui n'indique pas si elle est allumée est close après environ
+  une minute en P, comme avant, et de même lorsque le relevé en P est une image que le cloud répète
+  depuis une demi-heure. La fin reste au dernier relevé lorsqu'il manque une donnée au relevé de
+  l'extinction ou qu'un relevé suivant montre un autre kilométrage. Un trajet que Mate trouve encore
+  ouvert à son redémarrage, voiture déjà garée, est clos sur son dernier point enregistré ; un
+  trajet immobile en P pendant une demi-journée sur une voiture qui se déclare toujours allumée est
+  clos là où elle s'est arrêtée.
 - **Les kilomètres que Mate n'a pas vus ne sont pas ajoutés aux trajets qui les entourent.** Quand
   la liaison avec le cloud tombe plus longtemps qu'une courte coupure au sein d'un même trajet (voir
   ci-dessus), la voiture continue de rouler mais Mate ne la voit pas ; au retour, il ne trouve qu'un

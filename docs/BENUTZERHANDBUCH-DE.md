@@ -806,16 +806,21 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   aus der Lücke gehören zu ihr. Nach einer längeren Stille endet die Fahrt bei der letzten Nachricht
   des Autos davor, und die Kilometer danach werden wie alle anderen behandelt, die ohne Verbindung
   gefahren wurden.
-- **Eine Fahrt endet mit der Messung, die das Auto ausgeschaltet zeigt 🆕.** Mate schließt eine Fahrt
-  weiterhin nach etwa einer Minute in P, doch ihr Ende (Uhrzeit, Ladestand, Kilometerstand, Position
-  und Kraftstoff) stammt aus der ersten Messung dieses Halts, die das Auto **ausgeschaltet** zeigt; die
-  Minute, die Mate in P abwartet, zählt damit nicht mehr zur Fahrt. Es ist die erste Messung, die das
-  Auto ausgeschaltet *gesehen* hat; nach einer Verbindungslücke liegt sie deshalb später als das
-  Ausschalten selbst. Bleibt das Auto in P eingeschaltet, wird es vor dem Ende der Fahrt wieder
-  eingeschaltet oder meldet es nicht, ob es an ist, endet die Fahrt bei der letzten Messung – ebenso,
-  wenn der Messung beim Ausschalten etwas fehlt oder eine spätere einen anderen Kilometerstand zeigt.
-  Findet Mate beim Neustart eine noch offene Fahrt vor, während das Auto schon steht, schließt es sie
-  stattdessen an ihrem letzten aufgezeichneten Punkt.
+- **Eine Fahrt endet, wenn das Auto endet 🆕.** Eine Fahrt wird mit der Messung geschlossen, die das
+  Auto **ausgeschaltet** zeigt, und aus dieser Messung stammt ihr Ende: Uhrzeit, Ladestand,
+  Kilometerstand, Position und Kraftstoff. **In P zu warten, während das Auto an bleibt, ist deshalb
+  ein Halt innerhalb der Fahrt** und nicht ihr Ende – jemanden abholen und zurückfahren ist eine
+  Fahrt und nicht zwei, und der offizielle Verbrauch, den die Cloud vom Einschalten bis zum
+  Ausschalten misst, gehört dann ganz zu dieser einen Fahrt, ohne zusammenzuführende Hälften. Es ist
+  die erste Messung, die das Auto ausgeschaltet *gesehen* hat; nach einer Verbindungslücke liegt sie
+  deshalb später als das Ausschalten selbst. Ein Auto, das nicht meldet, ob es an ist, wird wie
+  bisher nach etwa einer Minute in P geschlossen – ebenso eine Fahrt, deren Messung in P ein Bild
+  ist, das die Cloud seit einer halben Stunde wiederholt. Das Ende bleibt bei der letzten Messung,
+  wenn der Messung beim Ausschalten etwas fehlt oder eine spätere einen anderen Kilometerstand
+  zeigt. Findet Mate beim Neustart eine noch offene Fahrt vor, während das Auto schon steht,
+  schließt es sie an ihrem letzten aufgezeichneten Punkt; eine Fahrt, die einen halben Tag in P
+  steht, während sich das Auto weiter als eingeschaltet meldet, wird dort geschlossen, wo es
+  stehengeblieben ist.
 - **Kilometer, die Mate nicht gesehen hat, werden keiner Fahrt davor oder danach zugeschlagen.**
   Reißt die Verbindung zur Cloud länger ab als eine kurze Lücke innerhalb einer Fahrt (siehe oben),
   fährt das Auto weiter, Mate sieht es aber nicht; kehrt die Verbindung zurück, findet es nur einen

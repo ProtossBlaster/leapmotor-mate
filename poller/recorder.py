@@ -430,7 +430,8 @@ class Recorder:
     _MIN_TRIP_KM = 0.2
 
     def _finalize_trip(self, data, end_at: Optional[str] = None,
-                       reading: Optional[OdometerReading] = None) -> None:
+                       reading: Optional[OdometerReading] = None,
+                       stood_still: bool = False) -> None:
         # The trip ends on this reading, so everything driven up to it is the trip's: unseen kilometres
         # are measured from here on. Without an odometer nothing says where it ended, so from nowhere.
         # A baseline already at this odometer keeps its time: behind a frozen frame, when news stopped.
@@ -443,11 +444,16 @@ class Recorder:
         elif prev is None or prev.odometer_km != reading.odometer_km:
             self._odometer_reading = reading
         regen, dropped = self._regen_kwh, ()
-        off = self._db.trip_switched_off(self._active_trip_id) if end_at is None else None
+        # Where the trip ended, when a reading inside it says so better than the frame in hand: the
+        # switch-off that closed it, or — for the trip given up on after half a day of standing in P
+        # on a car still reading on — the moment it stopped moving. Both answer in the same shape.
+        off = None
+        if end_at is None:
+            off = (self._db.trip_stood_still(self._active_trip_id) if stood_still
+                   else self._db.trip_switched_off(self._active_trip_id))
         if off is not None:
-            # Switched off in the standstill the trip closes on: it ended on that reading, and what
-            # the polls written after it added is not the trip's. The baseline above stays: no later
-            # reading shows another odometer.
+            # It ended on that reading, and what the polls written after it added is not the trip's.
+            # The baseline above stays: no later reading shows another odometer.
             end_at, data = off.ended_at, SimpleNamespace(**dict(off.row))
             regen = sum(p.regen_kwh for p in self._trip_polls if p.position_id <= off.position_id)
             dropped = tuple(p.point_id for p in self._trip_polls
@@ -707,7 +713,7 @@ class Recorder:
                 self._db.set_setting(f"frozen_drive_frame_{self._vehicle_id}",
                                      str(data.timestamp_ms))
             if self._active_trip_id and data:
-                self._finalize_trip(data)
+                self._finalize_trip(data, stood_still=event.stood_still)
             self._active_trip_id = None
             self._trip_polls = []
 

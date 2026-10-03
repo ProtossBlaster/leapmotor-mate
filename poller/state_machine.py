@@ -71,6 +71,31 @@ _REEV_SOC_RISE_PCT = 0.3   # total climb from the low-water mark that means "thi
 # gear stays D, never split one drive into many trips.
 PARKED_CONFIRM  = 6      # consecutive gear-P readings to end a trip (~1 min @ 10s)
 
+# …and those six readings only count once the CAR says the drive is over. P with the car still
+# switched on (READY, signal 1258) is a stop INSIDE the trip — someone being picked up, a gate, a
+# queue: the driver waiting in the car has not finished the drive, and Mate used to close it after a
+# minute and open a second trip when they drove on. It is also where the cloud's own driving session
+# ends — getEC runs READY-on → power-off — so a trip closed on the switch-off is the span the cloud
+# publishes a figure for, and the figure needs no merging of two halves to be attributed.
+#
+# Measured on Silvio's B10, 390 182 polls over four months, 566 trips: of the 409 pauses between two
+# consecutive trips, 34 have READY=1 in EVERY frame of the pause — the car was never switched off —
+# with a median of 4.8 min, while the 375 where a READY=0 appears have a median of 36.7 min. The two
+# do not overlap, and 74 trips (13 %) shared one power-on session with another, which is what made
+# the official figure unavailable for them.
+#
+# A car that does not report READY (`ready_reported` false) keeps the rule above, unchanged: without
+# the signal there is nothing better to close on. A frame the cloud has frozen keeps it too, below.
+PARKED_READY_LIMIT_S = 12 * 3600
+# The guard for the one case the switch-off cannot cover: a cloud that keeps serving FRESH frames
+# saying READY=1 on a car that is actually off. Never seen in those four months — the longest
+# standstill ever recorded in P with the car on and the frames advancing is 48 min — but if it
+# happened the trip would never close: it would read "in progress" for ever, stay out of the Reports
+# and out of the official figure, and hold this car's positions back from the retention sweep
+# (prune_positions keeps everything from an open trip's start). Twelve hours is far outside any wait
+# a person makes — a night spent in the car with the climate on is eight — so no real stop can reach
+# it; the trip is then closed where the car stopped moving (Database.trip_stood_still).
+
 # …and the escape for when those six readings can never arrive (#233, @riri19). Ending a trip needs
 # the cloud to SAY gear P. When the cloud instead freezes on a frame that says D — it re-serves the
 # last frame it holds, forever — the trip has no way to close: the car is parked in the drive, and
@@ -133,6 +158,10 @@ class StateEvent:
     # it is NOT the moment the thing ended. Whoever writes the row has to date it from the last real
     # reading instead (#289).
     frozen: bool = False
+    # This trip was closed because it had stood still in P for half a day with the car reading
+    # switched ON, which no wait is: the frame that triggered it is not the end either, and the row
+    # is dated where the car stopped moving instead (PARKED_READY_LIMIT_S).
+    stood_still: bool = False
 
 
 @dataclass
@@ -154,6 +183,9 @@ class StateMachine:
     _frame_first_seen: float   = field(default=0.0,  repr=False)
     # The frame a trip was given up on, so the very same frame cannot immediately re-open one.
     _frozen_closed_ts: Optional[int] = field(default=None, repr=False)
+    # When the car stopped, inside a trip it has not ended: the first P reading of a standstill it
+    # is still switched on for. None whenever it is moving, or in P with the car off.
+    _still_since: Optional[float] = field(default=None, repr=False)
 
     def update(self, data: VehicleData) -> list[StateEvent]:
         self._error_count = 0
@@ -283,19 +315,37 @@ class StateMachine:
         # ── DRIVING ───────────────────────────────────────────────────────
         elif self.state == State.DRIVING:
             if charge_active:
-                self._parked_count = 0
+                self._parked_count, self._still_since = 0, None
                 events.append(self._go(State.CHARGING, data))
             elif data.plug_connected:
                 # Cable inserted after the drive, but no current yet (e.g. a scheduled charge that
                 # will start later): end the trip NOW — don't wait the ~1 min gear-P confirmation —
                 # but do NOT open a charge. The charge opens later, from PARKED, when current flows.
-                self._parked_count = 0
+                self._parked_count, self._still_since = 0, None
                 self._alert_start_ts = now
                 events.append(self._go(State.PARKED_ACTIVE, data))
+            elif (data.gear == "P" and data.ready_reported and data.ready
+                  and frozen_s < FROZEN_DRIVE_LIMIT_S):
+                # In P with the car still on: a stop inside the drive, not its end. The confirmation
+                # does not run — it starts over when the car is seen off — and the trip stays open
+                # for as long as the person is waiting. A frozen frame is excluded above: a repeated
+                # "P, READY on" is a photograph of a car that may have been off for hours, and the
+                # branch below (today's rule) owns it, exactly as it did before.
+                self._parked_count = 0
+                if self._still_since is None:
+                    self._still_since = now
+                elif now - self._still_since >= PARKED_READY_LIMIT_S:
+                    log.warning("Trip still open after %.1f h standing in P on a car that keeps "
+                                "reading switched on — closing it where the car stopped",
+                                (now - self._still_since) / 3600)
+                    self._still_since = None
+                    self._alert_start_ts = now
+                    events.append(self._go(State.PARKED_ACTIVE, data, stood_still=True))
             elif data.gear == "P":
                 self._parked_count += 1
                 if self._parked_count >= PARKED_CONFIRM:
                     self._parked_count = 0
+                    self._still_since = None
                     self._alert_start_ts = now
                     events.append(self._go(State.PARKED_ACTIVE, data))
             elif frozen_s >= FROZEN_DRIVE_LIMIT_S:
@@ -308,9 +358,10 @@ class StateMachine:
                 self._parked_count = 0
                 self._alert_start_ts = now
                 self._frozen_closed_ts = frame_ts    # …and don't let this same frame re-open one
+                self._still_since = None
                 events.append(self._go(State.PARKED_ACTIVE, data, frozen=True))
             else:
-                self._parked_count = 0
+                self._parked_count, self._still_since = 0, None
 
         # ── CHARGING ──────────────────────────────────────────────────────
         elif self.state == State.CHARGING:
@@ -337,8 +388,10 @@ class StateMachine:
         self._error_count = 0
         return []
 
-    def _go(self, new_state: State, data, *, frozen: bool = False) -> StateEvent:
-        event = StateEvent(from_state=self.state, to_state=new_state, data=data, frozen=frozen)
+    def _go(self, new_state: State, data, *, frozen: bool = False,
+            stood_still: bool = False) -> StateEvent:
+        event = StateEvent(from_state=self.state, to_state=new_state, data=data, frozen=frozen,
+                           stood_still=stood_still)
         self.state = new_state
         log.info(
             "State: %-14s → %-14s  (poll: %ds)",
