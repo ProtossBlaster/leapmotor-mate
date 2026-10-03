@@ -4884,12 +4884,16 @@ def ready_session(trip: dict):
     # None when no such zero was observed (caller then uses its fallback).
     since = merged[at - 1][1] if at else float("-inf")
     on_lo = max((ts for ts, rd, _ in samples if since < ts < on and rd == 0), default=None)
-    # Count finalized, non-merged trips whose span falls inside the session.
+    # Count finalized, non-merged trips whose span falls inside the session — the DRIVES. A row of
+    # no distance is not one: the Leapmotor history import writes a trip per cloud record, including
+    # the 0 km ones it keeps for a manoeuvre, with no positions and no SoC. Counting those made the
+    # conversion refuse a session the user then could not fix — merging the two real halves leaves
+    # the 0 km row outside the group, so the guard refused again (9 of Silvio's 74 shared sessions).
     olo = datetime.fromtimestamp(on - _READY_MATCH_SLACK_S, timezone.utc).isoformat()
     ohi = datetime.fromtimestamp(off + _READY_MATCH_SLACK_S, timezone.utc).isoformat()
     trs = db.execute(
         "SELECT id, started_at, ended_at FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
-        "AND merged_into_id IS NULL "
+        "AND merged_into_id IS NULL AND COALESCE(distance_km, 0) > 0 "
         "AND ended_at IS NOT NULL AND ended_at >= ? AND started_at <= ? ORDER BY started_at",
         (_current_vehicle_id(), olo, ohi)).fetchall()
     ids = []
