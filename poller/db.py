@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import NamedTuple, Optional
 
 import crypto
+import events
 import geohash
 import charging_places
 
@@ -642,6 +643,7 @@ class Database:
             "DELETE FROM positions WHERE soc = 0 AND odometer_km IS NULL "
             "AND recorded_at >= '2026-10-01T18:00:00+00:00'"
         ).rowcount
+        events.clamp_cursors(self._conn)
         self.set_setting("positions_misread_map_repair_v1", "1")
         self._conn.commit()
         if dropped:
@@ -680,6 +682,7 @@ class Database:
             if not moved:
                 doomed.append(z["id"])
         self._conn.executemany("DELETE FROM positions WHERE id = ?", [(i,) for i in doomed])
+        events.clamp_cursors(self._conn)
         self.set_setting("positions_zero_soc_repair_v1", "1")
         self._conn.commit()
         if doomed:
@@ -1012,11 +1015,20 @@ class Database:
             deleted += self._conn.execute(
                 "DELETE FROM positions WHERE recorded_at < ? AND COALESCE(charging, 0) = 0" + others,
                 (cutoff, *open_since)).rowcount
+            # The events derived from those rows age out with them, and a cursor past the newest
+            # remaining row would skip the rows written next (see events.clamp_cursors).
+            events.prune(self._conn, cutoff)
+            events.clamp_cursors(self._conn)
         if deleted > 0:
             self._conn.execute("VACUUM")
             log.info("Pruned %d old positions rows (retention %dd) and reclaimed space",
                      deleted, retention_days)
         return deleted
+
+    def derive_events(self, vehicle_id: int, max_rows=5000) -> int:
+        """Turn this car's stored positions after the cursor into `events` rows, a batch at a time
+        (events.consume). Returns the rows read: a full batch means more history is waiting."""
+        return events.consume(self._conn, vehicle_id, max_rows)
 
     # ── Research / BetaTester mode (MateBetaTesterOnly build) ──────────────────
     def insert_raw_signal_changes(self, vehicle_id, ts_ms: int, changed: dict) -> int:
