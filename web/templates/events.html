@@ -82,7 +82,18 @@
   .ev-list { padding: 0 0.75rem 0.5rem 0.25rem; }
   .event-row, .ev-day, .event-hour { display: flex; align-items: flex-start; column-gap: 0.5rem; --y: 16px; }
   .event-row > :not(.ev-l) { padding: 6px 0; }
-  .ev-list > div { content-visibility: auto; contain-intrinsic-size: auto 32px; }     /* a long range lays out what is seen */
+  /* A long range lays out what is seen: a line the reader has not reached is skipped and declares
+     the size below until it is drawn once, after which `auto` remembers its real one.
+     ⚠️ The size has to be RIGHT, per kind. With one 32px for every line, each heading that came
+     into view replaced 32 with its true 16 (an hour) or 39 (a day), the list got shorter under the
+     reader, and the browser's scroll anchoring had to make up the difference — a few pixels of
+     drift, on nobody's schedule but the renderer's. It is what made
+     test_a_click_on_a_line_lights_its_pair_and_moves_nothing fail one CI run in four: not the click,
+     which changes no height at all, but the lines above it resolving while it was being measured.
+     Measured in Chromium at 390px and 1280px: a row is 32, an hour 16, a day 39, at both widths. */
+  .ev-list > div { content-visibility: auto; contain-intrinsic-size: auto 32px; }
+  .ev-list > .event-hour { contain-intrinsic-size: auto 16px; }
+  .ev-list > .ev-day { contain-intrinsic-size: auto 39px; }
   .ev-day > span:last-child { padding: 14px 0 4px; font-size: 0.875rem; font-weight: 600; color: #cbd5e1; }
   .event-hour > span:last-child { font: 10px/16px ui-monospace, SFMono-Regular, Menlo, monospace; color: #64748b; }
   .event-row time { flex: none; font: 12px/20px ui-monospace, SFMono-Regular, Menlo, monospace; color: #94a3b8; }

@@ -10,6 +10,7 @@ its day in the words the language puts before a date. On a phone a row's short p
 A click on a line or a dot lights that pair, the line and its two rows, and moves nothing: the
 reader scrolls.
 """
+import pathlib
 import re
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -186,6 +187,12 @@ def test_a_click_on_a_line_lights_its_pair_and_moves_nothing(tmp_path, monkeypat
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.route("**/*", serve(client))
         page.goto(f"http://mate.test/events?date_from={DAY}&date_to={DAY}")
+        # Lay the whole list out before measuring a pixel. A line the reader has not reached is
+        # skipped (`content-visibility: auto`) and stands in at `contain-intrinsic-size` until it is
+        # drawn once; the kinds below are declared at their true heights, but a row whose chip wraps
+        # on a phone is 52 and not 32, and a line resolving mid-test would move everything under it
+        # on the renderer's schedule, not the click's. That is what this test is NOT about.
+        page.add_style_tag(content=".ev-list > div { content-visibility: visible !important; }")
         url = page.url
         middle = page.locator("#ev-signal-30")
         middle.scroll_into_view_if_needed()
@@ -199,4 +206,54 @@ def test_a_click_on_a_line_lights_its_pair_and_moves_nothing(tmp_path, monkeypat
         page.locator("#ev-signal-31 .dot").click()                      # an unlock's own end
         assert _lit_pair(page) == ["ev-signal-31", "ev-signal-30"]
         assert errors == []
+        browser.close()
+
+
+def test_a_line_the_reader_has_not_reached_declares_the_height_it_will_have(tmp_path, monkeypatch):
+    """`content-visibility: auto` lets a long range lay out only what is seen, and each skipped line
+    stands in at `contain-intrinsic-size` until it is drawn once. That size has to be the one the
+    line really takes, per kind, or the list changes height under the reader as the renderer catches
+    up — and the scroll anchoring that compensates is the browser's business, on nobody's schedule.
+
+    One 32px for every kind is what made the pair-lighting test fail one CI run in four: each heading
+    coming into view replaced 32 with its true 16 or 39, and the measured row drifted 25px. So this
+    compares what the stylesheet PROMISES with what the browser MEASURES, kind by kind, which is the
+    only way a padding changed in six months' time cannot quietly make the promise a lie."""
+    pw = pytest.importorskip("playwright.sync_api")
+    car = Car(tmp_path)
+    client = web(car, monkeypatch)
+    event_row(car, "trunk", _local(8))                        # a day heading and three hours
+    for minutes in range(1, 20, 2):
+        event_row(car, "unlocked", _local(9, minutes))
+        event_row(car, "unlocked", _local(9, minutes + 1), state=0)
+    event_row(car, "cable", _local(10, 5), soc=42.0)
+    event_row(car, "cable", _local(11, 30), state=0, soc=89.9)
+    event_row(car, "trunk", _local(12), state=0)
+    declared = dict(re.findall(r"\.ev-list > \.?([\w-]+) \{[^}]*contain-intrinsic-size: auto (\d+)px",
+                               pathlib.Path("web/templates/events.html").read_text()))
+    assert set(declared) == {"div", "event-hour", "ev-day"}, declared
+    with pw.sync_playwright() as p:
+        browser = p.chromium.launch()
+        for width in (390, 1280):
+            page = browser.new_page(viewport={"width": width, "height": 800})
+            page.route("**/*", serve(client))
+            page.goto(f"http://mate.test/events?date_from={DAY}&date_to={DAY}")
+            page.add_style_tag(content=".ev-list > div { content-visibility: visible !important; }")
+            drawn = page.evaluate("""() => {
+                const out = {};
+                document.querySelectorAll('#events-list .ev-list > *').forEach(el => {
+                    const kind = el.classList.contains('ev-day') ? 'ev-day'
+                               : el.classList.contains('event-hour') ? 'event-hour' : 'div';
+                    (out[kind] = out[kind] || []).push(el.getBoundingClientRect().height);
+                });
+                return out;
+            }""")
+            assert set(drawn) == set(declared), (width, sorted(drawn))
+            for kind, heights in drawn.items():
+                common = max(set(heights), key=heights.count)      # the height that kind usually is
+                assert common == float(declared[kind]), (
+                    f"at {width}px a {kind} line is {common}px, and the stylesheet tells the browser "
+                    f"to hold {declared[kind]}px for it until it is drawn"
+                )
+            page.close()
         browser.close()
