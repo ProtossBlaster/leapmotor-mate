@@ -1,7 +1,7 @@
 """A change of the car's state is an event once two consecutive frames hold it.
 
 One frame saying a door is open, with the next saying it is closed again, is a blink the cloud sends
-often (a sunshade "open" for one poll in hundreds); it makes no event. Two frames make one, and the
+often (a door "open" for one poll in hundreds); it makes no event. Two frames make one, and the
 event's time is the FIRST frame's: the second confirms the change, it does not move it, and so are
 the position, charge level, odometer and temperatures stored with it. Both ends are stored, state 1
 when the state begins and 0 when it ends.
@@ -78,7 +78,7 @@ def test_every_kind_of_the_table_is_detected(tmp_path):
     _settle(car)
     opened = {"unlocked": {"1298": 0}, "door_driver": {"1277": 1}, "door_passenger": {"1278": 1},
               "door_rear_left": {"1279": 1}, "door_rear_right": {"1280": 1}, "trunk": {"1281": 1},
-              "window_fl": {"1693": 2}, "window_rl": {"1695": 2}, "sunshade": {"1724": 40},
+              "window_fl": {"1693": 2}, "window_rl": {"1695": 2},
               "cable": {"1149": 1}, "v2l": {"47": 2}, "climate": {"1938": 1}, "defrost": {"1945": 2},
               "rapid_heat": {"2681": 2}, "rapid_cool": {"2669": 2}, "ready": {"1258": 1}}
     for kind, sig in opened.items():

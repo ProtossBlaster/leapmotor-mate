@@ -1173,7 +1173,7 @@ wird geladen, sobald das Ende der Liste sichtbar wird.
   bleibt. Ein Punkt steht für eine Stelle von etwa 110 m oder für einen ganzen Ladeort. Die Zeile einer
   Fahrt oder eines Ladevorgangs öffnet diese, und **← Ereignisse** dort führt zur Liste zurück, wie sie
   war.
-- **Zwei Datensätze machen ein Ereignis.** Die Cloud sendet Einzelaussetzer — ein Sonnenrollo für eine
+- **Zwei Datensätze machen ein Ereignis.** Die Cloud sendet Einzelaussetzer — eine Tür für eine
   einzige Abfrage „offen“ —, deshalb zählt eine Änderung erst, wenn zwei aufeinanderfolgende Datensätze
   sie halten. Eine Änderung, die das Auto zwischen zwei eigenen Meldungen zurücknahm, wird nie gesehen, und
   die Cloud kann das Verriegelungssignal für ein oder zwei Abfragen weglassen, was dann wie ein kurzes

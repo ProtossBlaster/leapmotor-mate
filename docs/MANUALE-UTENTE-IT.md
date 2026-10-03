@@ -1159,7 +1159,7 @@ entra nello schermo.
   e scorre l'elenco fino alla sua riga più recente; la riga sotto il puntatore accende il suo punto finché
   il puntatore resta lì. Un punto rappresenta un posto di circa 110 m, o un intero luogo di ricarica. La
   riga di un viaggio o di una ricarica lo apre, e **← Eventi** lì riporta all'elenco com'era.
-- **Due dati fanno un evento.** Il cloud manda lampeggi di un solo dato — una tendina «aperta» per una
+- **Due dati fanno un evento.** Il cloud manda lampeggi di un solo dato — una portiera «aperta» per una
   sola lettura — quindi un cambiamento conta solo quando due letture consecutive lo confermano. Un
   cambiamento che l'auto ha annullato fra due sue trasmissioni non si vede mai, e il cloud può perdere il
   segnale della chiusura per una o due letture, che allora appaiono come un breve sblocco.

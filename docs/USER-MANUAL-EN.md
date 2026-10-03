@@ -1107,7 +1107,7 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   newest row; the row under the pointer lights its own point while the pointer is there. A point stands
   for a spot about 110 m across, or for a whole charging place. A trip's or a charge's row opens it, and
   **← Events** there comes back to the list as it was.
-- **Two frames make an event.** The cloud sends one-frame blinks — a sunshade "open" for a single
+- **Two frames make an event.** The cloud sends one-frame blinks — a door "open" for a single
   poll — so a change counts only once two consecutive frames hold it. A change the car reversed between
   two of its own reports is never seen, and the cloud can drop the lock signal for a poll or two, which
   then reads as a short unlock.

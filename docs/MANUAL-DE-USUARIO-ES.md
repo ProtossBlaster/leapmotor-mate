@@ -1177,7 +1177,7 @@ final de la lista aparece en pantalla.
   lleva la lista a su fila más reciente; la fila bajo el puntero resalta su punto mientras el puntero
   sigue ahí. Un punto representa un sitio de unos 110 m, o un lugar de carga entero. La fila de un
   trayecto o de una carga lo abre, y **← Eventos** allí vuelve a la lista tal como estaba.
-- **Dos datos hacen un evento.** La nube envía parpadeos de un solo dato — una cortinilla «abierta» durante
+- **Dos datos hacen un evento.** La nube envía parpadeos de un solo dato — una puerta «abierta» durante
   una sola lectura —, así que un cambio cuenta solo cuando dos lecturas consecutivas lo mantienen. Un cambio
   que el coche deshizo entre dos de sus propios envíos nunca se ve, y la nube puede perder la señal del
   cierre durante una o dos lecturas, que entonces se leen como un breve desbloqueo.

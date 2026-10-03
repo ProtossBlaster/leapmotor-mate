@@ -2,8 +2,8 @@
 
 Every poll stores one row of flags (lock, doors, cable, climate, READY…); this reads those rows in
 the order they were written and keeps one `events` row per change that held for two consecutive
-frames. A single frame saying otherwise is a blink the cloud sends often enough (a sunshade "open"
-for one poll out of hundreds) to make a list of every transition unreadable; a repeated frame — the
+frames. A single frame saying otherwise is a blink the cloud sends often enough (a door "open" for
+one poll out of hundreds) to make a list of every transition unreadable; a repeated frame — the
 same `frame_ts` served again while the car sleeps — is not a second frame. The row's own time is the
 event's: the second frame confirms the change, it does not move it.
 
@@ -60,7 +60,6 @@ RULES = {
     "trunk": _flag("trunk_open"),
     "window_fl": _flag("window_fl_open"),
     "window_rl": _flag("window_rl_open"),
-    "sunshade": _flag("sunshade_open"),
     "cable": _cable,
     "v2l": _v2l,
     "climate": _climate,
@@ -73,7 +72,7 @@ RULES = {
 _COLUMNS = ("id, recorded_at, frame_ts, latitude, longitude, soc, odometer_km, inside_temp, "
             "climate_target_temp, outside_temp, gear, speed_kmh, is_locked, door_driver_open, "
             "door_passenger_open, door_rear_left_open, door_rear_right_open, trunk_open, "
-            "window_fl_open, window_rl_open, sunshade_open, plug_connected, ac_port_mode, "
+            "window_fl_open, window_rl_open, plug_connected, ac_port_mode, "
             "climate_on, climate_defrost, climate_heating, climate_cooling, ready")
 
 

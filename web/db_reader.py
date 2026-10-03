@@ -11418,7 +11418,7 @@ def assign_charging_place(charge_id, place_id):
 EVENT_GROUPS = {
     "security": ("unlocked",),
     "doors": ("door_driver", "door_passenger", "door_rear_left", "door_rear_right", "trunk"),
-    "windows": ("window_fl", "window_rl", "sunshade"),
+    "windows": ("window_fl", "window_rl"),
     "charging": ("cable", "v2l", "charge"),
     "climate": ("climate", "defrost", "rapid_heat", "rapid_cool"),
     "driving": ("ready", "trip"),
@@ -11434,7 +11434,7 @@ EVENT_GROUP_COLORS = {"security": "#f59e0b", "doors": "#a78bfa", "windows": "#38
                       "commands": "#94a3b8"}
 EVENT_ICONS = {
     "unlocked": "🔓", "door_driver": "🚪", "door_passenger": "🚪", "door_rear_left": "🚪",
-    "door_rear_right": "🚪", "trunk": "📦", "window_fl": "🪟", "window_rl": "🪟", "sunshade": "☀️",
+    "door_rear_right": "🚪", "trunk": "📦", "window_fl": "🪟", "window_rl": "🪟",
     "cable": "🔌", "v2l": "💡", "charge": "⚡", "climate": "🌡️", "defrost": "🧊", "rapid_heat": "🔥",
     "rapid_cool": "❄️", "ready": "🟢", "trip": "🗺", "command": "📲",
 }

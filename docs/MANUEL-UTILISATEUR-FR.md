@@ -1193,8 +1193,8 @@ l'écran.
   plus récente ; la ligne sous le pointeur allume son point tant que le pointeur y reste. Un point
   représente un endroit d'environ 110 m, ou un lieu de recharge entier. La ligne d'un trajet ou d'une
   recharge l'ouvre, et **← Événements** y ramène à la liste telle qu'elle était.
-- **Deux données font un événement.** Le cloud envoie des clignotements d'une seule donnée — un store
-  « ouvert » le temps d'une seule lecture —, donc un changement ne compte que lorsque deux lectures
+- **Deux données font un événement.** Le cloud envoie des clignotements d'une seule donnée — une portière
+  « ouverte » le temps d'une seule lecture —, donc un changement ne compte que lorsque deux lectures
   consécutives le confirment. Un changement que la voiture a annulé entre deux de ses envois n'est jamais
   vu, et le cloud peut perdre le signal du verrouillage pendant une ou deux lectures, ce qui ressemble alors
   à un bref déverrouillage.
