@@ -1637,6 +1637,28 @@ Sie nutzen bereits das BetaTester-Build? Sie müssen nicht wechseln — es funkt
 möchten, ist es eine Sicherung und eine Wiederherstellung, in dieser Reihenfolge:
 [Vom BetaTester-Build zum offiziellen](BETA-TO-OFFICIAL.md).
 
+**Mate empfängt keine Daten, und ich habe eine Firewall (Synology oder eine andere).**
+Mate muss von außen nie erreichbar sein. Die einzige **eingehende** Regel, die es braucht, ist TCP
+**4001** aus dem eigenen Netz, damit Sie die Seite öffnen können. Alles andere ist **ausgehend**: DNS
+auf Port 53, dann HTTPS auf 443 zu `app-gw-global-master.leapmotor-international.de` und
+`appgateway.leapmotor-international.de` — derselbe Lastverteiler in AWS Frankfurt, dessen Adressen
+wechseln: Erlauben Sie die Namen oder die Region und legen Sie nie die Adressen von heute fest.
+Deshalb ändert es nichts, dem Firewall-Profil Ports oder Länder hinzuzufügen: Diese Regeln
+beschreiben **eingehende** Verbindungen, und die Antworten der Cloud kommen über eine Verbindung
+zurück, die Mate selbst geöffnet hat. Was es stoppt, ist die abschließende „alles verbieten"-Regel
+des Profils, angewandt auf den Verkehr, der die Docker-Bridge verlässt.
+Auf einer Synology hat das funktioniert
+([#384](https://github.com/ProtossBlaster/leapmotor-mate/issues/384)): Lesen Sie das Netz des
+Containers — sein Gateway und seine Adresse, zum Beispiel `172.28.0.1` und `172.28.0.2` — und legen
+Sie dann eine Regel an, die **alle Ports** für diesen ganzen Bereich erlaubt (`172.28.0.1` bis
+`172.28.255.254`), und schieben Sie sie **ganz nach oben**, über die anderen. Der Rest des Profils,
+das „alles verbieten" eingeschlossen, kann genau so bleiben.
+Seit **4.7.18** endet eine fehlgeschlagene Verbindung im Protokoll und auf der Einrichtungsseite mit
+einem Wort — `dns_failure`, `connection_refused`, `timeout`, `network_unreachable`… —, das auf einen
+Blick sagt, ob der Rechner den Namen nicht auflösen oder die Adresse nicht erreichen kann. Seit
+**4.8.0** wird dieses Wort nicht mehr von Mates eigener Meldung „login temporarily deferred"
+verdeckt.
+
 **Ich bin nicht in Europa.**
 Derzeit funktioniert Mate nur mit der **europäischen** Leapmotor-Cloud. Konten auf Servern anderer Regionen können
 sich nicht anmelden.

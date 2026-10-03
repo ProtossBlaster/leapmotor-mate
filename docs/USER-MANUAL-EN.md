@@ -1552,6 +1552,25 @@ Already running the BetaTester build? You do not have to move — it keeps worki
 is a backup and a restore, in that order: see
 [From the BetaTester build to the official one](BETA-TO-OFFICIAL.md).
 
+**Mate receives no data, and I have a firewall (Synology or any other).**
+Mate never needs to be reachable from outside. The only **incoming** rule it needs is TCP **4001**
+from your own network, so that you can open the page. Everything else is **outgoing**: DNS on port
+53, then HTTPS on 443 to `app-gw-global-master.leapmotor-international.de` and
+`appgateway.leapmotor-international.de` — the same load balancer in AWS Frankfurt, whose addresses
+rotate, so allow the names or the region and never pin today's addresses.
+This is why adding ports or countries to a firewall profile changes nothing: those rules describe
+**incoming** connections, and the cloud's answers come back on a connection Mate opened itself. What
+stops it is the profile's final deny-all, applied to the traffic leaving the Docker bridge.
+On a Synology, what worked ([#384](https://github.com/ProtossBlaster/leapmotor-mate/issues/384)):
+read the container's own network — its gateway and address, for example `172.28.0.1` and
+`172.28.0.2` — then create a rule allowing **all ports** for that whole range (`172.28.0.1` to
+`172.28.255.254`) and move it to the **top**, above the others. The rest of the profile, deny-all
+included, can stay exactly as it is.
+From **4.7.18** a failed connection ends with one word in the log and on the setup page —
+`dns_failure`, `connection_refused`, `timeout`, `network_unreachable`… — which tells you in one
+glance whether the machine cannot resolve the name or cannot reach the address. From **4.8.0** that
+word is no longer hidden by Mate's own "login temporarily deferred" message.
+
 **I'm not in Europe.**
 At the moment Mate only works with the **European** Leapmotor cloud. Accounts on servers in other
 regions cannot log in.

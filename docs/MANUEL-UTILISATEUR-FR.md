@@ -1661,6 +1661,28 @@ Vous utilisez déjà la version BetaTester ? Vous n'êtes pas obligé de changer
 fonctionner. Si vous le souhaitez, c'est une sauvegarde et une restauration, dans cet ordre :
 [De la version BetaTester à la version officielle](BETA-TO-OFFICIAL.md).
 
+**Mate ne reçoit aucune donnée, et j'ai un pare-feu (Synology ou autre).**
+Mate n'a jamais besoin d'être joignable depuis l'extérieur. La seule règle **entrante** dont il a
+besoin est le port TCP **4001** depuis votre propre réseau, pour que vous puissiez ouvrir la page.
+Tout le reste est **sortant** : DNS sur le port 53, puis HTTPS sur le 443 vers
+`app-gw-global-master.leapmotor-international.de` et `appgateway.leapmotor-international.de` — le
+même répartiteur de charge chez AWS Francfort, dont les adresses tournent : autorisez les noms ou la
+région, et ne figez jamais les adresses du jour.
+C'est pourquoi ajouter des ports ou des pays au profil du pare-feu ne change rien : ces règles
+décrivent les connexions **entrantes**, et les réponses du cloud reviennent sur une connexion que
+Mate a ouverte lui-même. Ce qui le bloque, c'est la règle « tout refuser » finale du profil,
+appliquée au trafic qui sort du pont Docker.
+Sur un Synology, ce qui a fonctionné
+([#384](https://github.com/ProtossBlaster/leapmotor-mate/issues/384)) : lisez le réseau du conteneur
+— sa passerelle et son adresse, par exemple `172.28.0.1` et `172.28.0.2` — puis créez une règle
+autorisant **tous les ports** pour toute cette plage (`172.28.0.1` à `172.28.255.254`) et placez-la
+**tout en haut**, au-dessus des autres. Le reste du profil, « tout refuser » compris, peut rester
+tel quel.
+Depuis la **4.7.18**, une connexion en échec se termine par un mot, dans le journal et sur la page de
+configuration — `dns_failure`, `connection_refused`, `timeout`, `network_unreachable`… — qui dit d'un
+coup d'œil si la machine n'arrive pas à résoudre le nom ou à joindre l'adresse. Depuis la **4.8.0**,
+ce mot n'est plus masqué par le message de Mate « login temporarily deferred ».
+
 **Je ne suis pas en Europe.**
 Pour le moment, Mate ne fonctionne qu'avec le cloud Leapmotor **européen**. Les comptes sur des serveurs
 d'autres régions ne parviennent pas à se connecter.

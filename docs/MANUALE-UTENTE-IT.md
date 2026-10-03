@@ -1631,6 +1631,26 @@ Stai già usando la build BetaTester? Non sei obbligato a spostarti, continua a 
 farlo è un backup e un ripristino, in quest'ordine: vedi
 [Dalla build BetaTester a quella ufficiale](BETA-TO-OFFICIAL.md#italiano).
 
+**Mate non riceve dati, e ho un firewall (Synology o altro).**
+Mate non ha mai bisogno di essere raggiungibile da fuori. L'unica regola **in entrata** che gli serve
+è la porta TCP **4001** dalla tua rete, per poter aprire la pagina. Tutto il resto è **in uscita**:
+DNS sulla porta 53, poi HTTPS sulla 443 verso `app-gw-global-master.leapmotor-international.de` e
+`appgateway.leapmotor-international.de` — lo stesso bilanciatore in AWS Francoforte, i cui indirizzi
+ruotano: permetti i nomi o la regione, e non fissare mai gli indirizzi di oggi.
+È per questo che aggiungere porte o paesi al profilo del firewall non cambia niente: quelle regole
+descrivono le connessioni **in entrata**, e le risposte del cloud tornano su una connessione che
+Mate ha aperto. A fermarlo è il «nega tutto» finale del profilo, applicato al traffico che esce dal
+bridge di Docker.
+Su un Synology, quello che ha funzionato
+([#384](https://github.com/ProtossBlaster/leapmotor-mate/issues/384)): leggi la rete del container —
+il suo gateway e il suo indirizzo, per esempio `172.28.0.1` e `172.28.0.2` — poi crea una regola che
+permette **tutte le porte** a quell'intero intervallo (da `172.28.0.1` a `172.28.255.254`) e spostala
+**in cima**, sopra le altre. Il resto del profilo, «nega tutto» compreso, può restare com'è.
+Dalla **4.7.18** una connessione fallita finisce con una parola, nel log e nella pagina di
+configurazione — `dns_failure`, `connection_refused`, `timeout`, `network_unreachable`… — che dice a
+colpo d'occhio se la macchina non risolve il nome o non raggiunge l'indirizzo. Dalla **4.8.0** quella
+parola non viene più nascosta dal messaggio di Mate «login temporarily deferred».
+
 **Non sono in Europa.**
 Al momento Mate funziona solo con il cloud Leapmotor **europeo**. Account su server di altre regioni
 non riescono ad accedere.

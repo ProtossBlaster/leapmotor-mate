@@ -1648,6 +1648,28 @@ batería mientras conduces no se distingue de una frenada.
 hacerlo, es una copia de seguridad y una restauración, en ese orden:
 [De la compilación BetaTester a la oficial](BETA-TO-OFFICIAL.md).
 
+**Mate no recibe datos y tengo un cortafuegos (Synology u otro).**
+Mate nunca necesita ser alcanzable desde fuera. La única regla **de entrada** que necesita es el
+puerto TCP **4001** desde tu propia red, para que puedas abrir la página. Todo lo demás es **de
+salida**: DNS en el puerto 53 y luego HTTPS en el 443 hacia
+`app-gw-global-master.leapmotor-international.de` y `appgateway.leapmotor-international.de` — el
+mismo balanceador en AWS Fráncfort, cuyas direcciones rotan: permite los nombres o la región y no
+fijes nunca las direcciones de hoy.
+Por eso añadir puertos o países al perfil del cortafuegos no cambia nada: esas reglas describen
+conexiones **entrantes**, y las respuestas de la nube vuelven por una conexión que abrió Mate. Lo
+que lo detiene es la regla final de «denegar todo» del perfil, aplicada al tráfico que sale del
+puente de Docker.
+En un Synology, lo que funcionó
+([#384](https://github.com/ProtossBlaster/leapmotor-mate/issues/384)): lee la red del contenedor —su
+puerta de enlace y su dirección, por ejemplo `172.28.0.1` y `172.28.0.2`— y crea después una regla
+que permita **todos los puertos** a ese rango entero (de `172.28.0.1` a `172.28.255.254`) y muévela
+**arriba del todo**, por encima de las demás. El resto del perfil, el «denegar todo» incluido, puede
+quedarse tal cual.
+Desde **4.7.18** una conexión fallida termina con una palabra, en el registro y en la página de
+configuración — `dns_failure`, `connection_refused`, `timeout`, `network_unreachable`… —, que dice de
+un vistazo si la máquina no resuelve el nombre o no alcanza la dirección. Desde **4.8.0** esa palabra
+ya no queda oculta tras el mensaje de Mate «login temporarily deferred».
+
 **No estoy en Europa.**
 Por ahora Mate solo funciona con la nube **europea** de Leapmotor. Las cuentas alojadas en servidores de
 otras regiones no pueden iniciar sesión.
