@@ -560,7 +560,6 @@ Schaltfläche: Was du drückst, hängt davon ab, wie du Mate betreibst.
   ```
 
   Die Datenbank liegt im Volume, nicht im Image — es geht nichts verloren.
-  [Watchtower](https://containrrr.dev/watchtower/) kann das automatisch erledigen.
 - **MateDesktop** — nichts herunterzuladen: Die App holt Mate **bei jedem Start** aus dem Repository,
   Schließen und erneutes Öffnen *ist* also das Update.
 

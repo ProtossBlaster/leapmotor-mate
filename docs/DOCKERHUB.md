@@ -34,8 +34,7 @@ Then open **http://localhost:4000** and follow the setup wizard (Leapmotor accou
 
 The database is stored in `./data/` (mounted at `/data` in the container).
 
-To update: `docker pull protossblaster/leapmotor-mate:latest` and recreate the container
-(or use [Watchtower](https://containrrr.dev/watchtower/) for automatic updates).
+To update: `docker pull protossblaster/leapmotor-mate:latest` and recreate the container.
 
 ## Tags
 

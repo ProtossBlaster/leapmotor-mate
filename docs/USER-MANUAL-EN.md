@@ -526,7 +526,6 @@ Mate.
   ```
 
   The database lives in the volume, not in the image, so nothing is lost.
-  [Watchtower](https://containrrr.dev/watchtower/) can do it for you automatically.
 - **MateDesktop** — nothing to download: the app fetches Mate from the repository **every time it
   starts**, so closing and reopening it *is* the update.
 

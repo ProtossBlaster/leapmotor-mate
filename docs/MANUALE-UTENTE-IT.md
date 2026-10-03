@@ -544,7 +544,6 @@ premere dipende da come fai girare Mate.
   ```
 
   Il database sta nel volume, non nell'immagine, quindi non si perde niente.
-  [Watchtower](https://containrrr.dev/watchtower/) può farlo da solo.
 - **MateDesktop** — non c'è niente da scaricare: l'app prende Mate dal repository **a ogni avvio**,
   quindi chiuderla e riaprirla *è* l'aggiornamento.
 

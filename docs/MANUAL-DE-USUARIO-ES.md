@@ -555,7 +555,6 @@ que hay que pulsar depende de cómo ejecutes Mate.
   ```
 
   La base de datos está en el volumen, no en la imagen, así que no se pierde nada.
-  [Watchtower](https://containrrr.dev/watchtower/) puede hacerlo solo.
 - **MateDesktop** — nada que descargar: la aplicación obtiene Mate del repositorio **en cada
   arranque**, así que cerrarla y volver a abrirla *es* la actualización.
 
