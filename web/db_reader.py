@@ -5262,6 +5262,20 @@ def _children_by_parent(db) -> dict:
     return out
 
 
+def _families_within(table: str, family: str, since: datetime | None, until: datetime | None) -> tuple[str, tuple]:
+    """A condition keeping the sessions of `table` that reach into [since, until): a merged group,
+    whose parent `family` names, from its earliest time to its latest, start or end, as a stepped
+    host clock can write an end before its start. None, no bound."""
+    if since is None and until is None:
+        return "", ()
+    first = "MIN(julianday(started_at), COALESCE(julianday(ended_at), julianday(started_at)))"
+    last = "MAX(julianday(started_at), COALESCE(julianday(ended_at), julianday(started_at)))"
+    sql = (f" AND id IN (SELECT {family} FROM {table} WHERE vehicle_id = COALESCE(?, vehicle_id) GROUP BY 1"
+           f" HAVING MAX({last}) >= julianday(?) AND MIN({first}) < julianday(?))")
+    return (sql, (_current_vehicle_id(), (since or datetime.min.replace(tzinfo=timezone.utc)).isoformat(),
+            (until or datetime.max.replace(tzinfo=timezone.utc)).isoformat()))
+
+
 def _charges_have_merge(db) -> bool:
     """Whether the charges table carries the merge column yet.
 
@@ -5852,15 +5866,18 @@ def _trip_display_source(trip, segment_ids, cloud_ids, gps_ids):
     trip["has_gps"] = any(i in gps_ids for i in segment_ids)
 
 
-def get_trips(limit: int = 500) -> list[dict]:
+def get_trips(limit: int = 500, since: datetime | None = None, until: datetime | None = None) -> list[dict]:
+    """The finished trips, a merged group as one, most recent first; with `since`/`until`, only the
+    ones that reach into that period."""
     db = _get()
     kids = _children_by_parent(db)
+    within, args = _families_within("trips", "COALESCE(merged_into_id, id)", since, until)
     rows = db.execute(
-        """SELECT * FROM trips
-           WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL AND merged_into_id IS NULL
+        f"""SELECT * FROM trips
+           WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL AND merged_into_id IS NULL{within}
            ORDER BY started_at DESC
            LIMIT ?""",
-        (_current_vehicle_id(), limit),
+        (_current_vehicle_id(), *args, limit),
     ).fetchall()
     # Built ONCE for the whole list — the fuel twin of the electric rate timeline. Per trip it would
     # replay every refuel from the beginning, which is quadratic down a long list.
@@ -8000,20 +8017,23 @@ def store_trip_elevation(trip_id: int, gain, loss,
     db.commit()
 
 
-def get_charges(limit: int = 50) -> list[dict]:
+def get_charges(limit: int = 50, since: datetime | None = None, until: datetime | None = None) -> list[dict]:
     """The finished charges, most recent first — one row per CHARGE, not per stored row.
 
     A plug-in the car reported in pieces (it declares the cable gone the instant the current stops)
     comes back as one row once the user has merged them: the children drop out of the list and the
     parent carries the combined figures. `limit` therefore counts charges, which is what the page
-    asks for — the last 50 charges, not the last 50 fragments."""
+    asks for — the last 50 charges, not the last 50 fragments. With `since`/`until`, only the
+    charges that reach into that period."""
     db = _get()
     _zone = _local_tz()          # once for the list, not twice per charge
+    merged = _charges_have_merge(db)
+    within, args = _families_within("charges", "COALESCE(merged_into_id, id)" if merged else "id", since, until)
     rows = db.execute(
         "SELECT * FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
-        + ("AND merged_into_id IS NULL " if _charges_have_merge(db) else "")
-        + "ORDER BY started_at DESC LIMIT ?",
-        (_current_vehicle_id(), limit),
+        + ("AND merged_into_id IS NULL " if merged else "") + within
+        + " ORDER BY started_at DESC LIMIT ?",
+        (_current_vehicle_id(), *args, limit),
     ).fetchall()
     kids = _charge_children_by_parent(db)
     # Compose FIRST, localise after: the group maths works on the stored UTC ISO, and swapping the
@@ -11702,32 +11722,35 @@ def _session_moments(source, sessions, live) -> list[dict]:
     return out
 
 
-def _trip_moments(db, vehicle_id) -> list[dict]:
-    """The finished trips as the Trips page composes them, plus the one in progress."""
+def _trip_moments(db, vehicle_id, start: datetime | None, end: datetime) -> list[dict]:
+    """The finished trips that reach into [start, end) as the Trips page composes them, plus the one
+    in progress."""
     live = [dict(r) for r in db.execute(
         "SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NULL "
         "AND merged_into_id IS NULL ORDER BY id", (vehicle_id,)).fetchall()]
-    return _session_moments("trip", get_trips(limit=1_000_000), live)
+    return _session_moments("trip", get_trips(limit=1_000_000, since=start, until=end), live)
 
 
-def _charge_moments(db, vehicle_id) -> list[dict]:
-    """The finished charges as the Charges page composes them, plus the one in progress."""
+def _charge_moments(db, vehicle_id, start: datetime | None, end: datetime) -> list[dict]:
+    """The finished charges that reach into [start, end) as the Charges page composes them, plus the
+    one in progress."""
     live = []
     if (c := open_charge()):
         row = db.execute("SELECT latitude, longitude, charging_place_name, location_name FROM charges"
                          " WHERE id = ?", (c["id"],)).fetchone()
         live = [{**c, **dict(row)}]
-    return _session_moments("charge", get_charges(limit=1_000_000), live)
+    return _session_moments("charge", get_charges(limit=1_000_000, since=start, until=end), live)
 
 
-def _command_moments(db) -> list[dict]:
-    """The commands sent from Mate's pages to the selected car, when the log exists (the web creates
-    it on the first command)."""
+def _command_moments(db, start: datetime | None, end: datetime) -> list[dict]:
+    """The commands sent from Mate's pages to the selected car in [start, end), when the log exists
+    (the web creates it on the first command)."""
     if not db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'command_log'").fetchone():
         return []
     rows = db.execute(
         "SELECT id, ts, action, outcome FROM command_log WHERE vin IS NOT NULL AND lower(vin) = lower(?)"
-        " ORDER BY id", (_selected_vin(),)).fetchall()
+        " AND julianday(ts) >= julianday(?) AND julianday(ts) < julianday(?) ORDER BY id",
+        (_selected_vin(), (start or datetime.min.replace(tzinfo=timezone.utc)).isoformat(), end.isoformat())).fetchall()
     return [_event_row("command", r["id"], "command", None, _utc(r["ts"]), action=r["action"],
                     outcome=r["outcome"]) for r in rows if _utc(r["ts"])]
 
@@ -12009,11 +12032,11 @@ def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str
     if kinds & set(EVENT_SIGNAL_KINDS):
         items += _signal_moments(db, vehicle_id, kinds, start, end)
     if "trip" in kinds:
-        items += _trip_moments(db, vehicle_id)
+        items += _trip_moments(db, vehicle_id, start, end)
     if "charge" in kinds:
-        items += _charge_moments(db, vehicle_id)
+        items += _charge_moments(db, vehicle_id, start, end)
     if "command" in kinds:
-        items += _command_moments(db)
+        items += _command_moments(db, start, end)
     items = [m for m in items if (start is None or start <= m["t"]) and m["t"] < end]
     _add_context(items, db, vehicle_id)
     live = events_live(db, vehicle_id)
