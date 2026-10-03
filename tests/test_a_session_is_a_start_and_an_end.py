@@ -75,3 +75,25 @@ def test_the_trip_in_progress_gains_its_end_when_it_closes(tmp_path, monkeypatch
     end, start = rows(grouped())
     assert (end["id"], end["on"], start["id"], start["open"]) == (trip, False, trip, False)
     assert (end["distance_km"], end["duration_min"], end["soc_from"], end["soc_to"]) == (9.5, 15, 80, 77.5)
+
+
+def test_a_session_whose_end_was_written_before_its_start_keeps_both_rows(tmp_path, monkeypatch):
+    """A rebuilt drive or charge ends at the host's clock and starts where the car was last heard:
+    with the host clock stepped back, its end can come before its start. Each row stays under its
+    own day."""
+    import db as D
+    from test_trip_reconstruct import _vd
+    car = Car(tmp_path)
+    web(car, monkeypatch)
+    yesterday = TODAY - timedelta(days=1)
+    monkeypatch.setattr(D, "_now_iso", lambda: _local(yesterday, 23, 59).isoformat())
+    started = _local(TODAY, 0, 1).isoformat()
+    car.db.set_battery_capacity(60.0)
+    trip = car.db.create_reconstructed_trip(car.vid, 80.0, 1000.0, started, _vd(76.0, 1012.0))
+    charge = car.db.create_reconstructed_charge(car.vid, 40.0, started, _vd(60.0, 1012.0))
+    assert trip and charge
+
+    def day(d):
+        return sorted((r["source"], r["on"]) for r in rows(grouped(date_from=d.isoformat(), date_to=d.isoformat())))
+    assert day(yesterday) == [("charge", False), ("trip", False)]
+    assert day(TODAY) == [("charge", True), ("trip", True)]
