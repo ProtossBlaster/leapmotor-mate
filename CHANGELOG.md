@@ -11,7 +11,8 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   restore on MateDesktop for Windows answered HTTP 500 ("[WinError 5] Accesso negato", measured on
   Desktop 1.2.0 with 4.7.17). The restore now copies the backup's pages into the live database with
   SQLite's own backup API; the relaunch that follows still runs the migrations. Same machine, same
-  backup: 200, every row in place. The Windows CI job now runs the restore tests.
+  backup: 200, every row in place. A refused backup no longer leaves its temporary file behind on
+  Windows. The Windows CI job now runs the restore tests.
 - **A cloud transport that fails says why** ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381), mate-api 0.1.0a15). Every network, DNS
   or TLS failure read "Cloud transport failed", and a sign-in that failed before any answer said
   "stage=transport": an install whose Home Assistant could not resolve the cloud's name wrote 9,049

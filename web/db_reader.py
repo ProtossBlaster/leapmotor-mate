@@ -1344,27 +1344,32 @@ def restore_database(blob: bytes) -> dict:
     with open(tmp, "wb") as f:
         f.write(blob)
     try:
+        # The connection is closed before the file is deleted on EVERY path: a refused backup left
+        # its temporary file behind on Windows, where an open file cannot be removed (the Windows
+        # CI job, the first time it ran these tests).
         con = sqlite3.connect(tmp)
-        con.row_factory = sqlite3.Row
-        tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        missing = _RESTORE_REQUIRED_TABLES - tables
-        if missing:
-            raise ValueError("not a LeapMotor Mate backup (missing tables: %s)" % ", ".join(sorted(missing)))
-        # Carry over the CURRENT (fresh) encrypted secrets so the just-entered login survives the swap.
-        rw = _conn_rw()
         try:
-            fresh = rw.execute("SELECT key, value FROM settings WHERE value LIKE ?",
-                               (_SECRET_PREFIX + "%",)).fetchall()
+            con.row_factory = sqlite3.Row
+            tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            missing = _RESTORE_REQUIRED_TABLES - tables
+            if missing:
+                raise ValueError("not a LeapMotor Mate backup (missing tables: %s)" % ", ".join(sorted(missing)))
+            # Carry over the CURRENT (fresh) encrypted secrets so the just-entered login survives the swap.
+            rw = _conn_rw()
+            try:
+                fresh = rw.execute("SELECT key, value FROM settings WHERE value LIKE ?",
+                                   (_SECRET_PREFIX + "%",)).fetchall()
+            finally:
+                rw.close()
+            con.execute("DELETE FROM settings WHERE value LIKE ?", (_SECRET_PREFIX + "%",))
+            for r in fresh:
+                con.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (r["key"], r["value"]))
+            con.commit()
+            counts = {}
+            for t in ("raw_signals_log", "positions", "trips", "charges", "research_logbook"):
+                counts[t] = con.execute("SELECT COUNT(*) c FROM \"%s\"" % t).fetchone()["c"] if t in tables else 0
         finally:
-            rw.close()
-        con.execute("DELETE FROM settings WHERE value LIKE ?", (_SECRET_PREFIX + "%",))
-        for r in fresh:
-            con.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (r["key"], r["value"]))
-        con.commit()
-        counts = {}
-        for t in ("raw_signals_log", "positions", "trips", "charges", "research_logbook"):
-            counts[t] = con.execute("SELECT COUNT(*) c FROM \"%s\"" % t).fetchone()["c"] if t in tables else 0
-        con.close()
+            con.close()
     except Exception:
         _safe_unlink(tmp)
         raise
