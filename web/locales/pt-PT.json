@@ -1275,7 +1275,7 @@
     "poll_parked_label": "Estacionado",
     "poll_driving_label": "Em condução",
     "capacity": "Capacidade",
-    "capacity_desc": "Capacidade útil da bateria, usada para cálculos de energia. Pré-preenchida por modelo; edita se o teu valor for diferente ou para coincidir com um valor medido.",
+    "capacity_desc": "Capacidade útil da bateria, usada para cálculos de energia. Pré-preenchida por modelo; edita se o teu valor for diferente ou para coincidir com um valor medido. A app oficial conta o pacote todo, tampão incluído, por isso os kWh que mostra para um carregamento saem um pouco acima dos do Mate: a mesma energia, medida sobre um 100% diferente.",
     "capacity_nominal": "Referência SoH",
     "capacity_nominal_desc": "A capacidade de origem em relação à qual se mede a saúde da bateria. Altere apenas se tiver sido registada incorretamente.",
     "capacity_measured": "Medida a partir dos teus carregamentos: ~{kwh} kWh",

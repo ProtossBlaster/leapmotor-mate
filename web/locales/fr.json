@@ -1275,7 +1275,7 @@
     "poll_parked_label": "Stationné",
     "poll_driving_label": "En conduite",
     "capacity": "Capacité",
-    "capacity_desc": "Capacité utilisable de la batterie, utilisée pour les calculs d'énergie. Pré-remplie par modèle ; modifiez-la si la vôtre diffère ou pour une valeur mesurée.",
+    "capacity_desc": "Capacité utilisable de la batterie, utilisée pour les calculs d'énergie. Pré-remplie par modèle ; modifiez-la si la vôtre diffère ou pour une valeur mesurée. L'application officielle compte tout le pack, tampon compris : les kWh qu'elle affiche pour une recharge sont donc un peu plus élevés que ceux de Mate — la même énergie, mesurée sur un 100 % différent.",
     "capacity_nominal": "Référence SoH",
     "capacity_nominal_desc": "La capacité à l'état neuf sur laquelle se mesure la santé batterie. Ne la modifie que si elle a été mal enregistrée.",
     "capacity_measured": "Mesurée d'après vos charges : ~{kwh} kWh",

@@ -1275,7 +1275,7 @@
     "poll_parked_label": "Zaparkowany",
     "poll_driving_label": "W ruchu",
     "capacity": "Pojemność",
-    "capacity_desc": "Użytkowa pojemność baterii, używana do obliczeń energii. Wstępnie wypełniona per model; edytuj jeśli Twoja się różni lub chcesz dopasować zmierzoną wartość.",
+    "capacity_desc": "Użytkowa pojemność baterii, używana do obliczeń energii. Wstępnie wypełniona per model; edytuj jeśli Twoja się różni lub chcesz dopasować zmierzoną wartość. Oficjalna aplikacja liczy cały pakiet, razem z buforem, więc kWh pokazywane przez nią dla ładowania wychodzą trochę wyższe niż w Mate: ta sama energia, mierzona względem innego 100%.",
     "capacity_nominal": "Odniesienie SoH",
     "capacity_nominal_desc": "Pojemność fabryczna, względem której mierzona jest kondycja akumulatora. Zmień tylko, jeśli zapisano ją błędnie.",
     "capacity_measured": "Zmierzona z Twoich ładowań: ~{kwh} kWh",

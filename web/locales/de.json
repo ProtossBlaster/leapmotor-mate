@@ -1275,7 +1275,7 @@
     "poll_parked_label": "Geparkt",
     "poll_driving_label": "Fahrt",
     "capacity": "Kapazität",
-    "capacity_desc": "Nutzbare Batteriekapazität, für Energieberechnungen verwendet. Pro Modell vorbelegt; ändern Sie sie bei Abweichung oder für einen Messwert.",
+    "capacity_desc": "Nutzbare Batteriekapazität, für Energieberechnungen verwendet. Pro Modell vorbelegt; ändern Sie sie bei Abweichung oder für einen Messwert. Die offizielle App rechnet mit dem gesamten Pack, Puffer eingeschlossen, deshalb liegen ihre kWh für eine Ladung etwas über denen von Mate: dieselbe Energie, an einem anderen 100 % gemessen.",
     "capacity_nominal": "SoH-Referenz",
     "capacity_nominal_desc": "Die Neukapazität, an der die Batteriegesundheit gemessen wird. Nur ändern, wenn sie falsch erfasst wurde.",
     "capacity_measured": "Aus Ihren Ladevorgängen gemessen: ~{kwh} kWh",

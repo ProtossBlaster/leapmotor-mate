@@ -1275,7 +1275,7 @@
     "poll_parked_label": "Geparkeerd",
     "poll_driving_label": "Onderweg",
     "capacity": "Capaciteit",
-    "capacity_desc": "Bruikbare batterijcapaciteit, gebruikt voor de energieberekeningen. Vooraf ingevuld per model; pas hem aan als die van jou afwijkt of om een gemeten waarde over te nemen.",
+    "capacity_desc": "Bruikbare batterijcapaciteit, gebruikt voor de energieberekeningen. Vooraf ingevuld per model; pas hem aan als die van jou afwijkt of om een gemeten waarde over te nemen. De officiële app rekent met het hele pakket, buffer inbegrepen, dus de kWh die zij voor een laadsessie toont valt iets hoger uit dan die van Mate: dezelfde energie, afgemeten aan een andere 100%.",
     "capacity_nominal": "SoH-referentie",
     "capacity_nominal_desc": "De capaciteit als nieuw waaraan de batterijgezondheid wordt gemeten. Wijzig dit alleen als het verkeerd is vastgelegd.",
     "capacity_measured": "Gemeten uit je laadbeurten: ~{kwh} kWh",

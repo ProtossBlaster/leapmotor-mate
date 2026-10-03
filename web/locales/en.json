@@ -1275,7 +1275,7 @@
     "poll_parked_label": "Parked",
     "poll_driving_label": "Driving",
     "capacity": "Capacity",
-    "capacity_desc": "Usable battery capacity, used for energy calculations. Pre-filled per model; edit it if yours differs or to match a measured value.",
+    "capacity_desc": "Usable battery capacity, used for energy calculations. Pre-filled per model; edit it if yours differs or to match a measured value. The official app counts the whole pack, buffer included, so the kWh it shows for a charge reads a little higher than Mate's: the same energy, measured against a different 100%.",
     "capacity_nominal": "SoH reference",
     "capacity_nominal_desc": "The as-new capacity battery health is measured against. Change it only if it was captured wrong.",
     "capacity_measured": "Measured from your charges: ~{kwh} kWh",
