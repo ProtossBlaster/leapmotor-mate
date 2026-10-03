@@ -713,10 +713,11 @@ def _drop_read_connection():
 def _get():
     """This thread's read connection to `DB_PATH`, opened once.
 
-    Keyed on the path AND on the file it currently names. A restore from backup swaps a new file
-    under the same name; without the device/inode in the key the reader would go on reading the file
-    that was replaced under it, and would never say so. The `stat` costs about a microsecond against
-    the ~30 the connection costs.
+    Keyed on the path AND on the file it currently names. A restore from backup used to swap a new
+    file under the same name (it now copies into the live file, #383), and the demo flag still points
+    the path at another file; without the device/inode in the key the reader would go on reading the
+    file that was replaced under it, and would never say so. The `stat` costs about a microsecond
+    against the ~30 the connection costs.
     """
     path = DB_PATH
     try:
@@ -1321,7 +1322,14 @@ def restore_database(blob: bytes) -> dict:
     and they simply log in afterwards.
 
     Raises ValueError on a bad/foreign file WITHOUT touching the live DB. The caller restarts the app
-    (exit 42 → run.sh) so both processes reopen the restored DB and run migrations."""
+    (exit 42 → run.sh) so both processes reopen the restored DB and run migrations.
+
+    The backup goes INTO the live database, through SQLite's own backup API, never over it: the
+    poller holds the database open for as long as it runs, and on Windows a file another process
+    holds cannot be replaced — every restore on MateDesktop for Windows answered HTTP 500 with
+    `[WinError 5] Accesso negato` (#383, @matttiaromano; measured on 1.2.0 with 4.7.17). The page copy takes SQLite's write lock, so a poller
+    write waits for it as for any other; the file name, and the poller's handle, stay untouched.
+    → tests/test_a_restore_does_not_replace_the_file_the_poller_holds.py"""
     if blob[:2] == b"\x1f\x8b":                       # a gzip-compressed backup (.db.gz, disc #264)
         try:
             # wbits=31 decodes the gzip wrapper → the raw SQLite bytes below (a raw .db skips this).
@@ -1360,10 +1368,17 @@ def restore_database(blob: bytes) -> dict:
     except Exception:
         _safe_unlink(tmp)
         raise
-    # Atomic swap, then drop the OLD WAL sidecars so the new file is never read with a stale WAL.
-    os.replace(tmp, DB_PATH)
-    for ext in ("-wal", "-shm"):
-        _safe_unlink(DB_PATH + ext)
+    try:
+        src = sqlite3.connect(tmp)
+        dst = sqlite3.connect(DB_PATH, timeout=30)
+        try:
+            src.backup(dst)                        # every page of the backup into the live file
+            dst.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        finally:
+            dst.close()
+            src.close()
+    finally:
+        _safe_unlink(tmp)
     return {"counts": counts, "secrets_preserved": len(fresh)}
 
 
