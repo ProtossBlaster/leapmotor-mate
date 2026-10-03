@@ -1077,9 +1077,10 @@ class Database:
             deleted += self._conn.execute(
                 "DELETE FROM positions WHERE recorded_at < ? AND COALESCE(charging, 0) = 0" + others,
                 (cutoff, *open_since)).rowcount
-            # The events derived from those rows age out with them, and a cursor past the newest
-            # remaining row would skip the rows written next (see events.clamp_cursors).
-            events.prune(self._conn, cutoff)
+            # The events derived from those rows age out with them — with the SAME per-car floor,
+            # or a car whose open trip starts before the window keeps its positions and loses the
+            # events made from them, for good: the cursor is already past those rows.
+            events.prune(self._conn, cutoff, open_since)
             events.clamp_cursors(self._conn)
         if deleted > 0:
             self._conn.execute("VACUUM")

@@ -91,7 +91,8 @@ def consume(conn, vehicle_id: int, max_rows=5000) -> int:
     changes that held for two frames. Returns the number of rows read; a full batch means there is
     history still to read, and the next call carries on from where this one stopped. The state says
     whether the history has been read through (`caught_up`) and, until then, how much of it (`pct`):
-    a row written since, by the web too, is the next round's, not history."""
+    a row written since, by the web too, is the next round's, not history. That figure is counted as
+    the rounds go by and kept in the state row, not queried per round — see below."""
     state = load_state(conn, vehicle_id)
     sql = f"SELECT {_COLUMNS} FROM positions WHERE vehicle_id = ? AND id > ? ORDER BY id"
     args = [vehicle_id, state["cursor_id"]]
@@ -139,12 +140,23 @@ def consume(conn, vehicle_id: int, max_rows=5000) -> int:
     full = max_rows is not None and len(rows) >= max_rows
     state["caught_up"], state["pct"] = not full, 100
     if full:
-        done = conn.execute("SELECT COUNT(*) FROM positions WHERE vehicle_id = ? AND id <= ?",
-                            (vehicle_id, state["cursor_id"])).fetchone()[0]
-        total = done + conn.execute("SELECT COUNT(*) FROM positions WHERE vehicle_id = ? AND id > ?",
-                                    (vehicle_id, state["cursor_id"])).fetchone()[0]
-        state["pct"] = 100 * done // max(total, 1)
+        # The progress figure, counted rather than queried. Both halves used to be a full COUNT(*)
+        # of `positions` on EVERY round — 11 ms each on a Raspberry Pi 5 against a ~119 ms round, a
+        # fifth of the work for a number nobody watches that closely. `done` is what this reader has
+        # read: the previous `done` plus this batch. `total` is read once, when catch-up begins, and
+        # again only if `done` passes it — which means rows arrived while we were reading, and then
+        # the question "how much of the history" has a new answer anyway.
+        done = state.get("done", 0) + len(rows)
+        total = state.get("total") or 0
+        if total < done:
+            total = conn.execute("SELECT COUNT(*) FROM positions WHERE vehicle_id = ?",
+                                 (vehicle_id,)).fetchone()[0]
+        state["done"], state["total"] = done, total
+        state["pct"] = min(100, 100 * done // max(total, 1))
         log.info("%d rows read, %d kept, %d %% of history", len(rows), len(events), state["pct"])
+    else:
+        state.pop("done", None)                  # caught up: the next catch-up counts from scratch
+        state.pop("total", None)
     with conn:
         conn.executemany(
             "INSERT INTO events (vehicle_id, kind, at, frame_ts, state, latitude, longitude, soc,"
@@ -159,20 +171,39 @@ def _save_state(conn, vehicle_id: int, state: dict) -> None:
                  (STATE_KEY.format(vehicle_id=vehicle_id), json.dumps(state)))
 
 
-def prune(conn, cutoff: str) -> int:
+def prune(conn, cutoff: str, floors: dict | None = None) -> int:
     """Drop the spans that ended before `cutoff`, as pairs: a span that crosses it keeps its start,
     an open span keeps its start and later its end, so nothing in the kept period reopens or goes
     missing. The neighbour is the next row of the kind in write order, as the page reads it.
-    Returns the rows deleted."""
+    Returns the rows deleted.
+
+    `floors` holds, per car, a time its rows must be kept from — the same floor
+    `Database.prune_positions` gives the positions of a car with an OPEN TRIP, which is held back to
+    the trip's start so the trip can still be closed on those readings. Without it here, that car's
+    positions survived the retention and the events derived from them did not: the cursor is already
+    past those rows, so the page lost the moments of an open trip and could never derive them again.
+    A car with no floor is pruned by `cutoff` alone."""
+    floors = floors or {}
+    total = 0
+    for vehicle_id, floor in floors.items():
+        total += _prune_where(conn, min(cutoff, floor), "AND e.vehicle_id = ?", (vehicle_id,))
+    rest = (" AND e.vehicle_id NOT IN (%s)" % ",".join("?" * len(floors))) if floors else ""
+    return total + _prune_where(conn, cutoff, rest, tuple(floors))
+
+
+def _prune_where(conn, cutoff: str, scope: str, args: tuple) -> int:
+    """One pruning pass over the cars `scope` names. The window is computed over the whole table and
+    the scope filters its rows, so a car's neighbours are its own whichever pass deletes them."""
     # The CTE sits inside the subquery: a statement that starts with WITH reports no row count.
     return conn.execute(
-        """DELETE FROM events WHERE id IN (
-                WITH e AS (SELECT id, at, state, kind,
+        f"""DELETE FROM events WHERE id IN (
+                WITH e AS (SELECT id, at, state, kind, vehicle_id,
                                   LEAD(at) OVER w AS next_at, LAG(at) OVER w AS prev_at
                            FROM events WINDOW w AS (PARTITION BY vehicle_id, kind ORDER BY id))
                 SELECT id FROM e WHERE at < ? AND ((state = 1 AND next_at < ?)
-                                                   OR (state = 0 AND COALESCE(prev_at, at) < ?)))""",
-        (cutoff, cutoff, cutoff)).rowcount
+                                                   OR (state = 0 AND COALESCE(prev_at, at) < ?))
+                  {scope})""",
+        (cutoff, cutoff, cutoff, *args)).rowcount
 
 
 def clamp_cursors(conn) -> None:
@@ -187,4 +218,8 @@ def clamp_cursors(conn) -> None:
                               (vehicle_id,)).fetchone()[0]
         if state.get("cursor_id", 0) > newest:
             state["cursor_id"] = newest
+            # The counted progress describes rows that are no longer there. Forget it rather than
+            # report a percentage of a history that just got shorter; the next round counts again.
+            state.pop("done", None)
+            state.pop("total", None)
             conn.execute("UPDATE settings SET value = ? WHERE key = ?", (json.dumps(state), key))

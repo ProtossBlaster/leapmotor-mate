@@ -77,3 +77,53 @@ def test_the_prune_is_the_modules_own_and_cuts_at_the_given_time(tmp_path):
     assert E.prune(car.db._conn, _at(0)) == 2
     car.db._conn.commit()
     assert _left(car) == [("cable", -1, 1)]
+
+
+def test_a_car_whose_open_trip_predates_the_window_keeps_its_events(tmp_path):
+    """The positions of a car with an OPEN TRIP are held back to that trip's start, so the trip can
+    still be closed on those readings — and the events made from them have to be held back with
+    them. Without the same floor the rows survived and their events did not, for good: the cursor is
+    already past those rows, so nothing would ever derive them again.
+
+    Read it as the page would: the trip opened 40 days before the cut-off and has not ended, so
+    everything from there on is still the present as far as this car is concerned."""
+    car = Car(tmp_path)
+    car.db._conn.execute(
+        "INSERT INTO trips (vehicle_id, started_at, ended_at) VALUES (?, ?, NULL)",
+        (car.vid, _at(-40)))
+    _seed(car, [("cable", -45, 1), ("cable", -44, 0),      # before the trip as well: these still go
+                ("cable", -30, 1), ("cable", -29, 0),      # inside the trip, before the cut-off
+                ("climate", -20, 1), ("climate", -19, 0)])
+    car.db.prune_positions(180)
+    assert _left(car) == [("cable", -30, 1), ("cable", -29, 0), ("climate", -20, 1), ("climate", -19, 0)]
+
+
+def test_another_car_is_pruned_as_if_that_trip_did_not_exist(tmp_path):
+    """The floor is one car's. A second car gets the retention alone — the same rule the positions
+    follow, and the reason `prune` takes a floor PER car rather than the earliest of them."""
+    car = Car(tmp_path)
+    other = car.db.ensure_vehicle("VINEVENTS00000002", "B10")
+    car.db._conn.execute(
+        "INSERT INTO trips (vehicle_id, started_at, ended_at) VALUES (?, ?, NULL)",
+        (car.vid, _at(-40)))
+    _seed(car, [("cable", -30, 1), ("cable", -29, 0)])
+    car.db._conn.executemany(
+        "INSERT INTO events (vehicle_id, kind, at, state) VALUES (?, 'cable', ?, ?)",
+        [(other, _at(-30), 1), (other, _at(-29), 0)])
+    car.db._conn.commit()
+    car.db.prune_positions(180)
+    rows = car.db._conn.execute("SELECT vehicle_id, COUNT(*) FROM events GROUP BY vehicle_id").fetchall()
+    assert [tuple(r) for r in rows] == [(car.vid, 2)]
+
+
+def test_the_floor_reaches_the_modules_own_prune(tmp_path):
+    """`prune` applies a car's floor itself, so whoever calls it does not have to take the table
+    apart: the same rows, pruned twice, once with the floor and once without."""
+    car = Car(tmp_path)
+    _seed(car, [("cable", -30, 1), ("cable", -29, 0)])
+    assert E.prune(car.db._conn, _at(0), {car.vid: _at(-40)}) == 0
+    car.db._conn.commit()
+    assert len(_left(car)) == 2
+    assert E.prune(car.db._conn, _at(0)) == 2
+    car.db._conn.commit()
+    assert _left(car) == []
