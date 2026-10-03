@@ -1,8 +1,37 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.8.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.9.0 · **Lingua:** Italiano
 
-## Novità della 4.8.0
+## Novità della 4.9.0
+
+**Un attacco alla spina è una ricarica.** Attacchi la sera e stacchi la mattina, e la pagina
+Ricariche mostrava quattro sessioni. È l'auto che le spezza: dichiara il cavo staccato nell'istante
+in cui la corrente si ferma, che è esattamente l'aspetto che hanno, da dentro l'auto, una wallbox che
+bilancia il carico, un caricatore che segue il sole o una rete che distribuisce la potenza. I pezzi
+adesso si rimettono insieme da soli, quando la pausa è sotto i sei minuti e nient'altro è cambiato —
+la stessa unione che fa il pulsante **Unisci alla precedente**, con tutti i suoi controlli. Niente
+viene riscritto: **Separa** restituisce i pezzi esattamente come li ha raccontati l'auto, e una
+ricarica che hai separato non viene mai riunita. Al primo avvio tornano insieme anche le notti già
+nel tuo database.
+
+**L'energia di una guidata non può più essere il doppio di quella che la batteria ha perso.** Una
+guidata di 7 km segnava 41,4 kWh/100km sul grafico dei consumi, perché il dato del cloud era 2,90
+kWh dove la batteria aveva perso 1,07. Mate già rifiutava un dato oltre il doppio della batteria, ma
+solo se segnava anche più di 60 kWh/100km. Quando il livello di carica è sceso di un punto intero o
+più — una misura vera, non due o tre decimi di arrotondamento — il doppio della batteria adesso
+basta da solo. I viaggi già convertiti tornano sulla stima dalla batteria al primo avvio.
+
+**I chilometri misurati senza contatto dicono quanti di loro sono tornati.** I viaggi che lo storico
+Leapmotor restituisce per un tratto di silenzio compaiono adesso accanto a quel numero, nelle
+Statistiche e sul mese nel calendario dei Viaggi. Non vengono sottratti: quei chilometri sono stati
+percorsi senza contatto comunque, e il silenzio non si può ancora dividere fra la fine di una
+guidata, una sosta e l'inizio di un'altra.
+
+**L'impostazione della capacità dice perché i kilowattora dell'app ufficiale sono più alti.** L'app
+ufficiale conta tutto il pacco, tampone compreso; Mate conta la parte utilizzabile. La stessa
+energia, misurata su un 100 % diverso.
+
+### Novità della 4.8.0
 
 **Una pagina Eventi racconta momento per momento cosa ha fatto l'auto.** Chiusa, aperta, portiere,
 finestrini, cavo, clima, READY, viaggi, ricariche e i comandi che hai mandato — un inizio e una fine

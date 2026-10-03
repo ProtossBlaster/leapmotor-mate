@@ -3,6 +3,42 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.9.0] — 2026-10-03
+
+- **One plug-in is one charge** ([#374](https://github.com/ProtossBlaster/leapmotor-mate/issues/374),
+  @Andreexylus). The car declares the cable gone the instant the current stops — measured on a B10,
+  cable in at 19:30 and out the next morning, untouched in between, recorded as six charges with
+  pauses of 60 to 180 s — which is also what a load-balancing wallbox, a solar-surplus charger and a
+  utility pacing the load look like from inside the car. The pieces are now joined without being
+  asked, by the same operation the **Join with previous** button performs and with every guard it has
+  (same car, both finished, neither already joined, no other charge in the gap, no trip overlapping
+  it, the charge level not fallen, the same place), inside a six-minute window: the worst pause ever
+  measured here, rounded up, against the thirty the button allows, which stays where the call belongs
+  to the person who was there. Nothing is rewritten — **Split** puts the pieces back as the car
+  reported them, and a charge you split is never joined again, because each charge is examined once
+  behind a cursor. At the first start the cursor is at the beginning, so the nights already stored
+  come back together: on the reference database 35 charges become 28.
+- **A drive's official energy cannot be twice its battery's**
+  ([#298](https://github.com/ProtossBlaster/leapmotor-mate/issues/298), @arzthilfe). A 7 km drive
+  read 41.4 kWh/100km on the consumption chart: the cloud said 2.90 kWh where the battery lost 1.07.
+  The guard that refuses twice the battery delta also required an efficiency above 60 kWh/100km, and
+  41.4 is not. Measured over 412 trips carrying both figures, the ratio converges as the charge-level
+  fall grows — 90th percentile 1.54 below half a point, then 0.96, 1.08, 0.99 and 1.00 — so below a
+  full point the ratio is the quantization and both conditions stay, and at a full point and above
+  the battery stands on its own. Trips already converted go back on the charge-level estimate once,
+  at the first start, with the "settled" mark cleared so a cloud that later returns a sane figure is
+  not locked out.
+- **The kilometres measured out of contact say how many of them came back**
+  ([#298](https://github.com/ProtossBlaster/leapmotor-mate/issues/298)). Trips imported from
+  Leapmotor's own history that fall inside a silence are now reported beside the measurement, on
+  Statistics and on the month in the Trips calendar — never subtracted from it: those kilometres were
+  covered out of contact all the same, and the silence still cannot be divided. A cloud record with
+  0 km accounts for nothing; a trip crossing the edge of a window is left out.
+- **The capacity setting says why the official app's kilowatt-hours read higher**
+  ([#362](https://github.com/ProtossBlaster/leapmotor-mate/issues/362), @riri19). 40.10 kWh over
+  59.8 points is 67.06 — the gross pack — while Mate counts the usable one. The same energy, measured
+  against a different 100 %.
+
 ## [4.8.0] — 2026-10-03
 
 - **An Events page lists what the car did, moment by moment** ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385), @arekm). Locked

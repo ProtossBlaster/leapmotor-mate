@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.8.0:** an **Events page** lists what the car did, moment by moment, with a line joining each end to its beginning and a map beside the list ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385), @arekm); a trip now ends when the **car** does — waiting in Park with the car still on is a stop inside the drive, not two trips ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381): and a login Mate itself put off no longer hides why the cloud is unreachable).
-See [release notes and upgrade impact](docs/releases/v4.8.0.md).
+**v4.9.0:** **one plug-in is one charge** — the car declares the cable gone the instant a wallbox pauses, and the pieces are now joined without being asked, reversibly ([#374](https://github.com/ProtossBlaster/leapmotor-mate/issues/374)); a drive's official energy can no longer be **twice** what its battery lost ([#298](https://github.com/ProtossBlaster/leapmotor-mate/issues/298)), and the kilometres measured out of contact say how many of them the cloud's history has since given back.
+See [release notes and upgrade impact](docs/releases/v4.9.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -358,8 +358,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.8.0:** una **pagina Eventi** racconta momento per momento cosa ha fatto l'auto, con una linea che unisce ogni fine al suo inizio e una mappa accanto all'elenco ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385), @arekm); un viaggio adesso finisce quando finisce l'**auto** — aspettare in P con l'auto accesa è una sosta dentro la guidata, non due viaggi ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381): e un accesso che Mate stessa ha rimandato non nasconde più perché il cloud non si raggiunge). [Note di rilascio](docs/releases/v4.8.0.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.8.0.md#italiano).
+**v4.9.0:** **un attacco alla spina è una ricarica** — l'auto dichiara il cavo staccato nell'istante in cui la wallbox mette in pausa, e i pezzi adesso vengono uniti senza bisogno di chiedere, in modo reversibile ([#374](https://github.com/ProtossBlaster/leapmotor-mate/issues/374)); l'energia ufficiale di una guidata non può più essere il **doppio** di quella che la batteria ha perso ([#298](https://github.com/ProtossBlaster/leapmotor-mate/issues/298)), e i chilometri misurati senza contatto dicono quanti di loro lo storico del cloud ha poi restituito. [Note di rilascio](docs/releases/v4.9.0.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.9.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

@@ -1,8 +1,38 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.8.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.9.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.8.0
+## Neu in Version 4.9.0
+
+**Ein Einstecken ist ein Ladevorgang.** Sie stecken abends ein und morgens aus, und die Seite
+Ladevorgänge zeigte vier Sitzungen. Das Auto zerteilt sie: Es meldet das Kabel als abgezogen, sobald
+der Strom aufhört — und genau so sieht von innen eine Wallbox aus, die die Last verteilt, ein Lader,
+der der Sonne folgt, oder ein Netz, das die Leistung rationiert. Die Teile werden jetzt von selbst
+wieder zusammengesetzt, wenn die Pause unter sechs Minuten liegt und sich sonst nichts geändert hat
+— dieselbe Verbindung, die die Schaltfläche **Mit vorheriger verbinden** herstellt, mit all ihren
+Prüfungen. Nichts wird überschrieben: **Trennen** gibt die Teile genau so zurück, wie das Auto sie
+gemeldet hat, und ein von Ihnen getrennter Ladevorgang wird nie wieder verbunden. Beim ersten Start
+kommen auch die Nächte, die schon in Ihrer Datenbank stehen, wieder zusammen.
+
+**Die Energie einer Fahrt kann nicht mehr doppelt so groß sein wie das, was die Batterie verloren
+hat.** Eine Fahrt von 7 km stand im Verbrauchsdiagramm bei 41,4 kWh/100km, weil der Wert der Cloud
+2,90 kWh betrug, wo die Batterie 1,07 verloren hatte. Mate wies einen Wert über dem Doppelten der
+Batterie schon zurück, aber nur, wenn er auch über 60 kWh/100km lag. Ist der Ladestand um einen
+ganzen Punkt oder mehr gefallen — eine echte Messung, nicht zwei oder drei Zehntel Rundung —, genügt
+das Doppelte der Batterie jetzt allein. Bereits umgestellte Fahrten gehen beim ersten Start zur
+Schätzung aus der Batterie zurück.
+
+**Die ohne Verbindung gemessenen Kilometer sagen, wie viele davon zurückgekommen sind.** Fahrten,
+die Leapmotors eigene Historie für einen Zeitraum der Stille zurückgibt, erscheinen nun neben dieser
+Zahl, in den Statistiken und auf dem Monat im Fahrtenkalender. Abgezogen werden sie nicht: Diese
+Kilometer wurden trotzdem ohne Verbindung gefahren, und die Stille lässt sich weiterhin nicht
+zwischen dem Ende einer Fahrt, einer Pause und dem Beginn der nächsten aufteilen.
+
+**Die Kapazitätseinstellung sagt, warum die Kilowattstunden der offiziellen App höher liegen.** Die
+offizielle App rechnet mit dem gesamten Pack, Puffer eingeschlossen; Mate rechnet mit dem nutzbaren
+Teil. Dieselbe Energie, an einem anderen 100 % gemessen.
+
+### Neu in Version 4.8.0
 
 **Eine Ereignisseite erzählt Moment für Moment, was das Auto getan hat.** Verriegelt, entriegelt,
 Türen, Fenster, Kabel, Klima, READY, Fahrten, Ladevorgänge und die Befehle, die Sie geschickt haben

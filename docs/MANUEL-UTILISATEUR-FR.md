@@ -1,8 +1,39 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.8.0 · **Langue :** Français
+> **Version de Mate :** v4.9.0 · **Langue :** Français
 
-## Nouveautés de la version 4.8.0
+## Nouveautés de la version 4.9.0
+
+**Un branchement, une recharge.** Vous branchez le soir, vous débranchez le matin, et la page
+Recharges affichait quatre sessions. C'est la voiture qui les découpe : elle déclare le câble retiré
+à l'instant où le courant s'arrête, ce qui est exactement l'allure, vue de l'intérieur de la
+voiture, d'une wallbox qui équilibre la charge, d'un chargeur qui suit le soleil ou d'un réseau qui
+rationne la puissance. Les morceaux sont désormais réunis d'eux-mêmes, quand la pause fait moins de
+six minutes et que rien d'autre n'a changé — la même jonction que réalise le bouton **Joindre à la
+précédente**, avec toutes ses vérifications. Rien n'est réécrit : **Séparer** rend les morceaux
+exactement comme la voiture les a rapportés, et une recharge que vous avez séparée n'est jamais
+rejointe. Au premier démarrage, les nuits déjà présentes dans votre base reviennent ensemble elles
+aussi.
+
+**L'énergie d'un trajet ne peut plus valoir le double de ce que la batterie a perdu.** Un trajet de
+7 km affichait 41,4 kWh/100km sur le graphique de consommation, parce que le chiffre du cloud valait
+2,90 kWh là où la batterie avait perdu 1,07. Mate refusait déjà un chiffre au-delà du double de la
+batterie, mais seulement s'il dépassait aussi 60 kWh/100km. Quand le niveau de charge a baissé d'un
+point entier ou plus — une vraie mesure, pas deux ou trois dixièmes d'arrondi — le double de la
+batterie suffit désormais à lui seul. Les trajets déjà convertis reviennent à l'estimation par la
+batterie au premier démarrage.
+
+**Les kilomètres mesurés hors contact disent combien d'entre eux sont revenus.** Les trajets que
+l'historique Leapmotor rend pour une période de silence apparaissent maintenant à côté de ce
+chiffre, dans les Statistiques et sur le mois du calendrier des Trajets. Ils n'en sont pas
+soustraits : ces kilomètres ont bien été parcourus hors contact, et le silence ne se partage
+toujours pas entre la fin d'un trajet, un arrêt et le début d'un autre.
+
+**Le réglage de capacité dit pourquoi les kilowattheures de l'application officielle sont plus
+élevés.** L'application officielle compte tout le pack, tampon compris ; Mate compte la partie
+utilisable. La même énergie, mesurée sur un 100 % différent.
+
+### Nouveautés de la version 4.8.0
 
 **Une page Événements raconte, minute par minute, ce qu'a fait la voiture.** Verrouillée,
 déverrouillée, portes, vitres, câble, climatisation, READY, trajets, charges et les commandes que

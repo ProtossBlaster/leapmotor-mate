@@ -1,8 +1,36 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.8.0 · **Language:** English
+> **Mate version:** v4.9.0 · **Language:** English
 
-## New in 4.8.0
+## New in 4.9.0
+
+**One plug-in is one charge.** You plug in at night and unplug in the morning, and the Charges
+page showed four sessions. The car is what splits them: it declares the cable gone the instant the
+current stops, which is exactly what a wallbox that balances the load, a charger following the sun
+or a utility pacing the power looks like from inside the car. The pieces are now put back together
+on their own, when the pause is under six minutes and nothing else changed — the same join the
+**Join with previous** button performs, with all of its checks. Nothing is rewritten: **Split**
+gives the pieces back exactly as the car reported them, and a charge you split is never joined
+again. At the first start the nights already in your database come back together too.
+
+**A drive's energy can no longer be twice what its battery lost.** A 7 km drive was drawing
+41.4 kWh/100km on the consumption chart, because the cloud's figure for it was 2.90 kWh where the
+battery had lost 1.07. Mate already refused a figure past twice the battery, but only when it also
+read above 60 kWh/100km. When the charge level fell by a full point or more — a real measurement,
+not two or three tenths of rounding — twice the battery is now enough on its own. Trips already
+converted go back on the battery estimate at the first start.
+
+**The kilometres measured out of contact say how many of them came back.** Trips that Leapmotor's
+own history gives back for a stretch of silence now appear beside that figure, on Statistics and on
+the month in the Trips calendar. They are not subtracted from it: those kilometres were covered out
+of contact all the same, and the silence still cannot be divided between the end of one drive, a
+stop and the start of another.
+
+**The capacity setting says why the official app's kilowatt-hours read higher.** The official app
+counts the whole pack, buffer included; Mate counts the usable part. The same energy, measured
+against a different 100 %.
+
+### New in 4.8.0
 
 **An Events page lists what the car did, moment by moment.** Locked, unlocked, doors, windows,
 cable, climate, READY, trips, charges and the commands you sent — a beginning and an end are two

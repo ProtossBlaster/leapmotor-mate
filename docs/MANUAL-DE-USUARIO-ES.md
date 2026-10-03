@@ -1,8 +1,38 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.8.0 · **Idioma:** Español
+> **Versión de Mate:** v4.9.0 · **Idioma:** Español
 
-## Novedades de la versión 4.8.0
+## Novedades de la versión 4.9.0
+
+**Un enchufado es una carga.** Enchufas por la noche y desenchufas por la mañana, y la página
+Cargas mostraba cuatro sesiones. Es el coche el que las parte: declara el cable retirado en el
+instante en que la corriente se detiene, que es exactamente el aspecto que tienen, desde dentro del
+coche, una wallbox que equilibra la carga, un cargador que sigue al sol o una red que raciona la
+potencia. Los trozos ahora se vuelven a juntar solos, cuando la pausa es de menos de seis minutos y
+nada más ha cambiado — la misma unión que hace el botón **Unir con la anterior**, con todas sus
+comprobaciones. Nada se reescribe: **Separar** devuelve los trozos exactamente como los contó el
+coche, y una carga que has separado no se vuelve a unir nunca. En el primer arranque también vuelven
+a juntarse las noches que ya están en tu base de datos.
+
+**La energía de un trayecto ya no puede ser el doble de lo que perdió su batería.** Un trayecto de
+7 km marcaba 41,4 kWh/100km en el gráfico de consumo, porque la cifra de la nube era de 2,90 kWh
+donde la batería había perdido 1,07. Mate ya rechazaba una cifra por encima del doble de la batería,
+pero solo si además marcaba más de 60 kWh/100km. Cuando el nivel de carga ha bajado un punto entero
+o más — una medida de verdad, no dos o tres décimas de redondeo —, el doble de la batería basta
+ahora por sí solo. Los trayectos ya convertidos vuelven a la estimación por batería en el primer
+arranque.
+
+**Los kilómetros medidos sin contacto dicen cuántos de ellos han vuelto.** Los trayectos que el
+historial de Leapmotor devuelve para un tramo de silencio aparecen ahora junto a esa cifra, en las
+Estadísticas y en el mes del calendario de Trayectos. No se le restan: esos kilómetros se recorrieron
+sin contacto igualmente, y el silencio sigue sin poder repartirse entre el final de un trayecto, una
+parada y el comienzo de otro.
+
+**El ajuste de capacidad dice por qué los kilovatios-hora de la app oficial salen más altos.** La
+app oficial cuenta todo el paquete, búfer incluido; Mate cuenta la parte útil. La misma energía,
+medida sobre un 100 % distinto.
+
+### Novedades de la versión 4.8.0
 
 **Una página Eventos cuenta, momento a momento, lo que hizo el coche.** Cerrado, abierto, puertas,
 ventanillas, cable, climatización, READY, trayectos, cargas y las órdenes que enviaste — un comienzo
