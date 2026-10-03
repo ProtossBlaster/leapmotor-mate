@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+from urllib.parse import urlencode
 
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import (HTMLResponse, RedirectResponse, JSONResponse, Response, FileResponse,
@@ -2214,6 +2215,61 @@ async def map_page(request: Request):
         page="map", vehicle=vehicle, track=track, places=places, stations=stations,
         stations_top_n=stations_top_n, trips_shown=trips_shown,
     ))
+
+
+def _events_ctx(flt, request: Request, part: int = 0, version: str | None = None) -> dict:
+    """What events.html and its list partials render: the `part` of the list for `flt`, the
+    filter's state so the pills and fields show what the URL asked for, and the list's own URL,
+    without the part, to push and to load the next part from."""
+    lang = db_reader.get_language()
+    query = urlencode([(k, v) for k, v in request.query_params.multi_items() if k not in ("part", "v")])
+    return {"flt": flt, "back": "events" + (f"?{query}" if query else ""), "query": query,
+            "part_query": f"{query}&" if query else "",
+            "ev": db_reader.get_events_grouped(flt, i18n.get_t(lang), lang, part=part, asked=version),
+            "groups": db_reader.EVENT_GROUPS, "group_icons": db_reader.EVENT_GROUP_ICONS,
+            "group_colors": db_reader.EVENT_GROUP_COLORS, "group_of": db_reader.EVENT_GROUP_OF,
+            "icons": db_reader.EVENT_ICONS, "ranges": db_reader.EVENT_RANGES,
+            "default_range": db_reader.EVENTS_DEFAULT_RANGE, "fmt_dur": _fmt_dur}
+
+
+@app.get("/events", response_class=HTMLResponse)
+async def events_page(request: Request, q: str = "", date_from: str = "", date_to: str = "", f: str = "",
+                      range: str = ""):
+    """What the car did, day by day — the list rendered on the server at once (#240), with the
+    filters read from the URL so a link or a reload shows the same list. `f` marks a submitted
+    form: an unchecked checkbox sends nothing, so without it unchecking every group would look
+    like opening the page with no filter."""
+    vehicle, _ = db_reader.get_vehicle()
+    flt = db_reader.EventFilter.from_query(q=q, group=request.query_params.getlist("group"),
+                                           kind=request.query_params.getlist("kind"),
+                                           date_from=date_from, date_to=date_to, f=f, range=range)
+    return templates.TemplateResponse(request, "events.html",
+                                      _ctx(page="events", vehicle=vehicle, **_events_ctx(flt, request)))
+
+
+@app.get("/api/events/search", response_class=HTMLResponse)
+async def events_search(request: Request, q: str = "", date_from: str = "", date_to: str = "",
+                        f: str = "", range: str = "", part: str = "", v: str = ""):
+    """The Events list for the filters (HTMX partial). The URL follows the filters, relative so it
+    holds under the Home Assistant ingress; an empty date is no filter, never a 422 (#175). A
+    `part` after the first is only its lines, appended to the list as it scrolls; the URL stays. A
+    part of a list that changed since its first (`v`) would not join it: the list comes again whole."""
+    flt = db_reader.EventFilter.from_query(q=q, group=request.query_params.getlist("group"),
+                                           kind=request.query_params.getlist("kind"),
+                                           date_from=date_from, date_to=date_to, f=f, range=range)
+    lang = db_reader.get_language()
+    asked = int(part) if part.isdigit() else 0
+    ctx = {"t": i18n.get_t(lang), **_events_ctx(flt, request, asked, v)}
+    if asked and ctx["ev"]["part"] == asked:
+        return templates.TemplateResponse(request, "partials/events_lines.html", ctx)
+    if asked:
+        response = templates.TemplateResponse(request, "partials/events_list.html", ctx)
+        response.headers.update({"HX-Retarget": "#events-list", "HX-Reswap": "innerHTML"})
+        return response
+    response = templates.TemplateResponse(request, "partials/events_list.html", ctx)
+    # Replaced, not pushed: Back would restore htmx's copy of the page and run its scripts a second time.
+    response.headers["HX-Replace-Url"] = ctx["back"]
+    return response
 
 
 # Comfort tiles to display: (comfort_state key, capability feature that gates it, i18n label, icon).

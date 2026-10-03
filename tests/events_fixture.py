@@ -60,3 +60,92 @@ class Car:
     def events(self):
         return [(r["kind"], r["state"], r["at"]) for r in self.db._conn.execute(
             "SELECT kind, state, at FROM events ORDER BY id")]
+
+
+def web(car, monkeypatch, zone="Europe/Warsaw", lang="en"):
+    """The web app on this car's database, as the browser reaches it: a Starlette TestClient."""
+    import db_reader
+    import main
+    from starlette.testclient import TestClient
+    for var in ("MATE_AUTH_PASSWORD", "SUPERVISOR_TOKEN", "HASSIO_TOKEN"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr(db_reader, "DB_PATH", car.path)
+    car.db.set_setting("setup_complete", "1")
+    car.db.set_setting("timezone", zone)
+    car.db.set_setting("language", lang)
+    db_reader._lang_memo[0] = None            # the web remembers the language it read first
+    return TestClient(main.app)
+
+
+def grouped(lang="en", part=0, **query):
+    """`get_events_grouped` for a query string's worth of filters, in `lang`."""
+    import db_reader
+    import i18n
+    flt = db_reader.EventFilter.from_query(**query)
+    return db_reader.get_events_grouped(flt, i18n.get_t(lang), lang, part=part)
+
+
+def rows(ev):
+    """Every row of every day, newest first."""
+    return [e for day in ev["days"] for e in day["items"]]
+
+
+def serve(client, ingress=""):
+    """A Playwright route handler that answers mate.test from the TestClient, as Home Assistant's
+    ingress would under `ingress`, and nothing else (no tiles, no CDN)."""
+    def handle(route):
+        req = route.request
+        if not req.url.startswith("http://mate.test" + ingress + "/"):
+            return route.fulfill(status=204)
+        r = client.request(req.method, req.url.removeprefix("http://mate.test" + ingress),
+                           headers={"x-ingress-path": ingress} if ingress else {})
+        route.fulfill(status=r.status_code, body=r.content,
+                      headers={k: v for k, v in r.headers.items() if k == "content-type" or k.startswith("hx-")})
+    return handle
+
+
+def event_row(car, kind, at, state=1, **cols):
+    """One stored transition, as the poller writes it, at the UTC datetime `at`."""
+    keys = ", ".join(cols)
+    marks = "".join(", ?" for _ in cols)
+    car.db._conn.execute(
+        f"INSERT INTO events (vehicle_id, kind, at, state{', ' + keys if cols else ''}) VALUES (?, ?, ?, ?{marks})",
+        (car.vid, kind, at.isoformat(), state, *cols.values()))
+    car.db._conn.commit()
+
+
+def row_text(html, anchor):
+    """A row's words as the reader sees them: the parts after its icon, joined by the "·" the page
+    draws between them (not before the label's state in brackets, nor before a chip)."""
+    from html.parser import HTMLParser
+
+    class Parts(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.depth, self.row, self.txt, self.parts, self.glue = 0, None, None, None, []
+
+        def handle_starttag(self, tag, attrs):
+            self.depth += 1
+            attrs = dict(attrs)
+            if attrs.get("id") == anchor:
+                self.row = self.depth
+            elif self.row and self.parts is None and attrs.get("class") == "ev-txt":
+                self.txt, self.parts = self.depth, []
+            elif self.txt and self.depth == self.txt + 1:
+                self.parts.append("")
+                cls = attrs.get("class") or ""
+                self.glue.append(" " if "ev-now" in cls or "ev-chip" in cls else " · ")
+
+        def handle_endtag(self, tag):
+            if self.depth == self.txt:
+                self.txt = None
+            self.depth -= 1
+
+        def handle_data(self, data):
+            if self.txt and self.depth > self.txt:
+                self.parts[-1] += data
+
+    p = Parts()
+    p.feed(html)
+    assert p.parts is not None, f"no row {anchor}"
+    return "".join((p.glue[k] if k else "") + part.strip() for k, part in enumerate(p.parts))

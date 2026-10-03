@@ -437,7 +437,7 @@ Sotto l'energia di un viaggio, l'etichetta che diceva **getEC** ora dice **Misur
 5. [Conoscere l'interfaccia](#5-conoscere-linterfaccia)
 6. [Le pagine, una per una](#6-le-pagine-una-per-una)
    - [Panoramica](#panoramica) · [Viaggi](#viaggi) · [Mappa](#mappa) · [Ricariche](#ricariche)
-   - [Prezzi di ricarica](#prezzi-di-ricarica) · [Statistiche](#statistiche) · [Report](#report)
+   - [Prezzi di ricarica](#prezzi-di-ricarica) · [Statistiche](#statistiche) · [Eventi](#eventi) · [Report](#report)
    - [Salute batteria](#salute-batteria) · [Manutenzione](#manutenzione) · [Comandi](#comandi)
    - [Schedulazione](#schedulazione) · [Preparazione veicolo](#preparazione-veicolo)
    - [Navigazione](#navigazione) · [Veicolo](#veicolo) · [Wallbox](#wallbox)
@@ -1119,6 +1119,50 @@ numeri, così vedi subito se il valore copre quasi tutto il periodo o solo un an
 di cui Mate conosce l'energia: un viaggio senza quel dato viene **escluso**, non contato come zero,
 e la mattonella dice su quanti viaggi sta parlando. Su un'auto in cui tutti i viaggi hanno il loro
 consumo — cioè quasi sempre — non compare niente di tutto questo.
+
+### Eventi
+**(menu: Eventi)** — Cosa ha fatto l'auto, momento per momento: sbloccata e di nuovo bloccata, una porta o
+il portellone aperti e chiusi, il cavo dentro e fuori, il clima acceso e spento, READY acceso e spento, ogni
+viaggio e ricarica dall'inizio alla fine, e ogni comando inviato da Mate. L'elenco si apre sugli ultimi tre
+giorni, dal più recente, in un'unica scheda con un'intestazione per giorno e una linea sottile per ora; il
+punto di una riga ha il colore del bottone del suo gruppo. I pulsanti sopra i gruppi vanno più indietro — 3,
+7 o 30 giorni, 3, 6 o 12 mesi, o Tutto — contando da oggi; le date inserite sotto ⚙ prevalgono su di loro.
+Un intervallo lungo arriva a blocchi di mille righe, e il successivo si carica quando la fine dell'elenco
+entra nello schermo.
+
+- **Un inizio e una fine sono due righe, unite da una linea.** A sinistra degli orari, una linea del
+  colore del gruppo unisce il punto di una fine a quello del suo inizio, come in un grafo della cronologia
+  di git, così ciò che è durato insieme, e per quanto, si vede a colpo d'occhio. La fine dice quanto è
+  durato lo stato — «Portellone chiuso · 35s» — e un clic sulla linea o su un punto accende la coppia e
+  le sue due righe senza scorrere l'elenco. Se l'inizio è prima dei giorni mostrati, la linea esce
+  sbiadita dal fondo dell'elenco e la fine lo indica: «dal 02 ott 2026 alle 14:20:05». Uno stato ancora in
+  corso porta la sua linea fino in cima e dice **(in corso)** solo se l'ultimo dato dell'auto è
+  fresco; mentre il cloud ripete un dato vecchio (auto in sospensione, o senza copertura) la riga indica
+  invece l'ora di quel dato.
+- **Gli orari sono quelli dell'auto, al secondo**: l'ora del primo dato che ha mostrato il nuovo stato,
+  confermato dal successivo. Col puntatore su un orario lo si vede accanto all'ora in cui Mate ha
+  registrato la riga. Viaggi, ricariche e comandi hanno solo l'orologio di Mate, quindi accanto a un
+  segnale degli stessi secondi il loro ordine può differire di quei secondi.
+- **Una fine risponde alla sua domanda.** READY spento: quanta strada ha fatto l'auto e la carica prima e
+  dopo. Clima acceso: in sosta o durante un viaggio, la temperatura impostata e quella esterna; Clima
+  spento: l'abitacolo prima e dopo. Cavo scollegato: l'energia caricata e, se la prima ricarica è partita
+  più di cinque minuti dopo l'inserimento del cavo (una wallbox che aspetta la sua programmazione), quanto
+  ha atteso. La fine di un viaggio o di una ricarica porta i numeri di Viaggi e Ricariche.
+  Questi numeri risaltano sul resto della riga; il costo è verde e il tempo prima che partisse la ricarica
+  è ambra.
+- **Luoghi**: una riga in uno dei tuoi luoghi di ricarica (*Prezzi di ricarica → Luoghi di ricarica*) lo
+  nomina.
+- **Due dati fanno un evento.** Il cloud manda lampeggi di un solo dato — una tendina «aperta» per una
+  sola lettura — quindi un cambiamento conta solo quando due letture consecutive lo confermano. Un
+  cambiamento che l'auto ha annullato fra due sue trasmissioni non si vede mai, e il cloud può perdere il
+  segnale della chiusura per una o due letture, che allora appaiono come un breve sblocco.
+- **Filtri**: una parola (il nome dell'evento, l'esito di un comando, un luogo, la nota di un
+  viaggio o di una ricarica — la nota automatica di un viaggio contiene i suoi indirizzi), i bottoni dei gruppi
+  (Sicurezza, Porte, Finestrini, Ricarica, Clima, Guida, Comandi) e, sotto ⚙, un intervallo di date e i
+  singoli tipi. I filtri vivono nell'indirizzo: un link o un ricaricamento li conserva.
+- **Storico**: gli eventi derivano dalle posizioni che Mate già salva, quindi su un'installazione esistente
+  il primo avvio rilegge tutto lo storico, una fetta per lettura, e finché non ha finito la pagina dice a che
+  punto è. Gli eventi restano quanto le posizioni (*Impostazioni → Database*).
 
 ### Report
 **(menu: Report)** — Una sintesi **mese per mese**: quanto hai guidato, quanta energia hai

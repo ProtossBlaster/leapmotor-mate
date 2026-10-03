@@ -451,7 +451,7 @@ Unter der Energie einer Fahrt heißt die Bezeichnung **getEC** jetzt **Vom Auto 
 5. [Die Oberfläche kennenlernen](#5-die-oberfläche-kennenlernen)
 6. [Die Seiten, eine nach der anderen](#6-die-seiten-eine-nach-der-anderen)
    - [Übersicht](#übersicht) · [Fahrten](#fahrten) · [Karte](#karte) · [Ladevorgänge](#ladevorgänge)
-   - [Ladepreise](#ladepreise) · [Statistik](#statistik) · [Berichte](#berichte)
+   - [Ladepreise](#ladepreise) · [Statistik](#statistik) · [Ereignisse](#ereignisse) · [Berichte](#berichte)
    - [Batteriezustand](#batteriezustand) · [Wartung](#wartung) · [Befehle](#befehle)
    - [Planung](#planung) · [Fahrzeug vorbereiten](#fahrzeug-vorbereiten)
    - [Navigation](#navigation) · [Fahrzeug](#fahrzeug) · [Wallbox](#wallbox)
@@ -1132,6 +1132,51 @@ ist. *Verbrauchte Energie* summiert nur die Fahrten, deren Energie Mate kennt: e
 Wert wird **ausgelassen** statt als Null gezählt, und die Kachel sagt, über wie viele Fahrten sie
 spricht. Bei einem Auto, bei dem jede Fahrt ihren Verbrauch trägt — also fast immer — erscheint
 davon nichts.
+
+### Ereignisse
+**(Menü: Ereignisse)** — Was das Auto getan hat, Moment für Moment: entriegelt und wieder verriegelt, eine
+Tür oder die Heckklappe geöffnet und geschlossen, das Kabel ein und aus, die Klimaanlage an und aus, READY
+an und aus, jede Fahrt und jeder Ladevorgang von Beginn bis Ende und jeder aus Mate gesendete Befehl. Die
+Liste öffnet die letzten drei Tage, Neuestes zuerst, in einer Karte mit einer Überschrift pro Tag und einer
+dünnen Linie pro Stunde; der Punkt einer Zeile hat die Farbe des Chips ihrer Gruppe. Die Schaltflächen über
+den Chips reichen weiter zurück — 3, 7 oder 30 Tage, 3, 6 oder 12 Monate oder Alle —, gezählt ab heute;
+unter ⚙ eingegebene Daten haben Vorrang. Ein langer Zeitraum kommt in Teilen zu tausend Zeilen, der nächste
+wird geladen, sobald das Ende der Liste sichtbar wird.
+
+- **Beginn und Ende sind zwei Zeilen, verbunden durch eine Linie.** Links von den Uhrzeiten verbindet eine
+  Linie in der Farbe der Gruppe den Punkt eines Endes mit dem seines Beginns, wie in einer grafischen
+  Git-Historie; so sieht man auf einen Blick, was gleichzeitig lief und wie lange. Das Ende sagt, wie
+  lange der Zustand dauerte — „Heckklappe geschlossen · 35s“ —, und ein Klick auf die Linie oder einen
+  Punkt hebt das Paar und seine beiden Zeilen hervor, ohne die Liste zu verschieben. Liegt der Beginn vor
+  den angezeigten Tagen, läuft die Linie blass über den unteren Rand der Liste hinaus, und das Ende nennt
+  ihn: „ab 02 Okt 2026 14:20:05“. Ein noch laufender Zustand führt seine Linie bis nach oben und sagt
+  **(läuft)** nur, wenn der letzte Datensatz des Autos frisch ist; wiederholt die Cloud einen alten (das
+  Auto schläft oder ist ohne Empfang), nennt die Zeile stattdessen die Zeit dieses Datensatzes.
+- **Die Zeiten sind die des Autos, auf die Sekunde**: die Zeit des ersten Datensatzes, der den neuen
+  Zustand zeigte, bestätigt durch den nächsten. Mit dem Zeiger über einer Uhrzeit erscheint sie neben der
+  Zeit, zu der Mate die Zeile erfasst hat. Fahrten, Ladevorgänge und Befehle haben nur die Uhr von Mate,
+  deshalb kann ihre Reihenfolge neben einem Signal aus denselben Sekunden um diese Sekunden abweichen.
+- **Ein Ende beantwortet seine eigene Frage.** READY aus: wie weit das Auto fuhr und der Ladestand vorher
+  und nachher. Klima an: geparkt oder während der Fahrt, die Zieltemperatur und die Außentemperatur; Klima
+  aus: der Innenraum vorher und nachher. Kabel getrennt: die geladene Energie und, wenn der erste
+  Ladevorgang mehr als fünf Minuten nach dem Einstecken begann (eine Wallbox, die auf ihren Zeitplan
+  wartet), wie lange es wartete. Das Ende einer Fahrt oder eines Ladevorgangs trägt die Zahlen von Fahrten
+  und Ladevorgängen. Diese Zahlen heben sich vom Rest der Zeile ab; Kosten sind grün, die Zeit bis zum
+  Ladebeginn bernsteinfarben.
+- **Orte**: eine Zeile an einem Ihrer Ladeorte (*Ladepreise → Ladeorte*) nennt ihn.
+- **Zwei Datensätze machen ein Ereignis.** Die Cloud sendet Einzelaussetzer — ein Sonnenrollo für eine
+  einzige Abfrage „offen“ —, deshalb zählt eine Änderung erst, wenn zwei aufeinanderfolgende Datensätze
+  sie halten. Eine Änderung, die das Auto zwischen zwei eigenen Meldungen zurücknahm, wird nie gesehen, und
+  die Cloud kann das Verriegelungssignal für ein oder zwei Abfragen weglassen, was dann wie ein kurzes
+  Entriegeln aussieht.
+- **Filter**: ein Wort (der Name des Ereignisses, das Ergebnis eines Befehls, ein Ort, die Notiz
+  einer Fahrt oder eines Ladevorgangs — eine automatische Fahrtnotiz enthält die Adressen der Fahrt), die Gruppen-Chips
+  (Sicherheit, Türen, Fenster, Laden, Klima, Fahren, Befehle) und unter ⚙ ein Zeitraum und einzelne Arten.
+  Die Filter stehen in der Adresse, ein Link oder ein Neuladen behält sie.
+- **Verlauf**: Die Ereignisse werden aus den Positionen abgeleitet, die Mate bereits speichert; auf einer
+  bestehenden Installation liest der erste Start den ganzen Verlauf zurück, ein Stück pro Abfrage, und bis
+  dahin sagt die Seite, wie weit sie ist. Ereignisse bleiben so lange wie die Positionen (*Einstellungen →
+  Datenbank*).
 
 ### Berichte
 **(Menü: Berichte)** — Eine Zusammenfassung **Monat für Monat**: wie viel Sie gefahren sind, wie viel Energie

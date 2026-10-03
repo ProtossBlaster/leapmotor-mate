@@ -438,7 +438,7 @@ Bajo la energía de un viaje, la etiqueta que decía **getEC** dice ahora **Medi
 5. [Conocer la interfaz](#5-conocer-la-interfaz)
 6. [Las páginas, una a una](#6-las-páginas-una-a-una)
    - [Resumen](#resumen) · [Trayectos](#trayectos) · [Mapa](#mapa) · [Cargas](#cargas)
-   - [Precios de la carga](#precios-de-la-carga) · [Estadísticas](#estadísticas) · [Informes](#informes)
+   - [Precios de la carga](#precios-de-la-carga) · [Estadísticas](#estadísticas) · [Eventos](#eventos) · [Informes](#informes)
    - [Salud de la batería](#salud-de-la-batería) · [Mantenimiento](#mantenimiento) · [Comandos](#comandos)
    - [Programación](#programación) · [Preparar el coche](#preparar-el-coche)
    - [Navegación](#navegación) · [Vehículo](#vehículo) · [Wallbox](#wallbox)
@@ -1138,6 +1138,49 @@ rincón. *Energía consumida* suma únicamente los trayectos cuya energía conoc
 ella queda **fuera** en vez de contar como cero, y la casilla dice de cuántos trayectos habla. En un
 coche donde cada trayecto lleva su propio consumo — que es casi siempre — nada de esto llega a
 aparecer.
+
+### Eventos
+**(menú: Eventos)** — Qué hizo el coche, momento a momento: desbloqueado y de nuevo bloqueado, una puerta o
+el portón abiertos y cerrados, el cable dentro y fuera, el clima encendido y apagado, READY encendido y
+apagado, cada trayecto y cada carga de principio a fin, y cada orden enviada desde Mate. La lista se abre en
+los últimos tres días, lo más reciente primero, en una sola tarjeta con un encabezado por día y una línea
+fina por hora; el punto de una fila tiene el color de la píldora de su grupo. Los botones sobre las píldoras
+llegan más atrás — 3, 7 o 30 días, 3, 6 o 12 meses, o Todo —, contando desde hoy; las fechas escritas bajo
+⚙ prevalecen sobre ellos. Un rango largo llega en partes de mil filas, y la siguiente se carga cuando el
+final de la lista aparece en pantalla.
+
+- **Un inicio y un final son dos filas, unidas por una línea.** A la izquierda de las horas, una línea del
+  color del grupo une el punto de un final con el de su inicio, como en un gráfico del historial de git,
+  así que lo que ocurrió a la vez, y durante cuánto tiempo, se ve de un vistazo. El final dice cuánto duró
+  el estado — «Portón cerrado · 35s» — y un clic en la línea o en un punto resalta el par y sus dos filas
+  sin desplazar la lista. Si el inicio es anterior a los días mostrados, la línea sale atenuada por el
+  borde inferior de la lista y el final lo indica: «desde el 02 oct 2026 a las 14:20:05». Un estado aún en
+  curso lleva su línea hasta arriba y dice **(en curso)** solo si el último dato del coche es
+  reciente; mientras la nube repite un dato antiguo (el coche dormido, o sin cobertura) la fila indica en
+  su lugar la hora de ese dato.
+- **Las horas son las del coche, al segundo**: la hora del primer dato que mostró el nuevo estado,
+  confirmado por el siguiente. Con el puntero sobre una hora se ve junto a la hora en que Mate registró la
+  fila. Los trayectos, las cargas y las órdenes solo tienen el reloj de Mate, así que junto a una señal de
+  los mismos segundos su orden puede diferir en esos segundos.
+- **Un final responde a su propia pregunta.** READY apagado: cuánto recorrió el coche y la carga antes y
+  después. Clima encendido: aparcado o durante un trayecto, la temperatura fijada y la exterior; Clima
+  apagado: el habitáculo antes y después. Cable desconectado: la energía cargada y, si la primera carga
+  empezó más de cinco minutos después de enchufar el cable (un cargador que espera su horario), cuánto
+  esperó. El final de un trayecto o de una carga lleva las cifras de Trayectos y Cargas.
+  Esas cifras destacan del resto de la fila; el coste va en verde y el tiempo hasta que empezó la carga,
+  en ámbar.
+- **Lugares**: una fila en uno de tus lugares de carga (*Precios de la carga → Lugares de carga*) lo nombra.
+- **Dos datos hacen un evento.** La nube envía parpadeos de un solo dato — una cortinilla «abierta» durante
+  una sola lectura —, así que un cambio cuenta solo cuando dos lecturas consecutivas lo mantienen. Un cambio
+  que el coche deshizo entre dos de sus propios envíos nunca se ve, y la nube puede perder la señal del
+  cierre durante una o dos lecturas, que entonces se leen como un breve desbloqueo.
+- **Filtros**: una palabra (el nombre del evento, el resultado de una orden, un lugar, la nota de
+  un trayecto o de una carga — la nota automática de un trayecto contiene sus direcciones), las píldoras de
+  grupo (Seguridad, Puertas, Ventanillas, Carga, Clima, Conducción, Órdenes) y, bajo ⚙, un rango de fechas y
+  tipos sueltos. Los filtros viven en la dirección: un enlace o una recarga los conserva.
+- **Histórico**: los eventos se derivan de las posiciones que Mate ya guarda, así que en una instalación
+  existente el primer arranque relee todo el histórico, un trozo por lectura, y hasta terminar la página dice
+  hasta dónde ha llegado. Los eventos se conservan tanto como las posiciones (*Ajustes → Base de datos*).
 
 ### Informes
 **(menú: Informes)** — Un resumen **mes a mes**: cuánto condujiste, cuánta energía consumiste y
