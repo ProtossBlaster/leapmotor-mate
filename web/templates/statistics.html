@@ -264,6 +264,11 @@
   </div>
   <div class="text-slate-600 text-xs mt-1">
     {{ t('stats_offline_windows').format(n=totals.offline_gaps.count) }}
+    {# What the cloud's own trip history has since given back (#298). Beside the measurement, never
+       subtracted from it: those kilometres were covered out of contact all the same. #}
+    {% if totals.offline_gaps.recovered_km %}
+    · {{ t('stats_offline_recovered').format(km=totals.offline_gaps.recovered_km | dist(1)) }}
+    {% endif %}
   </div>
   <div class="text-slate-500 text-xs mt-2 leading-relaxed">{{ t('stats_offline_help') }}</div>
 </div>

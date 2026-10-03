@@ -53,6 +53,12 @@ _WB_FLOOR_KWH = 1.0
 # so a wider window buys no real coverage and only risks stamping the wrong afternoon's kilometres.
 _ODO_BACKFILL_WINDOW_MIN = 5
 
+# The two numbers the cloud-energy overshoot is judged by, mirrored from web/ec_enrich.py — the
+# repair below has to refuse exactly what the live guard refuses, or a start-up would undo what the
+# sweep then re-applies. A test asserts the two copies agree.
+_MAX_EC_SOC_OVERSHOOT = 2.0
+_SOC_REFERENCE_MIN_POINTS = 1.0
+
 _SIGN_SAMPLE = 400
 _SIGN_MIN_PLACES = 20
 _SIGN_MAJORITY = 0.9
@@ -387,6 +393,7 @@ class Database:
         self._repair_rows_written_from_a_misread_map()
         self._repair_zero_soc_rows_the_car_never_read()
         self._repair_negative_efficiency()
+        self._repair_trips_given_a_cloud_energy_that_doubles_the_battery()
         self._repair_reev_engine_efficiency()
         self._repair_bogus_wallbox_energy()
         self.migrate_secrets()
@@ -544,6 +551,50 @@ class Database:
         self.set_setting("charges_soc_snap_repair_v1", "1")
         if fixed:
             log.info("Snap-to-full charge repair: %d charge(s) recomputed", fixed)
+
+    def _repair_trips_given_a_cloud_energy_that_doubles_the_battery(self) -> None:
+        """One-time repair for trips converted before the overshoot guard stopped needing an
+        efficiency ceiling (#298, @arzthilfe). A trip whose official cloud figure is more than twice
+        the energy its own battery lost was already refused — but only when it ALSO read above
+        60 kWh/100km, and a 7 km drive at 41 kWh/100km does not. Those trips are carrying the
+        cloud's figure in the consumption chart and in every monthly total.
+
+        Put back the SoC estimate the conversion replaced — the same restore the Trips page's own
+        button performs, and just as reversible: `efficiency_soc` is the backup the conversion kept,
+        and clearing `ec_stable` lets the sweep look again, so a cloud that later settles on a
+        sane figure is not locked out.
+
+        Only single trips, as the live guard is: a merged parent's figure is attributed over the
+        whole group's distance, which is the case the shared-session block owns."""
+        if self.get_setting("trips_ec_overshoot_repair_v1") == "1":
+            return
+        rows = self._conn.execute(
+            """SELECT t.id, t.vehicle_id, t.distance_km, t.start_soc, t.end_soc, t.ec_kwh,
+                      t.efficiency_kwh_100km, t.efficiency_soc
+                 FROM trips t
+                WHERE t.ec_kwh IS NOT NULL AND t.merged_into_id IS NULL
+                  AND t.distance_km > 0 AND t.start_soc IS NOT NULL AND t.end_soc IS NOT NULL
+                  AND t.start_soc - t.end_soc >= ?
+                  AND NOT EXISTS (SELECT 1 FROM trips k WHERE k.merged_into_id = t.id)""",
+            (_SOC_REFERENCE_MIN_POINTS,)).fetchall()
+        fixed = 0
+        for t in rows:
+            soc_energy = (t["start_soc"] - t["end_soc"]) / 100.0 \
+                * self.get_battery_capacity(t["vehicle_id"])
+            if soc_energy <= 0 or t["ec_kwh"] <= soc_energy * _MAX_EC_SOC_OVERSHOOT:
+                continue
+            self._conn.execute(
+                "UPDATE trips SET efficiency_kwh_100km = COALESCE(efficiency_soc, "
+                "efficiency_kwh_100km), efficiency_soc = NULL, ec_kwh = NULL, ec_driving = NULL, "
+                "ec_ac = NULL, ec_other = NULL, ec_stable = 0 WHERE id = ?", (t["id"],))
+            log.info("Trip #%d: cloud energy %.2f kWh against %.2f kWh of battery over %.1f km — "
+                     "put back on the SoC estimate", t["id"], t["ec_kwh"], soc_energy,
+                     t["distance_km"])
+            fixed += 1
+        self._conn.commit()
+        self.set_setting("trips_ec_overshoot_repair_v1", "1")
+        if fixed:
+            log.info("Cloud-energy overshoot repair: %d trip(s) back on the SoC estimate", fixed)
 
     def _repair_charges_anchored_below_the_detection_floor(self) -> None:
         """One-time repair for charges finalized while the energy was anchored to `charging` (#316).

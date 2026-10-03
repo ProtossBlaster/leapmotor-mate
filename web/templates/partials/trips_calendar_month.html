@@ -74,7 +74,8 @@
         · {{ offline.total_kwh | nice }} kWh{% if offline.cost is not none %}
         · {{ offline.cost | money }}{% endif %}</span>
     </div>
-    <div class="text-slate-500 mt-1">{{ t('stats_offline_windows').format(n=offline.count) }}
+    <div class="text-slate-500 mt-1">{{ t('stats_offline_windows').format(n=offline.count) }}{% if offline.recovered_km %}
+      · {{ t('stats_offline_recovered').format(km=offline.recovered_km | dist(1)) }}{% endif %}
       — {{ t('stats_offline_short') }}</div>
   </div>
   {% endif %}

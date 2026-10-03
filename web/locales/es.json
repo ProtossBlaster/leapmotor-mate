@@ -221,6 +221,7 @@
     "stats_offline_soc": "de carga",
     "stats_offline_cost_note": "a {price} {cur}/kWh",
     "stats_offline_windows": "{n} periodo(s) sin contacto",
+    "stats_offline_recovered": "de los cuales {km} han vuelto como viajes en el historial de Leapmotor",
     "stats_offline_short": "medidos, pero no atribuibles a un trayecto concreto",
     "stats_offline_help": "Medidos, pero no atribuibles a un trayecto concreto — por eso quedan fuera de distancias, consumos y costes en todo el resto de esta página. El coche los recorrió mientras la nube no tenía nada nuevo que decir: ese silencio puede contener el final de un trayecto, una parada y el principio de otro, y nada en los datos dice cómo se reparte. La carga sale junto con los kilómetros, nunca una sin los otros.",
     "stats_reev_spend_label": "Cargas y repostajes",

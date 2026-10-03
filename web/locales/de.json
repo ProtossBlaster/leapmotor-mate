@@ -221,6 +221,7 @@
     "stats_offline_soc": "Ladung",
     "stats_offline_cost_note": "zu {price} {cur}/kWh",
     "stats_offline_windows": "{n} Zeitraum/Zeiträume ohne Kontakt",
+    "stats_offline_recovered": "davon {km} als Fahrten in Leapmotors eigener Historie zurückgekehrt",
     "stats_offline_short": "gemessen, aber keiner bestimmten Fahrt zuzuordnen",
     "stats_offline_help": "Gemessen, aber keiner bestimmten Fahrt zuzuordnen — deshalb überall sonst auf dieser Seite aus Strecken, Verbrauch und Kosten herausgehalten. Das Auto hat sie zurückgelegt, während die Cloud nichts Neues zu melden hatte: in dieser Stille können das Ende einer Fahrt, eine Pause und der Beginn einer weiteren stecken, und nichts in den Daten sagt, wie es sich aufteilt. Die Ladung geht mit den Kilometern hinaus, nie das eine ohne das andere.",
     "stats_reev_spend_label": "Lade- und Tankvorgänge",

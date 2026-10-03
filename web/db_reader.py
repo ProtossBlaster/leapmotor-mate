@@ -5716,6 +5716,74 @@ def merge_charges(parent_id: int, child_id: int, gap_min: int = CHARGE_MERGE_GAP
     return {"ok": True, "parent_id": a["id"]}
 
 
+# How long a pause may last and still be joined without asking (#374, @Andreexylus).
+#
+# The join itself is the manual one, with every one of its guards; this only decides when nobody
+# needs to be asked first. The car declares the cable GONE the instant the current stops — measured
+# on a B10 the night of 29→30 July, cable in at 19:30 and out the next morning, untouched in
+# between, recorded as SIX charges with pauses of 60, 70, 180 and 60 s. A load-balancing wallbox, a
+# solar-surplus charger or a utility pacing the load all look like that from inside the car.
+#
+# Every pause ever measured here sits inside six minutes: those four, then 61, 61, 91, 91, 182, 256
+# and 334 s across the 35 charges in the same database since, and 30 to 60 s on eleven pauses over
+# six nights in @Andreexylus's bundle. The next gap up in that history is 40 minutes and gives
+# itself away anyway by a SoC that FELL. So six minutes is the worst pause measured, rounded up —
+# deliberately NOT the half hour the manual join allows, because that window is where the call
+# belongs to the person who was there, and it stays theirs.
+#
+# Nothing is lost if this is ever wrong: the pieces are joined, never rewritten, and **Split** puts
+# them back exactly as the car reported them.
+CHARGE_PAUSE_JOIN_GAP = 6
+_CHARGE_JOIN_CURSOR = "charges_pause_join_cursor"
+_CHARGE_JOIN_BATCH = 200
+
+
+def join_charges_split_by_a_pause() -> int:
+    """Join the rows one plug-in was cut into, without waiting to be asked. Returns rows joined.
+
+    Each charge is examined ONCE, in id order, behind a cursor — the same device the events
+    derivation uses. That is what makes this safe to run on every render: a charge the owner later
+    splits is never looked at again, so the automatic join can never undo a human decision. On the
+    first run the cursor is at 0, so it walks the history once and the nights already in the
+    database are put back together too.
+
+    The decision is `merge_charges`, called with a tighter window and nothing else changed: same
+    car, both closed, neither already merged, no other charge in the gap, no trip overlapping it,
+    the SoC not fallen, the same charging place. A charge still running is left alone until it ends
+    — the cursor stops before it rather than stepping over it."""
+    try:
+        db = _conn_rw()
+        cursor = int(get_setting(_CHARGE_JOIN_CURSOR, "0") or 0)
+        row = db.execute("SELECT MIN(id) FROM charges WHERE ended_at IS NULL").fetchone()
+        first_open = row[0] if row else None
+        rows = db.execute(
+            "SELECT id, vehicle_id, started_at FROM charges WHERE id > ? AND ended_at IS NOT NULL"
+            " AND (? IS NULL OR id < ?) ORDER BY id LIMIT ?",
+            (cursor, first_open, first_open, _CHARGE_JOIN_BATCH)).fetchall()
+        joined, seen = 0, cursor
+        for r in rows:
+            seen = r["id"]
+            prev = db.execute(
+                "SELECT COALESCE(merged_into_id, id) AS head FROM charges WHERE vehicle_id = ?"
+                " AND ended_at IS NOT NULL AND started_at < ? AND id != ?"
+                " ORDER BY started_at DESC LIMIT 1",
+                (r["vehicle_id"], r["started_at"], r["id"])).fetchone()
+            if prev is None or prev["head"] == r["id"]:
+                continue
+            out = merge_charges(prev["head"], r["id"], gap_min=CHARGE_PAUSE_JOIN_GAP)
+            if out.get("ok"):
+                joined += 1
+                logging.getLogger("db_reader").info(
+                    "Charge #%d joined to #%d — the cable read gone for less than %d min, which "
+                    "is a pause, not an unplug", r["id"], prev["head"], CHARGE_PAUSE_JOIN_GAP)
+        if seen != cursor:
+            set_setting(_CHARGE_JOIN_CURSOR, str(seen))
+        return joined
+    except Exception as e:  # noqa: BLE001 — a card must never take the page down
+        logging.getLogger("db_reader").debug("join_charges_split_by_a_pause skipped: %s", e)
+        return 0
+
+
 def unmerge_charges(parent_id: int) -> dict:
     """Split a merged charge back into the rows the car reported. Nothing was ever overwritten,
     so they come back exactly as they were — including the split figures."""
@@ -9762,6 +9830,34 @@ def get_charge_stats() -> dict:
 _OFFLINE_GAPS_SHOWN = 20
 
 
+def _recovered_in_window(started_at: str, ended_at: str) -> float:
+    """Kilometres of this silence that Leapmotor's own trip history has since given back (#298,
+    @arzthilfe). He asked the right question: eight of his eleven missing kilometres came back as
+    imported trips, and the figure above them did not move.
+
+    It still should not move — those kilometres WERE covered out of contact, which is what the
+    figure counts, and the silence they sit in is still not divisible into drive, stop and drive.
+    What was missing is the other half of the sentence: how much of it is no longer a mystery. So
+    this is reported beside the measurement, never subtracted from it.
+
+    Only trips wholly inside the window, and only ones the cloud gave a distance: a record the
+    cloud itself returns with 0 km accounts for nothing. A partial overlap is left out — the window
+    bounds the silence, not the drive, so a trip crossing its edge cannot say how much of itself
+    belongs inside."""
+    db = _get()
+    if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                      "AND name='api_lab_cloud_trip_links'").fetchone():
+        return 0.0
+    row = db.execute(
+        "SELECT COALESCE(SUM(t.distance_km), 0) FROM trips t"
+        "  JOIN api_lab_cloud_trip_links l ON l.trip_id = t.id"
+        " WHERE t.vehicle_id = COALESCE(?, t.vehicle_id) AND t.merged_into_id IS NULL"
+        "   AND COALESCE(t.distance_km, 0) > 0"
+        "   AND t.started_at >= ? AND COALESCE(t.ended_at, t.started_at) <= ?",
+        (_current_vehicle_id(), started_at, ended_at)).fetchone()
+    return round(row[0] or 0.0, 1)
+
+
 def offline_gaps_summary(year: Optional[int] = None, month: Optional[int] = None) -> dict:
     """Kilometres the car covered while the cloud had nothing new to say — measured, and belonging
     to no trip.
@@ -9784,7 +9880,7 @@ def offline_gaps_summary(year: Optional[int] = None, month: Optional[int] = None
     The window list is capped and the cap is REPORTED: a silent truncation reads as "these are all
     of them" when it is not."""
     empty = {"count": 0, "total_km": 0.0, "total_soc": 0.0, "total_kwh": 0.0,
-             "cost": None, "avg_price": None, "windows": [], "shown": 0}
+             "cost": None, "avg_price": None, "windows": [], "shown": 0, "recovered_km": 0.0}
     try:
         rows = _get().execute(
             "SELECT started_at, ended_at, distance_km, soc_start, soc_end, energy_kwh"
@@ -9816,10 +9912,14 @@ def offline_gaps_summary(year: Optional[int] = None, month: Optional[int] = None
     windows = [{"start": r["started_at"], "end": r["ended_at"],
                 "km": r["distance_km"], "soc": round(max((r["soc_start"] or 0)
                                                          - (r["soc_end"] or 0), 0.0), 1),
-                "kwh": r["energy_kwh"]} for r in rows][-_OFFLINE_GAPS_SHOWN:]
+                "kwh": r["energy_kwh"],
+                "recovered_km": _recovered_in_window(r["started_at"], r["ended_at"])}
+               for r in rows][-_OFFLINE_GAPS_SHOWN:]
     return {"count": len(rows), "total_km": total_km, "total_soc": total_soc,
             "total_kwh": total_kwh, "cost": cost, "avg_price": avg_price,
-            "windows": windows, "shown": len(windows)}
+            "windows": windows, "shown": len(windows),
+            "recovered_km": round(sum(_recovered_in_window(r["started_at"], r["ended_at"])
+                                      for r in rows), 1)}
 
 
 def get_ac_dc_stats() -> dict:

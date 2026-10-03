@@ -42,6 +42,19 @@ _MAX_EC_SOC_OVERSHOOT = 2.0    # ...and: getEC ABOVE this × the SoC delta = ove
                                # Typical on VERY SHORT trips: the window's 2-min pre-pad (A/C, standby,
                                # pre-conditioning) dwarfs the tiny drive and inflates getEC several-fold
                                # past what actually left the battery (1 km: 1.2 kWh getEC vs 0.2 SoC).
+_SOC_REFERENCE_MIN_POINTS = 1.0  # ...unless the SoC delta is itself a solid measurement, and then the
+                               # overshoot ALONE is enough — the efficiency ceiling is dropped (#298,
+                               # @arzthilfe). Why the ceiling had to go: his 7 km drive read 2.90 kWh
+                               # against 1.07 kWh of SoC — 2.7× — and drew 41.4 kWh/100km on the
+                               # consumption chart, under the 60 ceiling, so the guard never looked.
+                               # Why only above this many points: measured over 412 trips carrying both
+                               # a getEC and a SoC drop, the ratio converges as the drop grows —
+                               # p90 1.54 below 0.5 points, then 0.96 / 1.08 / 0.99 / 1.00. Below half
+                               # a point the ratio IS the noise (a handful of 0.1 steps), which is why
+                               # the two conditions were ANDed in the first place; at a full point and
+                               # up the SoC is the firmer of the two numbers and says so on its own.
+                               # 2 of those 412 trips change hands, both at ratio 2.1 with 14 and 29
+                               # steps behind them — the same shape as his.
 _lock = threading.Lock()
 _running = False
 _bg_started = False
@@ -60,7 +73,15 @@ def _soc_energy_kwh(d: dict, dist: float):
     return (soc_eff / 100 * dist) if (soc_eff and dist and dist > 0) else None
 
 
-def _ec_implausible(ec: dict, dist: float, soc_energy) -> bool:
+def _soc_drop_points(d: dict):
+    """The trip's MEASURED SoC fall in percentage points, or None when it was not measured. Only a
+    real start/end pair counts: the efficiency fallback in `_soc_energy_kwh` can produce an energy
+    without ever having seen a drop, and a drop nobody measured cannot vouch for anything."""
+    ss, es = d.get("start_soc"), d.get("end_soc")
+    return (ss - es) if (ss is not None and es is not None and ss > es) else None
+
+
+def _ec_implausible(ec: dict, dist: float, soc_energy, soc_drop=None) -> bool:
     """True when a getEC reading is physically implausible vs the trip's SoC battery delta → keep the
     estimate instead. Each side needs BOTH an efficiency signal AND a SoC-mismatch signal (a genuinely
     low/high but SoC-consistent trip is accepted; with no SoC reference → accept):
@@ -69,15 +90,21 @@ def _ec_implausible(ec: dict, dist: float, soc_energy) -> bool:
       • HIGH (#98): eff > _MAX_PLAUSIBLE_EFF AND total > _MAX_EC_SOC_OVERSHOOT × SoC — the value
         over-states THIS drive (e.g. a single trip whose session swallowed pre-drive idle/climate; the
         drive-only SoC is the truer per-trip figure). The MULTI-trip session case is handled earlier by
-        the shared-session block, so this fires only on single trips."""
+        the shared-session block, so this fires only on single trips.
+      • HIGH with a solid reference (#298): the overshoot alone, no efficiency condition, once the
+        measured SoC fall reaches _SOC_REFERENCE_MIN_POINTS. The AND exists because a ratio built on
+        two or three 0.1 steps is noise — it is not a reason to disbelieve the SoC when the drop is
+        ten steps and more."""
     if not ec or not dist or dist <= 0 or not soc_energy:
         return False
     total = ec.get("total_kwh") or 0
     eff = total / dist * 100
     if eff < _MIN_PLAUSIBLE_EFF and total < soc_energy * _MAX_EC_SOC_SHORTFALL:
         return True                                # too low → incomplete / cloud gap (#96)
-    if eff > _MAX_PLAUSIBLE_EFF and total > soc_energy * _MAX_EC_SOC_OVERSHOOT:
-        return True                                # too high → over-attributed (#98)
+    if total > soc_energy * _MAX_EC_SOC_OVERSHOOT and (
+            eff > _MAX_PLAUSIBLE_EFF
+            or (soc_drop is not None and soc_drop >= _SOC_REFERENCE_MIN_POINTS)):
+        return True                                # too high → over-attributed (#98, #298)
     return False
 
 
@@ -170,7 +197,7 @@ def _sweep_now() -> None:
             # SoC. LOW = cloud gap; HIGH = session swallowed pre-drive idle (drive-only SoC is truer).
             # The multi-trip shared-session case was already skipped above.
             soc_e = _soc_energy_kwh(t, dist)
-            if _ec_implausible(ec, dist, soc_e):
+            if _ec_implausible(ec, dist, soc_e, _soc_drop_points(t)):
                 log.info("EC trip %s: implausible read %.2f kWh (SoC≈%.2f kWh) — discarded (age %.0fm, try %d)",
                          t["id"], ec.get("total_kwh") or 0, soc_e or 0, age / 60, tried)
                 ec = None
@@ -280,7 +307,7 @@ def convert_trip(trip_id: int) -> dict:
     # drive (the trip = the drive; drive-only SoC is the truer per-trip figure). The MULTI-trip case is
     # already handled above by the shared-session block, so here it only ever sees single trips.
     soc_e = _soc_energy_kwh(grp, dist)
-    if _ec_implausible(ec, dist, soc_e):
+    if _ec_implausible(ec, dist, soc_e, _soc_drop_points(grp)):
         db_reader.store_trip_ec(trip_id, None, dist, apply_energy=False)  # record attempt, change nothing
         log.info("convert_trip %s: implausible getEC %.2f kWh over %.1f km (SoC≈%.2f kWh) — kept SoC estimate",
                  trip_id, ec.get("total_kwh") or 0, dist, soc_e or 0)

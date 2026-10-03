@@ -514,6 +514,9 @@ def _ctx(**kwargs):
     # counting none of them. Same lazy sweep, same update_charge_type path, and it catches the
     # backlog of whoever turned that switch on weeks ago.
     db_reader.price_default_home_charges()
+    # Same piggyback for the rows one plug-in was cut into by a wallbox pause (#374): a cursor read
+    # and one indexed SELECT per render, and each charge is examined exactly once.
+    db_reader.join_charges_split_by_a_pause()
     # Same piggyback for the 📍 station labels — settings probe + tiny SELECT per render,
     # the OSM lookups run in a background thread on a TTL (see charger_locator.maybe_sweep).
     charger_locator.maybe_sweep()
