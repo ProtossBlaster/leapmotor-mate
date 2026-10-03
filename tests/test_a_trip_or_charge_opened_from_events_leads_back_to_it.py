@@ -130,9 +130,10 @@ def _late(client):
     return handle
 
 
-@pytest.mark.parametrize("width", [390, 1024, 1280])
-@pytest.mark.parametrize("map_on", [False, True])
-def test_back_leaves_the_row_in_view_below_the_bars_and_the_map(tmp_path, monkeypatch, map_on, width):
+def _back_to_the_trip(tmp_path, monkeypatch, width, map_on, frame_ms=None):
+    """Back from a trip to a list that scrolls to its row, the page's assets late; returns the row's
+    top and bottom and how far down what stands over it reaches, once the layout has settled. With
+    `frame_ms`, the browser draws a frame that seldom, as a slow phone."""
     car = Car(tmp_path)
     client = web(car, monkeypatch)
     trip, _ = _trip_and_charge(car)
@@ -144,11 +145,16 @@ def test_back_leaves_the_row_in_view_below_the_bars_and_the_map(tmp_path, monkey
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": width, "height": 700})
         page.route("**/*", _late(client))
+        if frame_ms:
+            page.add_init_script("(() => { const raf = requestAnimationFrame.bind(window);"
+                                 f" window.requestAnimationFrame = f => setTimeout(() => raf(f), {frame_ms}); }})()")
         page.goto("http://mate.test/events")
         page.evaluate(f"() => localStorage.setItem('mate.events.map', '{int(map_on)}')")
         page.goto(f"http://mate.test/trips/{trip}?back=" + quote(f"events?range=3d#ev-trip-{trip}-off"))
         page.get_by_text("← Events").first.click()
         page.wait_for_url("**/events?*")
+        # The page seeks the row a frame after its load, and lights it: only from then is a still row placed.
+        page.locator(f"#ev-trip-{trip}-off.ev-pair").wait_for()
         place = f"""() => {{ const r = document.getElementById('ev-trip-{trip}-off').getBoundingClientRect();
             const over = [...document.querySelector('main').children, document.getElementById('events-map-box')]
                 .filter(el => getComputedStyle(el).position === 'sticky' && el.offsetHeight)
@@ -156,10 +162,22 @@ def test_back_leaves_the_row_in_view_below_the_bars_and_the_map(tmp_path, monkey
                 .map(b => b.bottom);
             return [Math.round(r.top), Math.round(r.bottom), Math.round(Math.max(0, ...over))]; }}"""
         seen = [None, page.evaluate(place)]
-        while seen[-1] != seen[-2]:                       # once the layout has settled
-            page.wait_for_timeout(150)
+        while seen[-1] != seen[-2]:                       # still across more than two frames
+            page.wait_for_timeout(max(150, 2.5 * (frame_ms or 0)))
             seen.append(page.evaluate(place))
-        top, bottom, covered = seen[-1]
-        assert covered <= top and bottom <= 700, f"row {top}–{bottom}, covered down to {covered}"
-        assert page.locator(f"#ev-trip-{trip}-off.ev-pair").count() == 1
         browser.close()
+    return seen[-1]
+
+
+@pytest.mark.parametrize("width", [390, 1024, 1280])
+@pytest.mark.parametrize("map_on", [False, True])
+def test_back_leaves_the_row_in_view_below_the_bars_and_the_map(tmp_path, monkeypatch, map_on, width):
+    top, bottom, covered = _back_to_the_trip(tmp_path, monkeypatch, width, map_on)
+    assert covered <= top and bottom <= 700, f"row {top}–{bottom}, covered down to {covered}"
+
+
+def test_a_phone_slow_to_draw_gets_the_row_in_view_too(tmp_path, monkeypatch):
+    """The map kept on, the page put back where it was when the map showed and asked where the row
+    goes before the map stuck at the top: the row was left below the screen."""
+    top, bottom, covered = _back_to_the_trip(tmp_path, monkeypatch, 390, True, frame_ms=400)
+    assert covered <= top and bottom <= 700, f"row {top}–{bottom}, covered down to {covered}"

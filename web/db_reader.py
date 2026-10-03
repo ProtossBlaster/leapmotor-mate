@@ -5852,6 +5852,20 @@ def _trip_display_source(trip, segment_ids, cloud_ids, gps_ids):
     trip["has_gps"] = any(i in gps_ids for i in segment_ids)
 
 
+def _groups_within(table: str, merged: bool, since: str | None, until: str | None) -> tuple[str, tuple]:
+    """The condition keeping the sessions of `table` that OVERLAP [since, until), each merged group
+    from its earliest time to its latest, start or end: a stepped-back host clock writes a rebuilt
+    session's end before its start. No window, no condition."""
+    if since is None and until is None:
+        return "", ()
+    group = "COALESCE(merged_into_id, id)" if merged else "id"
+    times = "julianday(started_at), julianday(COALESCE(ended_at, started_at))"
+    return (f" AND id IN (SELECT {group} FROM {table} WHERE vehicle_id = COALESCE(?, vehicle_id) GROUP BY 1"
+            f" HAVING (? IS NULL OR MAX(MAX({times})) >= julianday(?))"
+            f" AND (? IS NULL OR MIN(MIN({times})) < julianday(?)))",
+            (_current_vehicle_id(), since, since, until, until))
+
+
 def get_trips(limit: int = 500, since: str | None = None, until: str | None = None) -> list[dict]:
     """`since`/`until` (UTC ISO) keep the trips that OVERLAP that window — a trip that began before
     it and ended inside it is part of what happened in it. Composing a trip is not free (its group,
@@ -5860,13 +5874,13 @@ def get_trips(limit: int = 500, since: str | None = None, until: str | None = No
     cost followed the length of the history instead of the days asked for."""
     db = _get()
     kids = _children_by_parent(db)
+    within, args = _groups_within("trips", True, since, until)
     rows = db.execute(
-        """SELECT * FROM trips
-           WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL AND merged_into_id IS NULL
-             AND (? IS NULL OR ended_at >= ?) AND (? IS NULL OR started_at < ?)
+        f"""SELECT * FROM trips
+           WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL AND merged_into_id IS NULL{within}
            ORDER BY started_at DESC
            LIMIT ?""",
-        (_current_vehicle_id(), since, since, until, until, limit),
+        (_current_vehicle_id(), *args, limit),
     ).fetchall()
     # Built ONCE for the whole list — the fuel twin of the electric rate timeline. Per trip it would
     # replay every refuel from the beginning, which is quadratic down a long list.
@@ -8018,12 +8032,13 @@ def get_charges(limit: int = 50, since: str | None = None, until: str | None = N
     charge that began the evening before and ended in the morning belongs to both days."""
     db = _get()
     _zone = _local_tz()          # once for the list, not twice per charge
+    merged = _charges_have_merge(db)
+    within, args = _groups_within("charges", merged, since, until)
     rows = db.execute(
         "SELECT * FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
-        + ("AND merged_into_id IS NULL " if _charges_have_merge(db) else "")
-        + "AND (? IS NULL OR ended_at >= ?) AND (? IS NULL OR started_at < ?) "
-        + "ORDER BY started_at DESC LIMIT ?",
-        (_current_vehicle_id(), since, since, until, until, limit),
+        + ("AND merged_into_id IS NULL" if merged else "") + within
+        + " ORDER BY started_at DESC LIMIT ?",
+        (_current_vehicle_id(), *args, limit),
     ).fetchall()
     kids = _charge_children_by_parent(db)
     # Compose FIRST, localise after: the group maths works on the stored UTC ISO, and swapping the
