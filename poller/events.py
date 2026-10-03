@@ -102,6 +102,7 @@ def consume(conn, vehicle_id: int, max_rows=5000) -> int:
     if not rows:
         if not state.get("caught_up"):              # the last batch was full and nothing came after it
             state["caught_up"], state["pct"] = True, 100
+            state.pop("catch_up", None)
             with conn:
                 _save_state(conn, vehicle_id, state)
         return 0
@@ -139,12 +140,16 @@ def consume(conn, vehicle_id: int, max_rows=5000) -> int:
     full = max_rows is not None and len(rows) >= max_rows
     state["caught_up"], state["pct"] = not full, 100
     if full:
-        done = conn.execute("SELECT COUNT(*) FROM positions WHERE vehicle_id = ? AND id <= ?",
-                            (vehicle_id, state["cursor_id"])).fetchone()[0]
-        total = done + conn.execute("SELECT COUNT(*) FROM positions WHERE vehicle_id = ? AND id > ?",
-                                    (vehicle_id, state["cursor_id"])).fetchone()[0]
-        state["pct"] = 100 * done // max(total, 1)
+        if "catch_up" not in state:                 # it begins: the rows left, counted once
+            state["catch_up"] = {"done": 0, "total": len(rows) + conn.execute(
+                "SELECT COUNT(*) FROM positions WHERE vehicle_id = ? AND id > ?",
+                (vehicle_id, state["cursor_id"])).fetchone()[0]}
+        progress = state["catch_up"]
+        progress["done"] += len(rows)
+        state["pct"] = min(100, 100 * progress["done"] // progress["total"])
         log.info("%d rows read, %d kept, %d %% of history", len(rows), len(events), state["pct"])
+    else:
+        state.pop("catch_up", None)
     with conn:
         conn.executemany(
             "INSERT INTO events (vehicle_id, kind, at, frame_ts, state, latitude, longitude, soc,"

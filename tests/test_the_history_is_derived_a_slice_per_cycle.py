@@ -76,3 +76,20 @@ def test_a_car_whose_derivation_fails_does_not_stop_the_round(tmp_path, monkeypa
     assert client.calls == 2
     assert "Events not derived" in caplog.text
     assert float(db.get_setting("last_loop_ts", "0")) > 0
+
+
+def test_the_history_is_counted_once_when_the_catch_up_begins(tmp_path):
+    """Counting the rows left scans the car's positions: once for the catch-up, then the rows read
+    carry the figure on, round by round."""
+    db = D.Database(str(tmp_path / "count.db"))
+    vid = db.ensure_vehicle(_Vehicle().vin, "B10")
+    db._conn.executemany("INSERT INTO positions (vehicle_id, recorded_at, is_locked) VALUES (?, ?, 1)",
+                         [(vid, f"2026-09-01T00:00:{s:02d}+00:00") for s in range(12)])
+    db._conn.commit()
+    counts, pcts = [], []
+    db._conn.set_trace_callback(lambda sql: counts.append(sql) if "COUNT(" in sql.upper() else None)
+    for _ in range(4):
+        E.consume(db._conn, vid, max_rows=5)
+        pcts.append(E.load_state(db._conn, vid)["pct"])
+    assert pcts == [41, 83, 100, 100]                                     # 5, then 10 of 12 rows
+    assert len(counts) == 1
