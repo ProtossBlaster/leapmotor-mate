@@ -418,7 +418,7 @@ Under a trip's energy, the label that read **getEC** now reads **Measured by the
 5. [Getting to know the interface](#5-getting-to-know-the-interface)
 6. [The pages, one by one](#6-the-pages-one-by-one)
    - [Overview](#overview) · [Trips](#trips) · [Map](#map) · [Charges](#charges)
-   - [Charge Prices](#charge-prices) · [Statistics](#statistics) · [Reports](#reports)
+   - [Charge Prices](#charge-prices) · [Statistics](#statistics) · [Events](#events) · [Reports](#reports)
    - [Battery health](#battery-health) · [Maintenance](#maintenance) · [Commands](#commands)
    - [Scheduling](#scheduling) · [Prepare car](#prepare-car)
    - [Navigation](#navigation) · [Vehicle](#vehicle) · [Wallbox](#wallbox)
@@ -1072,6 +1072,52 @@ numbers, so you can see at a glance whether the figure covers most of the window
 *Energy used* adds up only the trips whose energy Mate knows: a trip without one is **left out**
 rather than counted as zero, and the tile says how many trips it speaks for. On a car where every
 trip carries its own consumption — which is nearly always — none of this shows at all.
+
+### Events
+**(menu: Events)** — What the car did, moment by moment: unlocked and locked again, a door or the
+tailgate opened and closed, the cable in and out, the climate on and off, READY on and off, every trip
+and charge from its start to its end, and every command sent from Mate. The list opens on the last
+three days, newest first, in one card with a heading per day and a thin line per hour; a row's dot has
+the colour of its group's pill. The buttons above the pills reach further back — 3, 7 or 30 days, 3, 6
+or 12 months, or All — counted back from today; dates typed under ⚙ win over them. A long range comes
+in parts of a thousand rows, the next one loaded as the end of the list comes into view.
+
+- **A beginning and an end are two rows, joined by a line.** Left of the times, a line in the group's
+  colour joins an end's dot to its beginning's, as in a graph of git history, so what went on at the same
+  time, and for how long, shows at a glance. The end says how long the state lasted — "Tailgate closed ·
+  35s" — and a click on the line or a dot lights the pair and its two rows without scrolling the list.
+  When the beginning is before the days shown, the line runs faded off the bottom of the list and the end
+  names it: "from 02 Oct 2026 14:20:05". A state still going runs its line to the top and says **(in progress)** only when the car's last frame is fresh; while the cloud repeats an old frame (the car asleep, or
+  out of coverage) the row names the time of that frame instead.
+- **Times are the car's, to the second**: the time of the first frame that showed the new state,
+  confirmed by the next one. Holding the pointer over a time shows it beside the time Mate recorded the
+  row. Trips, charges and commands have only Mate's clock, so beside a signal from the same few seconds
+  their order can differ by those seconds.
+- **An end answers its own question.** READY off: how far the car went and the charge level before and
+  after. Climate on: parked or during a trip, the target and the outside temperature; Climate off: the
+  cabin before and after. Cable disconnected: the energy charged and, when the first charge began more
+  than five minutes after the cable went in (a wallbox waiting for its schedule), how long it waited.
+  The end of a trip or a charge carries the figures of Trips and Charges.
+  These figures stand out from the rest of the row; a cost is green, the delay before charging amber.
+- **Places**: a row at one of your charging places (*Charge Prices → Charging places*) names it.
+- **The map** is hidden until **🗺 Show map** above the list shows it (beside the list on a wide screen,
+  above it on a phone or a narrower one), and next time it is as you left it. Every row with a position
+  has a 🌍: it shows the map if needed, lights the row's point and brings it into view, and lights the row
+  and the other half of its pair. A click on a point lights it and its rows and scrolls the list to its
+  newest row; the row under the pointer lights its own point while the pointer is there. A point stands
+  for a spot about 110 m across, or for a whole charging place. A trip's or a charge's row opens it, and
+  **← Events** there comes back to the list as it was.
+- **Two frames make an event.** The cloud sends one-frame blinks — a sunshade "open" for a single
+  poll — so a change counts only once two consecutive frames hold it. A change the car reversed between
+  two of its own reports is never seen, and the cloud can drop the lock signal for a poll or two, which
+  then reads as a short unlock.
+- **Filters**: a word (the event's name, a command's outcome, a place, the note of a trip or a
+  charge — an automatic trip note holds the trip's addresses), the group pills (Security,
+  Doors, Windows, Charging, Climate, Driving, Commands) and, under ⚙, a date range and single kinds.
+  The filters live in the address, so a link or a reload keeps them.
+- **History**: the events are derived from the positions Mate already stores, so on an existing install
+  the first start reads the whole history back, a slice per poll, and until it is done the page says how
+  far it got. Events are kept as long as the positions are (*Settings → Database*).
 
 ### Reports
 **(menu: Reports)** — A summary **month by month**: how much you drove, how much energy you

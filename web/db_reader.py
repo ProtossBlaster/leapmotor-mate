@@ -7,6 +7,7 @@ import sqlite3
 import statistics
 import time
 import zlib
+from dataclasses import dataclass
 from datetime import date, datetime, timezone, timedelta
 from itertools import pairwise
 from pathlib import Path
@@ -11407,3 +11408,538 @@ def assign_charging_place(charge_id, place_id):
                        'charging_place_rate=NULL, charging_place_source=NULL WHERE id=?',
                        [(gid,) for gid in group_ids])
         return _update_charge_type(db, charge_id, row['location_type'])
+
+
+# ── Events: what the car did, moment by moment ────────────────────────────────
+
+# The groups the Events page's pills switch, and the kinds each covers. The signal kinds are the
+# ones poller/events.py derives from `positions` (its RULES); `trip`, `charge` and `command` are read
+# from their own tables and only shown beside them, never copied.
+EVENT_GROUPS = {
+    "security": ("unlocked",),
+    "doors": ("door_driver", "door_passenger", "door_rear_left", "door_rear_right", "trunk"),
+    "windows": ("window_fl", "window_rl", "sunshade"),
+    "charging": ("cable", "v2l", "charge"),
+    "climate": ("climate", "defrost", "rapid_heat", "rapid_cool"),
+    "driving": ("ready", "trip"),
+    "commands": ("command",),
+}
+EVENT_KINDS = tuple(k for kinds in EVENT_GROUPS.values() for k in kinds)
+EVENT_SIGNAL_KINDS = tuple(k for k in EVENT_KINDS if k not in ("trip", "charge", "command"))
+EVENT_GROUP_OF = {k: g for g, kinds in EVENT_GROUPS.items() for k in kinds}
+EVENT_GROUP_ICONS = {"security": "🔒", "doors": "🚪", "windows": "🪟", "charging": "🔌",
+                     "climate": "🌡️", "driving": "🚗", "commands": "📲"}
+EVENT_GROUP_COLORS = {"security": "#f59e0b", "doors": "#a78bfa", "windows": "#38bdf8",
+                      "charging": "#22c55e", "climate": "#f97316", "driving": "#14b8a6",
+                      "commands": "#94a3b8"}
+EVENT_ICONS = {
+    "unlocked": "🔓", "door_driver": "🚪", "door_passenger": "🚪", "door_rear_left": "🚪",
+    "door_rear_right": "🚪", "trunk": "📦", "window_fl": "🪟", "window_rl": "🪟", "sunshade": "☀️",
+    "cable": "🔌", "v2l": "💡", "charge": "⚡", "climate": "🌡️", "defrost": "🧊", "rapid_heat": "🔥",
+    "rapid_cool": "❄️", "ready": "🟢", "trip": "🗺", "command": "📲",
+}
+# How far back the Events list reaches, counted back from today: days as days, months to the same
+# day of an earlier month. `all` has no lower bound.
+EVENT_RANGES = ("3d", "7d", "30d", "3m", "6m", "12m", "all")
+EVENTS_DEFAULT_RANGE = "3d"
+EVENTS_PART_ROWS = 1000            # rows sent at once; the next part loads as the list's end comes into view
+EVENT_COMMAND_ALIASES = {"_send_ac_on": "ac_settings"}     # the fan and recirculation go through one helper
+EVENTS_CABLE_WAIT_MIN = 5          # a first charge later than this after the plug-in waited for something
+
+
+@dataclass
+class EventFilter:
+    """What the Events page was asked for. `submitted` tells an empty `groups` apart from no filter
+    at all: an unchecked checkbox sends nothing, so without the marker unchecking every pill would
+    look like opening the page, and show everything."""
+    q: str = ""
+    groups: tuple = ()
+    kinds: tuple = ()
+    date_from: date | None = None
+    date_to: date | None = None
+    submitted: bool = False
+    range: str = EVENTS_DEFAULT_RANGE
+
+    @classmethod
+    def from_query(cls, q: str = "", group=(), kind=(), date_from: str = "", date_to: str = "",
+                   f: str = "", range: str = "") -> "EventFilter":
+        def _day(s):
+            try:
+                d = date.fromisoformat(s) if s else None
+            except ValueError:
+                return None
+            return d if d is None or date(1, 1, 2) <= d <= date(9999, 12, 30) else None   # a day ± its zone stays a datetime
+        return cls(q=(q or "").strip(), groups=tuple(g for g in group if g in EVENT_GROUPS),
+                   kinds=tuple(k for k in kind if k in EVENT_KINDS),
+                   date_from=_day(date_from), date_to=_day(date_to), submitted=bool(f),
+                   range=range if range in EVENT_RANGES else EVENTS_DEFAULT_RANGE)
+
+    def shown_groups(self) -> tuple:
+        return self.groups if (self.groups or self.submitted) else tuple(EVENT_GROUPS)
+
+    def selected_kinds(self) -> set:
+        kinds = {k for g in self.shown_groups() for k in EVENT_GROUPS[g]}
+        return kinds & set(self.kinds) if self.kinds else kinds
+
+    @property
+    def custom(self) -> bool:
+        """Dates typed in win over the range buttons; an empty date field is no bound."""
+        return bool(self.date_from or self.date_to)
+
+    def days(self, zone) -> tuple:
+        """The first and last LOCAL day shown; a first day of None has no lower bound."""
+        today = datetime.now(zone).date()
+        if self.custom:
+            last = self.date_to or today
+            return self.date_from, max(self.date_from, last) if self.date_from else last
+        if self.range == "all":
+            return None, today
+        n, unit = int(self.range[:-1]), self.range[-1]
+        return (today - timedelta(days=n - 1) if unit == "d" else _months_back(today, n)), today
+
+
+def _months_back(day: date, n: int) -> date:
+    """The same day of the month `n` months earlier, the month's last day where it is shorter."""
+    import calendar
+    y, m = divmod(day.year * 12 + day.month - 1 - n, 12)
+    m += 1
+    return date(y, m, min(day.day, calendar.monthrange(y, m)[1]))
+
+
+def _utc(s) -> datetime | None:
+    """A stored timestamp as an aware UTC datetime — the poller's UTC ISO, or a localised ISO with
+    its offset — so rows from different readers sort by the clock and not by their text."""
+    if not s:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(s).replace(" ", "T").rstrip("Z"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _event_row(source, item_id, kind, on, at, lat=None, lon=None, start=None, open=False, t=None,
+               **more) -> dict:
+    """One row of the Events page: something began (`on`; `open` while it lasts), ended (`on`
+    False, with its `start` when that is known) or just happened (`on` None, a command). `t` is
+    when it happened, the car's clock where the row has one; `at` is when Mate wrote it down, the
+    clock of the trips and charges it is matched against."""
+    return {"source": source, "id": item_id, "kind": kind, "on": on, "at": at, "t": at if t is None else t,
+            "lat": lat, "lon": lon, "start": start, "end": None, "open": open, **more}
+
+
+def _signal_moments(db, vehicle_id, kinds: set, start: datetime | None, end: datetime) -> list[dict]:
+    """The transitions of the selected signal kinds in [start, end) by the car's clock, each end
+    with its start and each start with its end: the neighbouring row of its car and kind IN ID
+    ORDER, the order they were written, read from the whole history — a stepped host clock can put
+    the end before the start in time, and they are still a pair. The poller writes a kind's rows
+    alternating 1, 0, 1…, so a start left without an end is the state the car is in."""
+    lo, hi = (start.timestamp() * 1000 if start else float("-inf")), end.timestamp() * 1000
+
+    def moment(r, ms, start=None):
+        return _event_row("signal", r["id"], r["kind"], r["state"] == 1, _utc(r["at"]), r["latitude"], r["longitude"],
+                          start=start, t=datetime.fromtimestamp(ms / 1000, timezone.utc), soc=r["soc"],
+                          odometer_km=r["odometer_km"], inside_temp=r["inside_temp"],
+                          target_temp=r["climate_target_temp"], outside_temp=r["outside_temp"])
+    began: dict = {}                     # (car, kind) → (its open start's row, its time, its row on the list or None)
+    out = []
+    for r in db.execute(
+            "SELECT id, vehicle_id, kind, at, frame_ts, state, latitude, longitude, soc, odometer_km, inside_temp,"
+            " climate_target_temp, outside_temp FROM events WHERE vehicle_id = COALESCE(?, vehicle_id)"
+            " ORDER BY id", (vehicle_id,)):
+        if r["kind"] not in kinds:
+            continue
+        ms = r["frame_ts"] or _utc(r["at"]).timestamp() * 1000
+        key, shown = (r["vehicle_id"], r["kind"]), lo <= ms < hi
+        if r["state"] == 1:
+            began[key] = (r, ms, moment(r, ms) if shown else None)
+            if shown:
+                out.append(began[key][2])
+            continue
+        opened = began.pop(key, None)
+        if shown or (opened and opened[2]):
+            m = moment(r, ms, opened and (opened[2] or moment(opened[0], opened[1])))
+            if m["start"]:
+                m["start"]["end"] = m
+            if shown:
+                out.append(m)
+    for _, _, m in began.values():
+        if m:
+            m["open"] = True
+    return out
+
+
+def _session_moments(source, sessions, live) -> list[dict]:
+    """A trip or a charge as two rows, its start and its end, and the one in progress (`live`) as
+    its start alone. Each row carries the session as its page composes it (a merged group is one)."""
+    def where(s, end):
+        if source == "charge":
+            return s.get("latitude"), s.get("longitude")
+        return (s.get("end_lat"), s.get("end_lon")) if end else (s.get("start_lat"), s.get("start_lon"))
+    out = []
+    for s in sessions + live:
+        at = _utc(s.get("started_at"))
+        if at is None:
+            continue
+        start = _event_row(source, s["id"], source, True, at, *where(s, False), session=s, open=s in live)
+        out.append(start)
+        if s not in live:
+            start["end"] = _event_row(source, s["id"], source, False, _utc(s["ended_at"]), *where(s, True),
+                                      start=start, session=s)
+            out.append(start["end"])
+    return out
+
+
+def _trip_moments(db, vehicle_id) -> list[dict]:
+    """The finished trips as the Trips page composes them, plus the one in progress."""
+    live = [dict(r) for r in db.execute(
+        "SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NULL "
+        "AND merged_into_id IS NULL ORDER BY id", (vehicle_id,)).fetchall()]
+    return _session_moments("trip", get_trips(limit=1_000_000), live)
+
+
+def _charge_moments(db, vehicle_id) -> list[dict]:
+    """The finished charges as the Charges page composes them, plus the one in progress."""
+    live = []
+    if (c := open_charge()):
+        row = db.execute("SELECT latitude, longitude, charging_place_name, location_name FROM charges"
+                         " WHERE id = ?", (c["id"],)).fetchone()
+        live = [{**c, **dict(row)}]
+    return _session_moments("charge", get_charges(limit=1_000_000), live)
+
+
+def _command_moments(db) -> list[dict]:
+    """The commands sent from Mate's pages to the selected car, when the log exists (the web creates
+    it on the first command)."""
+    if not db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'command_log'").fetchone():
+        return []
+    rows = db.execute(
+        "SELECT id, ts, action, outcome FROM command_log WHERE vin IS NOT NULL AND lower(vin) = lower(?)"
+        " ORDER BY id", (_selected_vin(),)).fetchall()
+    return [_event_row("command", r["id"], "command", None, _utc(r["ts"]), action=r["action"],
+                    outcome=r["outcome"]) for r in rows if _utc(r["ts"])]
+
+
+def _add_context(moments: list[dict], db, vehicle_id) -> None:
+    """What a signal row's own question needs beyond the row: how far a READY span drove and what it
+    used, whether the climate ran parked or during a trip and what it did to the cabin, whether the
+    cable charged and how long it waited first. From the two ends' readings and at most one read of
+    `trips` and one of `charges`, whatever the view's filters, each walked once in time order."""
+    climates, cables = [], []
+    for m in moments:
+        start, kind = m["start"], m["kind"]
+        if m["source"] != "signal":
+            continue
+        if kind == "climate" and m["on"]:
+            climates.append(m)
+        if start is None:
+            continue
+        if kind == "ready":
+            if None not in (start["odometer_km"], m["odometer_km"]) and m["odometer_km"] >= start["odometer_km"]:
+                m["distance_km"] = m["odometer_km"] - start["odometer_km"]
+            m["soc_from"], m["soc_to"] = start["soc"], m["soc"]
+        elif kind == "climate":
+            m["cabin_from"], m["cabin_to"] = start["inside_temp"], m["inside_temp"]
+        elif kind == "cable":
+            cables.append(m)
+    if climates:
+        # Every stored piece on its own: the pause inside a merged trip is time parked.
+        now = datetime.now(timezone.utc)
+        trips = sorted((_utc(r[0]), _utc(r[1]) or now) for r in db.execute(
+            "SELECT started_at, ended_at FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id)"
+            " AND started_at IS NOT NULL", (vehicle_id,)))
+        k = -1                                   # the last trip begun by the climate's start
+        for m in sorted(climates, key=lambda m: m["at"]):
+            while k + 1 < len(trips) and trips[k + 1][0] <= m["at"]:
+                k += 1
+            m["ctx"] = "during_trip" if k >= 0 and trips[k][1] >= m["at"] else "parked"
+    if cables:
+        # The stored rows, not the merged groups: an unmerged plug-in in two pieces is one cable.
+        charges = sorted((_utc(r[0]), r[1] or 0) for r in db.execute(
+            "SELECT started_at, energy_added_kwh FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id)"
+            " AND started_at IS NOT NULL", (vehicle_id,)))
+        lo = 0
+        for m in sorted(cables, key=lambda m: m["start"]["at"]):
+            start = m["start"]
+            while lo < len(charges) and charges[lo][0] < start["at"]:
+                lo += 1
+            hi = lo
+            while hi < len(charges) and charges[hi][0] <= m["at"]:
+                hi += 1
+            inside = charges[lo:hi]
+            if inside:
+                m["energy_kwh"] = sum(kwh for _, kwh in inside)
+                m["soc_from"], m["soc_to"] = start["soc"], m["soc"]
+                # The wait ends when energy flows: a 0 kWh session is the charger still holding it.
+                began = next((at for at, kwh in inside if kwh > 0), None)
+                if began is not None and (began - start["at"]).total_seconds() / 60 > EVENTS_CABLE_WAIT_MIN:
+                    m["waited_min"] = (began - start["at"]).total_seconds() / 60
+
+
+def events_live(db, vehicle_id) -> dict:
+    """Whether an open state may say "(in progress)": the detector has read the history through
+    (`caught_up`, else `pct` of it so far, as the poller's state says) and the car's last frame is
+    younger than three parked polls (`fresh`). A fresh ROW is not enough: while the car sleeps the
+    cloud serves the same frame again and the poller stores it with a fresh time (#232)."""
+    row = db.execute(
+        "SELECT id, frame_ts, recorded_at FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "ORDER BY id DESC LIMIT 1", (vehicle_id,)).fetchone()
+    if not row:
+        return {"caught_up": True, "fresh": False, "last_frame": None, "pct": 100}
+    stored = db.execute("SELECT value FROM settings WHERE key = ?", (f"events_state_{vehicle_id}",)).fetchone()
+    state = json.loads(stored[0]) if stored else {}
+    age = _position_age_s(row["frame_ts"], row["recorded_at"])
+    last_frame = (datetime.fromtimestamp(row["frame_ts"] / 1000, timezone.utc) if row["frame_ts"]
+                  else _utc(row["recorded_at"]))
+    return {"caught_up": bool(state.get("caught_up")), "pct": int(state.get("pct", 0)),
+            "fresh": age is not None and age < 3 * poll_seconds(driving=False),
+            "last_frame": last_frame}
+
+
+def _anchor(m) -> str:
+    return f"ev-{m['source']}-{m['id']}" + ("" if m["source"] in ("signal", "command") else "-on" if m["on"] else "-off")
+
+
+def _nearest_place(places, lat, lon) -> dict | None:
+    """The charging place whose radius holds the point, the nearest of several."""
+    import charging_places
+    best = None
+    for p in places:
+        d = charging_places.distance_m(lat, lon, p["latitude"], p["longitude"])
+        if d <= p["radius_m"] and (best is None or d < best[0]):
+            best = (d, p)
+    return best[1] if best else None
+
+
+# What a row may print beside its label; absent from a row, None.
+_EVENT_FIGURES = ("extra", "distance_km", "energy_kwh", "duration_min", "soc_from", "soc_to", "cost",
+                  "waited_min", "ctx", "target_temp", "outside_temp", "cabin_from", "cabin_to",
+                  "from_anchor", "from_hms", "from_day", "place_key", "place_at", "point", "note")
+
+
+def _present_event(m: dict, zone, live: dict, t, places, lang) -> None:
+    """The row as the page prints it: label, times, the place, and for an end the time it began. A
+    state still open says so only when the detector is up to date and the car's frame is fresh;
+    with the frame stale it names the frame's time, and while the history is still being read it
+    says nothing, because its end may not be read yet."""
+    for field in _EVENT_FIGURES:
+        m.setdefault(field, None)
+    local, wrote = m["t"].astimezone(zone), m["at"].astimezone(zone)
+    m["day"], m["hms"], m["hour"] = local.date(), local.strftime("%H:%M:%S"), local.strftime("%H:00")
+    # The day heading names the day; Mate's clock names its own only where it wrote on another.
+    mate = wrote.strftime("%H:%M:%S") if wrote.date() == local.date() else \
+        f"{i18n.fmt_day_month_year(lang, wrote.date())} {wrote.strftime('%H:%M:%S')}"
+    m["time_title"] = t("events_time_mate").format(time=mate)
+    if m["source"] == "signal":
+        m["time_title"] = f"{t('events_time_car').format(time=m['hms'])} · {m['time_title']}"
+    m["anchor"], m["icon"] = _anchor(m), EVENT_ICONS[m["kind"]]
+    m["color"] = EVENT_GROUP_COLORS[EVENT_GROUP_OF[m["kind"]]]
+    edge = "on" if m["on"] else "off"
+    if m["source"] == "signal":
+        m["label"] = t(f"events_{m['kind']}_{edge}")
+    elif m["source"] in ("trip", "charge"):
+        m["label"] = t(f"events_{m['source']}_{'started' if m['on'] else 'ended'}")
+    else:
+        m["label"] = t("events_kind_command")
+        outcome = t(f"events_outcome_{m['outcome']}")
+        if outcome.startswith("events_outcome_"):          # an outcome the locale does not name
+            outcome = m["outcome"] or ""
+        # The logged action is the name of the function that sent it, never shown as it is.
+        action = t(f"events_cmd_{EVENT_COMMAND_ALIASES.get(m['action'], m['action'])}")
+        m["extra"] = outcome if action.startswith("events_cmd_") else f"{action} · {outcome}"
+    s = m.get("session") or {}
+    m["note"] = s.get("note")
+    m["has_fix"] = has_gps_fix(m["lat"], m["lon"])
+    m["place"] = (s.get("charging_place_name") or s.get("location_name")) if m["source"] == "charge" else None
+    if m["has_fix"]:
+        # Inside a charging place the place is the point (names repeat, so by id); elsewhere a ~110 m grid.
+        near = _nearest_place(places, m["lat"], m["lon"])
+        m["place_key"] = f"place:{near['id']}" if near else f"{round(m['lat'], 3):.3f},{round(m['lon'], 3):.3f}"
+        m["place_at"] = (near["latitude"], near["longitude"]) if near else None
+        m["place"] = m["place"] or (near and near["name"])
+    m["still_open"] = m["open"] and live["caught_up"] and live["fresh"]
+    m["last_frame_hhmm"] = (live["last_frame"].astimezone(zone).strftime("%H:%M")
+                            if m["open"] and live["caught_up"] and not live["fresh"] and live["last_frame"] else None)
+    start = m["start"]
+    if start is not None and m["t"] >= start["t"]:
+        m["duration_min"] = (m["t"] - start["t"]).total_seconds() / 60
+    if m["on"] is False and m["source"] in ("trip", "charge"):          # the figures of its page
+        m["soc_from"], m["soc_to"] = s.get("start_soc"), s.get("end_soc")
+        if m["source"] == "trip":
+            # Driving time, as Trips shows it: the pause inside a merged trip is not part of it.
+            m["distance_km"], m["duration_min"] = s.get("distance_km"), s.get("duration_min")
+        else:
+            m["energy_kwh"], m["cost"] = s.get("energy_added_kwh"), s.get("cost")
+    if start is not None:
+        s_local = start["t"].astimezone(zone)
+        m["from_anchor"], m["from_hms"] = _anchor(start), s_local.strftime("%H:%M:%S")
+        m["from_day"] = (None if s_local.date() == local.date()
+                         else i18n.fmt_day_month_year(lang, s_local.date()))
+
+
+def _event_lines(items: list[dict], lo: datetime | None, hi: datetime, weekdays, lang) -> tuple[list, int, list]:
+    """The list as the page draws it, top to bottom: a heading per local day, a separator per hour
+    and the rows, each line with its cells of the tracks that join an end to its start, as in a
+    graph of git history. A pair spans the rows between its two ends whichever is higher (a stepped
+    clock can put the start above its end); a partner outside the days shown runs the track off
+    that edge of the list, faded, and a state still on runs it to the top. A partner the word
+    filter hid gets no track. Each pair takes the lowest track free over its rows, track 0 next to
+    the dots; returns the lines, the number of tracks, and each track's straight runs as
+    (first line, end line, track, cell class)."""
+    n = len(items)
+    row_of = {m["anchor"]: i for i, m in enumerate(items)}
+
+    def beyond(m):                       # where a partner off the list lies: an edge, or None if filtered out
+        if (lo is None or m["t"] >= lo) and m["t"] < hi:
+            return None
+        return n if m["t"] < hi else -1
+    pairs = []                           # (top row, bottom row, group, faded); -1 and n are the list's edges
+    for i, m in enumerate(items):
+        g = EVENT_GROUP_OF[m["kind"]]
+        partner = m["start"] if m["start"] is not None else m["end"] if m["on"] else None
+        if partner is not None:
+            j = row_of.get(_anchor(partner))
+            if j is None:
+                edge = beyond(partner)
+                if edge is not None:
+                    pairs.append((min(i, edge), max(i, edge), g, True))
+            elif m["start"] is not None:                  # a pair on the list is drawn once, from its end
+                pairs.append((min(i, j), max(i, j), g, False))
+        elif m["open"]:
+            pairs.append((-1, i, g, False))
+    pairs.sort()
+    ends: list = []                      # per track, the bottom row of its last pair
+    placed = []
+    for top, bottom, g, faded in pairs:
+        lane = next((k for k, e in enumerate(ends) if e < top), len(ends))
+        ends[lane:lane + 1] = [bottom]
+        placed.append((top, bottom, g, faded, lane))
+
+    lines, line_of, day, hour = [], [], None, None
+    for m in items:
+        if m["day"] != day:
+            day, hour = m["day"], None
+            lines.append({"kind": "day", "label": f"{weekdays[day.weekday()]} {i18n.fmt_day_month_year(lang, day)}"})
+        if m["hour"] != hour:
+            hour = m["hour"]
+            lines.append({"kind": "hour", "label": hour})
+        line_of.append(len(lines))
+        lines.append({"kind": "row", "e": m, "joined": False})
+    cells = [[[] for _ in ends] for _ in lines]
+    runs = []
+    for top, bottom, g, faded, lane in placed:
+        first = line_of[top] + 1 if top >= 0 else 0
+        last = line_of[bottom] if bottom < n else len(lines)
+        runs.append((first, last, lane, f"{'w' if faded else 'v'}-{g}"))
+        for k in range(first, last):
+            cells[k][lane].append(runs[-1][3])
+        for row, corner in ((top, "n"), (bottom, "u")):
+            if 0 <= row < n:
+                k = line_of[row]
+                cells[k][lane].append(f"{corner}-{g}")
+                for inner in range(lane):
+                    cells[k][inner].append(f"h-{g}")
+                lines[k]["joined"] = True
+    for line, row in zip(lines, cells):
+        line["cells"] = [" ".join(c) for c in reversed(row)]          # outermost track first, left to right
+    return lines, len(ends), runs
+
+
+def _event_part(lines: list, lanes: int, runs: list, part: int) -> tuple[list, list | None]:
+    """The lines of one part of the list, EVENTS_PART_ROWS rows with the headings before them, and
+    for a part that is followed by another, the track cells running on into it: the line that
+    loads the next part carries them, so the tracks have no gap while it loads."""
+    starts, rows = [0], 0
+    for k, line in enumerate(lines):
+        if line["kind"] == "row":
+            rows += 1
+            if rows % EVENTS_PART_ROWS == 0 and k + 1 < len(lines):
+                starts.append(k + 1)
+    if part >= len(starts):
+        return [], None
+    if part + 1 == len(starts):
+        return lines[starts[part]:], None
+    cut, on = starts[part + 1], [""] * lanes
+    for first, last, lane, cls in runs:
+        if first <= cut <= last:
+            on[lane] = cls
+    return lines[starts[part]:cut], on[::-1]
+
+
+def _events_version(lines: list, points: list) -> str:
+    """What a later part must match to join the parts on the page: the lines in order with their
+    track cells, and the map's points. A row written meanwhile moves the cut, the tracks or the
+    points' numbers."""
+    crc = zlib.crc32(repr(points).encode())
+    for line in lines:
+        key = line["e"]["anchor"] if line["kind"] == "row" else line["label"]
+        crc = zlib.crc32(f"{key}|{line['cells']}|{line.get('joined')}\n".encode(), crc)
+    return f"{crc:08x}"
+
+
+def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str | None = None) -> dict:
+    """The Events page: every moment of the selected car in the days asked for (the last three by
+    default), newest first, one heading per LOCAL day — a state beginning and the same state ending
+    are two rows, the end saying how long it lasted. Four sources composed in Python — the signal
+    transitions, the trips, the charges and the commands — each through its own reader and all on
+    one UTC clock before sorting; the map's points are the places of the rows listed. The whole
+    range is composed and its tracks laid out; `lines` is the `part` asked for, `more` the cells
+    of the line that loads the next one, `version` what the parts of one list share: a part `asked`
+    for with another version comes back as the first part, the list having changed meanwhile."""
+    zone = _local_tz()
+    first, last = flt.days(zone)
+    start = datetime(first.year, first.month, first.day, tzinfo=zone).astimezone(timezone.utc) if first else None
+    end = (datetime(last.year, last.month, last.day, tzinfo=zone) + timedelta(days=1)).astimezone(timezone.utc)
+    kinds = flt.selected_kinds()
+    db = _get()
+    vehicle_id = _current_vehicle_id()
+    items = []
+    if kinds & set(EVENT_SIGNAL_KINDS):
+        items += _signal_moments(db, vehicle_id, kinds, start, end)
+    if "trip" in kinds:
+        items += _trip_moments(db, vehicle_id)
+    if "charge" in kinds:
+        items += _charge_moments(db, vehicle_id)
+    if "command" in kinds:
+        items += _command_moments(db)
+    items = [m for m in items if (start is None or start <= m["t"]) and m["t"] < end]
+    _add_context(items, db, vehicle_id)
+    live = events_live(db, vehicle_id)
+    places = [dict(p) for p in db.execute(
+        "SELECT id, name, latitude, longitude, radius_m FROM charging_places"
+        " WHERE vehicle_id = COALESCE(?, vehicle_id) AND enabled = 1", (vehicle_id,))]
+    for m in items:
+        _present_event(m, zone, live, t, places, lang)
+    q = flt.q.lower()
+    if q:
+        items = [m for m in items if any(q in (m.get(f) or "").lower() for f in ("label", "place", "extra", "note"))]
+    items.sort(key=lambda m: (m["t"], m["id"]), reverse=True)        # one second: the later write first
+    listed = {m["anchor"] for m in items}
+    by_day: dict = {}
+    points: dict = {}
+    for m in items:
+        m["from_listed"] = m.get("from_anchor") in listed
+        by_day.setdefault(m["day"], []).append(m)
+        if m["has_fix"]:
+            # The first row of a point is its newest, where a click on the point scrolls the list.
+            p = points.setdefault(m["place_key"], {"key": m["place_key"], "row": m["anchor"], "at": m["place_at"],
+                                                   "lat": 0.0, "lon": 0.0, "n": 0, "i": len(points)})
+            p["lat"] += m["lat"]
+            p["lon"] += m["lon"]
+            p["n"] += 1
+            m["point"] = p["i"]
+    for p in points.values():                                       # a charging place stands where it is set
+        p["lat"], p["lon"] = p["at"] or (round(p["lat"] / p["n"], 6), round(p["lon"] / p["n"], 6))
+    weekdays = i18n.weekday_abbrs(lang)
+    days = [{"date": d, "label": f"{weekdays[d.weekday()]} {i18n.fmt_day_month_year(lang, d)}",
+             "items": by_day[d]} for d in sorted(by_day, reverse=True)]
+    points = [{"key": p["key"], "row": p["row"], "lat": p["lat"], "lon": p["lon"]} for p in points.values()]
+    lines, lanes, runs = _event_lines(items, start, end, weekdays, lang)
+    version = _events_version(lines, points)
+    if part and asked is not None and version != asked:
+        part = 0
+    lines, more = _event_part(lines, lanes, runs, part)
+    return {"days": days, "lines": lines, "more": more, "part": part, "version": version, "lanes": lanes,
+            "count": len(items), "live": live, "first": first, "last": last, "points": points}

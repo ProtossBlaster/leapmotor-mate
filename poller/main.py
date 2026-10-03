@@ -1425,6 +1425,13 @@ def main():
                     continue
                 _poll_vehicle(db, client, ctx, acct)
                 ctx.next_due = time.time() + ctx.interval
+            # The changes of state those polls stored, one batch per round: on an install with
+            # history the first rounds read it back in slices, between the polls, never instead.
+            for ctx in contexts:
+                try:
+                    db.derive_events(ctx.vehicle_id)
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("Events not derived for vehicle %d: %s", ctx.vehicle_id, exc)
         except KeyboardInterrupt:
             log.info("Stopped by user")
             break

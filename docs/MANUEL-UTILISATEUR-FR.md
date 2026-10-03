@@ -455,7 +455,7 @@ Sous l'énergie d'un trajet, l'étiquette **getEC** devient **Mesurée par la vo
 5. [Découvrir l'interface](#5-découvrir-linterface)
 6. [Les pages, une par une](#6-les-pages-une-par-une)
    - [Aperçu](#aperçu) · [Trajets](#trajets) · [Carte](#carte) · [Recharges](#recharges)
-   - [Prix de recharge](#prix-de-recharge) · [Statistiques](#statistiques) · [Rapports](#rapports)
+   - [Prix de recharge](#prix-de-recharge) · [Statistiques](#statistiques) · [Événements](#événements) · [Rapports](#rapports)
    - [Santé de la batterie](#santé-de-la-batterie) · [Entretien](#entretien) · [Commandes](#commandes)
    - [Programmation](#programmation) · [Préparer le véhicule](#préparer-le-véhicule)
    - [Navigation](#navigation) · [Véhicule](#véhicule) · [Wallbox](#wallbox)
@@ -1152,6 +1152,60 @@ total. *Énergie consommée* n'additionne que les trajets dont Mate connaît l'�
 cette donnée est **exclu**, et non compté comme zéro, et la tuile indique de combien de trajets elle
 parle. Sur une voiture où chaque trajet porte sa consommation — presque toujours — rien de tout cela
 ne s'affiche.
+
+### Événements
+**(menu : Événements)** — Ce qu'a fait la voiture, moment par moment : déverrouillée puis reverrouillée, une
+porte ou le hayon ouverts et fermés, le câble branché et débranché, la climatisation allumée et éteinte,
+READY activé et désactivé, chaque trajet et chaque recharge de leur début à leur fin, et chaque commande
+envoyée depuis Mate. La liste s'ouvre sur les trois derniers jours, du plus récent au plus ancien, dans une
+seule carte avec un titre par jour et une fine ligne par heure ; le point d'une ligne a la couleur du
+bouton de son groupe. Les boutons au-dessus des groupes remontent plus loin — 3, 7 ou 30 jours, 3, 6 ou 12
+mois, ou Tout —, comptés à partir d'aujourd'hui ; des dates saisies sous ⚙ l'emportent sur eux. Une longue
+période arrive par tranches de mille lignes, la suivante se chargeant quand la fin de la liste apparaît à
+l'écran.
+
+- **Un début et une fin font deux lignes, reliées par un trait.** À gauche des heures, un trait de la
+  couleur du groupe relie le point d'une fin à celui de son début, comme dans un graphe d'historique git :
+  on voit d'un coup d'œil ce qui a duré en même temps, et combien de temps. La fin dit combien de temps
+  l'état a duré — « Hayon fermé · 35s » — et un clic sur le trait ou sur un point allume la paire et ses
+  deux lignes sans faire défiler la liste. Quand le début précède les jours affichés, le trait sort,
+  estompé, par le bas de la liste et la fin le nomme : « début 02 oct 2026 14:20:05 ». Un état encore en
+  cours prolonge son trait jusqu'en haut et dit **(en cours)** seulement si la dernière donnée de la voiture
+  est récente ; tant que le cloud répète une donnée ancienne (voiture en veille, ou sans couverture), la
+  ligne indique à la place l'heure de cette donnée.
+- **Les heures sont celles de la voiture, à la seconde** : l'heure de la première donnée qui a montré le
+  nouvel état, confirmé par la suivante. Le pointeur posé sur une heure l'affiche à côté de l'heure à
+  laquelle Mate a enregistré la ligne. Les trajets, les recharges et les commandes n'ont que l'horloge de
+  Mate ; à côté d'un signal des mêmes secondes, leur ordre peut donc différer de ces secondes.
+- **Une fin répond à sa propre question.** READY désactivé : la distance parcourue et le niveau de charge
+  avant et après. Climatisation allumée : à l'arrêt ou pendant un trajet, la température de consigne et la
+  température extérieure ; Climatisation éteinte : l'habitacle avant et après. Câble débranché : l'énergie
+  chargée et, si la première recharge a commencé plus de cinq minutes après le branchement (une borne qui
+  attend sa programmation), combien de temps il a attendu. La fin d'un trajet ou d'une recharge porte les
+  chiffres de Trajets et de Recharges. Ces chiffres ressortent du reste de la ligne ; un coût est en vert
+  et le délai avant le début de la recharge en ambre.
+- **Lieux** : une ligne à l'un de vos lieux de recharge (*Prix de recharge → Lieux de recharge*) le nomme.
+- **La carte** reste masquée jusqu'à ce que **🗺 Afficher la carte**, au-dessus de la liste, l'ouvre (à
+  côté de la liste sur un écran large, au-dessus sur un téléphone ou un écran plus étroit), et la fois
+  suivante elle est telle que vous l'avez laissée. Chaque ligne avec une position a un 🌍 : il ouvre la
+  carte si besoin, allume le point de la ligne, l'amène dans le champ et allume la ligne et l'autre moitié
+  de sa paire. Un clic sur un point l'allume avec ses lignes et fait défiler la liste jusqu'à sa ligne la
+  plus récente ; la ligne sous le pointeur allume son point tant que le pointeur y reste. Un point
+  représente un endroit d'environ 110 m, ou un lieu de recharge entier. La ligne d'un trajet ou d'une
+  recharge l'ouvre, et **← Événements** y ramène à la liste telle qu'elle était.
+- **Deux données font un événement.** Le cloud envoie des clignotements d'une seule donnée — un store
+  « ouvert » le temps d'une seule lecture —, donc un changement ne compte que lorsque deux lectures
+  consécutives le confirment. Un changement que la voiture a annulé entre deux de ses envois n'est jamais
+  vu, et le cloud peut perdre le signal du verrouillage pendant une ou deux lectures, ce qui ressemble alors
+  à un bref déverrouillage.
+- **Filtres** : un mot (le nom de l'événement, le résultat d'une commande, un lieu, la note d'un
+  trajet ou d'une recharge — la note automatique d'un trajet contient ses adresses), les boutons de groupe
+  (Sécurité, Portes, Vitres, Recharge, Climat, Conduite, Commandes) et, sous ⚙, une période et des types
+  isolés. Les filtres vivent dans l'adresse : un lien ou un rechargement les conserve.
+- **Historique** : les événements sont dérivés des positions que Mate enregistre déjà ; sur une installation
+  existante, le premier démarrage relit tout l'historique, une tranche par lecture, et jusqu'à la fin la page
+  dit où elle en est. Les événements sont conservés aussi longtemps que les positions (*Paramètres → Base de
+  données*).
 
 ### Rapports
 **(menu : Rapports)** — Une synthèse **mois par mois** : combien vous avez roulé, combien d'énergie vous

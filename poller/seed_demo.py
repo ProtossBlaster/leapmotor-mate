@@ -79,6 +79,8 @@ def main():
 
     c.execute("INSERT INTO vehicles (id, vin, car_type, year) VALUES (1, ?, 'B10', 2025)",
               ("LFZDEMO0MATE000DEMO",))
+    c.execute("INSERT INTO charging_places (vehicle_id, name, latitude, longitude, radius_m, rate) "
+              "VALUES (1, 'Casa', ?, ?, 100, 0.25)", HOME)
 
     bands = [{"start": "07:00", "end": "23:00",
               "prices": {"HOME": 0.35, "AC": 0.45, "FAST": 0.55, "HPC": 0.69},
@@ -137,22 +139,41 @@ def main():
              "charge_completed": 0, "windows_open": 0, "windows_open_count": 0,
              "trunk_open": 0, "security_active": 1, "battery_min_temp": 17.0,
              "outside_temp": round(random.uniform(8, 24), 1),
-             "inside_temp": round(random.uniform(16, 22), 1)}
+             "inside_temp": round(random.uniform(16, 22), 1), "climate_target_temp": 21.0}
         d.update(kw)
         c.execute(
             "INSERT INTO positions (vehicle_id, recorded_at, latitude, longitude, speed_kmh, "
             "odometer_km, soc, range_km, gear, charging, is_locked, climate_on, plug_connected, "
             "charge_voltage_v, charge_current_a, remaining_charge_min, charge_completed, "
             "windows_open, windows_open_count, trunk_open, security_active, battery_min_temp, "
-            "outside_temp, inside_temp) VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "outside_temp, inside_temp, climate_target_temp) "
+            "VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (iso(dt), lat, lon, d["speed_kmh"], round(state["odo"], 0), round(state["soc"], 1),
              round(state["soc"] * 4.2, 0), d["gear"], d["charging"], d["is_locked"], d["climate_on"],
              d["plug_connected"], d["charge_voltage_v"], d["charge_current_a"],
              d["remaining_charge_min"], d["charge_completed"], d["windows_open"],
              d["windows_open_count"], d["trunk_open"], d["security_active"], d["battery_min_temp"],
-             d["outside_temp"], d["inside_temp"]))
+             d["outside_temp"], d["inside_temp"], d["climate_target_temp"]))
 
-    def drive(dep, wps, dist_km, eff, avg_kmh):
+    def precondition(dep, lat, lon):
+        """The cabin heated from the app before leaving: two frames, so the Events page keeps it,
+        the first still cold and the last warm, so its end says what it did."""
+        for minutes, cabin in ((9, 14.0), (5, 17.5), (1, 20.5)):
+            pos(dep - timedelta(minutes=minutes), lat, lon, climate_on=1, inside_temp=cabin)
+        pos(dep, lat, lon, inside_temp=20.5)
+
+    def plug_in(at, lat, lon):
+        """The cable in at the wallbox hours before its schedule starts the charge."""
+        for minutes in (0, 3):
+            pos(at + timedelta(minutes=minutes), lat, lon, plug_connected=1)
+
+    def unload(arr, lat, lon):
+        """The tailgate open for a couple of minutes after arriving."""
+        for minutes in (1, 2):
+            pos(arr + timedelta(minutes=minutes), lat, lon, is_locked=0, trunk_open=1)
+        pos(arr + timedelta(minutes=4), lat, lon)
+
+    def drive(dep, wps, dist_km, eff, avg_kmh, climate=False):
         e = dist_km * eff / 100.0
         dsoc = e / CAP * 100.0
         dur = dist_km / avg_kmh * 60.0
@@ -178,7 +199,8 @@ def main():
             if i % 3 == 0:  # mirror a sparser path into positions (map/history)
                 state["odo"] = o0 + dist_km * i / max(1, n - 1)
                 state["soc"] = sc
-                pos(tt, lat, lon, speed_kmh=sp, gear="D", is_locked=0)
+                pos(tt, lat, lon, speed_kmh=sp, gear="D", is_locked=0, climate_on=int(climate),
+                    climate_target_temp=20.0)
         state["soc"], state["odo"], state["t"] = s1, o1, arr
         return arr
 
@@ -243,7 +265,9 @@ def main():
                 t = charge(day.replace(hour=1, minute=0), "HOME", 95, 7.4, 0.25)
                 park(state["t"], *HOME, hours=6)
                 t = day.replace(hour=9, minute=10)
-            t = drive(t, SEA_WP, 121.0, EFF_HWY, 92)        # Bologna → Rimini
+            t = drive(t, SEA_WP, 121.0, EFF_HWY, 92, climate=True)   # Bologna → Rimini, cooled
+            for minutes in (1, 2):                                   # parked, the cooling off
+                pos(t + timedelta(minutes=minutes), *RIMINI)
             park(t, *RIMINI, hours=5)
             t = charge(state["t"], "HPC", 85, 110, 0.69, dc=True)   # the expensive HPC
             t = drive(t + timedelta(minutes=20), list(reversed(SEA_WP)), 121.0, EFF_HWY, 90)
@@ -251,15 +275,18 @@ def main():
             day = day + timedelta(days=1)
             continue
         if wd < 5:  # weekday commute
+            precondition(morning, *HOME)
             t = drive(morning, COMMUTE_WP, 14.0, EFF_CITY, 34)
             park(t, *WORK, hours=8)
             t = drive(state["t"], list(reversed(COMMUTE_WP)), 14.0, EFF_CITY, 32)
+            unload(t, *HOME)
             # occasional evening errand
             if random.random() < 0.3:
                 t = drive(t + timedelta(minutes=40),
                           [HOME, (44.4750, 11.3650), HOME], 7.0, EFF_CITY, 28)
             # charge overnight when low, on the off-peak band (after 23:00)
             if state["soc"] < 45:
+                plug_in(day.replace(hour=19, minute=30), *HOME)
                 charge(day.replace(hour=23, minute=20), "HOME", 90, 7.4, 0.25)
                 park(state["t"], *HOME, hours=6)
             else:
@@ -280,13 +307,15 @@ def main():
     if state["soc"] < 50:
         charge(now - timedelta(hours=10), "HOME", 75, 7.4, 0.25)
     state["soc"] = 64.0
-    pos(now - timedelta(minutes=3), *HOME, charging=1, plug_connected=1, is_locked=1,
-        charge_voltage_v=362.0, charge_current_a=20.0, remaining_charge_min=68,
-        windows_open=0, windows_open_count=0)
+    for minutes in (6, 3):                 # two frames, so the cable counts as connected on Events
+        pos(now - timedelta(minutes=minutes), *HOME, charging=1, plug_connected=1, is_locked=1,
+            charge_voltage_v=362.0, charge_current_a=20.0, remaining_charge_min=68,
+            windows_open=0, windows_open_count=0)
 
     c.commit()
+    db.derive_events(1, max_rows=None)        # the demo runs the web alone, so the poller's job is done here
     counts = {t: c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-              for t in ("trips", "charges", "positions", "trip_positions")}
+              for t in ("trips", "charges", "positions", "trip_positions", "events")}
     print("demo.db seeded at", DB_PATH, counts,
           "| last soc", round(state["soc"], 1), "| odo", round(state["odo"]))
 

@@ -5,7 +5,8 @@
 {# flex-wrap + nowrap title: on phones the buttons drop to a second row instead of
    squeezing the date into a 3-line column #}
 <div class="mb-5 flex flex-wrap items-center gap-3">
-  <a href="trips?highlight={{ trip.id }}" class="text-slate-400 hover:text-white text-sm">{{ t('back_trips') }}</a>
+  {% if events_back %}<a href="{{ events_back }}" class="text-slate-400 hover:text-white text-sm">{{ t('back_events') }}</a>
+  {% else %}<a href="trips?highlight={{ trip.id }}" class="text-slate-400 hover:text-white text-sm">{{ t('back_trips') }}</a>{% endif %}
   <span class="text-slate-600">/</span>
   <h1 class="text-xl font-bold text-white whitespace-nowrap">
     {{ trip.started_at | localdate if trip.started_at else 'Trip' }}

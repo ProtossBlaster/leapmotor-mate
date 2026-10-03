@@ -247,6 +247,27 @@ CREATE TABLE IF NOT EXISTS poll_log (
     reason       TEXT                 -- failed/refused: the error, truncated
 );
 CREATE INDEX IF NOT EXISTS idx_poll_log_at ON poll_log(at);
+
+-- One row per change of a car's state that held for two frames (poller/events.py): `state` 1 opens
+-- a span of `kind`, 0 closes it, and `at` is the first frame's `recorded_at`. The next row of the
+-- same car and kind IN ID ORDER is the span's other end, which a stepped host clock cannot reorder.
+-- The position, charge level, odometer and temperatures are the first frame's. Pruned with `positions`.
+CREATE TABLE IF NOT EXISTS events (
+    id           INTEGER PRIMARY KEY,
+    vehicle_id   INTEGER NOT NULL,
+    kind         TEXT NOT NULL,
+    at           TEXT NOT NULL,       -- UTC ISO, the host clock
+    frame_ts     INTEGER,             -- the car's own clock on that frame, when it had one
+    state        INTEGER NOT NULL,    -- 1 = the state began, 0 = it ended
+    latitude     REAL,
+    longitude    REAL,
+    soc          REAL,
+    odometer_km  REAL,
+    inside_temp  REAL,
+    climate_target_temp REAL,
+    outside_temp REAL
+);
+CREATE INDEX IF NOT EXISTS idx_events_vehicle_kind_id ON events(vehicle_id, kind, id);
 """
 
 

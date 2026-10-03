@@ -217,6 +217,7 @@
       .hero-label { font-size: .62rem; letter-spacing: .03em; white-space: normal; line-height: 1.3; }
     }
 
+    :root { color-scheme: dark; }     /* the browser's own parts (date icons, pickers, scrollbars) drawn for a dark page */
     .htmx-indicator { display: none; }
     .htmx-request .htmx-indicator { display: inline; }
     .htmx-request.htmx-indicator { display: inline; }
@@ -385,6 +386,9 @@
       </a>
       <a href="statistics"  class="nav-link {% if page=='statistics'  %}active{% endif %}">
         <span class="text-lg">📊</span> {{ t('nav_statistics') }}
+      </a>
+      <a href="events"      class="nav-link {% if page=='events'      %}active{% endif %}">
+        <span class="text-lg">🕒</span> {{ t('nav_events') }}
       </a>
       <a href="report"      class="nav-link {% if page=='report'      %}active{% endif %}">
         <span class="text-lg">📆</span> {{ t('nav_report') }}

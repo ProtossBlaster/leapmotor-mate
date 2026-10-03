@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+{% block autorefresh %}0{% endblock %}{# a reload would drop the filters typed into the form #}
+{% block title %}{{ t('nav_events') }} — LeapMotor Mate{% endblock %}
+
+{% block content %}
+<div class="mb-5">
+  <h1 class="text-xl font-bold text-white">{{ t('events_title') }}</h1>
+  <p class="text-sm text-slate-400 mt-1">{{ t('events_subtitle') }}</p>
+</div>
+
+<!-- Search, group pills and advanced filters: the state comes from the URL, so the first render is
+     what the same filters would return through HTMX -->
+<div class="card mb-6">
+  <form id="events-search-form"
+        hx-get="api/events/search"
+        hx-target="#events-list" hx-swap="innerHTML"
+        hx-trigger="keyup changed delay:400ms from:#events-search-q, change"
+        class="space-y-3">
+    {# Marks a submitted form: an unchecked checkbox sends nothing, and without this unchecking
+       every pill would look like opening the page with no filter at all. #}
+    <input type="hidden" name="f" value="1">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <input id="events-search-q" type="text" name="q" value="{{ flt.q }}" autocomplete="off"
+             placeholder="🔍 {{ t('events_search_placeholder') }}"
+             class="flex-1 min-w-0 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-brand">
+      <button type="button" onclick="document.getElementById('events-adv-filters').classList.toggle('hidden')"
+              class="text-xs text-slate-400 hover:text-white border border-slate-600 rounded-lg px-3 py-2 whitespace-nowrap w-full sm:w-auto">
+        ⚙ {{ t('events_search_advanced') }}
+      </button>
+    </div>
+    {# One choice, so joined segments, unlike the pills beside them; typed dates win and clear it. #}
+    <div class="inline-flex flex-wrap rounded-lg border border-slate-600 overflow-hidden">
+      {% for r in ranges %}
+      <label class="cursor-pointer">
+        <input type="radio" name="range" value="{{ r }}" class="peer sr-only" {% if not flt.custom and flt.range == r %}checked{% endif %}>
+        <span class="block px-2.5 py-1 text-xs whitespace-nowrap text-slate-400 {% if not loop.first %}border-l border-slate-600 {% endif %}peer-checked:bg-brand/20 peer-checked:text-white transition-colors">{{ t('events_range_' ~ r) }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="flex flex-wrap gap-1.5">
+      {% for g in groups %}
+      <label class="cursor-pointer">
+        <input type="checkbox" name="group" value="{{ g }}" class="peer sr-only" {% if g in flt.shown_groups() %}checked{% endif %}>
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border border-slate-600 text-slate-400 peer-checked:bg-brand/20 peer-checked:border-brand peer-checked:text-white transition-colors" style="box-shadow: inset 3px 0 0 {{ group_colors[g] }}">{{ group_icons[g] }} {{ t('events_group_' ~ g) }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <div id="events-adv-filters" class="{% if not (flt.kinds or flt.date_from or flt.date_to) %}hidden {% endif %}space-y-2 pt-2 border-t border-slate-700/60">
+      <div class="flex flex-wrap gap-2">
+        <input type="date" name="date_from" onclick="this.showPicker && this.showPicker()" value="{{ flt.date_from or '' }}" title="{{ t('charges_search_date_from') }}"
+               class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+        <input type="date" name="date_to" onclick="this.showPicker && this.showPicker()" value="{{ flt.date_to or '' }}" title="{{ t('charges_search_date_to') }}"
+               class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg px-2 py-1.5">
+      </div>
+      <div class="flex flex-wrap gap-1.5">
+        {% for g, kinds in groups.items() %}{% for k in kinds %}
+        <label class="cursor-pointer">
+          <input type="checkbox" name="kind" value="{{ k }}" class="peer sr-only" {% if k in flt.kinds %}checked{% endif %}>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] border border-slate-700 text-slate-500 peer-checked:bg-brand/20 peer-checked:border-brand peer-checked:text-white transition-colors">{{ icons[k] }} {{ t('events_kind_' ~ k) }}</span>
+        </label>
+        {% endfor %}{% endfor %}
+      </div>
+    </div>
+  </form>
+</div>
+
+{# The list and, when 🗺 shows it, one map of where its rows happened: beside the list from lg up,
+   above it on a phone (sticky, 180 px). #}
+<style>
+  #events-search-form input[type=date] { cursor: pointer; }
+  /* Stuck below the bars Mate keeps at the top of every page (no password, beta, demo…): --bars. */
+  #events-map-box { display: none; top: var(--bars, 0px); }
+  #events-wrap.map-on #events-map-box { display: block; }
+  /* Beside the list only where both have room: from 1024 px the list was narrower than the map. */
+  @media (min-width: 1280px) {
+    #events-map-box { top: calc(var(--bars, 0px) + 1rem); }
+    #events-map { height: calc(100vh - 8rem - var(--bars, 0px)); }
+    #events-wrap.map-on { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); gap: 1.5rem; align-items: start; }
+  }
+  .ev-list > .ev-hl { background: rgba(251, 191, 36, 0.09); }
+  /* A line of the list: no padding or border of its own, so the track cells meet the next line's. */
+  .ev-list { padding: 0 0.75rem 0.5rem 0.25rem; }
+  .event-row, .ev-day, .event-hour { display: flex; align-items: flex-start; column-gap: 0.5rem; --y: 16px; }
+  .event-row > :not(.ev-l) { padding: 6px 0; }
+  .ev-list > div { content-visibility: auto; contain-intrinsic-size: auto 32px; }     /* a long range lays out what is seen */
+  .ev-day > span:last-child { padding: 14px 0 4px; font-size: 0.875rem; font-weight: 600; color: #cbd5e1; }
+  .event-hour > span:last-child { font: 10px/16px ui-monospace, SFMono-Regular, Menlo, monospace; color: #64748b; }
+  .event-row time { flex: none; font: 12px/20px ui-monospace, SFMono-Regular, Menlo, monospace; color: #94a3b8; }
+  @media (max-width: 639px) { .event-row time { font-size: 11px; } }
+  .ev-ic { flex: none; line-height: 20px; }
+  .event-row > button, .event-row > span:empty { flex: none; width: 18px; font-size: 12px; line-height: 20px; }
+  .event-row > button { font-size: 14px; padding: 6px 5px; margin: 0 -5px; }   /* a wider spot to tap */
+  .ev-txt { min-width: 0; flex: 1; font-size: 0.875rem; line-height: 20px; color: #94a3b8; }
+  .ev-txt strong { color: #fff; font-weight: 500; }
+  .ev-txt b { color: #e2e8f0; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .ev-txt > span, .ev-txt b, .ev-wait > span { white-space: nowrap; }   /* a part stays whole: "na postoju", "Kabina 14 → 20,5 °C" */
+  .ev-txt > .ev-wrap { white-space: normal; }                            /* a place, a command, a sentence may wrap */
+  .ev-txt b.ev-cost { color: #4ade80; }
+  .ev-txt b.ev-wait { color: #fbbf24; }
+  .ev-txt a { color: #14b8a6; white-space: nowrap; }
+  .ev-txt a:hover { text-decoration: underline; }
+  .ev-txt > * + :not(.ev-chip, .ev-now)::before { content: "·\a0"; color: #475569; }
+  .ev-chip { display: inline-block; white-space: nowrap; border-radius: 0.25rem; background: rgba(51, 65, 85, 0.6); padding: 0 0.375rem;
+             font: 11px/18px ui-monospace, SFMono-Regular, Menlo, monospace; color: #cbd5e1; }
+  .ev-txt .ev-live { color: #4ade80; }
+  /* The tracks: a cell per track, a vertical (v-, faded w-) and a horizontal (h-) as two backgrounds, so a
+     crossing is the two colours one over the other; n- is the turn ╭ and u- the turn ╰, at the first line. */
+  .ev-l { display: flex; align-self: stretch; flex: none; position: relative; padding-right: 10px; }
+  .ev-l i { width: 8px; flex: none; position: relative;
+            background: var(--vi, none) center / var(--vw, 2px) 100% no-repeat,
+                        var(--hi, none) 0 calc(var(--y) - var(--hw, 2px) / 2) / 100% var(--hw, 2px) no-repeat; }
+  .ev-l [class^="n-"]::before, .ev-l [class^="u-"]::before { content: ""; position: absolute; left: 3px; right: 0;
+            border: 0 solid var(--k); }
+  .ev-l [class^="n-"]::before { top: calc(var(--y) - 1px); bottom: 0; border-width: 2px 0 0 2px; border-top-left-radius: 6px; }
+  .ev-l [class^="u-"]::before { top: 0; height: calc(var(--y) + 1px); border-width: 0 0 2px 2px; border-bottom-left-radius: 6px; }
+  .ev-l .dot { position: absolute; right: 0; top: 0; bottom: 0; width: 10px; }
+  .ev-l .dot.j { background: linear-gradient(var(--k), var(--k)) 0 calc(var(--y) - 1px) / 5px 2px no-repeat; }
+  .ev-l .dot::after { content: ""; position: absolute; left: 1px; top: calc(var(--y) - 4px); width: 8px; height: 8px;
+            border-radius: 50%; background: var(--k); }
+  .ev-l i[class]:not(.dot), .ev-l .dot.j { cursor: pointer; }
+  /* A lit pair is drawn thicker: its own vertical (sel) and horizontal (selh), not another pair's in the same cell. */
+  .ev-l .sel { --vw: 4px; }
+  .ev-l .selh { --hw: 4px; }
+  .ev-l .sel[class^="n-"]::before { left: 2px; top: calc(var(--y) - 2px); border-width: 4px 0 0 4px; }
+  .ev-l .sel[class^="u-"]::before { left: 2px; height: calc(var(--y) + 2px); border-width: 0 0 4px 4px; }
+  .ev-l .dot.sel { background-position: 0 calc(var(--y) - 2px); background-size: 5px 4px; }
+  .ev-l .dot.sel::after { transform: scale(1.35); }
+  .ev-list > .ev-pair { background: rgba(20, 184, 166, 0.18); }
+  /* Lit rows as one rounded block: a run of them joins, its ends rounded. */
+  .ev-list > :is(.ev-hl, .ev-pair) { border-radius: 6px; }
+  .ev-hl + .ev-hl, .ev-pair + .ev-pair { border-top-left-radius: 0; border-top-right-radius: 0; }
+  .ev-hl:has(+ .ev-hl), .ev-pair:has(+ .ev-pair) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  {% for g, c in group_colors.items() %}
+  .v-{{ g }} { --vi: linear-gradient({{ c }}, {{ c }}); }
+  .w-{{ g }} { --vi: repeating-linear-gradient({{ c }}99 0 3px, transparent 3px 6px); }
+  .h-{{ g }} { --hi: linear-gradient({{ c }}, {{ c }}); }
+  .n-{{ g }}, .u-{{ g }}, .d-{{ g }} { --k: {{ c }}; }
+  {% endfor %}
+</style>
+<div id="events-wrap">
+  <div id="events-map-box" class="sticky z-10 mb-3 xl:mb-0 xl:col-start-2 xl:row-start-1">
+    <div class="card p-0 overflow-hidden"><div id="events-map" class="h-[180px]"></div></div>
+  </div>
+  <div id="events-list" class="min-w-0 xl:col-start-1 xl:row-start-1">{% include "partials/events_list.html" %}</div>
+</div>
+
+<link rel="stylesheet" href="static/vendor/leaflet/leaflet.css">
+<script src="static/vendor/leaflet/leaflet.js"></script>
+
+<script>
+  // Back to the page's defaults: every group on, no kind, no word, no dates. A form reset would go
+  // back to what the URL carried, which may already be a filter.
+  function eventsResetFilters() {
+    const form = document.getElementById('events-search-form');
+    form.querySelectorAll('input[name=range]').forEach(function (r) { r.checked = r.value === '{{ default_range }}'; });
+    form.querySelectorAll('input[name=group]').forEach(function (c) { c.checked = true; });
+    form.querySelectorAll('input[name=kind]').forEach(function (c) { c.checked = false; });
+    form.querySelectorAll('input[name=q], input[type=date]').forEach(function (i) { i.value = ''; });
+    document.getElementById('events-adv-filters').classList.add('hidden');
+  }
+
+  // `fn(whole)` once a swap has settled, `whole` when the list itself was swapped, not a part appended:
+  // htmx settles each new line on its own, a thousand times for a part. After the settle, since until
+  // then htmx gives a row that kept its id its old classes back.
+  function eventsSettled(fn) {
+    var whole = null;
+    document.body.addEventListener('htmx:afterSettle', function (evt) {
+      if (whole === null) Promise.resolve().then(function () { var w = whole; whole = null; fn(w); });
+      whole = whole || evt.detail.target === document.getElementById('events-list');
+    });
+  }
+
+  // A range button clears typed dates, and typed dates clear the range; with both dates empty again
+  // the default range is back. Captured, so it runs before HTMX sends the form.
+  document.getElementById('events-search-form').addEventListener('change', function (evt) {
+    const form = evt.currentTarget, dates = form.querySelectorAll('input[type=date]');
+    if (evt.target.name === 'range') dates.forEach(function (i) { i.value = ''; });
+    else if (evt.target.type === 'date') {
+      const typed = Array.prototype.some.call(dates, function (i) { return i.value; });
+      form.querySelectorAll('input[name=range]').forEach(function (r) { r.checked = !typed && r.value === '{{ default_range }}'; });
+    }
+  }, true);
+
+  // A click on a track or a joined dot lights that pair, its line and its two rows, and scrolls
+  // nothing; again, or on another pair, puts it out. The pair is read from the cells: up its track
+  // to the turn ╭ (n-), down to the turn ╰ (u-), or to the list's edge; a part loaded later lights
+  // its share of the pair too.
+  (function () {
+    var list = document.getElementById('events-list'), lit = [], chosen = null;
+    var VERTICAL = /(^| )[vw]-/;
+    function tracks(line) { return line.querySelectorAll('.ev-l > i:not(.dot)'); }
+    function turn(line) {
+      return Array.prototype.findIndex.call(tracks(line), function (c) { return /^[nu]-/.test(c.className); });
+    }
+    function light(line, lane) {
+      chosen = [line, lane];
+      var lines = Array.prototype.slice.call(line.parentNode.children), at = lines.indexOf(line);
+      var top = at, bottom = at, cell = tracks(line)[lane];
+      if (!/^n-/.test(cell.className)) {
+        while (top > 0 && VERTICAL.test((tracks(lines[top - 1])[lane] || {}).className)) top--;
+        if (top > 0 && /^n-/.test((tracks(lines[top - 1])[lane] || {}).className)) top--;
+      }
+      if (!/^u-/.test(cell.className)) {
+        while (bottom < lines.length - 1 && VERTICAL.test((tracks(lines[bottom + 1])[lane] || {}).className)) bottom++;
+        if (bottom < lines.length - 1 && /^u-/.test((tracks(lines[bottom + 1])[lane] || {}).className)) bottom++;
+      }
+      for (var k = top; k <= bottom; k++) {
+        var cells = tracks(lines[k]);
+        mark(cells[lane], 'sel');
+        if (/^[nu]-/.test(cells[lane].className)) {          // a row the pair turns into: across to its dot
+          for (var inner = lane + 1; inner < cells.length; inner++) mark(cells[inner], 'selh');
+          mark(lines[k].querySelector('.dot'), 'sel');
+          mark(lines[k], 'ev-pair');
+        }
+      }
+      lit = lit.concat(bridge('ev-pair'));
+    }
+    function mark(el, cls) { el.classList.add(cls); lit.push(el); }
+    function clear() {
+      lit.forEach(function (el) { el.classList.remove('sel', 'selh', 'ev-pair'); });
+      lit = [];
+      chosen = null;
+    }
+    // A heading or an hour between two lit rows is lit too, so the block has no gap; returns them.
+    function bridge(cls) {
+      var added = [];
+      list.querySelectorAll('.ev-list').forEach(function (card) {
+        var between = [], after = false;
+        Array.prototype.forEach.call(card.children, function (line) {
+          if (!line.classList.contains('event-row')) return between.push(line);
+          var on = line.classList.contains(cls);
+          if (on && after) between.forEach(function (h) { h.classList.add(cls); added.push(h); });
+          between = [];
+          after = on;
+        });
+      });
+      return added;
+    }
+    list.addEventListener('click', function (evt) {
+      var cell = evt.target.closest('.ev-l > i');
+      if (!cell) return;
+      var line = cell.closest('.ev-list > div'), again = cell.classList.contains('sel');
+      var lane = cell.classList.contains('dot') || !VERTICAL.test(cell.className) && !/^[nu]-/.test(cell.className)
+        ? turn(line) : Array.prototype.indexOf.call(tracks(line), cell);
+      clear();
+      if (!again && lane >= 0) light(line, lane);
+      list.dispatchEvent(new CustomEvent('events:pair'));          // the last click is what is lit
+    });
+    eventsSettled(function (whole) {
+      if (whole) { lit = []; chosen = null; }
+      else if (chosen && list.contains(chosen[0])) { var c = chosen; clear(); light(c[0], c[1]); }
+    });
+    // For the map: a row and, when it has one, the other half of its pair.
+    window.eventsPair = {
+      clear: clear,
+      bridge: bridge,
+      row: function (row) {
+        clear();
+        var lane = turn(row);
+        if (lane >= 0) light(row, lane);
+        else { lit.push(row); row.classList.add('ev-pair'); }
+      },
+    };
+  })();
+
+  function eventsScroller() {
+    var main = document.querySelector('main');
+    return main && main.scrollHeight > main.clientHeight ? main : window;
+  }
+  // How far down the window what stands over the list reaches: the top of <main>, Mate's bars stuck
+  // there, and the map where it stands over the list rather than beside it.
+  function eventsCover() {
+    var main = document.querySelector('main'), list = document.getElementById('events-list').getBoundingClientRect();
+    var bottom = main.getBoundingClientRect().top, box = document.getElementById('events-map-box');
+    Array.prototype.forEach.call(main.children, function (el) {
+      if (getComputedStyle(el).position === 'sticky') bottom = Math.max(bottom, el.getBoundingClientRect().bottom);
+    });
+    var b = box && box.offsetHeight && box.getBoundingClientRect();
+    if (b && b.left < list.right && b.right > list.left) bottom = Math.max(bottom, b.bottom);
+    return bottom;
+  }
+  // The rows off screen have estimated heights (content-visibility) until later frames lay them out,
+  // more of them after a long jump: the row is put back until it has stood still for three frames.
+  function eventsHold(row, at) {
+    var still = 0, frames = 0;
+    (function again() {
+      var off = row.getBoundingClientRect().top - at;
+      if (Math.abs(off) > 0.5) { eventsScroller().scrollBy(0, off); still = 0; } else still++;
+      if (still < 3 && ++frames < 60) requestAnimationFrame(again);
+    })();
+  }
+
+  // A row asked for, by the address's #anchor on the way back from a trip or a charge or by a point
+  // on the map, may be in a part not loaded yet: the parts load until it comes, then it stands in the
+  // middle of what the bars and the map leave of the window. The address's row once the page has
+  // loaded: the browser's own jump to it comes first, and puts it under them.
+  (function () {
+    var list = document.getElementById('events-list'), seeking = null;
+    function seek(anchor, pair) {
+      var row = document.getElementById(anchor), more = list.querySelector('.ev-more');
+      seeking = null;
+      if (row) {
+        var cover = eventsCover(), r = row.getBoundingClientRect();
+        var at = Math.max(cover + 8, (innerHeight + cover - r.height) / 2);
+        eventsScroller().scrollBy(0, r.top - at);
+        eventsHold(row, at);
+        if (pair) window.eventsPair.row(row);
+      } else if (more) {
+        seeking = [anchor, pair];
+        more.scrollIntoView({ block: 'end' });
+      }
+    }
+    eventsSettled(function () { if (seeking) seek(seeking[0], seeking[1]); });
+    window.eventsSeek = seek;
+    var hash = decodeURIComponent(location.hash.slice(1));
+    if (/^ev-/.test(hash)) addEventListener('load', function () { requestAnimationFrame(function () { seek(hash, true); }); });
+  })();
+
+  // The map, hidden until 🗺 or a row's 🌍 asks for it (the choice kept), built the first time it
+  // shows: a point per place of the rows listed. One point is lit at a time, the row's under the
+  // pointer or else the one chosen, so render() puts everything out and lights that one. 🌍 chooses
+  // its row's point and lights the row and its pair; a click on a point lights the place's rows.
+  (function () {
+    if (typeof L === 'undefined') return;
+    var wrap = document.getElementById('events-wrap');
+    var list = document.getElementById('events-list');
+    var KEY = 'mate.events.map', ON_MAP = {{ t('events_on_map')|tojson }};
+    var PLAIN = { radius: 6, color: '#14b8a6', weight: 2, fillColor: '#14b8a6', fillOpacity: 0.5 };
+    var LIT = { radius: 10, color: '#fbbf24', weight: 3, fillColor: '#fbbf24', fillOpacity: 0.9 };
+    var map = null, layer = null, markers = {}, points = [], selected = null, hover = null;
+    var placeRows = false;              // the chosen place's rows lit: chosen on the map, not by a row
+
+    function readPoints() {
+      var data = document.getElementById('events-points');
+      points = data ? JSON.parse(data.textContent) : [];
+      if (!points.some(function (p) { return p.key === selected; })) selected = null;
+      if (!selected) placeRows = false;
+      hover = null;
+    }
+    function pointOf(row) {
+      var pin = row && row.querySelector('button[data-p]');
+      return pin ? points[+pin.dataset.p] : null;
+    }
+    function render() {
+      list.querySelectorAll('.ev-hl').forEach(function (r) { r.classList.remove('ev-hl'); });
+      var i = points.findIndex(function (p) { return p.key === selected; });
+      if (i >= 0 && placeRows) {
+        list.querySelectorAll('button[data-p="' + i + '"]').forEach(function (b) { b.closest('.event-row').classList.add('ev-hl'); });
+        window.eventsPair.bridge('ev-hl');
+      }
+      var lit = hover || selected;
+      Object.keys(markers).forEach(function (k) { markers[k].setStyle(k === lit ? LIT : PLAIN); });
+      if (markers[lit]) markers[lit].bringToFront();
+    }
+    function draw() {
+      if (!map) return;
+      layer.clearLayers();
+      markers = {};
+      points.forEach(function (p) {
+        markers[p.key] = L.circleMarker([p.lat, p.lon], PLAIN).addTo(layer)
+          .on('click', function () {
+            selected = p.key; placeRows = true; hover = null;
+            window.eventsPair.clear();
+            render();
+            window.eventsSeek(p.row);
+          });
+      });
+      if (points.length) map.fitBounds(L.latLngBounds(points.map(function (p) { return [p.lat, p.lon]; })).pad(0.2), { maxZoom: 15 });
+      else map.fitWorld();
+      render();
+    }
+    function label() {
+      var b = document.getElementById('events-map-toggle');
+      if (b) b.textContent = wrap.classList.contains('map-on') ? b.dataset.hide : b.dataset.show;
+    }
+    // Opening or closing the map reflows the list (a column fewer, or the map above it); the row the
+    // reader was at stays where it was on screen, and on a phone below the map rather than under it.
+    // The tallest bar stuck at the top of <main>: they all stick at its top, one over another.
+    function bars() {
+      var h = 0;
+      Array.prototype.forEach.call(document.querySelector('main').children, function (el) {
+        var cs = getComputedStyle(el);
+        if (cs.position === 'sticky' && cs.top === '0px') h = Math.max(h, el.offsetHeight);
+      });
+      wrap.style.setProperty('--bars', h + 'px');
+    }
+    function show(on, row) {
+      bars();
+      var cover = eventsCover();
+      row = row || Array.prototype.find.call(list.querySelectorAll('.event-row'), function (r) { return r.getBoundingClientRect().bottom > cover; });
+      var top = row && row.getBoundingClientRect().top;
+      wrap.classList.toggle('map-on', on);
+      if (row) {
+        // Where the map stands over the list (a phone), the row goes below it.
+        var at = on ? Math.max(top, eventsCover() + 8) : top;
+        eventsScroller().scrollBy(0, row.getBoundingClientRect().top - at);
+        eventsHold(row, at);
+      }
+      try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (_) {}
+      label();
+      if (on && !map) {
+        map = L.map('events-map', { zoomControl: false, attributionControl: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { referrerPolicy: 'origin' }).addTo(map);
+        layer = L.layerGroup().addTo(map);
+        draw();
+      } else if (on) map.invalidateSize();
+    }
+    function pins() { list.querySelectorAll('button[data-p]:not([title])').forEach(function (b) { b.title = ON_MAP; }); }
+
+    list.addEventListener('click', function (evt) {
+      if (evt.target.closest('#events-map-toggle')) return show(!wrap.classList.contains('map-on'));
+      var pin = evt.target.closest('button[data-p]'), p = pin && points[+pin.dataset.p];
+      if (!p) return;
+      var row = pin.closest('.event-row');
+      selected = p.key; placeRows = false; hover = null;
+      if (!wrap.classList.contains('map-on')) show(true, row);
+      window.eventsPair.row(row);
+      render();
+      if (!map.getBounds().contains([p.lat, p.lon])) map.panTo([p.lat, p.lon]);
+    });
+    list.addEventListener('events:pair', function () { selected = null; placeRows = false; render(); });
+    // A mouse only: a tap sends a pointer over the row too, and with nothing to move it away the
+    // row's point would stay lit beside the one chosen.
+    list.addEventListener('pointerover', function (evt) {
+      if (evt.pointerType !== 'mouse' || !map || !wrap.classList.contains('map-on')) return;
+      var p = pointOf(evt.target.closest('.event-row')), key = p ? p.key : null;
+      if (key !== hover) { hover = key; render(); }
+    });
+    list.addEventListener('pointerout', function (evt) {
+      var row = evt.target.closest('.event-row');
+      if (hover && row && !row.contains(evt.relatedTarget)) { hover = null; render(); }
+    });
+    eventsSettled(function (whole) {
+      if (whole) { readPoints(); label(); draw(); }
+      pins();
+      render();
+    });
+    window.addEventListener('resize', bars);
+    new MutationObserver(bars).observe(document.querySelector('main'), { childList: true });   // a bar hidden
+    readPoints();
+    pins();
+    try { if (localStorage.getItem(KEY) === '1') show(true); } catch (_) {}
+  })();
+</script>
+{% endblock %}
