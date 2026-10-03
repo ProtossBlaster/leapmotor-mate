@@ -859,7 +859,17 @@ def _advance_link(db, key, prev, state, reason, next_retry_ts, bad_creds=None) -
     """One link setting moved on by one verdict. `since` moves only when the STATE changes; the
     per-poll rows are kept a week, and an outage that has lasted longer must still say when it
     began, so a setting is where that survives. `bad_creds` sticks for as long as the refusal
-    does: a later refusal worded differently does not un-say that the password was rejected."""
+    does: a later refusal worded differently does not un-say that the password was rejected.
+
+    So does the reason, against an attempt Mate itself put off. Mate keeps a minute between two
+    logins; a poll that falls inside it fails with "Login temporarily deferred after a recent
+    attempt", which is OUR words about OUR timer and says nothing about why the cloud is
+    unreachable. At the parked cadence it arrives every other poll and it was the last word
+    written, so that is what the pages showed — in place of the real failure, named in one word
+    since 4.7.18, that the user and we both need (#381, @maxencedelesgues-droid). The state and
+    the next attempt still move: nothing arrived, and that is true however the attempt ended."""
+    if reason and prev.get("reason") and not session_share.login_attempted(reason):
+        reason = prev["reason"]
     if prev.get("state") != state:
         cur = {"state": state, "since": _utc_iso(), "reason": reason, "next_retry_ts": next_retry_ts}
         if bad_creds is not None:

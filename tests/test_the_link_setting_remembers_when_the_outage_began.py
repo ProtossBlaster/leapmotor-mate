@@ -195,3 +195,45 @@ def test_the_poller_records_when_it_started(startup):
     """Uptime for the Overview's link tile: a stopped-and-restarted poller says so."""
     _, db, now = startup(refusals=1)
     assert abs(float(db.get_setting("poller_started_ts", "0")) - NOW) < 1
+
+
+class _MateAPIError(Exception):
+    """Named as the backend's error is, because the pages print the class with the message."""
+
+
+DEFERRED = _MateAPIError("Login temporarily deferred after a recent attempt")
+DNS = ConnectionError("Cloud transport failed: dns_failure")
+
+
+def test_an_attempt_mate_put_off_does_not_replace_the_reason(poll):
+    """Mate keeps a minute between two logins, and at the parked cadence the poll that falls
+    inside it fails with words about OUR timer. The pages showed that instead of the failure that
+    actually keeps the cloud away — the one named in a word since 4.7.18 (#381)."""
+    db = poll(DNS, advance=120)
+    assert _fetch(db)["reason"] == "ConnectionError: Cloud transport failed: dns_failure"
+    db = poll(DEFERRED, advance=30)
+    assert _fetch(db)["reason"] == "ConnectionError: Cloud transport failed: dns_failure"
+
+
+def test_the_state_and_the_next_attempt_still_move(poll):
+    """Nothing arrived, and that is true however the attempt ended: only the wording is kept."""
+    poll(DNS, advance=120)
+    db = poll(DEFERRED, advance=30)
+    fetch = _fetch(db)
+    assert fetch["state"] == "failed"
+    assert fetch["next_retry_ts"] >= NOW + 150
+
+
+def test_a_real_failure_after_it_is_the_new_reason(poll):
+    """The rule only protects what the cloud said from what Mate said about itself."""
+    poll(DNS, advance=120)
+    poll(DEFERRED, advance=30)
+    db = poll(ConnectionError("Read timed out"), advance=30)
+    assert _fetch(db)["reason"] == "ConnectionError: Read timed out"
+
+
+def test_a_deferral_with_nothing_on_record_is_still_said(poll):
+    """With no earlier failure to keep there is nothing better to show, and silence would be worse
+    than our own words."""
+    db = poll(DEFERRED, advance=120)
+    assert "temporarily deferred" in _fetch(db)["reason"]
