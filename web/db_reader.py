@@ -12027,6 +12027,7 @@ _events_cache: dict = {}
 
 
 _version_conn: list = [None, None]           # [path, connection]
+_version_lock = threading.Lock()             # one connection, many request threads
 
 
 def _data_version(_db=None) -> int:
@@ -12042,14 +12043,15 @@ def _data_version(_db=None) -> int:
     So one connection answers this question for the whole process, opened on first use and reopened
     when the path changes (the demo flag points it elsewhere). It only ever reads the pragma."""
     path = DB_PATH
-    if _version_conn[0] != path or _version_conn[1] is None:
-        if _version_conn[1] is not None:
-            try:
-                _version_conn[1].close()
-            except sqlite3.Error:
-                pass
-        _version_conn[0], _version_conn[1] = path, _conn(path)
-    return _version_conn[1].execute("PRAGMA data_version").fetchone()[0]
+    with _version_lock:                      # one connection is not a thread-safe cursor
+        if _version_conn[0] != path or _version_conn[1] is None:
+            if _version_conn[1] is not None:
+                try:
+                    _version_conn[1].close()
+                except sqlite3.Error:
+                    pass
+            _version_conn[0], _version_conn[1] = path, _conn(path)
+        return _version_conn[1].execute("PRAGMA data_version").fetchone()[0]
 
 
 def _cache_key(flt: "EventFilter", lang: str, vehicle_id) -> tuple:
