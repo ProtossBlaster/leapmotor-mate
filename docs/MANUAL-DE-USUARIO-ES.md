@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.9.0 · **Idioma:** Español
+> **Versión de Mate:** v4.9.1 · **Idioma:** Español
 
-## Novedades de la versión 4.9.0
+## Novedades de la versión 4.9.1
+
+**La lista de Eventos ya no se desplaza bajo tus ojos.** Al recorrer un intervalo largo,
+los encabezados de hora y de día situados encima cambiaban de altura a medida que el navegador los
+alcanzaba, y lo que estabas leyendo se movía unos píxeles — hasta 25 de golpe. Ahora cada línea
+declara la altura que va a ocupar de verdad: no se mueve nada salvo tú.
+
+### Novedades de la versión 4.9.0
 
 **Un enchufado es una carga.** Enchufas por la noche y desenchufas por la mañana, y la página
 Cargas mostraba cuatro sesiones. Es el coche el que las parte: declara el cable retirado en el

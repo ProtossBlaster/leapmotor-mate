@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.9.0:** **one plug-in is one charge** — the car declares the cable gone the instant a wallbox pauses, and the pieces are now joined without being asked, reversibly ([#374](https://github.com/ProtossBlaster/leapmotor-mate/issues/374)); a drive's official energy can no longer be **twice** what its battery lost ([#298](https://github.com/ProtossBlaster/leapmotor-mate/issues/298)), and the kilometres measured out of contact say how many of them the cloud's history has since given back.
-See [release notes and upgrade impact](docs/releases/v4.9.0.md).
+**v4.9.1:** the **Events list does not drift** under the reader — a line not yet drawn declared the wrong height, so the headings above you changed size as the browser caught up ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385)). In **4.9.0**: **one plug-in is one charge**, with the pieces joined without being asked and reversibly ([#374](https://github.com/ProtossBlaster/leapmotor-mate/issues/374)), and a drive's official energy can no longer be **twice** what its battery lost ([#298](https://github.com/ProtossBlaster/leapmotor-mate/issues/298)).
+See [release notes and upgrade impact](docs/releases/v4.9.1.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -358,8 +358,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.9.0:** **un attacco alla spina è una ricarica** — l'auto dichiara il cavo staccato nell'istante in cui la wallbox mette in pausa, e i pezzi adesso vengono uniti senza bisogno di chiedere, in modo reversibile ([#374](https://github.com/ProtossBlaster/leapmotor-mate/issues/374)); l'energia ufficiale di una guidata non può più essere il **doppio** di quella che la batteria ha perso ([#298](https://github.com/ProtossBlaster/leapmotor-mate/issues/298)), e i chilometri misurati senza contatto dicono quanti di loro lo storico del cloud ha poi restituito. [Note di rilascio](docs/releases/v4.9.0.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.9.0.md#italiano).
+**v4.9.1:** l'**elenco Eventi non slitta** sotto chi legge — una riga non ancora disegnata dichiarava l'altezza sbagliata, quindi le intestazioni sopra di te cambiavano dimensione mentre il browser le raggiungeva ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385)). Nella **4.9.0**: **un attacco alla spina è una ricarica**, con i pezzi uniti senza bisogno di chiedere e in modo reversibile ([#374](https://github.com/ProtossBlaster/leapmotor-mate/issues/374)), e l'energia ufficiale di una guidata non può più essere il **doppio** di quella che la batteria ha perso ([#298](https://github.com/ProtossBlaster/leapmotor-mate/issues/298)). [Note di rilascio](docs/releases/v4.9.1.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.9.1.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

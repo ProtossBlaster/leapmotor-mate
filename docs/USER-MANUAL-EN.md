@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.9.0 · **Language:** English
+> **Mate version:** v4.9.1 · **Language:** English
 
-## New in 4.9.0
+## New in 4.9.1
+
+**The Events list no longer drifts under you.** Scrolling a long range, the hour and day
+headings above you changed height as the browser caught up with them, and what you were reading slid
+a few pixels — up to 25 at a time. Each line now declares the height it will actually have, so
+nothing moves but you.
+
+### New in 4.9.0
 
 **One plug-in is one charge.** You plug in at night and unplug in the morning, and the Charges
 page showed four sessions. The car is what splits them: it declares the cable gone the instant the

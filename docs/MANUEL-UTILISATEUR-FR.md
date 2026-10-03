@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.9.0 · **Langue :** Français
+> **Version de Mate :** v4.9.1 · **Langue :** Français
 
-## Nouveautés de la version 4.9.0
+## Nouveautés de la version 4.9.1
+
+**La liste Événements ne glisse plus sous vos yeux.** En parcourant une longue période,
+les en-têtes d'heure et de jour situés au-dessus changeaient de hauteur à mesure que le navigateur
+les rattrapait, et ce que vous lisiez se décalait de quelques pixels — jusqu'à 25 d'un coup. Chaque
+ligne annonce désormais la hauteur qu'elle prendra réellement : rien ne bouge, sauf vous.
+
+### Nouveautés de la version 4.9.0
 
 **Un branchement, une recharge.** Vous branchez le soir, vous débranchez le matin, et la page
 Recharges affichait quatre sessions. C'est la voiture qui les découpe : elle déclare le câble retiré

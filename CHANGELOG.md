@@ -3,6 +3,23 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.9.1] — 2026-10-03
+
+- **The Events list does not drift under the reader**
+  ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385)). The list lays out only what is
+  on screen, and a line not yet drawn declared 32 pixels until it was. Measured in Chromium at 390 px
+  and 1280 px, that is right for an event row and wrong for both headings — an hour separator is 16,
+  a day heading 39 — so each heading coming into view replaced 32 with its true height, the list got
+  shorter, and the browser's scroll anchoring made up the difference. One day heading and two hour
+  separators are a 25-pixel jump. Each kind now declares what it will take. Found by a browser test
+  that had been failing one CI run in four and was twice written off as flaky: it failed with
+  `341.796875` against `366.796875`, which is those 25 pixels exactly.
+- A page render with no charges to join no longer opens a write connection before finding out there
+  is nothing to do. Nothing leaked; it was paid for on every render.
+- The 4.9.0 notes said the one-time cloud-energy pass put two trips of 412 back on the estimate. It
+  put back one: the other is a merged parent, whose figure is attributed over the whole group's
+  distance and is correct there. Corrected in the notes; the code had always done the right thing.
+
 ## [4.9.0] — 2026-10-03
 
 - **One plug-in is one charge** ([#374](https://github.com/ProtossBlaster/leapmotor-mate/issues/374),

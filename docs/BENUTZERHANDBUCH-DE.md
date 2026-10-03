@@ -1,8 +1,15 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.9.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.9.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.9.0
+## Neu in Version 4.9.1
+
+**Die Ereignisliste verrutscht nicht mehr unter Ihnen.** Beim Durchblättern eines langen
+Zeitraums änderten die Stunden- und Tagesüberschriften über Ihnen ihre Höhe, sobald der Browser sie
+einholte, und das Gelesene verschob sich um einige Pixel — bis zu 25 auf einmal. Jede Zeile gibt nun
+die Höhe an, die sie wirklich einnehmen wird; es bewegt sich nichts mehr außer Ihnen.
+
+### Neu in Version 4.9.0
 
 **Ein Einstecken ist ein Ladevorgang.** Sie stecken abends ein und morgens aus, und die Seite
 Ladevorgänge zeigte vier Sitzungen. Das Auto zerteilt sie: Es meldet das Kabel als abgezogen, sobald

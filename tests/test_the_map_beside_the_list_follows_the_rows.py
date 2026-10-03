@@ -205,6 +205,19 @@ def test_a_point_whose_newest_row_is_not_loaded_yet_loads_the_list_to_it(tmp_pat
         browser, page, errors = _open(p, client, 1280)
         page.locator("#events-map-toggle").click()
         page.locator(POINTS).first.wait_for()
+        # Let the list come to rest before reading what is loaded. A part loads when the end of the
+        # list comes into view, and the part that lands can bring the end into view again, so the
+        # loading cascades until it does not — which is geometry, and settles after three parts
+        # here. The first point appearing is not that moment: on a loaded machine the map takes long
+        # enough to draw that the cascade is still running, and then "not loaded yet" is a race and
+        # not a fact. The condition below is the cascade's own stopping rule.
+        page.wait_for_function("""() => {
+            const more = document.querySelector('.ev-more');
+            if (!more) return true;                                   // nothing left to load
+            if (document.querySelector('.htmx-request')) return false;
+            const r = more.getBoundingClientRect();
+            return r.top >= innerHeight || r.bottom <= 0;             // the end is out of view
+        }""")
         assert page.locator("#ev-signal-2").count() == 0
         page.locator(POINTS).nth(1).dispatch_event("click")           # the points come newest place first
         page.locator("#ev-signal-2").wait_for()

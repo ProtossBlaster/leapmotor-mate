@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.9.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.9.1 · **Lingua:** Italiano
 
-## Novità della 4.9.0
+## Novità della 4.9.1
+
+**L'elenco Eventi non slitta più sotto di te.** Scorrendo un intervallo lungo, le
+intestazioni delle ore e dei giorni sopra di te cambiavano altezza mentre il browser le raggiungeva,
+e quello che stavi leggendo si spostava di qualche pixel — fino a 25 per volta. Adesso ogni riga
+dichiara l'altezza che avrà davvero, quindi non si muove niente tranne te.
+
+### Novità della 4.9.0
 
 **Un attacco alla spina è una ricarica.** Attacchi la sera e stacchi la mattina, e la pagina
 Ricariche mostrava quattro sessioni. È l'auto che le spezza: dichiara il cavo staccato nell'istante
