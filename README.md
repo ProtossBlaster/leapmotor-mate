@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.7.17:** the Overview shows the cable while a wallbox holds it without giving current, and says the charge is not running; the car reads as parked, with the cable in ([#382](https://github.com/ProtossBlaster/leapmotor-mate/pull/382), @arekm).
-See [release notes and upgrade impact](docs/releases/v4.7.17.md).
+**v4.7.18:** restoring a database backup works on MateDesktop for Windows, where it answered an error ([#383](https://github.com/ProtossBlaster/leapmotor-mate/issues/383)); a cloud transport that fails says why, in one word, in the log, the wizard and the bundle ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381)); the update instructions no longer point at the archived Watchtower.
+See [release notes and upgrade impact](docs/releases/v4.7.18.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -357,8 +357,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.7.17:** la Panoramica mostra il cavo mentre una wallbox lo tiene senza dare corrente, e dice che la ricarica non è in corso; l'auto si legge parcheggiata, col cavo dentro ([#382](https://github.com/ProtossBlaster/leapmotor-mate/pull/382), @arekm). [Note di rilascio](docs/releases/v4.7.17.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.17.md#italiano).
+**v4.7.18:** il ripristino di un backup del database funziona su MateDesktop per Windows, dove rispondeva un errore ([#383](https://github.com/ProtossBlaster/leapmotor-mate/issues/383)); un trasporto verso il cloud che fallisce dice perché, in una parola, nel log, nella guidata e nel pacchetto ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381)); le istruzioni di aggiornamento non citano più Watchtower, archiviato. [Note di rilascio](docs/releases/v4.7.18.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.7.18.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

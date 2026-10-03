@@ -1,8 +1,23 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.7.17 · **Langue :** Français
+> **Version de Mate :** v4.7.18 · **Langue :** Français
 
-## Nouveautés de la version 4.7.17
+## Nouveautés de la version 4.7.18
+
+**La restauration d'une sauvegarde fonctionne sous Windows.** Sur MateDesktop pour Windows, la
+restauration d'une sauvegarde de la base répondait une erreur, parce que le fichier ne pouvait pas
+être remplacé pendant que Mate le gardait ouvert. La sauvegarde entre maintenant dans la base en
+service ; rien d'autre ne change.
+
+**Une panne vers le cloud dit pourquoi.** Là où le journal, la page de configuration et le paquet
+de diagnostic disaient seulement « Cloud transport failed » ou « stage=transport », ils ajoutent
+maintenant un mot : « dns_failure », « timeout », « connection_refused », « certificate_rejected »,
+etc.
+
+**Mettre à jour une installation Docker :** le manuel ne suggère plus Watchtower, qui a été archivé.
+Téléchargez l'image et recréez le conteneur.
+
+### Nouveautés de la version 4.7.17
 
 **L'Aperçu affiche le câble pendant que la wallbox le retient.** Une wallbox programmée prend le câble et
 ne donne pas de courant avant l'ouverture de sa plage ; l'Aperçu n'affichait alors aucun câble. Il le lit

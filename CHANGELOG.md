@@ -3,6 +3,26 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.7.18] — 2026-10-03
+
+- **A restored backup goes into the live database, not over it** ([#383](https://github.com/ProtossBlaster/leapmotor-mate/issues/383), @matttiaromano). The
+  restore wrote the backup to a temporary file and replaced the live database with it; the poller
+  holds the database open, and on Windows a file another process holds cannot be replaced, so every
+  restore on MateDesktop for Windows answered HTTP 500 ("[WinError 5] Accesso negato", measured on
+  Desktop 1.2.0 with 4.7.17). The restore now copies the backup's pages into the live database with
+  SQLite's own backup API; the relaunch that follows still runs the migrations. Same machine, same
+  backup: 200, every row in place. The Windows CI job now runs the restore tests.
+- **A cloud transport that fails says why** ([#381](https://github.com/ProtossBlaster/leapmotor-mate/issues/381), mate-api 0.1.0a15). Every network, DNS
+  or TLS failure read "Cloud transport failed", and a sign-in that failed before any answer said
+  "stage=transport": an install whose Home Assistant could not resolve the cloud's name wrote 9,049
+  such lines. The transport now names the failure in one word from a fixed vocabulary (dns_failure,
+  timeout, connection_refused, connection_reset, network_unreachable, certificate_rejected,
+  tls_failure, http_protocol, invalid_response, redirect_refused, response_too_large), with no host,
+  address or text from the system: "Cloud transport failed: dns_failure", "stage=transport
+  (dns_failure)". The diagnostics bundle prints the last sign-in failure when there was one.
+- **The update instructions no longer point at Watchtower** ([#383](https://github.com/ProtossBlaster/leapmotor-mate/issues/383)): the project has been
+  archived by its author. Pull the image and recreate the container, as the instructions already said.
+
 ## [4.7.17] — 2026-10-03
 
 - **The Overview shows the cable while the charger holds the charge, and says the charge is not running**
