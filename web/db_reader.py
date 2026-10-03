@@ -5750,16 +5750,22 @@ def join_charges_split_by_a_pause() -> int:
     The decision is `merge_charges`, called with a tighter window and nothing else changed: same
     car, both closed, neither already merged, no other charge in the gap, no trip overlapping it,
     the SoC not fallen, the same charging place. A charge still running is left alone until it ends
-    — the cursor stops before it rather than stepping over it."""
+    — the cursor stops before it rather than stepping over it.
+
+    A render with nothing to do pays a settings read and one indexed SELECT on the read connection
+    and stops there; only a round that actually has charges to look at reaches `merge_charges`,
+    which opens the write connection itself."""
     try:
-        db = _conn_rw()
-        cursor = int(get_setting(_CHARGE_JOIN_CURSOR, "0") or 0)
+        db = _get()                       # the read connection: a render that has nothing to do
+        cursor = int(get_setting(_CHARGE_JOIN_CURSOR, "0") or 0)   # pays this and stops here
         row = db.execute("SELECT MIN(id) FROM charges WHERE ended_at IS NULL").fetchone()
         first_open = row[0] if row else None
         rows = db.execute(
             "SELECT id, vehicle_id, started_at FROM charges WHERE id > ? AND ended_at IS NOT NULL"
             " AND (? IS NULL OR id < ?) ORDER BY id LIMIT ?",
             (cursor, first_open, first_open, _CHARGE_JOIN_BATCH)).fetchall()
+        if not rows:
+            return 0
         joined, seen = 0, cursor
         for r in rows:
             seen = r["id"]
