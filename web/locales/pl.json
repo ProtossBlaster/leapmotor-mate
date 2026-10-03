@@ -51,6 +51,7 @@
     "events_map_hide": "Ukryj mapę",
     "events_on_map": "Pokaż na mapie",
     "events_last_frame": "ostatnia ramka {time}",
+    "events_lasted": "{state} przez {dur}",
     "events_during_trip": "w trakcie jazdy",
     "events_open_trip": "Otwórz trasę",
     "events_open_charge": "Otwórz ładowanie",

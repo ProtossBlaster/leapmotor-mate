@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import db_reader
+import pytest
 from events_fixture import VIN, Car, event_row, grouped, row_text, rows, web
 
 ZONE = ZoneInfo("Europe/Warsaw")
@@ -260,3 +261,39 @@ def test_another_cars_events_are_not_this_cars(tmp_path, monkeypatch):
     assert [r["kind"] for r in rows(grouped())] == ["trunk"]
     db_reader.set_active_vehicle("LFZOTHER000000002")
     assert [r["kind"] for r in rows(grouped())] == ["unlocked"]
+
+
+@pytest.mark.parametrize("lang, said", [("en", "Tailgate open for 35s"),
+                                        ("it", "Portellone aperto per 35s"),
+                                        ("de", "Heckklappe offen für 35s")])
+def test_the_length_names_the_state_it_measures(tmp_path, monkeypatch, lang, said):
+    """Point 4 of the review of #385. The figure on an end row is how long the state it CLOSES
+    lasted: "Tailgate closed · 35s" is a tailgate that was OPEN for thirty-five seconds, and a
+    reader can just as well attach the 35s to the closing. The line drawn to the start row is what
+    says otherwise, and now so do words — in the figure's own title, because naming the state in the
+    row would print the kind twice: "Tailgate closed · Tailgate open for 35s", and in Polish
+    "Klapa bagażnika zamknięta · Otwarta klapa bagażnika przez 35s".
+
+    The row itself is deliberately unchanged. Every other test on this page reads it and none of
+    them moved."""
+    car = Car(tmp_path)
+    client = web(car, monkeypatch, lang=lang)
+    event_row(car, "trunk", _local(DAY, 14))
+    event_row(car, "trunk", _local(DAY, 14) + timedelta(seconds=35), state=0)
+    html = client.get(f"/events?date_from={DAY}&date_to={DAY}").text
+    assert f'<b title="{said}">35s</b>' in html
+    assert row_text(html, "ev-signal-2").endswith(" · 35s"), "the row stays as terse as it was"
+
+
+def test_a_trips_own_figure_carries_no_state(tmp_path, monkeypatch):
+    """A trip's and a charge's end row show their page's driving time, which is about the session
+    and not about a span between two rows — so it gains no sentence."""
+    car = Car(tmp_path)
+    client = web(car, monkeypatch)
+    car.db._conn.execute(
+        "INSERT INTO trips (vehicle_id, started_at, ended_at, distance_km, duration_min)"
+        " VALUES (?, ?, ?, 12.5, 20)",
+        (car.vid, _local(DAY, 11).isoformat(), _local(DAY, 11, 44).isoformat()))
+    car.db._conn.commit()
+    html = client.get(f"/events?date_from={DAY}&date_to={DAY}").text
+    assert "<b>20 min</b>" in html and 'title="Trip for 20 min"' not in html

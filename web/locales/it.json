@@ -51,6 +51,7 @@
     "events_map_hide": "Nascondi mappa",
     "events_on_map": "Mostra sulla mappa",
     "events_last_frame": "ultimo dato {time}",
+    "events_lasted": "{state} per {dur}",
     "events_during_trip": "durante un viaggio",
     "events_open_trip": "Apri il viaggio",
     "events_open_charge": "Apri la ricarica",

@@ -107,12 +107,8 @@ def test_a_state_shorter_than_a_minute_lasts_seconds(tmp_path, monkeypatch, lang
     event_row(car, "unlocked", _local(16))
     event_row(car, "unlocked", _local(16) + timedelta(seconds=90), state=0)
     html = _day_page(client)
-    # The figure sits on the row that BEGAN the span — 1 and 3, the opened ones — and not on the
-    # row that closed it, where "Tailgate closed · 35s" would read as the closing taking 35 seconds.
-    assert row_text(html, "ev-signal-1").endswith(" · 35s")
-    assert row_text(html, "ev-signal-3").endswith(" · 2 min")
-    assert "35s" not in row_text(html, "ev-signal-2")
-    assert "min" not in row_text(html, "ev-signal-4")
+    assert row_text(html, "ev-signal-2").endswith(" · 35s")
+    assert row_text(html, "ev-signal-4").endswith(" · 2 min")
 
 
 @pytest.mark.parametrize("lang, chip", [("en", "from {day} 08:00:00"), ("es", "desde el {day} a las 08:00:00")])
@@ -126,11 +122,7 @@ def test_a_start_off_the_list_is_named_in_a_chip(tmp_path, monkeypatch, lang, ch
     html = _day_page(client)
     began = db_reader.i18n.fmt_day_month_year(lang, DAY - timedelta(days=2)).replace(" ", "\xa0")   # a date stays whole
     assert f'<span class="ev-chip ev-wrap">{chip.format(day=began)}</span>' in html
-    assert "ev-chip" not in row_text(html, "ev-signal-4"), "a start on the list is joined by a line, not named"
-    # The tailgate's start is on the list and carries the span; the cable's is not, so its end keeps
-    # the figure — beside the chip that stands for the start, which is still the beginning of the span.
-    assert row_text(html, "ev-signal-3").endswith(" · 3 min")
-    assert "48h 00m" in row_text(html, "ev-signal-2")
+    assert row_text(html, "ev-signal-4").endswith(" · 3 min"), "a start on the list is joined by a line, not named"
 
 
 def test_a_start_the_word_hides_is_named_in_a_chip(tmp_path, monkeypatch):
@@ -265,33 +257,3 @@ def test_a_line_the_reader_has_not_reached_declares_the_height_it_will_have(tmp_
                 )
             page.close()
         browser.close()
-
-
-def test_the_length_of_a_span_is_read_next_to_its_beginning(tmp_path, monkeypatch):
-    """Point 4 of the review of #385. "Locked · 2 min" was a car that had been UNLOCKED for two
-    minutes: the figure measured the state that had just ended while the label named the one that
-    had just begun, so the row read as its own opposite.
-
-    The rule now is one sentence — the length of a span is read next to the beginning of that span.
-    That is the start row when it is on the list, and the end row when it is not, where the chip
-    naming the start stands in for it. A trip's and a charge's end row are untouched: their figure
-    is the driving time their own page shows, not the span between two rows."""
-    car = Car(tmp_path)
-    client = web(car, monkeypatch)
-    event_row(car, "unlocked", _local(9))                              # 1 — a whole span, listed
-    event_row(car, "unlocked", _local(9, 2), state=0)                  # 2
-    event_row(car, "cable", _local(8) - timedelta(days=3))             # 3 — a start days earlier
-    event_row(car, "cable", _local(10), state=0)                       # 4 — its end, alone here
-    car.db._conn.execute(
-        "INSERT INTO trips (vehicle_id, started_at, ended_at, distance_km, duration_min)"
-        " VALUES (?, ?, ?, 12.5, 20)",
-        (car.vid, _local(11).isoformat(), _local(11, 44).isoformat()))
-    car.db._conn.commit()
-    html = _day_page(client)
-
-    assert row_text(html, "ev-signal-1").endswith(" · 2 min"), "the span, next to where it began"
-    assert "min" not in row_text(html, "ev-signal-2"), "and not next to where it ended"
-    assert "74h 00m" in row_text(html, "ev-signal-4"), "a start off the list leaves it on the end"
-    assert "from" in row_text(html, "ev-signal-4"), "beside the chip that stands for that start"
-    assert row_text(html, "ev-trip-1-off").count("20 min") == 1, "a trip's end keeps its driving time"
-    assert "min" not in row_text(html, "ev-trip-1-on"), "which is not the span between the two rows"

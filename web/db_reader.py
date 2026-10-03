@@ -11872,19 +11872,9 @@ def _present_event(m: dict, zone, live: dict, t, places, lang) -> None:
     m["still_open"] = m["open"] and live["caught_up"] and live["fresh"]
     m["last_frame_hhmm"] = (live["last_frame"].astimezone(zone).strftime("%H:%M")
                             if m["open"] and live["caught_up"] and not live["fresh"] and live["last_frame"] else None)
-    start, over = m["start"], m["end"]
+    start = m["start"]
     if start is not None and m["t"] >= start["t"]:
         m["duration_min"] = (m["t"] - start["t"]).total_seconds() / 60
-    # …and the same figure on the row that BEGAN the span, which is where it belongs: "Locked ·
-    # 2 min" is a car that was UNLOCKED for two minutes — the figure measures the state that just
-    # ended while the label names the one that just began, and the two read as each other's
-    # opposite. On the start row there is nothing to mistake it for. Signals only: a trip's or a
-    # charge's end row carries its page's driving time, which is a different quantity and is set
-    # below. The end row keeps the figure when its start is NOT on the list — see
-    # `get_events_grouped`, where that is known: it then sits beside the chip that stands for the
-    # start, so it is still read next to the beginning of the span.
-    if m["source"] == "signal" and m["on"] and over is not None and over["t"] >= m["t"]:
-        m["duration_min"] = (over["t"] - m["t"]).total_seconds() / 60
     if m["on"] is False and m["source"] in ("trip", "charge"):          # the figures of its page
         m["soc_from"], m["soc_to"] = s.get("start_soc"), s.get("end_soc")
         if m["source"] == "trip":
@@ -12041,8 +12031,6 @@ def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str
     points: dict = {}
     for m in items:
         m["from_listed"] = m.get("from_anchor") in listed
-        if m["source"] == "signal" and m["on"] is False and m["from_listed"]:
-            m["duration_min"] = None          # its start is on the list and carries the span's length
         by_day.setdefault(m["day"], []).append(m)
         if m["has_fix"]:
             # The first row of a point is its newest, where a click on the point scrolls the list.

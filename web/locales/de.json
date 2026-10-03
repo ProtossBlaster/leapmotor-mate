@@ -51,6 +51,7 @@
     "events_map_hide": "Karte ausblenden",
     "events_on_map": "Auf der Karte zeigen",
     "events_last_frame": "letzter Datensatz {time}",
+    "events_lasted": "{state} für {dur}",
     "events_during_trip": "während der Fahrt",
     "events_open_trip": "Fahrt öffnen",
     "events_open_charge": "Ladevorgang öffnen",

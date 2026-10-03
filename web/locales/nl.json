@@ -51,6 +51,7 @@
     "events_map_hide": "Kaart verbergen",
     "events_on_map": "Op de kaart tonen",
     "events_last_frame": "laatste gegevens {time}",
+    "events_lasted": "{state} gedurende {dur}",
     "events_during_trip": "tijdens een rit",
     "events_open_trip": "Rit openen",
     "events_open_charge": "Laadbeurt openen",

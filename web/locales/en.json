@@ -51,6 +51,7 @@
     "events_map_hide": "Hide map",
     "events_on_map": "Show on the map",
     "events_last_frame": "last frame {time}",
+    "events_lasted": "{state} for {dur}",
     "events_during_trip": "during a trip",
     "events_open_trip": "Open trip",
     "events_open_charge": "Open charge",
