@@ -5852,15 +5852,21 @@ def _trip_display_source(trip, segment_ids, cloud_ids, gps_ids):
     trip["has_gps"] = any(i in gps_ids for i in segment_ids)
 
 
-def get_trips(limit: int = 500) -> list[dict]:
+def get_trips(limit: int = 500, since: str | None = None, until: str | None = None) -> list[dict]:
+    """`since`/`until` (UTC ISO) keep the trips that OVERLAP that window — a trip that began before
+    it and ended inside it is part of what happened in it. Composing a trip is not free (its group,
+    its source, its fuel), so a caller that wants a few days of them should say so rather than
+    compose the whole history and throw most of it away: that is what the Events page did, and its
+    cost followed the length of the history instead of the days asked for."""
     db = _get()
     kids = _children_by_parent(db)
     rows = db.execute(
         """SELECT * FROM trips
            WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL AND merged_into_id IS NULL
+             AND (? IS NULL OR ended_at >= ?) AND (? IS NULL OR started_at < ?)
            ORDER BY started_at DESC
            LIMIT ?""",
-        (_current_vehicle_id(), limit),
+        (_current_vehicle_id(), since, since, until, until, limit),
     ).fetchall()
     # Built ONCE for the whole list — the fuel twin of the electric rate timeline. Per trip it would
     # replay every refuel from the beginning, which is quadratic down a long list.
@@ -8000,20 +8006,24 @@ def store_trip_elevation(trip_id: int, gain, loss,
     db.commit()
 
 
-def get_charges(limit: int = 50) -> list[dict]:
+def get_charges(limit: int = 50, since: str | None = None, until: str | None = None) -> list[dict]:
     """The finished charges, most recent first — one row per CHARGE, not per stored row.
 
     A plug-in the car reported in pieces (it declares the cable gone the instant the current stops)
     comes back as one row once the user has merged them: the children drop out of the list and the
     parent carries the combined figures. `limit` therefore counts charges, which is what the page
-    asks for — the last 50 charges, not the last 50 fragments."""
+    asks for — the last 50 charges, not the last 50 fragments.
+
+    `since`/`until` (UTC ISO) keep the charges that OVERLAP that window, as `get_trips` does: a
+    charge that began the evening before and ended in the morning belongs to both days."""
     db = _get()
     _zone = _local_tz()          # once for the list, not twice per charge
     rows = db.execute(
         "SELECT * FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
         + ("AND merged_into_id IS NULL " if _charges_have_merge(db) else "")
+        + "AND (? IS NULL OR ended_at >= ?) AND (? IS NULL OR started_at < ?) "
         + "ORDER BY started_at DESC LIMIT ?",
-        (_current_vehicle_id(), limit),
+        (_current_vehicle_id(), since, since, until, until, limit),
     ).fetchall()
     kids = _charge_children_by_parent(db)
     # Compose FIRST, localise after: the group maths works on the stored UTC ISO, and swapping the
@@ -11702,32 +11712,50 @@ def _session_moments(source, sessions, live) -> list[dict]:
     return out
 
 
-def _trip_moments(db, vehicle_id) -> list[dict]:
-    """The finished trips as the Trips page composes them, plus the one in progress."""
+def _bounds(start: datetime | None, end: datetime) -> tuple[str | None, str]:
+    """The window the three session readers below are given, as the ISO strings the tables hold.
+    `start` is None for the whole history, and then only the upper bound applies."""
+    return (start.isoformat() if start else None), end.isoformat()
+
+
+def _trip_moments(db, vehicle_id, start, end) -> list[dict]:
+    """The finished trips of the window as the Trips page composes them, plus the one in progress.
+
+    ⚠️ The window is the one the page was asked for, applied HERE and not afterwards in Python.
+    Composing a trip reads its group, its source and its fuel, so composing a whole history to keep
+    three days of it made the page's cost follow the length of the history: measured in a container
+    limited to a quarter of a core, 3 days 0.29 s, 30 days 0.60 s, `all` 1.88 s — the first two
+    doing nearly the work of the third."""
     live = [dict(r) for r in db.execute(
         "SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NULL "
         "AND merged_into_id IS NULL ORDER BY id", (vehicle_id,)).fetchall()]
-    return _session_moments("trip", get_trips(limit=1_000_000), live)
+    since, until = _bounds(start, end)
+    return _session_moments("trip", get_trips(limit=1_000_000, since=since, until=until), live)
 
 
-def _charge_moments(db, vehicle_id) -> list[dict]:
-    """The finished charges as the Charges page composes them, plus the one in progress."""
+def _charge_moments(db, vehicle_id, start, end) -> list[dict]:
+    """The finished charges of the window as the Charges page composes them, plus the one in
+    progress. Bounded like the trips above, and for the same reason."""
     live = []
     if (c := open_charge()):
         row = db.execute("SELECT latitude, longitude, charging_place_name, location_name FROM charges"
                          " WHERE id = ?", (c["id"],)).fetchone()
         live = [{**c, **dict(row)}]
-    return _session_moments("charge", get_charges(limit=1_000_000), live)
+    since, until = _bounds(start, end)
+    return _session_moments("charge", get_charges(limit=1_000_000, since=since, until=until), live)
 
 
-def _command_moments(db) -> list[dict]:
-    """The commands sent from Mate's pages to the selected car, when the log exists (the web creates
-    it on the first command)."""
+def _command_moments(db, start, end) -> list[dict]:
+    """The commands sent from Mate's pages to the selected car in the window, when the log exists
+    (the web creates it on the first command). A command is one moment, so the bound is its own
+    time — this reader had no bound at all."""
     if not db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'command_log'").fetchone():
         return []
+    since, until = _bounds(start, end)
     rows = db.execute(
         "SELECT id, ts, action, outcome FROM command_log WHERE vin IS NOT NULL AND lower(vin) = lower(?)"
-        " ORDER BY id", (_selected_vin(),)).fetchall()
+        " AND (? IS NULL OR ts >= ?) AND ts < ? ORDER BY id",
+        (_selected_vin(), since, since, until)).fetchall()
     return [_event_row("command", r["id"], "command", None, _utc(r["ts"]), action=r["action"],
                     outcome=r["outcome"]) for r in rows if _utc(r["ts"])]
 
@@ -11978,6 +12006,57 @@ def _event_part(lines: list, lanes: int, runs: list, part: int) -> tuple[list, l
     return lines[starts[part]:cut], on[::-1]
 
 
+# The last composition of the Events page, so a reader scrolling the parts of one list does not pay
+# for it again at every part. Composing is the page's whole cost — four sources read, matched into
+# pairs, given their context and laid out into tracks — and `_event_part` only slices the result.
+# Measured in a container limited to a quarter of a core, on a database of 634 trips and 4,516
+# events: the `all` range composes in 0.61 s, and asking for its second part cost another 0.70 s.
+#
+# ⚠️ It must not change what the page SAYS. The parts of one list share a `version`, and a part
+# asked for with another version comes back as the first part, the list having changed meanwhile —
+# that guard is what keeps the parts consistent with each other, and a cache keyed on the version
+# the client sends would quietly retire it. So validity is not the version but `PRAGMA
+# data_version`, which SQLite moves whenever ANOTHER connection commits — every poll, and every
+# merge or note written by the web on its own write connection — read on a connection this module
+# holds, because the value only means something to the connection that read it (see below).
+# Unchanged means nothing has been
+# written since, so the composition cannot have changed and the version it carries is still the one
+# a fresh composition would produce. Changed means we compose again and the guard runs exactly as
+# before. One entry: a reader scrolls one list.
+_events_cache: dict = {}
+
+
+_version_conn: list = [None, None]           # [path, connection]
+
+
+def _data_version(_db=None) -> int:
+    """How many times another connection has committed to this database, as SQLite counts it.
+
+    ⚠️ Read on a connection of our OWN, held here, and never on the caller's. `PRAGMA data_version`
+    is a per-connection counter: it moves when ANOTHER connection commits, and its absolute value
+    means nothing outside the connection that read it. The web serves its requests from a thread
+    pool with a read connection per thread, so comparing a value taken on one thread with a value
+    taken on another compares two unrelated counters — which can match by accident, and did: two
+    tests of the parts went green while the cache served a list a write had already changed.
+
+    So one connection answers this question for the whole process, opened on first use and reopened
+    when the path changes (the demo flag points it elsewhere). It only ever reads the pragma."""
+    path = DB_PATH
+    if _version_conn[0] != path or _version_conn[1] is None:
+        if _version_conn[1] is not None:
+            try:
+                _version_conn[1].close()
+            except sqlite3.Error:
+                pass
+        _version_conn[0], _version_conn[1] = path, _conn(path)
+    return _version_conn[1].execute("PRAGMA data_version").fetchone()[0]
+
+
+def _cache_key(flt: "EventFilter", lang: str, vehicle_id) -> tuple:
+    return (vehicle_id, lang, flt.q, flt.groups, flt.kinds, flt.date_from, flt.date_to,
+            flt.submitted, flt.range)
+
+
 def _events_version(lines: list, points: list) -> str:
     """What a later part must match to join the parts on the page: the lines in order with their
     track cells, and the map's points. A row written meanwhile moves the cut, the tracks or the
@@ -11998,22 +12077,26 @@ def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str
     range is composed and its tracks laid out; `lines` is the `part` asked for, `more` the cells
     of the line that loads the next one, `version` what the parts of one list share: a part `asked`
     for with another version comes back as the first part, the list having changed meanwhile."""
+    db = _get()
+    vehicle_id = _current_vehicle_id()
+    key, seen = _cache_key(flt, lang, vehicle_id), _data_version()
+    held = _events_cache.get("one")
+    if part and held is not None and held["key"] == key and held["seen"] == seen:
+        return _event_answer(held, part, asked)        # the same list, still untouched: just slice it
     zone = _local_tz()
     first, last = flt.days(zone)
     start = datetime(first.year, first.month, first.day, tzinfo=zone).astimezone(timezone.utc) if first else None
     end = (datetime(last.year, last.month, last.day, tzinfo=zone) + timedelta(days=1)).astimezone(timezone.utc)
     kinds = flt.selected_kinds()
-    db = _get()
-    vehicle_id = _current_vehicle_id()
     items = []
     if kinds & set(EVENT_SIGNAL_KINDS):
         items += _signal_moments(db, vehicle_id, kinds, start, end)
     if "trip" in kinds:
-        items += _trip_moments(db, vehicle_id)
+        items += _trip_moments(db, vehicle_id, start, end)
     if "charge" in kinds:
-        items += _charge_moments(db, vehicle_id)
+        items += _charge_moments(db, vehicle_id, start, end)
     if "command" in kinds:
-        items += _command_moments(db)
+        items += _command_moments(db, start, end)
     items = [m for m in items if (start is None or start <= m["t"]) and m["t"] < end]
     _add_context(items, db, vehicle_id)
     live = events_live(db, vehicle_id)
@@ -12047,9 +12130,20 @@ def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str
              "items": by_day[d]} for d in sorted(by_day, reverse=True)]
     points = [{"key": p["key"], "row": p["row"], "lat": p["lat"], "lon": p["lon"]} for p in points.values()]
     lines, lanes, runs = _event_lines(items, start, end, weekdays, lang)
-    version = _events_version(lines, points)
+    composed = {"key": key, "seen": seen, "days": days, "lines": lines, "lanes": lanes, "runs": runs,
+                "version": _events_version(lines, points), "count": len(items), "live": live,
+                "first": first, "last": last, "points": points}
+    _events_cache["one"] = composed
+    return _event_answer(composed, part, asked)
+
+
+def _event_answer(composed: dict, part: int, asked: str | None) -> dict:
+    """One part of a composed list. The version guard lives here, so it reads the same whether the
+    composition was just made or came back from the cache."""
+    version = composed["version"]
     if part and asked is not None and version != asked:
         part = 0
-    lines, more = _event_part(lines, lanes, runs, part)
-    return {"days": days, "lines": lines, "more": more, "part": part, "version": version, "lanes": lanes,
-            "count": len(items), "live": live, "first": first, "last": last, "points": points}
+    lines, more = _event_part(composed["lines"], composed["lanes"], composed["runs"], part)
+    return {"days": composed["days"], "lines": lines, "more": more, "part": part, "version": version,
+            "lanes": composed["lanes"], "count": composed["count"], "live": composed["live"],
+            "first": composed["first"], "last": composed["last"], "points": composed["points"]}
