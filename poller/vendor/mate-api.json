@@ -1,12 +1,12 @@
 {
-  "version": "0.1.0a14",
+  "version": "0.1.0a15",
   "source": "https://github.com/ProtossBlaster/MATE-API",
-  "commit": "240013d18cb5a3b666dff76e65b5a129cc885ca2",
+  "commit": "c63e47bb8b1541bc1237a7709b0aca08d4ca098a",
   "sha256": {
     "leapmotor_cloud/__init__.py": "ab9c3e71a18f9e6eddf0edc96f9b4e92f0b4145e33f929c432f5a3b0357458e4",
     "leapmotor_cloud/account_material.py": "fe2ead6c0b5a3ff8ed0de27963d99553a8fc0713971d7206039f9a2e5bba6c65",
     "leapmotor_cloud/account_password.py": "874622b2f6aa45138d6c6c6eac71dda6d7fa6f259013ca91d56e8156ce314cc5",
-    "leapmotor_cloud/authentication.py": "fe85418c4b3e4ae95ba47c7b364bddca72d63528b41278f18f98db29c352241d",
+    "leapmotor_cloud/authentication.py": "51b3e5067681c32bef1613991035b75af22a530eda8b47f9bea4492f8935d7c3",
     "leapmotor_cloud/b10_commands.py": "6f6a32d5ccd64c4c9fad2f234571fbfb6b010dc16e12c00d90a69bb57fdb2d1b",
     "leapmotor_cloud/b10_payloads.py": "7c31cbd15b86d8d174d4dee77fb0cc5236108115bc5fb0d5b91de2780444b515",
     "leapmotor_cloud/b10_planner.py": "19ed40d9a8fe334f8688434edd294ecf25445ab609936cf43ff46e946c343c12",
@@ -30,7 +30,7 @@
     "leapmotor_cloud/sensor_catalog.py": "623f168fefaebf8eee387db40f4e5745f061ac9e5a502cd0e0a37cbf8349f9a9",
     "leapmotor_cloud/session.py": "8faeca7c64748cc2e4236ddec251f291b6df17c7bae0f7f25284688310befeb2",
     "leapmotor_cloud/signing.py": "215c1db205faf0e3de7e00b6f79706e2ab5e241d36b14160982582fad65e94aa",
-    "leapmotor_cloud/transport.py": "e1e6f7c68f8da86ae06e269a8c407f41f8eb3cb1f092f2439d784e882406819d",
+    "leapmotor_cloud/transport.py": "11ee82b4ec281e1edaebd53e99fa0fd7b0f9b38eb3099fa3cfee7c788acb86ee",
     "leapmotor_cloud/vehicle_data.py": "d64ffaea9c8ade972f766d6f14b44ad513ccf4fab01753205e1b3304baece2dd"
   }
 }

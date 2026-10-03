@@ -1,6 +1,8 @@
 """Explicit TLS transport. No redirects, ambient proxy, cookies, or retries."""
+import errno
 import math
 import re
+import socket
 import ssl
 import urllib.error
 import urllib.parse
@@ -17,10 +19,55 @@ from .errors import ValidationError
 MAX_RESPONSE_BYTES = 1024 * 1024
 
 
+# Why a transport failed, in one word each. A fixed vocabulary: the word says what the transport
+# saw, never what the system said about it — no host, address, port or free text reaches a log, a
+# diagnostics bundle or a page. An install whose Home Assistant could not resolve the cloud's name
+# wrote 9,049 lines of "Cloud transport failed" (leapmotor-mate #381): the cause was in none of them.
+REASONS = frozenset({
+    "transport_failure",      # none of the below could be told
+    "dns_failure",            # the cloud's name did not resolve
+    "timeout",                # no answer in time, connecting or reading
+    "connection_refused",     # the host answered that nothing listens there
+    "connection_reset",       # the connection was dropped mid-way
+    "network_unreachable",    # no route to the host
+    "certificate_rejected",   # the server's certificate failed verification
+    "tls_failure",            # the TLS handshake failed for another reason
+    "http_protocol",          # the answer was not HTTP
+    "invalid_response",       # the answer could not be read
+    "redirect_refused",       # the cloud tried to send us elsewhere
+    "response_too_large",     # the answer exceeded the limit
+})
+
+
 class TransportError(RuntimeError):
     def __init__(self, reason="transport_failure"):
-        self.reason = reason
-        super().__init__("Cloud transport failed")
+        self.reason = reason if reason in REASONS else "transport_failure"
+        super().__init__("Cloud transport failed: " + self.reason)
+
+
+def classify(error):
+    """The word for the exception a transport caught, from REASONS."""
+    if isinstance(error, urllib.error.URLError) and not isinstance(error, urllib.error.HTTPError):
+        return classify(error.reason) if isinstance(error.reason, BaseException) else "transport_failure"
+    if isinstance(error, socket.gaierror):
+        return "dns_failure"
+    if isinstance(error, (TimeoutError, socket.timeout)):
+        return "timeout"
+    if isinstance(error, ConnectionRefusedError):
+        return "connection_refused"
+    if isinstance(error, (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)):
+        return "connection_reset"
+    if isinstance(error, ssl.SSLCertVerificationError):
+        return "certificate_rejected"
+    if isinstance(error, ssl.SSLError):
+        return "tls_failure"
+    if isinstance(error, OSError) and error.errno in (errno.ENETUNREACH, errno.EHOSTUNREACH, errno.ENETDOWN):
+        return "network_unreachable"
+    if isinstance(error, HTTPException):
+        return "http_protocol"
+    if isinstance(error, ValueError):
+        return "invalid_response"
+    return "transport_failure"
 
 
 def validate_url(url, allowed_hosts, *, origin=False):
@@ -158,5 +205,5 @@ class UrllibTransport:
                 return Response(status, body)
         except TransportError:
             raise
-        except (OSError, urllib.error.URLError, HTTPException, ValueError):
-            raise TransportError() from None
+        except (OSError, urllib.error.URLError, HTTPException, ValueError) as error:
+            raise TransportError(classify(error)) from None

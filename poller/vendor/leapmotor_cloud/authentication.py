@@ -12,7 +12,7 @@ from .errors import ValidationError
 from .models import require_aware
 from .session import CloudSession, _expiry_from_token
 from .signing import sign_authenticated, sign_login
-from .transport import Request, Response, MAX_RESPONSE_BYTES, validate_cert_paths
+from .transport import Request, Response, MAX_RESPONSE_BYTES, REASONS, TransportError, validate_cert_paths
 
 LOGIN_PATH = '/base/base-user/account/v1/login'
 REFRESH_PATH = '/base/base-user/token/v1/refresh'
@@ -36,12 +36,14 @@ def _stated_seconds(value):
 
 
 class LoginUnavailable(RuntimeError):
-    def __init__(self, stage='unknown', http_status=None, api_code=None):
+    def __init__(self, stage='unknown', http_status=None, api_code=None, reason=None):
         allowed={'unknown','cooldown','application_certificate','transport','response',
                  'cloud_rejection','session_metadata','account_certificate','session_validation'}
         self.stage=stage if stage in allowed else 'unknown'
         self.http_status=http_status if type(http_status) is int and 100<=http_status<=599 else None
         self.api_code=api_code if type(api_code) is int and abs(api_code)<=10**12 else None
+        # Why the transport failed, in the transport's own word (REASONS); None past the transport.
+        self.reason=reason if self.stage=='transport' and reason in REASONS else None
         super().__init__('Cloud login unavailable; no automatic retry')
 
 
@@ -133,6 +135,8 @@ class LoginClient:
                     expires_at=expiry, refresh_token=refresh_token, refresh_expires_at=renewed_until)
                 renewed.ensure_valid(observed)
                 return renewed
+            except TransportError as error:
+                raise LoginUnavailable(stage, http_status, api_code, reason=error.reason) from None
             except Exception:
                 raise LoginUnavailable(stage, http_status, api_code) from None
 
@@ -209,5 +213,7 @@ class LoginClient:
                                                     refresh_token=refresh_token,refresh_expires_at=refresh_expiry)
                 session.ensure_valid(finished)
                 return session
+            except TransportError as error:
+                raise LoginUnavailable(stage,http_status,api_code,reason=error.reason) from None
             except Exception:
                 raise LoginUnavailable(stage,http_status,api_code) from None

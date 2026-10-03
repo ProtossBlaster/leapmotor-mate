@@ -29,3 +29,12 @@ def test_the_client_is_named(car, monkeypatch, left_over):
     lines = [l for l in diagnostics.build_bundle("9.9.9", parts=("info",)).splitlines()
              if l.startswith("Cloud client")]
     assert lines == ["Cloud client : independent (mate-api)"]
+
+
+def test_the_last_sign_in_failure_is_named_when_there_was_one(car):
+    """The bridge records why the last sign-in failed; the bundle repeats it, or says nothing."""
+    lines = lambda: [l for l in diagnostics.build_bundle("9.9.9", parts=("info",)).splitlines()
+                     if l.startswith("Last sign-in failure")]
+    assert lines() == []
+    db_reader.set_setting("api_v2_login_failure", "stage=transport (dns_failure)")
+    assert lines() == ["Last sign-in failure : stage=transport (dns_failure)"]

@@ -284,6 +284,7 @@ class NewAPIClient(MateClientCompatibility):
             self._audit(LOGIN_PATH,'POST',error.http_status or 0,
                         str(error.api_code) if error.api_code is not None else 'login_'+error.stage)
             detail='stage='+error.stage
+            if getattr(error,'reason',None):detail+=' ('+error.reason+')'   # why the transport failed (0.1.0a15)
             if error.http_status is not None:detail+='; HTTP='+str(error.http_status)
             if error.api_code is not None:detail+='; API='+str(error.api_code)
             with connect_db() as db:

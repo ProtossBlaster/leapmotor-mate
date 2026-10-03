@@ -892,6 +892,12 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
             f"Language     : {info['language']}",
             # Mate's own client, the only one since 01/10/2026 (#327 and #338 lived on the other).
             "Cloud client : independent (mate-api)",
+            # The last sign-in the cloud did not grant, as the bridge recorded it: the stage it failed
+            # at and, since mate-api 0.1.0a15, why the transport failed (dns_failure, timeout…). An
+            # install that could not resolve the cloud's name wrote 9,049 lines no bundle explained
+            # (#381, #384). Absent until a sign-in has failed.
+            *([f"Last sign-in failure : {failure}"]
+              if (failure := db_reader.get_setting("api_v2_login_failure", "")) else []),
             f"DB size (MB) : {info['db_size_mb']}",
             f"Journal mode : {_journal_line(info['journal_mode'])}",
             f"Rows         : trips={info['counts']['trips']} "
