@@ -781,7 +781,7 @@ def _trips_calendar_ctx(year: int, month: int, open_day: int = 0) -> dict:
         # Same totals the drawer's own endpoint passes — the day content is rendered from HERE too
         # (month view opening straight onto a day), and a header that only appears down one of the
         # two paths is the classic way this template has broken before.
-        ctx["open_day_totals"] = db_reader.trips_totals(ctx["open_day_trips"])
+        ctx["open_day_totals"] = db_reader.trips_day_totals(ctx["open_day_trips"])
     return ctx
 
 
@@ -821,7 +821,7 @@ async def trips_calendar_day(request: Request, year: int, month: int, day: int,
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
         "is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),
         "trips": day_trips,
-        "day_totals": db_reader.trips_totals(day_trips),
+        "day_totals": db_reader.trips_day_totals(day_trips),
         "day_label": i18n.fmt_day_month_year(lang, d),
         # The drawer builds its own 🔗 / slider URLs, so it needs the day back as three numbers.
         "year": year, "month": month, "day": day,

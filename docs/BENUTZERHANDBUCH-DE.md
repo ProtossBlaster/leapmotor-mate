@@ -869,6 +869,8 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
 
 - Wenn Sie auf eine Fahrt klicken, öffnen Sie das **Detail** mit dem **GPS-Verlauf** auf der Karte und den Daten
   dieser einzelnen Fahrt.
+- Die Überschrift eines im Kalender geöffneten Tages zeigt, wie viel Akku seine Fahrten verbraucht haben:
+  *84,4% → 51,6% (−32,8%)*, oder bei einer Ladung zwischen den Fahrten *−45,3%* verbraucht und *⚡ +40,2%* geladen.
 - Sie können zwei versehentlich getrennte Fahrten **zusammenführen** (Zusammenführen 🔗) oder sie wieder
   **trennen** und eine Fahrt **löschen**.
 - Kurze Pausen (Ampeln, Staus) **trennen** eine Fahrt **nicht**: Eine Fahrt bleibt eine einzige Zeile.

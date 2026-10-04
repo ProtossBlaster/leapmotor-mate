@@ -6833,6 +6833,41 @@ def trips_totals(trips: list[dict]) -> dict:
     return _totals_seal(node)
 
 
+def trips_day_totals(trips: list[dict]) -> dict:
+    """The day drawer's heading: `trips_totals` plus the battery the day's trips used. One function
+    for both routes that render the drawer, so the heading cannot differ between them."""
+    node = trips_totals(trips)
+    node.update(_day_battery(trips))
+    return node
+
+
+def _day_battery(trips: list[dict]) -> dict:
+    """Battery over a day of localized trips: first start → last end when nothing charged between
+    them, else the trips' change beside the charges'. Any reading missing → no figure."""
+    out = {"soc_from": None, "soc_to": None, "soc_trips": None, "soc_charges": None}
+    if not trips:
+        return out
+    # By the instant: two local times in one zone compare by the wall clock, wrong in the hour the clocks go back.
+    first, last = min(trips, key=lambda t: t["_dt"].timestamp()), max(trips, key=lambda t: t["_dt"].timestamp())
+    # Up to the last trip's start: nothing charges while it drives, and its end may be on the car's clock.
+    # julianday, not text: trips arrive in local time with an offset, charges are stored in UTC.
+    charges = _get().execute(
+        "SELECT start_soc, end_soc FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "AND ended_at IS NOT NULL AND julianday(started_at) BETWEEN julianday(?) AND julianday(?)",
+        (_current_vehicle_id(), first["started_at"], last["started_at"])).fetchall()
+    if not charges:
+        if first.get("start_soc") is not None and last.get("end_soc") is not None:
+            out.update(soc_from=first["start_soc"], soc_to=last["end_soc"])
+        return out
+    drives = [(t.get("start_soc"), t.get("end_soc")) for t in trips]
+    gains = [(c["start_soc"], c["end_soc"]) for c in charges]
+    if all(a is not None and b is not None for a, b in drives + gains):
+        # Each part to the tenth its row prints, so the heading is what the rows add up to.
+        out.update(soc_trips=round(sum(round(b, 1) - round(a, 1) for a, b in drives), 1),
+                   soc_charges=round(sum(round(b, 1) - round(a, 1) for a, b in gains), 1))
+    return out
+
+
 def get_trips_calendar_month(year: int, month: int) -> dict:
     """Per-day totals for the Viaggi calendar's Month view: session count, distance, regen
     and derived cost for each day of `year`/`month` (local time), plus the month's own
