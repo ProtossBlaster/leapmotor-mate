@@ -1246,7 +1246,7 @@ davon nichts.
 ### Ereignisse
 **(Menü: Ereignisse)** — Was das Auto getan hat, Moment für Moment: entriegelt und wieder verriegelt, eine
 Tür oder die Heckklappe geöffnet und geschlossen, das Kabel ein und aus, die Klimaanlage an und aus, READY
-an und aus, jede Fahrt und jeder Ladevorgang von Beginn bis Ende und jeder aus Mate gesendete Befehl. Die
+an und aus, wo das Sonnenrollo stehen blieb, jede Fahrt und jeder Ladevorgang von Beginn bis Ende und jeder aus Mate gesendete Befehl. Die
 Liste öffnet die letzten drei Tage, Neuestes zuerst, in einer Karte mit einer Überschrift pro Tag und einer
 dünnen Linie pro Stunde; der Punkt einer Zeile hat die Farbe des Chips ihrer Gruppe. Die Schaltflächen über
 den Chips reichen weiter zurück — 3, 7 oder 30 Tage, 3, 6 oder 12 Monate oder Alle —, gezählt ab heute;
@@ -1262,6 +1262,10 @@ wird geladen, sobald das Ende der Liste sichtbar wird.
   ihn: „ab 02 Okt 2026 14:20:05“. Ein noch laufender Zustand führt seine Linie bis nach oben und sagt
   **(läuft)** nur, wenn der letzte Datensatz des Autos frisch ist; wiederholt die Cloud einen alten (das
   Auto schläft oder ist ohne Empfang), nennt die Zeile stattdessen die Zeit dieses Datensatzes.
+- **Das Sonnenrollo ist eine Zeile dort, wo es stehen blieb** — „Sonnenrollo zu 50 % offen“, „Sonnenrollo
+  geschlossen“ — ohne Linie und ohne „nach“: Es bleibt tagelang offen, und eine Linie würde nur die ganze
+  Seite durchqueren. Ein Wert, der nur in einem Datensatz erscheint, wird nicht
+  aufgeführt: das Rollo auf dem Weg oder ein Halt, der kürzer war als der Abstand zwischen zwei Datensätzen.
 - **Die Zeiten sind die des Autos, auf die Sekunde**: die Zeit des ersten Datensatzes, der den neuen
   Zustand zeigte, bestätigt durch den nächsten. Mit dem Zeiger über einer Uhrzeit erscheint sie neben der
   Zeit, zu der Mate die Zeile erfasst hat. Fahrten, Ladevorgänge und Befehle haben nur die Uhr von Mate,

@@ -11624,7 +11624,7 @@ def assign_charging_place(charge_id, place_id):
 EVENT_GROUPS = {
     "security": ("unlocked",),
     "doors": ("door_driver", "door_passenger", "door_rear_left", "door_rear_right", "trunk"),
-    "windows": ("window_fl", "window_rl"),
+    "windows": ("window_fl", "window_rl", "sunshade_level"),
     "charging": ("cable", "v2l", "charge"),
     "climate": ("climate", "defrost", "rapid_heat", "rapid_cool"),
     "driving": ("ready", "trip"),
@@ -11632,6 +11632,7 @@ EVENT_GROUPS = {
 }
 EVENT_KINDS = tuple(k for kinds in EVENT_GROUPS.values() for k in kinds)
 EVENT_SIGNAL_KINDS = tuple(k for k in EVENT_KINDS if k not in ("trip", "charge", "command"))
+EVENT_LEVEL_KINDS = ("sunshade_level",)        # poller/events.py's LEVELS: a level reached, not a span
 EVENT_GROUP_OF = {k: g for g, kinds in EVENT_GROUPS.items() for k in kinds}
 EVENT_GROUP_ICONS = {"security": "🔒", "doors": "🚪", "windows": "🪟", "charging": "🔌",
                      "climate": "🌡️", "driving": "🚗", "commands": "📲"}
@@ -11641,7 +11642,7 @@ EVENT_GROUP_COLORS = {"security": "#f59e0b", "doors": "#a78bfa", "windows": "#38
 EVENT_ICONS = {
     "unlocked": "🔓", "door_driver": "🚪", "door_passenger": "🚪", "door_rear_left": "🚪",
     "door_rear_right": "🚪", "trunk": "📦", "window_fl": "🪟", "window_rl": "🪟",
-    "cable": "🔌", "v2l": "💡", "charge": "⚡", "climate": "🌡️", "defrost": "🧊", "rapid_heat": "🔥",
+    "sunshade_level": "☀️", "cable": "🔌", "v2l": "💡", "charge": "⚡", "climate": "🌡️", "defrost": "🧊", "rapid_heat": "🔥",
     "rapid_cool": "❄️", "ready": "🟢", "trip": "🗺", "command": "📲",
 }
 # How far back the Events list reaches, counted back from today: days as days, months to the same
@@ -11741,7 +11742,8 @@ def _signal_moments(db, vehicle_id, kinds: set, start: datetime | None, end: dat
     with its start and each start with its end: the neighbouring row of its car and kind IN ID
     ORDER, the order they were written, read from the whole history — a stepped host clock can put
     the end before the start in time, and they are still a pair. The poller writes a kind's rows
-    alternating 1, 0, 1…, so a start left without an end is the state the car is in."""
+    alternating 1, 0, 1…, so a start left without an end is the state the car is in. A level kind
+    is a moment on its own, with the level it reached and no pair."""
     lo, hi = (start.timestamp() * 1000 if start else float("-inf")), end.timestamp() * 1000
 
     def moment(r, ms, start=None):
@@ -11759,6 +11761,10 @@ def _signal_moments(db, vehicle_id, kinds: set, start: datetime | None, end: dat
             continue
         ms = r["frame_ts"] or _utc(r["at"]).timestamp() * 1000
         key, shown = (r["vehicle_id"], r["kind"]), lo <= ms < hi
+        if r["kind"] in EVENT_LEVEL_KINDS:
+            if shown:
+                out.append({**moment(r, ms), "on": None, "level": r["state"]})
+            continue
         if r["state"] == 1:
             began[key] = (r, ms, moment(r, ms) if shown else None)
             if shown:
@@ -11961,7 +11967,10 @@ def _present_event(m: dict, zone, live: dict, t, places, lang) -> None:
     m["anchor"], m["icon"] = _anchor(m), EVENT_ICONS[m["kind"]]
     m["color"] = EVENT_GROUP_COLORS[EVENT_GROUP_OF[m["kind"]]]
     edge = "on" if m["on"] else "off"
-    if m["source"] == "signal":
+    if m["kind"] in EVENT_LEVEL_KINDS:
+        m["label"] = (t(f"events_{m['kind']}_level").format(pct=m["level"]) if m["level"]
+                      else t(f"events_{m['kind']}_off"))
+    elif m["source"] == "signal":
         m["label"] = t(f"events_{m['kind']}_{edge}")
     elif m["source"] in ("trip", "charge"):
         m["label"] = t(f"events_{m['source']}_{'started' if m['on'] else 'ended'}")

@@ -1247,7 +1247,7 @@ aparecer.
 ### Eventos
 **(menú: Eventos)** — Qué hizo el coche, momento a momento: desbloqueado y de nuevo bloqueado, una puerta o
 el portón abiertos y cerrados, el cable dentro y fuera, el clima encendido y apagado, READY encendido y
-apagado, cada trayecto y cada carga de principio a fin, y cada orden enviada desde Mate. La lista se abre en
+apagado, dónde se detuvo la cortinilla, cada trayecto y cada carga de principio a fin, y cada orden enviada desde Mate. La lista se abre en
 los últimos tres días, lo más reciente primero, en una sola tarjeta con un encabezado por día y una línea
 fina por hora; el punto de una fila tiene el color de la píldora de su grupo. Los botones sobre las píldoras
 llegan más atrás — 3, 7 o 30 días, 3, 6 o 12 meses, o Todo —, contando desde hoy; las fechas escritas bajo
@@ -1263,6 +1263,9 @@ final de la lista aparece en pantalla.
   curso lleva su línea hasta arriba y dice **(en curso)** solo si el último dato del coche es
   reciente; mientras la nube repite un dato antiguo (el coche dormido, o sin cobertura) la fila indica en
   su lugar la hora de ese dato.
+- **La cortinilla es una fila donde se detuvo** — «Cortinilla abierta al 50%», «Cortinilla cerrada» — sin
+  línea y sin «tras»: se queda abierta durante días, y una línea solo cruzaría toda la página. Un valor visto
+  en un solo dato no aparece: la cortinilla de paso, o una parada más corta que el intervalo entre dos datos.
 - **Las horas son las del coche, al segundo**: la hora del primer dato que mostró el nuevo estado,
   confirmado por el siguiente. Con el puntero sobre una hora se ve junto a la hora en que Mate registró la
   fila. Los trayectos, las cargas y las órdenes solo tienen el reloj de Mate, así que junto a una señal de

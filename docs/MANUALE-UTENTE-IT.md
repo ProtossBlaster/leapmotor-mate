@@ -1228,7 +1228,7 @@ consumo — cioè quasi sempre — non compare niente di tutto questo.
 
 ### Eventi
 **(menu: Eventi)** — Cosa ha fatto l'auto, momento per momento: sbloccata e di nuovo bloccata, una porta o
-il portellone aperti e chiusi, il cavo dentro e fuori, il clima acceso e spento, READY acceso e spento, ogni
+il portellone aperti e chiusi, il cavo dentro e fuori, il clima acceso e spento, READY acceso e spento, dove si è fermata la tendina, ogni
 viaggio e ricarica dall'inizio alla fine, e ogni comando inviato da Mate. L'elenco si apre sugli ultimi tre
 giorni, dal più recente, in un'unica scheda con un'intestazione per giorno e una linea sottile per ora; il
 punto di una riga ha il colore del bottone del suo gruppo. I pulsanti sopra i gruppi vanno più indietro — 3,
@@ -1245,6 +1245,9 @@ entra nello schermo.
   corso porta la sua linea fino in cima e dice **(in corso)** solo se l'ultimo dato dell'auto è
   fresco; mentre il cloud ripete un dato vecchio (auto in sospensione, o senza copertura) la riga indica
   invece l'ora di quel dato.
+- **La tendina è una riga dove si è fermata** — «Tendina aperta al 50%», «Tendina chiusa» — senza linea e
+  senza «dopo»: resta aperta per giorni, e una linea attraverserebbe soltanto tutta la pagina. Un valore
+  visto in un solo dato non compare: la tendina di passaggio, o una sosta più breve dell'intervallo tra due dati.
 - **Gli orari sono quelli dell'auto, al secondo**: l'ora del primo dato che ha mostrato il nuovo stato,
   confermato dal successivo. Col puntatore su un orario lo si vede accanto all'ora in cui Mate ha
   registrato la riga. Viaggi, ricariche e comandi hanno solo l'orologio di Mate, quindi accanto a un

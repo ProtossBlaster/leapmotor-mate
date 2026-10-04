@@ -1173,7 +1173,7 @@ trip carries its own consumption — which is nearly always — none of this sho
 
 ### Events
 **(menu: Events)** — What the car did, moment by moment: unlocked and locked again, a door or the
-tailgate opened and closed, the cable in and out, the climate on and off, READY on and off, every trip
+tailgate opened and closed, the cable in and out, the climate on and off, READY on and off, where the sunshade stopped, every trip
 and charge from its start to its end, and every command sent from Mate. The list opens on the last
 three days, newest first, in one card with a heading per day and a thin line per hour; a row's dot has
 the colour of its group's pill. The buttons above the pills reach further back — 3, 7 or 30 days, 3, 6
@@ -1187,6 +1187,9 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   When the beginning is before the days shown, the line runs faded off the bottom of the list and the end
   names it: "from 02 Oct 2026 14:20:05". A state still going runs its line to the top and says **(in progress)** only when the car's last frame is fresh; while the cloud repeats an old frame (the car asleep, or
   out of coverage) the row names the time of that frame instead.
+- **The sunshade is one row where it stopped** — "Sunshade 50% open", "Sunshade closed" — with no line and no
+  "after": it stays open for days, and a line would only cross the whole page. A level seen in one frame
+  only is not listed: the sunshade moving past it, or a stop shorter than the time between two frames.
 - **Times are the car's, to the second**: the time of the first frame that showed the new state,
   confirmed by the next one. Holding the pointer over a time shows it beside the time Mate recorded the
   row. Trips, charges and commands have only Mate's clock, so beside a signal from the same few seconds

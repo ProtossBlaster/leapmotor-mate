@@ -258,7 +258,7 @@ CREATE TABLE IF NOT EXISTS events (
     kind         TEXT NOT NULL,
     at           TEXT NOT NULL,       -- UTC ISO, the host clock
     frame_ts     INTEGER,             -- the car's own clock on that frame, when it had one
-    state        INTEGER NOT NULL,    -- 1 = the state began, 0 = it ended
+    state        INTEGER NOT NULL,    -- 1 = the state began, 0 = it ended; a level kind: the level reached
     latitude     REAL,
     longitude    REAL,
     soc          REAL,

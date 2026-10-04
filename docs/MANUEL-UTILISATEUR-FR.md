@@ -1268,7 +1268,7 @@ ne s'affiche.
 ### Événements
 **(menu : Événements)** — Ce qu'a fait la voiture, moment par moment : déverrouillée puis reverrouillée, une
 porte ou le hayon ouverts et fermés, le câble branché et débranché, la climatisation allumée et éteinte,
-READY activé et désactivé, chaque trajet et chaque recharge de leur début à leur fin, et chaque commande
+READY activé et désactivé, la position où le store s'est arrêté, chaque trajet et chaque recharge de leur début à leur fin, et chaque commande
 envoyée depuis Mate. La liste s'ouvre sur les trois derniers jours, du plus récent au plus ancien, dans une
 seule carte avec un titre par jour et une fine ligne par heure ; le point d'une ligne a la couleur du
 bouton de son groupe. Les boutons au-dessus des groupes remontent plus loin — 3, 7 ou 30 jours, 3, 6 ou 12
@@ -1285,6 +1285,10 @@ l'écran.
   cours prolonge son trait jusqu'en haut et dit **(en cours)** seulement si la dernière donnée de la voiture
   est récente ; tant que le cloud répète une donnée ancienne (voiture en veille, ou sans couverture), la
   ligne indique à la place l'heure de cette donnée.
+- **Le store est une ligne là où il s'est arrêté** — « Store ouvert à 50 % », « Store fermé » — sans trait
+  ni « après » : il reste ouvert des jours entiers, et un trait ne ferait que traverser toute la page. Une
+  valeur vue dans une seule donnée n'apparaît pas : le store en mouvement, ou un arrêt plus court que
+  l'intervalle entre deux données.
 - **Les heures sont celles de la voiture, à la seconde** : l'heure de la première donnée qui a montré le
   nouvel état, confirmé par la suivante. Le pointeur posé sur une heure l'affiche à côté de l'heure à
   laquelle Mate a enregistré la ligne. Les trajets, les recharges et les commandes n'ont que l'horloge de
