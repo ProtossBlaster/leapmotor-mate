@@ -1,4 +1,4 @@
-"""The day drawer's heading says how much battery the day's trips used.
+"""The day drawer's heading says how much battery the day's trips used, and how long they drove.
 
 Without a charge between the trips that is two readings, the first trip's start and the last one's
 end, and the change between them: "84.4% → 51.6% (−32.8%)". A charge in between makes those two
@@ -7,6 +7,9 @@ added, "⚡ +40.0%". Every change is summed from the figures as printed, so the 
 figure missing anywhere it is needed takes the whole battery field away: a partial sum, or a "−0%",
 would read as the truth. The cloud's 0 km segments carry no reading and drove nothing, so they take no
 part in it.
+
+The time driven is what the rows' durations add up to, less the reconstructed trips, as on Statistics:
+a reconstructed trip's span is the offline gap it was found across. The tooltip says how many were left out.
 
 Rendered through both routes that draw the drawer — its own endpoint and the month view opened on a
 day — because the heading is built in two places and must not differ between them.
@@ -195,6 +198,54 @@ def test_the_driving_time_is_what_the_rows_add_up_to(tmp_path, monkeypatch):
                                      ("17:00", "17:40", 62, 52)])
     _sql("UPDATE trips SET duration_min = 20.4")
     assert "30 km 1h 00m" in _sums(_drawer())
+
+
+def test_a_reconstructed_trip_is_no_driving_time(tmp_path, monkeypatch):
+    """As on Statistics: its span is the offline gap it was found across. The tooltip says one is left out."""
+    _install(tmp_path, monkeypatch, [("08:00", "08:30", 84, 70), ("12:00", "15:00", 70, 62),
+                                     ("17:00", "17:40", 62, 52)])
+    _sql("UPDATE trips SET reconstructed = 1, duration_min = 180 WHERE id = 2")
+    html = _drawer()
+    assert "30 km 40 min" in _sums(html), _sums(html)
+    assert re.search(r'data-tip="Drive Time: reconstructed trips left out \(1\)[^"]*">40 min<', html)
+
+
+def test_a_day_of_reconstructed_trips_has_no_driving_time(tmp_path, monkeypatch):
+    _install(tmp_path, monkeypatch, [("08:00", "08:30", 84, 70), ("17:00", "17:40", 62, 52)])
+    _sql("UPDATE trips SET reconstructed = 1")
+    sums = _sums(_drawer())
+    assert re.search(r"20 km\s*$", sums), sums
+
+
+def _merged(tmp_path, monkeypatch, parent, child):
+    """A 20-minute drive at 08:00 with a segment joined to it at 08:25; each is (reconstructed, minutes)."""
+    _install(tmp_path, monkeypatch, [("08:00", "08:20", 84, 80), ("08:25", "11:25", 80, 70)])
+    for i, (reconstructed, minutes) in enumerate((parent, child), 1):
+        _sql(f"UPDATE trips SET reconstructed = {reconstructed}, duration_min = {minutes or 'NULL'} WHERE id = {i}")
+    _sql("UPDATE trips SET merged_into_id = 1 WHERE id = 2")
+
+
+@pytest.mark.parametrize("parent, child, shown", [
+    pytest.param((0, 20), (1, 180), "20 min", id="a-reconstructed-segment-joined-to-a-drive"),
+    pytest.param((1, 180), (0, 20), "20 min", id="a-drive-joined-to-a-reconstructed-trip"),
+    pytest.param((1, 180), (1, 60), None, id="reconstructed-throughout"),
+    pytest.param((1, 180), (0, None), None, id="a-driven-segment-without-a-duration"),
+])
+def test_a_merged_trip_counts_its_driven_segments_alone(tmp_path, monkeypatch, parent, child, shown):
+    """Statistics counts the stored segments, and a merged trip can hold both kinds."""
+    _merged(tmp_path, monkeypatch, parent, child)
+    html = _drawer()
+    if shown:
+        assert re.search(rf'data-tip="Drive Time: reconstructed trips left out \(1\)[^"]*">{shown}<', html), _sums(html)
+    else:
+        assert 'data-tip="Drive Time' not in html, _sums(html)
+
+
+def test_a_segment_after_midnight_counts_for_the_day_its_trip_started(tmp_path, monkeypatch):
+    _merged(tmp_path, monkeypatch, (1, 180), (0, 20))
+    _sql("UPDATE trips SET started_at = '2026-07-05T00:05:00+00:00', ended_at = '2026-07-05T00:25:00+00:00'"
+         " WHERE id = 2")
+    assert re.search(r'data-tip="Drive Time[^"]*">20 min<', _drawer())
 
 
 def test_a_trip_without_a_duration_takes_the_driving_time_away(tmp_path, monkeypatch):

@@ -41,7 +41,7 @@
     {% endif %}
     <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('distance') }}">{{ day_totals.km | dist(1) }}</span>
     {% if day_totals.drive_min is not none %}
-    <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('drive_time') }}">{{ fmt_dur(day_totals.drive_min) }}</span>
+    <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('drive_time') }}{% if day_totals.drive_time_excluded %}: {{ t('drive_time_partial').format(n=day_totals.drive_time_excluded) }}{% endif %}">{{ fmt_dur(day_totals.drive_min) }}</span>
     {% endif %}
     {% if day_totals.regen and not is_reev %}
     <span class="text-green-400/90 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('total_regen') }}">♻️ {{ day_totals.regen | nice }} kWh</span>

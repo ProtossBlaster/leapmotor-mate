@@ -6838,9 +6838,7 @@ def trips_day_totals(trips: list[dict]) -> dict:
     for both routes that render the drawer, so the heading cannot differ between them."""
     node = trips_totals(trips)
     node.update(_day_battery(trips))
-    mins = [t.get("duration_min") for t in trips]
-    # Whole minutes as each row prints them, so the heading is what the rows add up to.
-    node["drive_min"] = sum(round(m) for m in mins) if mins and None not in mins else None
+    node.update(_day_drive_time(trips))
     return node
 
 
@@ -6872,6 +6870,32 @@ def _day_battery(trips: list[dict]) -> dict:
                    soc_charges=round(sum(round(b, 1) - round(a, 1) for a, b in gains), 1))
     return out
 
+
+def _day_drive_time(trips: list[dict]) -> dict:
+    """Minutes driven over a day of trips, by the Statistics rule: a reconstructed segment's duration is
+    the offline gap it was found across, not driving. Counted per stored segment, as Statistics counts,
+    because a merged trip can hold both kinds. A driven segment without a duration → no figure."""
+    out = {"drive_min": None, "drive_time_excluded": 0}
+    ids = [t["id"] for t in trips]
+    if not ids:
+        return out
+    marks = ",".join("?" * len(ids))
+    # By the trips shown, not by date: a merged trip's later segment can fall on the next day.
+    segments = _get().execute(
+        "SELECT COALESCE(merged_into_id, id) AS trip, duration_min, COALESCE(reconstructed, 0) AS reconstructed "
+        f"FROM trips WHERE id IN ({marks}) OR merged_into_id IN ({marks})", ids + ids).fetchall()
+    driven: dict = {}
+    for seg in segments:
+        if not seg["reconstructed"]:
+            driven.setdefault(seg["trip"], []).append(seg["duration_min"])
+        elif seg["duration_min"] is not None:
+            out["drive_time_excluded"] += 1
+    mins = [m for group in driven.values() for m in group]
+    if mins and None not in mins:
+        # Whole minutes as a row prints them, a merged one summed to the tenth first: without
+        # reconstructed segments the heading is what the rows add up to.
+        out["drive_min"] = sum(round(round(sum(group), 1)) for group in driven.values())
+    return out
 
 def get_trips_calendar_month(year: int, month: int) -> dict:
     """Per-day totals for the Viaggi calendar's Month view: session count, distance, regen
