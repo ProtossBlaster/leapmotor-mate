@@ -4,6 +4,7 @@ Local DTOs, commands and certificate-password derivation use MATE-API.
 The old module namespace is patched only at the Mate integration boundary.
 """
 import base64
+import dataclasses
 from process_lock import exclusive
 import hashlib
 import json
@@ -84,6 +85,16 @@ READ_PATHS = {
     GET_APPOINTMENT_PATH,
 }
 CONTROL_PATH = '/app/app-control-service/v3/api/appremotectl'
+# Where the cloud tells whether the car carried a command out: the command's eventId as msgID, and
+# `data` 0 until the car has answered, 1 once it has (measured on a B10 04/10/2026, #395).
+RESULT_PATH = CONTROL_PATH + '/query'
+# The commands no signal of the car shows done — the charge plan (190) and a destination for the
+# navigator (180) — wait for the car's word. A physical command shows in the car's own signals, which
+# the page reads again after it.
+CONFIRMED_BY_THE_CAR = frozenset({'180', '190'})
+# Left out of the command log, which a diagnostics bundle publishes: a destination is a place, and
+# set_id names the phone that wrote a climate schedule.
+_UNLOGGED = frozenset({'address', 'addressname', 'latitude', 'longitude', 'set_id'})
 VERIFY_PATH = '/carownerservice/oversea/vehicle/v1/operPwd/verify'
 COMMAND_ABILITIES = {cmd:rule[1] for cmd,rule in COMMAND_RULES.items()}
 # Where the old library read a car's status, its model in the path (B10 and B11 read as c10). It still
@@ -92,6 +103,27 @@ COMMAND_ABILITIES = {cmd:rule[1] for cmd,rule in COMMAND_RULES.items()}
 OLD_STATUS_PATH = '/carownerservice/oversea/vehicle/v1/status/get/'
 _OLD_STATUS_MODEL = re.compile(r'[a-z0-9]{2,8}')
 log = logging.getLogger('mate.cloud')
+
+
+def _loggable(value):
+    """What a command carried, as the log shows it: everything but what `_UNLOGGED` names."""
+    if isinstance(value, dict):
+        return {k: '…' if k in _UNLOGGED else _loggable(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_loggable(v) for v in value]
+    return value
+
+
+def _answer(receipt):
+    """The cloud's answer to a command, in the log's words."""
+    if receipt.outcome == 'accepted':
+        return 'accepted by the cloud' + (f', which waits {receipt.timeout_seconds} s for the car'
+                                          if receipt.timeout_seconds else '')
+    if receipt.outcome == 'accepted_untracked':
+        return 'accepted by the cloud, with nothing to follow it by'
+    if receipt.outcome == 'rejected':
+        return f'refused by the cloud (code {receipt.api_code})'
+    return 'an answer that could not be read'
 
 
 def _read_allowed(path):
@@ -179,7 +211,7 @@ class NewAPIClient(MateClientCompatibility):
 
     def _wire(self, origin, path, body, *, method='POST', form=False, login=False, binary=False, cartype='B10'):
         origin = validate_url(origin, ALLOWED_HOSTS, origin=True)
-        if not _read_allowed(path) and path not in {LOGIN_PATH,CONTROL_PATH,VERIFY_PATH,CONTROL_PATH+'/query',APPOINTMENT_PATH}:
+        if not _read_allowed(path) and path not in {LOGIN_PATH,CONTROL_PATH,VERIFY_PATH,RESULT_PATH,APPOINTMENT_PATH}:
             raise LeapmotorApiError('Endpoint not migrated; legacy fallback disabled')
         core = dict(source='leapmotor',channel='1',acceptLanguage=self.language,
                     version='V1.16.4-1',deviceType='android',nonce=str(secrets.randbelow(10**15)),
@@ -716,15 +748,55 @@ class NewAPIClient(MateClientCompatibility):
             route=self.route(vin)
             self._wire(route['appCenter'],VERIFY_PATH,dict(vin=vin,operatePassword=encrypted),form=True)
             appointment=cmd_id in ('171','361')
+            # What was sent and what the cloud said, one line per command: until 4.9.2 neither was
+            # logged, and a bundle could not show what a schedule save had sent (#395).
+            sent=json.dumps(_loggable(state),separators=(',',':'),ensure_ascii=False)
             try:
                 envelope,response=self._wire(route['appCenter'] if appointment else route['appRegion'],
                     APPOINTMENT_PATH if appointment else CONTROL_PATH,
                     dict(carvin=vin,cmdid=cmd_id,state=json.dumps(state,separators=(',',':')),oppwd=encrypted),form=True)
-            except Exception:
+            except Exception as error:
+                codes=getattr(error,'api_codes',None)
+                log.warning('Command %s (%s) sent: %s → %s; not retried',action_label,cmd_id,sent,
+                            f'refused by the cloud (code {codes[0]})' if codes else
+                            f'no readable answer ({type(error).__name__})')
                 raise LeapmotorApiError('Remote control result unknown; command was not retried') from None
             receipt=interpret(response)
+            log.info('Command %s (%s) sent: %s → %s',action_label,cmd_id,sent,_answer(receipt))
             self.last_new_command_receipt=receipt
-            return dict(envelope,_new_api_outcome=receipt.outcome)
+        if receipt.outcome=='accepted' and cmd_id in CONFIRMED_BY_THE_CAR:   # 'accepted' carries an eventId
+            receipt=self._the_cars_word(route,receipt,action_label)
+            self.last_new_command_receipt=receipt
+        return dict(envelope,_new_api_outcome=receipt.outcome)
+
+    def _the_cars_word(self,route,receipt,label):
+        """Ask the cloud whether the car carried the command out, as the earlier library did for
+        every command: `data` 1 is the car's yes, 0 no word yet. Asked every second
+        until the time the cloud gave the car — 5 s for one awake, 30 for one asleep. On a B10
+        (04/10/2026) the yes came the second the car's own configuration changed: in 1.3 s awake,
+        in 15 s from 14 minutes asleep. An acceptance alone says nothing of the car, and a T03's plan
+        read «on» in Mate while the car charged at the plug (#395).
+        → tests/test_a_setting_waits_for_the_cars_word.py"""
+        began=time.monotonic()
+        wait=receipt.timeout_seconds or 30
+        said='nothing'
+        while True:
+            try:
+                with self._mutex:
+                    self.login()
+                    envelope,_=self._wire(route['appRegion'],RESULT_PATH,{'msgID':receipt.event_id},method='GET')
+                said=envelope.get('data')
+                if type(said) is not bool and str(said)=='1':
+                    log.info('Command %s: the car carried it out (%.1f s)',label,time.monotonic()-began)
+                    return dataclasses.replace(receipt,outcome='confirmed')
+            except Exception as error:  # noqa: BLE001 — a question that fails leaves the answer open
+                said=type(error).__name__
+            if time.monotonic()-began+1>=wait:
+                break
+            time.sleep(1)
+        log.warning('Command %s: the car did not say it carried it out within %d s (last answer: %s)',
+                    label,wait,said)
+        return dataclasses.replace(receipt,outcome='unconfirmed')
 
     def seat_heat(self,vin,*,position,level):
         return self._seat(vin,'301',position,level)

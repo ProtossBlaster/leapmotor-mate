@@ -16,7 +16,8 @@ log = logging.getLogger(__name__)
 def _classify_outcome(ok: bool, msg: str) -> str:
     """Bucket a command result for the responsiveness log:
       confirmed         — the car acknowledged in time
-      timeout_car       — cloud accepted ('Request successful') but the car didn't confirm in 5s
+      timeout_car       — cloud accepted ('Request successful') but the car didn't confirm in the
+                          time the cloud gave it (5 s awake, 30 s asleep)
       cloud_unreachable — couldn't even reach the Leapmotor cloud (network)
       rejected          — auth/PIN/other refusal (not a reachability issue)
     """
@@ -397,6 +398,8 @@ class LeapmotorSession:
                 receipt = self._api.last_new_command_receipt
                 if receipt is None:
                     return False, "New API command returned no receipt; not retried"
+                if receipt.outcome == "confirmed":
+                    return True, "The car carried it out"
                 if receipt.outcome in ("accepted", "accepted_untracked"):
                     return True, "Cloud accepted; physical execution not confirmed"
                 if receipt.outcome == "rejected":
