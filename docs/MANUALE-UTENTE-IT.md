@@ -1434,7 +1434,8 @@ modello (carica, autonomia, temperatura interna, marcia, porte, finestrini, pneu
 stato di ricarica…). Mate mostra **solo ciò che la tua auto riporta davvero** (alcuni modelli non
 espongono certi dati). Tra questi ora ci sono anche i dati del clima letti dall'auto: **livello
 ventola** (1–7), **ricircolo aria** (aria fresca / ricircolo) e **modalità clima** attiva (AUTO /
-Raffreddamento / Riscaldamento / Ventilazione).
+Raffreddamento / Riscaldamento / Ventilazione). Il riquadro del tetto panoramico dice quanto è aperta la
+tendina — «40%» sopra «Aperto» —, come fanno quelli dei finestrini.
 
 ### Wallbox
 **(menu: Wallbox)** — Se hai collegato una wallbox (vedi

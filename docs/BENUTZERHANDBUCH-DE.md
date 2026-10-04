@@ -1455,7 +1455,8 @@ Nähe**. Die Seite hat drei Teile:
 Sensoren (Ladung, Reichweite, Innentemperatur, Gang, Türen, Fenster, Reifen, Verriegelungen, Ladezustand…). Mate
 liest jetzt auch die **Lüfterstufe** (1–7), die **Luftumwälzung** (Frischluft / Umluft) und den **aktiven
 Klimamodus** (AUTO / Kühlen / Heizen / Lüften) aus. Mate zeigt **nur das, was Ihr Auto wirklich meldet** (manche
-Modelle stellen bestimmte Daten nicht bereit).
+Modelle stellen bestimmte Daten nicht bereit). Die Kachel des Panoramadachs zeigt, wie weit das Sonnenrollo offen
+ist — „40%“ über „Offen“ —, wie es die Fensterkacheln tun.
 
 ### Wallbox
 **(Menü: Wallbox)** — Wenn Sie eine Wallbox verbunden haben (siehe

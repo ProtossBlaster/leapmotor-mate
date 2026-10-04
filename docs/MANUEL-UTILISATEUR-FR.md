@@ -1481,7 +1481,8 @@ modèle (charge, autonomie, température intérieure, rapport, portes, vitres, p
 charge…). Mate lit désormais aussi, en direct, les réglages de **climatisation** : la **vitesse de ventilation**
 (1–7), le **recyclage de l'air** (air frais / recyclage) et le **mode de climatisation actif** (AUTO /
 Refroidissement / Chauffage / Ventilation). Mate n'affiche **que ce que votre voiture rapporte réellement**
-(certains modèles n'exposent pas certaines données).
+(certains modèles n'exposent pas certaines données). La tuile du toit panoramique indique de combien le store
+est ouvert — « 40% » au-dessus de « Ouvert » —, comme le font celles des vitres.
 
 ### Wallbox
 **(menu : Wallbox)** — Si vous avez connecté une wallbox (voir [Intégrations](#8-les-intégrations-en-détail)),

@@ -1368,7 +1368,8 @@ stations**. The page has three parts:
 (charge, range, inside temperature, gear, doors, windows, tyres, locks, charge status…), now also the
 **climate detail**: **fan level** (1–7), **air recirculation** (fresh / recirculate) and the **active
 climate mode** (AUTO / Cool / Heat / Vent). Mate shows **only what your car actually reports** (some
-models don't expose certain data).
+models don't expose certain data). The panoramic roof tile says how far the sunshade is open — "40%" over "Open" —
+as the window tiles do.
 
 ### Wallbox
 **(menu: Wallbox)** — If you've connected a wallbox (see

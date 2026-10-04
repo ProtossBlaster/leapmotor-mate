@@ -1454,7 +1454,8 @@ modelo (carga, autonomía, temperatura interior, marcha, puertas, ventanillas, n
 estado de la carga…), y ahora también el **detalle de la climatización**: **nivel del ventilador** (1–7),
 **recirculación del aire** (exterior / recirculación) y el **modo de climatización activo** (AUTO /
 Frío / Calor / Ventilación). Mate muestra **solo lo que tu coche informa de verdad** (algunos modelos no
-exponen ciertos datos).
+exponen ciertos datos). La casilla del techo panorámico indica cuánto está abierta la cortinilla —
+«40%» sobre «Abierta» —, como lo hacen las de las ventanillas.
 
 ### Wallbox
 **(menú: Wallbox)** — Si has conectado un wallbox (ver

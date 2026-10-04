@@ -2463,7 +2463,7 @@ def _parse_vehicle_status(sig: dict, vin: str | None = None, cmd_pct: int | None
             # B10 (its sensor is dead) — shown only for windows the flag confirms open.
             "fl_pct": win_pct("1693", "3727"), "fr_pct": win_pct("1694", "3728"),
             "rl_pct": win_pct("1695", "1879"), "rr_pct": win_pct("1696", "1880"),
-            "sunshade": is_open("1724"),
+            "sunshade": is_open("1724"), "sunshade_pct": i("1724"),
         },
         "temps": {"battery": f("1182"), "cabin": f("1349")},  # no ambient-temp signal exists
         # Climate panel — signals validated on-car 2026-06-20: base mode 3713 (0 auto/1 cool/3 heat/
