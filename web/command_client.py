@@ -630,7 +630,8 @@ class LeapmotorSession:
         """Energy split (driving / A/C / other) for an ARBITRARY interval, via the same cloud
         endpoint as last-week (getEC) but with custom epoch-second bounds — the library only
         exposes the fixed previous-week window, so we sign+POST it directly. The cloud resolves
-        sub-day windows (≥ ~15 min); a window with no driving returns None. NB: this is the
+        sub-day windows (≥ ~15 min); a window with no driving returns None, and a drive the cloud
+        files at 0.0 kWh comes back as a split of zeros. NB: this is the
         DRIVING-session split (parked/standby energy is not included). Same dict shape as
         get_energy_breakdown()."""
         import json as _json
@@ -676,9 +677,10 @@ class LeapmotorSession:
                     ac = float(d.get("acEC") or 0)
                     oth = float(d.get("otherEC") or 0)
                     total = drv + ac + oth
-                    if total <= 0:
+                    # 0.0 in all three fields is a reading; a missing or null field is not, and must not count as 0.
+                    if total <= 0 and any(d.get(k) in (None, "") for k in ("driverEC", "acEC", "otherEC")):
                         return None
-                    pct = lambda v: round(v / total * 100, 1)  # noqa: E731
+                    pct = (lambda v: round(v / total * 100, 1)) if total > 0 else (lambda v: 0)
                     return {
                         "driving_kwh": round(drv, 1), "ac_kwh": round(ac, 1), "other_kwh": round(oth, 1),
                         "total_kwh": round(total, 1),

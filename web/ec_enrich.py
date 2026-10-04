@@ -281,7 +281,7 @@ def convert_trip(trip_id: int) -> dict:
     except Exception as e:  # noqa: BLE001
         log.warning("convert_trip %s cloud error: %s", trip_id, e)
         return {"ok": False, "reason": "error"}
-    if not ec or (ec.get("total_kwh") or 0) <= 0:
+    if not ec:
         # bump ec_tried so the row reflects the attempt, but change nothing else
         db_reader.store_trip_ec(trip_id, None, dist, apply_energy=False)
         # Distinguish "the cloud merged this with its neighbour" (→ tell the user to merge them, the
