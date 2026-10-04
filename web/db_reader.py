@@ -4722,7 +4722,8 @@ def trip_ec_window(trip: dict, pad_s: int = 120):
 
     getEC stamps a driving session's whole energy at ONE instant — the cloud anchor ≈ the real
     Ready-on (power-on). A query [begin, end] returns that energy only when begin ≤ anchor ≤ end. So:
-      START = on_lo, the LAST ready=0 sample before the session (the car was provably OFF there →
+      START = on_lo, the LAST ready=0 sample before the session, at the moment the car reported it
+              (the car was provably OFF there →
               guaranteed ≤ the anchor, at ANY poll cadence). NOT sess["on"] (the first ready=1 poll):
               that can sit up to a poll interval (~30 s cold) AFTER the anchor → getEC None and the
               trip wrongly drops to SoC (#117 — verified same trip: one account caught it at
@@ -4744,23 +4745,24 @@ def trip_ec_window(trip: dict, pad_s: int = 120):
     b, e = trip_epoch_window(trip)
     if not b or not e:
         return (None, None)
+    # The drive before, as ready_session counts drives (the history import's 0 km rows are not one),
+    # by its last piece: a merged drive's own row ends with its first. This trip's pieces start after it.
+    prev = _get().execute(
+        "SELECT MAX(ended_at) AS m FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "AND COALESCE(distance_km, 0) > 0 "
+        "AND ended_at IS NOT NULL AND ended_at < ?", (_current_vehicle_id(), trip.get("started_at"))).fetchone()
+    pe = _trip_epoch(prev["m"]) if prev and prev["m"] else None
     # PRIMARY: begin = on_lo (last ready=0 before the session) — provably ≤ the cloud anchor at any
     # cadence, so getEC always catches it. NOT sess["on"] (first ready=1 poll), which can land a poll
     # interval AFTER the anchor → None (#117). end stays T1 (always past the start anchor).
+    # Never before the drive before ends: the window would take in its power-on, and getEC its energy.
     sess = ready_session(trip)
     if sess and sess.get("on_lo") is not None:
-        return (int(sess["on_lo"]), int(e))
+        return (int(max(sess["on_lo"], pe or 0)), int(e))
     # FALLBACK (no ready data, or no off-sample before the session): T0 − pad, clamped to prev midpoint.
-    db = _get()
     begin = b - pad_s
-    prev = db.execute(
-        "SELECT MAX(ended_at) AS m FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
-        "AND merged_into_id IS NULL "
-        "AND ended_at IS NOT NULL AND ended_at < ?", (_current_vehicle_id(), trip.get("started_at"))).fetchone()
-    if prev and prev["m"]:
-        pe = _trip_epoch(prev["m"])
-        if pe:
-            begin = max(begin, (pe + b) // 2)
+    if pe:
+        begin = max(begin, (pe + b) // 2)
     return (int(begin), int(e))
 
 
@@ -4845,12 +4847,13 @@ def ready_session(trip: dict):
     lo = datetime.fromtimestamp(t0 - _READY_LOOKBACK_S, timezone.utc).isoformat()
     hi = datetime.fromtimestamp(t1 + _READY_LOOKBACK_S, timezone.utc).isoformat()
     rows = db.execute(
-        "SELECT recorded_at, ready, gear FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "SELECT recorded_at, frame_ts, ready, gear FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
         "AND recorded_at >= ? AND recorded_at <= ? "
         "ORDER BY recorded_at", (_current_vehicle_id(), lo, hi)).fetchall()
-    samples = [(e, r["ready"], r["gear"]) for r in rows
-               if (e := _trip_epoch(r["recorded_at"])) is not None]
-    if not any(rd == 1 for _, rd, _ in samples):
+    # Each row also carries when the car reported it: a row repeating an older frame is written later.
+    samples = [(e, r["ready"], r["gear"], min(e, r["frame_ts"] / 1000) if r["frame_ts"] else e)
+               for r in rows if (e := _trip_epoch(r["recorded_at"])) is not None]
+    if not any(rd == 1 for _, rd, _, _ in samples):
         return None                          # no ready=1 anywhere → no session info
     # Build ready=1 runs, and join two runs when what lies between them doesn't break the power-on.
     # A NULL is a poll that didn't report READY: neither on nor off. It is never carried forward (on
@@ -4858,7 +4861,7 @@ def ready_session(trip: dict):
     # never stands for the observed off that on_lo below needs.
     carry_max = max(_READY_CARRY_MIN_S, 3 * _parked_poll_seconds())
     merged, zero, unknown, parked = [], False, False, False
-    for e, rd, gear in samples:
+    for e, rd, gear, _ in samples:
         if rd != 1:
             zero, unknown = zero or rd == 0, unknown or rd is None
             parked = parked or (rd is None and gear == "P")
@@ -4877,13 +4880,13 @@ def ready_session(trip: dict):
     if at is None:
         return None
     on, off = merged[at]
-    # on_lo = last OBSERVED ready=0 before the run = lower bracket of the real Ready-on. The true
-    # power-on (= getEC anchor) sits between on_lo and `on` (≤ one poll interval), so on_lo is
-    # provably ≤ the anchor → the safe getEC begin (see trip_ec_window). Only a zero after the run
-    # before this one counts: the car was on in that run, so an older zero brackets nothing here.
+    # on_lo = last OBSERVED ready=0 before the run, at the moment the car reported it = lower bracket
+    # of the real Ready-on. The true power-on (= getEC anchor) sits between on_lo and `on`, so on_lo
+    # is ≤ the anchor → the safe getEC begin (see trip_ec_window). Only a zero after the run before
+    # this one counts: the car was on in that run, so an older zero brackets nothing here.
     # None when no such zero was observed (caller then uses its fallback).
     since = merged[at - 1][1] if at else float("-inf")
-    on_lo = max((ts for ts, rd, _ in samples if since < ts < on and rd == 0), default=None)
+    on_lo = max((said for ts, rd, _, said in samples if since < ts < on and rd == 0), default=None)
     # Count finalized, non-merged trips whose span falls inside the session — the DRIVES. A row of
     # no distance is not one: the Leapmotor history import writes a trip per cloud record, including
     # the 0 km ones it keeps for a manoeuvre, with no positions and no SoC. Counting those made the
