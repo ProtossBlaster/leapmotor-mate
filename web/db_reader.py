@@ -6848,6 +6848,8 @@ def _day_battery(trips: list[dict]) -> dict:
     """Battery over a day of localized trips: first start → last end when nothing charged between
     them, else the trips' change beside the charges'. Any reading missing → no figure."""
     out = {"soc_from": None, "soc_to": None, "soc_trips": None, "soc_charges": None}
+    # A 0 km cloud segment drove nothing and has no state of charge, which would cost the day its figure.
+    trips = [t for t in trips if not t.get("cloud_zero_segment")]
     if not trips:
         return out
     # By the instant: two local times in one zone compare by the wall clock, wrong in the hour the clocks go back.

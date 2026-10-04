@@ -5,7 +5,8 @@ end, and the change between them: "84.4% → 51.6% (−32.8%)". A charge in betw
 readings meaningless, so the heading gives the trips' own change instead, "−45.0%", and what the charges
 added, "⚡ +40.0%". Every change is summed from the figures as printed, so the heading adds up on screen. A
 figure missing anywhere it is needed takes the whole battery field away: a partial sum, or a "−0%",
-would read as the truth.
+would read as the truth. The cloud's 0 km segments carry no reading and drove nothing, so they take no
+part in it.
 
 Rendered through both routes that draw the drawer — its own endpoint and the month view opened on a
 day — because the heading is built in two places and must not differ between them.
@@ -151,6 +152,24 @@ def test_a_missing_reading_takes_the_battery_field_away(tmp_path, monkeypatch, t
     sums = _day(tmp_path, monkeypatch, trips, charges)
     assert "%" not in sums, sums
     assert re.match(r"\d+ km", sums), sums
+
+
+@pytest.mark.parametrize("trips, charges, shown", [
+    pytest.param([("08:00", "08:30", 84, 60), ("17:00", "17:40", 60, 52)], [],
+                 "84.0% → 52.0% (−32.0%)", id="without-a-charge"),
+    pytest.param([("08:00", "08:30", 84, 60), ("17:00", "17:40", 100, 79)], [("09:00", "11:00", 60, 100)],
+                 "−45.0% ⚡ +40.0%", id="with-a-charge-between"),
+])
+def test_a_0_km_cloud_segment_leaves_the_battery_field_alone(tmp_path, monkeypatch, trips, charges, shown):
+    """The cloud's 0 km segments carry no reading. One opening or closing the day would otherwise be
+    its first or last trip, and on a charging day a trip without a reading."""
+    _install(tmp_path, monkeypatch, [("07:00", "07:05", None, None), *trips, ("20:00", "20:05", None, None)],
+             charges=charges)
+    _sql("UPDATE trips SET distance_km = 0 WHERE id IN (1, 4)")
+    _sql("CREATE TABLE api_lab_cloud_trip_links (trip_id INTEGER)")
+    _sql("INSERT INTO api_lab_cloud_trip_links (trip_id) VALUES (1), (4)")
+    sums = _sums(_drawer())
+    assert sums.startswith(shown), sums
 
 
 def test_both_routes_print_the_same_heading(tmp_path, monkeypatch):
