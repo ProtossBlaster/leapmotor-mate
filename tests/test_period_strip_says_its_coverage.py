@@ -65,7 +65,7 @@ def _render(path, totals, *, is_reev=True, research=True):
     out = env.from_string(src[start:end]).render(
         **{name: totals}, is_reev=is_reev, research=research,
         eff_cls=lambda v: "eff-good",
-        t=lambda k: {"trips_eff_over_km": "over {km} of {total}",
+        t=lambda k: {"trips_eff_over_km": "over {km} of {total}", "avg_efficiency": "Avg consumption",
                      "trips_eff_over_km_hint": "value for the kilometres with energy data "
                                                "recorded from the cloud"}[k])
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", out)).strip(), out
@@ -85,7 +85,7 @@ def test_the_hover_explains_which_kilometres(path):
     totals = {"kwh_100km": 10.4, "kwh_100km_km": 452.0, "km": 479.0, "avg_eff": None}
     _, html = _render(path, totals)
     assert "energy data" in html, "the (i) carries no explanation"
-    assert "title=" in html
+    assert "data-tip=" in html   # the app's tooltip, which also opens on a tap
 
 
 @pytest.mark.parametrize("path", [MONTH, DAY])

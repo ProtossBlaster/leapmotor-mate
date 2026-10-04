@@ -6833,6 +6833,70 @@ def trips_totals(trips: list[dict]) -> dict:
     return _totals_seal(node)
 
 
+def trips_day_totals(trips: list[dict]) -> dict:
+    """The day drawer's heading: `trips_totals` plus the battery the day's trips used. One function
+    for both routes that render the drawer, so the heading cannot differ between them."""
+    node = trips_totals(trips)
+    node.update(_day_battery(trips))
+    node.update(_day_drive_time(trips))
+    return node
+
+
+def _day_battery(trips: list[dict]) -> dict:
+    """Battery over a day of localized trips: first start → last end when nothing charged between
+    them, else the trips' change beside the charges'. Any reading missing → no figure."""
+    out = {"soc_from": None, "soc_to": None, "soc_trips": None, "soc_charges": None}
+    # A 0 km cloud segment drove nothing and has no state of charge, which would cost the day its figure.
+    trips = [t for t in trips if not t.get("cloud_zero_segment")]
+    if not trips:
+        return out
+    # By the instant: two local times in one zone compare by the wall clock, wrong in the hour the clocks go back.
+    first, last = min(trips, key=lambda t: t["_dt"].timestamp()), max(trips, key=lambda t: t["_dt"].timestamp())
+    # Up to the last trip's start: nothing charges while it drives, and its end may be on the car's clock.
+    # julianday, not text: trips arrive in local time with an offset, charges are stored in UTC.
+    charges = _get().execute(
+        "SELECT start_soc, end_soc FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "AND ended_at IS NOT NULL AND julianday(started_at) BETWEEN julianday(?) AND julianday(?)",
+        (_current_vehicle_id(), first["started_at"], last["started_at"])).fetchall()
+    if not charges:
+        if first.get("start_soc") is not None and last.get("end_soc") is not None:
+            out.update(soc_from=first["start_soc"], soc_to=last["end_soc"])
+        return out
+    drives = [(t.get("start_soc"), t.get("end_soc")) for t in trips]
+    gains = [(c["start_soc"], c["end_soc"]) for c in charges]
+    if all(a is not None and b is not None for a, b in drives + gains):
+        # Each part to the tenth its row prints, so the heading is what the rows add up to.
+        out.update(soc_trips=round(sum(round(b, 1) - round(a, 1) for a, b in drives), 1),
+                   soc_charges=round(sum(round(b, 1) - round(a, 1) for a, b in gains), 1))
+    return out
+
+
+def _day_drive_time(trips: list[dict]) -> dict:
+    """Minutes driven over a day of trips, by the Statistics rule: a reconstructed segment's duration is
+    the offline gap it was found across, not driving. Counted per stored segment, as Statistics counts,
+    because a merged trip can hold both kinds. A driven segment without a duration → no figure."""
+    out = {"drive_min": None, "drive_time_excluded": 0}
+    ids = [t["id"] for t in trips]
+    if not ids:
+        return out
+    marks = ",".join("?" * len(ids))
+    # By the trips shown, not by date: a merged trip's later segment can fall on the next day.
+    segments = _get().execute(
+        "SELECT COALESCE(merged_into_id, id) AS trip, duration_min, COALESCE(reconstructed, 0) AS reconstructed "
+        f"FROM trips WHERE id IN ({marks}) OR merged_into_id IN ({marks})", ids + ids).fetchall()
+    driven: dict = {}
+    for seg in segments:
+        if not seg["reconstructed"]:
+            driven.setdefault(seg["trip"], []).append(seg["duration_min"])
+        elif seg["duration_min"] is not None:
+            out["drive_time_excluded"] += 1
+    mins = [m for group in driven.values() for m in group]
+    if mins and None not in mins:
+        # Whole minutes as a row prints them, a merged one summed to the tenth first: without
+        # reconstructed segments the heading is what the rows add up to.
+        out["drive_min"] = sum(round(round(sum(group), 1)) for group in driven.values())
+    return out
+
 def get_trips_calendar_month(year: int, month: int) -> dict:
     """Per-day totals for the Viaggi calendar's Month view: session count, distance, regen
     and derived cost for each day of `year`/`month` (local time), plus the month's own

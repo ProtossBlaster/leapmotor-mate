@@ -28,7 +28,7 @@
     {% set main_count = total.count - (total.cloud_zero_count or 0) %}
     <span class="text-slate-400">{{ main_count }} {{ t('trip_singular') if main_count == 1 else t('trips_plural') }}</span>
     {% if total.cloud_zero_count %}<span class="text-slate-500">+ {{ total.cloud_zero_count }} {{ t('cloud_zero_segments') }}</span>{% endif %}
-    <span class="text-white font-semibold">{{ total.km | dist(1) }}</span>
+    <span class="text-white font-semibold" tabindex="0" data-tip="{{ t('distance') }}">{{ total.km | dist(1) }}</span>
     {# On a range-extender: the SAME kilometres the litres beside it are divided by. `avg_eff` is
        the efficiency the car MEASURED, and Mate stores none for a generator trip — so it covers the
        battery-driven half of the month while the L/100 km covers all of it. Two figures ending in
@@ -36,7 +36,7 @@
        Trips header, beta #24). Neutral colour: the good/amber/bad thresholds judge how efficiently
        the BATTERY drove you, which is not what this answers. A BEV keeps the measured pill. #}
     {% set eff_all = total.kwh_100km if is_reev else None %}
-    {% if eff_all %}<span class="eff-pill" style="color:#38bdf8">{{ eff_all | eff }}</span>
+    {% if eff_all %}<span class="eff-pill" style="color:#38bdf8" tabindex="0" data-tip="{{ t('avg_efficiency') }}">{{ eff_all | eff }}</span>
     {# …and WHICH kilometres it speaks for. getEC is not on every trip, so since v3.8.3 this figure
        divides by the distance it was measured over — while the litres beside it divide by all of
        them. Two "per 100 km" one line apart on different distances is exactly the shape of beta #11
@@ -46,17 +46,17 @@
        ⚠️ Only when they DIFFER — "over 479 km of 479 km" is noise, and noise is how a caveat stops
        being read. Half a kilometre of tolerance: the two sums round independently. #}
     {% if total.kwh_100km_km and total.km and (total.km - total.kwh_100km_km) > 0.5 %}
-    <span class="text-slate-500 text-[11px] whitespace-nowrap" title="{{ t('trips_eff_over_km_hint') }}">
+    <span class="text-slate-500 text-[11px] whitespace-nowrap" tabindex="0" data-tip="{{ t('trips_eff_over_km_hint') }}">
       {{ t('trips_eff_over_km').format(km=total.kwh_100km_km | dist(0), total=total.km | dist(0)) }} ⓘ</span>
     {% endif %}
-    {% elif total.avg_eff %}<span class="eff-pill {{ eff_cls(total.avg_eff) }}">{{ total.avg_eff | eff }}</span>{% endif %}
+    {% elif total.avg_eff %}<span class="eff-pill {{ eff_cls(total.avg_eff) }}" tabindex="0" data-tip="{{ t('avg_efficiency') }}">{{ total.avg_eff | eff }}</span>{% endif %}
     {# The petrol half of a range-extender month. Same line, same weight as the electric pill beside
        it — @michapr (beta #11) had the litres on each trip and nothing at all where the month is
        summed up. Only when there is fuel to show, so an all-electric month says nothing. #}
     {% if is_reev and total.fuel_l %}
-    <span class="text-amber-400 font-semibold" title="{{ t('trips_fuel_hint') }}">⛽ {{ total.fuel_l | nice }} L{% if total.fuel_l_100km %} · {{ total.fuel_l_100km | nice }} L/100km{% endif %}</span>
+    <span class="text-amber-400 font-semibold" tabindex="0" data-tip="{{ t('trips_fuel_hint') }}">⛽ {{ total.fuel_l | nice }} L{% if total.fuel_l_100km %} · {{ total.fuel_l_100km | nice }} L/100km{% endif %}</span>
     {% endif %}
-    {% if total.cost %}<span class="text-slate-300 font-semibold">{{ total.cost | money }}</span>{% endif %}
+    {% if total.cost %}<span class="text-slate-300 font-semibold" tabindex="0" data-tip="{{ t('cost') }}">{{ total.cost | money }}</span>{% endif %}
   </div>
   {% endif %}
 
