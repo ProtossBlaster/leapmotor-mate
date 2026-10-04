@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.9.1:** the **Events list does not drift** under the reader — a line not yet drawn declared the wrong height, so the headings above you changed size as the browser caught up ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385)). In **4.9.0**: **one plug-in is one charge**, with the pieces joined without being asked and reversibly ([#374](https://github.com/ProtossBlaster/leapmotor-mate/issues/374)), and a drive's official energy can no longer be **twice** what its battery lost ([#298](https://github.com/ProtossBlaster/leapmotor-mate/issues/298)).
-See [release notes and upgrade impact](docs/releases/v4.9.1.md).
+**v4.9.2:** on the Events page **an end says "after"** — "Locked · after 4 min" no longer reads as four minutes locked; a row you go back to lands on screen on a slow phone too; and the page reads only the days it shows ([#390](https://github.com/ProtossBlaster/leapmotor-mate/pull/390), [#389](https://github.com/ProtossBlaster/leapmotor-mate/pull/389), [#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385)). In **4.9.1**: the Events list does not drift under the hour and day headings.
+See [release notes and upgrade impact](docs/releases/v4.9.2.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -358,8 +358,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.9.1:** l'**elenco Eventi non slitta** sotto chi legge — una riga non ancora disegnata dichiarava l'altezza sbagliata, quindi le intestazioni sopra di te cambiavano dimensione mentre il browser le raggiungeva ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385)). Nella **4.9.0**: **un attacco alla spina è una ricarica**, con i pezzi uniti senza bisogno di chiedere e in modo reversibile ([#374](https://github.com/ProtossBlaster/leapmotor-mate/issues/374)), e l'energia ufficiale di una guidata non può più essere il **doppio** di quella che la batteria ha perso ([#298](https://github.com/ProtossBlaster/leapmotor-mate/issues/298)). [Note di rilascio](docs/releases/v4.9.1.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.9.1.md#italiano).
+**v4.9.2:** nella pagina Eventi **una fine dice «dopo»** — «Bloccata · dopo 4 min» non si legge più come quattro minuti da bloccata; la riga a cui torni finisce sullo schermo anche su un telefono lento; e la pagina legge solo i giorni che mostra ([#390](https://github.com/ProtossBlaster/leapmotor-mate/pull/390), [#389](https://github.com/ProtossBlaster/leapmotor-mate/pull/389), [#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385)). Nella **4.9.1**: l'elenco Eventi non slitta sotto le intestazioni delle ore e dei giorni. [Note di rilascio](docs/releases/v4.9.2.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.9.2.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

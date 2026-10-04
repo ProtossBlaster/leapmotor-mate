@@ -3,6 +3,30 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.9.2] — 2026-10-04
+
+- **An end says its time came after the state before**
+  ([#390](https://github.com/ProtossBlaster/leapmotor-mate/pull/390), @arekm). "Locked · 4 min" read
+  as four minutes locked, while they were the time the car had been unlocked: an end row names the
+  state that began, and its figure belongs to the one that ended. It now reads "Locked · after 4 min",
+  in all eight languages; a trip's and a charge's end keep their bare figure. On a phone some rows take
+  a second line: in Italian, 29 more of 1,759 at 390 px.
+- **A row you go back to lands on screen, on a slow phone too**
+  ([#389](https://github.com/ProtossBlaster/leapmotor-mate/pull/389), @arekm). Back from a trip with the
+  map on, two holds of the scroll fought, and a phone slow to draw left the row below the screen. One
+  row is held at a time now, and where it goes is asked again every frame.
+- **The Events page reads only the days it shows**
+  ([#385](https://github.com/ProtossBlaster/leapmotor-mate/pull/385)), and a later part of a long list is
+  cut from the list already composed while nothing has been written: on a real history, each later
+  part of the whole list from 0.156 s to 0.001 s. A merged trip reaching into the days shown, and a
+  session rebuilt with the host clock stepped back, are kept by their whole group — @arekm's fix to my
+  first version, before any release had it.
+- **Lighter on a Raspberry Pi**: reading the history at first start counts the positions once per
+  catch-up instead of twice a round. **With a retention period set**, a trip still open keeps its
+  events as it keeps its positions; they used to be pruned under it.
+- Test and CI only, @arekm: workers take queued tests (#387), and two browser test files wait only
+  where they must (#388).
+
 ## [4.9.1] — 2026-10-03
 
 - **The Events list does not drift under the reader**

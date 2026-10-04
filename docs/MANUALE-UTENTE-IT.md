@@ -1,13 +1,29 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.9.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.9.2 · **Lingua:** Italiano
 
-## Novità della 4.9.1
+## Novità della 4.9.2
+
+**Una fine dice che il suo tempo è venuto dopo lo stato precedente.** Nella pagina Eventi,
+«Bloccata · 4 min» si leggeva come un'auto bloccata da quattro minuti, mentre quei minuti erano il
+tempo in cui era rimasta sbloccata. Adesso si legge «Bloccata · dopo 4 min». La fine di un viaggio e
+di una ricarica tiene la sua cifra, che è la durata della guida o della ricarica.
+
+**La riga a cui torni finisce sullo schermo, anche su un telefono lento.** Tornando da un viaggio con
+la mappa aperta, un telefono che disegna lentamente poteva lasciare quella riga sotto lo schermo.
+
+**La pagina Eventi legge solo i giorni che mostra**, e scorrendo un elenco lungo non lo ricompone più
+per ogni pezzo: ogni pezzo successivo arriva subito. Su un Raspberry Pi anche la lettura dello storico
+al primo avvio è più leggera, e con una conservazione del GPS impostata un viaggio ancora aperto
+conserva i suoi eventi come conserva le sue posizioni.
+
+### Novità della 4.9.1
 
 **L'elenco Eventi non slitta più sotto di te.** Scorrendo un intervallo lungo, le
 intestazioni delle ore e dei giorni sopra di te cambiavano altezza mentre il browser le raggiungeva,
-e quello che stavi leggendo si spostava di qualche pixel — fino a 25 per volta. Adesso ogni riga
-dichiara l'altezza che avrà davvero, quindi non si muove niente tranne te.
+e quello che stavi leggendo si spostava di qualche pixel — fino a 25 per volta. Adesso le
+intestazioni delle ore e dei giorni dichiarano l'altezza che avranno davvero, quindi non spostano più
+quello che stai leggendo.
 
 ### Novità della 4.9.0
 

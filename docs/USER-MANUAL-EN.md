@@ -1,13 +1,28 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.9.1 · **Language:** English
+> **Mate version:** v4.9.2 · **Language:** English
 
-## New in 4.9.1
+## New in 4.9.2
+
+**An end says its time came after the state before.** On the Events page, "Locked · 4 min" read as a
+car locked for four minutes, when those minutes were the time it had been unlocked. It now reads
+"Locked · after 4 min". A trip's and a charge's end keep their bare figure, which is the length of the
+drive or the charge.
+
+**The row you go back to lands on screen, on a slow phone too.** Back from a trip with the map kept
+on, a phone that draws slowly could leave that row below the screen.
+
+**The Events page reads only the days it shows**, and scrolling down a long list no longer composes
+it again for every part: each later part now comes at once. On a Raspberry Pi, reading the history at
+first start is lighter too, and with a GPS retention set, a trip still open keeps its events as it
+keeps its positions.
+
+### New in 4.9.1
 
 **The Events list no longer drifts under you.** Scrolling a long range, the hour and day
 headings above you changed height as the browser caught up with them, and what you were reading slid
-a few pixels — up to 25 at a time. Each line now declares the height it will actually have, so
-nothing moves but you.
+a few pixels — up to 25 at a time. The hour and day headings now declare the height they will
+actually have, so they no longer move what you are reading.
 
 ### New in 4.9.0
 

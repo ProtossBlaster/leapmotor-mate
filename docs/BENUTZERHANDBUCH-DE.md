@@ -1,13 +1,30 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.9.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.9.2 · **Sprache:** Deutsch
 
-## Neu in Version 4.9.1
+## Neu in Version 4.9.2
+
+**Ein Ende sagt, dass seine Zeit nach dem Zustand davor kam.** Auf der Ereignisseite las sich
+„Verriegelt · 4 min“ wie ein Auto, das seit vier Minuten verriegelt ist, obwohl diese Minuten die Zeit
+waren, in der es entriegelt war. Jetzt steht dort „Verriegelt · nach 4 min“. Das Ende einer Fahrt und
+eines Ladevorgangs behält seine Zahl: die Dauer der Fahrt oder des Ladevorgangs.
+
+**Die Zeile, zu der Sie zurückkehren, landet im Bild, auch auf einem langsamen Telefon.** Zurück von
+einer Fahrt mit eingeblendeter Karte konnte ein Telefon, das langsam zeichnet, diese Zeile unterhalb
+des Bildschirms lassen.
+
+**Die Ereignisseite liest nur die Tage, die sie zeigt**, und beim Herunterscrollen einer langen Liste
+setzt sie diese nicht mehr für jedes Stück neu zusammen: jedes weitere Stück kommt sofort. Auf einem
+Raspberry Pi ist auch das Einlesen der Historie beim ersten Start leichter, und mit eingestellter
+GPS-Aufbewahrung behält eine noch laufende Fahrt ihre Ereignisse wie ihre Positionen.
+
+### Neu in Version 4.9.1
 
 **Die Ereignisliste verrutscht nicht mehr unter Ihnen.** Beim Durchblättern eines langen
 Zeitraums änderten die Stunden- und Tagesüberschriften über Ihnen ihre Höhe, sobald der Browser sie
-einholte, und das Gelesene verschob sich um einige Pixel — bis zu 25 auf einmal. Jede Zeile gibt nun
-die Höhe an, die sie wirklich einnehmen wird; es bewegt sich nichts mehr außer Ihnen.
+einholte, und das Gelesene verschob sich um einige Pixel — bis zu 25 auf einmal. Die
+Stunden- und Tagesüberschriften geben nun die Höhe an, die sie wirklich einnehmen werden; sie
+verschieben das Gelesene nicht mehr.
 
 ### Neu in Version 4.9.0
 
