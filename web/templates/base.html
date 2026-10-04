@@ -144,6 +144,7 @@
       text-decoration: none; transition: background .15s, border-color .15s;
     }
     .trip-row:hover { background: rgba(51,65,85,.4); border-color: #334155; }
+    @media (max-width: 639px) { .trip-row { column-gap: .5rem; } }   /* a phone's middle column needs the room */
     .trip-thumb {
       width: 84px; height: 48px; flex-shrink: 0; border-radius: .375rem;
       background: #0a1424; border: 1px solid #1a2438; object-fit: cover;
