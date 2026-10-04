@@ -290,12 +290,14 @@
     if (b && b.left < list.right && b.right > list.left) bottom = Math.max(bottom, b.bottom);
     return bottom;
   }
-  // The rows off screen have estimated heights (content-visibility) until later frames lay them out,
-  // more of them after a long jump: the row is put back until it has stood still for three frames.
-  function eventsHold(row, at) {
-    var still = 0, frames = 0;
+  // Rows off screen have estimated heights (content-visibility) until later frames lay them out: the
+  // row is put back to `place()` until still for three frames, one row at a time (a later hold wins).
+  var eventsHeld = null;
+  function eventsHold(row, place) {
+    var still = 0, frames = 0, me = eventsHeld = {};
     (function again() {
-      var off = row.getBoundingClientRect().top - at;
+      if (eventsHeld !== me) return;
+      var off = row.getBoundingClientRect().top - place();
       if (Math.abs(off) > 0.5) { eventsScroller().scrollBy(0, off); still = 0; } else still++;
       if (still < 3 && ++frames < 60) requestAnimationFrame(again);
     })();
@@ -311,13 +313,15 @@
       var row = document.getElementById(anchor), more = list.querySelector('.ev-more');
       seeking = null;
       if (row) {
-        var cover = eventsCover(), r = row.getBoundingClientRect();
-        var at = Math.max(cover + 8, (innerHeight + cover - r.height) / 2);
-        eventsScroller().scrollBy(0, r.top - at);
-        eventsHold(row, at);
+        // Asked again each frame: the bars and the map stand over the list only once it scrolls under them.
+        eventsHold(row, function () {
+          var cover = eventsCover();
+          return Math.max(cover + 8, (innerHeight + cover - row.offsetHeight) / 2);
+        });
         if (pair) window.eventsPair.row(row);
       } else if (more) {
         seeking = [anchor, pair];
+        eventsHeld = null;                     // the list moves on to the parts: no row stays held
         more.scrollIntoView({ block: 'end' });
       }
     }
@@ -404,8 +408,7 @@
       if (row) {
         // Where the map stands over the list (a phone), the row goes below it.
         var at = on ? Math.max(top, eventsCover() + 8) : top;
-        eventsScroller().scrollBy(0, row.getBoundingClientRect().top - at);
-        eventsHold(row, at);
+        eventsHold(row, function () { return at; });
       }
       try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (_) {}
       label();
