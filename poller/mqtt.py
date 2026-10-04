@@ -412,6 +412,7 @@ class MqttService:
         pub("tire_rl", data.tire_rl_bar);       pub("tire_rr", data.tire_rr_bar)
         pub("any_door_open", data.any_door_open); pub("trunk_open", data.trunk_open)
         pub("windows_open", data.windows_open); pub("sunshade_open", bool(data.sunshade_pct))
+        pub("sunshade_pct", data.sunshade_pct)
         pub("door_driver", data.door_driver_open);       pub("door_passenger", data.door_passenger_open)
         pub("door_rear_left", data.door_rear_left_open); pub("door_rear_right", data.door_rear_right_open)
         pub("window_fl", data.window_fl_open);  pub("window_fr", data.window_fr_open)
@@ -557,6 +558,9 @@ class MqttService:
             # fed "" logs a conversion error on every poll instead of simply going unknown.
             ("climate_power", "Climate Power", {"dc": "power", "unit": "W",
                                                 "icon": "mdi:air-conditioner", "tpl": _EMPTY_NONE}),
+            # How far the sunshade is open (1724, 0 = closed); the binary "Sunshade" stays for automations.
+            ("sunshade_pct", "Sunshade Position", {"unit": "%", "icon": "mdi:window-shutter-open",
+                                                   "tpl": _EMPTY_NONE}),
         ]
         for key, name, extra in sensors:
             cfg("sensor", key, _sensor_conf(prefix, vin, key, name, extra))

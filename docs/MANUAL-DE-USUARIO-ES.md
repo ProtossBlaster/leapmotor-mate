@@ -1620,7 +1620,7 @@ escribible, más un sensor **Modo de climatización** (AUTO / Frío / Calor / Ve
 publicadas incluyen además tres de V2L de solo lectura: **`V2L Active`** (sensor binario), **`V2L
 Power`** (W) y **`V2L Session Energy`** (Wh), y un sensor binario **`Ready`** que se enciende en cuanto
 el coche se pone en marcha — antes de que se mueva, que es cuando a una automatización todavía le da
-tiempo a actuar.
+tiempo a actuar. Un sensor **`Sunshade Position`** indica cuánto está abierta la cortinilla, en % (0 = cerrada); el sensor binario **`Sunshade`** sigue como estaba, encendido con cualquier apertura.
 
 Las entidades que **tu** coche no soporta no se te quedan en las manos: las que el modelo no tiene
 (asientos calefactados, volante…) no se crean nunca, y una **entidad de temperatura** cuyo sensor el

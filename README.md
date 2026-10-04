@@ -327,6 +327,8 @@ Publish the car to Home Assistant as **native entities** (in parallel to the Mat
 
 - **`Ready`** — a binary sensor that turns on as soon as the car is powered up, before it moves, while an automation still has time to act.
 
+- **`Sunshade Position`** — how far the sunshade is open, in % (0 = closed). The binary `Sunshade` stays as it was, on for any opening.
+
 - **Command buttons** — lock/unlock, trunk, find car, preheat battery, unlock charge cable, climate (A/C Auto / Quick Cool / Quick Heat / Quick Ventilation / Defrost / A/C Off) and comfort (heated/ventilated seats, steering-wheel & mirror heating). Turning the A/C fully **off** uses the payload each model was measured to obey: the bare `operate=off` on the B10/C10, the same value inside the full seven‑field body on the T03 (found on‑car by [@derekzoli](https://github.com/derekzoli)) — each car ignores the other's form while the cloud answers success to both. Sentry mode is offered where the account declares the right for it. The comfort commands use the payloads captured by [@kerniger](https://github.com/kerniger/leapmotor-ha).
 
 Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection** to verify the broker before saving. After a command the state now updates in Home Assistant immediately (no waiting for the next poll), and the **topic prefix** scopes the device — so you can run a second instance on a different prefix without it clashing with the first.
