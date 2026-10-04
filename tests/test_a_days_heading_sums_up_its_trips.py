@@ -195,3 +195,16 @@ def test_every_figure_in_the_heading_says_what_it_is(tmp_path, monkeypatch):
     spans = re.findall(r"<span[^>]*>", line)
     assert len(spans) >= 6, spans
     assert [s for s in spans if "data-tip=" not in s or "title=" in s] == []
+
+
+def test_every_figure_in_the_month_strip_says_what_it_is(tmp_path, monkeypatch):
+    """The strip over the calendar sums the month the way the heading sums a day, and names its bare
+    figures the same way; "2 trips" carries its own noun and needs no tooltip."""
+    _install(tmp_path, monkeypatch, [("08:00", "08:30", 84, 60), ("17:00", "17:40", 60, 52)])
+    _sql("UPDATE trips SET efficiency_kwh_100km = 15.0")
+    html = _client().get("/api/trips/calendar", params={"year": 2026, "month": 7}).text
+    line = re.search(r'justify-center gap-4 text-sm mb-4[^>]*>(.*?)</div>', html, re.DOTALL).group(1)
+    spans = [(tag, text.strip()) for tag, text in re.findall(r"(<span[^>]*>)([^<]*)", line)]
+    figures = [(tag, text) for tag, text in spans if "trips" not in text]
+    assert len(figures) >= 2, spans
+    assert [text for tag, text in figures if "data-tip=" not in tag] == []
