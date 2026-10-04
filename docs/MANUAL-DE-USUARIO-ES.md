@@ -867,7 +867,7 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   solo los de ese día, o usa la **búsqueda** con un intervalo de fechas, una distancia o una ventana
   de consumo para sacar un conjunto de todo el histórico. La cabecera de un día abierto dice cuánta
   batería gastaron sus trayectos: *84,4% → 51,6% (−32,8%)* o, si el coche cargó entre ellos, *−45,3%* gastado y
-  *⚡ +40,2%* cargado.
+  *⚡ +40,2%* cargado, y cuánto tiempo se condujo ese día.
 - **Unir trayectos, desde el día que estás mirando.** Una parada lo bastante larga como para cerrar un
   recorrido puede partir un mismo viaje en dos filas. Abre un día y el botón **🔗** que hay junto a la
   fecha te ofrece las parejas de ese día que se pueden unir: un deslizador amplía lo que cuenta como

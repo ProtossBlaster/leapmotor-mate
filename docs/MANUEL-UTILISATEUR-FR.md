@@ -886,7 +886,8 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
 - En cliquant sur un trajet, vous ouvrez le **détail**, avec le **tracé GPS** sur la carte et les données de
   ce trajet précis.
 - L'en-tête d'un jour ouvert dans le calendrier indique la batterie consommée par ses trajets :
-  *84,4% → 51,6% (−32,8%)* ou, si la voiture a chargé entre deux trajets, *−45,3%* consommés et *⚡ +40,2%* chargés.
+  *84,4% → 51,6% (−32,8%)* ou, si la voiture a chargé entre deux trajets, *−45,3%* consommés et *⚡ +40,2%* chargés,
+  ainsi que le temps de conduite de la journée.
 - Vous pouvez **fusionner** deux trajets coupés par erreur (Fusionner 🔗) ou les **séparer** à nouveau, et
   **supprimer** un trajet.
 - Les arrêts brefs (feux, embouteillages) **ne** coupent **pas** un trajet : une conduite reste une seule

@@ -161,3 +161,25 @@ def test_both_routes_print_the_same_heading(tmp_path, monkeypatch):
     month = client.get("/api/trips/calendar", params={"year": 2026, "month": 7, "open_day": 4}).text
     assert _sums(drawer).startswith("−45.0% ⚡ +40.0%"), _sums(drawer)
     assert _sums(month) == _sums(drawer)
+
+
+def test_the_heading_says_how_long_the_day_was_driven(tmp_path, monkeypatch):
+    sums = _day(tmp_path, monkeypatch, [("08:00", "08:30", 84, 70), ("12:00", "12:30", 70, 62),
+                                        ("17:00", "17:40", 62, 52)])
+    assert "30 km 1h 00m" in sums, sums
+    assert 'data-tip="Drive Time">1h 00m<' in _drawer(), "the driving time does not say what it is"
+
+
+def test_the_driving_time_is_what_the_rows_add_up_to(tmp_path, monkeypatch):
+    """Three trips of 20.4 min print as 20 min each: 1h 00m on screen, though they drove 61.2."""
+    _install(tmp_path, monkeypatch, [("08:00", "08:30", 84, 70), ("12:00", "12:30", 70, 62),
+                                     ("17:00", "17:40", 62, 52)])
+    _sql("UPDATE trips SET duration_min = 20.4")
+    assert "30 km 1h 00m" in _sums(_drawer())
+
+
+def test_a_trip_without_a_duration_takes_the_driving_time_away(tmp_path, monkeypatch):
+    _install(tmp_path, monkeypatch, [("08:00", "08:30", 84, 70), ("17:00", "17:40", 62, 52)])
+    _sql("UPDATE trips SET duration_min = NULL WHERE id = 2")
+    sums = _sums(_drawer())
+    assert re.search(r"20 km\s*$", sums), sums

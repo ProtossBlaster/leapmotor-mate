@@ -824,7 +824,8 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
 - **A calendar, and a search.** Trips are browsed by **month**; click a day to see just that day's
   drives, or use the **search** with a date range, a distance or an efficiency window to pull out a
   set across the whole history. An open day's heading says how much battery its trips used:
-  *84.4% → 51.6% (−32.8%)*, or, when the car charged between them, *−45.3%* used and *⚡ +40.2%* charged.
+  *84.4% → 51.6% (−32.8%)*, or, when the car charged between them, *−45.3%* used and *⚡ +40.2%* charged,
+  and how long the day was driven.
 - **Merging, from the day you are looking at.** A stop long enough to end a drive can split one
   journey into two rows. Open a day and the **🔗** button beside its date offers that day's joinable
   pairs: a slider widens what counts as one stop, you preview the combined route before committing,

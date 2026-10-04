@@ -6838,6 +6838,9 @@ def trips_day_totals(trips: list[dict]) -> dict:
     for both routes that render the drawer, so the heading cannot differ between them."""
     node = trips_totals(trips)
     node.update(_day_battery(trips))
+    mins = [t.get("duration_min") for t in trips]
+    # Whole minutes as each row prints them, so the heading is what the rows add up to.
+    node["drive_min"] = sum(round(m) for m in mins) if mins and None not in mins else None
     return node
 
 
