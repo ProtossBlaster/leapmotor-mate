@@ -44,7 +44,7 @@ class VehicleData:
     climate_defrost: bool     # windshield defrost active (signal 1945 == 2)
     trunk_open: bool
     windows_open: bool
-    sunshade_open: bool
+    sunshade_pct: int | None  # how far the sunshade is open, % (signal 1724); 0 = closed, None = not said
     any_door_open: bool       # driver/passenger/rear doors or trunk
     plug_connected: bool      # cable inserted (signal 1149)
     remaining_charge_min: int # minutes to full (signal 1200), 0 when not charging
@@ -806,7 +806,7 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         climate_power=_si(sig, "1348"),   # 1348 PTC power (W)
         trunk_open=int(sig.get("1281") or 0) != 0,
         windows_open=any(bool(w) for w in win_states),
-        sunshade_open=int(sig.get("1724") or 0) != 0,
+        sunshade_pct=_si(sig, "1724"),
         any_door_open=any(
             int(sig.get(k) or 0) != 0
             for k in ("1277", "1278", "1279", "1280", "1281")

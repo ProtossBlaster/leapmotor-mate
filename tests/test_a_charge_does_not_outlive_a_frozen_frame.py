@@ -49,7 +49,7 @@ def _vd(*, charging=0, plug=True, deferred=False, ts=1000, soc=80.0, odo=1000.0)
         charging_status=charging, charge_power_kw=1.9, latitude=45.0, longitude=9.0,
         outside_temp=None, inside_temp=20.0, climate_target_temp=21.0, battery_min_temp=15.0,
         is_locked=True, climate_on=False, climate_cooling=False, climate_heating=False,
-        climate_defrost=False, trunk_open=False, windows_open=False, sunshade_open=False,
+        climate_defrost=False, trunk_open=False, windows_open=False, sunshade_pct=0,
         any_door_open=False, plug_connected=plug, remaining_charge_min=0,
         charge_voltage_v=230.0, charge_current_a=-5.3, charge_deferred=deferred,
     )

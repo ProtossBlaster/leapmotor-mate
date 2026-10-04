@@ -87,7 +87,7 @@ def _frame(ts, km):
         latitude=45.0 + km * 0.01, longitude=9.0, outside_temp=None, inside_temp=20.0, climate_target_temp=21.0,
         battery_min_temp=15.0, is_locked=True, climate_on=False, climate_cooling=False,
         climate_heating=False, climate_defrost=False, trunk_open=False, windows_open=False,
-        sunshade_open=False, any_door_open=False, plug_connected=False, remaining_charge_min=0,
+        sunshade_pct=0, any_door_open=False, plug_connected=False, remaining_charge_min=0,
         charge_voltage_v=0.0, charge_current_a=0.0)
 
 

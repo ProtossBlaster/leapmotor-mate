@@ -4085,6 +4085,12 @@ def save_fresh_signals(signals: dict) -> None:
         except (TypeError, ValueError):
             return None
 
+    def sigi_or_none(key):   # as the poller's _si
+        try:
+            return int(signals[key]) if signals.get(key) is not None else None
+        except (TypeError, ValueError):
+            return None
+
     def _is_charging() -> bool:
         """Charging only happens while PARKED, so the car must be stationary (gear P,
         speed ~0); plus the cable plugged in (1149) AND a real charge current (1178). The
@@ -4166,7 +4172,7 @@ def save_fresh_signals(signals: dict) -> None:
             battery_min_temp, climate_target_temp, inside_temp,
             is_locked, climate_on, plug_connected,
             climate_cooling, climate_heating, climate_defrost,
-            trunk_open, windows_open, sunshade_open,
+            trunk_open, windows_open, sunshade_pct,
             remaining_charge_min, charge_voltage_v, charge_current_a, charge_completed, security_active,
             ready, windows_open_count,
             door_driver_open, door_passenger_open, door_rear_left_open, door_rear_right_open,
@@ -4187,7 +4193,8 @@ def save_fresh_signals(signals: dict) -> None:
             sigf("1182"), sigf("2183"), sigf("1349"),
             sig("1298"), sig("1938"), int(plug_connected),
             int(sig("2669") == 2), int(sig("2681") == 2), int(sig("1945") == 2),
-            sig("1281"), windows_open, sig("1724"),
+            sig("1281"), windows_open,
+            sigi_or_none("1724"),
             sig("1200") or None,
             sigf("1177") or None,
             sigf("1178") or None,

@@ -52,7 +52,7 @@ def _discovery():
         latitude=45.0, longitude=9.0, outside_temp=20, inside_temp=22, climate_target_temp=22,
         battery_min_temp=20, is_locked=True, climate_on=False, climate_cooling=False,
         climate_heating=False, climate_defrost=False, trunk_open=False, windows_open=False,
-        sunshade_open=False, any_door_open=False, plug_connected=False,
+        sunshade_pct=0, any_door_open=False, plug_connected=False,
         remaining_charge_min=0, charge_voltage_v=0.0, charge_current_a=0.0))
     return svc.client.published
 

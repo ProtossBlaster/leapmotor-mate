@@ -5942,8 +5942,8 @@ _OPTIMISTIC = {
     # closed — the Overview "Finestrini aperti N" badge flips with the state instead of lagging.
     "open_windows":  {"windows_open": 1, "windows_open_count": 4, "window_fl_open": 1, "window_rl_open": 1},
     "close_windows": {"windows_open": 0, "windows_open_count": 0, "window_fl_open": 0, "window_rl_open": 0},
-    "open_sunshade": {"sunshade_open": 1},
-    "close_sunshade":{"sunshade_open": 0},
+    "open_sunshade": {"sunshade_pct": 100},
+    "close_sunshade":{"sunshade_pct": 0},
 }
 
 # Climate tiles: a tile that's ON is turned off by sending ac_switch (best-effort —
@@ -5975,7 +5975,7 @@ _FIELD_CHECK = {
     "is_locked":       lambda sig: int(sig.get("1298") or 0) == 1,
     "trunk_open":      lambda sig: int(sig.get("1281") or 0) != 0,
     "windows_open":    _windows_open_now,
-    "sunshade_open":   lambda sig: int(sig.get("1724") or 0) != 0,   # 1724 = shade opening % (0 = closed)
+    "sunshade_pct":    lambda sig: int(sig.get("1724") or 0) != 0,   # 1724 = shade opening % (0 = closed)
     "climate_on":      lambda sig: int(sig.get("1938") or 0) == 1,
     "climate_cooling": lambda sig: int(sig.get("2669") or 0) == 2,
     "climate_heating": lambda sig: int(sig.get("2681") or 0) == 2,

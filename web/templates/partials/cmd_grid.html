@@ -3,7 +3,7 @@
 {% set locked   = status.is_locked      if status and status.is_locked      is not none else none %}
 {% set trunk    = status.trunk_open     if status and status.trunk_open     is not none else none %}
 {% set wins     = status.windows_open   if status and status.windows_open   is not none else none %}
-{% set shade    = status.sunshade_open  if status and status.sunshade_open  is not none else none %}
+{% set shade    = ((status.sunshade_pct or 0) != 0) if status else none %}
 {% set charging = status.charging       if status else none %}
 {% set plugged  = status.cable_connected if status and status.cable_connected is not none else none %}
 {% set clim_cool    = status.climate_cooling if status and status.climate_cooling is not none else none %}

@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS positions (
     climate_defrost  INTEGER DEFAULT NULL,
     trunk_open       INTEGER DEFAULT NULL,
     windows_open     INTEGER DEFAULT NULL,
-    sunshade_open    INTEGER DEFAULT NULL,
+    sunshade_pct     INTEGER DEFAULT NULL,   -- how far the sunshade is open, % (signal 1724); NULL = not said
     plug_connected   INTEGER DEFAULT NULL,
     ready            INTEGER DEFAULT NULL,
     charge_completed INTEGER DEFAULT NULL,
@@ -365,8 +365,9 @@ def ensure_schema(conn) -> None:
         _add_column(conn, "ALTER TABLE positions ADD COLUMN trunk_open INTEGER DEFAULT NULL")
     if "windows_open" not in cols:
         _add_column(conn, "ALTER TABLE positions ADD COLUMN windows_open INTEGER DEFAULT NULL")
-    if "sunshade_open" not in cols:
-        _add_column(conn, "ALTER TABLE positions ADD COLUMN sunshade_open INTEGER DEFAULT NULL")
+    # Replaces sunshade_open, whose 0/1 is not a percent; an older database keeps that column, unused.
+    if "sunshade_pct" not in cols:
+        _add_column(conn, "ALTER TABLE positions ADD COLUMN sunshade_pct INTEGER DEFAULT NULL")
     if "plug_connected" not in cols:
         _add_column(conn, "ALTER TABLE positions ADD COLUMN plug_connected INTEGER DEFAULT NULL")
     if "remaining_charge_min" not in cols:

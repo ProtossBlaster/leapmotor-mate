@@ -411,7 +411,7 @@ class MqttService:
         pub("tire_fl", data.tire_fl_bar);       pub("tire_fr", data.tire_fr_bar)
         pub("tire_rl", data.tire_rl_bar);       pub("tire_rr", data.tire_rr_bar)
         pub("any_door_open", data.any_door_open); pub("trunk_open", data.trunk_open)
-        pub("windows_open", data.windows_open); pub("sunshade_open", data.sunshade_open)
+        pub("windows_open", data.windows_open); pub("sunshade_open", bool(data.sunshade_pct))
         pub("door_driver", data.door_driver_open);       pub("door_passenger", data.door_passenger_open)
         pub("door_rear_left", data.door_rear_left_open); pub("door_rear_right", data.door_rear_right_open)
         pub("window_fl", data.window_fl_open);  pub("window_fr", data.window_fr_open)
