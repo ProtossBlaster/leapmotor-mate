@@ -101,7 +101,7 @@ def test_an_end_whose_start_is_listed_names_no_start(tmp_path, monkeypatch):
     event_row(car, "trunk", _local(14, 19))
     event_row(car, "trunk", _local(14, 20), state=0)
     html = client.get(f"/events?date_from={DAY}&date_to={DAY}").text
-    assert row_text(html, "ev-signal-2") == "Tailgate closed · 1 min"
+    assert row_text(html, "ev-signal-2") == "Tailgate closed · after 1 min"
     assert html.count('<i class="dot d-doors j"></i>') == 2, "both dots joined by the line"
 
 

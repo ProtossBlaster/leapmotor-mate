@@ -98,6 +98,10 @@ def test_the_time_is_the_cars_to_the_second_and_its_tooltip_names_both(tmp_path,
         "Mate's clock names its day where it wrote on another"
 
 
+# An end names the state that began; its time is the one before: "Locked · after 2 min".
+AFTER = {"en": "after", "pl": "po", "es": "tras"}
+
+
 @pytest.mark.parametrize("lang", ["en", "pl"])
 def test_a_state_shorter_than_a_minute_lasts_seconds(tmp_path, monkeypatch, lang):
     car = Car(tmp_path)
@@ -107,8 +111,8 @@ def test_a_state_shorter_than_a_minute_lasts_seconds(tmp_path, monkeypatch, lang
     event_row(car, "unlocked", _local(16))
     event_row(car, "unlocked", _local(16) + timedelta(seconds=90), state=0)
     html = _day_page(client)
-    assert row_text(html, "ev-signal-2").endswith(" · 35s")
-    assert row_text(html, "ev-signal-4").endswith(" · 2 min")
+    assert row_text(html, "ev-signal-2").endswith(f" · {AFTER[lang]} 35s")
+    assert row_text(html, "ev-signal-4").endswith(f" · {AFTER[lang]} 2 min")
 
 
 @pytest.mark.parametrize("lang, chip", [("en", "from {day} 08:00:00"), ("es", "desde el {day} a las 08:00:00")])
@@ -122,7 +126,8 @@ def test_a_start_off_the_list_is_named_in_a_chip(tmp_path, monkeypatch, lang, ch
     html = _day_page(client)
     began = db_reader.i18n.fmt_day_month_year(lang, DAY - timedelta(days=2)).replace(" ", "\xa0")   # a date stays whole
     assert f'<span class="ev-chip ev-wrap">{chip.format(day=began)}</span>' in html
-    assert row_text(html, "ev-signal-4").endswith(" · 3 min"), "a start on the list is joined by a line, not named"
+    assert row_text(html, "ev-signal-4").endswith(f" · {AFTER[lang]} 3 min"), \
+        "a start on the list is joined by a line, not named"
 
 
 def test_a_start_the_word_hides_is_named_in_a_chip(tmp_path, monkeypatch):
