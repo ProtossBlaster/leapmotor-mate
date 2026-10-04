@@ -5975,7 +5975,7 @@ _FIELD_CHECK = {
     "is_locked":       lambda sig: int(sig.get("1298") or 0) == 1,
     "trunk_open":      lambda sig: int(sig.get("1281") or 0) != 0,
     "windows_open":    _windows_open_now,
-    "sunshade_pct":    lambda sig: int(sig.get("1724") or 0) != 0,   # 1724 = shade opening % (0 = closed)
+    "sunshade_pct":    lambda sig: int(sig.get("1724") or 0),   # 1724 = shade opening % (0 = closed)
     "climate_on":      lambda sig: int(sig.get("1938") or 0) == 1,
     "climate_cooling": lambda sig: int(sig.get("2669") or 0) == 2,
     "climate_heating": lambda sig: int(sig.get("2681") or 0) == 2,
@@ -6008,10 +6008,14 @@ def _cmd_error_html(msg: str) -> str:
 
 
 def _command_confirmed(expected: dict, signals: dict) -> bool:
-    """True when the live signals match every expected field (empty expected → True)."""
+    """True when the live signals match every expected field (empty expected → True). A flag matches
+    as on/off; a level (the sunshade's percent) only once it reaches the value asked for."""
     for field, want in expected.items():
         checker = _FIELD_CHECK.get(field)
-        if checker and bool(checker(signals)) != bool(want):
+        if checker is None:
+            continue
+        got = checker(signals)
+        if (bool(got) != bool(want)) if isinstance(got, bool) else got != want:
             return False
     return True
 

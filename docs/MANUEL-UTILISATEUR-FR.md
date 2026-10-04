@@ -1399,6 +1399,9 @@ car c'est la première échéance atteinte qui compte.
 **(menu : Commandes)** — Les **commandes à distance**. D'ici, vous pouvez :
 
 - **verrouiller/déverrouiller**, ouvrir le **coffre**, **localiser la voiture** (klaxon/phares) ;
+- ouvrir ou fermer le **store** du toit panoramique : la tuile indique de combien il est ouvert et, s'il
+  s'est arrêté à mi-course, propose **Ouvrir** (en entier) et **Fermer**, les deux seules que la voiture
+  exécute ;
 - gérer la **climatisation** : refroidissement, chauffage, dégivrage, ventilation, **extinction** ;
 - activer le **chauffage des sièges**, du **volant** et des **rétroviseurs** (là où c'est pris en charge) ;
 - gérer la **limite de charge**.

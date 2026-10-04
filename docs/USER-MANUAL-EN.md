@@ -1294,6 +1294,8 @@ because whatever comes first is what's due.
 **(menu: Commands)** — The **remote commands**. From here you can:
 
 - **lock/unlock**, open the **trunk**, **find the car** (horn/lights);
+- open or close the **sunshade** of the panoramic roof: the tile says how far it is open, and when it was
+  stopped part-way it offers both **Open** (all the way) and **Close**, the only two the car acts on;
 - manage the **climate**: cooling, heating, defrost, ventilation, **switch off**;
 - activate **seat heating**, **steering wheel** and **mirror heating** (where supported);
 - manage the **charge limit**.

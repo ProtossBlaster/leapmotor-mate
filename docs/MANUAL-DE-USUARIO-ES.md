@@ -1372,6 +1372,8 @@ toca es lo que llegue primero.
 **(menú: Comandos)** — Los **comandos a distancia**. Desde aquí puedes:
 
 - **abrir y cerrar**, abrir el **maletero**, **localizar el coche** (claxon/luces);
+- abrir o cerrar la **cortinilla** del techo panorámico: la casilla indica cuánto está abierta y, si se
+  detuvo a medio camino, ofrece **Abrir** (del todo) y **Cerrar**, las dos únicas que el coche ejecuta;
 - gestionar la **climatización**: frío, calor, desempañado, ventilación, **apagar**;
 - activar la **calefacción de los asientos**, el **volante** y los **retrovisores calefactados** (donde
   estén disponibles);

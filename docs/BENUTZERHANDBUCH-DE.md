@@ -1376,6 +1376,9 @@ zuerst eintritt.
 **(Menü: Befehle)** — Die **Fernbefehle**. Von hier aus können Sie:
 
 - **verriegeln/entriegeln**, den **Kofferraum** öffnen, das **Auto finden** (Hupe/Lichter);
+- das **Sonnenrollo** des Panoramadachs öffnen oder schließen: Die Kachel zeigt, wie weit es offen ist,
+  und wurde es auf halbem Weg angehalten, bietet sie **Öffnen** (ganz) und **Schließen** an, die einzigen
+  beiden, die das Auto ausführt;
 - das **Klima** steuern: Kühlen, Heizen, Enteisen, Lüften, **Ausschalten**;
 - **Sitzheizung**, **Lenkrad** und **Spiegel** aktivieren (wo unterstützt);
 - das **Ladelimit** verwalten.

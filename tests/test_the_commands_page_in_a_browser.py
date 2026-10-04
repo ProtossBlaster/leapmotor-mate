@@ -10,6 +10,9 @@ only switches the wheel off or on at II (test_steering_heat_shows_its_level.py h
 the command). The tests move the thumb the way a finger does, one `input` per position crossed,
 and the way a keyboard does, arrow keys, which also commit the change and send it.
 
+A sunshade stopped part-way offers both of its commands, so the page cannot read the end of one
+from the other's button appearing; it waits for the percent the command asked for.
+
 It needs fastapi, uvicorn, playwright and a Chromium, none of them in CI's minimal env, so it
 skips there and guards the laptop it runs on.
 """
@@ -747,3 +750,33 @@ def test_the_slider_is_named_for_a_screen_reader(commands):
     """The button it replaces was announced as "Turn On"; a slider with no name is announced as "0"."""
     page, _ = commands(0)
     assert page.get_by_role("slider", name="Steering heat").count() == 1
+
+
+@pytest.fixture
+def shade(mate):
+    """The poller's side: the sunshade's percent in the newest position, back to unknown after."""
+    def report(pct):
+        conn = sqlite3.connect(mate.db)
+        conn.execute("UPDATE positions SET sunshade_pct = ? WHERE vehicle_id = 1", (pct,))
+        conn.commit()
+        conn.close()
+    yield report
+    report(None)
+
+
+@pytest.mark.parametrize("press, moving, end", [("open_sunshade", 70, 100), ("close_sunshade", 35, 0)])
+def test_a_sunshade_command_from_part_way_is_busy_until_the_end_it_asked_for(commands, shade, press, moving, end):
+    shade(50)
+    page, sent = commands(0, fake_clock=True)
+    page.click(f'[hx-post="api/command/{press}"]')
+    page.keyboard.press("Enter")                 # the in-app "are you sure?"
+    page.wait_for_timeout(300)
+    assert sent == [press]
+    _tick(page, 1_600)                           # both buttons are still there
+    shade(moving)
+    _tick(page, 10_000)                          # past the 10 s floor, the sunshade on its way
+    assert page.evaluate("isBusy()")
+    shade(end)
+    _tick(page, 6_000)                           # the 15 s refetch brings the end
+    assert not page.evaluate("isBusy()")
+    assert page.errors == []

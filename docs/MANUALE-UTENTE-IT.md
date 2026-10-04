@@ -1356,6 +1356,8 @@ il **tempo**, perché scade ciò che arriva prima.
 **(menu: Comandi)** — I **comandi a distanza**. Da qui puoi:
 
 - **chiudere/aprire**, aprire il **bagagliaio**, **trovare l'auto** (clacson/luci);
+- aprire o chiudere la **tendina** del tetto panoramico: il riquadro dice quanto è aperta e, se si è
+  fermata a metà, offre **Apri** (del tutto) e **Chiudi**, le sole due che l'auto esegue;
 - gestire il **clima**: raffrescamento, riscaldamento, sbrinamento, ventilazione, **spegnimento**;
 - attivare **riscaldamento sedili**, **volante** e **specchietti** (dove supportato);
 - gestire il **limite di carica**.
