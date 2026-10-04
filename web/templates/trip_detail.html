@@ -248,10 +248,11 @@
         <span id="ec-convert-msg" class="ml-2"></span>
       </div>
       {% endif %}
-      {% if trip.ec_stable and not trip.reconstructed %}
+      {% if trip.ec_stable and not trip.reconstructed and trip.efficiency_soc is not none %}
       <!-- Revert this trip's official-data conversion back to the SoC estimate (the value backed up
            at convert time). Recovery path if a conversion landed on incomplete cloud data (#96).
-           Reconstructed trips are ec_stable=1 to skip enrichment but were never converted → no revert. -->
+           Reconstructed trips are ec_stable=1 to skip enrichment but were never converted → no revert.
+           A trip with no estimate kept aside (one from the cloud's history) has nothing to go back to either. -->
       <div class="mt-3">
         <button type="button"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 text-slate-300 px-3 py-1.5 text-xs font-medium hover:border-slate-400 hover:text-white"
