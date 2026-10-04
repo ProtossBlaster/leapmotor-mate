@@ -85,7 +85,7 @@ def test_the_hover_explains_which_kilometres(path):
     totals = {"kwh_100km": 10.4, "kwh_100km_km": 452.0, "km": 479.0, "avg_eff": None}
     _, html = _render(path, totals)
     assert "energy data" in html, "the (i) carries no explanation"
-    assert "title=" in html
+    assert ("data-tip=" if path is MONTH else "title=") in html   # the app's tooltip, which also opens on a tap
 
 
 @pytest.mark.parametrize("path", [MONTH, DAY])
