@@ -214,5 +214,14 @@ def test_a_trip_row_gives_its_battery_on_a_phone_too(tmp_path, monkeypatch):
     """The wide column with the battery bar is `hidden sm:flex`: a phone gets the figures on a line of
     their own, in the slot that says when there are none."""
     _install(tmp_path, monkeypatch, [("08:00", "08:30", 84.4, 51.6), ("17:00", "17:40", None, None)])
-    phone = re.findall(r'<div class="sm:hidden text-slate-500 text-\[10px\]">([^<]*)</div>', _drawer())
-    assert sorted(phone) == ["84→52%", "SoC unavailable"], phone
+    phone = [re.sub(r"<[^>]+>", "", m) for m in
+             re.findall(r'<div class="sm:hidden text-slate-500 text-\[10px\]">(.*?)</div>', _drawer())]
+    assert sorted(phone) == ["84.4→51.6% (−32.8%)", "SoC unavailable"], phone
+
+
+def test_a_trip_row_says_how_much_battery_it_used(tmp_path, monkeypatch):
+    """Beside the two percentages, their change as printed: 84.44 → 51.66 reads "84.4→51.7% (−32.7%)"."""
+    _install(tmp_path, monkeypatch, [("08:00", "08:30", 84.44, 51.66), ("17:00", "17:40", 51.6, 52.0)])
+    wide = [re.sub(r"\s+", " ", m).strip()
+            for m in re.findall(r'<div class="text-slate-500 text-\[11px\]">([^<]*)</div>', _drawer())]
+    assert sorted(wide) == ["51.6→52.0% (+0.4%)", "84.4→51.7% (−32.7%)"], wide
