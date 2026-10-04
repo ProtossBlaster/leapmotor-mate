@@ -183,3 +183,15 @@ def test_a_trip_without_a_duration_takes_the_driving_time_away(tmp_path, monkeyp
     _sql("UPDATE trips SET duration_min = NULL WHERE id = 2")
     sums = _sums(_drawer())
     assert re.search(r"20 km\s*$", sums), sums
+
+
+def test_every_figure_in_the_heading_says_what_it_is(tmp_path, monkeypatch):
+    """A bare "1h 54m" or "73 km" in a row of numbers does not say what it counts. Each one names
+    itself in a data-tip, the app's tooltip that also opens on a tap; a `title` never shows on touch."""
+    _install(tmp_path, monkeypatch, [("08:00", "08:30", 84, 60), ("17:00", "17:40", 100, 79)],
+             charges=[("09:00", "11:00", 60, 100)])
+    _sql("UPDATE trips SET efficiency_kwh_100km = 15.0, regen_kwh = 0.5")
+    line = re.search(r'justify-end gap-x-3[^>]*>(.*?)</div>', _drawer(), re.DOTALL).group(1)
+    spans = re.findall(r"<span[^>]*>", line)
+    assert len(spans) >= 6, spans
+    assert [s for s in spans if "data-tip=" not in s or "title=" in s] == []
