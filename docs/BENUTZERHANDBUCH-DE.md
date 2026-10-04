@@ -1210,7 +1210,7 @@ wird geladen, sobald das Ende der Liste sichtbar wird.
 - **Beginn und Ende sind zwei Zeilen, verbunden durch eine Linie.** Links von den Uhrzeiten verbindet eine
   Linie in der Farbe der Gruppe den Punkt eines Endes mit dem seines Beginns, wie in einer grafischen
   Git-Historie; so sieht man auf einen Blick, was gleichzeitig lief und wie lange. Das Ende sagt, wie
-  lange der Zustand dauerte — „Heckklappe geschlossen · 35s“ —, und ein Klick auf die Linie oder einen
+  lange der Zustand dauerte — „Heckklappe geschlossen · nach 35s“ —, und ein Klick auf die Linie oder einen
   Punkt hebt das Paar und seine beiden Zeilen hervor, ohne die Liste zu verschieben. Liegt der Beginn vor
   den angezeigten Tagen, läuft die Linie blass über den unteren Rand der Liste hinaus, und das Ende nennt
   ihn: „ab 02 Okt 2026 14:20:05“. Ein noch laufender Zustand führt seine Linie bis nach oben und sagt

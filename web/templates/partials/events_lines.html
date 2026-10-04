@@ -17,13 +17,7 @@
 {%- if e.distance_km is not none %} <b>{{ e.distance_km|dist }}</b>{% endif %}
 {%- if e.energy_kwh is not none %} <b>{{ e.energy_kwh|nice }} kWh</b>{% endif %}
 {%- if e.duration_min is not none %}{% set dur %}{% if e.duration_min * 60 < 59.5 %}{{ (e.duration_min * 60)|round|int }}s{% else %}{{ fmt_dur(e.duration_min) }}{% endif %}{% endset %}
-{#- An end's figure is how long the state it CLOSES lasted — "Locked · 35s" is a car that was
-    unlocked for 35 seconds, and the line drawn to the start row is what says so. The figure stays
-    as terse as the row, and names that state where there is room for words: naming it in the row
-    itself would print the kind twice ("Tailgate closed · Tailgate open for 35s"). A trip's and a
-    charge's end carry their page's driving time instead, which is about the row and needs no state. -#}
-{%- if e.source == 'signal' and e.on is false %} <b title="{{ t('events_lasted').format(state=t('events_kind_' ~ e.kind), dur=dur|trim) }}">{{ dur }}</b>
-{%- else %} <b>{{ dur }}</b>{% endif %}{% endif %}
+  {#- A signal's end names the state that began, the time is the one before it: "Locked · after 2 min". #} <b>{{ t('events_after').format(dur=dur) if e.source == 'signal' else dur }}</b>{% endif %}
 {%- if e.soc_from is not none and e.soc_to is not none %} <b>{{ e.soc_from|dec(1) }}% → {{ e.soc_to|dec(1) }}%</b>{% endif %}
 {%- if e.cost is not none %} <b class="ev-cost">{{ e.cost|money }}</b>{% endif %}
 {%- if e.waited_min is not none %}{% set w = t('events_waited').split('{dur}') %} <b class="ev-wait ev-wrap">{{ w[0] }}<span>{{ fmt_dur(e.waited_min) }}</span>{{ w[1] }}</b>{% endif %}
