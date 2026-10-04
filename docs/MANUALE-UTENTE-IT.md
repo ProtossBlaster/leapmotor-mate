@@ -849,7 +849,8 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   efficienza per tirare fuori un insieme da tutta la cronologia. L'intestazione di un giorno aperto dice
   quanta batteria hanno usato i suoi viaggi: *84,4% → 51,6% (−32,8%)* oppure, se l'auto ha caricato tra un viaggio e
   l'altro, *−45,3%* usato e *⚡ +40,2%* caricato,
-  e quanto si è guidato quel giorno.
+  e quanto si è guidato quel giorno. Sul telefono anche la riga di ogni viaggio mostra la batteria,
+  *84→52%*, sotto la durata.
 - **L'unione parte dal giorno che stai guardando.** Una sosta abbastanza lunga da chiudere una guidata
   può spezzare un unico spostamento in due righe. Apri un giorno e il pulsante **🔗** accanto alla data
   ti propone le coppie unibili *di quel giorno*: un cursore allarga cosa conta come una sola sosta,

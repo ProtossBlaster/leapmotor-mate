@@ -40,7 +40,8 @@
     </div>
     <div class="text-slate-500 text-xs">{{ fmt_dur(trip.duration_min) }}{% if trip.is_merged %} · {{ t('driving_only') }}{% endif %}</div>
     {% if trip.is_cloud %}<div class="text-slate-400 text-[10px]">{{ t('cloud_source') }}</div>{% endif %}
-    {% if trip.start_soc is none or trip.end_soc is none %}<div class="sm:hidden text-slate-500 text-[10px]">{{ t('soc_unavailable') }}</div>{% endif %}
+    {# The battery column is hidden on a phone, so its figures, or why there are none, come here. #}
+    <div class="sm:hidden text-slate-500 text-[10px]">{% if trip.start_soc is none or trip.end_soc is none %}{{ t('soc_unavailable') }}{% else %}{{ trip.start_soc|dec(0) }}→{{ trip.end_soc|dec(0) }}%{% endif %}</div>
   </div>
 
   <div class="hidden sm:flex flex-col items-end gap-1 flex-shrink-0">

@@ -208,3 +208,11 @@ def test_every_figure_in_the_month_strip_says_what_it_is(tmp_path, monkeypatch):
     figures = [(tag, text) for tag, text in spans if "trips" not in text]
     assert len(figures) >= 2, spans
     assert [text for tag, text in figures if "data-tip=" not in tag] == []
+
+
+def test_a_trip_row_gives_its_battery_on_a_phone_too(tmp_path, monkeypatch):
+    """The wide column with the battery bar is `hidden sm:flex`: a phone gets the figures on a line of
+    their own, in the slot that says when there are none."""
+    _install(tmp_path, monkeypatch, [("08:00", "08:30", 84.4, 51.6), ("17:00", "17:40", None, None)])
+    phone = re.findall(r'<div class="sm:hidden text-slate-500 text-\[10px\]">([^<]*)</div>', _drawer())
+    assert sorted(phone) == ["84→52%", "SoC unavailable"], phone
