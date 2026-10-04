@@ -3,6 +3,27 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.10.0] — 2026-10-05
+
+- **A day's battery and driving time in the Trips drawer**
+  ([#392](https://github.com/ProtossBlaster/leapmotor-mate/pull/392), @arekm). An open day's heading says how much battery its trips used, from
+  the first to the last — or, with a charge in between, what the trips used and what the charges
+  added — and how long the day was driven, reconstructed trips left out as Statistics leaves them. A
+  missing reading leaves the battery figure out. Every figure in a day's heading and in the month strip
+  says what it is, on a tap too; each trip row gives its battery change, on a phone as well, where the
+  trip's times no longer shrink to nothing at 390 px.
+- **"Revert to estimate" only where there is an estimate to go back to**
+  ([#396](https://github.com/ProtossBlaster/leapmotor-mate/pull/396), @arekm). On a trip with none kept aside the button asked for confirmation
+  and changed nothing; on a real history it leaves 57 of the 467 trips that showed it.
+- **A charge schedule waits for the car's word, and every command logs what it sent**
+  ([#395](https://github.com/ProtossBlaster/leapmotor-mate/issues/395), @ViriatusOG). Since the independent client an accepted command read
+  "Cloud accepted; physical execution not confirmed", whatever the car did. A charge schedule and a
+  navigator destination, which no signal of the car shows, now ask the cloud for the car's answer once
+  a second, for the time the cloud gives the car — on a B10, 30 s asleep and 5 s awake: "Schedule
+  saved" when the car says yes, the amber "did not confirm in time" when it stays silent, and then
+  Mate keeps the times it had. Every command writes one line in the log: what it carried, without a
+  destination's address and coordinates, and what the cloud answered.
+
 ## [4.9.2] — 2026-10-04
 
 - **An end says its time came after the state before**

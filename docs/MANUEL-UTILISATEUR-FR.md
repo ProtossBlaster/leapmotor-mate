@@ -1,8 +1,32 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.9.2 · **Langue :** Français
+> **Version de Mate :** v4.10.0 · **Langue :** Français
 
-## Nouveautés de la version 4.9.2
+## Nouveautés de la version 4.10.0
+
+**La batterie et le temps de conduite du jour dans Trajets.** Ouvrez un jour dans le calendrier des
+Trajets : son en-tête indique désormais la batterie consommée par les trajets du jour,
+*84,4% → 51,6% (−32,8%)* du premier trajet au dernier — ou, si la voiture a chargé entre-temps, ce que
+les trajets ont consommé et ce que les recharges ont ajouté, *−45,3%* et *⚡ +40,2%* — ainsi que le temps
+de conduite de la journée, sans les trajets reconstruits, comme le fait Statistiques. S'il manque une
+lecture, la batterie n'apparaît pas au lieu d'être devinée. Chaque chiffre de l'en-tête du jour et de
+la bande du mois dit ce qu'il est quand on le survole ou qu'on le touche. La ligne de chaque trajet
+affiche sa variation de batterie, *84,4→51,6% (−32,8%)*, aussi sur un téléphone, où les heures du
+trajet ne sont plus écrasées. Par @arekm (#392).
+
+**« Rétablir l'estimation » seulement là où il y en a une.** Sur la page d'un trajet, le bouton
+apparaissait aussi sur des trajets sans estimation mise de côté, où il demandait une confirmation puis
+ne changeait rien. Il n'apparaît plus que là où il peut rétablir une estimation. Par @arekm (#396).
+
+**La programmation de recharge attend la réponse de la voiture.** Enregistrer une programmation de
+recharge, ou envoyer une destination au navigateur, attend désormais que la voiture dise l'avoir
+exécutée, pendant le temps que le cloud lui accorde — sur une B10, 30 s quand la voiture dort et 5 s
+quand elle est réveillée. « Programmation enregistrée » veut dire que la voiture l'a prise ; si la
+voiture reste muette, l'avis **ambre** indique qu'elle n'a pas confirmé à temps, et Mate garde les
+horaires qu'il avait. Chaque commande écrit désormais une ligne dans le journal : ce qu'elle a envoyé,
+sans l'adresse ni les coordonnées d'une destination, et ce que le cloud a répondu (#395).
+
+### Nouveautés de la version 4.9.2
 
 **Une fin dit que son temps est venu après l'état précédent.** Sur la page Événements,
 « Verrouillée · 4 min » se lisait comme une voiture verrouillée depuis quatre minutes, alors que ces

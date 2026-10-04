@@ -1,8 +1,33 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.9.2 · **Sprache:** Deutsch
+> **Mate-Version:** v4.10.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.9.2
+## Neu in Version 4.10.0
+
+**Akku und Fahrzeit des Tages unter Fahrten.** Öffnen Sie einen Tag im Kalender der Fahrten: Seine
+Überschrift zeigt jetzt, wie viel Akku die Fahrten des Tages verbraucht haben, *84,4% → 51,6% (−32,8%)*
+von der ersten bis zur letzten Fahrt — oder, wenn das Auto zwischendurch geladen hat, was die Fahrten
+verbraucht und was die Ladungen hinzugefügt haben, *−45,3%* und *⚡ +40,2%* —, dazu die Fahrzeit des
+Tages, ohne rekonstruierte Fahrten, wie die Statistik sie zählt. Fehlt ein Messwert, erscheint der
+Akkuwert nicht, statt geraten zu werden. Jede Zahl in der Überschrift des Tages und in der Monatsleiste
+sagt, was sie ist, wenn Sie mit dem Zeiger darauf zeigen oder sie antippen. Die Zeile jeder Fahrt zeigt
+ihre Akkuänderung, *84,4→51,6% (−32,8%)*, auch auf dem Handy, wo die Uhrzeiten der Fahrt nicht mehr
+verdrängt werden. Von @arekm (#392).
+
+**„Schätzung wiederherstellen" nur, wo es eine gibt.** Auf der Seite einer Fahrt erschien die
+Schaltfläche auch bei Fahrten ohne zurückgelegte Schätzung, wo sie nach einer Bestätigung fragte und
+dann nichts änderte. Jetzt erscheint sie nur dort, wo sie eine Schätzung zurückholen kann. Von @arekm
+(#396).
+
+**Ein Ladeplan wartet auf die Antwort des Autos.** Das Speichern eines Ladeplans oder das Senden eines
+Ziels an das Navi wartet jetzt, bis das Auto meldet, dass es ihn ausgeführt hat — so lange, wie die
+Cloud ihm gibt: bei einem B10 30 s, wenn das Auto schläft, und 5 s, wenn es wach ist. „Plan
+gespeichert" heißt, dass das Auto ihn übernommen hat; bleibt das Auto stumm, erscheint der
+**bernsteinfarbene** Hinweis, dass es nicht rechtzeitig bestätigt hat, und Mate behält die Zeiten, die
+es hatte. Jeder Befehl schreibt jetzt eine Zeile ins Log: was er gesendet hat, ohne Adresse und
+Koordinaten eines Ziels, und was die Cloud geantwortet hat (#395).
+
+### Neu in Version 4.9.2
 
 **Ein Ende sagt, dass seine Zeit nach dem Zustand davor kam.** Auf der Ereignisseite las sich
 „Verriegelt · 4 min“ wie ein Auto, das seit vier Minuten verriegelt ist, obwohl diese Minuten die Zeit

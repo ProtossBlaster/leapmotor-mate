@@ -1,8 +1,30 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.9.2 · **Language:** English
+> **Mate version:** v4.10.0 · **Language:** English
 
-## New in 4.9.2
+## New in 4.10.0
+
+**A day's battery and driving time in Trips.** Open a day in the Trips calendar: its heading now says
+how much battery the day's trips used, *84.4% → 51.6% (−32.8%)* from the first trip to the last — or,
+when the car charged in between, what the trips used and what the charges added, *−45.3%* and
+*⚡ +40.2%* — and how long the day was driven, leaving out reconstructed trips as Statistics does. A
+missing reading leaves the battery figure out rather than guessing it. Every figure in a day's heading
+and in the month strip says what it is when you point at it or tap it. Each trip's row shows its
+battery change, *84.4→51.6% (−32.8%)*, on a phone too, where the trip's times are no longer squeezed
+out. By @arekm (#392).
+
+**"Revert to estimate" only where there is one.** On a trip's page the button also appeared on trips
+with no estimate kept aside, where it asked for confirmation and then changed nothing. It now appears
+only where it can bring an estimate back. By @arekm (#396).
+
+**A charge schedule waits for the car's word.** Saving a charge schedule, or sending a destination to
+the navigator, now waits for the car to say it carried it out, for as long as the cloud gives it — on
+a B10, 30 s when the car is asleep and 5 s when it is awake. "Schedule saved" means the car took it;
+if the car stays silent you see the **amber** notice that it did not confirm in time, and Mate keeps
+the times it had. Every command now writes one line in the log: what it sent, with a destination's
+address and coordinates left out, and what the cloud answered (#395).
+
+### New in 4.9.2
 
 **An end says its time came after the state before.** On the Events page, "Locked · 4 min" read as a
 car locked for four minutes, when those minutes were the time it had been unlocked. It now reads

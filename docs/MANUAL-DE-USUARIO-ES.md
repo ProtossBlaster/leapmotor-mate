@@ -1,8 +1,32 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.9.2 · **Idioma:** Español
+> **Versión de Mate:** v4.10.0 · **Idioma:** Español
 
-## Novedades de la versión 4.9.2
+## Novedades de la versión 4.10.0
+
+**La batería y el tiempo de conducción del día en Trayectos.** Abre un día en el calendario de
+Trayectos: su cabecera dice ahora cuánta batería gastaron los trayectos del día,
+*84,4% → 51,6% (−32,8%)* del primero al último — o, si el coche cargó entre medias, lo que gastaron los
+trayectos y lo que añadieron las cargas, *−45,3%* y *⚡ +40,2%* — y cuánto tiempo se condujo ese día,
+sin los trayectos reconstruidos, como lo cuenta Estadísticas. Si falta una lectura, la batería no
+aparece en lugar de adivinarse. Cada cifra de la cabecera del día y de la franja del mes dice qué es
+cuando pasas el puntero por encima o la tocas. La fila de cada trayecto muestra su cambio de batería,
+*84,4→51,6% (−32,8%)*, también en el móvil, donde las horas del trayecto ya no quedan aplastadas. De
+@arekm (#392).
+
+**«Volver a la estimación» solo donde hay una.** En la página de un trayecto, el botón aparecía también
+en trayectos sin una estimación guardada aparte, donde pedía confirmación y luego no cambiaba nada.
+Ahora solo aparece donde puede devolver una estimación. De @arekm (#396).
+
+**La programación de carga espera la respuesta del coche.** Guardar una programación de carga, o
+enviar un destino al navegador, ahora espera a que el coche diga que la ha ejecutado, durante el
+tiempo que le da la nube — en un B10, 30 s si el coche duerme y 5 s si está despierto. «Programación
+guardada» significa que el coche la ha tomado; si el coche no contesta, aparece el aviso **ámbar** de
+que no ha confirmado a tiempo, y Mate conserva los horarios que tenía. Cada orden escribe ahora una
+línea en el registro: lo que ha enviado, sin la dirección ni las coordenadas de un destino, y lo que
+ha respondido la nube (#395).
+
+### Novedades de la versión 4.9.2
 
 **Un final dice que su tiempo llegó después del estado anterior.** En la página de Eventos,
 «Bloqueado · 4 min» se leía como un coche bloqueado desde hacía cuatro minutos, cuando esos minutos

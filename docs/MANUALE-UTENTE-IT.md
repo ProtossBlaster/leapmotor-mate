@@ -1,8 +1,32 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.9.2 · **Lingua:** Italiano
+> **Versione di Mate:** v4.10.0 · **Lingua:** Italiano
 
-## Novità della 4.9.2
+## Novità della 4.10.0
+
+**Batteria e tempo di guida del giorno nei Viaggi.** Apri un giorno nel calendario dei Viaggi:
+l'intestazione dice adesso quanta batteria hanno usato i viaggi del giorno, *84,4% → 51,6% (−32,8%)*
+dal primo all'ultimo — oppure, se l'auto ha caricato in mezzo, quanto hanno usato i viaggi e quanto
+hanno aggiunto le ricariche, *−45,3%* e *⚡ +40,2%* — e quanto si è guidato quel giorno, senza i viaggi
+ricostruiti, come fa Statistiche. Se manca una lettura, la batteria non compare invece di essere
+indovinata. Ogni cifra dell'intestazione del giorno e della striscia del mese dice cos'è quando ci
+passi sopra o la tocchi. La riga di ogni viaggio mostra la sua variazione di batteria,
+*84,4→51,6% (−32,8%)*, anche sul telefono, dove gli orari del viaggio non vengono più schiacciati. Di
+@arekm (#392).
+
+**«Ripristina la stima» solo dove c'è una stima.** Nella pagina di un viaggio il bottone compariva anche
+sui viaggi senza una stima messa da parte, dove chiedeva conferma e poi non cambiava niente. Adesso
+compare solo dove può rimettere una stima. Di @arekm (#396).
+
+**La programmazione di ricarica aspetta la parola dell'auto.** Salvare una programmazione di ricarica,
+o mandare una destinazione al navigatore, adesso aspetta che l'auto dica di averla eseguita, per il
+tempo che il cloud le concede — su una B10, 30 s se l'auto dorme e 5 s se è sveglia. «Programma
+salvato» vuol dire che l'auto l'ha presa; se l'auto resta muta compare l'avviso **ambra** che non ha
+confermato in tempo, e Mate tiene gli orari che aveva. Ogni comando adesso scrive una riga nel
+registro: quello che ha mandato, senza indirizzo e coordinate di una destinazione, e quello che ha
+risposto il cloud (#395).
+
+### Novità della 4.9.2
 
 **Una fine dice che il suo tempo è venuto dopo lo stato precedente.** Nella pagina Eventi,
 «Bloccata · 4 min» si leggeva come un'auto bloccata da quattro minuti, mentre quei minuti erano il
