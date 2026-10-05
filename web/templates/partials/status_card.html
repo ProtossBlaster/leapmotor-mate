@@ -145,7 +145,7 @@
   {% endif %}
   {% if 'outside_temp' not in absent %}
   <div class="flex justify-between gap-2 text-slate-400">
-    <span class="min-w-0 break-words">{{ t('outside_temp_label') }} <span class="text-slate-600 cursor-help" title="{{ t('outside_temp_title') }}">ⓘ</span></span>
+    <span class="min-w-0 break-words">{{ t('outside_temp_label') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('outside_temp_title') }}">ⓘ</span></span>
     <span class="text-white font-medium whitespace-nowrap">{{ status.outside_temp | temp(0) if status.outside_temp is not none else '—' }}</span>
   </div>
   {% endif %}
