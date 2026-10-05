@@ -27,6 +27,9 @@ def test_the_page_opens_in_every_language(tmp_path, monkeypatch, lang):
     for kind in E.RULES:                                  # both ends of every kind, a climate start with its readings
         event_row(car, kind, at, inside_temp=17.0, climate_target_temp=21.0, outside_temp=8.0)
         event_row(car, kind, at + timedelta(minutes=5), state=0, inside_temp=21.0)
+    for kind in E.LEVELS:                                 # a level reached, and the bottom of the scale
+        event_row(car, kind, at, state=50)
+        event_row(car, kind, at + timedelta(minutes=5), state=0)
     r = client.get("/events")
     assert r.status_code == 200
     t = i18n.get_t(lang)

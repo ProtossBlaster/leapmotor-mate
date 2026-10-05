@@ -40,7 +40,7 @@ def _charging_frame(ts):
         charge_power_kw=7.0, latitude=45.0, longitude=9.0, outside_temp=20.0,
         inside_temp=20.0, climate_target_temp=21.0, battery_min_temp=20.0,
         is_locked=True, climate_on=False, climate_cooling=False, climate_heating=False,
-        climate_defrost=False, trunk_open=False, windows_open=False, sunshade_open=False,
+        climate_defrost=False, trunk_open=False, windows_open=False, sunshade_pct=0,
         any_door_open=False, plug_connected=True, remaining_charge_min=60,
         charge_voltage_v=230.0, charge_current_a=30.4,
     )

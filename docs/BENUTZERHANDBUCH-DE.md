@@ -1246,7 +1246,7 @@ davon nichts.
 ### Ereignisse
 **(Menü: Ereignisse)** — Was das Auto getan hat, Moment für Moment: entriegelt und wieder verriegelt, eine
 Tür oder die Heckklappe geöffnet und geschlossen, das Kabel ein und aus, die Klimaanlage an und aus, READY
-an und aus, jede Fahrt und jeder Ladevorgang von Beginn bis Ende und jeder aus Mate gesendete Befehl. Die
+an und aus, wo das Sonnenrollo stehen blieb, jede Fahrt und jeder Ladevorgang von Beginn bis Ende und jeder aus Mate gesendete Befehl. Die
 Liste öffnet die letzten drei Tage, Neuestes zuerst, in einer Karte mit einer Überschrift pro Tag und einer
 dünnen Linie pro Stunde; der Punkt einer Zeile hat die Farbe des Chips ihrer Gruppe. Die Schaltflächen über
 den Chips reichen weiter zurück — 3, 7 oder 30 Tage, 3, 6 oder 12 Monate oder Alle —, gezählt ab heute;
@@ -1262,6 +1262,10 @@ wird geladen, sobald das Ende der Liste sichtbar wird.
   ihn: „ab 02 Okt 2026 14:20:05“. Ein noch laufender Zustand führt seine Linie bis nach oben und sagt
   **(läuft)** nur, wenn der letzte Datensatz des Autos frisch ist; wiederholt die Cloud einen alten (das
   Auto schläft oder ist ohne Empfang), nennt die Zeile stattdessen die Zeit dieses Datensatzes.
+- **Das Sonnenrollo ist eine Zeile dort, wo es stehen blieb** — „Sonnenrollo zu 50 % offen“, „Sonnenrollo
+  geschlossen“ — ohne Linie und ohne „nach“: Es bleibt tagelang offen, und eine Linie würde nur die ganze
+  Seite durchqueren. Ein Wert, der nur in einem Datensatz erscheint, wird nicht
+  aufgeführt: das Rollo auf dem Weg oder ein Halt, der kürzer war als der Abstand zwischen zwei Datensätzen.
 - **Die Zeiten sind die des Autos, auf die Sekunde**: die Zeit des ersten Datensatzes, der den neuen
   Zustand zeigte, bestätigt durch den nächsten. Mit dem Zeiger über einer Uhrzeit erscheint sie neben der
   Zeit, zu der Mate die Zeile erfasst hat. Fahrten, Ladevorgänge und Befehle haben nur die Uhr von Mate,
@@ -1372,6 +1376,9 @@ zuerst eintritt.
 **(Menü: Befehle)** — Die **Fernbefehle**. Von hier aus können Sie:
 
 - **verriegeln/entriegeln**, den **Kofferraum** öffnen, das **Auto finden** (Hupe/Lichter);
+- das **Sonnenrollo** des Panoramadachs öffnen oder schließen: Die Kachel zeigt, wie weit es offen ist,
+  und wurde es auf halbem Weg angehalten, bietet sie **Öffnen** (ganz) und **Schließen** an, die einzigen
+  beiden, die das Auto ausführt;
 - das **Klima** steuern: Kühlen, Heizen, Enteisen, Lüften, **Ausschalten**;
 - **Sitzheizung**, **Lenkrad** und **Spiegel** aktivieren (wo unterstützt);
 - das **Ladelimit** verwalten.
@@ -1451,7 +1458,8 @@ Nähe**. Die Seite hat drei Teile:
 Sensoren (Ladung, Reichweite, Innentemperatur, Gang, Türen, Fenster, Reifen, Verriegelungen, Ladezustand…). Mate
 liest jetzt auch die **Lüfterstufe** (1–7), die **Luftumwälzung** (Frischluft / Umluft) und den **aktiven
 Klimamodus** (AUTO / Kühlen / Heizen / Lüften) aus. Mate zeigt **nur das, was Ihr Auto wirklich meldet** (manche
-Modelle stellen bestimmte Daten nicht bereit).
+Modelle stellen bestimmte Daten nicht bereit). Die Kachel des Panoramadachs zeigt, wie weit das Sonnenrollo offen
+ist — „40%“ über „Offen“ —, wie es die Fensterkacheln tun.
 
 ### Wallbox
 **(Menü: Wallbox)** — Wenn Sie eine Wallbox verbunden haben (siehe
@@ -1607,7 +1615,7 @@ Sendet die Telemetrie des Autos an ABRP für die Routenplanung in Echtzeit.
 
 ### MQTT → Home Assistant
 Veröffentlicht den Zustand des Autos (Ladung, Reichweite, Position, Türen, Ladezustand…) als **Entitäten in Home
-Assistant**, mit **Auto-Discovery**. Sie können das Auto auch über die Entitäten von HA **steuern** — einschließlich eines beschreibbaren **Ladelimits** (`number`) zum Einstellen des Ziel-SoC und einer beschreibbaren **Ladeplan**-`text`-Entität, die einen JSON-Plan für Automationen entgegennimmt (`{"start":"23:00","soc":90}` — jedes Feld ist optional, und was Sie weglassen, bleibt unverändert). Zum Klima kommen die **beschreibbare Lüfterstufe** (`number`, 1–7), der **beschreibbare Umluft-Schalter** (Frischluft ↔ Umluft) und ein **Klimamodus**-Sensor (AUTO / Kühlen / Heizen / Lüften) hinzu. Außerdem gibt es drei **schreibgeschützte** V2L-Entitäten: **`V2L Active`** (Binärsensor), **`V2L Power`** (W) und **`V2L Session Energy`** (Wh) sowie einen Binärsensor **`Ready`**, der angeht, sobald das Auto eingeschaltet ist — noch bevor es losfährt, also solange eine Automatisierung überhaupt noch handeln kann.
+Assistant**, mit **Auto-Discovery**. Sie können das Auto auch über die Entitäten von HA **steuern** — einschließlich eines beschreibbaren **Ladelimits** (`number`) zum Einstellen des Ziel-SoC und einer beschreibbaren **Ladeplan**-`text`-Entität, die einen JSON-Plan für Automationen entgegennimmt (`{"start":"23:00","soc":90}` — jedes Feld ist optional, und was Sie weglassen, bleibt unverändert). Zum Klima kommen die **beschreibbare Lüfterstufe** (`number`, 1–7), der **beschreibbare Umluft-Schalter** (Frischluft ↔ Umluft) und ein **Klimamodus**-Sensor (AUTO / Kühlen / Heizen / Lüften) hinzu. Außerdem gibt es drei **schreibgeschützte** V2L-Entitäten: **`V2L Active`** (Binärsensor), **`V2L Power`** (W) und **`V2L Session Energy`** (Wh) sowie einen Binärsensor **`Ready`**, der angeht, sobald das Auto eingeschaltet ist — noch bevor es losfährt, also solange eine Automatisierung überhaupt noch handeln kann. Ein Sensor **`Sunshade Position`** zeigt, wie weit das Sonnenrollo offen ist, in % (0 = geschlossen); der Binärsensor **`Sunshade`** bleibt, wie er war, und ist bei jeder Öffnung an.
 
 Entitäten, die **Ihr** Auto nicht unterstützt, bleiben Ihnen nicht: Was das Modell nicht hat (Sitzheizung,
 Lenkrad…), wird gar nicht erst erzeugt, und eine **Temperatur-Entität**, deren Sensor das Auto nie gemeldet

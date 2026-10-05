@@ -1,6 +1,6 @@
 """Every kind the poller keeps has a group, an icon, a colour and a name for both ends, in every language.
 
-The kinds are a closed list: poller/events.py's RULES. The page has no "Other" group to catch a kind
+The kinds are a closed list: poller/events.py's RULES and LEVELS. The page has no "Other" group to catch a kind
 it does not know, so a new one arrives only with a change to the code, and this is what makes that
 change complete. A stored row of a kind the page does not list — one an older build kept — is left
 out without an error.
@@ -19,7 +19,8 @@ LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es")
 
 
 def test_the_page_lists_exactly_the_kinds_the_poller_keeps():
-    assert set(db_reader.EVENT_SIGNAL_KINDS) == set(E.RULES)
+    assert set(db_reader.EVENT_SIGNAL_KINDS) == set(E.RULES) | set(E.LEVELS)
+    assert set(db_reader.EVENT_LEVEL_KINDS) == set(E.LEVELS)
 
 
 @pytest.mark.parametrize("lang", LANGS)
@@ -32,6 +33,9 @@ def test_each_kind_has_a_group_an_icon_a_colour_and_both_names(lang):
     for kind in E.RULES:
         assert strings.get(f"events_{kind}_on") and strings.get(f"events_{kind}_off"), (lang, kind)
         assert strings[f"events_{kind}_on"] != strings[f"events_{kind}_off"], (lang, kind)
+    for kind in E.LEVELS:                                 # a level reached, and the bottom of the scale
+        assert "{pct}" in strings.get(f"events_{kind}_level", ""), (lang, kind)
+        assert strings.get(f"events_{kind}_off"), (lang, kind)
     for key in ("events_trip_started", "events_trip_ended", "events_charge_started", "events_charge_ended"):
         assert strings.get(key), (lang, key)
 

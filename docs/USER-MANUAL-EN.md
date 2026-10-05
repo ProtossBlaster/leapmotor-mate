@@ -1173,7 +1173,7 @@ trip carries its own consumption — which is nearly always — none of this sho
 
 ### Events
 **(menu: Events)** — What the car did, moment by moment: unlocked and locked again, a door or the
-tailgate opened and closed, the cable in and out, the climate on and off, READY on and off, every trip
+tailgate opened and closed, the cable in and out, the climate on and off, READY on and off, where the sunshade stopped, every trip
 and charge from its start to its end, and every command sent from Mate. The list opens on the last
 three days, newest first, in one card with a heading per day and a thin line per hour; a row's dot has
 the colour of its group's pill. The buttons above the pills reach further back — 3, 7 or 30 days, 3, 6
@@ -1187,6 +1187,9 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   When the beginning is before the days shown, the line runs faded off the bottom of the list and the end
   names it: "from 02 Oct 2026 14:20:05". A state still going runs its line to the top and says **(in progress)** only when the car's last frame is fresh; while the cloud repeats an old frame (the car asleep, or
   out of coverage) the row names the time of that frame instead.
+- **The sunshade is one row where it stopped** — "Sunshade 50% open", "Sunshade closed" — with no line and no
+  "after": it stays open for days, and a line would only cross the whole page. A level seen in one frame
+  only is not listed: the sunshade moving past it, or a stop shorter than the time between two frames.
 - **Times are the car's, to the second**: the time of the first frame that showed the new state,
   confirmed by the next one. Holding the pointer over a time shows it beside the time Mate recorded the
   row. Trips, charges and commands have only Mate's clock, so beside a signal from the same few seconds
@@ -1291,6 +1294,8 @@ because whatever comes first is what's due.
 **(menu: Commands)** — The **remote commands**. From here you can:
 
 - **lock/unlock**, open the **trunk**, **find the car** (horn/lights);
+- open or close the **sunshade** of the panoramic roof: the tile says how far it is open, and when it was
+  stopped part-way it offers both **Open** (all the way) and **Close**, the only two the car acts on;
 - manage the **climate**: cooling, heating, defrost, ventilation, **switch off**;
 - activate **seat heating**, **steering wheel** and **mirror heating** (where supported);
 - manage the **charge limit**.
@@ -1365,7 +1370,8 @@ stations**. The page has three parts:
 (charge, range, inside temperature, gear, doors, windows, tyres, locks, charge status…), now also the
 **climate detail**: **fan level** (1–7), **air recirculation** (fresh / recirculate) and the **active
 climate mode** (AUTO / Cool / Heat / Vent). Mate shows **only what your car actually reports** (some
-models don't expose certain data).
+models don't expose certain data). The panoramic roof tile says how far the sunshade is open — "40%" over "Open" —
+as the window tiles do.
 
 ### Wallbox
 **(menu: Wallbox)** — If you've connected a wallbox (see
@@ -1520,7 +1526,7 @@ Sends the car's telemetry to ABRP for real-time trip planning.
 
 ### MQTT → Home Assistant
 Publishes the car's status (charge, range, position, doors, charge status…) as **entities in Home
-Assistant**, with **auto-discovery**. You can also **command** the car from the HA entities — including a writable **Charge Limit** number to set the target SoC, a writable **Charge Schedule** text entity that takes a JSON plan for automations (`{"start":"23:00","soc":90}` — every key optional, and anything you omit keeps its current value), a writable **Fan Level** number (1–7) and a writable **Recirculation** switch, plus a **Climate Mode** sensor (AUTO / Cool / Heat / Vent). The published entities also include three read-only V2L ones: **`V2L Active`** (binary sensor), **`V2L Power`** (W) and **`V2L Session Energy`** (Wh), and a **`Ready`** binary sensor that turns on the moment the car is powered up — before it moves, which is when an automation still has time to act.
+Assistant**, with **auto-discovery**. You can also **command** the car from the HA entities — including a writable **Charge Limit** number to set the target SoC, a writable **Charge Schedule** text entity that takes a JSON plan for automations (`{"start":"23:00","soc":90}` — every key optional, and anything you omit keeps its current value), a writable **Fan Level** number (1–7) and a writable **Recirculation** switch, plus a **Climate Mode** sensor (AUTO / Cool / Heat / Vent). The published entities also include three read-only V2L ones: **`V2L Active`** (binary sensor), **`V2L Power`** (W) and **`V2L Session Energy`** (Wh), and a **`Ready`** binary sensor that turns on the moment the car is powered up — before it moves, which is when an automation still has time to act. A **`Sunshade Position`** sensor says how far the sunshade is open, in % (0 = closed); the binary **`Sunshade`** stays as it was, on for any opening.
 
 Entities **your** car doesn't support aren't left on your hands: the ones the model lacks (heated seats,
 steering wheel…) are never created, and a **temperature entity** whose sensor the car has never reported

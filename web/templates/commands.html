@@ -94,8 +94,17 @@ var BUSY_TILE_MSG = '⏳ ' + SENDING_MSG.split('(')[0].trim();   // short head �
 var CONFIRM = {lock: 'unlock', unlock: 'lock', open_trunk: 'close_trunk', close_trunk: 'open_trunk',
                open_windows: 'close_windows', close_windows: 'open_windows',
                open_sunshade: 'close_sunshade', close_sunshade: 'open_sunshade'};
+// Part-way the sunshade tile offers both commands, so its end is read from its percent instead.
+var SHADE_END = {open_sunshade: 100, close_sunshade: 0};
 var BUSY_MS = 10000;
-var sending = false, sendingSince = 0, busyUntil = 0, busyStart = 0, busyCmd = null, pendingExpect = null;
+var sending = false, sendingSince = 0, busyUntil = 0, busyStart = 0, busyCmd = null, pendingExpect = null, pendingShade = null;
+function expectSeen() {
+  if (pendingShade != null) {
+    var tile = document.querySelector('#cmd-grid [data-shade-pct]');
+    return !!tile && tile.dataset.shadePct === String(pendingShade);
+  }
+  return !!document.querySelector('#cmd-grid [hx-post="api/command/' + pendingExpect + '"]');
+}
 function isBusy() { return Date.now() < busyUntil || pendingExpect != null; }
 // The ⏳ and the message are the SAME node (#spin-): turn it into the red message ON, restore the bare htmx ⏳ OFF.
 // Comfort controls (steering slider, mirror toggles) key their tile on `skey`, not the command — and the two mirrors
@@ -116,8 +125,8 @@ function setBusyUI(cmd, on) {
 }
 function cmdBusyTick() {
   if (sending && sendingSince && (Date.now() - sendingSince) > 60000) sending = false;   // watchdog
-  if (pendingExpect && document.querySelector('#cmd-grid [hx-post="api/command/' + pendingExpect + '"]')) pendingExpect = null;
-  if (pendingExpect && (Date.now() - busyStart) > 30000) pendingExpect = null;            // safety
+  if (pendingExpect && expectSeen()) pendingExpect = pendingShade = null;
+  if (pendingExpect && (Date.now() - busyStart) > 30000) pendingExpect = pendingShade = null;   // safety
   var busy = sending || isBusy();
   var grid = document.getElementById('cmd-grid');
   if (grid) grid.classList.toggle('cmds-busy', busy);
@@ -188,6 +197,7 @@ document.addEventListener('htmx:afterRequest', function(e) {
 
       busyCmd = name; busyUntil = Date.now() + BUSY_MS; busyStart = Date.now();
       pendingExpect = CONFIRM[name] || null;                  // movement toggle → wait for the real flip too
+      pendingShade = name in SHADE_END ? SHADE_END[name] : null;
     } else if (el.querySelector('[data-warn]')) {
       setBusyUI(busyCmd, false); busyCmd = null;              // refused (e.g. driving) → drop the ⏳, keep the notice
       noticeGone(el);

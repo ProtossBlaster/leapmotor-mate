@@ -2463,7 +2463,7 @@ def _parse_vehicle_status(sig: dict, vin: str | None = None, cmd_pct: int | None
             # B10 (its sensor is dead) — shown only for windows the flag confirms open.
             "fl_pct": win_pct("1693", "3727"), "fr_pct": win_pct("1694", "3728"),
             "rl_pct": win_pct("1695", "1879"), "rr_pct": win_pct("1696", "1880"),
-            "sunshade": is_open("1724"),
+            "sunshade": is_open("1724"), "sunshade_pct": i("1724"),
         },
         "temps": {"battery": f("1182"), "cabin": f("1349")},  # no ambient-temp signal exists
         # Climate panel — signals validated on-car 2026-06-20: base mode 3713 (0 auto/1 cool/3 heat/
@@ -5942,8 +5942,8 @@ _OPTIMISTIC = {
     # closed — the Overview "Finestrini aperti N" badge flips with the state instead of lagging.
     "open_windows":  {"windows_open": 1, "windows_open_count": 4, "window_fl_open": 1, "window_rl_open": 1},
     "close_windows": {"windows_open": 0, "windows_open_count": 0, "window_fl_open": 0, "window_rl_open": 0},
-    "open_sunshade": {"sunshade_open": 1},
-    "close_sunshade":{"sunshade_open": 0},
+    "open_sunshade": {"sunshade_pct": 100},
+    "close_sunshade":{"sunshade_pct": 0},
 }
 
 # Climate tiles: a tile that's ON is turned off by sending ac_switch (best-effort —
@@ -5975,7 +5975,7 @@ _FIELD_CHECK = {
     "is_locked":       lambda sig: int(sig.get("1298") or 0) == 1,
     "trunk_open":      lambda sig: int(sig.get("1281") or 0) != 0,
     "windows_open":    _windows_open_now,
-    "sunshade_open":   lambda sig: int(sig.get("1724") or 0) != 0,   # 1724 = shade opening % (0 = closed)
+    "sunshade_pct":    lambda sig: int(sig.get("1724") or 0),   # 1724 = shade opening % (0 = closed)
     "climate_on":      lambda sig: int(sig.get("1938") or 0) == 1,
     "climate_cooling": lambda sig: int(sig.get("2669") or 0) == 2,
     "climate_heating": lambda sig: int(sig.get("2681") or 0) == 2,
@@ -6008,10 +6008,14 @@ def _cmd_error_html(msg: str) -> str:
 
 
 def _command_confirmed(expected: dict, signals: dict) -> bool:
-    """True when the live signals match every expected field (empty expected → True)."""
+    """True when the live signals match every expected field (empty expected → True). A flag matches
+    as on/off; a level (the sunshade's percent) only once it reaches the value asked for."""
     for field, want in expected.items():
         checker = _FIELD_CHECK.get(field)
-        if checker and bool(checker(signals)) != bool(want):
+        if checker is None:
+            continue
+        got = checker(signals)
+        if (bool(got) != bool(want)) if isinstance(got, bool) else got != want:
             return False
     return True
 

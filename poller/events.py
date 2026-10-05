@@ -69,11 +69,18 @@ RULES = {
     "ready": _ready,
 }
 
+# kind → the level a stored row says it was at, or None. An event is where the level settled for two
+# frames, one moment rather than a span: the sunshade stays open for days, and moves only when asked.
+LEVELS = {
+    "sunshade_level": lambda r: r["sunshade_pct"],
+}
+_DETECTED = {**RULES, **LEVELS}
+
 _COLUMNS = ("id, recorded_at, frame_ts, latitude, longitude, soc, odometer_km, inside_temp, "
             "climate_target_temp, outside_temp, gear, speed_kmh, is_locked, door_driver_open, "
             "door_passenger_open, door_rear_left_open, door_rear_right_open, trunk_open, "
             "window_fl_open, window_rl_open, plug_connected, ac_port_mode, "
-            "climate_on, climate_defrost, climate_heating, climate_cooling, ready")
+            "climate_on, climate_defrost, climate_heating, climate_cooling, ready, sunshade_pct")
 
 
 def load_state(conn, vehicle_id: int) -> dict:
@@ -114,7 +121,7 @@ def consume(conn, vehicle_id: int, max_rows=5000) -> int:
             if r["frame_ts"] == state["last_frame_ts"]:
                 continue
             state["last_frame_ts"] = r["frame_ts"]
-        for kind, rule in RULES.items():
+        for kind, rule in _DETECTED.items():
             value = rule(r)
             if value is None:
                 continue
@@ -174,8 +181,8 @@ def _save_state(conn, vehicle_id: int, state: dict) -> None:
 def prune(conn, cutoff: str, floors: dict | None = None) -> int:
     """Drop the spans that ended before `cutoff`, as pairs: a span that crosses it keeps its start,
     an open span keeps its start and later its end, so nothing in the kept period reopens or goes
-    missing. The neighbour is the next row of the kind in write order, as the page reads it.
-    Returns the rows deleted.
+    missing. The neighbour is the next row of the kind in write order, as the page reads it. A level
+    (`LEVELS`) is a moment and goes on its own once it is older than `cutoff`. Returns the rows deleted.
 
     `floors` holds, per car, a time its rows must be kept from — the same floor
     `Database.prune_positions` gives the positions of a car with an OPEN TRIP, which is held back to
@@ -195,15 +202,17 @@ def _prune_where(conn, cutoff: str, scope: str, args: tuple) -> int:
     """One pruning pass over the cars `scope` names. The window is computed over the whole table and
     the scope filters its rows, so a car's neighbours are its own whichever pass deletes them."""
     # The CTE sits inside the subquery: a statement that starts with WITH reports no row count.
+    levels = ",".join("?" * len(LEVELS))
     return conn.execute(
         f"""DELETE FROM events WHERE id IN (
                 WITH e AS (SELECT id, at, state, kind, vehicle_id,
                                   LEAD(at) OVER w AS next_at, LAG(at) OVER w AS prev_at
                            FROM events WINDOW w AS (PARTITION BY vehicle_id, kind ORDER BY id))
-                SELECT id FROM e WHERE at < ? AND ((state = 1 AND next_at < ?)
+                SELECT id FROM e WHERE at < ? AND (kind IN ({levels})
+                                                   OR (state = 1 AND next_at < ?)
                                                    OR (state = 0 AND COALESCE(prev_at, at) < ?))
                   {scope})""",
-        (cutoff, cutoff, cutoff, *args)).rowcount
+        (cutoff, *LEVELS, cutoff, cutoff, *args)).rowcount
 
 
 def clamp_cursors(conn) -> None:

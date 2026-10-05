@@ -3,7 +3,8 @@
 {% set locked   = status.is_locked      if status and status.is_locked      is not none else none %}
 {% set trunk    = status.trunk_open     if status and status.trunk_open     is not none else none %}
 {% set wins     = status.windows_open   if status and status.windows_open   is not none else none %}
-{% set shade    = status.sunshade_open  if status and status.sunshade_open  is not none else none %}
+{% set shade_pct = status.sunshade_pct if status else none %}
+{% set shade    = ((shade_pct or 0) != 0) if status else none %}
 {% set charging = status.charging       if status else none %}
 {% set plugged  = status.cable_connected if status and status.cable_connected is not none else none %}
 {% set clim_cool    = status.climate_cooling if status and status.climate_cooling is not none else none %}
@@ -225,7 +226,8 @@
 
       <!-- Sunshade -->
       <div class="rounded-lg border p-3 flex flex-col items-center gap-2 text-center h-full
-        {% if shade %}border-brand/40 bg-brand/5{% else %}border-slate-700 bg-slate-800/40{% endif %}">
+        {% if shade %}border-brand/40 bg-brand/5{% else %}border-slate-700 bg-slate-800/40{% endif %}"
+        data-shade-pct="{{ shade_pct if shade_pct is not none else '' }}">
         <span class="h-7 flex items-center {% if shade %}text-brand{% elif shade is none %}text-slate-600{% else %}text-slate-400{% endif %}">{{ ico.mdi('car-convertible') }}</span>
         <span class="text-xs font-medium text-slate-200 min-h-[2rem] flex items-center justify-center leading-tight">{{ t('sunshade') }}</span>
         <span class="text-[11px] font-bold px-2 py-0.5 rounded-full
@@ -234,7 +236,27 @@
           {% else %}text-slate-400 bg-slate-700 border border-slate-600{% endif %}">
           {% if shade is none %}{{ t('unknown') }}{% elif shade %}{{ t('shade_open_state') }}{% else %}{{ t('shade_closed_state') }}{% endif %}
         </span>
-        <div class="mt-auto w-full">{{ toggle_btn(not shade, "open_sunshade", "close_sunshade", t('open_shade_confirm'), t('close_shade_confirm'), drv) }}</div>
+        <div class="mt-auto w-full space-y-1.5">
+          {# Cmd 240 only opens fully or closes: a sunshade stopped part-way offers both. #}
+          {% if shade and shade_pct < 100 %}
+          <div class="grid grid-cols-2 gap-1.5">
+            <div class="space-y-1.5">{{ toggle_btn(true, "open_sunshade", "close_sunshade", t('open_shade_confirm'), t('close_shade_confirm'), drv) }}</div>
+            <div class="space-y-1.5">{{ toggle_btn(false, "open_sunshade", "close_sunshade", t('open_shade_confirm'), t('close_shade_confirm'), drv) }}</div>
+          </div>
+          {% else %}
+          {{ toggle_btn(not shade, "open_sunshade", "close_sunshade", t('open_shade_confirm'), t('close_shade_confirm'), drv) }}
+          {% endif %}
+          {% if shade_pct is not none %}
+          {# Drawn like the windows' slider track, no thumb: the car takes no position, so this only shows one. #}
+          <div class="h-[22px] pb-1.5 flex items-center" aria-hidden="true" data-shade-bar>
+            <div class="w-full h-2 rounded-full border border-[#858585] bg-[#3b3b3b] overflow-hidden">
+              <div class="h-full bg-amber-400" style="width: {{ shade_pct }}%"></div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-[9px] text-slate-500 px-0.5"><span>{{ t('shade_closed_state') }}</span><span>100%</span></div>
+          <div class="text-[10px] text-slate-400">{{ shade_pct }}%</div>
+          {% endif %}
+        </div>
       </div>
 
     </div>
