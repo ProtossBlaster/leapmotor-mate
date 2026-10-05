@@ -5365,6 +5365,24 @@ def _segment_ids(db, trip_id: int) -> list:
                        (_current_vehicle_id(), parent)).fetchall()]
 
 
+def trip_group(trip_id: int):
+    """The drive `trip_id` belongs to, as getEC has to see it: a merged group as one trip (the parent's
+    row with the combined span, distance and SoC) with every segment's id; a plain trip as itself.
+    A merge of close trips is one cloud driving session. None when the trip is gone."""
+    db = _get()
+    row = db.execute("SELECT * FROM trips WHERE id=?", (trip_id,)).fetchone()
+    if not row:
+        return None
+    t = dict(row)
+    if t.get("merged_into_id"):
+        parent = db.execute("SELECT * FROM trips WHERE id=?", (t["merged_into_id"],)).fetchone()
+        if parent:
+            t = dict(parent)
+    children = _children_by_parent(db).get(t["id"], [])
+    grp = _trip_group_stats(t, children) if children else t
+    return grp, {t["id"]} | {c["id"] for c in children}
+
+
 def _trip_group_stats(parent: dict, children: list) -> dict:
     """Parent dict enriched with the combined stats of [parent + children] (earliest start →
     latest end). Pure display math — stored rows are untouched. The merge guard guarantees no

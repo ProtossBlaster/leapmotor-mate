@@ -252,21 +252,11 @@ def convert_trip(trip_id: int) -> dict:
     when the cloud has no separable record for it (e.g. trips too close together, merged by the cloud
     into one driving session). For a MERGED group it converts the COMBINED drive (one cloud session).
     Returns: {ok, reason?, ec?}."""
-    db = db_reader._get()
-    row = db.execute("SELECT * FROM trips WHERE id=?", (trip_id,)).fetchone()
-    if not row:
+    found = db_reader.trip_group(trip_id)
+    if not found:
         return {"ok": False, "reason": "not_found"}
-    t = dict(row)
-    # A merged child converts its parent group (the row shown/aggregated).
-    if t.get("merged_into_id"):
-        parent = db.execute("SELECT * FROM trips WHERE id=?", (t["merged_into_id"],)).fetchone()
-        if parent:
-            t = dict(parent)
-            trip_id = t["id"]
-    # Merged groups: use the COMBINED span + distance so getEC covers the whole drive and the official
-    # figure is attributed over the full distance (a merge of close trips = one cloud driving session).
-    children = db_reader._children_by_parent(db).get(trip_id, [])
-    grp = db_reader._trip_group_stats(t, children) if children else t
+    grp, own_ids = found
+    trip_id = grp["id"]
     dist = grp.get("distance_km") or 0
     if dist <= 0:
         return {"ok": False, "reason": "no_distance"}
@@ -275,7 +265,6 @@ def convert_trip(trip_id: int) -> dict:
     # powered off between them — read from positions.ready), converting this one alone would grab the
     # WHOLE session → tell the user to MERGE them (only the merged group attributes the figure over the
     # full distance). Detected from the real signal, so it works at ANY gap (not the 5-min heuristic).
-    own_ids = {trip_id} | {c["id"] for c in children}
     sess = db_reader.ready_session(grp)
     if sess and (set(sess["trip_ids"]) - own_ids):
         # Hand back WHICH trips share it. "the adjacent one" told @michapr nothing — his was the
@@ -327,7 +316,7 @@ def convert_trip(trip_id: int) -> dict:
     # the 10 km of 113+114 → 16). If this is the earlier half of a mergeable pair, suggest merging
     # instead — only the merged group attributes the figure over the full distance. (A MERGED parent has
     # children, so it already uses the combined distance and skips this guard.)
-    if not children:
+    if len(own_ids) == 1:
         try:
             pairs = db_reader.get_mergeable_pairs(db_reader.TRIP_MERGE_GAP_DEFAULT)
             if any(p.get("a_id") == trip_id for p in pairs):
