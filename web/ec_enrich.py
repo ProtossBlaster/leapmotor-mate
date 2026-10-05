@@ -86,8 +86,7 @@ def _zero_unvouched(ec: dict, d: dict) -> bool:
     read the same at both ends; with a reading missing, or a change, the zero is the cloud having nothing."""
     if not ec or (ec.get("total_kwh") or 0) != 0:
         return False
-    ss, es = d.get("start_soc"), d.get("end_soc")
-    return ss is None or es is None or ss != es
+    return not db_reader.soc_held(d)
 
 
 def _ec_implausible(ec: dict, dist: float, soc_energy, soc_drop=None) -> bool:

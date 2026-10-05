@@ -7,11 +7,14 @@ cloud's history carries the same 0.0, and a trip matched to it already shows it.
 whose battery did fall is still refused, and a reply missing its figures is no zero. Nor is a total
 below zero: kept, it would become the trip's consumption. And a zero counts only where the battery
 read the same at both ends; with a reading missing, it is the cloud having nothing for the drive.
-The background sweep judges a merged trip as its whole group, as Convert does.
+The background sweep judges a merged trip as its whole group, as Convert does. A zero taken
+counts in every average that divides getEC energy by its kilometres, and a zero the battery does
+not vouch for, as the cloud's trip history stores one for a drive without SoC, counts in none of
+them.
 """
 import json
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -109,3 +112,108 @@ def test_the_sweep_judges_a_merged_trip_as_a_whole(tmp_path, monkeypatch):
 
     assert db_reader.get_trip_detail(1)["ec_stable"] == 0, "a zero for the first drive alone was taken for the group"
     assert len(cloud.posted) == 2
+
+
+def _a_zero_and_a_measured_drive(tmp_path, monkeypatch):
+    """The 460 m drive at 0.0 kWh and, 40 minutes later, 10 km at 1.5 kWh, both taken from getEC, on one day of July."""
+    cloud = _short_drive(tmp_path, monkeypatch)
+    with closing(db_reader._conn_rw()) as db:
+        end = datetime(2026, 7, 5, 10, 3, tzinfo=timezone.utc)
+        db.execute("UPDATE trips SET started_at = ?, ended_at = ? WHERE id = 1",
+                   ((end - timedelta(minutes=3)).isoformat(), end.isoformat()))
+        start, stop = (end + timedelta(minutes=m) for m in (40, 55))
+        db.execute("INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, duration_min,"
+                   " start_soc, end_soc) VALUES (2, 1, ?, ?, 10.0, 15, 80.0, 78.0)",
+                   (start.isoformat(), stop.isoformat()))
+        db.commit()
+    assert ec_enrich.convert_trip(1)["ok"] is True
+    cloud._body = json.dumps({"result": 0, "code": 0, "data": {"driverEC": "1.2", "acEC": "0.2", "otherEC": "0.1"}})
+    assert ec_enrich.convert_trip(2)["ok"] is True
+    return start
+
+
+def test_a_taken_zero_counts_in_every_average(tmp_path, monkeypatch):
+    """1.5 kWh over 10.46 km is 14.3 on every page. 15.0 means a page left the zero out of its kilometres."""
+    started = _a_zero_and_a_measured_drive(tmp_path, monkeypatch)
+    begin, end = int(started.timestamp()) - 7200, int(started.timestamp()) + 7200
+
+    assert db_reader.trips_totals(db_reader.get_trips())["kwh_100km"] == 14.3, "the Trips strip"
+    assert db_reader.get_stats_summary()["avg_efficiency"] == 14.3, "the Statistics card"
+    tot = db_reader.get_trip_totals_between(begin, end)
+    assert (tot["ec_km"], tot["ec_kwh_sum"]) == (10.46, 1.5), "the period card's pair"
+    month = started.astimezone(db_reader._local_tz()).strftime("%Y-%m")
+    assert db_reader._collect_monthly_buckets()[month]["avg_efficiency_measured"] == 14.3, "the Report's months"
+
+    pytest.importorskip("fastapi", reason="the period card lives in web.main")
+    import main
+    assert main._enrich_eb_with_trip_totals({"total_kwh": 1.5}, begin, end)["avg_kwh100"] == 14.3
+
+
+def test_both_totals_paths_pick_the_same_trips(tmp_path, monkeypatch):
+    """A merged or an electric history is summed in Python, a range-extender's without merges in SQL."""
+    started = _a_zero_and_a_measured_drive(tmp_path, monkeypatch)
+    begin, end = int(started.timestamp()) - 7200, int(started.timestamp()) + 7200
+    grouped = db_reader.get_trip_totals_between(begin, end)
+    db_reader.set_setting("is_reev", "1")
+    plain = db_reader.get_trip_totals_between(begin, end)
+
+    assert (plain["ec_km"], plain["ec_kwh_sum"]) == (grouped["ec_km"], grouped["ec_kwh_sum"]) == (10.46, 1.5)
+    assert db_reader.get_stats_summary()["avg_efficiency"] == 14.3, "Convert did not write the zero as the trip's efficiency"
+
+
+@pytest.mark.parametrize("start_soc, end_soc", [(None, None), (80.0, 79.8)], ids=["no SoC", "the battery fell"])
+def test_a_zero_the_battery_does_not_vouch_for_counts_in_no_average(tmp_path, monkeypatch, start_soc, end_soc):
+    """Two 1 km drives the cloud's history files at 0.0 kWh, beside the two drives: one stored as the import
+    stores it (the zero as its efficiency too), one of Mate's own, without getEC, that the matcher pairs with
+    the record while its battery fell. Every page still reads 14.3, in both summing paths; 13.1 or 12.0 means
+    a page took a zero over its kilometre, through the getEC pair or through the efficiency."""
+    started = _a_zero_and_a_measured_drive(tmp_path, monkeypatch)
+    with closing(db_reader._conn_rw()) as db:
+        start, stop = (started + timedelta(minutes=m) for m in (60, 65))
+        db.execute("INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, duration_min, start_soc,"
+                   " end_soc, ec_kwh, efficiency_kwh_100km, ec_tried, ec_stable) VALUES (3, 1, ?, ?, 1.0, 5, ?, ?, 0.0, 0.0, 1, 1)",
+                   (start.isoformat(), stop.isoformat(), start_soc, end_soc))
+        start, stop = (started + timedelta(minutes=m) for m in (80, 85))
+        db.execute("INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, duration_min, start_soc,"
+                   " end_soc, efficiency_kwh_100km) VALUES (4, 1, ?, ?, 1.0, 5, 80.0, 79.8, 20.0)",
+                   (start.isoformat(), stop.isoformat()))
+        db.execute("CREATE TABLE IF NOT EXISTS api_lab_cloud_history_records"
+                   " (id INTEGER PRIMARY KEY, kind TEXT, payload_json TEXT)")
+        db.execute("INSERT INTO api_lab_cloud_history_records (kind, payload_json) VALUES ('mileage', ?)",
+                   (json.dumps({"vin": "LVIN0000000000001", "routeStartTs": int(start.timestamp() * 1000),
+                                "routeEndTs": int(stop.timestamp() * 1000), "totalEnergy": 0.0, "totalMileage": 1.0}),))
+        db.commit()
+    begin, end = int(started.timestamp()) - 7200, int(started.timestamp()) + 7200
+    month = started.astimezone(db_reader._local_tz()).strftime("%Y-%m")
+
+    for reev in ("0", "1"):
+        db_reader.set_setting("is_reev", reev)
+        assert db_reader.trips_totals(db_reader.get_trips())["kwh_100km"] == 14.3, "the Trips strip"
+        assert db_reader.get_stats_summary()["avg_efficiency"] == 14.3, "the Statistics card"
+        tot = db_reader.get_trip_totals_between(begin, end)
+        assert (tot["ec_km"], tot["ec_kwh_sum"]) == (10.46, 1.5), "the period card's pair"
+        # The matcher serves electric cars only: on a range-extender the fourth drive is one without
+        # getEC, and its estimate stays in the kilometres with an efficiency.
+        assert tot["eff_km"] == (10.46 if reev == "0" else 11.46), "the kilometres carrying an efficiency"
+        assert db_reader._collect_monthly_buckets()[month]["avg_efficiency_measured"] == 14.3, "the Report's months"
+
+
+def test_a_zero_battery_drive_keeps_the_range_extenders_battery_average(tmp_path, monkeypatch):
+    """Statistics divides a range-extender's battery-only pair; a zero drive on the battery beside a generator
+    drive is that pair at 0.0, not a reason to fall back to the generator's kilometres."""
+    pytest.importorskip("fastapi", reason="the period card lives in web.main")
+    import main
+    _short_drive(tmp_path, monkeypatch)
+    db_reader.set_setting("is_reev", "1")
+    assert ec_enrich.convert_trip(1)["ok"] is True
+    with closing(db_reader._conn_rw()) as db:
+        end = db.execute("SELECT ended_at FROM trips WHERE id = 1").fetchone()[0]
+        start, stop = (datetime.fromisoformat(end) + timedelta(minutes=m) for m in (40, 100))
+        db.execute("INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, duration_min, start_soc,"
+                   " end_soc, fuel_start_pct, fuel_end_pct, ec_kwh, ec_stable) VALUES (2, 1, ?, ?, 100.0, 60, 70, 70, 80, 60, 15.0, 1)",
+                   (start.isoformat(), stop.isoformat()))
+        db.commit()
+    begin, end = int(start.timestamp()) - 7200, int(stop.timestamp()) + 60
+
+    eb = main._enrich_eb_with_trip_totals({"total_kwh": 15.0}, begin, end, battery_only=True)
+    assert (eb["avg_kwh100_basis"], eb["avg_kwh100"], eb["avg_kwh100_km"]) == ("battery", 0.0, 0.46)
