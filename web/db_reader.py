@@ -4956,7 +4956,7 @@ def store_trip_ec(trip_id: int, ec: Optional[dict], distance_km, apply_energy: b
     # Override the trip's energy/efficiency only once the EC is STABLE — a fresh trip's cloud value
     # is written incrementally, so applying an early partial read would show a wrong figure. Back up
     # the SoC efficiency at the same moment so the override stays exactly reversible.
-    if apply_energy and stable and tot and distance_km and distance_km > 0:
+    if apply_energy and stable and tot is not None and distance_km and distance_km > 0:
         # REEV: never let getEC (electric energy spread over the FULL distance) become the trip's
         # efficiency when the range-extender ran — that's exactly the diluted ~0.5 figure we suppress
         # (beta #10). The AND-NOT self-gates to REEV engine-on trips; BEV/pure-EV trips override as before.
@@ -5372,6 +5372,26 @@ def _segment_ids(db, trip_id: int) -> list:
                        (_current_vehicle_id(), parent)).fetchall()]
 
 
+def trip_group(trip_id: int):
+    """The drive `trip_id` belongs to, as getEC has to see it: a merged group as one trip (the parent's
+    row with the combined span, distance and SoC) with every segment's id; a plain trip as itself.
+    A merge of close trips is one cloud driving session. None when the trip is gone, or belongs to a
+    car other than the selected one; a merge never crosses cars, so the parent is not asked again."""
+    db = _get()
+    row = db.execute("SELECT * FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                     (trip_id, _current_vehicle_id())).fetchone()
+    if not row:
+        return None
+    t = dict(row)
+    if t.get("merged_into_id"):
+        parent = db.execute("SELECT * FROM trips WHERE id=?", (t["merged_into_id"],)).fetchone()
+        if parent:
+            t = dict(parent)
+    children = _children_by_parent(db).get(t["id"], [])
+    grp = _trip_group_stats(t, children) if children else t
+    return grp, {t["id"]} | {c["id"] for c in children}
+
+
 def _trip_group_stats(parent: dict, children: list) -> dict:
     """Parent dict enriched with the combined stats of [parent + children] (earliest start →
     latest end). Pure display math — stored rows are untouched. The merge guard guarantees no
@@ -5445,7 +5465,7 @@ def _trip_group_stats(parent: dict, children: list) -> dict:
     # If the group was converted to the official cloud EC (stored on the parent over the COMBINED
     # distance, e.g. convert-on-merge), prefer it over the SoC estimate so the headline matches the
     # breakdown card. (Skipped for a REEV engine-on group — same reason as above.)
-    if not _reev_engine and d.get("ec_stable") and d.get("ec_kwh") and dist > 0:
+    if not _reev_engine and d.get("ec_stable") and d.get("ec_kwh") is not None and dist > 0:
         d["efficiency_kwh_100km"] = round(d["ec_kwh"] / dist * 100, 1)
     d["merged_count"] = len(segs)
     d["is_merged"] = True
@@ -6752,10 +6772,11 @@ def _totals_node() -> dict:
 def _totals_add(node: dict, trip: dict) -> None:
     """Fold one trip into a totals node. Efficiency is a DISTANCE-WEIGHTED mean, never a plain
     average of the per-trip figures — a 2 km hop and a 200 km drive must not count the same."""
+    figured = not zero_unvouched(trip)
     if trip.get("energy_source"):
         trip = dict(trip, ec_kwh=trip["energy_kwh"])
     km = trip.get("distance_km") or 0
-    eff = trip.get("efficiency_kwh_100km")
+    eff = trip.get("efficiency_kwh_100km") if figured else None
     node["count"] += 1
     node["cloud_zero_count"] = node.get("cloud_zero_count", 0) + int(bool(trip.get("cloud_zero_segment")))
     node["km"] = round(node["km"] + km, 2)
@@ -6791,7 +6812,7 @@ def _totals_add(node: dict, trip: dict) -> None:
     # here that is 123 trips of 323, 1016 km of 1824: dividing the kWh we do have by every kilometre
     # driven would have printed a consumption not far off HALF the truth, and printed it in confident
     # black and white. A missing signal is not a zero → [[signal-absent-is-not-signal-zero]].
-    _ec = trip.get("ec_kwh")
+    _ec = trip.get("ec_kwh") if figured else None
     if (_ec is not None) and km > 0:
         node["_ec_kwh"] += _ec
         node["_ec_km"] += km
@@ -8233,6 +8254,27 @@ def _trips_have_ec(db) -> bool:
         return False
 
 
+def soc_held(t: dict) -> bool:
+    """The battery read the same at both ends of the drive: what lets a 0.0 kWh stand as the car's figure."""
+    ss, es = t.get("start_soc"), t.get("end_soc")
+    return ss is not None and es is not None and ss == es
+
+
+def zero_unvouched(t: dict) -> bool:
+    """A cloud 0.0 kWh the battery does not vouch for (a reading missing, or changed): the cloud having
+    nothing for the drive, so the trip counts in no average — neither the getEC pair nor the efficiency
+    the same 0.0 was turned into. The zero is the stored getEC figure, or the one the matcher picked
+    from the cloud's trip history (`energy_source` cloud). The sweep refuses such a zero before it is
+    stored; the history, imported or matched without SoC, does not."""
+    ec = t.get("energy_kwh") if t.get("energy_source") == "cloud" else t.get("ec_kwh")
+    return ec == 0 and not soc_held(t)
+
+
+# zero_unvouched() for a query, on the stored figure. Both comparisons are NULL with a value missing,
+# hence the COALESCEs: under NOT, a NULL would drop the trip instead of keeping it.
+ZERO_UNVOUCHED_SQL = "(COALESCE(ec_kwh = 0, 0) AND NOT COALESCE(start_soc = end_soc, 0))"
+
+
 def _merged_trip_statistics(db, begin=None, end=None):
     """Overrides for beta #44: aggregate logical trips, not their stored segments.
 
@@ -8277,7 +8319,8 @@ def _merged_trip_statistics(db, begin=None, end=None):
         km, eff = g.get("distance_km"), g.get("efficiency_kwh_100km")
         return km * eff / 100.0 if km is not None and eff is not None else None
 
-    efficient = [g for g in groups if g.get("efficiency_kwh_100km") is not None]
+    figured = [g for g in groups if not zero_unvouched(g)]
+    efficient = [g for g in figured if g.get("efficiency_kwh_100km") is not None]
     has_ec = _trips_have_ec(db)
     measured = [g for g in efficient if not has_ec or g.get("ec_kwh") is not None]
     measured_ids = {g["id"] for g in measured}
@@ -8290,18 +8333,19 @@ def _merged_trip_statistics(db, begin=None, end=None):
         "eff_km": total(g.get("distance_km") for g in efficient),
         "measured_energy_kwh": total(energy(g) if g["id"] in measured_ids else 0 for g in groups),
         "measured_eff_km": total(g.get("distance_km") for g in measured),
-        "ec_km": (total(g.get("distance_km") if (g.get("ec_kwh") or 0) > 0 else 0
-                         for g in groups) if has_ec else None),
+        # Keep in step with `ec_km_expr`/`ec_kwh_expr` in get_trip_totals_between: the two paths
+        # answer the same question for different databases and must pick the same trips.
+        "ec_km": (total(g.get("distance_km") if g.get("ec_kwh") is not None else 0
+                         for g in figured) if has_ec else None),
         # The energy behind those kilometres, for the average that divides them (#303). A merged
         # group's `ec_kwh` already covers the whole group — convert-on-merge stores it on the
         # parent over the combined distance — so it pairs with the `ec_km` above as it stands.
-        "ec_kwh_sum": (total(g.get("ec_kwh") if (g.get("ec_kwh") or 0) > 0 else 0
-                             for g in groups) if has_ec else None),
+        "ec_kwh_sum": (total(g.get("ec_kwh") or 0 for g in figured) if has_ec else None),
     }
     average_trips = measured if is_reev_car() else efficient
     # Match the existing choice: trip efficiency first; stable cloud EC only as fallback
     # (notably for REEV generator trips). Never override the owner's energy-source setting.
-    covered = [g for g in groups if g.get("energy_source") or g.get("efficiency_kwh_100km") is not None
+    covered = [g for g in figured if g.get("energy_source") or g.get("efficiency_kwh_100km") is not None
                or (g.get("ec_kwh") is not None and g.get("ec_stable") == 1)]
     best = [g["efficiency_kwh_100km"] for g in efficient
             if g["efficiency_kwh_100km"] > 0 and (g.get("distance_km") or 0) >= 15]
@@ -8358,13 +8402,16 @@ def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
         return merged[0]
     # NULL, not 0, where the column is missing: the caller reads a falsy ec_km as "no covered
     # distance known" and falls back to the whole distance — the behaviour before beta #40.
-    ec_km_expr = ("ROUND(SUM(CASE WHEN ec_kwh IS NOT NULL AND ec_kwh > 0 THEN distance_km ELSE 0 END), 2)"
+    # Keep in step with `ec_km`/`ec_kwh_sum` in _merged_trip_statistics: the two paths answer the
+    # same question for different databases and must pick the same trips.
+    figured = f" AND NOT {ZERO_UNVOUCHED_SQL}" if _trips_have_ec(db) else ""
+    ec_km_expr = (f"ROUND(SUM(CASE WHEN ec_kwh IS NOT NULL{figured} THEN distance_km ELSE 0 END), 2)"
                   if _trips_have_ec(db) else "NULL")
     # …and the energy those same trips carry. The caller divides the two (#303): a cloud window
     # total describes every kilometre the cloud saw, `ec_km` only the ones Mate attached a figure
     # to, and pairing them inflates the average by exactly the coverage ratio. Same predicate as
     # `ec_km_expr`, so the two can never describe different trips.
-    ec_kwh_expr = ("ROUND(SUM(CASE WHEN ec_kwh IS NOT NULL AND ec_kwh > 0 THEN ec_kwh ELSE 0 END), 2)"
+    ec_kwh_expr = (f"ROUND(SUM(CASE WHEN ec_kwh IS NOT NULL{figured} THEN ec_kwh ELSE 0 END), 2)"
                    if _trips_have_ec(db) else "NULL")
     # `measured_*` is the same pair as `energy_kwh`/`eff_km` with the estimates taken out, and it
     # is a SEPARATE pair on purpose (beta #43 @michapr). `efficiency_kwh_100km` is not a
@@ -8385,12 +8432,12 @@ def get_trip_totals_between(begin_ts: int, end_ts: int) -> dict:
                   ROUND(SUM(distance_km), 2) AS distance_km,
                   ROUND(SUM(duration_min), 0) AS duration_min,
                   ROUND(SUM(distance_km * COALESCE(efficiency_kwh_100km, 0) / 100.0), 2) AS energy_kwh,
-                  ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+                  ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{figured}
                                  THEN distance_km END), 2) AS eff_km,
-                  ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{measured}
+                  ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{measured}{figured}
                                  THEN distance_km * efficiency_kwh_100km / 100.0
                                  ELSE 0 END), 2) AS measured_energy_kwh,
-                  ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{measured}
+                  ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL{measured}{figured}
                                  THEN distance_km END), 2) AS measured_eff_km,
                   {ec_km_expr} AS ec_km,
                   {ec_kwh_expr} AS ec_kwh_sum
@@ -9020,11 +9067,6 @@ def generate_trip_auto_note(trip_id: int, provider: str = "", api_key: "str | No
     right at trip-close; regenerating later via the button picks it up once it has)."""
     import geocode
     import units
-    _db = _get()
-    row = _db.execute("SELECT * FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
-                      (trip_id, _current_vehicle_id())).fetchone()
-    if not row:
-        return None
     # A merged journey is ONE journey to whoever is looking at it: get_trip_detail resolves a child
     # to its parent and composes the group, so the page says A→C while this used to read the parent
     # segment's own row and write A→B — the trip's own summary contradicting the trip (#247,
@@ -9032,13 +9074,11 @@ def generate_trip_auto_note(trip_id: int, provider: str = "", api_key: "str | No
     # group here exactly as the page does; the stored rows stay untouched (a merge is display math
     # and must stay reversible), and the note is written to the PARENT, which is the row the page
     # reads it back from.
-    parent_id = row["merged_into_id"] or row["id"]
-    parent = row if parent_id == row["id"] else _db.execute(
-        "SELECT * FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
-        (parent_id, _current_vehicle_id())).fetchone()
-    if parent is None:          # child pointing at a parent this vehicle cannot see
-        parent, parent_id = row, row["id"]
-    row = _trip_group_stats(dict(parent), _children_by_parent(_db).get(parent_id, []))
+    found = trip_group(trip_id)
+    if not found:
+        return None
+    row, _ = found
+    parent_id = row["id"]
     if only_if_note_empty and (row.get("note") or "").strip():
         return row.get("note")
 
@@ -9769,6 +9809,8 @@ def get_stats_summary() -> dict:
     # average's reach for no claim it has to keep.
     measured = (" AND ec_kwh IS NOT NULL"
                 if (is_reev_car() and _trips_have_ec(db)) else "")
+    # A 0.0 the battery does not vouch for is no figure here either, as the group path has it.
+    measured += f" AND NOT {ZERO_UNVOUCHED_SQL}"
     trips = db.execute(
         """SELECT
                COUNT(*)                                                       AS trip_count,
@@ -9785,19 +9827,22 @@ def get_stats_summary() -> dict:
                -- SUM(ec_kwh) said 41.6, and could not trace the difference to anything on screen.
                -- With ec as the fallback those trips contribute what the CAR measured, and a BEV,
                -- whose trips all carry an efficiency, sees no change at all.
-               ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+               ROUND(SUM(CASE WHEN {UNVOUCHED} THEN NULL
+                              WHEN efficiency_kwh_100km IS NOT NULL
                                    THEN distance_km * efficiency_kwh_100km / 100.0
                               WHEN ec_kwh IS NOT NULL AND ec_stable = 1 THEN ec_kwh END), 2)
                                                                              AS total_kwh_used,
                -- …and how much of the driving that figure could speak for, so the page can say so
                -- rather than leave the reader to wonder.
-               SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+               SUM(CASE WHEN {UNVOUCHED} THEN 0
+                        WHEN efficiency_kwh_100km IS NOT NULL
                           OR (ec_kwh IS NOT NULL AND ec_stable = 1) THEN 1 ELSE 0 END) AS energy_trips,
                -- The DISTANCE behind that count, because the count alone makes a bad gate: two
                -- stray zero-kilometre trips would put "338 of 340" on every BEV for ever, about
                -- driving that never happened. The note is worth showing when real kilometres are
                -- missing from the total, and the count is what it then says.
-               ROUND(SUM(CASE WHEN efficiency_kwh_100km IS NOT NULL
+               ROUND(SUM(CASE WHEN {UNVOUCHED} THEN NULL
+                              WHEN efficiency_kwh_100km IS NOT NULL
                           OR (ec_kwh IS NOT NULL AND ec_stable = 1) THEN distance_km END), 1)
                                                                              AS energy_km,
                -- Reconstructed trips are left OUT of the clock and stay in everything else. Their
@@ -9830,7 +9875,7 @@ def get_stats_summary() -> dict:
                ROUND(AVG(regen_kwh), 2)                                      AS avg_regen_kwh,
                MIN(started_at)                                               AS _since_trip
            FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL"""
-        .replace("{MEASURED}", measured),
+        .replace("{MEASURED}", measured).replace("{UNVOUCHED}", ZERO_UNVOUCHED_SQL),
         (_current_vehicle_id(),)
     ).fetchone()
     charges = db.execute(
@@ -10167,7 +10212,8 @@ def _collect_monthly_buckets() -> dict:
             continue
         b = buckets.setdefault(dt.strftime("%Y-%m"), _report_bucket())
         km  = tr.get("distance_km") or 0
-        eff = tr.get("efficiency_kwh_100km")
+        figured = not zero_unvouched(tr)
+        eff = tr.get("efficiency_kwh_100km") if figured else None
         b["trip_count"]     += 1
         b["total_km"]       += km
         b["total_kwh_used"] += km * (eff or 0) / 100.0
@@ -10196,10 +10242,10 @@ def _collect_monthly_buckets() -> dict:
         # Statistics pages divide by, so the three cannot print three different kWh/100km for one
         # month (beta #35, @michapr: the Report read 8.8 from ec_driving while the others read 10.1
         # from ec_kwh). Silvio's rule (05/08): always the total battery energy, never the driving
-        # slice. Only trips the cloud has answered for — a NULL/zero is "not measured yet", and
-        # counting its kilometres for free would drag the average down. Same truthy guard as _totals_add.
-        _ec = tr.get("ec_kwh")
-        if _ec and km > 0:
+        # slice. Only trips the cloud has answered for — a NULL is "not measured yet", and
+        # counting its kilometres for free would drag the average down. Same guard as _totals_add.
+        _ec = tr.get("ec_kwh") if figured else None
+        if _ec is not None and km > 0:
             b["_ec_kwh"] += _ec
             b["_ec_km"]  += km
         b["fuel_engine_km"] += tr.get("engine_km") or 0

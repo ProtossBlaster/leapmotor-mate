@@ -5277,7 +5277,8 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int,
                                 battery_only: bool = False) -> "dict | None":
     """Add local distance/duration/average-kWh-per-100km to a getEC breakdown, computed from
     trips in the SAME window — mirrors the car's own "since last charge" screen (Distanza/Durata/
-    Media shown next to the same Guida/AC/Altro split). No-op when there's no energy to average.
+    Media shown next to the same Guida/AC/Altro split). No-op when the cloud gave no answer; a
+    total of 0.0 is an answer, and goes through the same check against Mate's own trips.
 
     Guard (GitHub #105): the cloud getEC total covers the car's WHOLE life, Mate's trips table
     only starts at install. A window that begins before the first recorded trip would pair
@@ -5285,7 +5286,7 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int,
     in the report). For such windows the split is returned WITHOUT distance/duration/average;
     `trips_since` carries the first-trip date so the template can say why. 1 day of slack keeps
     the Trips-page all-time card (window begins at the first trip's local midnight) enriched."""
-    if not eb or not eb.get("total_kwh"):
+    if not eb:
         return eb
     first_ts = db_reader.get_first_trip_ts()
     if first_ts is not None and begin_ts < first_ts - 86400:
@@ -5350,16 +5351,15 @@ def _enrich_eb_with_trip_totals(eb: "dict | None", begin_ts: int, end_ts: int,
     ec_km = tot.get("ec_km") or 0
     ec_kwh = tot.get("ec_kwh_sum") or 0
     eff_km = tot.get("measured_eff_km") or 0
-    if (battery_only and db_reader.is_reev_car() and eff_km > 0
-            and (tot.get("measured_energy_kwh") or 0) > 0):
+    if battery_only and db_reader.is_reev_car() and eff_km > 0:
         eb["avg_kwh100"] = round(tot["measured_energy_kwh"] / eff_km * 100, 1)
         eb["avg_kwh100_km"] = eff_km
         eb["avg_kwh100_basis"] = "battery"
     else:
-        # ONE guard: `ec_km` and `ec_kwh` are summed under the SAME predicate (`ec_kwh > 0`), so a
-        # covered distance cannot exist without the energy that produced it. A second `ec_kwh > 0`
-        # here said nothing — a mutation removing it survived every test, which is how a guard
-        # announces it has no behaviour of its own.
+        # ONE guard: `ec_km` and `ec_kwh` are summed under the SAME predicate (a getEC figure, a 0.0
+        # the battery vouches for included), so a covered distance always comes with the energy the
+        # cloud gave for it. A second `ec_kwh > 0` here said nothing — a mutation removing it
+        # survived every test, which is how a guard announces it has no behaviour of its own.
         basis_kwh, basis_km = (ec_kwh, ec_km) if ec_km > 0 else (eb["total_kwh"], dist_km)
         if basis_km > 0:
             eb["avg_kwh100"] = round(basis_kwh / basis_km * 100, 1)
