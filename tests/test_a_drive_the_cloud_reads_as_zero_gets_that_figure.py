@@ -5,9 +5,11 @@ taken for no answer: the trip waited for the cloud for six hours, was asked ever
 ended with no energy at all, its battery having shown no fall to estimate from. Its record in the
 cloud's history carries the same 0.0, and a trip matched to it already shows it. A zero on a drive
 whose battery did fall is still refused, and a reply missing its figures is no zero. Nor is a total
-below zero: kept, it would become the trip's consumption.
+below zero: kept, it would become the trip's consumption. And a zero counts only where the battery
+read the same at both ends; with a reading missing, it is the cloud having nothing for the drive.
 """
 import json
+from contextlib import closing
 
 import pytest
 
@@ -74,3 +76,17 @@ def test_a_negative_total_is_no_answer(tmp_path, monkeypatch):
 
     assert ec_enrich.convert_trip(1)["ok"] is False
     assert db_reader.get_trip_detail(1)["ec_stable"] == 0
+
+
+def test_a_zero_needs_the_battery_to_have_held(tmp_path, monkeypatch):
+    """5 km cannot cost nothing: with no battery reading to vouch for it, the zero is the cloud having nothing."""
+    cloud = _short_drive(tmp_path, monkeypatch)
+    with closing(db_reader._conn_rw()) as db:
+        db.execute("UPDATE trips SET distance_km = 5.0, start_soc = NULL, end_soc = NULL WHERE id = 1")
+        db.commit()
+    for _ in range(3):
+        ec_enrich._sweep_now()
+
+    assert ec_enrich.convert_trip(1)["ok"] is False
+    assert db_reader.get_trip_detail(1)["ec_stable"] == 0
+    assert len(cloud.posted) == 4, "the trip did not keep waiting for the cloud"

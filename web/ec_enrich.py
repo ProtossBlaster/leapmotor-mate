@@ -81,6 +81,15 @@ def _soc_drop_points(d: dict):
     return (ss - es) if (ss is not None and es is not None and ss > es) else None
 
 
+def _zero_unvouched(ec: dict, d: dict) -> bool:
+    """True for a 0.0 kWh reading the battery does not vouch for: the car's figure only where the SoC
+    read the same at both ends; with a reading missing, or a change, the zero is the cloud having nothing."""
+    if not ec or (ec.get("total_kwh") or 0) != 0:
+        return False
+    ss, es = d.get("start_soc"), d.get("end_soc")
+    return ss is None or es is None or ss != es
+
+
 def _ec_implausible(ec: dict, dist: float, soc_energy, soc_drop=None) -> bool:
     """True when a getEC reading is physically implausible vs the trip's SoC battery delta → keep the
     estimate instead. Each side needs BOTH an efficiency signal AND a SoC-mismatch signal (a genuinely
@@ -197,7 +206,7 @@ def _sweep_now() -> None:
             # SoC. LOW = cloud gap; HIGH = session swallowed pre-drive idle (drive-only SoC is truer).
             # The multi-trip shared-session case was already skipped above.
             soc_e = _soc_energy_kwh(t, dist)
-            if _ec_implausible(ec, dist, soc_e, _soc_drop_points(t)):
+            if _ec_implausible(ec, dist, soc_e, _soc_drop_points(t)) or _zero_unvouched(ec, t):
                 log.info("EC trip %s: implausible read %.2f kWh (SoC≈%.2f kWh) — discarded (age %.0fm, try %d)",
                          t["id"], ec.get("total_kwh") or 0, soc_e or 0, age / 60, tried)
                 ec = None
@@ -307,7 +316,7 @@ def convert_trip(trip_id: int) -> dict:
     # drive (the trip = the drive; drive-only SoC is the truer per-trip figure). The MULTI-trip case is
     # already handled above by the shared-session block, so here it only ever sees single trips.
     soc_e = _soc_energy_kwh(grp, dist)
-    if _ec_implausible(ec, dist, soc_e, _soc_drop_points(grp)):
+    if _ec_implausible(ec, dist, soc_e, _soc_drop_points(grp)) or _zero_unvouched(ec, grp):
         db_reader.store_trip_ec(trip_id, None, dist, apply_energy=False)  # record attempt, change nothing
         log.info("convert_trip %s: implausible getEC %.2f kWh over %.1f km (SoC≈%.2f kWh) — kept SoC estimate",
                  trip_id, ec.get("total_kwh") or 0, dist, soc_e or 0)
