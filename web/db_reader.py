@@ -5368,9 +5368,11 @@ def _segment_ids(db, trip_id: int) -> list:
 def trip_group(trip_id: int):
     """The drive `trip_id` belongs to, as getEC has to see it: a merged group as one trip (the parent's
     row with the combined span, distance and SoC) with every segment's id; a plain trip as itself.
-    A merge of close trips is one cloud driving session. None when the trip is gone."""
+    A merge of close trips is one cloud driving session. None when the trip is gone, or belongs to a
+    car other than the selected one; a merge never crosses cars, so the parent is not asked again."""
     db = _get()
-    row = db.execute("SELECT * FROM trips WHERE id=?", (trip_id,)).fetchone()
+    row = db.execute("SELECT * FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
+                     (trip_id, _current_vehicle_id())).fetchone()
     if not row:
         return None
     t = dict(row)
@@ -8994,11 +8996,6 @@ def generate_trip_auto_note(trip_id: int, provider: str = "", api_key: "str | No
     right at trip-close; regenerating later via the button picks it up once it has)."""
     import geocode
     import units
-    _db = _get()
-    row = _db.execute("SELECT * FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
-                      (trip_id, _current_vehicle_id())).fetchone()
-    if not row:
-        return None
     # A merged journey is ONE journey to whoever is looking at it: get_trip_detail resolves a child
     # to its parent and composes the group, so the page says A→C while this used to read the parent
     # segment's own row and write A→B — the trip's own summary contradicting the trip (#247,
@@ -9006,13 +9003,11 @@ def generate_trip_auto_note(trip_id: int, provider: str = "", api_key: "str | No
     # group here exactly as the page does; the stored rows stay untouched (a merge is display math
     # and must stay reversible), and the note is written to the PARENT, which is the row the page
     # reads it back from.
-    parent_id = row["merged_into_id"] or row["id"]
-    parent = row if parent_id == row["id"] else _db.execute(
-        "SELECT * FROM trips WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
-        (parent_id, _current_vehicle_id())).fetchone()
-    if parent is None:          # child pointing at a parent this vehicle cannot see
-        parent, parent_id = row, row["id"]
-    row = _trip_group_stats(dict(parent), _children_by_parent(_db).get(parent_id, []))
+    found = trip_group(trip_id)
+    if not found:
+        return None
+    row, _ = found
+    parent_id = row["id"]
     if only_if_note_empty and (row.get("note") or "").strip():
         return row.get("note")
 
