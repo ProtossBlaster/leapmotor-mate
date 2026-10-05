@@ -677,8 +677,9 @@ class LeapmotorSession:
                     ac = float(d.get("acEC") or 0)
                     oth = float(d.get("otherEC") or 0)
                     total = drv + ac + oth
-                    # 0.0 in all three fields is a reading; a missing or null field is not, and must not count as 0.
-                    if total <= 0 and any(d.get(k) in (None, "") for k in ("driverEC", "acEC", "otherEC")):
+                    # 0.0 in all three fields is a reading; a missing or null field is not, nor is a total below zero.
+                    missing = any(d.get(k) in (None, "") for k in ("driverEC", "acEC", "otherEC"))
+                    if total < 0 or (total == 0 and missing):
                         return None
                     pct = (lambda v: round(v / total * 100, 1)) if total > 0 else (lambda v: 0)
                     return {

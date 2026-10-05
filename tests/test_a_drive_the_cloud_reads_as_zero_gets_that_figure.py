@@ -4,7 +4,8 @@ The cloud files some short drives at 0.0 kWh. getEC answers them with a split of
 taken for no answer: the trip waited for the cloud for six hours, was asked every five minutes, and
 ended with no energy at all, its battery having shown no fall to estimate from. Its record in the
 cloud's history carries the same 0.0, and a trip matched to it already shows it. A zero on a drive
-whose battery did fall is still refused, and a reply missing its figures is no zero.
+whose battery did fall is still refused, and a reply missing its figures is no zero. Nor is a total
+below zero: kept, it would become the trip's consumption.
 """
 import json
 
@@ -57,6 +58,17 @@ def test_convert_applies_the_zero(tmp_path, monkeypatch):
                          ids=["null", "missing"])
 def test_a_reply_missing_its_figures_is_no_zero(tmp_path, monkeypatch, data):
     _short_drive(tmp_path, monkeypatch, {"result": 0, "code": 0, "data": data})
+    ec_enrich._sweep_now()
+    ec_enrich._sweep_now()
+
+    assert ec_enrich.convert_trip(1)["ok"] is False
+    assert db_reader.get_trip_detail(1)["ec_stable"] == 0
+
+
+def test_a_negative_total_is_no_answer(tmp_path, monkeypatch):
+    """Below zero is no reading of a drive: kept, it would be the trip's consumption, −65 kWh/100 km here."""
+    _short_drive(tmp_path, monkeypatch, {"result": 0, "code": 0,
+                                         "data": {"driverEC": "-0.3", "acEC": "0.0", "otherEC": "0.0"}})
     ec_enrich._sweep_now()
     ec_enrich._sweep_now()
 
