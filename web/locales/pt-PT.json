@@ -746,6 +746,7 @@
     "menu_label": "Menu",
     "ready_state_on": "Pronto",
     "ready_state_off": "Não pronto",
+    "ready_state_help": "Se o carro está ligado: desde o momento em que é ligado, antes de se mover, até ser desligado. Um travessão significa que o carro não o enviou.",
     "app_update": "Atualização disponível",
     "waiting_data": "A aguardar primeiros dados...",
     "check_poller": "Confirma que o poller está em execução",

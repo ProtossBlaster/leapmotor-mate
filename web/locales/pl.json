@@ -746,6 +746,7 @@
     "menu_label": "Menu",
     "ready_state_on": "Gotowy",
     "ready_state_off": "Niegotowy",
+    "ready_state_help": "Czy auto jest włączone: od chwili uruchomienia, jeszcze zanim ruszy, aż do wyłączenia. Kreska oznacza, że auto tego nie przysłało.",
     "app_update": "Dostępna aktualizacja",
     "waiting_data": "Oczekiwanie na pierwsze dane...",
     "check_poller": "Upewnij się, że poller działa",

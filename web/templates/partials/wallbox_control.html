@@ -4,7 +4,7 @@
         hx-target="closest .wb-ctl-tile" hx-swap="outerHTML">
     <div class="text-[11px] uppercase tracking-wide text-slate-400 mb-1 flex items-center gap-1">
       {{ t('wb_role_max_current') }}
-      <span title="{{ t('wb_automation_note') }}" class="cursor-help text-amber-400/80">ⓘ</span>
+      <span class="cursor-help text-amber-400/80" tabindex="0" data-tip="{{ t('wb_automation_note') }}">ⓘ</span>
     </div>
     <div class="flex items-baseline justify-between mb-2">
       <div class="text-2xl font-bold text-brand">

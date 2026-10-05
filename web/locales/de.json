@@ -746,6 +746,7 @@
     "menu_label": "Menü",
     "ready_state_on": "Bereit",
     "ready_state_off": "Nicht bereit",
+    "ready_state_help": "Ob das Auto eingeschaltet ist: vom Einschalten an, noch bevor es losfährt, bis zum Ausschalten. Ein Strich bedeutet, dass das Auto es nicht gesendet hat.",
     "app_update": "Update verfügbar",
     "waiting_data": "Warte auf erste Daten...",
     "check_poller": "Stellen Sie sicher, dass der Poller läuft",

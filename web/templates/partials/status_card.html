@@ -145,7 +145,7 @@
   {% endif %}
   {% if 'outside_temp' not in absent %}
   <div class="flex justify-between gap-2 text-slate-400">
-    <span class="min-w-0 break-words">{{ t('outside_temp_label') }} <span class="text-slate-600 cursor-help" title="{{ t('outside_temp_title') }}">ⓘ</span></span>
+    <span class="min-w-0 break-words">{{ t('outside_temp_label') }} <span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('outside_temp_title') }}">ⓘ</span></span>
     <span class="text-white font-medium whitespace-nowrap">{{ status.outside_temp | temp(0) if status.outside_temp is not none else '—' }}</span>
   </div>
   {% endif %}
@@ -180,7 +180,7 @@
   </div>
   {% endif %}
   <div class="flex justify-between gap-2 text-slate-400 col-span-2">
-    <span>READY</span>
+    <span>READY<span class="text-slate-600 cursor-help ml-1" tabindex="0" data-tip="{{ t('ready_state_help') }}">ⓘ</span></span>
     <span class="font-semibold whitespace-nowrap {% if status.ready %}text-emerald-400{% else %}text-slate-500{% endif %}">
       {% if status.ready is none %}—{% elif status.ready %}{{ t('ready_state_on') }}{% else %}{{ t('ready_state_off') }}{% endif %}
     </span>

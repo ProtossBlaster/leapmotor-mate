@@ -746,6 +746,7 @@
     "menu_label": "Menú",
     "ready_state_on": "Listo",
     "ready_state_off": "No listo",
+    "ready_state_help": "Si el coche está encendido: desde el momento en que se enciende, antes de moverse, hasta que se apaga. Un guion significa que el coche no lo envió.",
     "app_update": "Actualización disponible",
     "waiting_data": "Esperando los primeros datos...",
     "check_poller": "Comprueba que el poller esté funcionando",
