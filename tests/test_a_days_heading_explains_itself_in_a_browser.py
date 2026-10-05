@@ -13,7 +13,7 @@ from web_in_a_browser import chromium, seed_database, served
 
 _TRIP = ("INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, duration_min, start_soc, end_soc)"
          " VALUES (?,1,?,?,12,30,?,?)")
-_SCROLL_STOPPED = "() => { const y = window.scrollY, same = window.lastY === y; window.lastY = y; return same; }"
+_SCROLL_STOPPED = "() => { const n = window.scrolls, same = window.lastN === n; window.lastN = n; return same; }"
 _TIP = "() => { const t = document.getElementById('mate-tip'); return t.classList.contains('hidden') ? null : t.textContent; }"
 
 
@@ -37,8 +37,10 @@ def test_a_figure_in_the_heading_shows_what_it_is(mate, touch):
         width = 390 if touch else 1280
         page = browser.new_page(viewport={"width": width, "height": 900}, has_touch=touch, is_mobile=touch)
         # ?highlight= opens the trip's day, loads the calendar once more and scrolls smoothly to the row;
-        # base.html hides the tip on any scroll, so the tap waits for both to be over.
-        page.add_init_script("document.addEventListener('htmx:afterSwap', () => { window.swapped = true; })")
+        # base.html hides the tip on any scroll, so the tap waits for both to be over. The page scrolls
+        # inside <main>, not the window, so settling counts scroll events wherever they happen.
+        page.add_init_script("document.addEventListener('htmx:afterSwap', () => { window.swapped = true; });"
+                             " window.scrolls = 0; document.addEventListener('scroll', () => { window.scrolls++; }, true)")
         assert page.goto(mate + "/trips?highlight=1").status == 200
         page.wait_for_function("window.swapped === true")
         page.wait_for_function(_SCROLL_STOPPED, polling=250)
@@ -49,6 +51,10 @@ def test_a_figure_in_the_heading_shows_what_it_is(mate, touch):
         page.wait_for_function("window.swapped === true")
         battery = page.locator("#trips-day-drawer [data-tip]").filter(has_text="84.0% → 52.0%")
         assert page.evaluate(_TIP) is None
+        # hover() first scrolls the figure into view; that scroll event arrives late under load and would hide
+        # the tip right after the pointer showed it, so the figure is brought into view and the page settled first.
+        battery.scroll_into_view_if_needed()
+        page.wait_for_function(_SCROLL_STOPPED, polling=250)
         battery.tap() if touch else battery.hover()
         assert page.evaluate(_TIP) == "Battery"
     finally:
