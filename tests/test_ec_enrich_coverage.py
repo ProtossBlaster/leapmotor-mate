@@ -73,8 +73,13 @@ def test_no_trips_at_all_keeps_plain_zero_totals(monkeypatch):
     assert "trips_since" not in out
 
 
-def test_no_energy_is_a_noop(monkeypatch):
+def test_no_answer_is_a_noop(monkeypatch):
     _patch(monkeypatch, FIRST, {"trip_count": 0, "distance_km": None, "duration_min": None})
     assert main._enrich_eb_with_trip_totals(None, 0, 1) is None
-    eb = {"total_kwh": 0}
-    assert main._enrich_eb_with_trip_totals(eb, 0, 1) == {"total_kwh": 0}
+
+
+def test_a_zero_is_an_answer_and_gets_its_window(monkeypatch):
+    """The cloud files some short drives at 0.0 kWh; a split of zeros for their window is its figure, not a miss."""
+    _patch(monkeypatch, FIRST, {"trip_count": 1, "distance_km": 0.46, "duration_min": 3})
+    out = main._enrich_eb_with_trip_totals({"total_kwh": 0}, FIRST, FIRST + 3600)
+    assert (out["distance_km"], out["duration_min"]) == (0.46, 3)

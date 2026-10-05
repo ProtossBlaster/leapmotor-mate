@@ -10,9 +10,11 @@ read the same at both ends; with a reading missing, it is the cloud having nothi
 The background sweep judges a merged trip as its whole group, as Convert does. A zero taken
 counts in every average that divides getEC energy by its kilometres, and a zero the battery does
 not vouch for, as the cloud's trip history stores one for a drive without SoC, counts in none of
-them.
+them. A zero for a whole period is checked against Mate's own trips, as any cloud total far
+short of them is.
 """
 import json
+import re
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
 
@@ -217,3 +219,36 @@ def test_a_zero_battery_drive_keeps_the_range_extenders_battery_average(tmp_path
 
     eb = main._enrich_eb_with_trip_totals({"total_kwh": 15.0}, begin, end, battery_only=True)
     assert (eb["avg_kwh100_basis"], eb["avg_kwh100"], eb["avg_kwh100_km"]) == ("battery", 0.0, 0.46)
+
+
+def _report_tile(tmp_path, monkeypatch, km, efficiency):
+    """The Report's driving tiles for a month of one drive, the cloud answering 0.0 kWh for the whole of it."""
+    pytest.importorskip("fastapi", reason="the Report tiles live in web.main")
+    pytest.importorskip("httpx", reason="Starlette TestClient needs httpx")
+    import main
+    from starlette.testclient import TestClient
+
+    for var in ("MATE_AUTH_PASSWORD", "SUPERVISOR_TOKEN", "HASSIO_TOKEN"):
+        monkeypatch.delenv(var, raising=False)
+    _short_drive(tmp_path, monkeypatch)
+    with closing(db_reader._conn_rw()) as db:
+        db.execute("UPDATE trips SET distance_km = ?, efficiency_kwh_100km = ? WHERE id = 1", (km, efficiency))
+        db.commit()
+    for key, value in (("timezone", "UTC"), ("setup_complete", "1")):
+        db_reader.set_setting(key, value)
+    with closing(db_reader._conn_rw()) as db:
+        db.execute("UPDATE trips SET started_at = '2026-07-05T10:00:00+00:00', ended_at = '2026-07-05T10:03:00+00:00'"
+                   " WHERE id = 1")
+        db.commit()
+    html = TestClient(main.app).get("/api/report-driving?month=2026-07&refresh=1").text
+    used = re.search(r'<span class="stat-value[^"]*">([^<]*)</span><span[^>]*>kWh', html)
+    return used.group(1).strip(), "upload every session to the cloud" in html
+
+
+def test_a_zero_for_the_month_is_checked_against_the_trips(tmp_path, monkeypatch):
+    """100 km at 15 kWh cannot have cost nothing: the tile shows Mate's own sum and says why, as for any cloud total far short of it."""
+    assert _report_tile(tmp_path, monkeypatch, 100.0, 15.0) == ("15", True)
+
+
+def test_a_month_of_zero_drives_keeps_its_zero(tmp_path, monkeypatch):
+    assert _report_tile(tmp_path, monkeypatch, 0.46, None) == ("0", False)
