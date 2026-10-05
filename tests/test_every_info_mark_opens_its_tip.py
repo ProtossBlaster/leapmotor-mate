@@ -40,3 +40,9 @@ def test_every_info_mark_opens_the_apps_tip(attrs):
     assert 'data-tip="' in attrs, "the mark shows nothing on tap or in the Home Assistant app"
     assert 'tabindex="0"' in attrs, "the mark cannot be reached from the keyboard"
 
+
+def test_ready_says_what_the_state_means():
+    """READY is the car's own word: the mark beside it says it is the power-on state, and what a dash is."""
+    from test_absent_temperature_is_not_zero import _render_card, _row
+
+    assert 'data-tip="ready_state_help"' in _row(_render_card(ready=1), "READY")

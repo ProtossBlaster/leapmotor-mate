@@ -746,6 +746,7 @@
     "menu_label": "Menu",
     "ready_state_on": "Gereed",
     "ready_state_off": "Niet gereed",
+    "ready_state_help": "Of de auto aanstaat: vanaf het inschakelen, nog voor hij rijdt, tot het uitschakelen. Een streepje betekent dat de auto het niet heeft gestuurd.",
     "app_update": "Update beschikbaar",
     "waiting_data": "Wachten op de eerste gegevens...",
     "check_poller": "Controleer of de poller draait",

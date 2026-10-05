@@ -746,6 +746,7 @@
     "menu_label": "Menu",
     "ready_state_on": "Ready",
     "ready_state_off": "Not Ready",
+    "ready_state_help": "Whether the car is switched on: from the moment it is powered up, before it moves, until it is switched off. A dash means the car did not send it.",
     "app_update": "Update available",
     "waiting_data": "Waiting for first data...",
     "check_poller": "Make sure the poller is running",
