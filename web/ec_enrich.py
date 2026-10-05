@@ -183,7 +183,12 @@ def _sweep_now() -> None:
             log.info("ec_enrich: first run — cutoff set to %s (enrich from now)", cutoff)
         apply = True
         now = time.time()
-        for t in db_reader.get_trips_needing_ec(cutoff, limit=_BATCH):
+        for due in db_reader.get_trips_needing_ec(cutoff, limit=_BATCH):
+            # A merged trip is asked for and judged as its whole group, as Convert does.
+            found = db_reader.trip_group(due["id"])
+            if not found:
+                continue
+            t, own_ids = found
             b, e = db_reader.trip_epoch_window(t)   # exact span; e (end) used for the age check
             if not b or not e:
                 db_reader.store_trip_ec(t["id"], None, t.get("distance_km"), apply)
@@ -192,7 +197,7 @@ def _sweep_now() -> None:
             # off between them), DON'T auto-apply a per-trip value — it'd grab the whole session. Leave
             # it on SoC; the user merges them by hand (convert_trip then converts the combined group).
             sess = db_reader.ready_session(t)
-            if sess and (set(sess["trip_ids"]) - {t["id"]}):
+            if sess and (set(sess["trip_ids"]) - own_ids):
                 db_reader.store_trip_ec(t["id"], None, t.get("distance_km"), apply)
                 log.info("EC trip %s: shared Ready session %s — left on SoC (merge to convert)",
                          t["id"], sess["trip_ids"])

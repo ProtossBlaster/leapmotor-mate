@@ -7,9 +7,11 @@ cloud's history carries the same 0.0, and a trip matched to it already shows it.
 whose battery did fall is still refused, and a reply missing its figures is no zero. Nor is a total
 below zero: kept, it would become the trip's consumption. And a zero counts only where the battery
 read the same at both ends; with a reading missing, it is the cloud having nothing for the drive.
+The background sweep judges a merged trip as its whole group, as Convert does.
 """
 import json
 from contextlib import closing
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -90,3 +92,20 @@ def test_a_zero_needs_the_battery_to_have_held(tmp_path, monkeypatch):
     assert ec_enrich.convert_trip(1)["ok"] is False
     assert db_reader.get_trip_detail(1)["ec_stable"] == 0
     assert len(cloud.posted) == 4, "the trip did not keep waiting for the cloud"
+
+
+def test_the_sweep_judges_a_merged_trip_as_a_whole(tmp_path, monkeypatch):
+    """The battery held over the first drive and fell over the one merged into it: the group did use energy."""
+    cloud = _short_drive(tmp_path, monkeypatch)
+    with closing(db_reader._conn_rw()) as db:
+        end = db.execute("SELECT ended_at FROM trips WHERE id = 1").fetchone()[0]
+        start, stop = (datetime.fromisoformat(end) + timedelta(minutes=m) for m in (2, 7))
+        db.execute("INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, start_soc, end_soc)"
+                   " VALUES (2, 1, ?, ?, 1.0, 82.9, 81.9)", (start.isoformat(), stop.isoformat()))
+        db.commit()
+    assert db_reader.merge_trips(1, 2)["ok"] is True
+    ec_enrich._sweep_now()
+    ec_enrich._sweep_now()
+
+    assert db_reader.get_trip_detail(1)["ec_stable"] == 0, "a zero for the first drive alone was taken for the group"
+    assert len(cloud.posted) == 2
