@@ -246,8 +246,10 @@
       border-color: #14b8a6 !important;
       box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.35);
     }
-    /* a Shift-click picks days, not the text between them */
-    [data-range] > .cal-day { -webkit-user-select: none; user-select: none; }
+    /* a Shift-click or a held finger picks days, not the text between them or a callout */
+    [data-range] > .cal-day { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    /* a held day waiting for the tap that ends the range */
+    .cal-day[data-anchor] { outline: 2px dashed #14b8a6; outline-offset: 2px; }
   </style>
 </head>
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col md:flex-row" data-autorefresh="{% block autorefresh %}30{% endblock %}">
@@ -726,6 +728,7 @@
       var first = Math.min(from, to), last = Math.max(from, to);
       var cell = grid.querySelector('.cal-day[data-day]');
       if (!cell) return;
+      unhold();     // whatever chose, a held day is no longer waiting
       var u = cell.getAttribute('hx-get');
       htmx.ajax('GET', u.replace(/([?&]day=)\d+/, '$1' + first) + (last > first ? '&to_day=' + last : ''),
                 {source: cell, target: cell.getAttribute('hx-target'), swap: 'innerHTML'})
@@ -750,10 +753,25 @@
       return e.target.closest ? e.target.closest('[data-range] > .cal-day') : null;
     }
 
+    // The click a lifted finger sends after a hold, which no new touch precedes: the hold already acted.
+    var swallow = false;
+
     // Capturing, so it runs before htmx opens the clicked day alone.
     document.addEventListener('click', function (e) {
-      var cell = e.shiftKey && rangeCell(e);
-      if (!cell) return;
+      var cell = rangeCell(e);
+      if (pending && !pending.isConnected) unhold();     // the month changed under it
+      if (swallow || (pending && cell)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var from = !swallow && pending;
+        swallow = false;
+        if (!from) return;
+        unhold();
+        // A tap on another day ends the range; a tap on the held day lets it go.
+        if (cell !== from) choose(cell.parentElement, +from.dataset.day, +cell.dataset.day);
+        return;
+      }
+      if (!cell || !e.shiftKey) return;
       var grid = cell.parentElement, ringed = grid.querySelector('.cal-day[data-selected]');
       var anchor = grid.calAnchor || rememberedAnchor(grid) || (ringed && +ringed.dataset.day);
       if (!anchor) return;
@@ -796,6 +814,47 @@
     });
     document.addEventListener('pointercancel', function () {
       if (drag) undrag();
+    });
+
+    // On a phone: holding a day still for half a second makes it the start of a range, and the next tap
+    // on another day ends it. A finger that moves scrolls, and the browser cancels its pointer.
+    var hold = null, pending = null;     // hold: the finger on a day; pending: the held day's cell
+    function unhold() {
+      if (pending) pending.removeAttribute('data-anchor');
+      pending = null;
+    }
+    function letGo() {
+      clearTimeout(hold.timer);
+      if (hold.held) unhold();
+      hold = null;
+    }
+    document.addEventListener('pointerdown', function (e) {
+      swallow = false;
+      if (e.pointerType !== 'touch') return;
+      if (hold) return letGo();     // a second finger: a pinch, not a hold
+      if (!e.isPrimary) return;     // …and one beside a finger off the days starts none
+      var cell = rangeCell(e);
+      if (!cell) return;
+      var h = hold = {id: e.pointerId, timer: setTimeout(function () {
+        unhold();
+        pending = cell;
+        cell.setAttribute('data-anchor', '');
+        h.held = true;
+      }, 500)};
+    });
+    document.addEventListener('pointerup', function (e) {
+      if (!hold || e.pointerId !== hold.id) return;
+      clearTimeout(hold.timer);
+      swallow = !!hold.held;
+      hold = null;
+    });
+    // A held finger that goes on to scroll was not choosing a day after all.
+    document.addEventListener('pointercancel', function (e) {
+      if (hold && e.pointerId === hold.id) letGo();
+    });
+    // A held finger brings up the browser's menu otherwise; a right-click keeps its menu.
+    document.addEventListener('contextmenu', function (e) {
+      if (hold && rangeCell(e)) e.preventDefault();
     });
 
     // A day's date under a range heading opens that day alone, ringed as if its cell were clicked.

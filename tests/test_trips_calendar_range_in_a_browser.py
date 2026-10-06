@@ -60,9 +60,10 @@ def browser():
 class Calendar:
     """One page on this month's calendar, counting what the drawer asks for."""
 
-    def __init__(self, browser, mate, name="trips"):
+    def __init__(self, browser, mate, name="trips", phone=False):
         self.name, self.asked = name, []
-        self.page = browser.new_page(viewport={"width": 1280, "height": 900})
+        self.page = (browser.new_page(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
+                     if phone else browser.new_page(viewport={"width": 1280, "height": 900}))
         self.page.add_init_script(COUNT_CALENDAR_SWAPS)
         self.page.on("request", lambda r: f"/api/{name}/calendar/day?" in r.url and self.asked.append(r.url))
         assert self.page.goto(f"{mate}/{name}").status == 200
@@ -85,6 +86,37 @@ class Calendar:
 
     def drawer(self):
         return self.page.locator(f"#{self.name}-day-drawer").inner_text()
+
+    def centre(self, day):
+        box = self.cell(day).bounding_box()
+        return {"x": box["x"] + box["width"] / 2, "y": box["y"] + box["height"] / 2}
+
+    def fingers(self, kind, *points):
+        if not hasattr(self, "cdp"):
+            self.cdp = self.page.context.new_cdp_session(self.page)
+        self.cdp.send("Input.dispatchTouchEvent", {"type": kind, "touchPoints": list(points)})
+
+    def touch(self, day, *, held=False, move=0, scroll=0):
+        """A finger on the day, then lifted: `held` until the day shows it is held (as a reader waits for
+        the ring; a loaded machine runs the half-second timer late), then moved `scroll` px up; or moved
+        `move` px up at once and left there past the half second."""
+        self.cell(day).scroll_into_view_if_needed()
+        self.page.wait_for_timeout(300)        # a drawer just filled may still be moving the page
+        at = self.centre(day)
+        self.fingers("touchStart", at)
+        for step in range(1, 6 if move else 0):
+            self.fingers("touchMove", {"x": at["x"], "y": at["y"] - move * step / 5})
+        if held:
+            self.page.wait_for_selector(".cal-day[data-anchor]")
+        else:
+            self.page.wait_for_timeout(800)
+        for step in range(1, 6 if scroll else 0):
+            self.fingers("touchMove", {"x": at["x"], "y": at["y"] - scroll * step / 5})
+        self.fingers("touchEnd")
+        self.page.wait_for_timeout(300)        # whatever the lifted finger is going to send
+
+    def anchored(self):
+        return self.page.locator(".cal-day[data-anchor]").count()
 
 
 def _range_heading(day1, day2):
@@ -235,3 +267,77 @@ def test_the_charges_calendar_opens_one_day_on_a_shift_click(browser, mate):
     cal.swapped(lambda: cal.cell(5).click(modifiers=["Shift"]))
     assert len(cal.asked) == 2 and cal.asked[0].endswith("&day=3") and cal.asked[1].endswith("&day=5"), cal.asked
     assert cal.ringed() == [5]
+
+
+def test_holding_a_day_waits_for_the_tap_that_ends_the_range(browser, mate):
+    cal = Calendar(browser, mate, phone=True)
+    cal.touch(3, held=True)
+    assert cal.asked == [] and cal.anchored() == 1        # nothing opened yet, the day is held
+    cal.swapped(lambda: cal.cell(5).tap())
+    assert len(cal.asked) == 1 and cal.asked[0].endswith("&day=3&to_day=5"), cal.asked
+    assert cal.anchored() == 0
+    assert cal.ringed() == [3, 5]
+    assert cal.drawer().startswith(_range_heading(3, 5))
+
+
+def test_a_tap_on_the_held_day_lets_it_go(browser, mate):
+    cal = Calendar(browser, mate, phone=True)
+    cal.touch(3, held=True)
+    cal.cell(3).tap()
+    cal.page.wait_for_timeout(300)
+    assert cal.asked == [] and cal.anchored() == 0
+    cal.swapped(lambda: cal.cell(5).tap())                # an ordinary tap again
+    assert len(cal.asked) == 1 and cal.asked[0].endswith("&day=5"), cal.asked
+
+
+def test_a_finger_that_scrolls_does_not_hold(browser, mate):
+    cal = Calendar(browser, mate, phone=True)
+    cal.touch(3, move=60)
+    assert cal.asked == [] and cal.anchored() == 0
+
+
+def test_a_held_finger_that_goes_on_to_scroll_lets_the_day_go(browser, mate):
+    cal = Calendar(browser, mate, phone=True)
+    cal.touch(3, held=True, scroll=60)
+    assert cal.anchored() == 0
+    cal.swapped(lambda: cal.cell(5).tap())                # an ordinary tap, not the end of a range
+    assert len(cal.asked) == 1 and cal.asked[0].endswith("&day=5"), cal.asked
+
+
+def test_two_fingers_are_not_a_hold(browser, mate):
+    cal = Calendar(browser, mate, phone=True)
+    errors = []
+    cal.page.on("pageerror", lambda e: errors.append(str(e)))
+    first, second = {**cal.centre(3), "id": 1}, {**cal.centre(5), "id": 2}
+    cal.fingers("touchStart", first)
+    cal.fingers("touchStart", first, second)
+    cal.page.wait_for_timeout(200)
+    cal.fingers("touchEnd")
+    cal.page.wait_for_timeout(800)                        # past the hold's half second
+    assert errors == [] and cal.anchored() == 0 and cal.asked == []
+
+
+def test_a_second_finger_beside_one_off_the_days_is_not_a_hold(browser, mate):
+    cal = Calendar(browser, mate, phone=True)
+    box = cal.page.locator("#trips-calendar-month div.aspect-square", has_text="4").first.bounding_box()
+    off = {"x": box["x"] + box["width"] / 2, "y": box["y"] + box["height"] / 2, "id": 1}   # the 4th drove nothing
+    cal.fingers("touchStart", off)
+    cal.fingers("touchStart", off, {**cal.centre(5), "id": 2})
+    cal.page.wait_for_timeout(800)                        # past the hold's half second
+    cal.fingers("touchEnd")
+    cal.page.wait_for_timeout(300)
+    assert cal.anchored() == 0
+    cal.swapped(lambda: cal.cell(3).tap())
+    assert len(cal.asked) == 1 and cal.asked[0].endswith("&day=3"), cal.asked
+
+
+def test_choosing_a_day_another_way_lets_a_held_day_go(browser, mate):
+    cal = Calendar(browser, mate, phone=True)
+    cal.touch(3, held=True)
+    cal.swapped(lambda: cal.cell(5).tap())                # the range 3–5
+    cal.touch(5, held=True)
+    cal.swapped(lambda: cal.page.locator('#trips-day-drawer [data-cal-day="3"]').tap())
+    assert cal.anchored() == 0 and cal.ringed() == [3]
+    cal.swapped(lambda: cal.cell(3).tap())                # the 3rd again, not the range 3–5
+    assert cal.asked[-1].endswith("&day=3"), cal.asked
+

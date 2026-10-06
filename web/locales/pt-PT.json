@@ -1078,7 +1078,7 @@
     "unmerge_btn": "Separar",
     "unmerge_confirm": "Separar esta viagem unida nos segmentos originais?",
     "trips_calendar_pick_day": "Escolhe um dia com viagens para ver o detalhe",
-    "trips_calendar_pick_range": "Shift-clique ou arrasta sobre os dias para escolher vários",
+    "trips_calendar_pick_range": "Shift-clique, arrasta sobre os dias ou mantém premido um dia para escolher vários",
     "trips_soc_trips_hint": "soma das variações das viagens, sem o tempo entre viagens",
     "trips_soc_charges_hint": "todos os carregamentos entre a primeira e a última viagem",
     "trips_search_placeholder": "Pesquisar nas notas das viagens...",
