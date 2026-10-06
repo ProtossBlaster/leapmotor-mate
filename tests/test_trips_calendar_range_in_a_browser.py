@@ -100,6 +100,58 @@ def test_a_shift_click_opens_the_range_with_one_request(browser, mate):
     assert cal.drawer().startswith(_range_heading(3, 5))
 
 
+def test_a_mouse_drag_opens_the_range_with_one_request(browser, mate):
+    cal = Calendar(browser, mate)
+    start, end = cal.cell(3).bounding_box(), cal.cell(5).bounding_box()
+    mouse = cal.page.mouse
+
+    def drag():
+        mouse.move(start["x"] + start["width"] / 2, start["y"] + start["height"] / 2)
+        mouse.down()
+        mouse.move(end["x"] + end["width"] / 2, end["y"] + end["height"] / 2, steps=8)
+        mouse.up()
+    cal.swapped(drag)
+    assert len(cal.asked) == 1 and cal.asked[0].endswith("&day=3&to_day=5"), cal.asked
+    assert cal.ringed() == [3, 5]
+    assert cal.drawer().startswith(_range_heading(3, 5))
+
+
+def test_a_drag_released_outside_the_window_puts_the_choice_back(browser, mate):
+    cal = Calendar(browser, mate)
+    cal.swapped(lambda: cal.cell(5).click())
+    b5, b3 = cal.cell(5).bounding_box(), cal.cell(3).bounding_box()
+    start = {"x": b5["x"] + b5["width"] / 2, "y": b5["y"] + b5["height"] / 2}
+    end = {"x": b3["x"] + b3["width"] / 2, "y": b3["y"] + b3["height"] / 2}
+    cal.page.mouse.move(**start)
+    cal.page.mouse.down()
+    cal.page.mouse.move(**end, steps=8)
+    assert cal.ringed() == [3, 5]                         # the drag's preview
+    cal.page.mouse.move(-50, -50)
+    # Back over the calendar with the button released out there: no pointerup ever reached the page.
+    cal.page.context.new_cdp_session(cal.page).send(
+        "Input.dispatchMouseEvent", {"type": "mouseMoved", **end, "buttons": 0})
+    cal.page.wait_for_timeout(300)
+    assert len(cal.asked) == 1 and cal.ringed() == [5]
+
+
+def test_a_drag_on_a_calendar_another_month_replaced_opens_nothing(browser, mate):
+    cal = Calendar(browser, mate)
+    cal.swapped(lambda: cal.cell(5).click())
+    held, months = [], lambda url: "/api/trips/calendar?" in url     # next month, arriving mid-drag
+    cal.page.route(months, lambda route: held.append(route))
+    cal.page.locator("#trips-calendar-month button[title]").last.click()       # ▶
+    b3, b5 = cal.cell(3).bounding_box(), cal.cell(5).bounding_box()
+    cal.page.mouse.move(b3["x"] + b3["width"] / 2, b3["y"] + b3["height"] / 2)
+    cal.page.mouse.down()
+    cal.page.mouse.move(b5["x"] + b5["width"] / 2, b5["y"] + b5["height"] / 2, steps=8)
+    cal.swapped(lambda: [route.continue_() for route in held])
+    cal.page.mouse.up()
+    cal.page.wait_for_timeout(300)
+    cal.page.unroute(months)
+    cal.swapped(lambda: cal.page.locator("#trips-calendar-month button[title]").first.click())   # ◀ back
+    assert len(cal.asked) == 1 and cal.ringed() == [5]
+
+
 def test_a_range_that_never_reaches_the_server_says_so_without_a_script_error(browser, mate):
     cal = Calendar(browser, mate)
     cal.page.evaluate("window.rejected = []; addEventListener('unhandledrejection', e => rejected.push(e))")

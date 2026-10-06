@@ -762,6 +762,42 @@
       choose(grid, anchor, +cell.dataset.day);
     }, true);
 
+    // Dragging the mouse across days rings them as it goes and opens them on release.
+    var drag = null;
+    function undrag() {     // a drag that opened nothing puts back the days chosen before it
+      drag.grid.querySelectorAll('.cal-day[data-day]').forEach(function (c) {
+        if (drag.was.indexOf(c) >= 0) c.setAttribute('data-selected', '');
+        else c.removeAttribute('data-selected');
+      });
+      drag = null;
+    }
+    document.addEventListener('pointerdown', function (e) {
+      var cell = rangeCell(e);
+      if (!cell || e.pointerType !== 'mouse' || e.button !== 0 || e.shiftKey) return;
+      var grid = cell.parentElement;
+      drag = {grid: grid, from: +cell.dataset.day, to: +cell.dataset.day,
+              was: [].slice.call(grid.querySelectorAll('.cal-day[data-selected]'))};
+    });
+    document.addEventListener('pointerover', function (e) {
+      if (!drag) return;
+      if (!(e.buttons & 1)) return undrag();     // released outside the window
+      var cell = rangeCell(e);
+      if (!cell || cell.parentElement !== drag.grid) return;
+      drag.to = +cell.dataset.day;
+      ring(drag.grid, drag.from, drag.to);
+    });
+    document.addEventListener('pointerup', function () {
+      if (!drag) return;
+      // No drag: the click opens the day. After one, the click goes to the grid, which opens nothing.
+      if (drag.to === drag.from || !drag.grid.isConnected) return undrag();     // nor a grid replaced meanwhile
+      var d = drag;
+      drag = null;
+      choose(d.grid, d.from, d.to);
+    });
+    document.addEventListener('pointercancel', function () {
+      if (drag) undrag();
+    });
+
     // A day's date under a range heading opens that day alone, ringed as if its cell were clicked.
     document.addEventListener('click', function (e) {
       var link = e.target.closest ? e.target.closest('[data-cal-day]') : null;
