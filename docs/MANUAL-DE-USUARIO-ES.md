@@ -1290,7 +1290,7 @@ aparecer.
 ### Eventos
 **(menú: Eventos)** — Qué hizo el coche, momento a momento: desbloqueado y de nuevo bloqueado, una puerta o
 el portón abiertos y cerrados, el cable dentro y fuera, el clima encendido y apagado, READY encendido y
-apagado, dónde se detuvo la cortinilla, cada trayecto y cada carga de principio a fin, y cada orden enviada desde Mate. La lista se abre en
+apagado, dónde se detuvo el parasol, cada trayecto y cada carga de principio a fin, y cada orden enviada desde Mate. La lista se abre en
 los últimos tres días, lo más reciente primero, en una sola tarjeta con un encabezado por día y una línea
 fina por hora; el punto de una fila tiene el color de la píldora de su grupo. Los botones sobre las píldoras
 llegan más atrás — 3, 7 o 30 días, 3, 6 o 12 meses, o Todo —, contando desde hoy; las fechas escritas bajo
@@ -1306,9 +1306,9 @@ final de la lista aparece en pantalla.
   curso lleva su línea hasta arriba y dice **(en curso)** solo si el último dato del coche es
   reciente; mientras la nube repite un dato antiguo (el coche dormido, o sin cobertura) la fila indica en
   su lugar la hora de ese dato.
-- **La cortinilla es una fila donde se detuvo** — «Cortinilla abierta al 50%», «Cortinilla cerrada» — sin
-  línea y sin «tras»: se queda abierta durante días, y una línea solo cruzaría toda la página. Un valor visto
-  en un solo dato no aparece: la cortinilla de paso, o una parada más corta que el intervalo entre dos datos.
+- **El parasol es una fila donde se detuvo** — «Parasol abierto al 50%», «Parasol cerrado» — sin
+  línea y sin «tras»: se queda abierto durante días, y una línea solo cruzaría toda la página. Un valor visto
+  en un solo dato no aparece: el parasol de paso, o una parada más corta que el intervalo entre dos datos.
 - **Las horas son las del coche, al segundo**: la hora del primer dato que mostró el nuevo estado,
   confirmado por el siguiente. Con el puntero sobre una hora se ve junto a la hora en que Mate registró la
   fila. Los trayectos, las cargas y las órdenes solo tienen el reloj de Mate, así que junto a una señal de
@@ -1415,7 +1415,7 @@ toca es lo que llegue primero.
 **(menú: Comandos)** — Los **comandos a distancia**. Desde aquí puedes:
 
 - **abrir y cerrar**, abrir el **maletero**, **localizar el coche** (claxon/luces);
-- abrir o cerrar la **cortinilla** del techo panorámico: la casilla indica cuánto está abierta y, si se
+- abrir o cerrar el **parasol** del techo: la casilla indica cuánto está abierto y, si se
   detuvo a medio camino, ofrece **Abrir** (del todo) y **Cerrar**, las dos únicas que el coche ejecuta;
 - gestionar la **climatización**: frío, calor, desempañado, ventilación, **apagar**;
 - activar la **calefacción de los asientos**, el **volante** y los **retrovisores calefactados** (donde
@@ -1499,8 +1499,8 @@ modelo (carga, autonomía, temperatura interior, marcha, puertas, ventanillas, n
 estado de la carga…), y ahora también el **detalle de la climatización**: **nivel del ventilador** (1–7),
 **recirculación del aire** (exterior / recirculación) y el **modo de climatización activo** (AUTO /
 Frío / Calor / Ventilación). Mate muestra **solo lo que tu coche informa de verdad** (algunos modelos no
-exponen ciertos datos). La casilla del techo panorámico indica cuánto está abierta la cortinilla —
-«40%» sobre «Abierta» —, como lo hacen las de las ventanillas.
+exponen ciertos datos). La casilla del parasol indica cuánto está abierto —
+«40%» sobre «Abierto» —, como lo hacen las de las ventanillas.
 
 ### Wallbox
 **(menú: Wallbox)** — Si has conectado un wallbox (ver
@@ -1663,7 +1663,7 @@ escribible, más un sensor **Modo de climatización** (AUTO / Frío / Calor / Ve
 publicadas incluyen además tres de V2L de solo lectura: **`V2L Active`** (sensor binario), **`V2L
 Power`** (W) y **`V2L Session Energy`** (Wh), y un sensor binario **`Ready`** que se enciende en cuanto
 el coche se pone en marcha — antes de que se mueva, que es cuando a una automatización todavía le da
-tiempo a actuar. Un sensor **`Sunshade Position`** indica cuánto está abierta la cortinilla, en % (0 = cerrada); el sensor binario **`Sunshade`** sigue como estaba, encendido con cualquier apertura.
+tiempo a actuar. Un sensor **`Sunshade Position`** indica cuánto está abierto el parasol, en % (0 = cerrado); el sensor binario **`Sunshade`** sigue como estaba, encendido con cualquier apertura.
 
 Las entidades que **tu** coche no soporta no se te quedan en las manos: las que el modelo no tiene
 (asientos calefactados, volante…) no se crean nunca, y una **entidad de temperatura** cuyo sensor el

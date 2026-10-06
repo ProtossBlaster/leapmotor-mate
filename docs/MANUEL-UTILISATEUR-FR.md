@@ -1310,7 +1310,7 @@ ne s'affiche.
 ### Événements
 **(menu : Événements)** — Ce qu'a fait la voiture, moment par moment : déverrouillée puis reverrouillée, une
 porte ou le hayon ouverts et fermés, le câble branché et débranché, la climatisation allumée et éteinte,
-READY activé et désactivé, la position où le store s'est arrêté, chaque trajet et chaque recharge de leur début à leur fin, et chaque commande
+READY activé et désactivé, la position où le pare-soleil s'est arrêté, chaque trajet et chaque recharge de leur début à leur fin, et chaque commande
 envoyée depuis Mate. La liste s'ouvre sur les trois derniers jours, du plus récent au plus ancien, dans une
 seule carte avec un titre par jour et une fine ligne par heure ; le point d'une ligne a la couleur du
 bouton de son groupe. Les boutons au-dessus des groupes remontent plus loin — 3, 7 ou 30 jours, 3, 6 ou 12
@@ -1327,9 +1327,9 @@ l'écran.
   cours prolonge son trait jusqu'en haut et dit **(en cours)** seulement si la dernière donnée de la voiture
   est récente ; tant que le cloud répète une donnée ancienne (voiture en veille, ou sans couverture), la
   ligne indique à la place l'heure de cette donnée.
-- **Le store est une ligne là où il s'est arrêté** — « Store ouvert à 50 % », « Store fermé » — sans trait
+- **Le pare-soleil est une ligne là où il s'est arrêté** — « Pare-soleil ouvert à 50 % », « Pare-soleil fermé » — sans trait
   ni « après » : il reste ouvert des jours entiers, et un trait ne ferait que traverser toute la page. Une
-  valeur vue dans une seule donnée n'apparaît pas : le store en mouvement, ou un arrêt plus court que
+  valeur vue dans une seule donnée n'apparaît pas : le pare-soleil en mouvement, ou un arrêt plus court que
   l'intervalle entre deux données.
 - **Les heures sont celles de la voiture, à la seconde** : l'heure de la première donnée qui a montré le
   nouvel état, confirmé par la suivante. Le pointeur posé sur une heure l'affiche à côté de l'heure à
@@ -1441,7 +1441,7 @@ car c'est la première échéance atteinte qui compte.
 **(menu : Commandes)** — Les **commandes à distance**. D'ici, vous pouvez :
 
 - **verrouiller/déverrouiller**, ouvrir le **coffre**, **localiser la voiture** (klaxon/phares) ;
-- ouvrir ou fermer le **store** du toit panoramique : la tuile indique de combien il est ouvert et, s'il
+- ouvrir ou fermer le **pare-soleil** du toit : la tuile indique de combien il est ouvert et, s'il
   s'est arrêté à mi-course, propose **Ouvrir** (en entier) et **Fermer**, les deux seules que la voiture
   exécute ;
 - gérer la **climatisation** : refroidissement, chauffage, dégivrage, ventilation, **extinction** ;
@@ -1526,7 +1526,7 @@ modèle (charge, autonomie, température intérieure, rapport, portes, vitres, p
 charge…). Mate lit désormais aussi, en direct, les réglages de **climatisation** : la **vitesse de ventilation**
 (1–7), le **recyclage de l'air** (air frais / recyclage) et le **mode de climatisation actif** (AUTO /
 Refroidissement / Chauffage / Ventilation). Mate n'affiche **que ce que votre voiture rapporte réellement**
-(certains modèles n'exposent pas certaines données). La tuile du toit panoramique indique de combien le store
+(certains modèles n'exposent pas certaines données). La tuile du pare-soleil indique de combien il
 est ouvert — « 40% » au-dessus de « Ouvert » —, comme le font celles des vitres.
 
 ### Wallbox
@@ -1682,7 +1682,7 @@ Envoie la télémétrie de la voiture à ABRP pour la planification d'itinérair
 
 ### MQTT → Home Assistant
 Publie l'état de la voiture (charge, autonomie, position, portes, état de charge…) sous forme d'**entités dans
-Home Assistant**, avec **auto-discovery**. Vous pouvez aussi **commander** la voiture depuis les entités de HA — y compris une **limite de charge** (`number` modifiable) pour régler le SoC cible et une entité **Programmation de charge** (`text` modifiable) qui accepte un plan JSON pensé pour les automatisations (`{"start":"23:00","soc":90}` — chaque champ est optionnel, et ce que vous omettez reste inchangé). Les réglages de climatisation sont également exposés : **Vitesse de ventilation** (`number` modifiable, 1–7), **Recyclage** (`switch` modifiable) et **Mode climatisation** (capteur : AUTO / Refroidissement / Chauffage / Ventilation). Trois entités V2L en lecture seule sont aussi publiées : **`V2L Active`** (binary sensor), **`V2L Power`** (W) et **`V2L Session Energy`** (Wh), ainsi qu'un binary sensor **`Ready`** qui s'allume dès que la voiture est sous tension — avant qu'elle ne roule, c'est-à-dire tant qu'une automatisation a encore le temps d'agir. Un capteur **`Sunshade Position`** indique de combien le store est ouvert, en % (0 = fermé) ; le binary sensor **`Sunshade`** reste tel quel, allumé dès la moindre ouverture.
+Home Assistant**, avec **auto-discovery**. Vous pouvez aussi **commander** la voiture depuis les entités de HA — y compris une **limite de charge** (`number` modifiable) pour régler le SoC cible et une entité **Programmation de charge** (`text` modifiable) qui accepte un plan JSON pensé pour les automatisations (`{"start":"23:00","soc":90}` — chaque champ est optionnel, et ce que vous omettez reste inchangé). Les réglages de climatisation sont également exposés : **Vitesse de ventilation** (`number` modifiable, 1–7), **Recyclage** (`switch` modifiable) et **Mode climatisation** (capteur : AUTO / Refroidissement / Chauffage / Ventilation). Trois entités V2L en lecture seule sont aussi publiées : **`V2L Active`** (binary sensor), **`V2L Power`** (W) et **`V2L Session Energy`** (Wh), ainsi qu'un binary sensor **`Ready`** qui s'allume dès que la voiture est sous tension — avant qu'elle ne roule, c'est-à-dire tant qu'une automatisation a encore le temps d'agir. Un capteur **`Sunshade Position`** indique de combien le pare-soleil est ouvert, en % (0 = fermé) ; le binary sensor **`Sunshade`** reste tel quel, allumé dès la moindre ouverture.
 
 Les entités que **votre** voiture ne prend pas en charge ne vous restent pas sur les bras : celles que le
 modèle n'a pas (sièges chauffants, volant…) ne sont jamais créées, et une **entité de température** dont le

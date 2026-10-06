@@ -236,7 +236,7 @@
           {% if shade %}text-brand bg-brand/10 border border-brand/30
           {% elif shade is none %}text-slate-600 border border-slate-700
           {% else %}text-slate-400 bg-slate-700 border border-slate-600{% endif %}">
-          {% if shade is none %}{{ t('unknown') }}{% elif shade %}{{ t('shade_open_state') }}{% else %}{{ t('shade_closed_state') }}{% endif %}
+          {% if shade is none %}{{ t('unknown') }}{% elif shade %}● {{ t('shade_open_state') }}{% else %}○ {{ t('shade_closed_state') }}{% endif %}
         </span>
         <div class="mt-auto w-full space-y-1.5">
           {# Cmd 240 only opens fully or closes: a sunshade stopped part-way offers both. #}
@@ -255,7 +255,7 @@
               <div class="h-full bg-amber-400" style="width: {{ shade_pct }}%"></div>
             </div>
           </div>
-          <div class="flex items-center justify-between text-[9px] text-slate-500 px-0.5"><span>{{ t('shade_closed_state') }}</span><span>100%</span></div>
+          <div class="flex items-center justify-between text-[9px] text-slate-500 px-0.5"><span>○ {{ t('shade_closed_state') }}</span><span>100%</span></div>
           <div class="text-[10px] text-slate-400">{{ shade_pct }}%</div>
           {% endif %}
         </div>

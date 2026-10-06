@@ -41,11 +41,11 @@
 {% set IC_RECIRC = "M12,6V9L16,5L12,1V4A8,8 0 0,0 4,12C4,13.57 4.46,15.03 5.24,16.26L6.7,14.8C6.26,13.97 6,13.03 6,12A6,6 0 0,1 12,6M18.76,7.74L17.3,9.2C17.74,10.04 18,10.99 18,12A6,6 0 0,1 12,18V15L8,19L12,23V20A8,8 0 0,0 20,12C20,10.43 19.54,8.97 18.76,7.74Z" %}
 
 {# ── Open/closed state tile: value colour carries the meaning ── #}
-{% macro state_tile(icon, label, st, open_class='text-red-400', pct=none) %}
+{% macro state_tile(icon, label, st, open_class='text-red-400', pct=none, open_word=t('open_state'), closed_word=t('closed_state')) %}
   {% if st is none %}{{ tile(icon, label, t('no_data'), 'text-slate-500', 'text-slate-500') }}
-  {% elif st and pct %}{{ tile(icon, label, pct ~ '%', open_class, open_class, status=t('open_state')) }}
-  {% elif st %}{{ tile(icon, label, t('open_state'), open_class, open_class) }}
-  {% else %}{{ tile(icon, label, t('closed_state'), 'text-green-400', 'text-green-400') }}
+  {% elif st and pct %}{{ tile(icon, label, pct ~ '%', open_class, open_class, status=open_word) }}
+  {% elif st %}{{ tile(icon, label, open_word, open_class, open_class) }}
+  {% else %}{{ tile(icon, label, closed_word, 'text-green-400', 'text-green-400') }}
   {% endif %}
 {% endmacro %}
 
@@ -105,7 +105,9 @@
       {{ win_tile(t('win_fr'), vs.windows.fr, vs.windows.fr_pct) }}
       {{ win_tile(t('win_rl'), vs.windows.rl, vs.windows.rl_pct) }}
       {{ win_tile(t('win_rr'), vs.windows.rr, vs.windows.rr_pct) }}
-      {{ state_tile(mdi(IC_ROOF), t('win_sunshade'), vs.windows.sunshade, open_class='text-brand', pct=vs.windows.sunshade_pct) }}
+      {# The sunshade's own open/closed words: the generic ones do not agree with its name in every language. #}
+      {{ state_tile(mdi(IC_ROOF), t('win_sunshade'), vs.windows.sunshade, open_class='text-brand', pct=vs.windows.sunshade_pct,
+                    open_word=t('shade_open_state'), closed_word=t('shade_closed_state')) }}
     </div>
   </div>
 

@@ -72,7 +72,7 @@ LeapMotor Mate is free and open-source, developed in my spare time. If it's usef
 - **Recover missed charges** — scan your history for charges that happened while the car was asleep, before automatic detection existed. Previews what it finds before adding anything.
 
 **Control**
-- **Remote control** 🆕 — locks, windows, trunk, the panoramic roof's sunshade (its tile says how far it is open), **climate** (cool / heat / ventilation / defrost, target temperature), **heated and ventilated seats** per seat, heated steering wheel and mirrors, find car, battery preheat, **unlock the charge cable**.
+- **Remote control** 🆕 — locks, windows, trunk, the roof's sunshade (its tile says how far it is open), **climate** (cool / heat / ventilation / defrost, target temperature), **heated and ventilated seats** per seat, heated steering wheel and mirrors, find car, battery preheat, **unlock the charge cable**.
 - **Navigation** — search an address and send the destination **straight to the car's own navigator**. Keyless by default (OpenStreetMap), with an optional API key for better house-number coverage.
 - **V2L (vehicle-to-load)** — while the car powers an external device through the V2L adapter, Mate shows live **net power** and the **energy drawn this session**, tracks the all-time total, and publishes three Home Assistant entities. Read-only. *A first for any Leapmotor tool — found by on-car testing.*
 

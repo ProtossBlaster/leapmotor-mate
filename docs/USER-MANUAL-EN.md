@@ -1333,7 +1333,7 @@ because whatever comes first is what's due.
 **(menu: Commands)** — The **remote commands**. From here you can:
 
 - **lock/unlock**, open the **trunk**, **find the car** (horn/lights);
-- open or close the **sunshade** of the panoramic roof: the tile says how far it is open, and when it was
+- open or close the **sunshade** of the roof: the tile says how far it is open, and when it was
   stopped part-way it offers both **Open** (all the way) and **Close**, the only two the car acts on;
 - manage the **climate**: cooling, heating, defrost, ventilation, **switch off**;
 - activate **seat heating**, **steering wheel** and **mirror heating** (where supported);
@@ -1409,7 +1409,7 @@ stations**. The page has three parts:
 (charge, range, inside temperature, gear, doors, windows, tyres, locks, charge status…), now also the
 **climate detail**: **fan level** (1–7), **air recirculation** (fresh / recirculate) and the **active
 climate mode** (AUTO / Cool / Heat / Vent). Mate shows **only what your car actually reports** (some
-models don't expose certain data). The panoramic roof tile says how far the sunshade is open — "40%" over "Open" —
+models don't expose certain data). The sunshade tile says how far it is open — "40%" over "Open" —
 as the window tiles do.
 
 ### Wallbox
