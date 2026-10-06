@@ -1,0 +1,48 @@
+{# The line of totals in a trips heading. Expects `day_totals` (db_reader.trips_day_totals) plus the
+   page-level `t`/`fmt_dur`/`is_reev`. #}
+{% import 'partials/_soc.html' as soc %}
+{# The day's own totals, back where the old year/month/day accordion had them — dropped when the
+   calendar replaced it (68ff5e7) and missed by @ghuaywen-ai on #175, not asked for as a novelty.
+   Same fields and same look as before: distance · ♻️ regen · cost · efficiency pill. Regen stays
+   out on a range-extender, where a battery refilling itself mid-drive can't be told from braking. #}
+{% if day_totals %}
+<div class="flex items-center flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
+  {# A charge between the trips makes first → last meaningless, so the day says used and charged instead. #}
+  {% if day_totals.soc_from is not none %}
+  <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('battery') }}">{{ day_totals.soc_from | dec(1) }}% → {{ day_totals.soc_to | dec(1) }}% {{ soc.change(day_totals.soc_from, day_totals.soc_to) }}</span>
+  {% elif day_totals.soc_trips is not none %}
+  <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('battery') }}">{{ soc.signed(day_totals.soc_trips) }}</span>
+  <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('energy_charged') }}">⚡ {{ soc.signed(day_totals.soc_charges) }}</span>
+  {% endif %}
+  <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('distance') }}">{{ day_totals.km | dist(1) }}</span>
+  {% if day_totals.drive_min is not none %}
+  <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('drive_time') }}{% if day_totals.drive_time_excluded %}: {{ t('drive_time_partial').format(n=day_totals.drive_time_excluded) }}{% endif %}">{{ fmt_dur(day_totals.drive_min) }}</span>
+  {% endif %}
+  {% if day_totals.regen and not is_reev %}
+  <span class="text-green-400/90 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('total_regen') }}">♻️ {{ day_totals.regen | nice }} kWh</span>
+  {% endif %}
+  {# Same rule as the month strip above it and the Trips header: on a range-extender this divides
+     by all the day's kilometres, the ones the litres next to it use. See trips_calendar_month. #}
+  {% set eff_all = day_totals.kwh_100km if is_reev else None %}
+  {% if eff_all %}
+  <span class="eff-pill" style="color:#38bdf8" tabindex="0" data-tip="{{ t('avg_efficiency') }}">{{ eff_all | eff }}</span>
+  {# Which kilometres the figure speaks for — same rule and same wording as the month strip above,
+     and for the same reason: the litres next to it divide by all of them. See trips_calendar_month. #}
+  {% if day_totals.kwh_100km_km and day_totals.km and (day_totals.km - day_totals.kwh_100km_km) > 0.5 %}
+  <span class="text-slate-500 text-[11px] whitespace-nowrap" tabindex="0" data-tip="{{ t('trips_eff_over_km_hint') }}">
+    {{ t('trips_eff_over_km').format(km=day_totals.kwh_100km_km | dist(0), total=day_totals.km | dist(0)) }} ⓘ</span>
+  {% endif %}
+  {% elif day_totals.avg_eff %}
+  <span class="eff-pill {{ eff_cls(day_totals.avg_eff) }}" tabindex="0" data-tip="{{ t('avg_efficiency') }}">{{ day_totals.avg_eff | eff }}</span>
+  {% endif %}
+  {# The third place the trips of a day are summed up, and the one missed when the month strip and
+     the page header got theirs (@michapr, beta #11, reporting it a third time). The totals already
+     carried the litres — they simply were not printed here. #}
+  {% if is_reev and day_totals.fuel_l %}
+  <span class="text-amber-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('trips_fuel_hint') }}">⛽ {{ day_totals.fuel_l | nice }} L{% if day_totals.fuel_l_100km %} · {{ day_totals.fuel_l_100km | nice }} L/100km{% endif %}</span>
+  {% endif %}
+  {% if day_totals.cost %}
+  <span class="text-slate-300 whitespace-nowrap" tabindex="0" data-tip="{{ t('cost') }}">{{ day_totals.cost | money }}</span>
+  {% endif %}
+</div>
+{% endif %}
