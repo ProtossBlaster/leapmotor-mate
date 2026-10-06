@@ -746,7 +746,7 @@
     "menu_label": "Menu",
     "ready_state_on": "Prête",
     "ready_state_off": "Pas prête",
-    "ready_state_help": "Si la voiture est allumée : dès la mise en marche, avant même qu'elle roule, jusqu'à l'extinction. Un tiret signifie que la voiture ne l'a pas envoyé.",
+    "ready_state_help": "Indique si la voiture est allumée : dès la mise en marche, avant même qu'elle roule, jusqu'à l'extinction. Un tiret signifie que la voiture ne l'a pas envoyé.",
     "app_update": "Mise à jour disponible",
     "waiting_data": "En attente des premières données...",
     "check_poller": "Vérifiez que le poller est lancé",
