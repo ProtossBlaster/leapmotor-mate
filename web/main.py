@@ -9,9 +9,10 @@ import sys
 import threading
 import time
 from pathlib import Path
+from typing import Annotated
 from urllib.parse import urlencode
 
-from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi import FastAPI, Request, BackgroundTasks, Query
 from fastapi.responses import (HTMLResponse, RedirectResponse, JSONResponse, Response, FileResponse,
                                StreamingResponse)
 from fastapi.staticfiles import StaticFiles
@@ -742,7 +743,35 @@ async def trips_page(request: Request, highlight: int = 0):
     ))
 
 
-def _trips_calendar_ctx(year: int, month: int, open_day: int = 0) -> dict:
+def _day_span(year: int, month: int, day: int, to_day: int = 0) -> tuple[int, int]:
+    """`day`..`to_day` (0 = just `day`) as first and last, both inside the month."""
+    import calendar as calmod
+    days_in_month = calmod.monthrange(year, month)[1]
+    first, last = sorted(max(1, min(d, days_in_month)) for d in (day, to_day or day))
+    return first, last
+
+
+def _trips_drawer_ctx(lang: str, year: int, month: int, day: int, to_day: int = 0) -> dict:
+    """What the day drawer prints for `day`, or for the days from `day` to `to_day`: built here for both
+    routes that render the drawer, so they cannot differ."""
+    from datetime import date
+    from itertools import groupby
+    first, last = _day_span(year, month, day, to_day)
+    trips = db_reader.get_trips_calendar_day(year, month, first, last)
+    ctx = {"trips": trips, "day_totals": db_reader.trips_day_totals(trips)}
+    if first == last:
+        ctx.update(day=first, day_label=i18n.fmt_day_month_year(lang, date(year, month, first)))
+        return ctx
+    # One heading over the range, then each day with trips under its own, newest first like the rows.
+    ctx["range_label"] = i18n.fmt_day_range(lang, date(year, month, first), date(year, month, last))
+    ctx["range_days"] = [
+        {"day": d, "label": i18n.fmt_day_month_year(lang, date(year, month, d)),
+         "trips": ts, "totals": db_reader.trips_day_totals(ts)}
+        for d, ts in ((d, list(g)) for d, g in groupby(trips, key=lambda t: t["_dt"].day))]
+    return ctx
+
+
+def _trips_calendar_ctx(year: int, month: int, open_day: int = 0, open_to: int = 0) -> dict:
     """The Viaggi calendar's context, without a Response around it — so the page can draw the grid
     itself on first paint. Same split as _charges_calendar_ctx, for the same reason (#240)."""
     import calendar as calmod
@@ -774,14 +803,13 @@ def _trips_calendar_ctx(year: int, month: int, open_day: int = 0) -> dict:
         # context, so it is swapped together with the grid when the month buttons are used.
         "offline": db_reader.offline_gaps_summary(year, month),
     }
-    if open_day and open_day in cal["days"]:
-        ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
-        ctx["open_day_trips"] = db_reader.get_trips_calendar_day(year, month, open_day)
-        ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
-        # Same totals the drawer's own endpoint passes — the day content is rendered from HERE too
-        # (month view opening straight onto a day), and a header that only appears down one of the
-        # two paths is the classic way this template has broken before.
-        ctx["open_day_totals"] = db_reader.trips_day_totals(ctx["open_day_trips"])
+    if open_day:
+        open_day, open_to = _day_span(year, month, open_day, open_to)
+    if open_day and any(d in cal["days"] for d in range(open_day, open_to + 1)):
+        ctx["open_day"] = open_day     # so the grid can ring the days the drawer is showing
+        ctx["open_to"] = open_to
+        # The drawer's own endpoint builds the same context, so both paths print the same heading.
+        ctx["open_drawer"] = _trips_drawer_ctx(lang, year, month, open_day, open_to)
     return ctx
 
 
@@ -790,23 +818,27 @@ def _trips_calendar_html(year: int, month: int, open_day: int = 0) -> str:
         _trips_calendar_ctx(year, month, open_day))
 
 
-def _render_trips_calendar(request: Request, year: int, month: int, open_day: int = 0):
+def _render_trips_calendar(request: Request, year: int, month: int, open_day: int = 0, open_to: int = 0):
     """Shared by /api/trips/calendar and the search endpoint's empty-filters fallback."""
     return templates.TemplateResponse(request, "partials/trips_calendar_month.html",
-                                      _trips_calendar_ctx(year, month, open_day))
+                                      _trips_calendar_ctx(year, month, open_day, open_to))
 
 
 @app.get("/api/trips/calendar", response_class=HTMLResponse)
-async def trips_calendar(request: Request, year: int = 0, month: int = 0, open_day: int = 0):
+async def trips_calendar(request: Request, year: int = 0, month: int = 0,
+                         open_day: Annotated[int, Query(ge=0, le=31)] = 0,
+                         open_to: Annotated[int, Query(ge=0, le=31)] = 0):
     """Viaggi 'calendar' Month view (HTMX partial, day totals only) — the day drawer loads
     a day's actual trips lazily on click (see trips_calendar_day below)."""
-    return _render_trips_calendar(request, year, month, open_day)
+    return _render_trips_calendar(request, year, month, open_day, open_to)
 
 
 @app.get("/api/trips/calendar/day", response_class=HTMLResponse)
-async def trips_calendar_day(request: Request, year: int, month: int, day: int,
+async def trips_calendar_day(request: Request, year: int, month: int, day: Annotated[int, Query(ge=1, le=31)],
+                             to_day: Annotated[int, Query(ge=0, le=31)] = 0,
                              merge: int = 0, gap: int = db_reader.TRIP_MERGE_GAP_DEFAULT):
     """One day's trips for the Month view's day drawer, with that day's own totals (#175).
+    `to_day` opens the days from `day` to it instead: totals over the range, then each day's own.
 
     `merge=1` swaps that list for THIS day's mergeable pairs, each with the 🔗 connector between
     them, and keeps the max-stop slider (#204 @riri19). The pairs used to live in their own
@@ -814,17 +846,14 @@ async def trips_calendar_day(request: Request, year: int, month: int, day: int,
     drawer's heading already says which day this is, so under it a row needs only its clock."""
     lang = db_reader.get_language()
     from datetime import date
-    d = date(year, month, day)
+    d = date(year, month, _day_span(year, month, day, to_day)[0])
     gap = max(db_reader.TRIP_MERGE_GAP_MIN, min(db_reader.TRIP_MERGE_GAP_MAX, gap))
-    day_trips = db_reader.get_trips_calendar_day(year, month, day)
     return templates.TemplateResponse(request, "partials/trips_calendar_day.html", {
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
         "is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),
-        "trips": day_trips,
-        "day_totals": db_reader.trips_day_totals(day_trips),
-        "day_label": i18n.fmt_day_month_year(lang, d),
-        # The drawer builds its own 🔗 / slider URLs, so it needs the day back as three numbers.
-        "year": year, "month": month, "day": day,
+        **_trips_drawer_ctx(lang, year, month, day, to_day),
+        # The 🔗 and slider URLs the drawer builds take these, with the day from _trips_drawer_ctx.
+        "year": year, "month": month,
         "merge_mode": bool(merge), "gap": gap,
         # Chains, not pairs: pairs overlap on the trip between them and drew it twice (#249).
         "candidates": db_reader.get_merge_chains(gap, day=d) if merge else [],

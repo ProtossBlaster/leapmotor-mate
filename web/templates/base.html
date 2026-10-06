@@ -246,6 +246,8 @@
       border-color: #14b8a6 !important;
       box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.35);
     }
+    /* a Shift-click picks days, not the text between them */
+    [data-range] > .cal-day { -webkit-user-select: none; user-select: none; }
   </style>
 </head>
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col md:flex-row" data-autorefresh="{% block autorefresh %}30{% endblock %}">
@@ -688,6 +690,12 @@
   (function () {
     var KEY = 'lm_calday_' + location.pathname;
 
+    // Days in the order they were picked: the first is where the next Shift-click starts, after a reload too.
+    function remember(u, from, to) {
+      var y = /[?&]year=(\d+)/.exec(u), m = /[?&]month=(\d+)/.exec(u);
+      if (y && m) sessionStorage.setItem(KEY, y[1] + '-' + m[1] + '-' + from + (to != from ? '-' + to : ''));
+    }
+
     document.addEventListener('click', function (e) {
       var cell = e.target.closest ? e.target.closest('.cal-day') : null;
       if (!cell) return;
@@ -697,21 +705,78 @@
         c.removeAttribute('data-selected');
       });
       cell.setAttribute('data-selected', '');
+      delete grid.calAnchor;     // the one ringed day is where a range starts
       var u = cell.getAttribute('hx-get') || '';
-      var y = /[?&]year=(\d+)/.exec(u), m = /[?&]month=(\d+)/.exec(u), d = /[?&]day=(\d+)/.exec(u);
-      if (y && m && d) sessionStorage.setItem(KEY, y[1] + '-' + m[1] + '-' + d[1]);
+      var d = /[?&]day=(\d+)/.exec(u);
+      if (d) remember(u, d[1], d[1]);
+    });
+
+    function ring(grid, from, to) {
+      var first = Math.min(from, to), last = Math.max(from, to);
+      grid.querySelectorAll('.cal-day[data-day]').forEach(function (c) {
+        var d = +c.dataset.day;
+        if (d >= first && d <= last) c.setAttribute('data-selected', '');
+        else c.removeAttribute('data-selected');
+      });
+    }
+
+    // A range grid (data-range: Trips) opens days from..to through this one function: the drawer, the
+    // rings, the anchor the next Shift-click starts from, and the choice a reload brings back.
+    function choose(grid, from, to) {
+      var first = Math.min(from, to), last = Math.max(from, to);
+      var cell = grid.querySelector('.cal-day[data-day]');
+      if (!cell) return;
+      var u = cell.getAttribute('hx-get');
+      htmx.ajax('GET', u.replace(/([?&]day=)\d+/, '$1' + first) + (last > first ? '&to_day=' + last : ''),
+                {source: cell, target: cell.getAttribute('hx-target'), swap: 'innerHTML'})
+          .catch(function () {});     // rejected when replaced or failed to send: htmx's own events act on both
+      ring(grid, from, to);
+      grid.calAnchor = from;
+      remember(u, from, to);
+    }
+
+    // The remembered first day, as long as the rings are still what was remembered (a ?highlight= link is not).
+    function rememberedAnchor(grid) {
+      var ringed = grid.querySelectorAll('.cal-day[data-selected]');
+      if (!ringed.length) return 0;
+      var u = ringed[0].getAttribute('hx-get'), y = /[?&]year=(\d+)/.exec(u), m = /[?&]month=(\d+)/.exec(u);
+      var p = (sessionStorage.getItem(KEY) || '').split('-'), from = +p[2], to = +(p[3] || p[2]);
+      var first = +ringed[0].dataset.day, last = +ringed[ringed.length - 1].dataset.day;
+      var same = y && m && p[0] === y[1] && p[1] === m[1] && Math.min(from, to) === first && Math.max(from, to) === last;
+      return same ? from : 0;
+    }
+
+    function rangeCell(e) {
+      return e.target.closest ? e.target.closest('[data-range] > .cal-day') : null;
+    }
+
+    // Capturing, so it runs before htmx opens the clicked day alone.
+    document.addEventListener('click', function (e) {
+      var cell = e.shiftKey && rangeCell(e);
+      if (!cell) return;
+      var grid = cell.parentElement, ringed = grid.querySelector('.cal-day[data-selected]');
+      var anchor = grid.calAnchor || rememberedAnchor(grid) || (ringed && +ringed.dataset.day);
+      if (!anchor) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      choose(grid, anchor, +cell.dataset.day);
+    }, true);
+
+    // A day's date under a range heading opens that day alone, ringed as if its cell were clicked.
+    document.addEventListener('click', function (e) {
+      var link = e.target.closest ? e.target.closest('[data-cal-day]') : null;
+      var root = link && link.closest('[id$="-calendar-month"]');
+      var grid = root && root.querySelector('[data-range]');
+      if (grid) choose(grid, +link.dataset.calDay, +link.dataset.calDay);
     });
 
     // Only ever adds open_day to a request for the month the day belongs to, so paging to
     // another month opens nothing — and a request that already carries open_day (a ?highlight=
-    // link) is left exactly as it is.
+    // link) is left as it is, unless that day lies in a remembered range.
     document.body.addEventListener('htmx:configRequest', function (e) {
       var path = e.detail.path || '';
       if (!/\/calendar(\?|$)/.test(path)) return;
-      if (/[?&]open_day=/.test(path) || e.detail.parameters.open_day) return;
-      var stored = sessionStorage.getItem(KEY);
-      if (!stored) return;
-      var parts = stored.split('-');
+      var named = /[?&]open_day=/.test(path) || e.detail.parameters.open_day;
       // Read the month off the PATH, not off e.detail.parameters: htmx leaves a query string
       // written into hx-get in the path and never copies it into parameters, so trusting
       // parameters would make every month look like the current one — and paging back a month
@@ -720,8 +785,19 @@
       var now = new Date();
       var year = y ? y[1] : String(now.getFullYear());
       var month = m ? m[1] : String(now.getMonth() + 1);
+      var stored = sessionStorage.getItem(KEY);
+      if (!stored) return;
+      var parts = stored.split('-');
       if (year !== parts[0] || month !== parts[1]) return;
-      e.detail.parameters.open_day = parts[2];
+      if (named) {
+        // A link to a day in the remembered range (a trip page's way back to the list) opens the range.
+        var day = +(/[?&]open_day=(\d+)/.exec(path) || [])[1] || 0;
+        if (!parts[3] || day < Math.min(parts[2], parts[3]) || day > Math.max(parts[2], parts[3])) return;
+        e.detail.path = path.replace(/([?&]open_day=)\d+/, '$1' + parts[2]);
+      } else {
+        e.detail.parameters.open_day = parts[2];
+      }
+      if (parts[3]) e.detail.parameters.open_to = parts[3];
     });
   })();
   </script>

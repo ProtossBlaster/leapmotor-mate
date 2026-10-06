@@ -1078,6 +1078,7 @@
     "unmerge_btn": "Losmaken",
     "unmerge_confirm": "Deze samengevoegde rit weer in de oorspronkelijke delen splitsen?",
     "trips_calendar_pick_day": "Kies een dag met ritten om de details te zien",
+    "trips_calendar_pick_range": "Shift-klik op een andere dag om er meerdere te kiezen",
     "trips_soc_trips_hint": "som van de veranderingen van de ritten, zonder de tijd tussen de ritten",
     "trips_soc_charges_hint": "alle laadbeurten tussen de eerste en de laatste rit",
     "trips_search_placeholder": "Zoek in ritnotities...",

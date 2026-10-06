@@ -1078,6 +1078,7 @@
     "unmerge_btn": "Separar",
     "unmerge_confirm": "¿Volver a separar este trayecto unido en sus tramos originales?",
     "trips_calendar_pick_day": "Elige un día con trayectos para ver su detalle",
+    "trips_calendar_pick_range": "Mayús+clic en otro día para elegir varios",
     "trips_soc_trips_hint": "suma de los cambios de los trayectos, sin el tiempo entre trayectos",
     "trips_soc_charges_hint": "todas las cargas entre el primer y el último trayecto",
     "trips_search_placeholder": "Buscar en las notas de los trayectos...",

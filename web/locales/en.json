@@ -1078,6 +1078,7 @@
     "unmerge_btn": "Unmerge",
     "unmerge_confirm": "Split this merged trip back into its original segments?",
     "trips_calendar_pick_day": "Pick a day with trips to see its detail",
+    "trips_calendar_pick_range": "Shift-click another day to pick several",
     "trips_soc_trips_hint": "the trips' changes added up, without the time between trips",
     "trips_soc_charges_hint": "every charge between the first trip and the last",
     "trips_search_placeholder": "Search trip notes...",

@@ -3,8 +3,10 @@
    ?open_day=). Expects `trips` (list) and `day_label` (str) in scope, plus the page-level
    `t`/`fmt_dur`/`is_reev`/`research`, and `year`/`month`/`day` so the 🔗 button can address
    its own day. BOTH include paths must pass them — a header that only appears down one of
-   the two is the classic way this template has broken before. #}
-{% if trips %}
+   the two is the classic way this template has broken before. With `range_days` it is several days. #}
+{% if range_days %}
+{% include "partials/trips_calendar_range_content.html" %}
+{% elif trips %}
 <div class="mb-3 flex items-center justify-between flex-wrap gap-2">
   <div class="flex items-center gap-2 flex-wrap">
     <span class="text-white font-semibold">{{ day_label }}</span>
