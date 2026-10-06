@@ -1261,7 +1261,7 @@ consumo — cioè quasi sempre — non compare niente di tutto questo.
 
 ### Eventi
 **(menu: Eventi)** — Cosa ha fatto l'auto, momento per momento: sbloccata e di nuovo bloccata, una porta o
-il portellone aperti e chiusi, il cavo dentro e fuori, il clima acceso e spento, READY acceso e spento, dove si è fermata la tendina, ogni
+il portellone aperti e chiusi, il cavo dentro e fuori, il clima acceso e spento, READY acceso e spento, dove si è fermato il parasole, ogni
 viaggio e ricarica dall'inizio alla fine, e ogni comando inviato da Mate. L'elenco si apre sugli ultimi tre
 giorni, dal più recente, in un'unica scheda con un'intestazione per giorno e una linea sottile per ora; il
 punto di una riga ha il colore del bottone del suo gruppo. I pulsanti sopra i gruppi vanno più indietro — 3,
@@ -1278,9 +1278,9 @@ entra nello schermo.
   corso porta la sua linea fino in cima e dice **(in corso)** solo se l'ultimo dato dell'auto è
   fresco; mentre il cloud ripete un dato vecchio (auto in sospensione, o senza copertura) la riga indica
   invece l'ora di quel dato.
-- **La tendina è una riga dove si è fermata** — «Tendina aperta al 50%», «Tendina chiusa» — senza linea e
-  senza «dopo»: resta aperta per giorni, e una linea attraverserebbe soltanto tutta la pagina. Un valore
-  visto in un solo dato non compare: la tendina di passaggio, o una sosta più breve dell'intervallo tra due dati.
+- **Il parasole è una riga dove si è fermato** — «Parasole aperto al 50%», «Parasole chiuso» — senza linea e
+  senza «dopo»: resta aperto per giorni, e una linea attraverserebbe soltanto tutta la pagina. Un valore
+  visto in un solo dato non compare: il parasole di passaggio, o una sosta più breve dell'intervallo tra due dati.
 - **Gli orari sono quelli dell'auto, al secondo**: l'ora del primo dato che ha mostrato il nuovo stato,
   confermato dal successivo. Col puntatore su un orario lo si vede accanto all'ora in cui Mate ha
   registrato la riga. Viaggi, ricariche e comandi hanno solo l'orologio di Mate, quindi accanto a un
@@ -1389,8 +1389,8 @@ il **tempo**, perché scade ciò che arriva prima.
 **(menu: Comandi)** — I **comandi a distanza**. Da qui puoi:
 
 - **chiudere/aprire**, aprire il **bagagliaio**, **trovare l'auto** (clacson/luci);
-- aprire o chiudere la **tendina** del tetto panoramico: il riquadro dice quanto è aperta e, se si è
-  fermata a metà, offre **Apri** (del tutto) e **Chiudi**, le sole due che l'auto esegue;
+- aprire o chiudere il **parasole** del tetto: il riquadro dice quanto è aperto e, se si è
+  fermato a metà, offre **Apri** (del tutto) e **Chiudi**, le sole due che l'auto esegue;
 - gestire il **clima**: raffrescamento, riscaldamento, sbrinamento, ventilazione, **spegnimento**;
 - attivare **riscaldamento sedili**, **volante** e **specchietti** (dove supportato);
 - gestire il **limite di carica**.
@@ -1469,8 +1469,8 @@ modello (carica, autonomia, temperatura interna, marcia, porte, finestrini, pneu
 stato di ricarica…). Mate mostra **solo ciò che la tua auto riporta davvero** (alcuni modelli non
 espongono certi dati). Tra questi ora ci sono anche i dati del clima letti dall'auto: **livello
 ventola** (1–7), **ricircolo aria** (aria fresca / ricircolo) e **modalità clima** attiva (AUTO /
-Raffreddamento / Riscaldamento / Ventilazione). Il riquadro del tetto panoramico dice quanto è aperta la
-tendina — «40%» sopra «Aperto» —, come fanno quelli dei finestrini.
+Raffreddamento / Riscaldamento / Ventilazione). Il riquadro del parasole dice quanto è aperto — «40%»
+sopra «Aperto» —, come fanno quelli dei finestrini.
 
 ### Wallbox
 **(menu: Wallbox)** — Se hai collegato una wallbox (vedi
@@ -1636,7 +1636,7 @@ clima letti dall'auto: il **Livello ventola** (`number` scrivibile, 1–7), il *
 Ventilazione). Puoi anche **comandare** l'auto dalle entità di HA — incluso un **limite di carica**
 (`number` scrivibile) per impostare il SoC target e una **Programmazione ricarica** (`text`
 scrivibile) che accetta un piano in JSON pensato per le automazioni (`{"start":"23:00","soc":90}` —
-ogni campo è opzionale, e quello che ometti resta com'è). Un sensore **`Sunshade Position`** dice quanto è aperta la tendina, in % (0 = chiusa); il binary sensor **`Sunshade`** resta com'era, acceso a qualsiasi apertura.
+ogni campo è opzionale, e quello che ometti resta com'è). Un sensore **`Sunshade Position`** dice quanto è aperto il parasole, in % (0 = chiuso); il binary sensor **`Sunshade`** resta com'era, acceso a qualsiasi apertura.
 
 Le entità che la **tua** auto non supporta non ti vengono lasciate addosso: quelle che il modello non
 ha (sedili riscaldati, volante…) non vengono create, e un'**entità di temperatura** il cui sensore
