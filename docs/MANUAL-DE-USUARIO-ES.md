@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.11.0 · **Idioma:** Español
+> **Versión de Mate:** v4.11.1 · **Idioma:** Español
 
-## Novedades de la versión 4.11.0
+## Novedades de la versión 4.11.1
+
+**En italiano, la cortinilla se llama «Parasole».** Las páginas en italiano la nombraban de tres
+maneras: «Tetto panoramico» en las tarjetas de Vehículo y Comandos, «tendina» en Eventos y en las
+confirmaciones, y «parasole» en el aviso que se muestra durante la conducción. Ahora dicen
+«Parasole» en todas partes, el nombre que le da la app oficial. Nada cambia en español ni en Home
+Assistant.
+
+### Novedades de la versión 4.11.0
 
 **El T03 recupera sus ventanillas en Comandos.** Desde la 4.0.0, Mate buscaba el código de las
 ventanillas que declaran el B10 y el C10, y un T03 declara otro: en un T03, la tarjeta **Ventanillas**

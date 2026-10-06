@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.11.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.11.1 · **Lingua:** Italiano
 
-## Novità della 4.11.0
+## Novità della 4.11.1
+
+**Il parasole si chiama «Parasole».** Le pagine in italiano lo chiamavano in tre modi: «Tetto
+panoramico» nei riquadri di Veicolo e Comandi, «tendina» negli Eventi e nelle conferme, e
+«parasole» nell'avviso mostrato durante la guida. Adesso dicono «Parasole» dappertutto, come l'app
+ufficiale: nei riquadri, nelle conferme («Aprire il parasole?»), nelle righe degli Eventi
+(«Parasole aperto al 40%») e nel loro filtro; il riquadro in Comandi dice «Aperto» / «Chiuso». Le
+entità di Home Assistant non cambiano.
+
+### Novità della 4.11.0
 
 **La T03 ritrova i finestrini in Comandi.** Dalla 4.0.0 Mate cercava il codice dei finestrini che
 dichiarano la B10 e la C10, e una T03 ne dichiara un altro: su una T03 il riquadro **Finestrini** di

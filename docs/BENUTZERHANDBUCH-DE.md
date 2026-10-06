@@ -1,8 +1,15 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.11.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.11.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.11.0
+## Neu in Version 4.11.1
+
+**Auf Italienisch heißt das Sonnenrollo jetzt „Parasole".** Die italienischen Seiten nannten es auf
+drei Arten: „Tetto panoramico" auf den Kacheln Fahrzeug und Befehle, „tendina" in den Ereignissen
+und den Bestätigungen, und „parasole" im Hinweis während der Fahrt. Jetzt heißt es überall
+„Parasole", wie in der offiziellen App. Auf Deutsch und in Home Assistant ändert sich nichts.
+
+### Neu in Version 4.11.0
 
 **Der T03 bekommt seine Fenster unter Befehle zurück.** Seit 4.0.0 suchte Mate nach dem Fenstercode,
 den der B10 und der C10 melden, und ein T03 meldet einen anderen: Auf einem T03 versteckte die Kachel

@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.11.0 · **Langue :** Français
+> **Version de Mate :** v4.11.1 · **Langue :** Français
 
-## Nouveautés de la version 4.11.0
+## Nouveautés de la version 4.11.1
+
+**En italien, le store s'appelle « Parasole ».** Les pages en italien le nommaient de trois façons :
+« Tetto panoramico » sur les tuiles Véhicule et Commandes, « tendina » dans les Événements et les
+confirmations, et « parasole » dans l'avis affiché pendant la conduite. Elles disent désormais
+« Parasole » partout, le nom que lui donne l'application officielle. Rien ne change en français ni
+dans Home Assistant.
+
+### Nouveautés de la version 4.11.0
 
 **La T03 retrouve ses vitres dans Commandes.** Depuis la 4.0.0, Mate cherchait le code des vitres que
 déclarent la B10 et la C10, et une T03 en déclare un autre : sur une T03, la tuile **Vitres** de

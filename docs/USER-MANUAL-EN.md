@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.11.0 · **Language:** English
+> **Mate version:** v4.11.1 · **Language:** English
 
-## New in 4.11.0
+## New in 4.11.1
+
+**In Italian, the sunshade is the «Parasole».** The Italian pages called it three things: «Tetto
+panoramico» on the Vehicle and Commands tiles, «tendina» in Events and in the confirmations, and
+«parasole» in the notice shown while driving. They now say «Parasole» everywhere, the name the
+official app gives it. Nothing changes in English or in Home Assistant.
+
+### New in 4.11.0
 
 **The T03 gets its windows back on Commands.** Since 4.0.0 Mate looked for the windows code that the
 B10 and the C10 declare, and a T03 declares a different one: on a T03 the **Windows** tile on Commands
