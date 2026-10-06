@@ -1,5 +1,5 @@
 """One-time, consistent pre-migration backup. Original data is never rewritten."""
-from contextlib import closing
+from contextlib import closing, suppress
 import json
 import os
 from pathlib import Path
@@ -8,6 +8,26 @@ import sqlite3
 import tempfile
 from process_lock import exclusive
 from leapmotor_cloud.private_storage import ensure_private_directory
+
+
+def _tighten(path, mode):
+    # Storage that does not keep modes ignores chmod (a FAT disk, measured for #401); some may
+    # refuse it outright. The folder holding the copy has already been accepted by
+    # ensure_private_directory: private, or storage whose own permissions decide who reads it,
+    # where these bits change nothing.
+    with suppress(OSError):
+        os.chmod(path, mode)
+
+
+def _copy_content(source, target):
+    # Content only. shutil's copy2/copytree also copy the mode, so storage that refuses chmod
+    # would fail the whole backup; the bits are set afterwards by _tighten.
+    if source.is_dir():
+        target.mkdir()
+        for item in source.iterdir():
+            _copy_content(item, target / item.name)
+    else:
+        shutil.copyfile(source, target)
 
 
 def backup_before_migration(database):
@@ -45,11 +65,11 @@ def backup_before_migration(database):
                 if path.is_dir():
                     if any(item.is_symlink() for item in path.rglob('*')):
                         raise ValueError('Unsafe material source')
-                    shutil.copytree(path, stage / name)
+                    _copy_content(path, stage / name)
                 elif path.is_file():
-                    shutil.copy2(path, stage / name)
+                    _copy_content(path, stage / name)
             for path in stage.rglob('*'):
-                os.chmod(path, 0o700 if path.is_dir() else 0o600)
+                _tighten(path, 0o700 if path.is_dir() else 0o600)
                 if path.is_file():
                     with path.open('r+b') as stream:
                         os.fsync(stream.fileno())
@@ -59,7 +79,7 @@ def backup_before_migration(database):
             with marker.open('x') as stream:
                 json.dump(manifest, stream)
                 stream.flush(); os.fsync(stream.fileno())
-            os.chmod(marker, 0o600)
+            _tighten(marker, 0o600)
             if os.name != 'nt':
                 # Persist directory entries as well as file contents before publishing.
                 for directory in [p for p in stage.rglob('*') if p.is_dir()] + [stage]:

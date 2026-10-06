@@ -35,11 +35,13 @@ def permission_decision(*, owner, ability_supported, right_allowed,
     return Decision(A.AVAILABLE,'explicit_ability_and_permission')
 
 
-def evaluate(snapshot: CapabilitySnapshot, *, ability: int, right: int,
+def evaluate(snapshot: CapabilitySnapshot, *, ability: int | tuple[int, ...], right: int,
              now: datetime, max_age: timedelta) -> Decision:
+    """`ability` may be a tuple: any one of them declared is enough (the windows, 12 or 36)."""
     if not isinstance(snapshot, CapabilitySnapshot):
         raise ValidationError("Invalid capability snapshot")
-    if any(type(code) is not int or code <= 0 for code in (ability, right)):
+    abilities = ability if isinstance(ability, tuple) else (ability,)
+    if not abilities or any(type(code) is not int or code <= 0 for code in abilities + (right,)):
         raise ValidationError("Invalid capability requirement")
     require_aware(now)
     if not isinstance(max_age, timedelta) or max_age <= timedelta(0):
@@ -52,6 +54,7 @@ def evaluate(snapshot: CapabilitySnapshot, *, ability: int, right: int,
     if not snapshot.complete:
         return Decision(A.UNKNOWN, "snapshot_incomplete")
     return permission_decision(owner=snapshot.owner,
-        ability_supported=ability in snapshot.abilities,right_allowed=right in snapshot.rights,
+        ability_supported=any(code in snapshot.abilities for code in abilities),
+        right_allowed=right in snapshot.rights,
         module_allowed=200 in snapshot.module_rights,rights_present=snapshot.rights_present,
         module_rights_present=snapshot.module_rights_present)

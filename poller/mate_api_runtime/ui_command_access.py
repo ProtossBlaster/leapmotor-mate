@@ -150,5 +150,6 @@ def hidden_controls_css(vin, get_setting, *, shown=None):
             routes['seat_' + func + '_' + label + '_on'] = 'api/seat/' + func + '/' + side
     for name, route in routes.items():
         if not shown(name):
-            selectors.append('[hx-post="' + route + '"]')
+            # The window slider posts from script (it asks first), so it carries data-post (#400).
+            selectors.append('[hx-post="' + route + '"],[data-post="' + route + '"]')
     return ','.join(selectors) + '{display:none!important}' if selectors else ''

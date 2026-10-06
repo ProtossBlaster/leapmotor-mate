@@ -16,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import db_reader
+import mate_api  # noqa: F401 — the runtime read below (abilities, the account's rights) is on its path
 
 # Coordinate signal IDs stripped from the raw-signal dump before it leaves the box, so the
 # bundle can be shared publicly without revealing where the car (home) is. 3724/3725 = lon/lat,
@@ -761,11 +762,35 @@ def _missed_charges_section() -> str:
 
 
 def _abilities_section() -> str:
+    vehicle, settings = db_reader.get_vehicle()
+    return "\n".join([_declared_abilities(vehicle)] + _account_rights(vehicle, settings))
+
+
+def _account_rights(vehicle, settings) -> list[str]:
+    """What the ACCOUNT may do with this car, as the cloud's vehicle list last gave it (#400). A
+    command needs the account's right beside the car's ability, and an account the car is shared
+    with can hold fewer; with the abilities alone a refused command could not be told from a right
+    the account lacks. Parsed by the client's own reader; the account's hash stays out."""
+    try:
+        from ui_command_access import snapshot_key
+        from leapmotor_cloud.mate_compat import Vehicle
+        listed = settings.get(snapshot_key((vehicle or {}).get("vin")))
+        if not listed:
+            return ["rights : (not listed yet — Mate reads them from the cloud's vehicle list at login)"]
+        snapshot = json.loads(listed)
+        car = Vehicle.from_dict(snapshot["vehicle"], is_shared=snapshot["shared"])
+    except Exception as exc:  # noqa: BLE001 — never let a bad snapshot break the diagnostic
+        return [f"rights : (unreadable access snapshot: {type(exc).__name__})"]
+    return [f"rights : {','.join(map(str, sorted(car.rights))) or '(none)'}",
+            f"modules: {','.join(map(str, sorted(car.module_rights))) or '(none)'}",
+            f"shared : {'yes' if car.is_shared else 'no'}"]
+
+
+def _declared_abilities(vehicle) -> str:
     """The car's DECLARED ability codes (the cloud's VehicleAbility codes) — the ground truth for what
     THIS model actually supports, so we stop assuming every car has the same commands (#67). Shows the
     raw codes + names and calls out the climate/seat features that differ across models (the T03 lacks
     several the B10/C10 have; also lets us learn a new model like the B05 the moment it connects)."""
-    vehicle, _ = db_reader.get_vehicle()
     raw = (vehicle or {}).get("abilities")
     if not raw:
         return ("(not reported yet — restart the add-on once on this version so the poller stores the "

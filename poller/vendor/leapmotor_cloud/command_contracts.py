@@ -19,11 +19,13 @@ from .capabilities import permission_decision
 from .errors import ValidationError as CommandContractError
 
 APPOINTMENT_PATH='/carownerservice/v3/api/appremotectl/oversea/appointment'
-# cmd: (permission, ability). Passenger ventilation is resolved per position.
+# cmd: (permission, ability). Passenger ventilation is resolved per position. A tuple of abilities
+# is any one of them: the windows are 12 on a B10 and 36 on a European T03, which declares 36
+# alone (Mate #400) - the earlier library's own WINDOWS_C10 and WINDOWS_T03.
 COMMAND_RULES={
     '110':(110,10),'120':(120,11),'130':(130,3),'160':(190,10),
     '170':(170,6),'171':(171,9),'180':(180,52),'190':(340,35),
-    '192':(192,48),'193':(193,82),'230':(230,12),'240':(161,13),
+    '192':(192,48),'193':(193,82),'230':(230,(12,36)),'240':(161,13),
     '301':(301,21),'320':(320,15),'360':(360,38),'361':(361,38),
     '370':(370,42),'440':(440,19),
     # Sentry mode: the shipped V1 client sends cmd 220 with {"value":"1"|"0"} and declares
@@ -48,6 +50,18 @@ def fail(message):
     raise CommandContractError('Command not sent: '+message)
 
 
+def _declared(vehicle,codes):
+    """Whether the car's own cloud entry declares any of `codes`; an unreadable list declares none."""
+    raw=getattr(vehicle,'raw',{}).get('abilities')
+    if not isinstance(raw,list):return any(vehicle.has_ability(code) for code in codes)
+    try:
+        if any(not (type(v) is int and v>0 or isinstance(v,str) and v.isascii() and v.isdecimal() and int(v)>0) for v in raw):
+            raise ValueError()
+        declared={int(v) for v in raw}
+    except (ValueError,TypeError):return False
+    return any(code in declared for code in codes)
+
+
 def require(vehicle,cmd,ability=None):
     right,default=COMMAND_RULES[cmd]
     raw_vehicle=getattr(vehicle,'raw',{})
@@ -60,19 +74,12 @@ def require(vehicle,cmd,ability=None):
     right_allowed=(owner and raw_vehicle.get('rightList') is None) or vehicle.has_right(right)
     module_allowed=(owner and raw_vehicle.get('moduleRights') is None) or vehicle.has_module_right(200)
     ability=default if ability is None else ability
-    raw=raw_vehicle.get('abilities')
     if ability is None or cmd in ABILITY_NOT_GATED:
         # Either COMMAND_RULES carries no ability code (none was identified in the app) or the
         # code is documented but measured unreliable (ABILITY_NOT_GATED). The account right, the
         # control module and the cloud's refusal remain in force either way.
         supported=True
-    elif isinstance(raw,list):
-        try:
-            if any(not (type(v) is int and v>0 or isinstance(v,str) and v.isascii() and v.isdecimal() and int(v)>0) for v in raw):
-                raise ValueError()
-            supported=ability in {int(v) for v in raw}
-        except (ValueError,TypeError):supported=False
-    else:supported=vehicle.has_ability(ability)
+    else:supported=_declared(vehicle,ability if isinstance(ability,tuple) else (ability,))
     decision=permission_decision(owner=bool(owner),ability_supported=bool(supported),
         right_allowed=bool(right_allowed),module_allowed=bool(module_allowed),
         rights_present=not(owner and raw_vehicle.get('rightList') is None),
@@ -256,7 +263,10 @@ def prepare(cmd,state,vehicle,*,timezone_name=None,now=None):
         return state
     if cmd=='230':
         fields(state,{'value'})
-        if state['value'] not in tuple(str(i) for i in range(11)):fail('window position must be 0..10')
+        # The code the car declares names its scale: 36 the T03's 0..100, 12 the 0..10 one Mate
+        # sends the B10, C10 and B05. The caller converts a percentage; this only bounds it.
+        top=100 if _declared(vehicle,(36,)) else 10
+        if state['value'] not in tuple(str(i) for i in range(top+1)):fail('window position must be 0..%d'%top)
         return state
     if cmd in ('301','370'):
         fields(state,{'position','level'})

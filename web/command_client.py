@@ -408,9 +408,13 @@ class LeapmotorSession:
                     self.last_refusal = (target.vin, getattr(receipt, "api_code", None))
                 return False, "Remote control result " + receipt.outcome + "; not retried"
             except Exception as exc:
-                # Do not log exception text: upstream errors may contain secrets.
-                log.warning("API v2 command failed or was blocked (%s); no automatic retry", type(exc).__name__)
-                return False, str(exc)
+                # Do not log exception text: upstream errors may contain secrets. A refusal Mate's
+                # own contract made is its fixed wording — "Command not sent: ability_absent for
+                # 230" — and is the only record of why a command never left (#400): that one is kept.
+                said = str(exc)
+                reason = said if said.startswith("Command not sent: ") else type(exc).__name__
+                log.warning("API v2 command failed or was blocked (%s); no automatic retry", reason)
+                return False, said
 
     _STATUS_PATH_FALLBACK = "c10"
 

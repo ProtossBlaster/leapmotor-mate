@@ -76,3 +76,42 @@ def test_abilities_section_unmapped_none_when_all_known(monkeypatch):
     monkeypatch.setattr(db_reader, "get_vehicle",
                         lambda: ({"abilities": json.dumps([6, 14])}, {}))     # both known
     assert "unmapped: (none)" in diagnostics._abilities_section()
+
+
+# ── what the ACCOUNT may do (#400) ────────────────────────────────────────────────────────────────
+# A command needs the account's right beside the car's ability. The bundle carried the abilities
+# only, so a command the contract refused could not be told from a right the account lacks.
+_VIN = "LFZTEST0000000001"
+
+
+def _listed(**vehicle):
+    return json.dumps({"account": "0f" * 32, "at": 0, "shared": True,
+                       "vehicle": {"vin": _VIN, "carType": "T03", **vehicle}})
+
+
+def test_abilities_section_shows_the_account_rights(monkeypatch):
+    monkeypatch.setattr(db_reader, "get_vehicle", lambda: (
+        {"vin": _VIN, "abilities": json.dumps([6, 11, 36])},
+        {"api_v2_access_" + _VIN.lower(): _listed(rightList="230,110,120,170",
+                                                  moduleRights="100,200")}))
+    out = diagnostics._abilities_section()
+    assert "codes  : 6,11,36" in out
+    assert "rights : 110,120,170,230" in out
+    assert "modules: 100,200" in out
+    assert "shared : yes" in out
+    assert "0f0f" not in out, "the account's hash stays out of the bundle"
+
+
+def test_the_rights_show_before_the_car_reports_its_abilities(monkeypatch):
+    monkeypatch.setattr(db_reader, "get_vehicle", lambda: (
+        {"vin": _VIN, "abilities": None},
+        {"api_v2_access_" + _VIN.lower(): _listed(rightList="110", moduleRights="")}))
+    out = diagnostics._abilities_section()
+    assert "not reported yet" in out
+    assert "rights : 110" in out and "modules: (none)" in out
+
+
+def test_a_car_the_vehicle_list_has_not_given_says_so(monkeypatch):
+    monkeypatch.setattr(db_reader, "get_vehicle", lambda: (
+        {"vin": _VIN, "abilities": json.dumps([6])}, {}))
+    assert "rights : (not listed yet" in diagnostics._abilities_section()

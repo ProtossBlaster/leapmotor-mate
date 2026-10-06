@@ -1,6 +1,12 @@
 """Private account storage: POSIX modes or a protected current-user Windows DACL."""
+import logging
 import os
+import tempfile
 from pathlib import Path
+
+log = logging.getLogger(__name__)
+# Directory -> whether that storage keeps POSIX permission bits, measured once per process.
+_MODES_KEPT = {}
 
 
 def _is_link(path):
@@ -10,13 +16,54 @@ def _is_link(path):
         return False
 
 
+def _keeps_modes(directory, *, file):
+    """Whether the storage under `directory` keeps POSIX permission bits.
+
+    tempfile makes a file 0600 and a directory 0700; on storage that keeps modes the probe reads
+    back without group or other access. On storage that does not - a FAT disk, measured, and a NAS
+    shared folder that maps its own ACLs onto the mode can be one (leapmotor-mate #401) - it reads
+    back 0777 whatever was asked, and chmod does not change that: there the folder's own
+    permissions decide who reads it, not the bits. A probe that cannot be made proves nothing, so
+    it counts as keeping modes and the caller still refuses.
+    """
+    directory = os.fspath(directory)
+    if directory not in _MODES_KEPT:
+        try:
+            if file:
+                fd, probe = tempfile.mkstemp(prefix='.mode-probe-', dir=directory)
+                try:
+                    kept = not os.fstat(fd).st_mode & 0o077
+                finally:
+                    os.close(fd)
+                    os.unlink(probe)
+            else:
+                probe = tempfile.mkdtemp(prefix='.mode-probe-', dir=directory)
+                try:
+                    kept = not os.stat(probe).st_mode & 0o077
+                finally:
+                    os.rmdir(probe)
+        except OSError:
+            return True
+        if not kept and False not in _MODES_KEPT.values():   # said once per process
+            log.warning("%s does not keep file permissions (a NAS shared folder with its own ACLs, "
+                        "for example): who can read the account files there is decided by that "
+                        "folder's own permissions", directory)
+        _MODES_KEPT[directory] = kept
+    return _MODES_KEPT[directory]
+
+
+def _exposed(path, *, file=False):
+    """Group or other access on storage that keeps modes; open bits elsewhere mean nothing."""
+    return bool(path.stat().st_mode & 0o077) and _keeps_modes(path.parent if file else path, file=file)
+
+
 def ensure_private_directory(path):
     path = Path(path)
     if _is_link(path):
         raise ValueError('Unsafe private directory')
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
     if os.name != 'nt':
-        if path.stat().st_mode & 0o077:
+        if _exposed(path):
             raise ValueError('Private directory permissions required')
         return path
     _windows_directory(path, protect=True)
@@ -27,14 +74,15 @@ def validate_private_directory(path):
     """Validate an existing storage root without creating or changing it.
 
     Windows roots must have a protected DACL containing only the process user's
-    inheritable full-control entry. POSIX roots must exclude group/other access.
+    inheritable full-control entry. POSIX roots must exclude group/other access, unless the
+    storage does not keep permission bits at all (see `_keeps_modes`).
     """
     path = Path(path)
     if _is_link(path) or not path.is_dir():
         raise ValueError('Unsafe private directory')
     if os.name == 'nt':
         _windows_directory(path, protect=False)
-    elif path.stat().st_mode & 0o077:
+    elif _exposed(path):
         raise ValueError('Private directory permissions required')
     return path
 
@@ -46,7 +94,7 @@ def validate_private_file(path):
         raise ValueError('Unsafe private file')
     if os.name == 'nt':
         _windows_directory(path, protect=False, directory=False)
-    elif path.stat().st_mode & 0o077:
+    elif _exposed(path, file=True):
         raise ValueError('Private file permissions required')
     return path
 

@@ -211,6 +211,7 @@
              (wins=False) → forced to 0, so the slider can't sit at a stale % that contradicts the
              "Closed" badge (e.g. opened via the slider, then closed by toggle / the official app /
              physically — which never updated the last-commanded value). All four windows together. #}
+          <div data-post="api/windows" class="space-y-1.5">
           <input type="range" min="0" max="{{ (wins_stops | default([0,100])) | length - 1 }}" step="1"
                  value="{{ 0 if (wins is not none and not wins) else (wins_idx | default(0)) }}"
                  {% if drv %}disabled{% endif %}
@@ -221,6 +222,7 @@
             {% else %}<span>{{ t('wins_closed_state') }}</span><span>100%</span>{% endif %}
           </div>
           <div class="text-[10px] text-slate-400"><span id="wins-pct">{{ (0 if (wins is not none and not wins) else (wins_pct | default(0))) ~ '%' }}</span> <span id="wins-res" class="text-emerald-400"></span></div>
+          </div>
         </div>
       </div>
 
