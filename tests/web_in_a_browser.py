@@ -42,7 +42,7 @@ CHARGE_SQL = ("INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_
 
 # Counts the calendar block's settled swaps in window.settled; the page's other blocks load on their own.
 COUNT_CALENDAR_SWAPS = ("window.settled = 0; document.addEventListener('htmx:afterSettle', e => {"
-                        " if (e.target.closest('[id$=-calendar-month-wrap]')) window.settled++; })")
+                        " if (e.target.closest('[id$=-calendar-month-wrap], #fuel-calendar-wrap')) window.settled++; })")
 
 
 def swapped(page, act):

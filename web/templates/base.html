@@ -692,10 +692,31 @@
   (function () {
     var KEY = 'lm_calday_' + location.pathname;
 
+    // The month on screen is kept in the address (?month=), which the page is drawn on after a reload; a day
+    // or month picked replaces a ?highlight= link, whose day would otherwise win over the pick.
+    var shown = document.querySelector('[data-cal-month]');
+    shown = shown ? shown.dataset.calMonth : '';
+    function address() {
+      var cal = document.querySelector('[data-cal-month]');
+      if (!cal) return;
+      var q = new URLSearchParams(location.search);
+      q.delete('highlight');
+      shown = cal.dataset.calMonth;
+      if (shown) q.set('month', shown);
+      else q.delete('month');     // today's month: a reload then follows the date into the next one
+      var s = q.toString();
+      history.replaceState(history.state, '', location.pathname + (s && '?' + s) + location.hash);     // not relative: <base href>
+    }
+    document.body.addEventListener('htmx:afterSettle', function () {
+      var cal = document.querySelector('[data-cal-month]');
+      if (cal && cal.dataset.calMonth !== shown) address();
+    });
+
     // Days in the order they were picked: the first is where the next Shift-click starts, after a reload too.
     function remember(u, from, to) {
       var y = /[?&]year=(\d+)/.exec(u), m = /[?&]month=(\d+)/.exec(u);
       if (y && m) sessionStorage.setItem(KEY, y[1] + '-' + m[1] + '-' + from + (to != from ? '-' + to : ''));
+      address();
     }
 
     document.addEventListener('click', function (e) {

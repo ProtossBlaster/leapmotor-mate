@@ -60,15 +60,24 @@
   <!-- Month calendar (beta #14 @gm27271). Loaded on demand like the Charges one, and refreshed
        whenever a refuel is added or deleted so a new entry appears in its day without a reload. -->
   <div class="card mt-6" id="fuel-calendar-wrap"
-       hx-get="api/fuel/calendar" hx-trigger="load, fuelChanged from:body" hx-swap="innerHTML">
+       hx-get="api/fuel/calendar?year={{ cal_year }}&month={{ cal_month }}" hx-trigger="load" hx-swap="innerHTML">
     {# Server-rendered first paint — see charges.html and #240. `fuelChanged` still refreshes it
-       when an entry is added or deleted. #}
+       when an entry is added or deleted, through the script below. #}
     {{ calendar_html|safe }}
   </div>
 
 </div>
 
 <script>
+  // A refuel added or deleted redraws the month on screen, not the one the page was first drawn on.
+  document.body.addEventListener('fuelChanged', function () {
+    var cal = document.getElementById('fuel-calendar-month');
+    if (!cal) return;
+    var m = cal.dataset.calMonth.split('-');     // empty on today's month
+    htmx.ajax('GET', 'api/fuel/calendar' + (m[1] ? '?year=' + m[0] + '&month=' + +m[1] : ''),
+              {target: '#fuel-calendar-wrap', swap: 'innerHTML'}).catch(function () {});
+  });
+
   // Clear the entry fields once a refuel is saved (keep the date for the next quick entry).
   document.body.addEventListener('htmx:afterRequest', function (e) {
     var cfg = e.detail && e.detail.requestConfig;

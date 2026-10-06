@@ -3,7 +3,7 @@
    hx-swap="outerHTML", so navigating months also resets the day-drawer below (a day open in
    the old month rarely makes sense in the new one). Day cells with charges instead target only
    #charges-day-drawer — clicking a day never re-fetches or re-renders the grid. #}
-<div id="charges-calendar-month">
+<div id="charges-calendar-month" data-cal-month="{{ '' if (year == today.year and month == today.month) else '%d-%02d'|format(year, month) }}">
   <div class="flex items-center justify-between mb-4">
     <button type="button" title="{{ t('charges_calendar_prev') }}"
             hx-get="api/charges/calendar?year={{ prev_year }}&month={{ prev_month }}{% if station %}&station={{ station }}{% endif %}"

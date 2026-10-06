@@ -2,7 +2,7 @@
    prev/next/today nav buttons target THIS SAME #trips-calendar-month container with
    hx-swap="outerHTML", so navigating months also resets the day-drawer below. Day cells with
    trips instead target only #trips-day-drawer — clicking a day never re-fetches the grid. #}
-<div id="trips-calendar-month">
+<div id="trips-calendar-month" data-cal-month="{{ '' if (year == today.year and month == today.month) else '%d-%02d'|format(year, month) }}">
   <div class="flex items-center justify-between mb-4">
     <button type="button" title="{{ t('charges_calendar_prev') }}"
             hx-get="api/trips/calendar?year={{ prev_year }}&month={{ prev_month }}"
