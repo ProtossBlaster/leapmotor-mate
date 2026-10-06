@@ -1,8 +1,40 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.10.0 · **Language:** English
+> **Mate version:** v4.11.0 · **Language:** English
 
-## New in 4.10.0
+## New in 4.11.0
+
+**The T03 gets its windows back on Commands.** Since 4.0.0 Mate looked for the windows code that the
+B10 and the C10 declare, and a T03 declares a different one: on a T03 the **Windows** tile on Commands
+hid its **Open** / **Close** button, and the slider it left answered *"Command not sent"*. Either code
+now lets the command through, and a T03 gets the position on its own 0–100 scale. Not yet tried on a
+T03 (#400). Where the car itself does not allow the windows, the slider now hides together with the
+button.
+
+**Mate starts on a NAS shared folder.** From 4.0.0, a data folder that does not keep file permissions
+— a NAS shared folder with its own access rules can be one — stopped Mate at start with *"Private
+directory permissions required"*. Mate now starts there, and says once in its log that who can read
+the account files is decided by that folder's own permissions. On an ordinary disk, a data folder open
+to everyone is still refused (#401).
+
+**The sunshade as a percent.** The roof tile on the Vehicle page and the sunshade tile on Commands say
+how far the sunshade is open; stopped part-way, the Commands tile offers both **Open** and **Close**,
+the two positions the car acts on. The Events page lists where it stopped, and Home Assistant gets a
+**Sunshade Position** sensor in %. By @arekm (#391).
+
+**A short drive the cloud reads as 0.0 kWh keeps that figure.** Mate took that answer for a miss,
+asked again for six hours and left the trip with no energy. When the battery read the same at both
+ends, the trip now keeps 0.0 kWh and counts in the averages; on a drive whose battery fell, or was not
+read, a zero is still no answer. By @arekm (#394).
+
+**The ⓘ marks open on a tap.** The ⓘ beside the outside temperature on the Overview and beside the
+Wallbox's maximum current now open on a tap, in the Home Assistant app too, and a new ⓘ beside
+**READY** says what the state means. By @arekm (#399).
+
+**The support bundle says what your account may do with the car**: its rights, and whether the car is
+shared with you, beside what the car declares — a command can be refused for either.
+
+### New in 4.10.0
 
 **A day's battery and driving time in Trips.** Open a day in the Trips calendar: its heading now says
 how much battery the day's trips used, *84.4% → 51.6% (−32.8%)* from the first trip to the last — or,

@@ -1,8 +1,43 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.10.0 · **Idioma:** Español
+> **Versión de Mate:** v4.11.0 · **Idioma:** Español
 
-## Novedades de la versión 4.10.0
+## Novedades de la versión 4.11.0
+
+**El T03 recupera sus ventanillas en Comandos.** Desde la 4.0.0, Mate buscaba el código de las
+ventanillas que declaran el B10 y el C10, y un T03 declara otro: en un T03, la tarjeta **Ventanillas**
+de Comandos ocultaba su botón **Abrir** / **Cerrar**, y el control deslizante que quedaba respondía
+*«Command not sent»*. Ahora basta cualquiera de los dos códigos, y un T03 recibe la posición en su
+propia escala de 0 a 100. Aún no probado en un T03 (#400). Donde es el propio coche quien no permite
+las ventanillas, el control deslizante desaparece ahora junto con el botón.
+
+**Mate arranca en una carpeta compartida de un NAS.** Desde la 4.0.0, una carpeta de datos que no
+conserva los permisos de los archivos — como puede serlo la carpeta compartida de un NAS con sus
+propias reglas de acceso — detenía Mate al arrancar con *«Private directory permissions required»*.
+Ahora Mate arranca, y escribe una vez en el registro que quién puede leer los archivos de la cuenta lo
+deciden los permisos de esa carpeta. En un disco normal, una carpeta de datos abierta a todos se sigue
+rechazando (#401).
+
+**La cortinilla en porcentaje.** La tarjeta del techo en la página Vehículo y la de la cortinilla en
+Comandos dicen cuánto está abierta; parada a medio camino, la tarjeta de Comandos ofrece tanto
+**Abrir** como **Cerrar**, las dos posiciones que el coche ejecuta. La página Eventos indica dónde se
+detuvo, y Home Assistant recibe un sensor **Sunshade Position** en %. De @arekm (#391).
+
+**Un trayecto corto que la nube lee como 0,0 kWh conserva esa cifra.** Mate tomaba esa respuesta por
+una ausencia, volvía a preguntar durante seis horas y dejaba el trayecto sin energía. Si la batería
+marcaba el mismo valor en los dos extremos, el trayecto conserva ahora 0,0 kWh y cuenta en las medias;
+en un trayecto en el que la batería bajó, o no se leyó, un cero sigue sin ser una respuesta. De @arekm
+(#394).
+
+**Las ⓘ se abren al tocarlas.** Las ⓘ junto a la temperatura exterior en el Resumen y junto a la
+corriente máxima de la Wallbox se abren ahora al tocarlas, también en la app de Home Assistant, y una ⓘ
+nueva junto a **READY** dice qué significa ese estado. De @arekm (#399).
+
+**El paquete de soporte dice qué puede hacer tu cuenta con el coche**: sus permisos, y si el coche está
+compartido contigo, junto a lo que el coche declara — una orden puede rechazarse por una cosa o por la
+otra.
+
+### Novedades de la versión 4.10.0
 
 **La batería y el tiempo de conducción del día en Trayectos.** Abre un día en el calendario de
 Trayectos: su cabecera dice ahora cuánta batería gastaron los trayectos del día,

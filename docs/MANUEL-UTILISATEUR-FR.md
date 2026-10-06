@@ -1,8 +1,42 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.10.0 · **Langue :** Français
+> **Version de Mate :** v4.11.0 · **Langue :** Français
 
-## Nouveautés de la version 4.10.0
+## Nouveautés de la version 4.11.0
+
+**La T03 retrouve ses vitres dans Commandes.** Depuis la 4.0.0, Mate cherchait le code des vitres que
+déclarent la B10 et la C10, et une T03 en déclare un autre : sur une T03, la tuile **Vitres** de
+Commandes cachait son bouton **Ouvrir** / **Fermer**, et le curseur restant répondait *« Command not
+sent »*. L'un ou l'autre code suffit désormais, et une T03 reçoit la position sur sa propre échelle de
+0 à 100. Pas encore essayé sur une T03 (#400). Là où c'est la voiture elle-même qui n'autorise pas les
+vitres, le curseur disparaît maintenant avec le bouton.
+
+**Mate démarre sur un dossier partagé de NAS.** Depuis la 4.0.0, un dossier de données qui ne garde
+pas les permissions des fichiers — ce que peut être le dossier partagé d'un NAS avec ses propres règles
+d'accès — arrêtait Mate au démarrage avec *« Private directory permissions required »*. Mate démarre
+maintenant, et écrit une fois dans son journal que ce sont les permissions de ce dossier qui décident
+qui peut lire les fichiers du compte. Sur un disque ordinaire, un dossier de données ouvert à tous est
+toujours refusé (#401).
+
+**Le store en pourcentage.** La tuile du toit sur la page Véhicule et celle du store dans Commandes
+disent de combien le store est ouvert ; arrêté à mi-course, la tuile de Commandes propose à la fois
+**Ouvrir** et **Fermer**, les deux positions que la voiture exécute. La page Événements indique où il
+s'est arrêté, et Home Assistant reçoit un capteur **Sunshade Position** en %. Par @arekm (#391).
+
+**Un court trajet que le cloud lit à 0,0 kWh garde ce chiffre.** Mate prenait cette réponse pour une
+absence, redemandait pendant six heures et laissait le trajet sans énergie. Si la batterie affichait la
+même valeur aux deux extrémités, le trajet garde maintenant 0,0 kWh et compte dans les moyennes ; sur
+un trajet où la batterie a baissé, ou n'a pas été lue, un zéro reste une non-réponse. Par @arekm (#394).
+
+**Les ⓘ s'ouvrent au toucher.** Les ⓘ à côté de la température extérieure dans l'Aperçu et à côté du
+courant maximal de la Wallbox s'ouvrent maintenant au toucher, aussi dans l'application Home Assistant,
+et un nouveau ⓘ à côté de **READY** dit ce que signifie cet état. Par @arekm (#399).
+
+**Le paquet de support dit ce que votre compte peut faire avec la voiture** : ses droits, et si la
+voiture est partagée avec vous, à côté de ce que la voiture déclare — une commande peut être refusée
+pour l'une ou l'autre raison.
+
+### Nouveautés de la version 4.10.0
 
 **La batterie et le temps de conduite du jour dans Trajets.** Ouvrez un jour dans le calendrier des
 Trajets : son en-tête indique désormais la batterie consommée par les trajets du jour,

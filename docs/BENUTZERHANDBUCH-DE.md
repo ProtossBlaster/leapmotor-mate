@@ -1,8 +1,45 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.10.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.11.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.10.0
+## Neu in Version 4.11.0
+
+**Der T03 bekommt seine Fenster unter Befehle zurück.** Seit 4.0.0 suchte Mate nach dem Fenstercode,
+den der B10 und der C10 melden, und ein T03 meldet einen anderen: Auf einem T03 versteckte die Kachel
+**Fenster** unter Befehle ihre Schaltfläche **Öffnen** / **Schließen**, und der verbliebene
+Schieberegler antwortete *„Command not sent"*. Jetzt genügt einer der beiden Codes, und ein T03 bekommt
+die Position auf seiner eigenen Skala von 0 bis 100. Noch nicht an einem T03 ausprobiert (#400). Wo das
+Auto selbst die Fenster nicht erlaubt, verschwindet der Schieberegler jetzt zusammen mit der
+Schaltfläche.
+
+**Mate startet auf einem freigegebenen NAS-Ordner.** Seit 4.0.0 hielt ein Datenordner, der keine
+Dateiberechtigungen behält — wie es der freigegebene Ordner eines NAS mit eigenen Zugriffsregeln sein
+kann —, Mate beim Start mit *„Private directory permissions required"* an. Jetzt startet Mate dort und
+schreibt einmal ins Log, dass die Berechtigungen dieses Ordners entscheiden, wer die Kontodateien lesen
+kann. Auf einem gewöhnlichen Datenträger wird ein für alle offener Datenordner weiterhin abgelehnt
+(#401).
+
+**Das Sonnenrollo in Prozent.** Die Dach-Kachel auf der Seite Fahrzeug und die Sonnenrollo-Kachel unter
+Befehle zeigen, wie weit das Sonnenrollo offen ist; auf halbem Weg angehalten, bietet die Kachel unter
+Befehle sowohl **Öffnen** als auch **Schließen** an, die beiden Positionen, die das Auto ausführt. Die
+Seite Ereignisse zeigt, wo es angehalten hat, und Home Assistant bekommt einen Sensor **Sunshade
+Position** in %. Von @arekm (#391).
+
+**Eine kurze Fahrt, die die Cloud mit 0,0 kWh liest, behält diesen Wert.** Mate hielt diese Antwort für
+ein Fehlen, fragte sechs Stunden lang erneut und ließ die Fahrt ohne Energie. Zeigte der Akku an beiden
+Enden denselben Wert, behält die Fahrt jetzt 0,0 kWh und zählt in den Durchschnitten; bei einer Fahrt,
+bei der der Akku gesunken ist oder nicht gelesen wurde, bleibt eine Null keine Antwort. Von @arekm
+(#394).
+
+**Die ⓘ öffnen sich beim Antippen.** Die ⓘ neben der Außentemperatur in der Übersicht und neben dem
+maximalen Strom der Wallbox öffnen sich jetzt beim Antippen, auch in der Home-Assistant-App, und ein
+neues ⓘ neben **READY** sagt, was dieser Zustand bedeutet. Von @arekm (#399).
+
+**Das Support-Paket sagt, was Ihr Konto mit dem Auto tun darf**: seine Rechte und ob das Auto mit Ihnen
+geteilt ist, neben dem, was das Auto meldet — ein Befehl kann aus dem einen oder dem anderen Grund
+abgelehnt werden.
+
+### Neu in Version 4.10.0
 
 **Akku und Fahrzeit des Tages unter Fahrten.** Öffnen Sie einen Tag im Kalender der Fahrten: Seine
 Überschrift zeigt jetzt, wie viel Akku die Fahrten des Tages verbraucht haben, *84,4% → 51,6% (−32,8%)*

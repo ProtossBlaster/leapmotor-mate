@@ -1,8 +1,41 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.10.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.11.0 · **Lingua:** Italiano
 
-## Novità della 4.10.0
+## Novità della 4.11.0
+
+**La T03 ritrova i finestrini in Comandi.** Dalla 4.0.0 Mate cercava il codice dei finestrini che
+dichiarano la B10 e la C10, e una T03 ne dichiara un altro: su una T03 il riquadro **Finestrini** di
+Comandi nascondeva il bottone **Apri** / **Chiudi**, e il cursore rimasto rispondeva *«Command not
+sent»*. Adesso basta uno dei due codici, e una T03 riceve la posizione sulla sua scala 0–100. Non
+ancora provato su una T03 (#400). Dove è l'auto stessa a non permettere i finestrini, il cursore adesso
+sparisce insieme al bottone.
+
+**Mate parte su una cartella condivisa di un NAS.** Dalla 4.0.0, una cartella dei dati che non tiene i
+permessi dei file — come può essere la cartella condivisa di un NAS con regole di accesso sue — fermava
+Mate all'avvio con *«Private directory permissions required»*. Adesso Mate parte, e scrive una volta
+nel registro che chi può leggere i file dell'account lo decidono i permessi di quella cartella. Su un
+disco normale, una cartella dei dati aperta a tutti resta rifiutata (#401).
+
+**La tendina in percentuale.** Il riquadro del tetto nella pagina Veicolo e quello della tendina in
+Comandi dicono quanto è aperta; ferma a metà, il riquadro di Comandi offre sia **Apri** sia **Chiudi**,
+le due posizioni che l'auto esegue. La pagina Eventi elenca dove si è fermata, e Home Assistant riceve
+un sensore **Sunshade Position** in %. Di @arekm (#391).
+
+**Un viaggio breve che il cloud legge 0,0 kWh tiene quella cifra.** Mate prendeva quella risposta per
+una mancanza, richiedeva per sei ore e lasciava il viaggio senza energia. Se la batteria segnava lo
+stesso valore ai due capi, adesso il viaggio tiene 0,0 kWh e conta nelle medie; su un viaggio in cui la
+batteria è scesa, o non è stata letta, uno zero resta una non-risposta. Di @arekm (#394).
+
+**Le ⓘ si aprono al tocco.** Le ⓘ accanto alla temperatura esterna nella Panoramica e accanto alla
+corrente massima della Wallbox adesso si aprono al tocco, anche nell'app di Home Assistant, e una ⓘ
+nuova accanto a **READY** dice cosa significa quello stato. Di @arekm (#399).
+
+**Il pacchetto di supporto dice cosa può fare il tuo account con l'auto**: i suoi permessi, e se l'auto
+è condivisa con te, accanto a quello che l'auto dichiara — un comando può essere rifiutato per l'una o
+per l'altra cosa.
+
+### Novità della 4.10.0
 
 **Batteria e tempo di guida del giorno nei Viaggi.** Apri un giorno nel calendario dei Viaggi:
 l'intestazione dice adesso quanta batteria hanno usato i viaggi del giorno, *84,4% → 51,6% (−32,8%)*

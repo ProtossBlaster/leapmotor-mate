@@ -3,6 +3,46 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.11.0] — 2026-10-06
+
+- **The T03's windows are offered and sent again**
+  ([#400](https://github.com/ProtossBlaster/leapmotor-mate/issues/400), @dilianpenchev-a11y, @arekm). Since 4.0.0 the windows command
+  asked for the ability code the B10 and the C10 declare, 12; a T03 declares 36, so Mate hid "Open
+  windows" and "Close windows" on a T03, and the slider it left ended in "Command not sent:
+  ability_absent for 230". Either code now lets the command through, and a car that declares 36 takes a position from 0 to 100, the T03's own
+  scale; the others keep 0 to 10. Where the car's list does refuse the windows, the slider now hides
+  with the two buttons, and the log keeps why a command was not sent instead of the error's type. The
+  support bundle lists what the account may do with the car — its rights, its modules and whether the
+  car is shared with it — beside what the car declares. Not yet tried on a T03.
+- **Mate starts on a NAS shared folder**
+  ([#401](https://github.com/ProtossBlaster/leapmotor-mate/issues/401), @awooganl). From 4.0.0 Mate stopped at start with "Private
+  directory permissions required" when `/data` was a folder that does not keep file permissions, as a
+  NAS shared folder with its own ACLs can be: every file there reads as open to everyone, and a change
+  of mode does not take. Mate now tells such storage from a folder that is really open — which, on an
+  ordinary disk, it still refuses — starts, and says once in the log that who can read the account
+  files there is decided by the folder's own permissions. The one-time backup taken before the 4.0.0
+  migration copies contents only, so a change of mode the storage refuses no longer stops it. Measured
+  on a FAT disk, which behaves the same way: 4.10.0 stopped within a second; this version answered at
+  once, and its backup held the database, the certificates and the account files. Not yet tried on a
+  Synology.
+- **The sunshade as the percent the car shows**
+  ([#391](https://github.com/ProtossBlaster/leapmotor-mate/pull/391), @arekm). The roof tile on the Vehicle page and the sunshade tile on
+  Commands say how far it is open; stopped part-way, the Commands tile offers both Open and Close, the
+  two positions the car acts on. The Events page lists where the sunshade stopped, and Home Assistant
+  gets a `Sunshade Position` sensor in %, beside the `Sunshade` binary sensor as it was.
+- **A drive the cloud reads as 0.0 kWh keeps that figure**
+  ([#394](https://github.com/ProtossBlaster/leapmotor-mate/pull/394), @arekm). The cloud files some short drives at 0.0 kWh; Mate took
+  the answer for a miss, asked again every five minutes for six hours, and ended with no energy. Where
+  the battery read the same at both ends of the drive, the zero is now the trip's figure and counts in
+  every average; where the battery fell or was not read, a zero is still no answer, and so is a
+  negative total. A merged trip is judged as its whole group, and a month's zero goes through the same
+  check against Mate's own trips as any other total.
+- **The info marks open on a tap, and READY has one**
+  ([#399](https://github.com/ProtossBlaster/leapmotor-mate/pull/399), @arekm). The ⓘ beside the outside temperature on the Overview and
+  beside the Wallbox's maximum current had only the browser's tooltip, which a tap — and the Home
+  Assistant app — never opens; they now open like the others. A new ⓘ beside READY says what the state
+  means. In [#398](https://github.com/ProtossBlaster/leapmotor-mate/pull/398), also @arekm, a browser test waits for the page before it reads it.
+
 ## [4.10.0] — 2026-10-05
 
 - **A day's battery and driving time in the Trips drawer**
