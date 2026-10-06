@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.11.1 · **Langue :** Français
+> **Version de Mate :** v4.11.2 · **Langue :** Français
 
-## Nouveautés de la version 4.11.1
+## Nouveautés de la version 4.11.2
+
+**Le pare-soleil porte le nom de l'application officielle dans toutes les langues.** Les pages
+l'appelaient « Toit panoramique » sur les tuiles Véhicule et Commandes, et « store » dans les
+confirmations et les Événements. En français, c'est désormais le **Pare-soleil** partout : les tuiles,
+les confirmations (« Ouvrir le pare-soleil ? ») et les Événements (« Pare-soleil ouvert à 40 % »). Les
+autres langues prennent elles aussi les noms de l'application (#391). Rien ne change dans Home
+Assistant.
+
+### Nouveautés de la version 4.11.1
 
 **En italien, le store s'appelle « Parasole ».** Les pages en italien le nommaient de trois façons :
 « Tetto panoramico » sur les tuiles Véhicule et Commandes, « tendina » dans les Événements et les

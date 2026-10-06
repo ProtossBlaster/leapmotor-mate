@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.11.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.11.2 · **Lingua:** Italiano
 
-## Novità della 4.11.1
+## Novità della 4.11.2
+
+**Il parasole porta il nome dell'app ufficiale in ogni lingua.** Dopo l'italiano nella 4.11.1, anche
+le altre lingue usano il nome che gli dà l'app: Sunshade, Pare-soleil, Sonnenblende, Parasol,
+Zonnescherm, Osłona przeciwsłoneczna, Cortina (#391). In italiano non cambia niente, e nemmeno le
+entità di Home Assistant.
+
+### Novità della 4.11.1
 
 **Il parasole si chiama «Parasole».** Le pagine in italiano lo chiamavano in tre modi: «Tetto
 panoramico» nei riquadri di Veicolo e Comandi, «tendina» negli Eventi e nelle conferme, e

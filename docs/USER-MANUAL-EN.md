@@ -1,8 +1,16 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.11.1 · **Language:** English
+> **Mate version:** v4.11.2 · **Language:** English
 
-## New in 4.11.1
+## New in 4.11.2
+
+**The sunshade carries the official app's name in every language.** In English, the Vehicle and
+Commands tiles called it the "Panoramic roof" and the confirmations "panoramic roof shade"; it is now
+the **Sunshade** there too ("Open the sunshade?"), as Events and the notice shown while driving
+already said. The other languages take the app's names as well (#391), and the Vehicle tile says
+"open" and "closed" in words that agree with them. Nothing changes in Home Assistant.
+
+### New in 4.11.1
 
 **In Italian, the sunshade is the «Parasole».** The Italian pages called it three things: «Tetto
 panoramico» on the Vehicle and Commands tiles, «tendina» in Events and in the confirmations, and

@@ -1,8 +1,17 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.11.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.11.2 · **Sprache:** Deutsch
 
-## Neu in Version 4.11.1
+## Neu in Version 4.11.2
+
+**Die Sonnenblende trägt in jeder Sprache den Namen der offiziellen App.** Die Seiten nannten sie
+„Panoramadach“ auf den Kacheln Fahrzeug und Befehle, „Dachrollo“ in den Bestätigungen, „Sonnenrollo“
+in den Ereignissen und „Sonnenschutz“ im Hinweis während der Fahrt. Auf Deutsch heißt sie jetzt
+überall **Sonnenblende**: auf den Kacheln, in den Bestätigungen („Sonnenblende öffnen?“) und in den
+Ereignissen („Sonnenblende zu 40 % offen“). Auch die anderen Sprachen übernehmen die Namen der App
+(#391). In Home Assistant ändert sich nichts.
+
+### Neu in Version 4.11.1
 
 **Auf Italienisch heißt das Sonnenrollo jetzt „Parasole".** Die italienischen Seiten nannten es auf
 drei Arten: „Tetto panoramico" auf den Kacheln Fahrzeug und Befehle, „tendina" in den Ereignissen

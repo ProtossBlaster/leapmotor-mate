@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.11.1 · **Idioma:** Español
+> **Versión de Mate:** v4.11.2 · **Idioma:** Español
 
-## Novedades de la versión 4.11.1
+## Novedades de la versión 4.11.2
+
+**El parasol lleva el nombre de la app oficial en todos los idiomas.** Las páginas lo llamaban
+«Techo panorámico» en las tarjetas de Vehículo y Comandos, y «cortinilla» en las confirmaciones, en
+Eventos y en el aviso que se muestra durante la conducción. En español ahora es el **Parasol** en
+todas partes: las tarjetas, las confirmaciones («¿Abrir el parasol?») y Eventos («Parasol abierto al
+40%»); la tarjeta de Vehículo dice «Abierto» / «Cerrado», en masculino como la palabra. Los demás
+idiomas también toman los nombres de la app (#391). Nada cambia en Home Assistant.
+
+### Novedades de la versión 4.11.1
 
 **En italiano, la cortinilla se llama «Parasole».** Las páginas en italiano la nombraban de tres
 maneras: «Tetto panoramico» en las tarjetas de Vehículo y Comandos, «tendina» en Eventos y en las
