@@ -20,7 +20,7 @@
     {% if day is defined and day %}
     <button type="button"
             hx-get="api/trips/calendar/day?year={{ year }}&month={{ month }}&day={{ day }}{% if not merge_mode %}&merge=1{% if gap %}&gap={{ gap }}{% endif %}{% endif %}"
-            hx-target="#trips-day-drawer" hx-swap="innerHTML"
+            hx-target="#trips-day-drawer" hx-swap="innerHTML" hx-sync="#trips-day-drawer:replace"
             class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-colors {% if merge_mode %}border-yellow-500/60 bg-yellow-400/15 text-yellow-400 hover:bg-yellow-400/25{% else %}border-slate-600 bg-slate-800/60 text-slate-300 hover:border-yellow-500/50 hover:text-yellow-400{% endif %}">
       {% if merge_mode %}✕{% else %}🔗{% endif %} {{ t('merge_eligible') }}
     </button>
@@ -85,7 +85,7 @@
     {{ t('merge_max_gap') }}: <output class="text-yellow-400 font-semibold">{{ gap }}</output> min
     <input type="range" name="gap" min="{{ merge_gap_min }}" max="{{ merge_gap_max }}" step="5" value="{{ gap }}"
            hx-get="api/trips/calendar/day?year={{ year }}&month={{ month }}&day={{ day }}&merge=1"
-           hx-trigger="change" hx-target="#trips-day-drawer" hx-swap="innerHTML"
+           hx-trigger="change" hx-target="#trips-day-drawer" hx-swap="innerHTML" hx-sync="#trips-day-drawer:replace"
            class="accent-yellow-400 w-36 align-middle">
   </label>
 </div>

@@ -891,12 +891,21 @@
           source: d.elt, target: tgt, swap: tgt.getAttribute('hx-swap') || 'innerHTML'
         }).catch(function () {});   // rejected when the retry is aborted, times out or fails to send: every one of
       });                           // those is an htmx event the listeners above already act on
+      box.lmFor = tgt;
       box.appendChild(msg);
       box.appendChild(btn);
       host.insertBefore(box, tgt.nextSibling);
     }
     document.body.addEventListener('htmx:responseError', failed);   // the server answered, badly
     document.body.addEventListener('htmx:sendError', failed);       // it never got there
+    // A newer request for a day drawer makes its failure stale: the retry would replace the newer day. Only
+    // there: a block that refreshes itself asks for what failed again, and keeps its strip until it answers.
+    document.body.addEventListener('htmx:beforeRequest', function (e) {
+      if (!/-day-drawer$/.test(e.detail.target && e.detail.target.id)) return;
+      var host = e.detail.target.parentElement;
+      var old = host && host.querySelector(':scope > .lm-load-error');
+      if (old && old.lmFor === e.detail.target) old.remove();
+    });
     // A later success on the same block clears the strip: no stale complaint left behind.
     document.body.addEventListener('htmx:afterSwap', function (e) {
       var host = e.target && e.target.parentElement;

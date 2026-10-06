@@ -33,6 +33,13 @@ def seed_database(db_path, vin, rows=()):
         conn.close()
 
 
+# A trip and a charge for `seed_database`, each taking (id, started_at, ended_at).
+TRIP_SQL = ("INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, duration_min, start_soc, end_soc)"
+            " VALUES (?,1,?,?,12,30,80,70)")
+CHARGE_SQL = ("INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc, energy_added_kwh)"
+              " VALUES (?,1,?,?,40,60,9)")
+
+
 # How many ports to try before giving up. A port is chosen by binding to 0 and letting go, so
 # between the choice and the child binding it anything else on the machine can take it — and in a
 # full suite run something does: twice in six runs the browser tests died on

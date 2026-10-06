@@ -11,6 +11,7 @@ and the hook had to reach every one of them. Discovering the partials by glob me
 calendar added later is covered the day it appears, instead of quietly repeating the bug.
 """
 import pathlib
+import re
 
 TEMPLATES = pathlib.Path(__file__).resolve().parent.parent / "web" / "templates"
 CALENDARS = sorted((TEMPLATES / "partials").glob("*_calendar_month.html"))
@@ -38,6 +39,15 @@ def test_the_hook_is_on_the_cell_that_opens_the_drawer():
                 break
         else:
             raise AssertionError(f"{p.name}: no cal-day at all")
+
+
+def test_a_day_cell_replaces_the_request_its_drawer_is_still_waiting_for():
+    """Requests from different cells run side by side, so a slow answer for an earlier day could land after
+    the day picked next and show it under the newer ring; one request per drawer, the newest, prevents it."""
+    for p in CALENDARS:
+        s = p.read_text()
+        drawer = re.search(r'id="([a-z]+-day-drawer)"', s).group(1)
+        assert f'hx-target="#{drawer}" hx-swap="innerHTML" hx-sync="#{drawer}:replace"' in s, p.name
 
 
 def test_the_stylesheet_can_beat_the_inline_border_colour():
