@@ -1078,6 +1078,8 @@
     "unmerge_btn": "Rozłącz",
     "unmerge_confirm": "Rozdzielić tę połączoną trasę z powrotem na oryginalne odcinki?",
     "trips_calendar_pick_day": "Wybierz dzień z trasami, aby zobaczyć szczegóły",
+    "trips_soc_trips_hint": "suma zmian samych przejazdów, bez czasu między nimi",
+    "trips_soc_charges_hint": "wszystkie ładowania między pierwszym a ostatnim przejazdem",
     "trips_search_placeholder": "Szukaj w notatkach tras...",
     "trips_search_all_modes": "Wszystkie tryby",
     "trips_search_km_min": "Dystans min",

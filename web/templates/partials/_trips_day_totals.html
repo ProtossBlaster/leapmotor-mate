@@ -11,8 +11,8 @@
   {% if day_totals.soc_from is not none %}
   <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('battery') }}">{{ day_totals.soc_from | dec(1) }}% → {{ day_totals.soc_to | dec(1) }}% {{ soc.change(day_totals.soc_from, day_totals.soc_to) }}</span>
   {% elif day_totals.soc_trips is not none %}
-  <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('battery') }}">{{ soc.signed(day_totals.soc_trips) }}</span>
-  <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('energy_charged') }}">⚡ {{ soc.signed(day_totals.soc_charges) }}</span>
+  <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('battery') }}: {{ t('trips_soc_trips_hint') }}">{{ soc.signed(day_totals.soc_trips) }}</span>
+  <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('energy_charged') }}: {{ t('trips_soc_charges_hint') }}">⚡ {{ soc.signed(day_totals.soc_charges) }}</span>
   {% endif %}
   <span class="text-slate-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('distance') }}">{{ day_totals.km | dist(1) }}</span>
   {% if day_totals.drive_min is not none %}

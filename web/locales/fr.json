@@ -1078,6 +1078,8 @@
     "unmerge_btn": "Séparer",
     "unmerge_confirm": "Séparer ce trajet fusionné en ses segments d'origine ?",
     "trips_calendar_pick_day": "Choisissez un jour avec des trajets pour voir le détail",
+    "trips_soc_trips_hint": "somme des variations des trajets, sans le temps entre les trajets",
+    "trips_soc_charges_hint": "toutes les recharges entre le premier et le dernier trajet",
     "trips_search_placeholder": "Rechercher dans les notes de trajet...",
     "trips_search_all_modes": "Tous les modes",
     "trips_search_km_min": "Distance min",

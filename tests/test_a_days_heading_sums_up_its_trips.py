@@ -100,7 +100,22 @@ def test_a_charge_between_the_trips_sums_their_drops_and_what_it_added(tmp_path,
     assert sums.startswith("−45.0% ⚡ +40.0%"), sums
     assert "→" not in sums
     html = _drawer()
-    assert 'data-tip="Battery">−45.0%<' in html and 'data-tip="Energy Charged">⚡ +40.0%<' in html
+    assert 'data-tip="Battery: the trips&#39; changes added up, without the time between trips">−45.0%<' in html
+    assert 'data-tip="Energy Charged: every charge between the first trip and the last">⚡ +40.0%<' in html
+
+
+def test_a_merged_trips_own_stop_is_in_its_change_and_the_tip_says_no_more(tmp_path, monkeypatch):
+    """A merged trip's change runs from its first segment's start to its last one's end, the stop between
+    them included, as its row prints it. The tip promises only that the time BETWEEN trips is left out."""
+    _install(tmp_path, monkeypatch, [("08:00", "08:30", 84, 70), ("09:00", "09:30", 68, 60),
+                                     ("17:00", "17:40", 100, 90)],
+             charges=[("12:00", "14:00", 60, 100)])
+    _sql("UPDATE trips SET merged_into_id = 1 WHERE id = 2")
+    html = _drawer()
+    assert _sums(html).startswith("−34.0% ⚡ +40.0%"), _sums(html)     # (60 − 84) + (90 − 100)
+    assert "84.0→60.0% (−24.0%)" in html                                  # the merged row, 2 points parked
+    assert "without the time between trips" in html
+    assert "parked" not in html
 
 
 @pytest.mark.parametrize("second_trip, shown", [
