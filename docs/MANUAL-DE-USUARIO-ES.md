@@ -1383,7 +1383,8 @@ final de la lista aparece en pantalla.
   Esas cifras destacan del resto de la fila; el coste va en verde y el tiempo hasta que empezó la carga,
   en ámbar.
 - **Lugares**: una fila en uno de tus lugares de carga (*Precios de la carga → Lugares de carga*) lo nombra;
-  el origen o el destino de un trayecto en otro sitio lleva su dirección, como en Trayectos.
+  el origen o el destino de un trayecto en otro sitio lleva su dirección, como en Trayectos, y una carga, el
+  nombre de su tarjeta en Cargas.
 - **El mapa** está oculto hasta que **🗺 Mostrar mapa**, sobre la lista, lo abre (junto a la lista en una
   pantalla ancha, encima en el teléfono o en una más estrecha), y la próxima vez sigue como lo dejaste.
   Cada fila con posición tiene un 🌍: abre el mapa si hace falta, resalta el punto de la fila, lo trae a la
@@ -1396,7 +1397,8 @@ final de la lista aparece en pantalla.
   que el coche deshizo entre dos de sus propios envíos nunca se ve, y la nube puede perder la señal del
   cierre durante una o dos lecturas, que entonces se leen como un breve desbloqueo.
 - **Filtros**: una palabra (el nombre del evento, el resultado de una orden, un lugar, dónde empezó o
-  terminó un trayecto — su nombre o su dirección completa — o la nota de un trayecto o de una carga), las píldoras de
+  terminó un trayecto o dónde fue una carga — su nombre o su dirección completa — o la nota de un trayecto
+  o de una carga), las píldoras de
   grupo (Seguridad, Puertas, Ventanillas, Carga, Clima, Conducción, Órdenes) y, bajo ⚙, un rango de fechas y
   tipos sueltos. Los filtros viven en la dirección: un enlace o una recarga los conserva.
 - **Histórico**: los eventos se derivan de las posiciones que Mate ya guarda, así que en una instalación

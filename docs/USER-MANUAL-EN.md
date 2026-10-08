@@ -1298,7 +1298,7 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   The end of a trip or a charge carries the figures of Trips and Charges.
   These figures stand out from the rest of the row; a cost is green, the delay before charging amber.
 - **Places**: a row at one of your charging places (*Charge Prices → Charging places*) names it; a trip's
-  start or end elsewhere is named by its address, as in Trips.
+  start or end elsewhere is named by its address, as in Trips, and a charge as on its card in Charges.
 - **The map** is hidden until **🗺 Show map** above the list shows it (beside the list on a wide screen,
   above it on a phone or a narrower one), and next time it is as you left it. Every row with a position
   has a 🌍: it shows the map if needed, lights the row's point and brings it into view, and lights the row
@@ -1310,8 +1310,8 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   poll — so a change counts only once two consecutive frames hold it. A change the car reversed between
   two of its own reports is never seen, and the cloud can drop the lock signal for a poll or two, which
   then reads as a short unlock.
-- **Filters**: a word (the event's name, a command's outcome, a place, where a trip started or ended —
-  its name or its full address — or the note of a trip or a charge), the group pills (Security,
+- **Filters**: a word (the event's name, a command's outcome, a place, where a trip started or ended or
+  a charge happened — its name or its full address — or the note of a trip or a charge), the group pills (Security,
   Doors, Windows, Charging, Climate, Driving, Commands) and, under ⚙, a date range and single kinds.
   The filters live in the address, so a link or a reload keeps them.
 - **History**: the events are derived from the positions Mate already stores, so on an existing install

@@ -32,7 +32,7 @@
     "nav_events": "Événements",
     "events_title": "Événements",
     "events_subtitle": "Ce que la voiture a fait, jour par jour : verrouillage, portes, câble, climatisation, trajets, recharges et commandes",
-    "events_search_placeholder": "Rechercher un événement, un lieu, l'adresse d'un trajet…",
+    "events_search_placeholder": "Rechercher événement, lieu ou adresse…",
     "events_search_advanced": "Filtres avancés",
     "events_search_results": "événements",
     "events_search_clear": "Réinitialiser les filtres",

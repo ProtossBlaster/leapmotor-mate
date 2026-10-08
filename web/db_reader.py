@@ -11908,11 +11908,13 @@ def _charge_moments(db, vehicle_id, start, end) -> list[dict]:
     progress. Bounded like the trips above, and for the same reason."""
     live = []
     if (c := open_charge()):
-        row = db.execute("SELECT latitude, longitude, charging_place_name, location_name FROM charges"
-                         " WHERE id = ?", (c["id"],)).fetchone()
+        row = db.execute("SELECT vehicle_id, latitude, longitude, charging_place_name, location_name, note"
+                         " FROM charges WHERE id = ?", (c["id"],)).fetchone()
         live = [{**c, **dict(row)}]
     since, until = _bounds(start, end)
-    return _session_moments("charge", get_charges(limit=1_000_000, since=since, until=until), live)
+    charges = get_charges(limit=1_000_000, since=since, until=until)
+    charge_places(charges + live)
+    return _session_moments("charge", charges, live)
 
 
 def _command_moments(db, start, end) -> list[dict]:
@@ -12064,8 +12066,8 @@ def _present_event(m: dict, zone, live: dict, t, places, lang) -> None:
     s = m.get("session") or {}
     m["words"] = s.get("search_text", s.get("note"))      # searched, not printed: see trip_places
     m["has_fix"] = has_gps_fix(m["lat"], m["lon"])
-    if m["source"] == "charge":
-        m["place"] = s.get("charging_place_name") or s.get("location_name")
+    if m["source"] == "charge":                    # as its card names it, without the "(charging place)" mark
+        m["place"], m["place_osm"] = s.get("place"), s.get("place_osm")
     elif m["source"] == "trip":                    # its own end's name: a charging place, else the address
         end = "start" if m["on"] else "end"
         m["place"], m["place_osm"] = s.get(f"{end}_place"), s.get(f"{end}_place_osm")

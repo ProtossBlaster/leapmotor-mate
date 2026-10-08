@@ -1363,7 +1363,8 @@ entra nello schermo.
   Questi numeri risaltano sul resto della riga; il costo è verde e il tempo prima che partisse la ricarica
   è ambra.
 - **Luoghi**: una riga in uno dei tuoi luoghi di ricarica (*Prezzi di ricarica → Luoghi di ricarica*) lo
-  nomina; la partenza o l'arrivo di un viaggio altrove porta il suo indirizzo, come in Viaggi.
+  nomina; la partenza o l'arrivo di un viaggio altrove porta il suo indirizzo, come in Viaggi, e una
+  ricarica il nome della sua scheda in Ricariche.
 - **La mappa** resta nascosta finché **🗺 Mostra mappa**, sopra l'elenco, non la apre (accanto all'elenco
   su uno schermo largo, sopra sul telefono o su uno più stretto), e la volta dopo è come l'hai lasciata.
   Ogni riga con una posizione ha un 🌍: apre la mappa se serve, accende il punto della riga, lo porta in
@@ -1376,7 +1377,8 @@ entra nello schermo.
   cambiamento che l'auto ha annullato fra due sue trasmissioni non si vede mai, e il cloud può perdere il
   segnale della chiusura per una o due letture, che allora appaiono come un breve sblocco.
 - **Filtri**: una parola (il nome dell'evento, l'esito di un comando, un luogo, da dove è partito o
-  dove è arrivato un viaggio — il nome o l'indirizzo completo — o la nota di un viaggio o di una ricarica), i bottoni dei gruppi
+  dove è arrivato un viaggio o dove è avvenuta una ricarica — il nome o l'indirizzo completo — o la nota di
+  un viaggio o di una ricarica), i bottoni dei gruppi
   (Sicurezza, Porte, Finestrini, Ricarica, Clima, Guida, Comandi) e, sotto ⚙, un intervallo di date e i
   singoli tipi. I filtri vivono nell'indirizzo: un link o un ricaricamento li conserva.
 - **Storico**: gli eventi derivano dalle posizioni che Mate già salva, quindi su un'installazione esistente

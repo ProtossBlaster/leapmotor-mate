@@ -1387,7 +1387,8 @@ wird geladen, sobald das Ende der Liste sichtbar wird.
   und Ladevorgängen. Diese Zahlen heben sich vom Rest der Zeile ab; Kosten sind grün, die Zeit bis zum
   Ladebeginn bernsteinfarben.
 - **Orte**: eine Zeile an einem Ihrer Ladeorte (*Ladepreise → Ladeorte*) nennt ihn; Start oder Ziel einer
-  Fahrt anderswo nennt seine Adresse, wie in Fahrten.
+  Fahrt anderswo nennt seine Adresse, wie in Fahrten, und ein Ladevorgang heißt wie auf seiner Karte in
+  Ladevorgänge.
 - **Die Karte** bleibt verborgen, bis **🗺 Karte zeigen** über der Liste sie öffnet (auf einem breiten
   Bildschirm neben der Liste, auf dem Telefon oder einem schmaleren darüber), und beim nächsten Besuch ist
   sie so, wie Sie sie verlassen haben. Jede Zeile mit einer Position hat ein 🌍: Es öffnet bei Bedarf die
@@ -1403,7 +1404,8 @@ wird geladen, sobald das Ende der Liste sichtbar wird.
   die Cloud kann das Verriegelungssignal für ein oder zwei Abfragen weglassen, was dann wie ein kurzes
   Entriegeln aussieht.
 - **Filter**: ein Wort (der Name des Ereignisses, das Ergebnis eines Befehls, ein Ort, wo eine Fahrt
-  begann oder endete — Name oder volle Adresse — oder die Notiz einer Fahrt oder eines Ladevorgangs), die Gruppen-Chips
+  begann oder endete oder ein Ladevorgang stattfand — Name oder volle Adresse — oder die Notiz einer Fahrt
+  oder eines Ladevorgangs), die Gruppen-Chips
   (Sicherheit, Türen, Fenster, Laden, Klima, Fahren, Befehle) und unter ⚙ ein Zeitraum und einzelne Arten.
   Die Filter stehen in der Adresse, ein Link oder ein Neuladen behält sie.
 - **Verlauf**: Die Ereignisse werden aus den Positionen abgeleitet, die Mate bereits speichert; auf einer
