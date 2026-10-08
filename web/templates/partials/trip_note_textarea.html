@@ -1,6 +1,4 @@
-{# The trip note textarea — its own partial so the 🧭 auto-note button (main.py's
-   trip_generate_auto_note) can swap just this element after writing a fresh summary into
-   trip.note, without re-rendering the surrounding form/buttons. Expects `trip` and `t`. #}
+{# The trip note textarea, included by the trip page's note form. Expects `trip` and `t`. #}
 <textarea name="note" rows="3" maxlength="1000"
           id="trip-note-text-{{ trip.id }}"
           placeholder="{{ t('note_ph_trip') }}"

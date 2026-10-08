@@ -1088,6 +1088,15 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   eingeschaltet; die Auswahl merkt sich der Browser für alle Fahrten. Das Hover-Fenster beginnt mit
   der Uhrzeit auf die Sekunde und der Minute der Fahrt.
 
+- **Wo eine Fahrt begann und endete 🆕** — die Zeile einer Fahrt zeigt **„A → B“**, und die
+  *Fahrtübersicht* auf ihrer Seite nennt beide Enden. Ein Ende in einem Ihrer **Ladeorte** zeigt dessen
+  Namen mit dem Zusatz „(Ladeort)“, ein umbenannter Ladeort benennt diese Fahrten also um; anderswo ist es
+  die Adresse (ein Geschäft oder eine Tankstelle mit Namen, sonst Straße und Hausnummer, dann der Ort).
+  Mate sucht sie kurz nach dem Ende einer Fahrt beim in *Einstellungen → Adresssuche* gewählten Dienst, wo
+  ein Schalter diese Suche abstellt. Eine fehlende Adresse, etwa bei einer älteren Fahrt, sucht 🧭 in der
+  *Fahrtübersicht* sofort. Das Suchfeld findet eine Fahrt über jedes ihrer Enden. Mate schreibt keine
+  Adressen mehr in die Notiz einer Fahrt, die Ihnen gehört; früher geschriebene Notizen bleiben, wie sie
+  sind.
 - **Ihre Notiz + Fahr-Tags 🆕** (#107) — im Detail einer Fahrt können Sie eine **freie Notiz** (Verkehr,
   Wetter, Streckentyp, jede Anmerkung) schreiben und den verwendeten **Fahrmodus** (Comfort / Normal /
   Sport) sowie **One-Pedal** (ein/aus) angeben. Mate kann sie nicht vom Auto lesen — Leapmotor sendet sie
@@ -1389,8 +1398,8 @@ wird geladen, sobald das Ende der Liste sichtbar wird.
   sie halten. Eine Änderung, die das Auto zwischen zwei eigenen Meldungen zurücknahm, wird nie gesehen, und
   die Cloud kann das Verriegelungssignal für ein oder zwei Abfragen weglassen, was dann wie ein kurzes
   Entriegeln aussieht.
-- **Filter**: ein Wort (der Name des Ereignisses, das Ergebnis eines Befehls, ein Ort, die Notiz
-  einer Fahrt oder eines Ladevorgangs — eine automatische Fahrtnotiz enthält die Adressen der Fahrt), die Gruppen-Chips
+- **Filter**: ein Wort (der Name des Ereignisses, das Ergebnis eines Befehls, ein Ort, wo eine Fahrt
+  begann oder endete — Name oder volle Adresse — oder die Notiz einer Fahrt oder eines Ladevorgangs), die Gruppen-Chips
   (Sicherheit, Türen, Fenster, Laden, Klima, Fahren, Befehle) und unter ⚙ ein Zeitraum und einzelne Arten.
   Die Filter stehen in der Adresse, ein Link oder ein Neuladen behält sie.
 - **Verlauf**: Die Ereignisse werden aus den Positionen abgeleitet, die Mate bereits speichert; auf einer
@@ -1615,8 +1624,9 @@ ist in drei Spalten unterteilt.
 **Spalte 2 — Integrationen**
 
 - **ABRP** — Senden von Telemetrie an A Better Routeplanner (siehe [§8](#8-die-integrationen-im-detail)).
-- **Adresssuche** — der Dienst, um Adressen ↔ Koordinaten auf der Seite Navigation zu übersetzen (Geoapify
-  *empfohlen*, LocationIQ, TomTom). Erfordert einen kostenlosen **Schlüssel** des gewählten Dienstes.
+- **Adresssuche** — der Dienst, um Adressen ↔ Koordinaten auf der Seite Navigation zu übersetzen und Start
+  und Ziel Ihrer Fahrten zu benennen (Geoapify *empfohlen*, LocationIQ, TomTom). Erfordert einen kostenlosen
+  **Schlüssel** des gewählten Dienstes; ohne ihn nutzt Mate den schlüssellosen Dienst von OpenStreetMap.
 - **⚡ Ladestationen** — aktiviert die **Namen der Ladestationen** bei den Ladevorgängen (📍) und akzeptiert optionale
   Schlüssel (OpenChargeMap, TomTom), um die Suche anzureichern. Standardmäßig **deaktiviert**.
 - **Wallbox** — verbinden Sie Ihre Wallbox für die **realen Kosten** und die eventuellen Steuerungen (siehe

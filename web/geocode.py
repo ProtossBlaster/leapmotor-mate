@@ -1,4 +1,4 @@
-"""Geocoding helpers for the Navigation page.
+"""Geocoding helpers: the Navigation page, the 🧭 buttons and the addresses of trips (place_lookup).
 
 Keyless by default (Photon forward / Nominatim reverse, both OpenStreetMap) so it
 works out of the box. An optional provider + API key can be configured for better
@@ -8,11 +8,13 @@ street/house-number coverage — you are never locked to a single vendor:
     geocoder_key      = "<api key>"
 
 Recommended: Geoapify (free, no credit card, includes OpenAddresses house numbers).
-On any keyed-provider error the lookup falls back to the keyless provider.
+On any keyed-provider error reverse_geocode falls back to the keyless provider, because someone is
+waiting for its answer; reverse_place asks the chosen provider alone, to be asked again later.
 Standard library only (urllib) — no new dependency.
 """
 import re
 import json
+import urllib.error
 import urllib.request
 import urllib.parse
 
@@ -134,7 +136,12 @@ def _geoapify_reverse(lat, lon, key) -> dict | None:
 def _locationiq_reverse(lat, lon, key) -> dict | None:
     url = (f"https://us1.locationiq.com/v1/reverse"
            f"?key={urllib.parse.quote(key)}&lat={lat}&lon={lon}&format=json&addressdetails=1")
-    return _osm_place(_get(url))
+    try:
+        return _osm_place(_get(url))
+    except urllib.error.HTTPError as e:
+        if e.code == 404:           # LocationIQ's "Unable to geocode": nothing there, not a failure
+            return None
+        raise
 
 
 def _tomtom_reverse(lat, lon, key) -> dict | None:
@@ -228,3 +235,16 @@ def reverse_geocode(lat: float, lon: float, provider: str = "", api_key: str | N
             pass
     res = _nominatim_reverse(lat, lon)
     return res["display_name"] if res else None
+
+
+def lookup_provider(provider: str = "", api_key: str | None = None) -> str:
+    """Who reverse_place asks: the keyed provider when it has its key, otherwise Nominatim."""
+    p = (provider or "").lower()
+    return p if p in _REVERSE and api_key else "nominatim"
+
+
+def reverse_place(lat: float, lon: float, provider: str = "", api_key: str | None = None) -> dict | None:
+    """The address at the coordinates in parts (see _place), from lookup_provider's provider and no
+    other. None: it has nothing there. A network or HTTP error is raised, not answered by another."""
+    who = lookup_provider(provider, api_key)
+    return _nominatim_reverse(lat, lon) if who == "nominatim" else _REVERSE[who](lat, lon, api_key)

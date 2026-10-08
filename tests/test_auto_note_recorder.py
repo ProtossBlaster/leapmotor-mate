@@ -1,12 +1,15 @@
-"""Automatic 🧭 note generation for a BRAND-NEW trip/charge — the poller kicks it off the
-moment the record closes (live DRIVING→PARKED / CHARGING→PARKED, or a reconstructed trip/
-charge from an offline gap), never a historical sweep. These tests drive the real Recorder
-through real state transitions and only stub out _auto_note_trip/_auto_note_charge
-themselves (network + threading — see test_auto_note.py for what those actually build).
+"""Automatic 🧭 note generation for a BRAND-NEW charge — the poller kicks it off the moment the
+record closes (live CHARGING→PARKED, or a charge reconstructed from an offline gap), never a
+historical sweep. These tests drive the real Recorder through real state transitions and only stub
+out _auto_note_charge itself (network + threading — see test_auto_note.py for what it builds).
+
+A trip has no automatic note any more: where it started and ended is an address of its own, looked
+up in the background by the web (place_lookup). Closing one writes nothing into its note.
 """
 import types
 
 import db as D
+import pytest
 import recorder as R
 from client import VehicleData
 from state_machine import State, StateEvent
@@ -31,35 +34,52 @@ def _rec(db):
     return rec
 
 
-# ── live trip close ──────────────────────────────────────────────────────────────
+# ── a trip closes without a note ─────────────────────────────────────────────────
 
-def test_live_trip_close_triggers_auto_note(tmp_path):
+class _Inline:
+    """threading.Thread running its target at start(): whatever a close kicks off is done when it returns."""
+
+    def __init__(self, target, args=(), daemon=None):
+        self.target, self.args = target, args
+
+    def start(self):
+        self.target(*self.args)
+
+
+@pytest.fixture
+def quiet(tmp_path, monkeypatch):
+    """A recorder whose threads run inline, on a database the web reads too, and every request
+    to a geocoding provider written down."""
+    import db_reader
+    import geocode
+    import place_lookup
+    asked = []
+    monkeypatch.setattr(geocode, "_get", lambda url: asked.append(url) or {})
+    monkeypatch.setattr(place_lookup, "maybe_sweep", lambda: None)      # the web's own pass is not the recorder
+    monkeypatch.setattr(R, "threading", types.SimpleNamespace(Thread=_Inline))   # the recorder's, not the process's
+    monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
     db = D.Database(str(tmp_path / "t.db"))
-    rec = _rec(db)
-    calls = []
-    rec._auto_note_trip = lambda tid: calls.append(tid)
+    db.ensure_vehicle("TESTVIN", "B10")
+    db.set_setting("auto_note", "1")
+    return db, _rec(db), asked
 
+
+def test_closing_a_trip_writes_no_note_and_asks_no_provider(quiet):
+    db, rec, asked = quiet
     rec._handle_event(StateEvent(State.PARKED_ACTIVE, State.DRIVING, _vd()), _vd())
-    trip_id = rec._active_trip_id
-    end = _vd(odometer_km=1010.0)   # 10 km — clears the 0.5 km short-hop floor
+    end = _vd(odometer_km=1010.0, lat=45.1, lon=9.1)   # 10 km — clears the short-hop floor
     rec._handle_event(StateEvent(State.DRIVING, State.PARKED_ACTIVE, end), end)
+    assert [tuple(r) for r in db._conn.execute("SELECT note FROM trips")] == [(None,)]
+    assert asked == []
 
-    assert calls == [trip_id]
 
-
-def test_short_hop_trip_is_discarded_without_auto_note(tmp_path):
-    """A trip under the 0.5 km floor gets deleted outright — auto-noting a row that no
-    longer exists would just be a wasted network call for nothing."""
-    db = D.Database(str(tmp_path / "t.db"))
-    rec = _rec(db)
-    calls = []
-    rec._auto_note_trip = lambda tid: calls.append(tid)
-
-    rec._handle_event(StateEvent(State.PARKED_ACTIVE, State.DRIVING, _vd()), _vd())
-    end = _vd(odometer_km=1000.1)   # 0.1 km — below the short-hop floor
-    rec._handle_event(StateEvent(State.DRIVING, State.PARKED_ACTIVE, end), end)
-
-    assert calls == []
+def test_a_reconstructed_trip_writes_no_note_either(quiet):
+    db, rec, asked = quiet
+    rec._sm.state = State.PARKED_ACTIVE
+    rec._odometer_reading = R.OdometerReading(1000.0, 60.0, "2026-06-09T10:00:00+00:00")
+    rec._maybe_reconstruct_trip(_vd(soc=60.0, odometer_km=1010.0))   # +10 km, flat SoC → a drive
+    assert [tuple(r) for r in db._conn.execute("SELECT note FROM trips")] == [(None,)]
+    assert asked == []
 
 
 # ── live charge close ────────────────────────────────────────────────────────────
@@ -95,45 +115,3 @@ def test_reconstructed_charge_triggers_auto_note(tmp_path):
     assert len(calls) == 1
     row = db._conn.execute("SELECT id FROM charges WHERE id=?", (calls[0],)).fetchone()
     assert row is not None
-
-
-# ── reconstructed trip (offline odometer jump, #118) ─────────────────────────────
-
-def test_reconstructed_trip_triggers_auto_note(tmp_path):
-    db = D.Database(str(tmp_path / "t.db"))
-    db.ensure_vehicle("TESTVIN", "B10")
-    rec = _rec(db)
-    calls = []
-    rec._auto_note_trip = lambda tid: calls.append(tid)
-    rec._sm.state = State.PARKED_ACTIVE
-    rec._odometer_reading = R.OdometerReading(1000.0, 60.0, "2026-06-09T10:00:00+00:00")
-
-    rec._maybe_reconstruct_trip(_vd(soc=60.0, odometer_km=1010.0))   # +10 km, flat SoC → a drive
-
-    assert len(calls) == 1
-    row = db._conn.execute("SELECT id FROM trips WHERE id=?", (calls[0],)).fetchone()
-    assert row is not None
-
-
-# ── the real body: only_if_note_empty guards a note already present ──────────────
-
-def test_auto_note_trip_body_never_overwrites_a_note_typed_in_the_meantime(tmp_path, monkeypatch):
-    """Belt-and-suspenders: even though this runs moments after trip-close, prove the
-    only_if_note_empty guard actually reaches db_reader.generate_trip_auto_note."""
-    import db_reader
-    import geocode
-    monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
-    pdb = D.Database(str(tmp_path / "t.db"))
-    pdb._conn.execute(
-        "INSERT INTO trips (vehicle_id, started_at, ended_at, start_lat, start_lon, note)"
-        " VALUES (1,'2026-07-04T10:00:00+00:00','2026-07-04T10:30:00+00:00',45.0,9.0,"
-        "'nota scritta a mano')")
-    pdb._conn.commit()
-    tid = pdb._conn.execute("SELECT MAX(id) AS id FROM trips").fetchone()[0]
-    monkeypatch.setattr(geocode, "reverse_geocode", lambda lat, lon, provider, api_key: "Some address")
-
-    rec = R.Recorder(pdb, vehicle_id=1)
-    rec._auto_note_trip_body(tid)
-
-    row = pdb._conn.execute("SELECT note FROM trips WHERE id=?", (tid,)).fetchone()
-    assert row[0] == "nota scritta a mano"

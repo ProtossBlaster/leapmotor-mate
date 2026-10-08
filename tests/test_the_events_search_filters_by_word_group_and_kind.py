@@ -2,7 +2,8 @@
 that tells an empty selection from no filter.
 
 The word matches the row's label in the reader's language, a command's action and outcome, a
-row's place, and the note of a trip or a charge (where the address of a trip is). The range counts
+row's place, where a trip started and ended (the names and the full addresses, on both of its rows)
+and the note of a trip or a charge. The range counts
 back from today, three days unless asked, months to the same day of an earlier month; typed dates
 win over it. A pill is a group of kinds, repeated in the URL; a kind narrows further. An empty
 date field, or one no clock can hold, is no filter and never a 422 (#175). An unchecked checkbox sends nothing, so `f=1` marks
@@ -15,6 +16,8 @@ from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import db_reader
+import geohash
+import place_lookup
 import pytest
 from events_fixture import VIN, Car, event_row, serve, web
 
@@ -152,21 +155,26 @@ def test_all_shows_every_row_at_once(tmp_path, monkeypatch):
     assert len(_kinds(html)) == 960 and "🔍 960 " in html
 
 
-def _trip(car, note):
-    car.db._conn.execute("INSERT INTO trips (vehicle_id, started_at, ended_at, distance_km, note) VALUES (?, ?, ?, 9.0, ?)",
-                         (car.vid, (NOW - timedelta(hours=7)).isoformat(), (NOW - timedelta(hours=6, minutes=40)).isoformat(),
-                          note))
-    car.db._conn.commit()
-
-
-def test_a_word_finds_a_trip_by_its_address_and_a_charge_by_its_note(tmp_path, monkeypatch):
+def test_a_word_finds_a_trip_by_where_it_went_and_a_charge_by_its_note(tmp_path, monkeypatch):
+    """A trip with no note, from the charging place "Casa" to a spot whose municipality is only in its
+    full address: a search for the municipality finds both rows of the trip, its start too."""
     car = Car(tmp_path)
     client = web(car, monkeypatch)
     _seed(car)
-    _trip(car, "5, Biedronki, Zielonka, gmina Białe Błota · 10:40 → 11:00")
+    home, shop = (44.49, 11.34), (44.51, 11.36)
+    car.db._conn.execute("INSERT INTO charging_places (vehicle_id, name, latitude, longitude, radius_m, rate, enabled)"
+                         " VALUES (?, 'Casa', ?, ?, 100, 0.2, 1)", (car.vid, *home))
+    car.db._conn.execute("INSERT INTO trips (vehicle_id, started_at, ended_at, distance_km, start_lat, start_lon, end_lat,"
+                         " end_lon) VALUES (?, ?, ?, 9.0, ?, ?, ?, ?)",
+                         (car.vid, (NOW - timedelta(hours=7)).isoformat(), (NOW - timedelta(hours=6, minutes=40)).isoformat(),
+                          *home, *shop))
     car.db._conn.execute("UPDATE charges SET note = 'under the shelter'")
     car.db._conn.commit()
-    assert _kinds(client.get("/api/events/search?q=białe błota").text) == ["trip", "trip"], "both rows of the trip"
+    place_lookup._store(geohash.encode(*shop, 8), *shop, "nominatim", NOW, "found",
+                        {"road": "Via Saragozza", "house_number": "7", "locality": "Riale",
+                         "display_name": "7, Via Saragozza, Riale, Zola Predosa, Emilia-Romagna, Italia"})
+    assert _kinds(client.get("/api/events/search?q=zola predosa").text) == ["trip", "trip"], "both rows of the trip"
+    assert _kinds(client.get("/api/events/search?q=saragozza 7").text) == ["trip", "trip"], "the end's name"
     assert _kinds(client.get("/api/events/search?q=shelter").text) == ["charge", "charge"]
 
 

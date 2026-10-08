@@ -21,6 +21,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import geohash  # noqa: E402
 from db import Database, haversine_km  # noqa: E402
 
 DB_PATH = os.environ.get("DB_PATH", "/data/demo.db")
@@ -311,6 +312,15 @@ def main():
         pos(now - timedelta(minutes=minutes), *HOME, charging=1, plug_connected=1, is_locked=1,
             charge_voltage_v=362.0, charge_current_a=20.0, remaining_charge_min=68,
             windows_open=0, windows_open_count=0)
+
+    # Where the trips start and end, as the address lookup stores it: asked at every seeding, it would ask again.
+    for (lat, lon), number, road, town in ((HOME, "12", "Via Saragozza", "Bologna"),
+                                           (WORK, "8", "Via dell'Industria", "Calderara di Reno"),
+                                           (RIMINI, "30", "Viale Regina Elena", "Rimini")):
+        c.execute("INSERT INTO addresses (geohash, latitude, longitude, provider, status, house_number, road,"
+                  " locality, country_code, display_name, looked_up_at) VALUES (?, ?, ?, 'demo', 'found', ?, ?, ?,"
+                  " 'it', ?, ?)", (geohash.encode(lat, lon, 8), lat, lon, number, road, town,
+                                   f"{number}, {road}, {town}, Italia", iso(now)))
 
     c.commit()
     db.derive_events(1, max_rows=None)        # the demo runs the web alone, so the poller's job is done here

@@ -12,6 +12,10 @@
    trips and settings) plus db_reader.DRIVE_MODES, which is also the validator — change one, change
    all four, or a mode saves and then vanishes from the picker. #}
 {# On a phone the source label takes a line of its own: beside the other columns it left the middle one no width. #}
+{# Where the trip started and ended (db_reader.trip_places): in the middle column on a computer, a line of its
+   own on a phone, which leaves the middle column too narrow for two places. #}
+{% from "partials/_place_name.html" import place_name with context %}
+{% macro places(row, cls) %}{% if row.start_place or row.end_place %}<div class="trip-places text-[11px] text-slate-400 {{ cls }}" data-trip-places><span>{{ place_name(row.start_place, row.start_place_charging) if row.start_place else '—' }}</span><span class="text-slate-600">→</span><span>{{ place_name(row.end_place, row.end_place_charging) if row.end_place else '—' }}</span></div>{% endif %}{% endmacro %}
 <a href="trips/{{ trip.id }}" data-trip-id="{{ trip.id }}" class="trip-row flex-wrap sm:flex-nowrap">
 
   {% if trip.has_gps is defined and not trip.has_gps %}
@@ -40,6 +44,7 @@
       {% if trip.reconstructed %}<span style="font-size:10px" class="text-amber-400/90 ml-1" title="{{ t('trip_reconstructed_hint') }}">✨ {{ t('trip_reconstructed') }}</span>{% endif %}
     </div>
     <div class="text-slate-500 text-xs">{{ fmt_dur(trip.duration_min) }}{% if trip.is_merged %} · {{ t('driving_only') }}{% endif %}</div>
+    {{ places(trip, 'hidden sm:grid') }}
     {% if trip.is_cloud %}<div class="text-slate-400 text-[10px]">{{ t('cloud_source') }}</div>{% endif %}
     {# The battery column is hidden on a phone, so its figures, or why there are none, come here. #}
     <div class="sm:hidden text-slate-500 text-[10px]">{% if trip.start_soc is none or trip.end_soc is none %}{{ t('soc_unavailable') }}{% else %}<span class="whitespace-nowrap">{{ trip.start_soc|dec(1) }}→{{ trip.end_soc|dec(1) }}%</span> <span class="whitespace-nowrap">{{ soc.change(trip.start_soc, trip.end_soc) }}</span>{% endif %}</div>
@@ -126,6 +131,7 @@
     {% endif %}
   </div>
 
+{{ places(trip, 'w-full -mt-2 sm:hidden') }}
 {% if trip.energy_source %}<span class="text-xs text-slate-400 w-full -mt-2 text-right sm:w-auto sm:mt-0 sm:ml-2 sm:text-left">{{ t('trip_energy_source_' ~ trip.energy_source) }}</span>{# On a range-extender the slot above is empty by design — `select_energy` excludes REEV
    cars, because the generator refills the pack mid-drive and the cloud's `totalEnergy` is not that
    car's appetite — so the LITRES say where they came from there instead. They need to: the cloud's

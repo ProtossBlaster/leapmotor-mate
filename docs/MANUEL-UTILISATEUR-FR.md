@@ -1102,6 +1102,15 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   replie. Toutes les courbes sont affichées au départ ; le choix est mémorisé dans le navigateur
   pour tous les trajets. La bulle commence par l'heure, à la seconde près, et la minute du trajet.
 
+- **D'où à où 🆕** — la ligne d'un trajet affiche **« A → B »**, et le *Résumé du trajet* de sa page nomme
+  les deux extrémités. Une extrémité dans l'un de vos **lieux de recharge** affiche son nom suivi de «
+  (lieu de recharge) » : renommer le lieu renomme donc ces trajets ; ailleurs, c'est l'adresse (un
+  commerce ou une station par son nom, sinon la rue et le numéro, puis la commune). Mate la cherche peu
+  après la fin du trajet auprès du service choisi dans *Paramètres → Recherche d'adresses*, où elle peut
+  être désactivée. Une adresse manquante, par exemple sur un trajet plus ancien, est recherchée tout de
+  suite par 🧭 dans le *Résumé du trajet*. La recherche trouve un trajet par l'une ou l'autre extrémité.
+  Mate n'écrit plus d'adresses dans la note du trajet, qui reste la vôtre ; les notes écrites avant
+  restent telles quelles.
 - **Votre note + tags de conduite 🆕** (#107) — dans le détail d'un trajet, vous pouvez écrire une **note
   libre** (trafic, météo, type de route, toute remarque) et indiquer le **mode de conduite** (Confort /
   Normal / Sport) et le **One-Pedal** (activé/désactivé) utilisés. Mate ne peut pas les lire depuis la
@@ -1408,8 +1417,8 @@ l'écran.
   consécutives le confirment. Un changement que la voiture a annulé entre deux de ses envois n'est jamais
   vu, et le cloud peut perdre le signal du verrouillage pendant une ou deux lectures, ce qui ressemble alors
   à un bref déverrouillage.
-- **Filtres** : un mot (le nom de l'événement, le résultat d'une commande, un lieu, la note d'un
-  trajet ou d'une recharge — la note automatique d'un trajet contient ses adresses), les boutons de groupe
+- **Filtres** : un mot (le nom de l'événement, le résultat d'une commande, un lieu, d'où est parti ou
+  où est arrivé un trajet — son nom ou son adresse complète — ou la note d'un trajet ou d'une recharge), les boutons de groupe
   (Sécurité, Portes, Vitres, Recharge, Climat, Conduite, Commandes) et, sous ⚙, une période et des types
   isolés. Les filtres vivent dans l'adresse : un lien ou un rechargement les conserve.
 - **Historique** : les événements sont dérivés des positions que Mate enregistre déjà ; sur une installation
@@ -1632,7 +1641,8 @@ Elle est divisée en trois colonnes.
 
 - **ABRP** — envoi de la télémétrie à A Better Routeplanner (voir [§8](#8-les-intégrations-en-détail)).
 - **Recherche d'adresses** — le service pour traduire les adresses ↔ coordonnées dans la page Navigation
-  (Geoapify *recommandé*, LocationIQ, TomTom). Nécessite une **clé** gratuite du service choisi.
+  et nommer le départ et l'arrivée de vos trajets (Geoapify *recommandé*, LocationIQ, TomTom). Nécessite
+  une **clé** gratuite du service choisi ; sans elle, Mate utilise le service sans clé d'OpenStreetMap.
 - **⚡ Bornes de recharge** — active les **noms des bornes** sur les recharges (📍) et accepte des clés
   optionnelles (OpenChargeMap, TomTom) pour enrichir la recherche. **Désactivé** par défaut.
 - **Wallbox** — connectez votre wallbox pour les **coûts réels** et les éventuels contrôles (voir

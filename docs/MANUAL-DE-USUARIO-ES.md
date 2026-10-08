@@ -1085,6 +1085,15 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
     **unas los dos trayectos** para obtener el consumo combinado real. Mate solo lo indica cuando el
     coche lo ha comunicado: una parada en Park de más de un minuto durante la cual el coche no dijo si
     estaba encendido no cuenta como un solo encendido.
+- **Dónde empezó y terminó un trayecto 🆕** — la fila de un trayecto muestra **«A → B»**, y el *Resumen del
+  viaje* de su página nombra los dos extremos. Un extremo dentro de uno de tus **lugares de carga**
+  muestra su nombre seguido de «(lugar de carga)», así que al renombrar el lugar se renombran esos
+  trayectos; en otro sitio es la dirección (una tienda o una gasolinera por su nombre, si no la calle y el
+  número, y luego la localidad). Mate la busca poco después de terminar el trayecto con el servicio
+  elegido en *Ajustes → Búsqueda de direcciones*, donde se puede desactivar. Una dirección que falta, por
+  ejemplo en un trayecto antiguo, la busca al momento 🧭 en el *Resumen del viaje*. El buscador encuentra
+  un trayecto por cualquiera de sus extremos. Mate ya no escribe direcciones en la nota del trayecto, que
+  es tuya; las notas que escribió antes se quedan como están.
 - **Tu nota + las etiquetas de conducción 🆕** (#107) — en el detalle de un trayecto puedes escribir
   una **nota libre** (tráfico, tiempo, tipo de carretera, lo que sea) y etiquetar el **modo de
   conducción** (Confort / Normal / Sport) y el **One-Pedal** (activado/desactivado) que usaste. Mate no
@@ -1382,8 +1391,8 @@ final de la lista aparece en pantalla.
   una sola lectura —, así que un cambio cuenta solo cuando dos lecturas consecutivas lo mantienen. Un cambio
   que el coche deshizo entre dos de sus propios envíos nunca se ve, y la nube puede perder la señal del
   cierre durante una o dos lecturas, que entonces se leen como un breve desbloqueo.
-- **Filtros**: una palabra (el nombre del evento, el resultado de una orden, un lugar, la nota de
-  un trayecto o de una carga — la nota automática de un trayecto contiene sus direcciones), las píldoras de
+- **Filtros**: una palabra (el nombre del evento, el resultado de una orden, un lugar, dónde empezó o
+  terminó un trayecto — su nombre o su dirección completa — o la nota de un trayecto o de una carga), las píldoras de
   grupo (Seguridad, Puertas, Ventanillas, Carga, Clima, Conducción, Órdenes) y, bajo ⚙, un rango de fechas y
   tipos sueltos. Los filtros viven en la dirección: un enlace o una recarga los conserva.
 - **Histórico**: los eventos se derivan de las posiciones que Mate ya guarda, así que en una instalación
@@ -1603,8 +1612,9 @@ dividida en tres columnas.
 
 - **ABRP** — envío de telemetría a A Better Routeplanner (ver [§8](#8-las-integraciones-en-detalle)).
 - **Búsqueda de direcciones** — el servicio que traduce direcciones ↔ coordenadas en la página de
-  Navegación (Geoapify *recomendado*, LocationIQ, TomTom). Requiere una **clave** gratuita del servicio
-  elegido.
+  Navegación y nombra dónde empiezan y terminan tus trayectos (Geoapify *recomendado*, LocationIQ,
+  TomTom). Requiere una **clave** gratuita del servicio elegido; sin ella, Mate usa el servicio sin
+  clave de OpenStreetMap.
 - **⚡ Puntos de recarga** — activa los **nombres de los puntos** en las cargas (📍) y acepta claves
   opcionales (Open Charge Map, TomTom) para enriquecer la búsqueda. Viene **desactivado**.
 - **Wallbox** — conecta tu wallbox para tener **costes reales** y los controles que haya (ver

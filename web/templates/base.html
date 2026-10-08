@@ -145,6 +145,9 @@
     }
     .trip-row:hover { background: rgba(51,65,85,.4); border-color: #334155; }
     @media (max-width: 639px) { .trip-row { column-gap: .5rem; } }   /* a phone's middle column needs the room */
+    /* Each side ellipsised on its own; the shorter one stays whole as long as it fits half the line. */
+    .trip-places { display: grid; grid-template-columns: minmax(0, max-content) auto minmax(0, max-content); justify-content: start; column-gap: .3rem; }
+    .trip-places > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .trip-thumb {
       width: 84px; height: 48px; flex-shrink: 0; border-radius: .375rem;
       background: #0a1424; border: 1px solid #1a2438; object-fit: cover;
