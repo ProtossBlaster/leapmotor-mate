@@ -1294,7 +1294,8 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   than five minutes after the cable went in (a wallbox waiting for its schedule), how long it waited.
   The end of a trip or a charge carries the figures of Trips and Charges.
   These figures stand out from the rest of the row; a cost is green, the delay before charging amber.
-- **Places**: a row at one of your charging places (*Charge Prices → Charging places*) names it.
+- **Places**: a row at one of your charging places (*Charge Prices → Charging places*) names it; a trip's
+  start or end elsewhere is named by its address, as in Trips.
 - **The map** is hidden until **🗺 Show map** above the list shows it (beside the list on a wide screen,
   above it on a phone or a narrower one), and next time it is as you left it. Every row with a position
   has a 🌍: it shows the map if needed, lights the row's point and brings it into view, and lights the row

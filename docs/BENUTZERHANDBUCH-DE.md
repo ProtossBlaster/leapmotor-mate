@@ -1383,7 +1383,8 @@ wird geladen, sobald das Ende der Liste sichtbar wird.
   wartet), wie lange es wartete. Das Ende einer Fahrt oder eines Ladevorgangs trägt die Zahlen von Fahrten
   und Ladevorgängen. Diese Zahlen heben sich vom Rest der Zeile ab; Kosten sind grün, die Zeit bis zum
   Ladebeginn bernsteinfarben.
-- **Orte**: eine Zeile an einem Ihrer Ladeorte (*Ladepreise → Ladeorte*) nennt ihn.
+- **Orte**: eine Zeile an einem Ihrer Ladeorte (*Ladepreise → Ladeorte*) nennt ihn; Start oder Ziel einer
+  Fahrt anderswo nennt seine Adresse, wie in Fahrten.
 - **Die Karte** bleibt verborgen, bis **🗺 Karte zeigen** über der Liste sie öffnet (auf einem breiten
   Bildschirm neben der Liste, auf dem Telefon oder einem schmaleren darüber), und beim nächsten Besuch ist
   sie so, wie Sie sie verlassen haben. Jede Zeile mit einer Position hat ein 🌍: Es öffnet bei Bedarf die

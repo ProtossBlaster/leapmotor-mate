@@ -1403,7 +1403,8 @@ l'écran.
   attend sa programmation), combien de temps il a attendu. La fin d'un trajet ou d'une recharge porte les
   chiffres de Trajets et de Recharges. Ces chiffres ressortent du reste de la ligne ; un coût est en vert
   et le délai avant le début de la recharge en ambre.
-- **Lieux** : une ligne à l'un de vos lieux de recharge (*Prix de recharge → Lieux de recharge*) le nomme.
+- **Lieux** : une ligne à l'un de vos lieux de recharge (*Prix de recharge → Lieux de recharge*) le nomme ;
+  le départ ou l'arrivée d'un trajet ailleurs porte son adresse, comme dans Trajets.
 - **La carte** reste masquée jusqu'à ce que **🗺 Afficher la carte**, au-dessus de la liste, l'ouvre (à
   côté de la liste sur un écran large, au-dessus sur un téléphone ou un écran plus étroit), et la fois
   suivante elle est telle que vous l'avez laissée. Chaque ligne avec une position a un 🌍 : il ouvre la

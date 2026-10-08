@@ -1360,7 +1360,7 @@ entra nello schermo.
   Questi numeri risaltano sul resto della riga; il costo è verde e il tempo prima che partisse la ricarica
   è ambra.
 - **Luoghi**: una riga in uno dei tuoi luoghi di ricarica (*Prezzi di ricarica → Luoghi di ricarica*) lo
-  nomina.
+  nomina; la partenza o l'arrivo di un viaggio altrove porta il suo indirizzo, come in Viaggi.
 - **La mappa** resta nascosta finché **🗺 Mostra mappa**, sopra l'elenco, non la apre (accanto all'elenco
   su uno schermo largo, sopra sul telefono o su uno più stretto), e la volta dopo è come l'hai lasciata.
   Ogni riga con una posizione ha un 🌍: apre la mappa se serve, accende il punto della riga, lo porta in

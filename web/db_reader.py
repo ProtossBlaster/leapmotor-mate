@@ -11986,7 +11986,8 @@ def _nearest_place(places, lat, lon) -> dict | None:
 # What a row may print beside its label; absent from a row, None.
 _EVENT_FIGURES = ("extra", "distance_km", "energy_kwh", "duration_min", "soc_from", "soc_to", "cost",
                   "waited_min", "ctx", "target_temp", "outside_temp", "cabin_from", "cabin_to",
-                  "from_anchor", "from_hms", "from_day", "place_key", "place_at", "point", "words")
+                  "from_anchor", "from_hms", "from_day", "place_key", "place_at", "point", "words",
+                  "place_osm")
 
 
 def _present_event(m: dict, zone, live: dict, t, places, lang) -> None:
@@ -12025,7 +12026,13 @@ def _present_event(m: dict, zone, live: dict, t, places, lang) -> None:
     s = m.get("session") or {}
     m["words"] = s.get("search_text", s.get("note"))      # searched, not printed: see trip_places
     m["has_fix"] = has_gps_fix(m["lat"], m["lon"])
-    m["place"] = (s.get("charging_place_name") or s.get("location_name")) if m["source"] == "charge" else None
+    if m["source"] == "charge":
+        m["place"] = s.get("charging_place_name") or s.get("location_name")
+    elif m["source"] == "trip":                    # its own end's name: a charging place, else the address
+        end = "start" if m["on"] else "end"
+        m["place"], m["place_osm"] = s.get(f"{end}_place"), s.get(f"{end}_place_osm")
+    else:
+        m["place"] = None
     if m["has_fix"]:
         # Inside a charging place the place is the point (names repeat, so by id); elsewhere a ~110 m grid.
         near = _nearest_place(places, m["lat"], m["lon"])
@@ -12197,10 +12204,11 @@ def _cache_key(flt: "EventFilter", lang: str, vehicle_id) -> tuple:
 def _events_version(lines: list, points: list) -> str:
     """What a later part must match to join the parts on the page: the lines in order with their
     track cells, and the map's points. A row written meanwhile moves the cut, the tracks or the
-    points' numbers."""
+    points' numbers; an address found meanwhile, a row's place."""
     crc = zlib.crc32(repr(points).encode())
     for line in lines:
-        key = line["e"]["anchor"] if line["kind"] == "row" else line["label"]
+        e = line["e"] if line["kind"] == "row" else None
+        key = (e["anchor"], e.get("place"), e.get("place_osm")) if e else line["label"]
         crc = zlib.crc32(f"{key}|{line['cells']}|{line.get('joined')}\n".encode(), crc)
     return f"{crc:08x}"
 
@@ -12269,7 +12277,8 @@ def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str
     lines, lanes, runs = _event_lines(items, start, end, weekdays, lang)
     composed = {"key": key, "seen": seen, "days": days, "lines": lines, "lanes": lanes, "runs": runs,
                 "version": _events_version(lines, points), "count": len(items), "live": live,
-                "first": first, "last": last, "points": points}
+                "first": first, "last": last, "points": points,
+                "address_credit": any(m["place_osm"] for m in items)}
     _events_cache["one"] = composed
     return _event_answer(composed, part, asked)
 
@@ -12283,4 +12292,5 @@ def _event_answer(composed: dict, part: int, asked: str | None) -> dict:
     lines, more = _event_part(composed["lines"], composed["lanes"], composed["runs"], part)
     return {"days": composed["days"], "lines": lines, "more": more, "part": part, "version": version,
             "lanes": composed["lanes"], "count": composed["count"], "live": composed["live"],
-            "first": composed["first"], "last": composed["last"], "points": composed["points"]}
+            "first": composed["first"], "last": composed["last"], "points": composed["points"],
+            "address_credit": composed["address_credit"]}

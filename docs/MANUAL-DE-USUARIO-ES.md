@@ -1379,7 +1379,8 @@ final de la lista aparece en pantalla.
   esperó. El final de un trayecto o de una carga lleva las cifras de Trayectos y Cargas.
   Esas cifras destacan del resto de la fila; el coste va en verde y el tiempo hasta que empezó la carga,
   en ámbar.
-- **Lugares**: una fila en uno de tus lugares de carga (*Precios de la carga → Lugares de carga*) lo nombra.
+- **Lugares**: una fila en uno de tus lugares de carga (*Precios de la carga → Lugares de carga*) lo nombra;
+  el origen o el destino de un trayecto en otro sitio lleva su dirección, como en Trayectos.
 - **El mapa** está oculto hasta que **🗺 Mostrar mapa**, sobre la lista, lo abre (junto a la lista en una
   pantalla ancha, encima en el teléfono o en una más estrecha), y la próxima vez sigue como lo dejaste.
   Cada fila con posición tiene un 🌍: abre el mapa si hace falta, resalta el punto de la fila, lo trae a la
