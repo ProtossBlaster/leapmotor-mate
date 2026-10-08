@@ -308,6 +308,20 @@ def test_a_trip_that_ended_four_days_ago_is_left_alone(car):
     assert (n["cells"], n["calls"]) == (0, 0)
 
 
+def test_a_merged_trip_is_looked_up_while_its_last_piece_ended_recently(car):
+    """A merged trip starts where its first piece did, which ended just before the window and its last just after."""
+    for p, road in ((HOME, "Via Roma"), (SHOP, "Via Po"), (PARK, "Via Lagrange"), (WORK, "Corso Francia")):
+        car.providers.answers[("nominatim.openstreetmap.org", p)] = nominatim(road)
+    first = trip(car, HOME, SHOP, ended_ago=timedelta(days=3, minutes=1))
+    last = trip(car, PARK, WORK, ended_ago=timedelta(days=3) - timedelta(minutes=21))   # set off 2 minutes later
+    assert db_reader.merge_trips(first, last)["ok"]
+    assert sweep()["calls"] == 4
+    assert car.providers.calls()[:2] == [WORK, PARK], "the group is as new as its last piece"
+    shown, _ = db_reader.trip_group(first)
+    db_reader.trip_places([shown])
+    assert (shown["start_place"], shown["end_place"]) == ("Via Roma, Torino", "Corso Francia, Torino")
+
+
 def test_a_pass_makes_at_most_four_requests_for_every_car(car):
     """A second car's trips are looked up too, whichever car the panel shows."""
     other = car.ensure_vehicle("VINPLACES00000002", "C10")

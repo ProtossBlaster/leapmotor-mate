@@ -47,12 +47,13 @@ def _iso(dt: datetime) -> str:
 
 
 def _recent_cells(since: datetime) -> list[tuple[str, float, float]]:
-    """Every car's trip ends with a GPS fix, of the trips that ended since `since`: newest first, one
-    entry per cell, with the first point seen in it."""
+    """Every car's trip ends with a GPS fix, of the trips that ended since `since`, a merged trip as long
+    as its last piece did: newest first, one entry per cell, with the first point seen in it."""
     rows = db_reader._get().execute(
-        "SELECT start_lat, start_lon, end_lat, end_lon FROM trips WHERE ended_at IS NOT NULL"
-        " AND julianday(ended_at) >= julianday(?) ORDER BY julianday(ended_at) DESC, id DESC",
-        (_iso(since),)).fetchall()
+        "SELECT t.start_lat, t.start_lon, t.end_lat, t.end_lon FROM trips t"
+        " JOIN (SELECT COALESCE(merged_into_id, id) AS head, MAX(julianday(ended_at)) AS jd FROM trips"
+        " GROUP BY 1 HAVING jd >= julianday(?)) g ON g.head = COALESCE(t.merged_into_id, t.id)"
+        " WHERE t.ended_at IS NOT NULL ORDER BY g.jd DESC, t.id DESC", (_iso(since),)).fetchall()
     cells: dict = {}
     for r in rows:
         for lat, lon in ((r["end_lat"], r["end_lon"]), (r["start_lat"], r["start_lon"])):
