@@ -10,6 +10,8 @@ verification.
 
 These need web.main (fastapi); the minimal CI env skips this module cleanly.
 """
+from types import SimpleNamespace
+
 import pytest
 
 pytest.importorskip("fastapi", reason="web.main needs fastapi (absent in the minimal CI test env)")
@@ -30,8 +32,8 @@ class _Clock:
 
 def _patch(monkeypatch, signals_fn):
     clock = _Clock()
-    monkeypatch.setattr(main.time, "time", clock.time)
-    monkeypatch.setattr(main.time, "sleep", clock.sleep)
+    # The web app's own `time`, not the process's: its background threads sleep on that one too.
+    monkeypatch.setattr(main, "time", SimpleNamespace(time=clock.time, sleep=clock.sleep))
     calls = {"save": [], "clear": 0, "extend": 0}
     monkeypatch.setattr(main.command_client, "get_fresh_signals", signals_fn)
     monkeypatch.setattr(main.db_reader, "save_fresh_signals", lambda s: calls["save"].append(s))

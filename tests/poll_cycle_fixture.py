@@ -9,6 +9,7 @@ import dataclasses
 import importlib.util
 import pathlib
 import sys
+from types import SimpleNamespace
 
 import db as D
 
@@ -144,8 +145,9 @@ def make_startup(PM, tmp_path, monkeypatch):
             return client
         monkeypatch.setattr(PM, "LeapmotorMateClient", _build)
         clock = {"t": NOW}
-        monkeypatch.setattr(PM.time, "time", lambda: clock["t"])
-        monkeypatch.setattr(PM.time, "sleep", lambda s: clock.__setitem__("t", clock["t"] + s))
+        # The poller's own `time`, not the process's: the web app's threads sleep on that one too.
+        monkeypatch.setattr(PM, "time", SimpleNamespace(time=lambda: clock["t"],
+                                                        sleep=lambda s: clock.__setitem__("t", clock["t"] + s)))
         monkeypatch.setattr(PM, "load_config", lambda db: {
             "username": "u", "password": "p", "pin": "1234",
             "cert_path": "/tmp/c.pem", "key_path": "/tmp/k.pem"})

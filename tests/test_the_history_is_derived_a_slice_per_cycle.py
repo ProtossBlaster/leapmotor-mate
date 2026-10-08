@@ -6,6 +6,8 @@ for the history, and a car whose derivation raised does not stop the round. The 
 the history has been read, in rows, until it has been read through. The loop is the real one,
 `main()`, against a stub cloud.
 """
+from types import SimpleNamespace
+
 import db as D
 import events as E
 from events_fixture import T0
@@ -21,8 +23,9 @@ def _run_rounds(tmp_path, monkeypatch, rounds):
     client.budget = rounds
     monkeypatch.setattr(PM, "LeapmotorMateClient", lambda **kw: client)
     clock = {"t": 1_760_000_000.0}
-    monkeypatch.setattr(PM.time, "time", lambda: clock["t"])
-    monkeypatch.setattr(PM.time, "sleep", lambda s: clock.__setitem__("t", clock["t"] + s))
+    # The poller's own `time`, not the process's: the web app's threads sleep on that one too.
+    monkeypatch.setattr(PM, "time", SimpleNamespace(time=lambda: clock["t"],
+                                                    sleep=lambda s: clock.__setitem__("t", clock["t"] + s)))
     monkeypatch.setattr(PM, "_maybe_refresh_charge_schedule", lambda *a, **k: None)
     monkeypatch.setattr(PM.energy_snapshots, "maybe_sample", lambda *a, **k: None)
     monkeypatch.setattr(PM.ready_automation, "maybe_trigger", lambda *a, **k: None)

@@ -16,6 +16,7 @@ import dataclasses
 import importlib.util
 import pathlib
 import sys
+from types import SimpleNamespace
 
 import db as D
 import pytest
@@ -121,8 +122,9 @@ def loop(tmp_path, monkeypatch):
         monkeypatch.setattr(PM, "LeapmotorMateClient", lambda **kw: client)
 
         clock = {"t": 1_760_000_000.0}
-        monkeypatch.setattr(PM.time, "time", lambda: clock["t"])
-        monkeypatch.setattr(PM.time, "sleep", lambda s: clock.__setitem__("t", clock["t"] + s))
+        # The poller's own `time`, not the process's: the web app's threads sleep on that one too.
+        monkeypatch.setattr(PM, "time", SimpleNamespace(time=lambda: clock["t"],
+                                                        sleep=lambda s: clock.__setitem__("t", clock["t"] + s)))
         for name in ("_maybe_refresh_charge_schedule",):
             monkeypatch.setattr(PM, name, lambda *a, **k: None)
         monkeypatch.setattr(PM.energy_snapshots, "maybe_sample", lambda *a, **k: None)
