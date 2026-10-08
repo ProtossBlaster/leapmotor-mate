@@ -1,8 +1,33 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.11.2 · **Langue :** Français
+> **Version de Mate :** v4.12.0 · **Langue :** Français
 
-## Nouveautés de la version 4.11.2
+## Nouveautés de la version 4.12.0
+
+**Plusieurs jours à la fois dans le calendrier des Trajets.** Une semaine, un week-end ou des vacances
+s'ouvrent d'un seul geste : sur un ordinateur, **Maj+clic** sur un second jour, ou **glisser** la souris
+sur les jours ; sur un téléphone, **appui long** sur un jour — un contour en pointillés le marque — puis
+**toucher** le dernier. Le tiroir s'ouvre avec un en-tête pour toute la période — batterie, temps de
+conduite, kilomètres et les autres chiffres d'un jour — et en dessous chaque jour avec des trajets, du
+plus récent au plus ancien, avec son propre en-tête. La période reste dans le mois affiché. La date
+d'un jour sous la période ouvre ce jour seul, avec son bouton 🔗 pour fusionner les trajets, qu'une
+période n'a pas. Les autres calendriers ouvrent toujours un jour à la fois. Une ligne sous le
+calendrier des Trajets rappelle les trois gestes. Par @arekm (#402).
+
+Si la voiture a chargé entre le premier et le dernier trajet — sur quelques jours, c'est presque
+toujours le cas —, la batterie de la période se lit comme celle d'un jour avec une recharge : ce que les
+trajets ont consommé et ce que les recharges ont ajouté, et chacun des deux chiffres dit ce qu'il compte
+quand vous le survolez ou le touchez. Le chiffre de la période peut donc différer de la somme de ceux
+de ses jours : un jour sans recharge va de sa première lecture à sa dernière, et compte aussi ce que la
+voiture a perdu à l'arrêt entre ses trajets.
+
+**Le tiroir affiche le dernier jour choisi.** Deux jours choisis coup sur coup envoyaient deux requêtes
+en parallèle, et une réponse lente pour le premier pouvait remplir le tiroir sous le contour du second
+— dans les quatre calendriers. Désormais, un nouveau choix remplace la requête encore en cours, et la
+bande **Réessayer** d'un jour qui n'a pas pu être chargé disparaît dès que vous en demandez un autre.
+Par @arekm (#402).
+
+### Nouveautés de la version 4.11.2
 
 **Le pare-soleil porte le nom de l'application officielle dans toutes les langues.** Les pages
 l'appelaient « Toit panoramique » sur les tuiles Véhicule et Commandes, et « store » dans les
@@ -964,6 +989,8 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   *84,4% → 51,6% (−32,8%)* ou, si la voiture a chargé entre deux trajets, *−45,3%* consommés et *⚡ +40,2%* chargés,
   ainsi que le temps de conduite de la journée. Sur un téléphone, la ligne de chaque trajet affiche
   aussi sa batterie, *84,4→51,6% (−32,8%)*, sous la durée.
+  Un **Maj+clic**, un glisser de la souris sur les jours ou, sur un téléphone, un appui long sur un jour
+  ouvre **plusieurs jours à la fois** : un en-tête pour toute la période, puis chaque jour avec le sien.
 - Vous pouvez **fusionner** deux trajets coupés par erreur (Fusionner 🔗) ou les **séparer** à nouveau, et
   **supprimer** un trajet.
 - Les arrêts brefs (feux, embouteillages) **ne** coupent **pas** un trajet : une conduite reste une seule

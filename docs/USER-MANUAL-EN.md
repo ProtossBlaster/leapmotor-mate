@@ -1,8 +1,30 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.11.2 · **Language:** English
+> **Mate version:** v4.12.0 · **Language:** English
 
-## New in 4.11.2
+## New in 4.12.0
+
+**Several days at once in the Trips calendar.** A week, a weekend or a holiday opens in one gesture:
+on a computer **Shift-click** a second day, or **drag** the mouse across the days; on a phone **hold** a
+day — a dashed ring marks it — and then **tap** the last one. The drawer opens with one heading for
+the whole range — battery, driving time, kilometres and the rest of a day's figures — and under it
+each day with trips, newest first, with its own heading. A range stays inside the month on screen. A
+day's date under the range opens that day alone, with its 🔗 button for merging trips, which a range
+does not have. The other calendars keep one day per click. A line under the Trips calendar names the
+three gestures. By @arekm (#402).
+
+When the car charged between the first trip and the last — over a few days it almost always has —
+the range's battery reads as a day's does with a charge in it: what the trips used and what the
+charges added, and either figure says what it counts when you hold the pointer on it or tap it. So the
+range's figure need not equal its days' figures added up: a day with no charge goes from its first
+reading to its last, and also counts what the car lost while parked between its trips.
+
+**The drawer shows the day you picked last.** Two days picked in quick succession sent two requests
+side by side, and a slow answer for the first day could fill the drawer under the second day's ring —
+on all four calendars. Now a new pick replaces the request still on its way, and a failed day's **Try
+again** strip goes once you ask for another day. By @arekm (#402).
+
+### New in 4.11.2
 
 **The sunshade carries the official app's name in every language.** In English, the Vehicle and
 Commands tiles called it the "Panoramic roof" and the confirmations "panoramic roof shade"; it is now
@@ -896,6 +918,8 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   *84.4% → 51.6% (−32.8%)*, or, when the car charged between them, *−45.3%* used and *⚡ +40.2%* charged,
   and how long the day was driven. On a phone each trip's row gives its battery too, *84.4→51.6% (−32.8%)*,
   under the duration.
+  Shift-click, a mouse drag or, on a phone, holding a day opens **several days at once**: one heading
+  for the range, then each day under its own.
 - **Merging, from the day you are looking at.** A stop long enough to end a drive can split one
   journey into two rows. Open a day and the **🔗** button beside its date offers that day's joinable
   pairs: a slider widens what counts as one stop, you preview the combined route before committing,

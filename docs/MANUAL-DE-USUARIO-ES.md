@@ -1,8 +1,32 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.11.2 · **Idioma:** Español
+> **Versión de Mate:** v4.12.0 · **Idioma:** Español
 
-## Novedades de la versión 4.11.2
+## Novedades de la versión 4.12.0
+
+**Varios días a la vez en el calendario de Trayectos.** Una semana, un fin de semana o unas vacaciones
+se abren con un solo gesto: en el ordenador, **Mayús+clic** en un segundo día, o **arrastrar** el ratón
+sobre los días; en el móvil, **mantener pulsado** un día —lo marca un borde discontinuo— y luego
+**tocar** el último. El cajón se abre con una cabecera para todo el intervalo —batería, tiempo de
+conducción, kilómetros y las demás cifras de un día— y debajo cada día con trayectos, del más reciente
+al más antiguo, con su propia cabecera. El intervalo se queda dentro del mes en pantalla. La fecha de un
+día bajo el intervalo abre ese día solo, con su botón 🔗 para unir trayectos, que un intervalo no tiene.
+Los demás calendarios siguen abriendo un día por clic. Una línea bajo el calendario de Trayectos
+recuerda los tres gestos. De @arekm (#402).
+
+Si el coche cargó entre el primer trayecto y el último —en unos días casi siempre ocurre—, la batería
+del intervalo se lee como la de un día con una carga: lo que gastaron los trayectos y lo que añadieron
+las cargas, y cada una de las dos cifras dice qué cuenta al pasar el puntero o tocarla. Por eso la cifra
+del intervalo puede no coincidir con la suma de las de sus días: un día sin cargas va de su primera
+lectura a la última, y cuenta también lo que el coche perdió parado entre sus trayectos.
+
+**El cajón muestra el último día elegido.** Dos días elegidos seguidos enviaban dos peticiones a la
+vez, y una respuesta lenta del primero podía llenar el cajón bajo el borde del segundo —en los cuatro
+calendarios—. Ahora una nueva elección sustituye a la petición que aún está en camino, y la franja
+**Volver a intentarlo** de un día que no se pudo cargar desaparece en cuanto pides otro. De @arekm
+(#402).
+
+### Novedades de la versión 4.11.2
 
 **El parasol lleva el nombre de la app oficial en todos los idiomas.** Las páginas lo llamaban
 «Techo panorámico» en las tarjetas de Vehículo y Comandos, y «cortinilla» en las confirmaciones, en
@@ -945,6 +969,8 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   batería gastaron sus trayectos: *84,4% → 51,6% (−32,8%)* o, si el coche cargó entre ellos, *−45,3%* gastado y
   *⚡ +40,2%* cargado, y cuánto tiempo se condujo ese día. En el móvil, la fila de cada trayecto
   muestra también su batería, *84,4→51,6% (−32,8%)*, debajo de la duración.
+  Con **Mayús+clic**, arrastrando el ratón sobre los días o, en el móvil, manteniendo pulsado un día se
+  abren **varios días a la vez**: una cabecera para todo el intervalo y debajo cada día con la suya.
 - **Unir trayectos, desde el día que estás mirando.** Una parada lo bastante larga como para cerrar un
   recorrido puede partir un mismo viaje en dos filas. Abre un día y el botón **🔗** que hay junto a la
   fecha te ofrece las parejas de ese día que se pueden unir: un deslizador amplía lo que cuenta como

@@ -1,8 +1,33 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.11.2 · **Lingua:** Italiano
+> **Versione di Mate:** v4.12.0 · **Lingua:** Italiano
 
-## Novità della 4.11.2
+## Novità della 4.12.0
+
+**Più giorni insieme nel calendario dei Viaggi.** Una settimana, un fine settimana o una vacanza si
+aprono con un gesto solo: sul computer **Maiusc-clic** su un secondo giorno, oppure **trascini** il
+mouse sui giorni; sul telefono **tieni premuto** un giorno — lo segna un bordo tratteggiato — e poi
+**tocchi** l'ultimo. Il cassetto si apre con un'intestazione per tutto l'intervallo — batteria, tempo
+di guida, chilometri e le altre cifre di un giorno — e sotto ogni giorno con viaggi, dal più recente,
+con la sua intestazione. L'intervallo resta dentro il mese che vedi. La data di un giorno sotto
+l'intervallo apre quel giorno da solo, con il suo pulsante 🔗 per unire i viaggi, che l'intervallo non
+ha. Gli altri calendari aprono sempre un giorno per volta. Una riga sotto il calendario dei Viaggi
+ricorda i tre gesti. Di @arekm (#402).
+
+Se tra il primo e l'ultimo viaggio l'auto ha caricato — in qualche giorno succede quasi sempre — la
+batteria dell'intervallo si legge come quella di un giorno con una ricarica: quanto hanno usato i
+viaggi e quanto hanno aggiunto le ricariche, e ognuna delle due cifre dice cosa conta quando ci passi
+sopra o la tocchi. Per questo la cifra dell'intervallo può non essere la somma di quelle dei suoi
+giorni: un giorno senza ricariche va dalla prima all'ultima lettura, e conta anche quello che l'auto
+ha perso da ferma tra i suoi viaggi.
+
+**Il cassetto mostra l'ultimo giorno che hai scelto.** Due giorni scelti in fretta mandavano due
+richieste insieme, e la risposta lenta del primo giorno poteva riempire il cassetto sotto il bordo del
+secondo — in tutti e quattro i calendari. Adesso una nuova scelta sostituisce la richiesta ancora in
+viaggio, e la striscia **Riprova** di un giorno non caricato sparisce quando ne chiedi un altro. Di
+@arekm (#402).
+
+### Novità della 4.11.2
 
 **Il parasole porta il nome dell'app ufficiale in ogni lingua.** Dopo l'italiano nella 4.11.1, anche
 le altre lingue usano il nome che gli dà l'app: Sunshade, Pare-soleil, Sonnenblende, Parasol,
@@ -924,6 +949,8 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   l'altro, *−45,3%* usato e *⚡ +40,2%* caricato,
   e quanto si è guidato quel giorno. Sul telefono anche la riga di ogni viaggio mostra la batteria,
   *84,4→51,6% (−32,8%)*, sotto la durata.
+  Con **Maiusc-clic**, trascinando il mouse sui giorni o, sul telefono, tenendo premuto un giorno apri
+  **più giorni insieme**: un'intestazione per tutto l'intervallo, poi ogni giorno con la sua.
 - **L'unione parte dal giorno che stai guardando.** Una sosta abbastanza lunga da chiudere una guidata
   può spezzare un unico spostamento in due righe. Apri un giorno e il pulsante **🔗** accanto alla data
   ti propone le coppie unibili *di quel giorno*: un cursore allarga cosa conta come una sola sosta,

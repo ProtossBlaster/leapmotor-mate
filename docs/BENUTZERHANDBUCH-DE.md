@@ -1,8 +1,33 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.11.2 · **Sprache:** Deutsch
+> **Mate-Version:** v4.12.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.11.2
+## Neu in Version 4.12.0
+
+**Mehrere Tage auf einmal im Fahrten-Kalender.** Eine Woche, ein Wochenende oder ein Urlaub öffnet sich
+mit einer einzigen Geste: am Computer per **Umschalt-Klick** auf einen zweiten Tag oder durch **Ziehen**
+der Maus über die Tage; auf dem Handy einen Tag **gedrückt halten** — ein gestrichelter Rahmen markiert
+ihn — und dann den letzten **antippen**. Die Schublade öffnet sich mit einer Überschrift für den ganzen
+Zeitraum — Akku, Fahrzeit, Kilometer und die übrigen Zahlen eines Tages — und darunter jeder Tag mit
+Fahrten, der neueste zuerst, mit seiner eigenen Überschrift. Ein Zeitraum bleibt im angezeigten Monat.
+Das Datum eines Tages unter dem Zeitraum öffnet diesen Tag allein, mit seiner 🔗-Schaltfläche zum
+Zusammenführen von Fahrten, die ein Zeitraum nicht hat. Die anderen Kalender öffnen weiterhin einen
+Tag pro Klick. Eine Zeile unter dem Fahrten-Kalender nennt die drei Gesten. Von @arekm (#402).
+
+Hat das Auto zwischen der ersten und der letzten Fahrt geladen — über ein paar Tage fast immer —, liest
+sich der Akku des Zeitraums wie der eines Tages mit einer Ladung: was die Fahrten verbraucht und was die
+Ladungen hinzugefügt haben, und jede der beiden Zahlen sagt, was sie zählt, wenn Sie mit dem Zeiger
+darauf bleiben oder sie antippen. Die Zahl des Zeitraums muss daher nicht der Summe seiner Tage
+entsprechen: Ein Tag ohne Ladung reicht von seinem ersten bis zu seinem letzten Messwert und zählt auch,
+was das Auto zwischen seinen Fahrten im Stand verloren hat.
+
+**Die Schublade zeigt den zuletzt gewählten Tag.** Zwei schnell nacheinander gewählte Tage schickten
+zwei Anfragen nebeneinander, und eine langsame Antwort für den ersten Tag konnte die Schublade unter dem
+Rahmen des zweiten füllen — in allen vier Kalendern. Jetzt ersetzt eine neue Wahl die Anfrage, die noch
+unterwegs ist, und der Streifen **Erneut versuchen** eines nicht geladenen Tages verschwindet, sobald Sie
+einen anderen anfordern. Von @arekm (#402).
+
+### Neu in Version 4.11.2
 
 **Die Sonnenblende trägt in jeder Sprache den Namen der offiziellen App.** Die Seiten nannten sie
 „Panoramadach“ auf den Kacheln Fahrzeug und Befehle, „Dachrollo“ in den Bestätigungen, „Sonnenrollo“
@@ -951,6 +976,8 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   *84,4% → 51,6% (−32,8%)*, oder bei einer Ladung zwischen den Fahrten *−45,3%* verbraucht und *⚡ +40,2%* geladen,
   dazu die Fahrzeit des Tages. Auf dem Handy zeigt auch die Zeile jeder Fahrt ihren Akkustand,
   *84,4→51,6% (−32,8%)*, unter der Dauer.
+  Umschalt-Klick, Ziehen der Maus über die Tage oder, auf dem Handy, Gedrückthalten eines Tages öffnet
+  **mehrere Tage auf einmal**: eine Überschrift für den ganzen Zeitraum, darunter jeder Tag mit seiner eigenen.
 - Sie können zwei versehentlich getrennte Fahrten **zusammenführen** (Zusammenführen 🔗) oder sie wieder
   **trennen** und eine Fahrt **löschen**.
 - Kurze Pausen (Ampeln, Staus) **trennen** eine Fahrt **nicht**: Eine Fahrt bleibt eine einzige Zeile.

@@ -3,6 +3,21 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.12.0] — 2026-10-08
+
+- **The Trips calendar opens a range of days**
+  ([#402](https://github.com/ProtossBlaster/leapmotor-mate/pull/402), @arekm). Shift-click a second day, drag the mouse across the days, or on a phone hold a day
+  and tap another: the drawer opens with one heading for the whole range — battery, driving time,
+  kilometres and the rest of a day's figures — and then each day with trips, newest first, under its
+  own heading. A range stays inside the month on screen; a day's date under it opens that day alone,
+  with its 🔗 merge button, which a range does not have. The other calendars keep one day per click. A
+  line under the Trips calendar names the three gestures, and in a day with a charge the two battery
+  figures say what each one counts.
+- **A calendar's drawer shows the day picked last** ([#402](https://github.com/ProtossBlaster/leapmotor-mate/pull/402), @arekm). Two days picked in quick
+  succession sent two requests side by side, and a slow answer for the first could fill the drawer
+  under the second day's ring, on all four calendars. A new pick now replaces the request still on
+  its way, and a failed day's "Try again" strip goes once another day is asked for.
+
 ## [4.11.2] — 2026-10-06
 
 - **The sunshade carries the official app's name in every language**: Sunshade, Pare-soleil,
