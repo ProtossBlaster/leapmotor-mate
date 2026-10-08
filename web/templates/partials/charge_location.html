@@ -1,11 +1,15 @@
-<div id="loc-{{ charge.id }}" class="charge-location" style="display:flex;align-items:center;gap:5px;min-height:15px">
+{# Where the charge happened (db_reader.charge_places): the station with the address after it, or else, unless
+   the place line below names it, the nearest charging place or the address. #}
+{% from "partials/_place_name.html" import place_name with context %}
+<div id="loc-{{ charge.id }}" class="charge-location"{% if loc_oob %} hx-swap-oob="true"{% endif %} style="display:flex;align-items:center;gap:5px;min-height:15px">
   {% if charge.location_name %}
-  <span class="text-[11px] text-slate-400">📍 {{ charge.location_name }}</span>
-  {% if charge.location_url %}
-  <a href="{{ charge.location_url }}" target="_blank" rel="noopener noreferrer"
-     title="{{ t('nav_charger_view_source') }}" class="text-slate-500 hover:text-brand"
-     style="font-size:11px;line-height:1;text-decoration:none">🔗</a>
-  {% endif %}
+  <span class="text-[11px] text-slate-400">📍 {{ charge.location_name }}
+    {%- if charge.location_url %} <a href="{{ charge.location_url }}" target="_blank" rel="noopener noreferrer"
+       title="{{ t('nav_charger_view_source') }}" class="text-slate-500 hover:text-brand"
+       style="text-decoration:none">🔗</a>{% endif %}
+    {%- if charge.address %} <span class="text-slate-500"{% if charge.address_osm %} data-address-osm{% endif %}>· {{ charge.address }}</span>{% endif %}</span>
+  {% elif charge.place and not charge.charging_place_name %}
+  <span class="text-[11px] text-slate-400"{% if charge.place_osm %} data-address-osm{% endif %}>📍 {{ place_name(charge.place, charge.place_charging) }}</span>
   {% endif %}
   {# The lookup answered, with nothing. Two different things to say: a charge that already had a
      name keeps it (and needs to be told so, or the unchanged line reads as a button that did

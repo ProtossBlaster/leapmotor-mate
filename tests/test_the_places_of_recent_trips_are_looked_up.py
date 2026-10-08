@@ -1,10 +1,12 @@
-"""The addresses of where recent trips started and ended are looked up once per spot, in the background.
+"""The addresses of where recent trips started and ended and charges happened are looked up once per spot,
+in the background.
 
 place_lookup.sweep asks the provider chosen in Settings ▸ Address lookup, and only it, about the ends of
-trips that ended in the last three days: once per geohash-8 cell, at most four requests a pass, 1.1 s
-apart, and only while that card's switch is on. A failure waits and is asked again at the same provider;
-"nothing here" is final for the provider that said it. Every request goes through geocode._get, replaced
-here by the providers' answers, so the choice of provider and the mapping of its answer are the real ones.
+trips and the charges that ended in the last three days: once per geohash-8 cell, at most four requests a
+pass, 1.1 s apart, and only while that card's switch is on. A failure waits and is asked again at the same
+provider; "nothing here" is final for the provider that said it. Every request goes through geocode._get,
+replaced here by the providers' answers, so the choice of provider and the mapping of its answer are the
+real ones.
 """
 import os
 import sqlite3
@@ -83,6 +85,15 @@ def trip(db, start, end, ended_ago=timedelta(hours=1), vid=None):
         "INSERT INTO trips (vehicle_id, started_at, ended_at, start_lat, start_lon, end_lat, end_lon, distance_km)"
         " VALUES (?, ?, ?, ?, ?, ?, ?, 5.0)",
         (vid or db.vid, (ended - timedelta(minutes=20)).isoformat(), ended.isoformat(), *start, *end))
+    db._conn.commit()
+    return cur.lastrowid
+
+
+def charge(db, point, ended_ago=timedelta(hours=1)):
+    ended = NOW - ended_ago
+    cur = db._conn.execute(
+        "INSERT INTO charges (vehicle_id, started_at, ended_at, latitude, longitude) VALUES (?, ?, ?, ?, ?)",
+        (db.vid, (ended - timedelta(hours=1)).isoformat(), ended.isoformat(), *point))
     db._conn.commit()
     return cur.lastrowid
 
@@ -320,6 +331,51 @@ def test_a_merged_trip_is_looked_up_while_its_last_piece_ended_recently(car):
     shown, _ = db_reader.trip_group(first)
     db_reader.trip_places([shown])
     assert (shown["start_place"], shown["end_place"]) == ("Via Roma, Torino", "Corso Francia, Torino")
+
+
+def test_a_charge_is_looked_up_where_it_happened(car):
+    car.providers.answers[("nominatim.openstreetmap.org", SHOP)] = nominatim("Via Po")
+    cid = charge(car, SHOP, ended_ago=timedelta(days=2))
+    assert sweep()["found"] == 1
+    c = dict(db_reader._get().execute("SELECT * FROM charges WHERE id = ?", (cid,)).fetchone())
+    db_reader.charge_places([c])
+    assert c["place"] == "Via Po, Torino"
+
+
+def test_a_merged_charge_is_looked_up_where_its_first_piece_was_while_its_last_ended_recently(car):
+    """Its card shows the first piece's point; that piece ended just before the window, its last just after."""
+    first = charge(car, HOME, ended_ago=timedelta(days=3, minutes=5))
+    last = charge(car, WORK, ended_ago=timedelta(days=3) - timedelta(minutes=65))     # plugged in 10 minutes later
+    assert db_reader.merge_charges(first, last)["ok"]
+    assert (sweep()["calls"], car.providers.calls()) == (1, [HOME])
+
+
+def test_a_charge_without_a_fix_or_older_than_the_window_is_left_alone(car):
+    charge(car, (0.0, 0.0))
+    charge(car, (None, None))
+    charge(car, SHOP, ended_ago=timedelta(days=3, minutes=1))
+    car._conn.execute("INSERT INTO charges (vehicle_id, started_at, latitude, longitude) VALUES (?, ?, ?, ?)",
+                      (car.vid, NOW.isoformat(), *PARK))                  # still charging
+    car._conn.commit()
+    assert sweep()["cells"] == 0 and car.providers.calls() == []
+
+
+def test_a_pass_without_the_charges_merge_column_still_looks_everything_up(car):
+    """The schema step at the web's start is best-effort, so charges can lack merged_into_id when it did not run."""
+    trip(car, WORK, HOME, ended_ago=timedelta(hours=2))
+    charge(car, SHOP)
+    car._conn.execute("ALTER TABLE charges DROP COLUMN merged_into_id")
+    car._conn.commit()
+    assert sweep()["calls"] == 3 and car.providers.calls() == [SHOP, HOME, WORK]
+
+
+def test_a_trip_and_a_charge_in_one_cell_are_one_request(car):
+    """Newest first, whichever it is: the charge after the trip, then the trip's end before its start."""
+    trip(car, WORK, HOME, ended_ago=timedelta(hours=2))
+    charge(car, NEAR_HOME, ended_ago=timedelta(hours=1))
+    charge(car, SHOP, ended_ago=timedelta(hours=3))
+    assert sweep()["calls"] == 3
+    assert car.providers.calls() == [HOME, WORK, SHOP]
 
 
 def test_a_pass_makes_at_most_four_requests_for_every_car(car):

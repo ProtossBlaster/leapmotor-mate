@@ -1218,6 +1218,9 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
 - **Votre note 🆕** (#107) — chaque recharge a une **note libre** (juste au-dessus de *Supprimer la
   recharge*) pour ce que les chiffres ne capturent pas : l'emplacement de la borne, ombre/abri, sa
   fiabilité, les conditions de stationnement, la météo, toute remarque personnelle.
+- **Où a eu lieu une recharge 🆕** — à côté de 📍, une recharge affiche la borne et son adresse, sinon votre
+  **lieu de recharge** à cet endroit ou l'adresse, cherchée comme pour les trajets. La recherche trouve une
+  recharge par ces noms, et l'export des recharges les reprend.
 - **Le compteur de la recharge 🆕** (#237) — chaque session emporte désormais **ce qu'affichait le
   compteur au moment où elle a commencé**. Mate l'inscrit tout seul sur tout ce qu'il voit, et l'a
   récupéré une fois sur les recharges déjà enregistrées. Sur une recharge que **vous saisissez**, une
@@ -1642,8 +1645,9 @@ Elle est divisée en trois colonnes.
 
 - **ABRP** — envoi de la télémétrie à A Better Routeplanner (voir [§8](#8-les-intégrations-en-détail)).
 - **Recherche d'adresses** — le service pour traduire les adresses ↔ coordonnées dans la page Navigation
-  et nommer le départ et l'arrivée de vos trajets (Geoapify *recommandé*, LocationIQ, TomTom). Nécessite
-  une **clé** gratuite du service choisi ; sans elle, Mate utilise le service sans clé d'OpenStreetMap.
+  et nommer le départ et l'arrivée de vos trajets et le lieu de vos recharges (Geoapify *recommandé*,
+  LocationIQ, TomTom). Nécessite une **clé** gratuite du service choisi ; sans elle, Mate utilise le service
+  sans clé d'OpenStreetMap.
 - **⚡ Bornes de recharge** — active les **noms des bornes** sur les recharges (📍) et accepte des clés
   optionnelles (OpenChargeMap, TomTom) pour enrichir la recherche. **Désactivé** par défaut.
 - **Wallbox** — connectez votre wallbox pour les **coûts réels** et les éventuels contrôles (voir

@@ -1178,6 +1178,9 @@ un'etichetta:
 - **La tua nota 🆕** (#107) — ogni ricarica ha una **nota libera** (subito sopra *Elimina ricarica*) per
   ciò che i numeri non catturano: dov'era la colonnina, ombra/riparo, quanto è affidabile, le condizioni
   del parcheggio, il meteo, qualsiasi appunto personale.
+- **Dove è avvenuta una ricarica 🆕** — accanto a 📍 una ricarica mostra la colonnina e il suo indirizzo,
+  altrimenti il tuo **luogo di ricarica** lì o l'indirizzo, cercato come per i viaggi. La ricerca trova
+  una ricarica da questi nomi, e l'esportazione delle ricariche li riporta.
 - **Il contachilometri della ricarica 🆕** (#237) — ogni ricarica si porta dietro **quanto segnava il
   contachilometri quando è cominciata**. Mate lo scrive da solo su tutto ciò che vede, e lo ha
   recuperato una volta sola anche dalle ricariche già in archivio. Sulle ricariche che **scrivi tu**
@@ -1595,8 +1598,9 @@ volta. È divisa in tre colonne.
 
 - **ABRP** — invio telemetria ad A Better Routeplanner (vedi [§8](#8-le-integrazioni-in-dettaglio)).
 - **Ricerca indirizzi** — il servizio per tradurre indirizzi ↔ coordinate nella pagina Navigazione e per
-  nominare la partenza e l'arrivo dei tuoi viaggi (Geoapify *consigliato*, LocationIQ, TomTom). Richiede
-  una **chiave** gratuita del servizio scelto; senza, Mate usa il servizio senza chiave di OpenStreetMap.
+  nominare la partenza e l'arrivo dei tuoi viaggi e il luogo delle tue ricariche (Geoapify *consigliato*,
+  LocationIQ, TomTom). Richiede una **chiave** gratuita del servizio scelto; senza, Mate usa il servizio
+  senza chiave di OpenStreetMap.
 - **⚡ Etichette colonnine** — abilita i **nomi delle colonnine** sulle ricariche (📍) e accetta
   chiavi opzionali (OpenChargeMap, TomTom) per arricchire la ricerca. È **disattivato** di default.
 - **Wallbox** — collega la tua wallbox per i **costi reali** e gli eventuali controlli (vedi

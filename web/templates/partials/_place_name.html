@@ -1,2 +1,2 @@
 {# A trip end's name, and when it is one of the user's charging places, that it is one: a bare "42" reads as an address. #}
-{% macro place_name(name, charging) %}{{ name }}{% if charging %} <span class="text-slate-500">({{ t('trip_place_charging') }})</span>{% endif %}{% endmacro %}
+{% macro place_name(name, charging) %}{{ name }}{% if charging %} <span class="text-slate-500 whitespace-nowrap">({{ t('trip_place_charging') }})</span>{% endif %}{% endmacro %}

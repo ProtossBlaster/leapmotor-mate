@@ -1197,6 +1197,9 @@ etiqueta:
 - **Tu nota 🆕** (#107) — cada carga tiene una **nota libre** (justo encima de *Eliminar la carga*)
   para lo que los números no recogen: dónde estaba el punto, si había sombra o techo, si es fiable,
   cómo está el aparcamiento, el tiempo que hacía, cualquier comentario personal.
+- **Dónde fue una carga 🆕** — junto a 📍 una carga muestra el punto de recarga y su dirección, o si no tu
+  **lugar de carga** allí o la dirección, buscada como en los trayectos. El buscador encuentra una carga
+  por ellos, y la exportación de cargas los incluye.
 - **El cuentakilómetros de la carga 🆕** (#237) — cada sesión lleva ahora **lo que marcaba el
   cuentakilómetros al empezar**. Mate lo escribe en todo lo que ve, y lo recuperó una vez de las
   cargas que ya estaban en el archivo. En una carga que **escribes tú** hay una casilla
@@ -1613,9 +1616,9 @@ dividida en tres columnas.
 
 - **ABRP** — envío de telemetría a A Better Routeplanner (ver [§8](#8-las-integraciones-en-detalle)).
 - **Búsqueda de direcciones** — el servicio que traduce direcciones ↔ coordenadas en la página de
-  Navegación y nombra dónde empiezan y terminan tus trayectos (Geoapify *recomendado*, LocationIQ,
-  TomTom). Requiere una **clave** gratuita del servicio elegido; sin ella, Mate usa el servicio sin
-  clave de OpenStreetMap.
+  Navegación y nombra dónde empiezan y terminan tus trayectos y dónde cargas (Geoapify *recomendado*,
+  LocationIQ, TomTom). Requiere una **clave** gratuita del servicio elegido; sin ella, Mate usa el
+  servicio sin clave de OpenStreetMap.
 - **⚡ Puntos de recarga** — activa los **nombres de los puntos** en las cargas (📍) y acepta claves
   opcionales (Open Charge Map, TomTom) para enriquecer la búsqueda. Viene **desactivado**.
 - **Wallbox** — conecta tu wallbox para tener **costes reales** y los controles que haya (ver

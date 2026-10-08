@@ -33,10 +33,13 @@
    back to a full reload for exactly this one context. #}
 {% set calendar_context = false %}
 {% if charges %}
+<div data-charges-list>
 <div class="space-y-3">
   {% for c in charges %}
   {% include "partials/charge_card.html" %}
   {% endfor %}
+</div>
+{% with address_credit = true %}{% include "partials/_address_credit.html" %}{% endwith %}
 </div>
 {% else %}
 <div class="text-center text-slate-500 py-10">

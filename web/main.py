@@ -1247,6 +1247,7 @@ async def charge_generate_auto_note(request: Request, charge_id: int):
 @app.get("/charges", response_class=HTMLResponse)
 async def charges_page(request: Request, highlight: int = 0, station: str = "", back: str = "", month: str = ""):
     vehicle, _ = db_reader.get_vehicle()
+    place_lookup.maybe_sweep()      # a charge that just ended gets its address without waiting for the timer
     stats   = db_reader.get_charge_stats()
     prices  = db_reader.get_charge_prices()
     status  = db_reader.get_latest_status()
@@ -2856,7 +2857,8 @@ async def set_charge_place(request: Request, charge_id: int):
     lost whatever day/tab the owner had open, just to update a few kB of HTML. It changes the same
     things a badge click does (type + cost) plus the place line beside it, so it now redraws
     exactly those, the same way /type, /cost and /free already do: the place line is this
-    request's own target, the badge is a passenger swapped out-of-band."""
+    request's own target, the badge and the 📍 line (a place names the charge first) are passengers
+    swapped out-of-band."""
     form = await request.form()
     try:
         charge = db_reader.assign_charging_place(charge_id, int(form.get("place_id") or 0))
@@ -2870,7 +2872,9 @@ async def set_charge_place(request: Request, charge_id: int):
     badge_html = templates.env.get_template("partials/charge_type_badge.html").render(
         charge=charge, charge_types=db_reader.charge_types_localised(),
         currency=db_reader.get_currency(), t=t, cost_oob=True, cost_title=cost_title, badge_oob=True)
-    return HTMLResponse(place_html + badge_html)
+    db_reader.charge_places([charge])
+    loc_html = templates.env.get_template("partials/charge_location.html").render(charge=charge, t=t, loc_oob=True)
+    return HTMLResponse(place_html + badge_html + loc_html)
 
 
 @app.get("/wallbox", response_class=HTMLResponse)
@@ -3526,6 +3530,12 @@ async def set_charge_free(request: Request, charge_id: int):
     })
 
 
+def _charge_location_line(request: Request, charge: dict, t, **state):
+    """The 📍 line of a charge, named from what the charge holds once the route has written to it."""
+    db_reader.charge_places([charge])
+    return templates.TemplateResponse(request, "partials/charge_location.html", {"charge": charge, "t": t, **state})
+
+
 @app.post("/api/charges/{charge_id}/locate", response_class=HTMLResponse)
 async def relocate_charge(request: Request, charge_id: int):
     """Manual 📍 recalculation, on demand — unlike the automatic background sweep
@@ -3536,13 +3546,11 @@ async def relocate_charge(request: Request, charge_id: int):
     charge = db_reader.get_charge_location(charge_id)
     t = i18n.get_t(db_reader.get_language())
     if not charge or not charge.get("latitude") or not charge.get("longitude"):
-        return templates.TemplateResponse(request, "partials/charge_location.html",
-                                          {"charge": charge or {"id": charge_id}, "t": t, "error": True})
+        return _charge_location_line(request, charge or {"id": charge_id}, t, error=True)
     options, ok = await asyncio.get_event_loop().run_in_executor(
         None, charger_locator.find_station_candidates, charge["latitude"], charge["longitude"])
     if not ok:
-        return templates.TemplateResponse(request, "partials/charge_location.html",
-                                          {"charge": charge, "t": t, "error": True})
+        return _charge_location_line(request, charge, t, error=True)
     if not options:
         # Nothing found — but this charge may already carry a name, from a source that has
         # since dropped the station, or from a keyed source (Open Charge Map) whose key the
@@ -3551,14 +3559,12 @@ async def relocate_charge(request: Request, charge_id: int):
         # looked up again. A button that quietly destroys what it was asked to refresh is worse
         # than one that says it found nothing. On a charge with no name either, writing nothing
         # simply leaves it to the ongoing sweep, exactly as if the button had never been pressed.
-        return templates.TemplateResponse(request, "partials/charge_location.html",
-                                          {"charge": charge, "t": t, "not_found": True})
+        return _charge_location_line(request, charge, t, not_found=True)
     if len(options) == 1:
         name, url = options[0].get("name") or "", options[0].get("url")
         db_reader.set_charge_location_name(charge_id, name, url)
         charge["location_name"], charge["location_url"] = name, url
-        return templates.TemplateResponse(request, "partials/charge_location.html",
-                                          {"charge": charge, "t": t})
+        return _charge_location_line(request, charge, t)
     return templates.TemplateResponse(request, "partials/charge_location_choices.html",
                                       {"charge": charge, "options": options, "t": t})
 
@@ -3576,8 +3582,7 @@ async def confirm_charge_location(request: Request, charge_id: int):
     db_reader.set_charge_location_name(charge_id, name, url)
     charge["location_name"], charge["location_url"] = name, url
     t = i18n.get_t(db_reader.get_language())
-    return templates.TemplateResponse(request, "partials/charge_location.html",
-                                      {"charge": charge, "t": t})
+    return _charge_location_line(request, charge, t)
 
 
 @app.get("/api/charges/{charge_id}/locate/cancel", response_class=HTMLResponse)
@@ -3585,8 +3590,7 @@ async def cancel_charge_location(request: Request, charge_id: int):
     """Dismiss the ambiguity popup without changing anything already saved."""
     charge = db_reader.get_charge_location(charge_id)
     t = i18n.get_t(db_reader.get_language())
-    return templates.TemplateResponse(request, "partials/charge_location.html",
-                                      {"charge": charge or {"id": charge_id}, "t": t})
+    return _charge_location_line(request, charge or {"id": charge_id}, t)
 
 
 @app.post("/api/charges/{charge_id}/locate/manual", response_class=HTMLResponse)
@@ -3616,17 +3620,14 @@ async def set_manual_charge_location(request: Request, charge_id: int):
         st, reason = await asyncio.get_event_loop().run_in_executor(
             None, charger_locator.ocm_station_by_id, poi_id)
         if reason:
-            return templates.TemplateResponse(request, "partials/charge_location.html",
-                                              {"charge": charge, "t": t, "ocm_error": reason})
+            return _charge_location_line(request, charge, t, ocm_error=reason)
         db_reader.set_charge_location_name(charge_id, st["name"][:200], st["url"])
         charge["location_name"], charge["location_url"] = st["name"][:200], st["url"]
-        return templates.TemplateResponse(request, "partials/charge_location.html",
-                                          {"charge": charge, "t": t})
+        return _charge_location_line(request, charge, t)
     if name:
         db_reader.set_charge_location_name(charge_id, name, None)
         charge["location_name"], charge["location_url"] = name, None
-    return templates.TemplateResponse(request, "partials/charge_location.html",
-                                      {"charge": charge, "t": t})
+    return _charge_location_line(request, charge, t)
 
 
 def _wallbox_overlay(curve: dict, home: bool) -> list | None:
@@ -3964,8 +3965,8 @@ async def save_abrp(request: Request):
 @app.post("/api/settings/geocoder", response_class=HTMLResponse)
 async def save_geocoder(request: Request):
     """Store the geocoding provider and its optional API key, used for better address/house-number
-    coverage on the Navigation page and for where trips start and end, and the switch for the latter
-    (place_lookup). Empty = keyless Photon/Nominatim."""
+    coverage on the Navigation page and for where trips start and end and charges happen, and the switch
+    for the latter (place_lookup). Empty = keyless Photon/Nominatim."""
     form = await request.form()
     if "geocoder_provider" in form:
         db_reader.set_setting("geocoder_provider", (form.get("geocoder_provider") or "").strip())
@@ -4179,7 +4180,12 @@ async def export_trips_csv():
 
 @app.get("/api/export/charges.csv")
 async def export_charges_csv():
-    return _csv_response(db_reader.get_charges(limit=1_000_000), "leapmotor-mate-charges.csv")
+    charges = db_reader.get_charges(limit=1_000_000)
+    db_reader.charge_places(charges)                 # place as its card names it; the address, also beside a station
+    for c in charges:
+        for key in ("search_text", "place_osm", "place_charging", "address_osm"):
+            c.pop(key, None)
+    return _csv_response(charges, "leapmotor-mate-charges.csv")
 
 
 @app.get("/trips/{trip_id}/route.gpx")

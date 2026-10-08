@@ -1202,6 +1202,9 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
 - **Ihre Notiz 🆕** (#107) — jeder Ladevorgang hat eine **freie Notiz** (direkt über *Ladevorgang löschen*) für das,
   was die Zahlen nicht erfassen: wo die Ladesäule stand, Schatten/Unterstand, ihre Zuverlässigkeit, die
   Parkbedingungen, das Wetter, jede persönliche Anmerkung.
+- **Wo ein Ladevorgang stattfand 🆕** — neben 📍 zeigt ein Ladevorgang die Ladestation und ihre Adresse, sonst
+  Ihren **Ladeort** dort oder die Adresse, gesucht wie bei den Fahrten. Das Suchfeld findet einen
+  Ladevorgang darüber, und der Export der Ladevorgänge enthält sie.
 - **Der Kilometerstand des Ladevorgangs 🆕** (#237) — jede Sitzung trägt jetzt **den Kilometerstand
   zum Zeitpunkt ihres Beginns**. Mate schreibt ihn selbst auf alles, was es sieht, und hat ihn einmal
   aus den bereits gespeicherten Ladevorgängen zurückgeholt. Bei einem Ladevorgang, den **Sie**
@@ -1626,8 +1629,9 @@ ist in drei Spalten unterteilt.
 
 - **ABRP** — Senden von Telemetrie an A Better Routeplanner (siehe [§8](#8-die-integrationen-im-detail)).
 - **Adresssuche** — der Dienst, um Adressen ↔ Koordinaten auf der Seite Navigation zu übersetzen und Start
-  und Ziel Ihrer Fahrten zu benennen (Geoapify *empfohlen*, LocationIQ, TomTom). Erfordert einen kostenlosen
-  **Schlüssel** des gewählten Dienstes; ohne ihn nutzt Mate den schlüssellosen Dienst von OpenStreetMap.
+  und Ziel Ihrer Fahrten sowie den Ort Ihrer Ladevorgänge zu benennen (Geoapify *empfohlen*, LocationIQ,
+  TomTom). Erfordert einen kostenlosen **Schlüssel** des gewählten Dienstes; ohne ihn nutzt Mate den
+  schlüssellosen Dienst von OpenStreetMap.
 - **⚡ Ladestationen** — aktiviert die **Namen der Ladestationen** bei den Ladevorgängen (📍) und akzeptiert optionale
   Schlüssel (OpenChargeMap, TomTom), um die Suche anzureichern. Standardmäßig **deaktiviert**.
 - **Wallbox** — verbinden Sie Ihre Wallbox für die **realen Kosten** und die eventuellen Steuerungen (siehe

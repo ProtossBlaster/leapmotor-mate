@@ -2922,8 +2922,8 @@ def get_charge_location(charge_id: int) -> Optional[dict]:
     get_location_lookup_candidates (only lists NOT-yet-labelled charges for the
     background sweep), this fetches any one charge regardless of its current label."""
     row = _get().execute(
-        "SELECT id, latitude, longitude, location_type, location_name, location_url "
-        "FROM charges WHERE id=?",
+        "SELECT id, vehicle_id, latitude, longitude, location_type, location_name, location_url, "
+        "charging_place_name FROM charges WHERE id=?",
         (charge_id,)).fetchone()
     return dict(row) if row else None
 
@@ -5910,14 +5910,15 @@ def _place_sources() -> tuple[dict, dict]:
 
 def _point_place(sources: tuple[dict, dict], vehicle_id, lat, lon) -> tuple[dict | None, dict | None]:
     """The car's charging place whose radius holds the point, and the address of the point's cell as
-    `label`, `osm` (it comes from OpenStreetMap) and `display_name`; either None, both without a GPS fix."""
+    `label`, `street` (the same without the place's own name), `osm` (it comes from OpenStreetMap) and
+    `display_name`; either None, both without a GPS fix."""
     import geohash
     if not has_gps_fix(lat, lon):
         return None, None
     found, places = sources
     a = found.get(geohash.encode(lat, lon, 8))
-    address = a and {"label": _address_label(a), "osm": a["provider"] == "nominatim",
-                     "display_name": a["display_name"]}
+    address = a and {"label": _address_label(a), "street": _address_label({**dict(a), "name": None, "display_name": None}),
+                     "osm": a["provider"] == "nominatim", "display_name": a["display_name"]}
     return _nearest_place(places.get(vehicle_id, []), lat, lon), address
 
 
@@ -5939,6 +5940,28 @@ def trip_places(trips: list[dict]) -> bool:
             t[f"{end}_place_charging"] = near is not None
         t["search_text"] = " ".join(w for w in words if w)
     return places_credit(trips)
+
+
+def charge_places(charges: list[dict]) -> None:
+    """Name each charge by where it happened, `place`: the charging place assigned to it, else the
+    station found or typed ('' is a lookup that found none), else the car's charging place whose radius
+    holds its point (`place_charging`), else the address of its cell (`place_osm` when from
+    OpenStreetMap). `address`/`address_osm`: that address without the place's own name, which beside a
+    station is often the station's, whatever names the charge. `search_text`: the note, the station,
+    both places' names and the address as a card shows it, with and without its name, and in full."""
+    if not charges:
+        return
+    sources = _place_sources()
+    for c in charges:
+        near, address = _point_place(sources, c.get("vehicle_id"), c.get("latitude"), c.get("longitude"))
+        named = c.get("charging_place_name") or c.get("location_name")
+        c["place"] = named or (near and near["name"]) or (address and address["label"])
+        c["place_charging"] = not named and near is not None
+        c["place_osm"] = bool(not named and not near and address and address["osm"])
+        c["address"], c["address_osm"] = address and address["street"], bool(address and address["osm"])
+        words = (c.get("note"), c.get("location_name"), c.get("charging_place_name"), near and near["name"],
+                 address and address["label"], c["address"], address and address["display_name"])
+        c["search_text"] = " ".join(w for w in words if w)
 
 
 def places_credit(trips: list[dict]) -> bool:
@@ -9731,6 +9754,7 @@ def get_charges_calendar_day(year: int, month: int, day: int, station: str | Non
     raw = [c for c in get_charges(limit=1_000_000) if c["id"] in ids]
     charges = _localized_charges(raw)
     charges.sort(key=lambda c: c["started_at"], reverse=True)
+    charge_places(charges)
     return charges
 
 
@@ -9740,10 +9764,10 @@ def search_charges(text: str = "", charge_type: str = "",
                     date_from: str = "", date_to: str = "",
                     station: str | None = None) -> list[dict]:
     """Flat, most-recent-first list of charges matching ALL given filters — the Ricariche
-    search bar. `text` matches the station name OR the user note (substring, case-
-    insensitive); `charge_type` is a location_type key (AC/FAST/HPC/HOME/FREE), or MANUAL;
-    the kWh/cost filters compare against the SAME billed figure the card shows
-    (_billed_kwh); `date_from`/`date_to` are inclusive "YYYY-MM-DD" LOCAL calendar dates.
+    search bar. `text` matches the note, the station, a charging place's name or the address
+    (substring, case-insensitive; see charge_places); `charge_type` is a location_type key
+    (AC/FAST/HPC/HOME/FREE), or MANUAL; the kWh/cost filters compare against the SAME billed figure
+    the card shows (_billed_kwh); `date_from`/`date_to` are inclusive "YYYY-MM-DD" LOCAL calendar dates.
     Loads the full history like get_charges_grouped (#67 — no default limit may hide
     older charges) and filters in Python — same convention as the calendar/accordion,
     no SQL date-math needed since _local_dt already localizes the timezone.
@@ -9765,10 +9789,11 @@ def search_charges(text: str = "", charge_type: str = "",
         d_to = date.fromisoformat(date_to) if date_to else None
     except ValueError:
         d_to = None
+    if q:
+        charge_places(charges)
     out = []
     for c in charges:
-        if q and q not in (c.get("location_name") or "").lower() \
-             and q not in (c.get("note") or "").lower():
+        if q and q not in c["search_text"].lower():
             continue
         # MANUAL is not a type any more but it is still a filter: the charges priced by hand with
         # no type, the ones the badge calls "✎ Manual" (add-on #2) — old placeholder and new alike.
@@ -9797,6 +9822,7 @@ def search_charges(text: str = "", charge_type: str = "",
     raw = [c for c in get_charges(limit=1_000_000) if c["id"] in ids]
     out = _localized_charges(raw)
     out.sort(key=lambda c: c["started_at"], reverse=True)
+    charge_places(out)
     return out
 
 

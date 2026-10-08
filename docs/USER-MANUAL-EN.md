@@ -1130,6 +1130,9 @@ label:
 - **Your note 🆕** (#107) — each charge has a **free-text note** (just above *Delete charge*) for the
   things the numbers don't capture: where the station was, shade/shelter, how reliable it is, parking
   conditions, weather, any personal remark.
+- **Where a charge happened 🆕** — beside 📍 a charge shows the station and its address, or else your
+  **charging place** there or the address, looked up as for trips. The search box finds a charge by them,
+  and the charges export lists them.
 - **The odometer of the charge 🆕** (#237) — every session now carries **what the odometer read when
   it started**. Mate writes it on everything it sees, and recovered it once from the charges already
   in the archive. On a charge **you type in** there is an *Odometer* box: it is the only way a
@@ -1526,8 +1529,8 @@ divided into three columns.
 
 - **ABRP** — sending telemetry to A Better Routeplanner (see [§8](#8-the-integrations-in-detail)).
 - **Address lookup** — the service that translates addresses ↔ coordinates on the Navigation page and names
-  where your trips start and end (Geoapify *recommended*, LocationIQ, TomTom). It requires a free **key**
-  for the chosen service; without one, Mate uses the keyless OpenStreetMap service.
+  where your trips start and end and where you charge (Geoapify *recommended*, LocationIQ, TomTom). It
+  requires a free **key** for the chosen service; without one, Mate uses the keyless OpenStreetMap service.
 - **⚡ Charging stations** — enables the **station names** on charges (📍) and accepts optional keys
   (Open Charge Map, TomTom) to enrich the search. It's **off** by default.
 - **Wallbox** — connect your wallbox for **real costs** and any controls (see
