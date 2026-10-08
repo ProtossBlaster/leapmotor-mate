@@ -3,7 +3,7 @@
    month also clears the day drawer below (a day open in the old month rarely makes sense in the
    new one). Day cells target only #fuel-day-drawer — clicking a day never re-renders the grid.
    Structurally the twin of charges_calendar_month.html; keep the two in step. #}
-<div id="fuel-calendar-month">
+<div id="fuel-calendar-month" data-cal-month="{{ '' if (year == today.year and month == today.month) else '%d-%02d'|format(year, month) }}">
   <div class="flex items-center justify-between mb-4">
     <button type="button" title="{{ t('charges_calendar_prev') }}"
             hx-get="api/fuel/calendar?year={{ prev_year }}&month={{ prev_month }}"

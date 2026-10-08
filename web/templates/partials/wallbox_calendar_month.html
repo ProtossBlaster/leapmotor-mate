@@ -3,7 +3,7 @@
    hx-swap="outerHTML". Day cells with sessions instead target only #wallbox-day-drawer —
    clicking a day never re-fetches the grid, and only THAT day's sessions get their AC/DC
    comparison computed (a live Home Assistant history call each — see main.py). #}
-<div id="wallbox-calendar-month">
+<div id="wallbox-calendar-month" data-cal-month="{{ '' if (year == today.year and month == today.month) else '%d-%02d'|format(year, month) }}">
   <div class="flex items-center justify-between mb-4">
     <button type="button" title="{{ t('charges_calendar_prev') }}"
             hx-get="api/wallbox/calendar?year={{ prev_year }}&month={{ prev_month }}"

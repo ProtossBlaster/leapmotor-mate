@@ -710,15 +710,25 @@ async def overview(request: Request):
     ))
 
 
+def _page_month(month: str) -> tuple[int, int]:
+    """The month a calendar page opens on: `?month=YYYY-MM`, which the page keeps in its address so a reload
+    draws the month being looked at, else today's."""
+    import re
+    m = re.fullmatch(r"([1-9]\d{3})-(\d{1,2})", month)
+    if m and 1 <= int(m[2]) <= 12:
+        return int(m[1]), int(m[2])
+    today = db_reader.today_local()
+    return today.year, today.month
+
+
 @app.get("/trips", response_class=HTMLResponse)
-async def trips_page(request: Request, highlight: int = 0):
+async def trips_page(request: Request, highlight: int = 0, month: str = ""):
     vehicle, _ = db_reader.get_vehicle()
     summary = db_reader.get_trips_summary()
     total   = summary.get("count") or 0
-    # The calendar's Month view opens on today — or, following a ?highlight=<id> link, on
+    # The calendar's Month view opens on ?month= or today — or, following a ?highlight=<id> link, on
     # whichever month that ONE trip actually falls on (same convention as Ricariche).
-    today = db_reader.today_local()
-    cal_year, cal_month, cal_open_day = today.year, today.month, 0
+    (cal_year, cal_month), cal_open_day = _page_month(month), 0
     if highlight:
         hl_date = db_reader.get_trip_local_date(highlight)
         if hl_date:
@@ -1220,7 +1230,7 @@ async def charge_generate_auto_note(request: Request, charge_id: int):
 
 
 @app.get("/charges", response_class=HTMLResponse)
-async def charges_page(request: Request, highlight: int = 0, station: str = "", back: str = ""):
+async def charges_page(request: Request, highlight: int = 0, station: str = "", back: str = "", month: str = ""):
     vehicle, _ = db_reader.get_vehicle()
     stats   = db_reader.get_charge_stats()
     prices  = db_reader.get_charge_prices()
@@ -1233,10 +1243,9 @@ async def charges_page(request: Request, highlight: int = 0, station: str = "", 
         # top_n cap, same as search_charges(station=...) below.
         stations = db_reader.get_charging_stations(top_n=None)
         station_info = next((s for s in stations if s["key"] == station), None)
-    # The calendar's Month view opens on today — or, following a ?highlight=<id> link (e.g. a
+    # The calendar's Month view opens on ?month= or today — or, following a ?highlight=<id> link (e.g. a
     # map popup), on whichever month that ONE charge actually falls on, so it isn't invisible.
-    today = db_reader.today_local()
-    cal_year, cal_month, cal_open_day = today.year, today.month, 0
+    (cal_year, cal_month), cal_open_day = _page_month(month), 0
     if highlight:
         hl_date = db_reader.get_charge_local_date(highlight)
         if hl_date:
@@ -1952,7 +1961,7 @@ def _fuel_local_to_utc(ts_str: str) -> str:
     return dt.astimezone(timezone.utc).isoformat()
 
 
-def _fuel_ctx(request: Request):
+def _fuel_ctx(request: Request, month: str = ""):
     """Shared context for the Rifornimenti page + its HTMX partials: the refuel log and the live tank
     state (level from the car's fuel %, blended €/L from the fuel WAC)."""
     from datetime import datetime, timezone
@@ -1983,19 +1992,19 @@ def _fuel_ctx(request: Request):
             "eur_per_l": round(blend, 3) if blend else None,
             "value": round(liters * blend, 2) if (liters and blend) else None}
     now_local = datetime.now(timezone.utc).astimezone(db_reader._local_tz()).strftime("%Y-%m-%dT%H:%M")
-    today = db_reader.today_local()
+    cal_year, cal_month = _page_month(month)
     return _ctx(page="fuel", vehicle=vehicle, purchases=purchases, tank=tank, now_local=now_local,
-                detected=detected,
-                # drawn, not fetched — see _charges_calendar_ctx (#240). The wrapper still listens
-                # for `fuelChanged`, which is what refreshes it after an entry is added or deleted.
-                calendar_html=_fuel_calendar_html(today.year, today.month))
+                detected=detected, cal_year=cal_year, cal_month=cal_month,
+                # drawn, not fetched — see _charges_calendar_ctx (#240). The page still redraws
+                # it on `fuelChanged`, which is what refreshes it after an entry is added or deleted.
+                calendar_html=_fuel_calendar_html(cal_year, cal_month))
 
 
 @app.get("/fuel", response_class=HTMLResponse)
-async def fuel_page(request: Request):
+async def fuel_page(request: Request, month: str = ""):
     if _fuel_blocked():
         return RedirectResponse(request.headers.get("x-ingress-path", "") + "/")
-    return templates.TemplateResponse(request, "fuel.html", _fuel_ctx(request))
+    return templates.TemplateResponse(request, "fuel.html", _fuel_ctx(request, month))
 
 
 @app.post("/api/fuel/add", response_class=HTMLResponse)
@@ -2850,19 +2859,19 @@ async def set_charge_place(request: Request, charge_id: int):
 
 
 @app.get("/wallbox", response_class=HTMLResponse)
-async def wallbox_page(request: Request):
+async def wallbox_page(request: Request, month: str = ""):
     """Wallbox page — only reachable when enabled in Settings. Data wiring to
     Home Assistant comes next; for now this previews the intended layout."""
     if db_reader.get_setting("wallbox_enabled", "0") != "1":
         return RedirectResponse(request.headers.get("x-ingress-path", "") + "/settings")
     vehicle, _ = db_reader.get_vehicle()
-    today = db_reader.today_local()
+    cal_year, cal_month = _page_month(month)
     return templates.TemplateResponse(request, "wallbox.html", _ctx(
         page="wallbox", vehicle=vehicle,
         configured=ha_client.is_configured() and bool(ha_client.get_mapping()),
-        cal_year=today.year, cal_month=today.month,
+        cal_year=cal_year, cal_month=cal_month,
         cal_years=db_reader.get_wallbox_years(),
-        calendar_html=_wallbox_calendar_html(today.year, today.month),   # drawn, not fetched
+        calendar_html=_wallbox_calendar_html(cal_year, cal_month),   # drawn, not fetched
     ))
 
 

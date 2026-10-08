@@ -1,7 +1,5 @@
 {% extends "base.html" %}
-{# 0 = no idle reload (#236, @michapr). The month you are looking at lives in an htmx swap, not in
-   the address — see the calendar's hx-get below — so location.reload() cannot restore it and drops
-   you back on the current month mid-read. This page shows HISTORY: there is nothing live for a
+{# 0 = no idle reload (#236, @michapr). This page shows HISTORY: there is nothing live for a
    reload to fetch, and the manual refresh button is in the header for the rare trip that has just
    ended. The idle guards in base.html were never going to cover this: they protect a field you are
    typing in or a mode you switched on, not a choice you have already made and are now reading. #}
