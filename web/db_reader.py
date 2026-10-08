@@ -5895,14 +5895,8 @@ def _address_label(a) -> str | None:
     return label or (a["display_name"] or "").split(",")[0].strip() or None
 
 
-def trip_places(trips: list[dict]) -> bool:
-    """Name each trip's start and end, `start_place` and `end_place` (None without a GPS fix or an
-    address), and set `search_text`, what a searched word is looked for in: the note, both names and
-    both full addresses. A charging place whose radius holds the point names it before any address,
-    and `start_place_charging`/`end_place_charging` say so. Returns places_credit(trips)."""
-    import geohash
-    if not trips:
-        return False
+def _place_sources() -> tuple[dict, dict]:
+    """What names a point: the addresses found, by geohash-8 cell, and the enabled charging places, by car."""
     db = _get()
     found = {r["geohash"]: r for r in db.execute(
         "SELECT geohash, provider, name, house_number, road, suburb, locality, country_code, display_name"
@@ -5911,20 +5905,38 @@ def trip_places(trips: list[dict]) -> bool:
     for p in db.execute("SELECT id, vehicle_id, name, latitude, longitude, radius_m FROM charging_places"
                         " WHERE enabled = 1"):
         places.setdefault(p["vehicle_id"], []).append(dict(p))
+    return found, places
+
+
+def _point_place(sources: tuple[dict, dict], vehicle_id, lat, lon) -> tuple[dict | None, dict | None]:
+    """The car's charging place whose radius holds the point, and the address of the point's cell as
+    `label`, `osm` (it comes from OpenStreetMap) and `display_name`; either None, both without a GPS fix."""
+    import geohash
+    if not has_gps_fix(lat, lon):
+        return None, None
+    found, places = sources
+    a = found.get(geohash.encode(lat, lon, 8))
+    address = a and {"label": _address_label(a), "osm": a["provider"] == "nominatim",
+                     "display_name": a["display_name"]}
+    return _nearest_place(places.get(vehicle_id, []), lat, lon), address
+
+
+def trip_places(trips: list[dict]) -> bool:
+    """Name each trip's start and end, `start_place` and `end_place` (None without a GPS fix or an
+    address), and set `search_text`, what a searched word is looked for in: the note, both names and
+    both full addresses. A charging place whose radius holds the point names it before any address,
+    and `start_place_charging`/`end_place_charging` say so. Returns places_credit(trips)."""
+    if not trips:
+        return False
+    sources = _place_sources()
     for t in trips:
         words = [t.get("note")]
         for end in ("start", "end"):
-            lat, lon = t.get(f"{end}_lat"), t.get(f"{end}_lon")
-            label, osm, near = None, False, None
-            if has_gps_fix(lat, lon):
-                a = found.get(geohash.encode(lat, lon, 8))
-                near = _nearest_place(places.get(t.get("vehicle_id"), []), lat, lon)
-                if near:
-                    label = near["name"]
-                elif a:
-                    label, osm = _address_label(a), a["provider"] == "nominatim"
-                words += [label, a and a["display_name"]]
-            t[f"{end}_place"], t[f"{end}_place_osm"], t[f"{end}_place_charging"] = label, osm, near is not None
+            near, address = _point_place(sources, t.get("vehicle_id"), t.get(f"{end}_lat"), t.get(f"{end}_lon"))
+            label = near["name"] if near else address and address["label"]
+            words += [label, address and address["display_name"]]
+            t[f"{end}_place"], t[f"{end}_place_osm"] = label, bool(not near and address and address["osm"])
+            t[f"{end}_place_charging"] = near is not None
         t["search_text"] = " ".join(w for w in words if w)
     return places_credit(trips)
 
