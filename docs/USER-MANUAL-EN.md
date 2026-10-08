@@ -1,8 +1,19 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.12.0 · **Language:** English
+> **Mate version:** v4.12.1 · **Language:** English
 
-## New in 4.12.0
+## New in 4.12.1
+
+**A reload stays on the month you are looking at.** In the Trips, Charges, Wallbox and Refuels
+calendars the month on screen goes into the page's address (for example `?month=2026-09`), so a
+reload — yours, or the one the page does by itself — comes back to that month, with the day or range
+you had open; it used to go back to the current month. The browser's Back after opening a trip does
+the same. **Jump to today** takes the month out of the address again. When a charge ends, the Charges
+page reloads itself and now stays on the month you are looking at: the new charge is in the current
+month, one click on **Jump to today** away. On Refuels, adding or deleting a refuel redraws the month
+on screen, no longer the current one. By @arekm (#403).
+
+### New in 4.12.0
 
 **Several days at once in the Trips calendar.** A week, a weekend or a holiday opens in one gesture:
 on a computer **Shift-click** a second day, or **drag** the mouse across the days; on a phone **hold** a
@@ -828,6 +839,10 @@ second).
 
 Many pages **refresh themselves** roughly every 30 seconds, so the "live" values (status, charge in
 progress…) stay fresh without reloading the page.
+
+A calendar keeps the month you are looking at in the page's address, so a reload — the page's own or
+yours — brings that month back with the day or range you had open; **Jump to today** returns to the
+current month.
 
 **Language, currency and units** are changed from *Settings → 🌍 Language & Currency*:
 

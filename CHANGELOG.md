@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.12.1] — 2026-10-08
+
+- **A reload stays on the month being looked at**
+  ([#403](https://github.com/ProtossBlaster/leapmotor-mate/pull/403), @arekm). The Trips, Charges, Wallbox and Refuels calendars keep the month on screen in the
+  page's address (`?month=YYYY-MM`), so a reload — the user's, the Wallbox page's own every 30 seconds
+  when idle, or the Charges page's at the end of a charge — and the browser's Back from a trip come back
+  to that month, with the day or range that was open; they used to go back to the current month. "Jump
+  to today" takes the month out of the address. A day picked replaces the `?highlight=` link the page
+  was opened by, so a reload opens the day picked. On Refuels, a refuel added or deleted redraws the
+  month on screen, not the current one.
+
 ## [4.12.0] — 2026-10-08
 
 - **The Trips calendar opens a range of days**

@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.12.0 · **Langue :** Français
+> **Version de Mate :** v4.12.1 · **Langue :** Français
 
-## Nouveautés de la version 4.12.0
+## Nouveautés de la version 4.12.1
+
+**Recharger la page garde le mois que vous regardez.** Dans les calendriers Trajets, Recharges,
+Wallbox et Pleins, le mois à l'écran va dans l'adresse de la page (par exemple `?month=2026-09`) : un
+rechargement — le vôtre, ou celui que la page fait toute seule — revient sur ce mois, avec le jour ou la
+période que vous aviez ouverts ; avant, il revenait toujours au mois en cours. Le bouton Retour du
+navigateur, après l'ouverture d'un trajet, fait de même. **Revenir à aujourd'hui** retire le mois de
+l'adresse. Quand une recharge se termine, la page Recharges se recharge toute seule et reste désormais
+sur le mois que vous regardez : la nouvelle recharge est dans le mois en cours, à un clic sur **Revenir
+à aujourd'hui**. Dans Pleins, ajouter ou supprimer un plein redessine le mois à l'écran, et non plus le
+mois en cours. Par @arekm (#403).
+
+### Nouveautés de la version 4.12.0
 
 **Plusieurs jours à la fois dans le calendrier des Trajets.** Une semaine, un week-end ou des vacances
 s'ouvrent d'un seul geste : sur un ordinateur, **Maj+clic** sur un second jour, ou **glisser** la souris
@@ -895,6 +907,10 @@ trajets et les recharges restent.
 
 De nombreuses pages **se mettent à jour toutes seules** environ toutes les 30 secondes ; ainsi les valeurs
 « en direct » (état, recharge en cours…) restent fraîches sans recharger la page.
+
+Un calendrier garde dans l'adresse de la page le mois que vous regardez : un rechargement — celui de la
+page ou le vôtre — ramène ce mois avec le jour ou la période que vous aviez ouverts ; **Revenir à
+aujourd'hui** revient au mois en cours.
 
 **La langue, la devise et les unités** se changent depuis *Paramètres → 🌍 Langue et Devise* :
 

@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.12.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.12.1 · **Lingua:** Italiano
 
-## Novità della 4.12.0
+## Novità della 4.12.1
+
+**Ricaricando la pagina resti sul mese che stai guardando.** Nei calendari di Viaggi, Ricariche,
+Wallbox e Rifornimenti il mese sullo schermo va nell'indirizzo della pagina (per esempio
+`?month=2026-09`), quindi un ricaricamento — il tuo, o quello che la pagina fa da sola — torna su quel
+mese, con il giorno o l'intervallo che avevi aperto; prima tornava sempre al mese corrente. Lo stesso fa
+il tasto Indietro del browser dopo aver aperto un viaggio. **Torna a oggi** toglie di nuovo il mese
+dall'indirizzo. Quando una ricarica finisce, la pagina Ricariche si ricarica da sola e adesso resta sul
+mese che stai guardando: la ricarica nuova è nel mese corrente, a un clic su **Torna a oggi**. In
+Rifornimenti, aggiungere o cancellare un rifornimento ridisegna il mese sullo schermo, non più quello
+corrente. Di @arekm (#403).
+
+### Novità della 4.12.0
 
 **Più giorni insieme nel calendario dei Viaggi.** Una settimana, un fine settimana o una vacanza si
 aprono con un gesto solo: sul computer **Maiusc-clic** su un secondo giorno, oppure **trascini** il
@@ -855,6 +867,10 @@ certificato, i viaggi e le ricariche restano.
 
 Molte pagine si **aggiornano da sole** ogni 30 secondi circa, quindi i valori "vivi" (stato,
 ricarica in corso…) restano freschi senza ricaricare la pagina.
+
+Un calendario tiene nell'indirizzo della pagina il mese che stai guardando, quindi un ricaricamento —
+della pagina o tuo — riporta quel mese con il giorno o l'intervallo che avevi aperto; **Torna a oggi**
+torna al mese corrente.
 
 **Lingua, valuta e unità** si cambiano da *Impostazioni → 🌍 Lingua e valuta*:
 

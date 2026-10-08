@@ -1,8 +1,19 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.12.0 · **Idioma:** Español
+> **Versión de Mate:** v4.12.1 · **Idioma:** Español
 
-## Novedades de la versión 4.12.0
+## Novedades de la versión 4.12.1
+
+**Al recargar la página te quedas en el mes que estás mirando.** En los calendarios de Trayectos,
+Cargas, Wallbox y Repostajes, el mes en pantalla va en la dirección de la página (por ejemplo
+`?month=2026-09`), así que una recarga —la tuya o la que la página hace sola— vuelve a ese mes, con el
+día o el intervalo que tenías abierto; antes volvía siempre al mes actual. El botón Atrás del navegador,
+después de abrir un trayecto, hace lo mismo. **Ir a hoy** quita el mes de la dirección. Cuando termina
+una carga, la página Cargas se recarga sola y ahora se queda en el mes que estás mirando: la carga
+nueva está en el mes actual, a un clic en **Ir a hoy**. En Repostajes, añadir o borrar un repostaje
+redibuja el mes en pantalla, y ya no el mes actual. De @arekm (#403).
+
+### Novedades de la versión 4.12.0
 
 **Varios días a la vez en el calendario de Trayectos.** Una semana, un fin de semana o unas vacaciones
 se abren con un solo gesto: en el ordenador, **Mayús+clic** en un segundo día, o **arrastrar** el ratón
@@ -874,6 +885,10 @@ buscar lo primero y quería lo segundo).
 
 Muchas páginas **se actualizan solas** más o menos cada 30 segundos, así que los valores «en directo»
 (estado, carga en marcha…) se mantienen frescos sin recargar la página.
+
+Un calendario guarda en la dirección de la página el mes que estás mirando, así que una recarga —la de
+la página o la tuya— devuelve ese mes con el día o el intervalo que tenías abierto; **Ir a hoy** vuelve
+al mes actual.
 
 **El idioma, la moneda y las unidades** se cambian desde *Ajustes → 🌍 Idioma y moneda*:
 

@@ -1,8 +1,21 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.12.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.12.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.12.0
+## Neu in Version 4.12.1
+
+**Beim Neuladen bleiben Sie im Monat, den Sie gerade ansehen.** In den Kalendern Fahrten,
+Ladevorgänge, Wallbox und Tankvorgänge steht der angezeigte Monat in der Adresse der Seite (zum Beispiel
+`?month=2026-09`), sodass ein Neuladen — Ihres oder das, das die Seite von selbst macht — zu diesem
+Monat zurückkehrt, mit dem Tag oder Zeitraum, den Sie geöffnet hatten; bisher ging es immer zum
+aktuellen Monat zurück. Die Zurück-Taste des Browsers nach dem Öffnen einer Fahrt tut dasselbe. **Zu
+heute springen** nimmt den Monat wieder aus der Adresse. Wenn ein Ladevorgang endet, lädt sich die Seite
+Ladevorgänge von selbst neu und bleibt jetzt im Monat, den Sie ansehen: Der neue Ladevorgang liegt im
+aktuellen Monat, einen Klick auf **Zu heute springen** entfernt. Bei den Tankvorgängen zeichnet ein
+hinzugefügter oder gelöschter Tankvorgang den angezeigten Monat neu, nicht mehr den aktuellen. Von
+@arekm (#403).
+
+### Neu in Version 4.12.0
 
 **Mehrere Tage auf einmal im Fahrten-Kalender.** Eine Woche, ein Wochenende oder ein Urlaub öffnet sich
 mit einer einzigen Geste: am Computer per **Umschalt-Klick** auf einen zweiten Tag oder durch **Ziehen**
@@ -882,6 +895,10 @@ erneut; Zertifikat, Fahrten und Ladevorgänge bleiben.
 
 Viele Seiten **aktualisieren sich von selbst** etwa alle 30 Sekunden, sodass die „lebendigen" Werte (Status,
 laufender Ladevorgang…) frisch bleiben, ohne die Seite neu zu laden.
+
+Ein Kalender hält den angezeigten Monat in der Adresse der Seite, sodass ein Neuladen — das der Seite
+oder Ihres — diesen Monat mit dem geöffneten Tag oder Zeitraum zurückbringt; **Zu heute springen** kehrt
+zum aktuellen Monat zurück.
 
 **Sprache, Währung und Einheiten** ändern Sie unter *Einstellungen → 🌍 Sprache & Währung*:
 
