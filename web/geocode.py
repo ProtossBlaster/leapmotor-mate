@@ -82,25 +82,72 @@ _FORWARD = {"geoapify": _geoapify_geocode, "locationiq": _locationiq_geocode, "t
 
 
 # ── Keyed providers (reverse) ────────────────────────────────────────────────
+# Each answers with the address in parts, under the same keys whoever the provider is (_place), or
+# None when it has no address there.
 
-def _geoapify_reverse(lat, lon, key) -> str | None:
+def _first(d: dict, *keys):
+    return next((d[k] for k in keys if d.get(k)), None)
+
+
+def _place(name=None, house_number=None, road=None, suburb=None, locality=None, postcode=None,
+           country_code=None, display_name=None) -> dict:
+    """One address: the keys say what a value is, not which provider named it so. A name is the
+    place's own (a shop, a station), never the street's."""
+    return {"name": name if name != road else None, "house_number": house_number, "road": road,
+            "suburb": suburb, "locality": locality, "postcode": postcode,
+            "country_code": (country_code or "").lower() or None, "display_name": display_name}
+
+
+# OpenStreetMap kinds whose name is the place a trip went to (a shop, a station), not a building or
+# an area around it.
+_OSM_NAMED = ("amenity", "shop", "tourism", "leisure", "office")
+
+
+def _osm_place(data: dict) -> dict | None:
+    """A Nominatim answer in parts (LocationIQ answers in the same shape); None for its "Unable to
+    geocode". The address carries a named feature under its kind, e.g. "amenity": "Powerdot"."""
+    if not data.get("display_name"):
+        return None
+    a = data.get("address") or {}
+    return _place(name=_first(a, *_OSM_NAMED), house_number=a.get("house_number"), road=a.get("road"),
+                  suburb=_first(a, "suburb", "neighbourhood", "quarter", "city_district"),
+                  locality=_first(a, "city", "town", "village", "municipality", "hamlet"),
+                  postcode=a.get("postcode"), country_code=a.get("country_code"),
+                  display_name=data["display_name"])
+
+
+def _geoapify_reverse(lat, lon, key) -> dict | None:
     url = (f"https://api.geoapify.com/v1/geocode/reverse"
            f"?lat={lat}&lon={lon}&apiKey={urllib.parse.quote(key)}")
     feats = _get(url).get("features", [])
-    return feats[0]["properties"].get("formatted") if feats else None
+    if not feats:
+        return None
+    p = feats[0]["properties"]
+    return _place(name=p.get("name") if p.get("result_type") == "amenity" else None,
+                  house_number=p.get("housenumber"), road=p.get("street"),
+                  suburb=_first(p, "suburb", "district"),
+                  locality=_first(p, "city", "town", "village", "municipality", "hamlet"),
+                  postcode=p.get("postcode"), country_code=p.get("country_code"),
+                  display_name=p.get("formatted"))
 
 
-def _locationiq_reverse(lat, lon, key) -> str | None:
+def _locationiq_reverse(lat, lon, key) -> dict | None:
     url = (f"https://us1.locationiq.com/v1/reverse"
-           f"?key={urllib.parse.quote(key)}&lat={lat}&lon={lon}&format=json")
-    return _get(url).get("display_name")
+           f"?key={urllib.parse.quote(key)}&lat={lat}&lon={lon}&format=json&addressdetails=1")
+    return _osm_place(_get(url))
 
 
-def _tomtom_reverse(lat, lon, key) -> str | None:
+def _tomtom_reverse(lat, lon, key) -> dict | None:
     url = (f"https://api.tomtom.com/search/2/reverseGeocode/{lat},{lon}.json"
            f"?key={urllib.parse.quote(key)}")
     addrs = _get(url).get("addresses", [])
-    return addrs[0].get("address", {}).get("freeformAddress") if addrs else None
+    if not addrs:
+        return None
+    a = addrs[0].get("address", {})
+    return _place(house_number=a.get("streetNumber"), road=a.get("streetName"),
+                  suburb=a.get("municipalitySubdivision"), locality=a.get("municipality"),
+                  postcode=a.get("postalCode"), country_code=a.get("countryCode"),
+                  display_name=a.get("freeformAddress"))
 
 
 _REVERSE = {"geoapify": _geoapify_reverse, "locationiq": _locationiq_reverse, "tomtom": _tomtom_reverse}
@@ -139,10 +186,10 @@ def _photon_geocode(address: str, city: str) -> dict | None:
     return {"lat": lat, "lon": lon, "label": label[:200]}
 
 
-def _nominatim_reverse(lat, lon) -> str | None:
+def _nominatim_reverse(lat, lon) -> dict | None:
     url = (f"https://nominatim.openstreetmap.org/reverse?format=jsonv2"
-           f"&lat={lat}&lon={lon}&zoom=18&addressdetails=0")
-    return _get(url).get("display_name")
+           f"&lat={lat}&lon={lon}&zoom=18&addressdetails=1")
+    return _osm_place(_get(url))
 
 
 # ── Public API ───────────────────────────────────────────────────────────────
@@ -175,8 +222,9 @@ def reverse_geocode(lat: float, lon: float, provider: str = "", api_key: str | N
     if fn and api_key:
         try:
             res = fn(lat, lon, api_key)
-            if res:
-                return res
+            if res and res["display_name"]:
+                return res["display_name"]
         except Exception:  # noqa: BLE001
             pass
-    return _nominatim_reverse(lat, lon)
+    res = _nominatim_reverse(lat, lon)
+    return res["display_name"] if res else None
