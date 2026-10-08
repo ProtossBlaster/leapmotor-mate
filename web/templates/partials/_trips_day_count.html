@@ -1,0 +1,5 @@
+{# A trips heading's count of `trips`, the cloud's 0 km segments apart. #}
+{% set micro_count = trips|selectattr('cloud_zero_segment')|list|length %}
+{% set main_count = trips|length - micro_count %}
+<span class="text-slate-500 text-xs">{{ main_count }} {{ t('trip_singular') if main_count == 1 else t('trips_plural') }}</span>
+{% if micro_count %}<span class="text-slate-500 text-xs">+ {{ micro_count }} {{ t('cloud_zero_segments') }}</span>{% endif %}

@@ -49,6 +49,11 @@ def fmt_day_month_year(lang: str, dt) -> str:
     return f"{dt.day:02d} {months['abbr'][dt.month - 1]} {dt.year}"
 
 
+def fmt_day_range(lang: str, first, last) -> str:
+    """Two days of one month as "01 – 05 paź 2026"."""
+    return f"{first.day:02d} – {fmt_day_month_year(lang, last)}"
+
+
 def weekday_abbrs(lang: str) -> list:
     """Monday-first 3-ish-letter weekday abbreviations for the Charges calendar's column
     header (e.g. ["Lun", "Mar", ...]) — a fixed 7-item list, unrelated to locale.strftime

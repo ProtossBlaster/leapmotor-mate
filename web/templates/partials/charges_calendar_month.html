@@ -56,7 +56,7 @@
         {% if cell.count %}
         <button type="button"{% if is_open %} data-selected{% endif %}
                 hx-get="api/charges/calendar/day?year={{ year }}&month={{ month }}&day={{ cell.day }}{% if station %}&station={{ station }}{% endif %}"
-                hx-target="#charges-day-drawer" hx-swap="innerHTML"
+                hx-target="#charges-day-drawer" hx-swap="innerHTML" hx-sync="#charges-day-drawer:replace"
                 class="cal-day aspect-square rounded-lg border flex flex-col items-center justify-center gap-0.5 lg:gap-1 cursor-pointer hover:border-brand transition-colors"
                 style="background:#0f172a;border-color:{% if is_today %}#fbbf24{% else %}#1e293b{% endif %}">
           <span class="text-[11px] sm:text-sm lg:text-lg {% if is_today %}text-yellow-400 font-bold{% else %}text-slate-300{% endif %}">{{ cell.day }}</span>

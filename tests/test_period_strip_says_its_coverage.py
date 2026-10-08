@@ -25,7 +25,7 @@ import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MONTH = ROOT / "web" / "templates" / "partials" / "trips_calendar_month.html"
-DAY = ROOT / "web" / "templates" / "partials" / "trips_calendar_day_content.html"
+DAY = ROOT / "web" / "templates" / "partials" / "_trips_day_totals.html"
 
 
 def _trip(km, ec=None):

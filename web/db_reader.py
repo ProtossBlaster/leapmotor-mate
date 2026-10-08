@@ -6945,11 +6945,12 @@ def get_trips_calendar_month(year: int, month: int) -> dict:
     return {"year": year, "month": month, "days": days, "total": total}
 
 
-def get_trips_calendar_day(year: int, month: int, day: int) -> list[dict]:
-    """The trip_row.html-ready trips for ONE calendar day — backs the Month view's day
-    drawer, most-recent-first."""
+def get_trips_calendar_day(year: int, month: int, day: int, to_day: "int | None" = None) -> list[dict]:
+    """The trip_row.html-ready trips for ONE calendar day, or for `day`..`to_day` of the month —
+    backs the Month view's day drawer, most-recent-first."""
+    last = to_day or day
     trips = _localized_trips(get_trips(limit=1_000_000))
-    trips = [t for t in trips if t["_dt"].year == year and t["_dt"].month == month and t["_dt"].day == day]
+    trips = [t for t in trips if t["_dt"].year == year and t["_dt"].month == month and day <= t["_dt"].day <= last]
     trips.sort(key=lambda t: t["started_at"], reverse=True)
     return trips
 
