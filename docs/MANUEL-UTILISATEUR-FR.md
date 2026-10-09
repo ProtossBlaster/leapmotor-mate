@@ -1,8 +1,21 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.13.0 · **Langue :** Français
+> **Version de Mate :** v4.13.1 · **Langue :** Français
 
-## Nouveautés de la version 4.13.0
+## Nouveautés de la version 4.13.1
+
+**Chaque recharge montre où elle a eu lieu.** À côté de 📍, une recharge affiche la borne suivie de son
+adresse ; sans borne, votre lieu de recharge à cet endroit, avec « (lieu de recharge) », ou l'adresse —
+une recharge à domicile comprise. Les adresses viennent de la même recherche que celles des trajets : une
+recharge là où un trajet s'est déjà terminé ne coûte aucune requête ; l'interrupteur de *Paramètres →
+Recherche d'adresses*, désormais appelé **Rechercher les adresses des trajets et des recharges**, couvre
+les deux. Les recharges de plus de trois jours ne sont pas recherchées d'elles-mêmes. La recherche dans
+Recharges et dans Événements trouve une recharge par son adresse, sa ville ou son code postal, et le CSV
+des recharges gagne `place` et `address`. Un trajet fusionné dont le dernier morceau s'est terminé dans
+les trois derniers jours voit désormais son départ recherché même si le premier morceau s'est terminé
+avant. Par @arekm (#405).
+
+### Nouveautés de la version 4.13.0
 
 **Les trajets montrent d'où ils sont partis et où ils sont arrivés.** La ligne d'un trajet indique
 « A → B », le *Résumé du trajet* sur sa page nomme les deux extrémités, de même que les lignes de début

@@ -3,6 +3,20 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.13.1] — 2026-10-09
+
+- **A charge shows where it happened**
+  ([#405](https://github.com/ProtossBlaster/leapmotor-mate/pull/405), @arekm). Beside 📍 a charge card shows the station with its address after it; without a
+  station, the place assigned to the charge, else the charging place whose radius holds its point,
+  marked "(charging place)", else the address — a home charge included. The addresses come from 4.13.0's
+  `addresses` table and background pass, which now also looks up the charges that ended in the last
+  three days (a merged charge at its first piece's point); a trip and a charge in one cell cost one
+  request. The Settings ▸ Address lookup switch is renamed "Look up the addresses of trips and charges"
+  and stops both. The Charges and Events searches find a charge by its address, town or postcode; a
+  charge's rows in Events are named as its card; the charges CSV gains `place` and `address`; every
+  route that redraws the 📍 line names the charge the same way. Also fixed: the start of a merged trip
+  was not looked up when its first piece had ended before the three days and its last inside them.
+
 ## [4.13.0] — 2026-10-09
 
 - **Trips show where they started and ended**

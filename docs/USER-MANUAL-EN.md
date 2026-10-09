@@ -1,8 +1,19 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.13.0 · **Language:** English
+> **Mate version:** v4.13.1 · **Language:** English
 
-## New in 4.13.0
+## New in 4.13.1
+
+**Every charge shows where it happened.** Beside 📍 a charge shows the station with its address after
+it; without a station, your charging place there, with "(charging place)", or the address — a charge at
+home included. The addresses come from the same lookup as the trips', so a charge where a trip already
+ended costs no request; the switch in *Settings → Address lookup*, now called **Look up the addresses of
+trips and charges**, covers both. Charges older than three days are not looked up by themselves. The
+search on Charges and on Events finds a charge by its address, town or postcode, and the charges CSV
+gains `place` and `address`. A merged trip whose last piece ended in the last three days now has its
+start looked up even when its first piece ended earlier. By @arekm (#405).
+
+### New in 4.13.0
 
 **Trips show where they started and ended.** A trip's row reads "A → B", the *Trip summary* on its
 page names both ends, and so do the trip's start and end rows in Events. An end inside one of your

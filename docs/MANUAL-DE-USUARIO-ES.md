@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.13.0 · **Idioma:** Español
+> **Versión de Mate:** v4.13.1 · **Idioma:** Español
 
-## Novedades de la versión 4.13.0
+## Novedades de la versión 4.13.1
+
+**Cada carga muestra dónde se hizo.** Junto a 📍 una carga muestra el cargador con su dirección detrás;
+sin cargador, tu lugar de carga allí, con «(lugar de carga)», o la dirección — también una carga en casa.
+Las direcciones vienen de la misma búsqueda que las de los trayectos, así que una carga donde ya terminó
+un trayecto no cuesta ninguna petición; el interruptor de *Ajustes → Búsqueda de direcciones*, que ahora
+se llama **Buscar las direcciones de trayectos y cargas**, vale para ambos. Las cargas de más de tres días
+no se buscan solas. La búsqueda en Cargas y en Eventos encuentra una carga por su dirección, su ciudad o
+su código postal, y el CSV de cargas gana `place` y `address`. Un trayecto unido cuyo último tramo terminó
+en los últimos tres días ahora tiene su origen buscado aunque el primer tramo terminara antes. De @arekm
+(#405).
+
+### Novedades de la versión 4.13.0
 
 **Los trayectos muestran de dónde salieron y adónde llegaron.** La fila de un trayecto dice «A → B», el
 *Resumen del viaje* en su página nombra los dos extremos, y lo mismo las filas de inicio y fin del

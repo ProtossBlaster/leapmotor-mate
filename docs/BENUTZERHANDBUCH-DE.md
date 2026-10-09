@@ -1,8 +1,21 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.13.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.13.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.13.0
+## Neu in Version 4.13.1
+
+**Jeder Ladevorgang zeigt, wo er stattfand.** Neben 📍 zeigt ein Ladevorgang die Ladestation mit ihrer
+Adresse dahinter; ohne Ladestation Ihren Ladeort dort, mit „(Ladeort)“, oder die Adresse — auch für einen
+Ladevorgang zu Hause. Die Adressen kommen aus derselben Suche wie die der Fahrten, sodass ein Ladevorgang
+dort, wo schon eine Fahrt endete, keine Anfrage kostet; der Schalter unter *Einstellungen → Adresssuche*,
+jetzt **Adressen von Fahrten und Ladevorgängen nachschlagen** genannt, gilt für beide. Ladevorgänge, die
+älter als drei Tage sind, werden nicht von selbst nachgeschlagen. Die Suche unter Ladevorgänge und unter
+Ereignisse findet einen Ladevorgang über seine Adresse, seinen Ort oder seine Postleitzahl, und die
+Ladevorgänge-CSV erhält `place` und `address`. Bei einer zusammengeführten Fahrt, deren letztes Stück in
+den letzten drei Tagen endete, wird jetzt auch der Start nachgeschlagen, wenn das erste Stück früher
+endete. Von @arekm (#405).
+
+### Neu in Version 4.13.0
 
 **Fahrten zeigen, wo sie begonnen und geendet haben.** Die Zeile einer Fahrt lautet „A → B“, die
 *Fahrtübersicht* auf ihrer Seite nennt beide Enden, ebenso die Zeilen für Beginn und Ende der Fahrt

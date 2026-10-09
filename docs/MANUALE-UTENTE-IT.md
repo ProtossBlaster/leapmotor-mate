@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.13.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.13.1 · **Lingua:** Italiano
 
-## Novità della 4.13.0
+## Novità della 4.13.1
+
+**Ogni ricarica mostra dove è avvenuta.** Accanto a 📍 una ricarica mostra la colonnina con il suo
+indirizzo; senza colonnina, il tuo luogo di ricarica lì, con «(luogo di ricarica)», oppure l'indirizzo —
+anche per una ricarica a casa. Gli indirizzi vengono dalla stessa ricerca dei viaggi, quindi una ricarica
+dove è già finito un viaggio non costa nessuna richiesta; l'interruttore in *Impostazioni → Ricerca
+indirizzi*, che ora si chiama **Cerca gli indirizzi di viaggi e ricariche**, vale per entrambi. Le
+ricariche più vecchie di tre giorni non vengono cercate da sole. La ricerca in Ricariche e in Eventi trova
+una ricarica dal suo indirizzo, dalla città o dal CAP, e il CSV delle ricariche ha in più `place` e
+`address`. Un viaggio unito il cui ultimo pezzo è finito negli ultimi tre giorni ora ha la partenza
+cercata anche se il primo pezzo è finito prima. Di @arekm (#405).
+
+### Novità della 4.13.0
 
 **I viaggi mostrano da dove sono partiti e dove sono arrivati.** La riga di un viaggio dice «A → B», il
 *Riepilogo del viaggio* nella sua pagina nomina i due estremi, e così le righe di inizio e di fine del
