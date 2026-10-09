@@ -1211,6 +1211,9 @@ etiqueta:
 - **Tu nota 🆕** (#107) — cada carga tiene una **nota libre** (justo encima de *Eliminar la carga*)
   para lo que los números no recogen: dónde estaba el punto, si había sombra o techo, si es fiable,
   cómo está el aparcamiento, el tiempo que hacía, cualquier comentario personal.
+- **Dónde fue una carga 🆕** — junto a 📍 una carga muestra el punto de recarga y su dirección, o si no tu
+  **lugar de carga** allí o la dirección, buscada como en los trayectos. El buscador encuentra una carga
+  por ellos, y la exportación de cargas los incluye.
 - **El cuentakilómetros de la carga 🆕** (#237) — cada sesión lleva ahora **lo que marcaba el
   cuentakilómetros al empezar**. Mate lo escribe en todo lo que ve, y lo recuperó una vez de las
   cargas que ya estaban en el archivo. En una carga que **escribes tú** hay una casilla
@@ -1394,7 +1397,8 @@ final de la lista aparece en pantalla.
   Esas cifras destacan del resto de la fila; el coste va en verde y el tiempo hasta que empezó la carga,
   en ámbar.
 - **Lugares**: una fila en uno de tus lugares de carga (*Precios de la carga → Lugares de carga*) lo nombra;
-  el origen o el destino de un trayecto en otro sitio lleva su dirección, como en Trayectos.
+  el origen o el destino de un trayecto en otro sitio lleva su dirección, como en Trayectos, y una carga, el
+  nombre de su tarjeta en Cargas.
 - **El mapa** está oculto hasta que **🗺 Mostrar mapa**, sobre la lista, lo abre (junto a la lista en una
   pantalla ancha, encima en el teléfono o en una más estrecha), y la próxima vez sigue como lo dejaste.
   Cada fila con posición tiene un 🌍: abre el mapa si hace falta, resalta el punto de la fila, lo trae a la
@@ -1407,7 +1411,8 @@ final de la lista aparece en pantalla.
   que el coche deshizo entre dos de sus propios envíos nunca se ve, y la nube puede perder la señal del
   cierre durante una o dos lecturas, que entonces se leen como un breve desbloqueo.
 - **Filtros**: una palabra (el nombre del evento, el resultado de una orden, un lugar, dónde empezó o
-  terminó un trayecto — su nombre o su dirección completa — o la nota de un trayecto o de una carga), las píldoras de
+  terminó un trayecto o dónde fue una carga — su nombre o su dirección completa — o la nota de un trayecto
+  o de una carga), las píldoras de
   grupo (Seguridad, Puertas, Ventanillas, Carga, Clima, Conducción, Órdenes) y, bajo ⚙, un rango de fechas y
   tipos sueltos. Los filtros viven en la dirección: un enlace o una recarga los conserva.
 - **Histórico**: los eventos se derivan de las posiciones que Mate ya guarda, así que en una instalación
@@ -1627,9 +1632,9 @@ dividida en tres columnas.
 
 - **ABRP** — envío de telemetría a A Better Routeplanner (ver [§8](#8-las-integraciones-en-detalle)).
 - **Búsqueda de direcciones** — el servicio que traduce direcciones ↔ coordenadas en la página de
-  Navegación y nombra dónde empiezan y terminan tus trayectos (Geoapify *recomendado*, LocationIQ,
-  TomTom). Requiere una **clave** gratuita del servicio elegido; sin ella, Mate usa el servicio sin
-  clave de OpenStreetMap.
+  Navegación y nombra dónde empiezan y terminan tus trayectos y dónde cargas (Geoapify *recomendado*,
+  LocationIQ, TomTom). Requiere una **clave** gratuita del servicio elegido; sin ella, Mate usa el
+  servicio sin clave de OpenStreetMap.
 - **⚡ Puntos de recarga** — activa los **nombres de los puntos** en las cargas (📍) y acepta claves
   opcionales (Open Charge Map, TomTom) para enriquecer la búsqueda. Viene **desactivado**.
 - **Wallbox** — conecta tu wallbox para tener **costes reales** y los controles que haya (ver

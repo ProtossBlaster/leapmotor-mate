@@ -205,7 +205,7 @@ def main():
         state["soc"], state["odo"], state["t"] = s1, o1, arr
         return arr
 
-    def charge(plug_t, loc, target_soc, kw, price_per_kwh, dc=False):
+    def charge(plug_t, loc, target_soc, kw, price_per_kwh, dc=False, station=None):
         s0 = state["soc"]
         if target_soc <= s0:
             return plug_t
@@ -221,9 +221,9 @@ def main():
         c.execute(
             "INSERT INTO charges (vehicle_id, started_at, ended_at, start_soc, end_soc, "
             "energy_added_kwh, duration_min, latitude, longitude, charge_type, location_type, "
-            "max_power_kw, cost, ac_energy_kwh) VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "max_power_kw, cost, ac_energy_kwh, location_name) VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (iso(plug_t), iso(end_t), round(s0, 1), round(target_soc, 1), round(energy, 2),
-             round(dur, 0), lat, lon, "DC" if dc else "AC", loc, round(kw, 0), cost, ac_energy))
+             round(dur, 0), lat, lon, "DC" if dc else "AC", loc, round(kw, 0), cost, ac_energy, station))
         steps = max(5, int(dur / 3))
         for i in range(steps + 1):
             tt = plug_t + timedelta(minutes=dur * i / steps)
@@ -270,7 +270,7 @@ def main():
             for minutes in (1, 2):                                   # parked, the cooling off
                 pos(t + timedelta(minutes=minutes), *RIMINI)
             park(t, *RIMINI, hours=5)
-            t = charge(state["t"], "HPC", 85, 110, 0.69, dc=True)   # the expensive HPC
+            t = charge(state["t"], "HPC", 85, 110, 0.69, dc=True, station="Rubicone Est HPC")   # the expensive HPC
             t = drive(t + timedelta(minutes=20), list(reversed(SEA_WP)), 121.0, EFF_HWY, 90)
             park(t, *HOME, hours=10)
             day = day + timedelta(days=1)
@@ -313,14 +313,16 @@ def main():
             charge_voltage_v=362.0, charge_current_a=20.0, remaining_charge_min=68,
             windows_open=0, windows_open_count=0)
 
-    # Where the trips start and end, as the address lookup stores it: asked at every seeding, it would ask again.
+    # Where the trips start and end and the charges are, as the address lookup stores it: asked at every
+    # seeding, it would ask again.
     for (lat, lon), number, road, town in ((HOME, "12", "Via Saragozza", "Bologna"),
                                            (WORK, "8", "Via dell'Industria", "Calderara di Reno"),
-                                           (RIMINI, "30", "Viale Regina Elena", "Rimini")):
+                                           (RIMINI, "30", "Viale Regina Elena", "Rimini"),
+                                           (HPC, None, "Autostrada Adriatica", "Gatteo")):
         c.execute("INSERT INTO addresses (geohash, latitude, longitude, provider, status, house_number, road,"
                   " locality, country_code, display_name, looked_up_at) VALUES (?, ?, ?, 'demo', 'found', ?, ?, ?,"
                   " 'it', ?, ?)", (geohash.encode(lat, lon, 8), lat, lon, number, road, town,
-                                   f"{number}, {road}, {town}, Italia", iso(now)))
+                                   ", ".join(p for p in (number, road, town, "Italia") if p), iso(now)))
 
     c.commit()
     db.derive_events(1, max_rows=None)        # the demo runs the web alone, so the poller's job is done here

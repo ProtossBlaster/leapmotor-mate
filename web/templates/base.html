@@ -153,6 +153,10 @@
       background: #0a1424; border: 1px solid #1a2438; object-fit: cover;
     }
 
+    /* ── Charge card: where it happened ─────────────────────────── */
+    /* Cards redraw their own line, so the credit is always there and shows while any card shows an OSM address. */
+    [data-charges-list]:not(:has([data-address-osm])) [data-address-credit] { display: none; }
+
     /* ── Efficiency pill ────────────────────────────────────────── */
     .eff-pill {
       display: inline-flex; align-items: center; gap: .2rem;

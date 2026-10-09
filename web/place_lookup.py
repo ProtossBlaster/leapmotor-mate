@@ -1,20 +1,22 @@
-"""Where a trip started and ended, as an address: a background sweep filling the `addresses` table.
+"""Where a trip started and ended and where a charge happened, as an address: a background sweep filling
+the `addresses` table.
 
 A spot is looked up once per geohash-8 cell (19 m north to south; 38 m across at the equator, 23 m at
-53° N), whichever car and trip ended there, and a trip finds its ends' rows by its coordinates when it
-is read (db_reader.trip_places). So a second trip from the same driveway costs no request, and an older
-trip ending in a cell a new one filled shows that address too.
+53° N), whichever car, trip or charge was there, and a trip or a charge finds its rows by its
+coordinates when it is read (db_reader.trip_places, db_reader.charge_places). So a second trip from the
+same driveway costs no request, and an older trip or charge in a cell a new one filled shows that
+address too.
 
 The provider is the one chosen in Settings ▸ Address lookup (geocode.reverse_place), and only it: a
 failure leaves the cell to be asked again later, at the same provider. "Nothing here" is final for the
 provider that said it, for the pass. Another one chosen later is asked at once where the first had
-nothing or failed; an address found stays until it is ADDRESS_REFRESH_DAYS old, then the next trip
-ending there asks again, and only a new address replaces it. Only the ends of trips that ended in the
-last RECENT_DAYS are looked up, and only while the switch in that card is on; the 🧭 on a trip's page
-asks about that trip's ends whenever the user wants (look_up_now). The history is never swept:
-Nominatim's usage policy counts the requests of every install of an application together and treats an
-application's periodic requests as bulk. Its other rules are kept here too: at most one request per
-second, from the pass and the 🧭 together, a few per sweep, and every answer stored.
+nothing or failed; an address found stays until it is ADDRESS_REFRESH_DAYS old, then the next trip or
+charge there asks again, and only a new address replaces it. Only the ends of trips and the charges that
+ended in the last RECENT_DAYS are looked up, and only while the switch in that card is on; the 🧭 on a
+trip's page asks about that trip's ends whenever the user wants (look_up_now). The history is never
+swept: Nominatim's usage policy counts the requests of every install of an application together and
+treats an application's periodic requests as bulk. Its other rules are kept here too: at most one
+request per second, from the pass and the 🧭 together, a few per sweep, and every answer stored.
 """
 import contextlib
 import logging
@@ -28,7 +30,7 @@ import geohash
 
 log = logging.getLogger("place_lookup")
 
-RECENT_DAYS = 3             # a trip's ends are looked up until it ended this long ago
+RECENT_DAYS = 3             # a trip's ends and a charge are looked up until it ended this long ago
 ADDRESS_REFRESH_DAYS = 90   # a found address is asked again once this old: names change at the provider
 _SWEEP_TTL_S = 60           # at most one sweep a minute
 _MAX_CALLS = 4              # requests per sweep
@@ -47,17 +49,26 @@ def _iso(dt: datetime) -> str:
 
 
 def _recent_cells(since: datetime) -> list[tuple[str, float, float]]:
-    """Every car's trip ends with a GPS fix, of the trips that ended since `since`: newest first, one
-    entry per cell, with the first point seen in it."""
-    rows = db_reader._get().execute(
-        "SELECT start_lat, start_lon, end_lat, end_lon FROM trips WHERE ended_at IS NOT NULL"
-        " AND julianday(ended_at) >= julianday(?) ORDER BY julianday(ended_at) DESC, id DESC",
-        (_iso(since),)).fetchall()
+    """Every car's trip ends and charges with a GPS fix, of those that ended since `since`, a merged trip
+    or charge as long as its last piece did: newest first, one entry per cell, with the first point seen
+    in it. A merged charge is where its first piece was, as its card shows it."""
+    db = db_reader._get()
+    # as every query on charges.merged_into_id: the web's schema step at start is best-effort
+    head = "COALESCE(merged_into_id, id)" if db_reader._charges_have_merge(db) else "id"
+    trips = ("FROM trips t JOIN (SELECT COALESCE(merged_into_id, id) AS head, MAX(julianday(ended_at)) AS jd"
+             " FROM trips GROUP BY 1 HAVING jd >= julianday(?)) g ON g.head = COALESCE(t.merged_into_id, t.id)"
+             " WHERE t.ended_at IS NOT NULL")
+    since_iso = _iso(since)
+    rows = db.execute(
+        f"SELECT g.jd AS jd, t.id AS id, 0 AS kind, t.end_lat AS lat, t.end_lon AS lon {trips}"
+        f" UNION ALL SELECT g.jd, t.id, 1, t.start_lat, t.start_lon {trips}"
+        f" UNION ALL SELECT g.jd, c.id, 2, c.latitude, c.longitude FROM charges c JOIN (SELECT {head} AS head,"
+        " MAX(julianday(ended_at)) AS jd FROM charges GROUP BY 1 HAVING jd >= julianday(?)) g ON g.head = c.id"
+        " ORDER BY jd DESC, id DESC, kind", (since_iso, since_iso, since_iso)).fetchall()
     cells: dict = {}
     for r in rows:
-        for lat, lon in ((r["end_lat"], r["end_lon"]), (r["start_lat"], r["start_lon"])):
-            if db_reader.has_gps_fix(lat, lon):
-                cells.setdefault(geohash.encode(lat, lon, 8), (lat, lon))
+        if db_reader.has_gps_fix(r["lat"], r["lon"]):
+            cells.setdefault(geohash.encode(r["lat"], r["lon"], 8), (r["lat"], r["lon"]))
     return [(gh, lat, lon) for gh, (lat, lon) in cells.items()]
 
 
@@ -168,7 +179,7 @@ def _ask_each(cells: list, wanted, chosen: str, key: str | None, now: datetime, 
 
 
 def sweep(now: datetime | None = None, pause=time.sleep) -> dict:
-    """One pass over the recent trips' ends. Returns its counts: cells checked, cells the table
+    """One pass over the recent trips' ends and charges. Returns its counts: cells checked, cells the table
     already answers, requests made, and how they went."""
     now = now or datetime.now(timezone.utc)
     chosen = db_reader.get_setting("geocoder_provider", "")
@@ -215,8 +226,8 @@ def maybe_sweep() -> None:
 
 
 def start_background(interval_s: int = _SWEEP_TTL_S) -> None:
-    """A daemon thread that triggers the sweep every `interval_s`, so a trip gets its addresses even
-    when no page is open. Idempotent."""
+    """A daemon thread that triggers the sweep every `interval_s`, so a trip or a charge gets its address
+    even when no page is open. Idempotent."""
     global _bg_started
     with _lock:
         if _bg_started:

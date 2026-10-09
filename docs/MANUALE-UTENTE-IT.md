@@ -1192,6 +1192,9 @@ un'etichetta:
 - **La tua nota 🆕** (#107) — ogni ricarica ha una **nota libera** (subito sopra *Elimina ricarica*) per
   ciò che i numeri non catturano: dov'era la colonnina, ombra/riparo, quanto è affidabile, le condizioni
   del parcheggio, il meteo, qualsiasi appunto personale.
+- **Dove è avvenuta una ricarica 🆕** — accanto a 📍 una ricarica mostra la colonnina e il suo indirizzo,
+  altrimenti il tuo **luogo di ricarica** lì o l'indirizzo, cercato come per i viaggi. La ricerca trova
+  una ricarica da questi nomi, e l'esportazione delle ricariche li riporta.
 - **Il contachilometri della ricarica 🆕** (#237) — ogni ricarica si porta dietro **quanto segnava il
   contachilometri quando è cominciata**. Mate lo scrive da solo su tutto ciò che vede, e lo ha
   recuperato una volta sola anche dalle ricariche già in archivio. Sulle ricariche che **scrivi tu**
@@ -1374,7 +1377,8 @@ entra nello schermo.
   Questi numeri risaltano sul resto della riga; il costo è verde e il tempo prima che partisse la ricarica
   è ambra.
 - **Luoghi**: una riga in uno dei tuoi luoghi di ricarica (*Prezzi di ricarica → Luoghi di ricarica*) lo
-  nomina; la partenza o l'arrivo di un viaggio altrove porta il suo indirizzo, come in Viaggi.
+  nomina; la partenza o l'arrivo di un viaggio altrove porta il suo indirizzo, come in Viaggi, e una
+  ricarica il nome della sua scheda in Ricariche.
 - **La mappa** resta nascosta finché **🗺 Mostra mappa**, sopra l'elenco, non la apre (accanto all'elenco
   su uno schermo largo, sopra sul telefono o su uno più stretto), e la volta dopo è come l'hai lasciata.
   Ogni riga con una posizione ha un 🌍: apre la mappa se serve, accende il punto della riga, lo porta in
@@ -1387,7 +1391,8 @@ entra nello schermo.
   cambiamento che l'auto ha annullato fra due sue trasmissioni non si vede mai, e il cloud può perdere il
   segnale della chiusura per una o due letture, che allora appaiono come un breve sblocco.
 - **Filtri**: una parola (il nome dell'evento, l'esito di un comando, un luogo, da dove è partito o
-  dove è arrivato un viaggio — il nome o l'indirizzo completo — o la nota di un viaggio o di una ricarica), i bottoni dei gruppi
+  dove è arrivato un viaggio o dove è avvenuta una ricarica — il nome o l'indirizzo completo — o la nota di
+  un viaggio o di una ricarica), i bottoni dei gruppi
   (Sicurezza, Porte, Finestrini, Ricarica, Clima, Guida, Comandi) e, sotto ⚙, un intervallo di date e i
   singoli tipi. I filtri vivono nell'indirizzo: un link o un ricaricamento li conserva.
 - **Storico**: gli eventi derivano dalle posizioni che Mate già salva, quindi su un'installazione esistente
@@ -1609,8 +1614,9 @@ volta. È divisa in tre colonne.
 
 - **ABRP** — invio telemetria ad A Better Routeplanner (vedi [§8](#8-le-integrazioni-in-dettaglio)).
 - **Ricerca indirizzi** — il servizio per tradurre indirizzi ↔ coordinate nella pagina Navigazione e per
-  nominare la partenza e l'arrivo dei tuoi viaggi (Geoapify *consigliato*, LocationIQ, TomTom). Richiede
-  una **chiave** gratuita del servizio scelto; senza, Mate usa il servizio senza chiave di OpenStreetMap.
+  nominare la partenza e l'arrivo dei tuoi viaggi e il luogo delle tue ricariche (Geoapify *consigliato*,
+  LocationIQ, TomTom). Richiede una **chiave** gratuita del servizio scelto; senza, Mate usa il servizio
+  senza chiave di OpenStreetMap.
 - **⚡ Etichette colonnine** — abilita i **nomi delle colonnine** sulle ricariche (📍) e accetta
   chiavi opzionali (OpenChargeMap, TomTom) per arricchire la ricerca. È **disattivato** di default.
 - **Wallbox** — collega la tua wallbox per i **costi reali** e gli eventuali controlli (vedi

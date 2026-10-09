@@ -7,10 +7,13 @@
   <span class="text-white font-semibold">{{ day_label }}</span>
   <span class="text-slate-500 text-xs">{{ charges|length }} {{ t('session_inline_one') if charges|length == 1 else t('session_inline_many') }}</span>
 </div>
+<div data-charges-list>
 <div class="space-y-3">
   {% for c in charges %}
   {% include "partials/charge_card.html" %}
   {% endfor %}
+</div>
+{% with address_credit = true %}{% include "partials/_address_credit.html" %}{% endwith %}
 </div>
 {% else %}
 <div class="text-center text-slate-500 text-sm py-6">{{ t('charges_calendar_pick_day') }}</div>

@@ -630,7 +630,7 @@
       </form>
     {% endcall %}
 
-    <!-- Geocoder (address lookup: Navigation, trips' places, the 🧭 notes) -->
+    <!-- Geocoder (address lookup: Navigation, where trips start and end and charges happen, the 🧭 notes) -->
     {% call scard('geocoder', t('geocoder_section'), card_open.get('geocoder')) %}
       <p class="text-xs text-slate-400 mb-4">{{ t('geocoder_desc') }}</p>
       <form hx-post="api/settings/geocoder" hx-target="#geocoder-feedback" hx-swap="innerHTML" class="space-y-3">

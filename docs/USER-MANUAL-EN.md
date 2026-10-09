@@ -1143,6 +1143,9 @@ label:
 - **Your note 🆕** (#107) — each charge has a **free-text note** (just above *Delete charge*) for the
   things the numbers don't capture: where the station was, shade/shelter, how reliable it is, parking
   conditions, weather, any personal remark.
+- **Where a charge happened 🆕** — beside 📍 a charge shows the station and its address, or else your
+  **charging place** there or the address, looked up as for trips. The search box finds a charge by them,
+  and the charges export lists them.
 - **The odometer of the charge 🆕** (#237) — every session now carries **what the odometer read when
   it started**. Mate writes it on everything it sees, and recovered it once from the charges already
   in the archive. On a charge **you type in** there is an *Odometer* box: it is the only way a
@@ -1308,7 +1311,7 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   The end of a trip or a charge carries the figures of Trips and Charges.
   These figures stand out from the rest of the row; a cost is green, the delay before charging amber.
 - **Places**: a row at one of your charging places (*Charge Prices → Charging places*) names it; a trip's
-  start or end elsewhere is named by its address, as in Trips.
+  start or end elsewhere is named by its address, as in Trips, and a charge as on its card in Charges.
 - **The map** is hidden until **🗺 Show map** above the list shows it (beside the list on a wide screen,
   above it on a phone or a narrower one), and next time it is as you left it. Every row with a position
   has a 🌍: it shows the map if needed, lights the row's point and brings it into view, and lights the row
@@ -1320,8 +1323,8 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   poll — so a change counts only once two consecutive frames hold it. A change the car reversed between
   two of its own reports is never seen, and the cloud can drop the lock signal for a poll or two, which
   then reads as a short unlock.
-- **Filters**: a word (the event's name, a command's outcome, a place, where a trip started or ended —
-  its name or its full address — or the note of a trip or a charge), the group pills (Security,
+- **Filters**: a word (the event's name, a command's outcome, a place, where a trip started or ended or
+  a charge happened — its name or its full address — or the note of a trip or a charge), the group pills (Security,
   Doors, Windows, Charging, Climate, Driving, Commands) and, under ⚙, a date range and single kinds.
   The filters live in the address, so a link or a reload keeps them.
 - **History**: the events are derived from the positions Mate already stores, so on an existing install
@@ -1539,8 +1542,8 @@ divided into three columns.
 
 - **ABRP** — sending telemetry to A Better Routeplanner (see [§8](#8-the-integrations-in-detail)).
 - **Address lookup** — the service that translates addresses ↔ coordinates on the Navigation page and names
-  where your trips start and end (Geoapify *recommended*, LocationIQ, TomTom). It requires a free **key**
-  for the chosen service; without one, Mate uses the keyless OpenStreetMap service.
+  where your trips start and end and where you charge (Geoapify *recommended*, LocationIQ, TomTom). It
+  requires a free **key** for the chosen service; without one, Mate uses the keyless OpenStreetMap service.
 - **⚡ Charging stations** — enables the **station names** on charges (📍) and accepts optional keys
   (Open Charge Map, TomTom) to enrich the search. It's **off** by default.
 - **Wallbox** — connect your wallbox for **real costs** and any controls (see

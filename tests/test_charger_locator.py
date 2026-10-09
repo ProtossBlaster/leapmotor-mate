@@ -305,8 +305,9 @@ def test_get_charge_location_for_manual_recalc(tmp_path, monkeypatch):
     _charge(pdb, 1, lat=45.0, lon=9.0, ctype="AC", name="Old Name",
             url="https://openstreetmap.org/node/1")
     row = db_reader.get_charge_location(1)
-    assert row == {"id": 1, "latitude": 45.0, "longitude": 9.0, "location_type": "AC",
-                   "location_name": "Old Name", "location_url": "https://openstreetmap.org/node/1"}
+    assert row == {"id": 1, "vehicle_id": 1, "latitude": 45.0, "longitude": 9.0, "location_type": "AC",
+                   "location_name": "Old Name", "location_url": "https://openstreetmap.org/node/1",
+                   "charging_place_name": None}
     assert db_reader.get_charge_location(999) is None
 
 
