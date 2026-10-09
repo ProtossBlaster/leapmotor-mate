@@ -5947,13 +5947,15 @@ def charge_places(charges: list[dict]) -> None:
     station found or typed ('' is a lookup that found none), else the car's charging place whose radius
     holds its point (`place_charging`), else the address of its cell (`place_osm` when from
     OpenStreetMap). `address`/`address_osm`: that address without the place's own name, which beside a
-    station is often the station's, whatever names the charge. `search_text`: the note, the station,
-    both places' names and the address as a card shows it, with and without its name, and in full."""
+    station is often the station's, whatever names the charge. `gps_fix`, `address_found`: whether its
+    point is a real position and its cell has an address. `search_text`: the note, the station, both
+    places' names and the address as a card shows it, with and without its name, and in full."""
     if not charges:
         return
     sources = _place_sources()
     for c in charges:
         near, address = _point_place(sources, c.get("vehicle_id"), c.get("latitude"), c.get("longitude"))
+        c["gps_fix"], c["address_found"] = has_gps_fix(c.get("latitude"), c.get("longitude")), address is not None
         named = c.get("charging_place_name") or c.get("location_name")
         c["place"] = named or (near and near["name"]) or (address and address["label"])
         c["place_charging"] = not named and near is not None
@@ -9117,12 +9119,9 @@ def _iso_to_utc(x):
 
 def get_position_near(ts: "str | None", tolerance_min: int = 20) -> "dict | None":
     """The single positions row closest to timestamp `ts` (within tolerance_min minutes
-    either side) — for reading outside_temp/battery_min_temp at an arbitrary INSTANT (a
-    trip's or charge's own start/end), which nothing needed before: every existing
-    telemetry query is either "latest" (status cards) or a min/max aggregate over a whole
-    charging window (_charge_temp_odo), never "nearest to one point in time." None when
-    `ts` is missing/unparseable, or nothing falls within the tolerance window (e.g. the
-    sample was already pruned by the positions_retention_days setting)."""
+    either side): where the car was at one instant, a refuel's. None when `ts` is
+    missing/unparseable, or nothing falls within the tolerance window (e.g. the sample was
+    already pruned by the positions_retention_days setting)."""
     utc = _iso_to_utc(ts)
     if not utc:
         return None
@@ -9150,7 +9149,7 @@ _FUEL_NOTE_TOLERANCE_MIN = 20     # how far from the refuel a position may sit a
 
 def generate_fuel_auto_note(purchase_id: int, provider: str = "", api_key: "str | None" = None,
                             only_if_note_empty: bool = False) -> "str | None":
-    """Write where you filled up into the refuel's own note — the 🧭 that trips and charges have.
+    """Write where you filled up into the refuel's own note.
 
     Asked for by **@gm27271** (beta discussion #14): *"add GPS coordinates of the gas station
     registered during the refueling timestamp… then users do not need to enter any notes"*. The
@@ -9163,9 +9162,8 @@ def generate_fuel_auto_note(purchase_id: int, provider: str = "", api_key: "str 
     _FUEL_NOTE_TOLERANCE_MIN of it; beyond that the car was demonstrably somewhere else and the
     note is left alone rather than naming the wrong forecourt. Returns the note it wrote, or None.
 
-    `only_if_note_empty` mirrors the charge path: something you typed is never overwritten by an
-    automatic call. The button always overwrites — the page asks first when there is something to
-    lose."""
+    `only_if_note_empty`: something you typed is never overwritten by an automatic call. The button
+    always overwrites — the page asks first when there is something to lose."""
     import geocode
     row = _get().execute(
         "SELECT * FROM fuel_purchases WHERE id=? AND (vehicle_id = COALESCE(?, vehicle_id) "
@@ -9193,100 +9191,6 @@ def generate_fuel_auto_note(purchase_id: int, provider: str = "", api_key: "str 
     finally:
         db.close()
     return address
-
-
-def generate_charge_auto_note(charge_id: int, provider: str = "", api_key: "str | None" = None,
-                               only_if_note_empty: bool = False) -> "str | None":
-    """Builds the station-address+start/end time+temperature summary and writes it
-    straight into the charge's `note` field (the ONE note field — no separate read-only
-    line to keep in sync). The address reuses find_station_candidates — the SAME OSM/OCM
-    lookup the 📍 label/🔗 link already run — matched to the charge's own resolved name
-    when possible; skipped for HOME charges (no station to address, and the user already
-    knows their own home). Both temperatures come from the car's own telemetry
-    (positions.outside_temp / battery_min_temp) nearest each endpoint's timestamp
-    (get_position_near) — charges have no Open-Meteo weather enrichment like trips do
-    (elevation_enrich), so 🌡️ here can be blank on cars that don't report an
-    ambient-temperature signal at all. Live network calls (geocoding, station lookup) —
-    safe for the 🧭 button (one charge) and for the automatic call at charge-close
-    (poller/recorder.py, one NEW charge at a time), never a historical backfill sweep.
-    `only_if_note_empty` is the automatic-at-close guard: a manual note the user already
-    typed is never clobbered by this running just after; the manual button always
-    overwrites (the UI confirms with the user first when there's something to lose — see
-    charge_card.html's hx-confirm)."""
-    import charger_locator
-    import units
-    _db = _get()
-    row = _db.execute("SELECT * FROM charges WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
-                      (charge_id, _current_vehicle_id())).fetchone()
-    if not row:
-        return None
-    # A joined plug-in is ONE session to whoever is looking at it — the card composes the group —
-    # and this was the one reader that did not: it took the piece's own row, so the note ended at
-    # the first pause while the card above it showed the whole session. The twin of the trip note
-    # fixed in v3.11.2, reported by the same person on the same issue three days later (#247,
-    # @Ng-EY). Resolve the group exactly as the card does, and write to the PARENT — the row the
-    # page reads the note back from. The stored rows stay untouched: a merge is display math and
-    # has to stay reversible.
-    parent_id = row["merged_into_id"] or row["id"]
-    parent = row if parent_id == row["id"] else _db.execute(
-        "SELECT * FROM charges WHERE id=? AND vehicle_id = COALESCE(?, vehicle_id)",
-        (parent_id, _current_vehicle_id())).fetchone()
-    if parent is None:          # child pointing at a parent this vehicle cannot see
-        parent, parent_id = row, row["id"]
-    charge_id = parent_id
-    row = _charge_group_stats(dict(parent), _charge_children_by_parent(_db).get(parent_id, []))
-    if only_if_note_empty and (row.get("note") or "").strip():
-        return row.get("note")
-    address = None
-    if (row.get("location_type") != "HOME"
-            and row.get("latitude") is not None and row.get("longitude") is not None):
-        options, _ok = charger_locator.find_station_candidates(row["latitude"], row["longitude"])
-        match = next((o for o in options if o.get("name") == row.get("location_name")), None)
-        address = (match or {}).get("address")
-        if not address:
-            # The name-matched option (or none, if the saved name came from a source no
-            # longer offered) can still lack a street address even though a DIFFERENT
-            # source at the very same physical site has one — charger_locator keeps
-            # differently-named sources as separate options on purpose (its own docstring:
-            # lets the manual relocate button offer a real choice), so an address one
-            # network reports isn't automatically inherited by another's option. Borrow the
-            # nearest option that has one — options are already distance-sorted, and it's
-            # the same charging site either way.
-            address = next((o["address"] for o in options if o.get("address")), None)
-    start_dt = _local_dt(row.get("started_at"))
-    end_dt = _local_dt(row.get("ended_at"))
-    p_start = get_position_near(row.get("started_at"))
-    p_end = get_position_near(row.get("ended_at"))
-
-    def _temps(pos) -> str:
-        if not pos:
-            return ""
-        bits = []
-        if pos.get("outside_temp") is not None:
-            bits.append(f"🌡️ {units.temp(pos['outside_temp'])}")
-        if pos.get("battery_min_temp") is not None:
-            bits.append(f"🔋 {units.temp(pos['battery_min_temp'])}")
-        return " · ".join(bits)
-
-    def _line(marker: str, addr, dt, pos) -> "str | None":
-        if not dt:
-            return None
-        bits = ([addr] if addr else []) + [dt.strftime("%H:%M")]
-        t = _temps(pos)
-        if t:
-            bits.append(t)
-        text = " · ".join(bits)
-        return f"{marker} {text}" if marker else text
-
-    lines = [_line("", address, start_dt, p_start),
-             _line("→", None, end_dt, p_end)]
-    text = (" ".join(l for l in lines if l) or None)
-    if text:
-        text = text.strip()[:1000]
-    db = _conn_rw()
-    db.execute("UPDATE charges SET note=? WHERE id=?", (text, charge_id))
-    db.commit()
-    return text
 
 
 def _charge_active_window(db, started_at, ended_at):

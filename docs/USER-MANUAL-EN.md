@@ -1155,8 +1155,10 @@ label:
   things the numbers don't capture: where the station was, shade/shelter, how reliable it is, parking
   conditions, weather, any personal remark.
 - **Where a charge happened 🆕** — beside 📍 a charge shows the station and its address, or else your
-  **charging place** there or the address, looked up as for trips. The search box finds a charge by them,
-  and the charges export lists them.
+  **charging place** there or the address, looked up as for trips. A missing address, on an older charge
+  for instance, is looked up at once by 🧭 beside 📍. The search box finds a charge by them, and the
+  charges export lists them. Mate no longer writes into the charge's note, which stays yours; notes it
+  wrote before stay as they are.
 - **The odometer of the charge 🆕** (#237) — every session now carries **what the odometer read when
   it started**. Mate writes it on everything it sees, and recovered it once from the charges already
   in the archive. On a charge **you type in** there is an *Odometer* box: it is the only way a

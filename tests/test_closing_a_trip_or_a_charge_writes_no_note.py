@@ -1,10 +1,7 @@
-"""Automatic 🧭 note generation for a BRAND-NEW charge — the poller kicks it off the moment the
-record closes (live CHARGING→PARKED, or a charge reconstructed from an offline gap), never a
-historical sweep. These tests drive the real Recorder through real state transitions and only stub
-out _auto_note_charge itself (network + threading — see test_auto_note.py for what it builds).
-
-A trip has no automatic note any more: where it started and ended is an address of its own, looked
-up in the background by the web (place_lookup). Closing one writes nothing into its note.
+"""Closing a trip or a charge writes nothing into its note and asks no provider: where it happened is an
+address of its own, looked up in the background by the web (place_lookup), and the note is the user's.
+These tests drive the real Recorder through real state transitions; a thread it starts runs inline, so
+anything written on the side is there when the close returns.
 """
 import types
 
@@ -49,18 +46,20 @@ class _Inline:
 @pytest.fixture
 def quiet(tmp_path, monkeypatch):
     """A recorder whose threads run inline, on a database the web reads too, and every request
-    to a geocoding provider written down."""
+    to a geocoding provider or a station lookup written down."""
+    import charger_locator
     import db_reader
     import geocode
     import place_lookup
     asked = []
     monkeypatch.setattr(geocode, "_get", lambda url: asked.append(url) or {})
+    monkeypatch.setattr(charger_locator, "find_station_candidates", lambda lat, lon: asked.append((lat, lon)) or ([], True))
     monkeypatch.setattr(place_lookup, "maybe_sweep", lambda: None)      # the web's own pass is not the recorder
-    monkeypatch.setattr(R, "threading", types.SimpleNamespace(Thread=_Inline))   # the recorder's, not the process's
+    # The recorder's threads, not the process's: it may start none, and then has no `threading` to replace.
+    monkeypatch.setattr(R, "threading", types.SimpleNamespace(Thread=_Inline), raising=False)
     monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "t.db"))
     db = D.Database(str(tmp_path / "t.db"))
     db.ensure_vehicle("TESTVIN", "B10")
-    db.set_setting("auto_note", "1")
     return db, _rec(db), asked
 
 
@@ -82,36 +81,22 @@ def test_a_reconstructed_trip_writes_no_note_either(quiet):
     assert asked == []
 
 
-# ── live charge close ────────────────────────────────────────────────────────────
+# ── a charge closes without a note ───────────────────────────────────────────────
 
-def test_live_charge_close_triggers_auto_note(tmp_path):
-    db = D.Database(str(tmp_path / "t.db"))
-    rec = _rec(db)
-    calls = []
-    rec._auto_note_charge = lambda cid: calls.append(cid)
-
+def test_closing_a_charge_writes_no_note_and_asks_no_provider(quiet):
+    db, rec, asked = quiet
     rec._handle_event(StateEvent(State.PARKED_ACTIVE, State.CHARGING, _vd()), _vd())
-    charge_id = rec._active_charge_id
     end = _vd(soc=80.0)
     rec._handle_event(StateEvent(State.CHARGING, State.PARKED_ACTIVE, end), end)
+    assert [tuple(r) for r in db._conn.execute("SELECT note FROM charges")] == [(None,)]
+    assert asked == []
 
-    assert calls == [charge_id]
 
-
-# ── reconstructed charge (offline SoC jump, #29) ─────────────────────────────────
-
-def test_reconstructed_charge_triggers_auto_note(tmp_path):
-    db = D.Database(str(tmp_path / "t.db"))
+def test_a_reconstructed_charge_writes_no_note_either(quiet):
+    db, rec, asked = quiet
     db.set_battery_capacity(50.0)
-    db.ensure_vehicle("TESTVIN", "B10")
-    rec = _rec(db)
-    calls = []
-    rec._auto_note_charge = lambda cid: calls.append(cid)
     rec._sm.state = State.PARKED_ACTIVE
     rec._last_soc, rec._last_soc_ts = 60.0, "2026-06-09T10:00:00+00:00"
-
-    rec._maybe_reconstruct_charge(_vd(soc=70.0))
-
-    assert len(calls) == 1
-    row = db._conn.execute("SELECT id FROM charges WHERE id=?", (calls[0],)).fetchone()
-    assert row is not None
+    rec._maybe_reconstruct_charge(_vd(soc=70.0))                      # +10 points while parked → a charge
+    assert [tuple(r) for r in db._conn.execute("SELECT note FROM charges")] == [(None,)]
+    assert asked == []

@@ -1247,8 +1247,10 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   recharge*) pour ce que les chiffres ne capturent pas : l'emplacement de la borne, ombre/abri, sa
   fiabilité, les conditions de stationnement, la météo, toute remarque personnelle.
 - **Où a eu lieu une recharge 🆕** — à côté de 📍, une recharge affiche la borne et son adresse, sinon votre
-  **lieu de recharge** à cet endroit ou l'adresse, cherchée comme pour les trajets. La recherche trouve une
-  recharge par ces noms, et l'export des recharges les reprend.
+  **lieu de recharge** à cet endroit ou l'adresse, cherchée comme pour les trajets. Une adresse manquante,
+  par exemple sur une recharge plus ancienne, est recherchée tout de suite par 🧭 à côté de 📍. La
+  recherche trouve une recharge par ces noms, et l'export des recharges les reprend. Mate n'écrit plus
+  dans la note de la recharge, qui reste la vôtre ; les notes écrites avant restent telles quelles.
 - **Le compteur de la recharge 🆕** (#237) — chaque session emporte désormais **ce qu'affichait le
   compteur au moment où elle a commencé**. Mate l'inscrit tout seul sur tout ce qu'il voit, et l'a
   récupéré une fois sur les recharges déjà enregistrées. Sur une recharge que **vous saisissez**, une

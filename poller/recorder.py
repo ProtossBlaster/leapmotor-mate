@@ -2,7 +2,6 @@
 Recorder: reacts to state machine events to persist trips, charges, and positions.
 """
 import logging
-import threading
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import NamedTuple, Optional
@@ -415,9 +414,7 @@ class Recorder:
             return                                                 # live charge/trip owns this
         if data.soc - prev_soc < self._reconstruct_min_pct:
             return                                                 # drop or jitter, not a charge
-        charge_id = self._db.create_reconstructed_charge(self._vehicle_id, prev_soc, prev_ts, data)
-        if charge_id is not None:
-            self._auto_note_charge(charge_id)
+        self._db.create_reconstructed_charge(self._vehicle_id, prev_soc, prev_ts, data)
 
     # Below this a movement is a manoeuvre, not a trip: finalize it, then drop it. It was 0.5 km
     # from v1.0.4 to match HA's leapmotor_trip ("spostamento breve ignorato"), which deleted real
@@ -571,7 +568,6 @@ class Recorder:
         self._db.finalize_charge(self._active_charge_id, data,
                                  max_power_kw=self._max_charge_kw, end_override=end,
                                  reason=reason)
-        self._auto_note_charge(self._active_charge_id)
         self._active_charge_id = None
         self._max_charge_kw = 0.0
         self._charge_closed_this_poll = True
@@ -591,51 +587,6 @@ class Recorder:
         except Exception as e:  # noqa: BLE001
             log.debug("wallbox energy read failed: %s", e)
             return None
-
-    @staticmethod
-    def _web_db_reader():
-        """web/db_reader.py — same sys.path trick as _read_wallbox_energy's ha_client
-        import. Reused here since the charge auto-note (station lookup) lives there, and
-        pulls in only stdlib-http modules (web/geocode.py,
-        web/charger_locator.py) already covered by web's own requirements — no new pip
-        dependency for the poller."""
-        import sys
-        import pathlib
-        web = str(pathlib.Path(__file__).resolve().parent.parent / "web")
-        if web not in sys.path:
-            sys.path.insert(0, web)
-        import db_reader
-        return db_reader
-
-    def _auto_note_on(self) -> bool:
-        """Whether a new charge's AUTOMATIC note may run. On by default — the feature is the
-        point — but it sends where the car charged to a station lookup without being asked
-        each time. Settings ▸ Address lookup can turn it off; the 🧭 button stays, so nobody
-        loses the feature, they just decide when it happens. Read from the poller's own
-        connection so an off switch costs no thread and no import."""
-        try:
-            return self._db.get_setting("auto_note", "1") != "0"
-        except Exception:  # noqa: BLE001 — a settings read must never break recording
-            return True
-
-    def _auto_note_charge(self, charge_id: int) -> None:
-        """Kick the station address/time/temperature auto-note for a brand-new charge,
-        off-thread — the station lookup can take a few seconds and must never delay the next
-        poll cycle. only_if_note_empty=True is the safety net: never clobbers a note the user
-        already typed in the meantime (the 🧭 button is the only thing allowed to overwrite a
-        note, and only after the user confirms — see web/main.py charge_generate_auto_note)."""
-        if not self._auto_note_on():
-            return
-        threading.Thread(target=self._auto_note_charge_body, args=(charge_id,), daemon=True).start()
-
-    def _auto_note_charge_body(self, charge_id: int) -> None:
-        try:
-            db_reader = self._web_db_reader()
-            provider = db_reader.get_setting("geocoder_provider", "")
-            key = db_reader.get_secret("geocoder_key", "") or None
-            db_reader.generate_charge_auto_note(charge_id, provider, key, only_if_note_empty=True)
-        except Exception as e:  # noqa: BLE001 — best-effort, must never take the poller down
-            log.debug("charge #%d auto-note failed: %s", charge_id, e)
 
     def _handle_event(self, event: StateEvent, data: Optional[VehicleData]) -> None:
         frm, to = event.from_state, event.to_state
@@ -747,7 +698,6 @@ class Recorder:
                     reason=("deferred" if (data.plug_connected and data.charge_deferred)
                             else "unplugged"),
                 )
-                self._auto_note_charge(self._active_charge_id)
             self._active_charge_id = None
             self._max_charge_kw = 0.0
             self._charge_closed_this_poll = True

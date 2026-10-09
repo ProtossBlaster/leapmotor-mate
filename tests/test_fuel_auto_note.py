@@ -17,6 +17,7 @@ from datetime import datetime, timedelta, timezone
 import db as D
 import db_reader
 import geocode
+import pytest
 
 
 def _at(mins):
@@ -80,3 +81,48 @@ def test_the_button_always_overwrites(tmp_path, monkeypatch):
 def test_an_unknown_refuel_id_does_not_raise(tmp_path, monkeypatch):
     _setup(tmp_path, monkeypatch)
     assert db_reader.generate_fuel_auto_note(999999) is None
+
+
+# ── where the car was: the position nearest the refuel ────────────────────────
+@pytest.fixture
+def pdb(tmp_path, monkeypatch):
+    path = str(tmp_path / "t.db")
+    database = D.Database(path)
+    monkeypatch.setattr(db_reader, "DB_PATH", path)
+    return database
+
+
+def _add_position(pdb, ts, outside_temp=None, battery_min_temp=None):
+    pdb._conn.execute(
+        "INSERT INTO positions (vehicle_id, recorded_at, outside_temp, battery_min_temp) "
+        "VALUES (1,?,?,?)", (ts, outside_temp, battery_min_temp))
+    pdb._conn.commit()
+
+
+def test_get_position_near_picks_closest_within_tolerance(pdb):
+    _add_position(pdb, "2026-07-04T09:50:00+00:00", outside_temp=18)
+    _add_position(pdb, "2026-07-04T10:05:00+00:00", outside_temp=20, battery_min_temp=24)
+    _add_position(pdb, "2026-07-04T10:40:00+00:00", outside_temp=30)
+
+    pos = db_reader.get_position_near("2026-07-04T10:00:00+00:00")
+    assert pos["outside_temp"] == 20
+    assert pos["battery_min_temp"] == 24
+
+
+def test_get_position_near_none_outside_tolerance(pdb):
+    _add_position(pdb, "2026-07-04T09:00:00+00:00", outside_temp=18)
+    assert db_reader.get_position_near("2026-07-04T10:00:00+00:00", tolerance_min=20) is None
+
+
+def test_get_position_near_none_when_ts_missing_or_unparseable(pdb):
+    assert db_reader.get_position_near(None) is None
+    assert db_reader.get_position_near("not-a-date") is None
+
+
+# ── i18n coverage ─────────────────────────────────────────────────────────────
+def test_auto_note_strings_present_in_every_locale():
+    import i18n
+    for lang in ("en", "it", "de", "fr", "pl", "pt-PT"):
+        t = i18n.get_t(lang)
+        for key in ("auto_note_generate_btn", "auto_note_overwrite_confirm"):
+            assert t(key) != key, f"{lang} is missing {key}"

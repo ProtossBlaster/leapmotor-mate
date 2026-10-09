@@ -13,10 +13,10 @@ provider that said it, for the pass. Another one chosen later is asked at once w
 nothing or failed; an address found stays until it is ADDRESS_REFRESH_DAYS old, then the next trip or
 charge there asks again, and only a new address replaces it. Only the ends of trips and the charges that
 ended in the last RECENT_DAYS are looked up, and only while the switch in that card is on; the 🧭 on a
-trip's page asks about that trip's ends whenever the user wants (look_up_now). The history is never
-swept: Nominatim's usage policy counts the requests of every install of an application together and
-treats an application's periodic requests as bulk. Its other rules are kept here too: at most one
-request per second, from the pass and the 🧭 together, a few per sweep, and every answer stored.
+trip's page and on a charge's 📍 line asks about its points whenever the user wants (look_up_now). The
+history is never swept: Nominatim's usage policy counts the requests of every install of an application
+together and treats an application's periodic requests as bulk. Its other rules are kept here too: at most
+one request per second, from the pass and the 🧭 together, a few per sweep, and every answer stored.
 """
 import contextlib
 import logging
@@ -198,8 +198,9 @@ def sweep(now: datetime | None = None, pause=time.sleep) -> dict:
 
 
 def look_up_now(points, now: datetime | None = None, pause=time.sleep) -> dict:
-    """The 🧭 on a trip's page: the points' cells without an address found are asked about now, whatever the
-    switch says and however old the trip, since the user asked. Returns the counts of _ask_each."""
+    """The 🧭 on a trip's page or a charge's 📍 line: the points' cells without an address found are asked about
+    now, whatever the switch says and however old the trip or the charge, since the user asked. Returns the
+    counts of _ask_each."""
     now = now or datetime.now(timezone.utc)
     chosen = db_reader.get_setting("geocoder_provider", "")
     key = db_reader.get_secret("geocoder_key", "") or None

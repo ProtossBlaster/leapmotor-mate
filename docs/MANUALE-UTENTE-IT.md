@@ -1205,8 +1205,10 @@ un'etichetta:
   ciò che i numeri non catturano: dov'era la colonnina, ombra/riparo, quanto è affidabile, le condizioni
   del parcheggio, il meteo, qualsiasi appunto personale.
 - **Dove è avvenuta una ricarica 🆕** — accanto a 📍 una ricarica mostra la colonnina e il suo indirizzo,
-  altrimenti il tuo **luogo di ricarica** lì o l'indirizzo, cercato come per i viaggi. La ricerca trova
-  una ricarica da questi nomi, e l'esportazione delle ricariche li riporta.
+  altrimenti il tuo **luogo di ricarica** lì o l'indirizzo, cercato come per i viaggi. Un indirizzo
+  mancante, ad esempio in una ricarica più vecchia, lo cerca subito 🧭 accanto a 📍. La ricerca trova una
+  ricarica da questi nomi, e l'esportazione delle ricariche li riporta. Mate non scrive più nella nota
+  della ricarica, che resta tua; le note scritte prima restano come sono.
 - **Il contachilometri della ricarica 🆕** (#237) — ogni ricarica si porta dietro **quanto segnava il
   contachilometri quando è cominciata**. Mate lo scrive da solo su tutto ciò che vede, e lo ha
   recuperato una volta sola anche dalle ricariche già in archivio. Sulle ricariche che **scrivi tu**

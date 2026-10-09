@@ -1,7 +1,8 @@
 """Where a charge happened, as a browser shows it. The OpenStreetMap credit under a list of charges shows while
 a card shows an address from it, also after a card redrew its own 📍 line (✏️, 🔄, assigning a place), which
 no route redraws the list for: only the page's own CSS says whether the credit shows. On a phone the line
-wraps, so the station, its address and a warning beside them are read whole, and its buttons stay on the card.
+wraps, so the station, its address and a warning beside them are read whole, and its buttons stay on the card;
+why a 🧭 brought no address has a row of its own under them.
 Skips where it cannot run (no playwright, no Chromium), like the other browser tests.
 """
 import sqlite3
@@ -15,7 +16,7 @@ sync_api = pytest.importorskip("playwright.sync_api", reason="needs playwright +
 import geohash
 from web_in_a_browser import COUNT_CALENDAR_SWAPS, chromium, seed_database, served
 
-WORK, SHOP, FAR = (45.08, 7.69), (45.09, 7.70), (45.10, 7.71)
+WORK, SHOP, FAR, NOWHERE = (45.08, 7.69), (45.09, 7.70), (45.10, 7.71), (45.11, 7.72)
 _CHARGE = ("INSERT INTO charges (id, vehicle_id, started_at, ended_at, start_soc, end_soc, energy_added_kwh,"
            " latitude, longitude, location_type, location_name) VALUES (?, 1, ?, ?, 40, 60, 9, ?, ?, 'AC', ?)")
 _ADDRESS = ("INSERT OR REPLACE INTO addresses (geohash, latitude, longitude, provider, status, road, locality,"
@@ -39,7 +40,8 @@ def mate(tmp_path_factory):
         (_CHARGE, (2, "2026-07-11T08:00:00+00:00", "2026-07-11T09:00:00+00:00", *SHOP, None)),
         _address(SHOP, "Via Po", "Torino"),
         (_CHARGE, (3, "2026-07-18T08:00:00+00:00", "2026-07-18T09:00:00+00:00", *FAR, "Ionity Area di Servizio")),
-        _address(FAR, *_LONG)])
+        _address(FAR, *_LONG),
+        (_CHARGE, (4, "2026-07-25T08:00:00+00:00", "2026-07-25T09:00:00+00:00", *NOWHERE, "Ionity Area di Servizio"))])
     with served(data, db) as url:
         yield url, db
 
@@ -139,6 +141,31 @@ def test_on_a_phone_a_warning_leaves_the_name_whole(mate):
         page.locator("#loc-manual-3").wait_for(state="hidden")      # htmx settled: the form has its new classes
         line = page.evaluate(_LINE, 3)
         assert line == {"texts": 2, "whole": True, "buttons": [True, True]}, line
+    finally:
+        browser.close()
+        pw.stop()
+
+
+_BELOW = """id => {
+  const said = document.querySelector(`#loc-${id} [data-place-lookup-said]`).getBoundingClientRect();
+  return [...document.querySelectorAll(`#loc-${id} > button, #loc-${id} > span:not([data-place-lookup-said])`)]
+    .every(e => e.getBoundingClientRect().bottom <= said.top + 0.5); }"""
+
+
+def test_on_a_phone_why_the_compass_brought_no_address_has_a_row_of_its_own(mate):
+    """The served web has no network, so the 🧭 fails and says how: under the name and the buttons, not between."""
+    url, _ = mate
+    pw, browser = chromium(sync_api)
+    try:
+        page = _open(browser, url, 4, width=390)
+        page.locator("#loc-4 button[hx-post$='/address']").click()
+        page.locator("#loc-4 [data-place-lookup-said]").wait_for()
+        # htmx keeps the old line's attributes, its style included, until the swap has settled
+        page.wait_for_function("() => !document.querySelector('#loc-4').matches('.htmx-swapping, .htmx-settling')")
+        assert "Asking Nominatim failed: " in page.locator("#loc-4 [data-place-lookup-said]").inner_text()
+        line = page.evaluate(_LINE, 4)
+        assert line == {"texts": 2, "whole": True, "buttons": [True, True, True]}, line
+        assert page.evaluate(_BELOW, 4)
     finally:
         browser.close()
         pw.stop()

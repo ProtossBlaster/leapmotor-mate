@@ -1,8 +1,8 @@
 """The suite looks up no host but this machine.
 
 Mate looks things up on its own, in threads no test sees: the update check on every page the web app
-renders, the elevation and weather sweep behind a trip page, a closed charge's station note. None of
-the tests needs an answer, so a lookup of any host but this one fails here as it would offline,
+renders, the elevation and weather sweep behind a trip page, the addresses of recent trips and charges.
+None of the tests needs an answer, so a lookup of any host but this one fails here as it would offline,
 instead of spending the allowance GitHub and Open-Meteo give this machine's address on every run.
 
 It replaces socket.getaddrinfo, which every connection the suite makes by name goes through today;

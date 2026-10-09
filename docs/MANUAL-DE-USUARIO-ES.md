@@ -1224,8 +1224,10 @@ etiqueta:
   para lo que los números no recogen: dónde estaba el punto, si había sombra o techo, si es fiable,
   cómo está el aparcamiento, el tiempo que hacía, cualquier comentario personal.
 - **Dónde fue una carga 🆕** — junto a 📍 una carga muestra el punto de recarga y su dirección, o si no tu
-  **lugar de carga** allí o la dirección, buscada como en los trayectos. El buscador encuentra una carga
-  por ellos, y la exportación de cargas los incluye.
+  **lugar de carga** allí o la dirección, buscada como en los trayectos. Una dirección que falta, por
+  ejemplo en una carga antigua, la busca al momento 🧭 junto a 📍. El buscador encuentra una carga por
+  ellos, y la exportación de cargas los incluye. Mate ya no escribe en la nota de la carga, que es tuya;
+  las notas que escribió antes se quedan como están.
 - **El cuentakilómetros de la carga 🆕** (#237) — cada sesión lleva ahora **lo que marcaba el
   cuentakilómetros al empezar**. Mate lo escribe en todo lo que ve, y lo recuperó una vez de las
   cargas que ya estaban en el archivo. En una carga que **escribes tú** hay una casilla

@@ -1,7 +1,9 @@
 {# Where the charge happened (db_reader.charge_places): the station with the address after it, or else, unless
    the place line below names it, the nearest charging place or the address. #}
 {% from "partials/_place_name.html" import place_name with context %}
-<div id="loc-{{ charge.id }}" class="charge-location"{% if loc_oob %} hx-swap-oob="true"{% endif %} style="display:flex;align-items:center;gap:5px;min-height:15px">
+{# Why the 🧭 brought no address goes on a row of its own: beside the name it would be squeezed between it and the buttons. #}
+{% set said = lookup and (lookup.failed or lookup.none) %}
+<div id="loc-{{ charge.id }}" class="charge-location"{% if loc_oob %} hx-swap-oob="true"{% endif %} style="display:flex;align-items:center;gap:5px;min-height:15px{% if said %};flex-wrap:wrap{% endif %}">
   {% if charge.location_name %}
   <span class="text-[11px] text-slate-400">📍 {{ charge.location_name }}
     {%- if charge.location_url %} <a href="{{ charge.location_url }}" target="_blank" rel="noopener noreferrer"
@@ -22,6 +24,18 @@
   {% elif ocm_error %}
   {# #301: an OCM id typed into ✏️ that could not be fetched. Nothing was written. #}
   <span class="text-[11px] {{ 'text-red-400' if ocm_error == 'error' else 'text-amber-400' }}">⚠️ {{ t('charger_locator_ocm_' ~ ocm_error) }}</span>
+  {% endif %}
+  {% with said_size='text-[11px]', said_style='flex-basis:100%;order:1' %}{% include "partials/_place_lookup_said.html" %}{% endwith %}
+  {# The address of the point, looked up now (main.py charge_look_up_address), unless a charging place names it. #}
+  {% if charge.gps_fix and not charge.address_found and not charge.place_charging and not charge.charging_place_name %}
+  <button type="button" title="{{ t('charge_place_look_up') }}"
+          hx-post="api/charges/{{ charge.id }}/address"
+          hx-target="#loc-{{ charge.id }}" hx-swap="outerHTML"
+          hx-disabled-elt="this"
+          class="text-slate-500 hover:text-brand disabled:opacity-40"
+          style="background:none;border:none;cursor:pointer;padding:0;font-size:11px;line-height:1">
+    <span class="htmx-indicator">⏳</span><span>🧭</span>
+  </button>
   {% endif %}
   {# The LOOKUP needs a point to search around — without coordinates there is nothing to ask OSM
      or OCM about, so the button would only ever produce a failure. The falsy test is deliberate:

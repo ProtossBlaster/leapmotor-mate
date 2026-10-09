@@ -1230,8 +1230,10 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   was die Zahlen nicht erfassen: wo die Ladesäule stand, Schatten/Unterstand, ihre Zuverlässigkeit, die
   Parkbedingungen, das Wetter, jede persönliche Anmerkung.
 - **Wo ein Ladevorgang stattfand 🆕** — neben 📍 zeigt ein Ladevorgang die Ladestation und ihre Adresse, sonst
-  Ihren **Ladeort** dort oder die Adresse, gesucht wie bei den Fahrten. Das Suchfeld findet einen
-  Ladevorgang darüber, und der Export der Ladevorgänge enthält sie.
+  Ihren **Ladeort** dort oder die Adresse, gesucht wie bei den Fahrten. Eine fehlende Adresse, etwa bei
+  einem älteren Ladevorgang, sucht 🧭 neben 📍 sofort. Das Suchfeld findet einen Ladevorgang darüber, und
+  der Export der Ladevorgänge enthält sie. Mate schreibt nichts mehr in die Notiz eines Ladevorgangs, die
+  Ihnen gehört; früher geschriebene Notizen bleiben, wie sie sind.
 - **Der Kilometerstand des Ladevorgangs 🆕** (#237) — jede Sitzung trägt jetzt **den Kilometerstand
   zum Zeitpunkt ihres Beginns**. Mate schreibt ihn selbst auf alles, was es sieht, und hat ihn einmal
   aus den bereits gespeicherten Ladevorgängen zurückgeholt. Bei einem Ladevorgang, den **Sie**
