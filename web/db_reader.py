@@ -9,7 +9,7 @@ import time
 import zlib
 from dataclasses import dataclass
 from datetime import date, datetime, timezone, timedelta
-from itertools import pairwise
+from itertools import groupby, pairwise
 from pathlib import Path
 from typing import Optional
 import os
@@ -9584,12 +9584,15 @@ def _localized_charges(charges: list[dict], with_window: bool = True) -> list[di
     return out
 
 
-def search_results_total_charges(charges: list) -> dict:
-    """Totals for a list of SEARCHED charges — the same figures the calendar's month strip shows,
-    over whatever the filters selected (disc #263, @joeyoong: his electricity is billed 22nd→21st,
-    and the date filters could already pick that period while the results totalled nothing).
+def charges_totals(charges: list) -> dict:
+    """Totals for an arbitrary set of charges: the calendar's month strip, each day of the month and
+    the searched period (disc #263, @joeyoong: his electricity is billed 22nd→21st, and the date
+    filters could already pick that period while the results totalled nothing). One function, as
+    `trips_totals` is for trips, so two lines centimetres apart cannot disagree about the same charges.
 
-    Uses `_billed_kwh` so the delivered side matches the month strip and the per-charge card exactly;
+    `kwh` is the DELIVERED side (`_billed_kwh`: the wallbox counter, the charger's own kWh where the
+    owner typed it, the battery figure where neither exists) and `battery_kwh` what reached the
+    battery; the strip prints both whenever they differ, because the gap IS the conversion loss.
     `has_cost` keeps a period where nothing is priced from printing a confident 0.00."""
     total = {"count": 0, "kwh": 0.0, "battery_kwh": 0.0, "cost": 0.0, "has_cost": False}
     for c in charges:
@@ -9623,28 +9626,10 @@ def get_charges_calendar_month(year: int, month: int, station: str | None = None
     charges = _localized_charges(get_charges(limit=1_000_000), with_window=False)
     if station:
         charges = _filter_by_station(charges, station)
-    days: dict[int, dict] = {}
-    total = {"count": 0, "kwh": 0.0, "battery_kwh": 0.0, "cost": 0.0, "has_cost": False}
-    for c in charges:
-        dt = c["_dt"]
-        if dt.year != year or dt.month != month:
-            continue
-        d = days.setdefault(dt.day, {"count": 0, "kwh": 0.0, "battery_kwh": 0.0,
-                                     "cost": 0.0, "has_cost": False})
-        # `kwh` is the DELIVERED side — the wallbox counter, the charger's own kWh where the owner
-        # typed it, the battery figure where neither exists. The month strip says so in words and
-        # puts the battery total beside it, because the gap between the two IS the conversion loss:
-        # a bare "154.93 kWh" with no label was neither one thing nor the other.
-        kwh = _billed_kwh(c)
-        batt = c.get("energy_added_kwh") or 0
-        for node in (d, total):
-            node["kwh"] = round(node["kwh"] + kwh, 2)
-            node["battery_kwh"] = round(node["battery_kwh"] + batt, 2)
-            node["count"] += 1
-            if c.get("cost") is not None:
-                node["cost"] = round(node["cost"] + (c["cost"] or 0), 2)
-                node["has_cost"] = True
-    return {"year": year, "month": month, "days": days, "total": total}
+    charges = [c for c in charges if c["_dt"].year == year and c["_dt"].month == month]
+    by_day = sorted(charges, key=lambda c: c["_dt"].day)     # stable: a day's charges keep their order
+    days = {d: charges_totals(list(cs)) for d, cs in groupby(by_day, key=lambda c: c["_dt"].day)}
+    return {"year": year, "month": month, "days": days, "total": charges_totals(charges)}
 
 
 def get_charges_calendar_day(year: int, month: int, day: int, station: str | None = None) -> list[dict]:

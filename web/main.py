@@ -1450,7 +1450,7 @@ async def charges_search(request: Request, q: str = "", type: str = "",
         "charges": charges, "station": station,
         # disc #263 — the period's own total, so a custom billing cycle (his is 22nd→21st) can be
         # read off the filtered results instead of added up by hand.
-        "search_total": db_reader.search_results_total_charges(charges),
+        "search_total": db_reader.charges_totals(charges),
         # charge_card.html labels its price box in the reader's own money, and this partial is
         # rendered on its own — it inherits nothing from _ctx. Three routes were missing it.
         "currency": db_reader.get_currency(),
