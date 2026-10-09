@@ -5879,6 +5879,62 @@ def _trip_display_source(trip, segment_ids, cloud_ids, gps_ids):
     trip["has_gps"] = any(i in gps_ids for i in segment_ids)
 
 
+_NUMBER_FIRST = {"fr", "gb", "ie", "lu"}     # countries that write the house number before the street
+
+
+def _address_label(a) -> str | None:
+    """A short name for an address: the place's own name, else "road number", else the suburb, then
+    the locality unless it repeats them; failing all, the first part of the provider's full text."""
+    head = a["name"]
+    if not head and a["road"]:
+        number_first = a["country_code"] in _NUMBER_FIRST
+        head = " ".join(p for p in ((a["house_number"], a["road"]) if number_first
+                                    else (a["road"], a["house_number"])) if p)
+    head = head or a["suburb"]
+    label = ", ".join(p for p in (head, a["locality"] if a["locality"] != head else None) if p)
+    return label or (a["display_name"] or "").split(",")[0].strip() or None
+
+
+def trip_places(trips: list[dict]) -> bool:
+    """Name each trip's start and end, `start_place` and `end_place` (None without a GPS fix or an
+    address), and set `search_text`, what a searched word is looked for in: the note, both names and
+    both full addresses. A charging place whose radius holds the point names it before any address,
+    and `start_place_charging`/`end_place_charging` say so. Returns places_credit(trips)."""
+    import geohash
+    if not trips:
+        return False
+    db = _get()
+    found = {r["geohash"]: r for r in db.execute(
+        "SELECT geohash, provider, name, house_number, road, suburb, locality, country_code, display_name"
+        " FROM addresses WHERE status = 'found'")}
+    places: dict = {}
+    for p in db.execute("SELECT id, vehicle_id, name, latitude, longitude, radius_m FROM charging_places"
+                        " WHERE enabled = 1"):
+        places.setdefault(p["vehicle_id"], []).append(dict(p))
+    for t in trips:
+        words = [t.get("note")]
+        for end in ("start", "end"):
+            lat, lon = t.get(f"{end}_lat"), t.get(f"{end}_lon")
+            label, osm, near = None, False, None
+            if has_gps_fix(lat, lon):
+                a = found.get(geohash.encode(lat, lon, 8))
+                near = _nearest_place(places.get(t.get("vehicle_id"), []), lat, lon)
+                if near:
+                    label = near["name"]
+                elif a:
+                    label, osm = _address_label(a), a["provider"] == "nominatim"
+                words += [label, a and a["display_name"]]
+            t[f"{end}_place"], t[f"{end}_place_osm"], t[f"{end}_place_charging"] = label, osm, near is not None
+        t["search_text"] = " ".join(w for w in words if w)
+    return places_credit(trips)
+
+
+def places_credit(trips: list[dict]) -> bool:
+    """Whether a name trip_places gave these trips comes from OpenStreetMap, whose licence wants it
+    credited where it shows."""
+    return any(t.get("start_place_osm") or t.get("end_place_osm") for t in trips)
+
+
 def _groups_within(table: str, merged: bool, since: str | None, until: str | None) -> tuple[str, tuple]:
     """The condition keeping the sessions of `table` that OVERLAP [since, until), each merged group
     from its earliest time to its latest, start or end: a stepped-back host clock writes a rebuilt
@@ -6961,10 +7017,12 @@ def search_trips(text: str = "", date_from: str = "", date_to: str = "",
                   duration_min: "float | None" = None, duration_max: "float | None" = None,
                   drive_mode: str = "") -> list[dict]:
     """Flat, most-recent-first list of trips matching ALL given filters — the Viaggi search
-    bar. `text` matches the user note (substring, case-insensitive); `drive_mode` is
+    bar. `text` matches the note or a place the trip started or ended at, its name or its full
+    address (substring, case-insensitive; see trip_places); `drive_mode` is
     comfort/normal/sport (#107); the km/efficiency/duration filters are inclusive ranges;
     `date_from`/`date_to` are inclusive "YYYY-MM-DD" LOCAL calendar dates."""
     trips = _localized_trips(get_trips(limit=1_000_000))
+    trip_places(trips)
     q = (text or "").strip().lower()
     dm = (drive_mode or "").strip().lower()
     try:
@@ -6977,7 +7035,7 @@ def search_trips(text: str = "", date_from: str = "", date_to: str = "",
         d_to = None
     out = []
     for t in trips:
-        if q and q not in (t.get("note") or "").lower():
+        if q and q not in t["search_text"].lower():
             continue
         if dm and (t.get("drive_mode") or "").lower() != dm:
             continue
@@ -9052,73 +9110,6 @@ def get_position_near(ts: "str | None", tolerance_min: int = 20) -> "dict | None
     return dict(best)
 
 
-def generate_trip_auto_note(trip_id: int, provider: str = "", api_key: "str | None" = None,
-                             only_if_note_empty: bool = False) -> "str | None":
-    """Builds the start/end address+time+temperature summary and writes it straight into
-    the trip's `note` field (the ONE note field — no separate read-only line to keep in
-    sync). Reverse-geocoding is a live network call (web/geocode.py, no caching, and
-    Nominatim's usage policy forbids bulk lookups) — safe for the 🧭 button (one trip) and
-    for the automatic call at trip-close (poller/recorder.py, one NEW trip at a time), but
-    never a historical backfill sweep. `only_if_note_empty` is the automatic-at-close
-    guard: a manual note the user already typed is never clobbered by this running just
-    after; the manual button always overwrites (the UI confirms with the user first when
-    there's something to lose — see trip_detail.html's hx-confirm). Temperature reuses the
-    trip's own outside_temp_start_c/end_c (Open-Meteo, already collected by
-    elevation_enrich) — None when that enrichment hasn't run yet (may still be the case
-    right at trip-close; regenerating later via the button picks it up once it has)."""
-    import geocode
-    import units
-    # A merged journey is ONE journey to whoever is looking at it: get_trip_detail resolves a child
-    # to its parent and composes the group, so the page says A→C while this used to read the parent
-    # segment's own row and write A→B — the trip's own summary contradicting the trip (#247,
-    # @Ng-EY). Same for the arrival time and the end temperature, which came from B. Resolve the
-    # group here exactly as the page does; the stored rows stay untouched (a merge is display math
-    # and must stay reversible), and the note is written to the PARENT, which is the row the page
-    # reads it back from.
-    found = trip_group(trip_id)
-    if not found:
-        return None
-    row, _ = found
-    parent_id = row["id"]
-    if only_if_note_empty and (row.get("note") or "").strip():
-        return row.get("note")
-
-    def _addr(lat, lon):
-        # geocode.reverse_geocode's own keyed-provider path swallows failures and falls back to
-        # Nominatim, but that final call (urllib underneath) can still raise on a timeout/DNS
-        # blip — one endpoint's network hiccup must not blank the other endpoint's time+temp.
-        if lat is None or lon is None:
-            return None
-        try:
-            return geocode.reverse_geocode(lat, lon, provider, api_key)
-        except Exception:  # noqa: BLE001
-            return None
-
-    start_addr = _addr(row.get("start_lat"), row.get("start_lon"))
-    end_addr = _addr(row.get("end_lat"), row.get("end_lon"))
-    start_dt = _local_dt(row.get("started_at"))
-    end_dt = _local_dt(row.get("ended_at"))
-
-    def _line(marker: str, addr, dt, temp_c) -> "str | None":
-        if not dt:
-            return None
-        bits = ([addr] if addr else []) + [dt.strftime("%H:%M")]
-        if temp_c is not None:
-            bits.append(f"🌡️ {units.temp(temp_c)}")
-        text = " · ".join(bits)
-        return f"{marker} {text}" if marker else text
-
-    lines = [_line("", start_addr, start_dt, row.get("outside_temp_start_c")),
-             _line("→", end_addr, end_dt, row.get("outside_temp_end_c"))]
-    text = (" ".join(l for l in lines if l) or None)
-    if text:
-        text = text.strip()[:1000]
-    db = _conn_rw()
-    db.execute("UPDATE trips SET note=? WHERE id=?", (text, parent_id))
-    db.commit()
-    return text
-
-
 _FUEL_NOTE_TOLERANCE_MIN = 20     # how far from the refuel a position may sit and still be "there"
 
 
@@ -9129,7 +9120,7 @@ def generate_fuel_auto_note(purchase_id: int, provider: str = "", api_key: "str 
     Asked for by **@gm27271** (beta discussion #14): *"add GPS coordinates of the gas station
     registered during the refueling timestamp… then users do not need to enter any notes"*. The
     cloud reports no station, so the place has to come from where the CAR was: the position nearest
-    the refuel's timestamp, reverse-geocoded through the same provider the trip note uses.
+    the refuel's timestamp, reverse-geocoded through the provider chosen for address lookups.
 
     The tolerance is the honest part. A refuel's timestamp is not always the moment fuel went in —
     on a detected one it is when the NEW level was first seen, which for someone who fills up and
@@ -11869,7 +11860,9 @@ def _trip_moments(db, vehicle_id, start, end) -> list[dict]:
         "SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NULL "
         "AND merged_into_id IS NULL ORDER BY id", (vehicle_id,)).fetchall()]
     since, until = _bounds(start, end)
-    return _session_moments("trip", get_trips(limit=1_000_000, since=since, until=until), live)
+    trips = get_trips(limit=1_000_000, since=since, until=until)
+    trip_places(trips + live)
+    return _session_moments("trip", trips, live)
 
 
 def _charge_moments(db, vehicle_id, start, end) -> list[dict]:
@@ -11993,7 +11986,8 @@ def _nearest_place(places, lat, lon) -> dict | None:
 # What a row may print beside its label; absent from a row, None.
 _EVENT_FIGURES = ("extra", "distance_km", "energy_kwh", "duration_min", "soc_from", "soc_to", "cost",
                   "waited_min", "ctx", "target_temp", "outside_temp", "cabin_from", "cabin_to",
-                  "from_anchor", "from_hms", "from_day", "place_key", "place_at", "point", "note")
+                  "from_anchor", "from_hms", "from_day", "place_key", "place_at", "point", "words",
+                  "place_osm")
 
 
 def _present_event(m: dict, zone, live: dict, t, places, lang) -> None:
@@ -12030,9 +12024,15 @@ def _present_event(m: dict, zone, live: dict, t, places, lang) -> None:
         action = t(f"events_cmd_{EVENT_COMMAND_ALIASES.get(m['action'], m['action'])}")
         m["extra"] = outcome if action.startswith("events_cmd_") else f"{action} · {outcome}"
     s = m.get("session") or {}
-    m["note"] = s.get("note")
+    m["words"] = s.get("search_text", s.get("note"))      # searched, not printed: see trip_places
     m["has_fix"] = has_gps_fix(m["lat"], m["lon"])
-    m["place"] = (s.get("charging_place_name") or s.get("location_name")) if m["source"] == "charge" else None
+    if m["source"] == "charge":
+        m["place"] = s.get("charging_place_name") or s.get("location_name")
+    elif m["source"] == "trip":                    # its own end's name: a charging place, else the address
+        end = "start" if m["on"] else "end"
+        m["place"], m["place_osm"] = s.get(f"{end}_place"), s.get(f"{end}_place_osm")
+    else:
+        m["place"] = None
     if m["has_fix"]:
         # Inside a charging place the place is the point (names repeat, so by id); elsewhere a ~110 m grid.
         near = _nearest_place(places, m["lat"], m["lon"])
@@ -12204,10 +12204,11 @@ def _cache_key(flt: "EventFilter", lang: str, vehicle_id) -> tuple:
 def _events_version(lines: list, points: list) -> str:
     """What a later part must match to join the parts on the page: the lines in order with their
     track cells, and the map's points. A row written meanwhile moves the cut, the tracks or the
-    points' numbers."""
+    points' numbers; an address found meanwhile, a row's place."""
     crc = zlib.crc32(repr(points).encode())
     for line in lines:
-        key = line["e"]["anchor"] if line["kind"] == "row" else line["label"]
+        e = line["e"] if line["kind"] == "row" else None
+        key = (e["anchor"], e.get("place"), e.get("place_osm")) if e else line["label"]
         crc = zlib.crc32(f"{key}|{line['cells']}|{line.get('joined')}\n".encode(), crc)
     return f"{crc:08x}"
 
@@ -12251,7 +12252,7 @@ def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str
         _present_event(m, zone, live, t, places, lang)
     q = flt.q.lower()
     if q:
-        items = [m for m in items if any(q in (m.get(f) or "").lower() for f in ("label", "place", "extra", "note"))]
+        items = [m for m in items if any(q in (m.get(f) or "").lower() for f in ("label", "place", "extra", "words"))]
     items.sort(key=lambda m: (m["t"], m["id"]), reverse=True)        # one second: the later write first
     listed = {m["anchor"] for m in items}
     by_day: dict = {}
@@ -12276,7 +12277,8 @@ def get_events_grouped(flt: EventFilter, t, lang: str, part: int = 0, asked: str
     lines, lanes, runs = _event_lines(items, start, end, weekdays, lang)
     composed = {"key": key, "seen": seen, "days": days, "lines": lines, "lanes": lanes, "runs": runs,
                 "version": _events_version(lines, points), "count": len(items), "live": live,
-                "first": first, "last": last, "points": points}
+                "first": first, "last": last, "points": points,
+                "address_credit": any(m["place_osm"] for m in items)}
     _events_cache["one"] = composed
     return _event_answer(composed, part, asked)
 
@@ -12290,4 +12292,5 @@ def _event_answer(composed: dict, part: int, asked: str | None) -> dict:
     lines, more = _event_part(composed["lines"], composed["lanes"], composed["runs"], part)
     return {"days": composed["days"], "lines": lines, "more": more, "part": part, "version": version,
             "lanes": composed["lanes"], "count": composed["count"], "live": composed["live"],
-            "first": composed["first"], "last": composed["last"], "points": composed["points"]}
+            "first": composed["first"], "last": composed["last"], "points": composed["points"],
+            "address_credit": composed["address_credit"]}

@@ -1066,6 +1066,14 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
     avere il consumo reale combinato. Mate lo dice solo quando è l'auto a segnalarlo: una sosta in P
     di oltre un minuto durante la quale l'auto non ha detto se era accesa non conta come un'unica
     sessione.
+- **Da dove a dove 🆕** — la riga di un viaggio mostra **«A → B»**, e il *Riepilogo del viaggio* nella sua
+  pagina nomina i due estremi. Un estremo dentro uno dei tuoi **luoghi di ricarica** mostra il suo nome
+  seguito da «(luogo di ricarica)», quindi rinominare il luogo rinomina quei viaggi; altrove è l'indirizzo
+  (un negozio o un distributore per nome, altrimenti la via e il civico, poi la località). Mate lo cerca
+  poco dopo la fine del viaggio con il servizio scelto in *Impostazioni → Ricerca indirizzi*, dove si può
+  disattivare. Un indirizzo mancante, ad esempio in un viaggio più vecchio, lo cerca subito 🧭 nel
+  *Riepilogo del viaggio*. La ricerca trova un viaggio da uno qualsiasi dei due estremi. Mate non scrive
+  più indirizzi nella nota del viaggio, che resta tua; le note scritte prima restano come sono.
 - **La tua nota + tag di guida 🆕** (#107) — nel dettaglio di un viaggio puoi scrivere una **nota libera**
   (traffico, meteo, tipo di strada, qualsiasi appunto) e indicare la **modalità di guida** (Comfort /
   Normale / Sport) e il **One-Pedal** (attivo/disattivo) usati. Mate non può leggerli dall'auto —
@@ -1352,7 +1360,7 @@ entra nello schermo.
   Questi numeri risaltano sul resto della riga; il costo è verde e il tempo prima che partisse la ricarica
   è ambra.
 - **Luoghi**: una riga in uno dei tuoi luoghi di ricarica (*Prezzi di ricarica → Luoghi di ricarica*) lo
-  nomina.
+  nomina; la partenza o l'arrivo di un viaggio altrove porta il suo indirizzo, come in Viaggi.
 - **La mappa** resta nascosta finché **🗺 Mostra mappa**, sopra l'elenco, non la apre (accanto all'elenco
   su uno schermo largo, sopra sul telefono o su uno più stretto), e la volta dopo è come l'hai lasciata.
   Ogni riga con una posizione ha un 🌍: apre la mappa se serve, accende il punto della riga, lo porta in
@@ -1364,8 +1372,8 @@ entra nello schermo.
   sola lettura — quindi un cambiamento conta solo quando due letture consecutive lo confermano. Un
   cambiamento che l'auto ha annullato fra due sue trasmissioni non si vede mai, e il cloud può perdere il
   segnale della chiusura per una o due letture, che allora appaiono come un breve sblocco.
-- **Filtri**: una parola (il nome dell'evento, l'esito di un comando, un luogo, la nota di un
-  viaggio o di una ricarica — la nota automatica di un viaggio contiene i suoi indirizzi), i bottoni dei gruppi
+- **Filtri**: una parola (il nome dell'evento, l'esito di un comando, un luogo, da dove è partito o
+  dove è arrivato un viaggio — il nome o l'indirizzo completo — o la nota di un viaggio o di una ricarica), i bottoni dei gruppi
   (Sicurezza, Porte, Finestrini, Ricarica, Clima, Guida, Comandi) e, sotto ⚙, un intervallo di date e i
   singoli tipi. I filtri vivono nell'indirizzo: un link o un ricaricamento li conserva.
 - **Storico**: gli eventi derivano dalle posizioni che Mate già salva, quindi su un'installazione esistente
@@ -1503,7 +1511,7 @@ nelle vicinanze**. La pagina ha tre parti:
 
 - **Destinazione** — scrivi un **indirizzo** (e, se serve, la **città**), premi **Cerca**: la meta
   appare sulla mappa e con **🧭 Invia all'auto** la mandi al navigatore di bordo. *La ricerca per
-  indirizzo richiede una chiave di geocoding* (vedi [Impostazioni → Geocoder](#7-impostazioni)).
+  indirizzo richiede una chiave di geocoding* (vedi [Impostazioni → Ricerca indirizzi](#7-impostazioni)).
 - **⚡ Colonnine di ricarica — "Trova colonnine"** — cerca le **colonnine pubbliche intorno
   all'auto** (usa la sua posizione GPS attuale). Puoi impostare:
   - **Distanza massima** — 500 m, 1, 2, **5 km** (predefinito) o 10 km;
@@ -1586,8 +1594,9 @@ volta. È divisa in tre colonne.
 **Colonna 2 — Integrazioni**
 
 - **ABRP** — invio telemetria ad A Better Routeplanner (vedi [§8](#8-le-integrazioni-in-dettaglio)).
-- **Geocoder** — il servizio per tradurre indirizzi ↔ coordinate nella pagina Navigazione
-  (Geoapify *consigliato*, LocationIQ, TomTom). Richiede una **chiave** gratuita del servizio scelto.
+- **Ricerca indirizzi** — il servizio per tradurre indirizzi ↔ coordinate nella pagina Navigazione e per
+  nominare la partenza e l'arrivo dei tuoi viaggi (Geoapify *consigliato*, LocationIQ, TomTom). Richiede
+  una **chiave** gratuita del servizio scelto; senza, Mate usa il servizio senza chiave di OpenStreetMap.
 - **⚡ Etichette colonnine** — abilita i **nomi delle colonnine** sulle ricariche (📍) e accetta
   chiavi opzionali (OpenChargeMap, TomTom) per arricchire la ricerca. È **disattivato** di default.
 - **Wallbox** — collega la tua wallbox per i **costi reali** e gli eventuali controlli (vedi

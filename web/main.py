@@ -42,6 +42,7 @@ import maintenance
 import research
 import ec_enrich
 import elevation_enrich
+import place_lookup
 
 _IS_DEMO = demo.is_demo()
 demo.install(command_client, ha_client)   # no-op unless MATE_DEMO is set
@@ -186,6 +187,8 @@ ec_enrich.start_background()
 # Same background timer for per-trip elevation gain/loss + outside temperature (Open-Meteo lookup on
 # the GPS track); no-op unless the feature is enabled.
 elevation_enrich.start_background()
+# …and for the addresses of the places recent trips started and ended at (place_lookup).
+place_lookup.start_background()
 
 
 def _nice(x) -> str:
@@ -724,6 +727,7 @@ def _page_month(month: str) -> tuple[int, int]:
 @app.get("/trips", response_class=HTMLResponse)
 async def trips_page(request: Request, highlight: int = 0, month: str = ""):
     vehicle, _ = db_reader.get_vehicle()
+    place_lookup.maybe_sweep()      # a trip that just ended gets its addresses without waiting for the timer
     summary = db_reader.get_trips_summary()
     total   = summary.get("count") or 0
     # The calendar's Month view opens on ?month= or today — or, following a ?highlight=<id> link, on
@@ -768,7 +772,8 @@ def _trips_drawer_ctx(lang: str, year: int, month: int, day: int, to_day: int = 
     from itertools import groupby
     first, last = _day_span(year, month, day, to_day)
     trips = db_reader.get_trips_calendar_day(year, month, first, last)
-    ctx = {"trips": trips, "day_totals": db_reader.trips_day_totals(trips)}
+    ctx = {"trips": trips, "day_totals": db_reader.trips_day_totals(trips),
+           "address_credit": db_reader.trip_places(trips)}
     if first == last:
         ctx.update(day=first, day_label=i18n.fmt_day_month_year(lang, date(year, month, first)))
         return ctx
@@ -858,15 +863,19 @@ async def trips_calendar_day(request: Request, year: int, month: int, day: Annot
     from datetime import date
     d = date(year, month, _day_span(year, month, day, to_day)[0])
     gap = max(db_reader.TRIP_MERGE_GAP_MIN, min(db_reader.TRIP_MERGE_GAP_MAX, gap))
+    ctx = _trips_drawer_ctx(lang, year, month, day, to_day)
+    # Chains, not pairs: pairs overlap on the trip between them and drew it twice (#249).
+    candidates = db_reader.get_merge_chains(gap, day=d) if merge else []
+    if merge:                       # the chains' rows are shown instead of the day's
+        ctx["address_credit"] = db_reader.trip_places([step["trip"] for chain in candidates for step in chain])
     return templates.TemplateResponse(request, "partials/trips_calendar_day.html", {
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
         "is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),
-        **_trips_drawer_ctx(lang, year, month, day, to_day),
+        **ctx,
         # The 🔗 and slider URLs the drawer builds take these, with the day from _trips_drawer_ctx.
         "year": year, "month": month,
         "merge_mode": bool(merge), "gap": gap,
-        # Chains, not pairs: pairs overlap on the trip between them and drew it twice (#249).
-        "candidates": db_reader.get_merge_chains(gap, day=d) if merge else [],
+        "candidates": candidates,
         "merge_gap_min": db_reader.TRIP_MERGE_GAP_MIN, "merge_gap_max": db_reader.TRIP_MERGE_GAP_MAX,
     })
 
@@ -911,6 +920,7 @@ async def trips_search(request: Request, q: str = "", drive_mode: str = "",
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
         "is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),
         "trips": trips, "year": year or today.year, "month": month or today.month,
+        "address_credit": db_reader.places_credit(trips),      # search_trips named every trip's places
         # disc #263 — the period's own total (km, fuel, cost) for whatever the filters selected, so a
         # custom billing cycle reads off the results instead of being added up by hand.
         "search_total": db_reader.search_results_total_trips(trips),
@@ -980,8 +990,32 @@ async def trip_detail(request: Request, trip_id: int, back: str = ""):
     return templates.TemplateResponse(request, "trip_detail.html", _ctx(
         page="trips", vehicle=vehicle, trip=trip,
         prev_trip_id=adjacent["prev_id"], next_trip_id=adjacent["next_id"],
-        events_back=_events_back(back),
+        events_back=_events_back(back), **_trip_place_lines(trip),
     ))
+
+
+def _trip_place_lines(trip: dict) -> dict:
+    """What partials/trip_place_lines.html needs: a line for each end with a GPS fix, named or not (none
+    without any fix), and whether to credit OpenStreetMap."""
+    address_credit = db_reader.trip_places([trip])
+    place_ends = [{"end": end, "label": trip[f"{end}_place"], "charging": trip[f"{end}_place_charging"],
+                   "fix": db_reader.has_gps_fix(trip.get(f"{end}_lat"), trip.get(f"{end}_lon"))}
+                  for end in ("start", "end")]
+    return {"place_ends": place_ends if any(p["fix"] for p in place_ends) else [], "address_credit": address_credit}
+
+
+@app.post("/api/trips/{trip_id}/places", response_class=HTMLResponse)
+async def trip_look_up_places(request: Request, trip_id: int):
+    """🧭 in the Trip summary: the trip's ends without an address are looked up now, whatever the switch in
+    Address lookup says and however old the trip, as the note's 🧭 did; then its lines are drawn again."""
+    import asyncio
+    trip = db_reader.get_trip_detail(trip_id)
+    if not trip:
+        return HTMLResponse("", status_code=404)
+    points = [(trip.get(f"{end}_lat"), trip.get(f"{end}_lon")) for end in ("start", "end")]
+    await asyncio.get_event_loop().run_in_executor(None, place_lookup.look_up_now, points)
+    return templates.TemplateResponse(request, "partials/trip_place_lines.html",
+                                      _ctx(trip=trip, **_trip_place_lines(trip)))
 
 
 @app.get("/trips/{trip_id}/similar", response_class=HTMLResponse)
@@ -1124,25 +1158,6 @@ async def set_trip_note(request: Request, trip_id: int):
     one_pedal = int(op_raw) if op_raw in ("0", "1") else None
     db_reader.save_trip_note(trip_id, note, drive_mode=drive_mode, one_pedal=one_pedal)
     return HTMLResponse("✓ " + i18n.get_t(db_reader.get_language())("note_saved"))
-
-
-@app.post("/api/trips/{trip_id}/auto-note", response_class=HTMLResponse)
-async def trip_generate_auto_note(request: Request, trip_id: int):
-    """🧭 manual 'Generate' button: builds the start/end address+time+temperature summary
-    and writes it straight into the trip's note field, replacing whatever was there (the UI
-    confirms with the user first when there was something to lose — trip_detail.html's
-    conditional hx-confirm). Reverse-geocoding is a live network call (Nominatim's usage
-    policy forbids bulk/automated lookups), so this only ever runs on a click for THIS one
-    trip — never a background sweep. Swaps in just the textarea, so the Salva button below
-    still submits the fresh text normally."""
-    import asyncio
-    provider = db_reader.get_setting("geocoder_provider", "")
-    key = db_reader.get_secret("geocoder_key", "") or None
-    note = await asyncio.get_event_loop().run_in_executor(
-        None, db_reader.generate_trip_auto_note, trip_id, provider, key)
-    t = i18n.get_t(db_reader.get_language())
-    return templates.TemplateResponse(request, "partials/trip_note_textarea.html",
-                                      {"trip": {"id": trip_id, "note": note}, "t": t})
 
 
 @app.delete("/api/charges/{charge_id}")
@@ -3948,15 +3963,17 @@ async def save_abrp(request: Request):
 
 @app.post("/api/settings/geocoder", response_class=HTMLResponse)
 async def save_geocoder(request: Request):
-    """Store the optional TomTom API key used for better address/house-number
-    coverage on the Navigation page. Empty = keyless Photon/Nominatim."""
+    """Store the geocoding provider and its optional API key, used for better address/house-number
+    coverage on the Navigation page and for where trips start and end, and the switch for the latter
+    (place_lookup). Empty = keyless Photon/Nominatim."""
     form = await request.form()
     if "geocoder_provider" in form:
         db_reader.set_setting("geocoder_provider", (form.get("geocoder_provider") or "").strip())
-    # The automatic 🧭 note, which is the only thing here that reaches out on its own initiative
-    # — the rest of this card is consulted when the user asks for an address. Guarded by the
-    # marker rather than by the checkbox alone, because an unticked box submits nothing at all
-    # and would otherwise read as "turn it off" on any form that never showed it.
+    if "place_lookup_present" in form:      # the same marker reason as auto_note's, below
+        db_reader.set_setting("place_lookup", "1" if form.get("place_lookup") else "0")
+    # The switch for a new charge's automatic 🧭 note. Guarded by the marker rather than by the
+    # checkbox alone, because an unticked box submits nothing at all and would otherwise read as
+    # "turn it off" on any form that never showed it.
     if "auto_note_present" in form:
         db_reader.set_setting("auto_note", "1" if form.get("auto_note") else "0")
     gkey = (form.get("geocoder_key") or "").strip()
@@ -4152,7 +4169,12 @@ def _csv_safe(v):
 
 @app.get("/api/export/trips.csv")
 async def export_trips_csv():
-    return _csv_response(db_reader.get_trips(limit=1_000_000), "leapmotor-mate-trips.csv")
+    trips = db_reader.get_trips(limit=1_000_000)
+    db_reader.trip_places(trips)                     # start_place, end_place: the note no longer holds them
+    for t in trips:
+        for key in ("search_text", "start_place_osm", "end_place_osm", "start_place_charging", "end_place_charging"):
+            t.pop(key, None)
+    return _csv_response(trips, "leapmotor-mate-trips.csv")
 
 
 @app.get("/api/export/charges.csv")

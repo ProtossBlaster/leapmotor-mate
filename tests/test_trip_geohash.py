@@ -1,7 +1,7 @@
 """trips.start_geohash/end_geohash — the similar-trips comparator's fast candidate
 pre-filter (see test_similar_trips.py for the matching logic). Written at trip
 creation/finalize (pure math on lat/lon already captured, no network call — unlike the
-auto-note's reverse-geocoding there's no reason to defer this to a background sweep), and
+address lookup (place_lookup) there's no reason to defer this to a background sweep), and
 backfilled once for every trip that predates the columns."""
 import types
 

@@ -384,10 +384,7 @@ class Recorder:
         # two are the same on a healthy link and hours apart behind a frozen frame — and it is the
         # second case that produced 4 km "in 30 seconds", an implied 480 km/h, and a trip with no
         # duration at all.
-        trip_id = self._db.create_reconstructed_trip(self._vehicle_id, prev_soc, prev_odo,
-                                                    prev_ts, data)
-        if trip_id is not None:
-            self._auto_note_trip(trip_id)
+        self._db.create_reconstructed_trip(self._vehicle_id, prev_soc, prev_odo, prev_ts, data)
 
     def _maybe_reconstruct_charge(self, data: VehicleData) -> None:
         """Catch a charge that was never seen live. While the car is asleep/offline to the cloud
@@ -469,8 +466,6 @@ class Recorder:
             self._db.delete_trip(self._active_trip_id)
             log.info("Trip #%d discarded — short hop %.2f km (< %.1f km)",
                      self._active_trip_id, distance_km, self._MIN_TRIP_KM)
-            return
-        self._auto_note_trip(self._active_trip_id)
 
     def _settle_trip_after_outage(self, to: State, data: VehicleData) -> None:
         """The cloud refused us mid-drive and answers again: the open trip is resumed or closed,
@@ -600,8 +595,8 @@ class Recorder:
     @staticmethod
     def _web_db_reader():
         """web/db_reader.py — same sys.path trick as _read_wallbox_energy's ha_client
-        import. Reused here since the auto-note generation (reverse-geocoding + station
-        lookup) lives there, and pulls in only stdlib-http modules (web/geocode.py,
+        import. Reused here since the charge auto-note (station lookup) lives there, and
+        pulls in only stdlib-http modules (web/geocode.py,
         web/charger_locator.py) already covered by web's own requirements — no new pip
         dependency for the poller."""
         import sys
@@ -613,40 +608,22 @@ class Recorder:
         return db_reader
 
     def _auto_note_on(self) -> bool:
-        """Whether the AUTOMATIC note may run. On by default — the feature is the point —
-        but a trip's endpoints are, for most people, home and work, and this sends both to
-        a reverse-geocoding service without being asked each time. Settings ▸ Geocoder can
-        turn it off; the 🧭 button stays, so nobody loses the feature, they just decide
-        when it happens. Read from the poller's own connection so an off switch costs no
-        thread and no import."""
+        """Whether a new charge's AUTOMATIC note may run. On by default — the feature is the
+        point — but it sends where the car charged to a station lookup without being asked
+        each time. Settings ▸ Address lookup can turn it off; the 🧭 button stays, so nobody
+        loses the feature, they just decide when it happens. Read from the poller's own
+        connection so an off switch costs no thread and no import."""
         try:
             return self._db.get_setting("auto_note", "1") != "0"
         except Exception:  # noqa: BLE001 — a settings read must never break recording
             return True
 
-    def _auto_note_trip(self, trip_id: int) -> None:
-        """Kick the address/time/temperature auto-note for a brand-new trip, off-thread —
-        reverse-geocoding can take a few seconds and must never delay the next poll cycle.
-        only_if_note_empty=True is the safety net: never clobbers a note the user
-        somehow already typed in the few seconds between the trip closing and this
-        thread running (the 🧭 button is the only thing allowed to overwrite a note, and
-        only after the user confirms — see web/main.py trip_generate_auto_note)."""
-        if not self._auto_note_on():
-            return
-        threading.Thread(target=self._auto_note_trip_body, args=(trip_id,), daemon=True).start()
-
-    def _auto_note_trip_body(self, trip_id: int) -> None:
-        try:
-            db_reader = self._web_db_reader()
-            provider = db_reader.get_setting("geocoder_provider", "")
-            key = db_reader.get_secret("geocoder_key", "") or None
-            db_reader.generate_trip_auto_note(trip_id, provider, key, only_if_note_empty=True)
-        except Exception as e:  # noqa: BLE001 — best-effort, must never take the poller down
-            log.debug("trip #%d auto-note failed: %s", trip_id, e)
-
     def _auto_note_charge(self, charge_id: int) -> None:
-        """Same as _auto_note_trip, for a brand-new charge (station address + telemetry
-        temperatures instead of reverse-geocoded endpoints + Open-Meteo)."""
+        """Kick the station address/time/temperature auto-note for a brand-new charge,
+        off-thread — the station lookup can take a few seconds and must never delay the next
+        poll cycle. only_if_note_empty=True is the safety net: never clobbers a note the user
+        already typed in the meantime (the 🧭 button is the only thing allowed to overwrite a
+        note, and only after the user confirms — see web/main.py charge_generate_auto_note)."""
         if not self._auto_note_on():
             return
         threading.Thread(target=self._auto_note_charge_body, args=(charge_id,), daemon=True).start()

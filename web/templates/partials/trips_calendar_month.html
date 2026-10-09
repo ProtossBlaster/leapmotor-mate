@@ -121,7 +121,8 @@
     {% if open_drawer is defined %}
       {# Every name _trips_drawer_ctx gives the drawer's own endpoint; one left out vanishes down this path only. #}
       {% with trips = open_drawer.trips, day_label = open_drawer.day_label, day_totals = open_drawer.day_totals,
-              day = open_drawer.day, range_label = open_drawer.range_label, range_days = open_drawer.range_days %}
+              day = open_drawer.day, range_label = open_drawer.range_label, range_days = open_drawer.range_days,
+              address_credit = open_drawer.address_credit %}
         {% include "partials/trips_calendar_day_content.html" %}
       {% endwith %}
     {% else %}

@@ -1364,7 +1364,7 @@ class Database:
         """Fill start_geohash/end_geohash on every trip that predates the column (idempotent —
         only touches NULLs, so a fresh install or a re-run after the columns already exist is a
         fast no-op). Pure math on lat/lon already stored, no network call, so unlike the
-        auto-note enrichment there's no reason to defer this to a web-side background sweep."""
+        address lookup (web/place_lookup.py) there's no reason to defer this to a web-side background sweep."""
         rows = self._conn.execute(
             "SELECT id, start_lat, start_lon, end_lat, end_lon FROM trips "
             "WHERE (start_geohash IS NULL AND start_lat IS NOT NULL AND start_lon IS NOT NULL) "

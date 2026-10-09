@@ -268,6 +268,30 @@ CREATE TABLE IF NOT EXISTS events (
     outside_temp REAL
 );
 CREATE INDEX IF NOT EXISTS idx_events_vehicle_kind_id ON events(vehicle_id, kind, id);
+
+-- The address of a spot a trip started or ended at, one row per geohash-8 cell (19 m north to south, at
+-- most 38 m across) and shared by every car: web/place_lookup.py fills it, a trip finds its ends' rows
+-- by their coordinates. The parts mean the same whoever answered (web/geocode.py maps each provider).
+CREATE TABLE IF NOT EXISTS addresses (
+    id            INTEGER PRIMARY KEY,
+    geohash       TEXT NOT NULL UNIQUE,  -- geohash-8 of the point asked about
+    latitude      REAL NOT NULL,
+    longitude     REAL NOT NULL,
+    provider      TEXT NOT NULL,         -- who gave the answer kept here (or failed, with nothing kept)
+    status        TEXT NOT NULL,         -- found | none (the provider has nothing there) | failed
+    attempts      INTEGER NOT NULL DEFAULT 0,   -- failures in a row of retry_provider
+    retry_at      TEXT,                  -- UTC ISO: retry_provider is not asked again before it
+    retry_provider TEXT,                 -- whose failures those are: a refresh can fail at another one
+    name          TEXT,                  -- the place's own name: a shop, a station
+    house_number  TEXT,
+    road          TEXT,
+    suburb        TEXT,
+    locality      TEXT,                  -- city, town or village
+    postcode      TEXT,
+    country_code  TEXT,                  -- ISO 3166-1, lower case
+    display_name  TEXT,                  -- the provider's full text
+    looked_up_at  TEXT NOT NULL          -- UTC ISO
+);
 """
 
 
@@ -313,8 +337,8 @@ def ensure_schema(conn) -> None:
     phantom rows and migrates the secrets. Those belong to the process that owns the data; a reader
     must not do them, least of all concurrently with the poller doing the same.
 
-    Idempotent by construction (every step is `IF NOT EXISTS` or `if column not in ...`) and cheap:
-    a handful of PRAGMAs on a database that is already up to date."""
+    Idempotent by construction (every step is `IF NOT EXISTS`, `if column not in ...` or `INSERT OR IGNORE`)
+    and cheap: a handful of PRAGMAs on a database that is already up to date."""
     conn.executescript(SCHEMA)
     conn.execute("""CREATE TABLE IF NOT EXISTS charging_places (
         id INTEGER PRIMARY KEY, vehicle_id INTEGER NOT NULL,
@@ -636,11 +660,15 @@ def ensure_schema(conn) -> None:
     # comparator's fast pre-filter (web/db_reader.py get_similar_trips groups candidates by
     # this before validating the actual route). Set at trip creation/finalize (below) going
     # forward; _backfill_trip_geohashes fills every existing trip once, offline (pure math on
-    # lat/lon already stored — unlike the auto-note's reverse-geocoding, no network call, so
+    # lat/lon already stored — unlike the address lookup (web/place_lookup.py), no network call, so
     # there's no reason to defer this to a web-side sweep).
     for _c in ("start_geohash", "end_geohash"):
         if _c not in tcols:
             _add_column(conn, f"ALTER TABLE trips ADD COLUMN {_c} TEXT DEFAULT NULL")
+    # migration: the trip address lookup's switch starts as the automatic note's was, the note having sent
+    # a trip's ends to the lookup service until then; written once, so the two are separate from here on.
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('place_lookup', COALESCE("
+                 "(SELECT CASE value WHEN '0' THEN '0' ELSE '1' END FROM settings WHERE key = 'auto_note'), '1'))")
     conn.commit()
 
 

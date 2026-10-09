@@ -1,13 +1,12 @@
 """The automatic 🧭 note can be switched off; the button never can.
 
 The feature ships on, because a note that has to be asked for every time is barely a feature.
-But it is the one thing in Mate that reaches out on its own initiative, and what it sends is a
-trip's two endpoints — which for most people are home and work. That deserves a switch rather
-than a paragraph in a changelog.
+But it reaches out on its own initiative, and what it sends is where the car charged. That
+deserves a switch rather than a paragraph in a changelog. It is a charge's note only: a trip has
+no automatic note any more, its two ends are addresses of their own (web/place_lookup.py).
 
-Switching it off stops only the AUTOMATIC path in the poller. The 🧭 button on every trip and
-charge keeps working exactly as before: the note is still one tap away, it just stops happening
-by itself.
+Switching it off stops only the AUTOMATIC path in the poller. The 🧭 button on every charge keeps
+working exactly as before: the note is still one tap away, it just stops happening by itself.
 
 The tests below drive the real Recorder and stub only the note body (network + threading),
 matching test_auto_note_recorder.py.
@@ -39,12 +38,13 @@ def _rec(db):
     return rec
 
 
-def _drive_and_park(rec, spawned):
-    """A real 10 km trip, recording whether the note thread would have been spawned."""
-    rec._auto_note_trip_body = lambda tid: spawned.append(tid)
-    rec._handle_event(StateEvent(State.PARKED_ACTIVE, State.DRIVING, _vd()), _vd())
-    end = _vd(odometer_km=1010.0)
-    rec._handle_event(StateEvent(State.DRIVING, State.PARKED_ACTIVE, end), end)
+def _charge_and_park(rec, spawned):
+    """A real charge, recording whether the note thread would have been spawned."""
+    rec._auto_note_charge_body = lambda cid: spawned.append(cid)
+    start = _vd(plug=True, charging=1)
+    rec._handle_event(StateEvent(State.PARKED_ACTIVE, State.CHARGING, start), start)
+    end = _vd(soc=80.0, plug=True)
+    rec._handle_event(StateEvent(State.CHARGING, State.PARKED_ACTIVE, end), end)
 
 
 def test_on_by_default(tmp_path, monkeypatch):
@@ -53,7 +53,7 @@ def test_on_by_default(tmp_path, monkeypatch):
     rec = _rec(db)
     monkeypatch.setattr(R.threading, "Thread", _immediate)
     spawned = []
-    _drive_and_park(rec, spawned)
+    _charge_and_park(rec, spawned)
     assert spawned, "the automatic note should run when nothing has been configured"
 
 
@@ -63,7 +63,7 @@ def test_switched_off_the_poller_does_not_reach_out(tmp_path, monkeypatch):
     rec = _rec(db)
     monkeypatch.setattr(R.threading, "Thread", _immediate)
     spawned = []
-    _drive_and_park(rec, spawned)
+    _charge_and_park(rec, spawned)
     assert not spawned, "switched off, nothing may be looked up on its own"
 
 
@@ -74,22 +74,8 @@ def test_switched_back_on(tmp_path, monkeypatch):
     rec = _rec(db)
     monkeypatch.setattr(R.threading, "Thread", _immediate)
     spawned = []
-    _drive_and_park(rec, spawned)
+    _charge_and_park(rec, spawned)
     assert spawned
-
-
-def test_a_charge_respects_it_too(tmp_path, monkeypatch):
-    db = D.Database(str(tmp_path / "d.db"))
-    db.set_setting("auto_note", "0")
-    rec = _rec(db)
-    monkeypatch.setattr(R.threading, "Thread", _immediate)
-    spawned = []
-    rec._auto_note_charge_body = lambda cid: spawned.append(cid)
-    start = _vd(plug=True, charging=1)
-    rec._handle_event(StateEvent(State.PARKED_ACTIVE, State.CHARGING, start), start)
-    end = _vd(soc=80.0, plug=True)
-    rec._handle_event(StateEvent(State.CHARGING, State.PARKED_ACTIVE, end), end)
-    assert not spawned
 
 
 def test_an_unreadable_setting_leaves_the_feature_on(tmp_path):
@@ -134,8 +120,7 @@ def test_the_button_is_not_gated_by_the_switch():
     poller = (root / "poller" / "recorder.py").read_text()
     assert "_auto_note_on" in poller, "the gate is supposed to be in the poller"
     assert "_auto_note_on" not in web, "the manual button must not consult the automatic switch"
-    # …and both manual routes are still there to be pressed.
-    assert "/api/trips/{trip_id}/auto-note" in web
+    # …and the manual route is still there to be pressed.
     assert "/api/charges/{charge_id}/auto-note" in web
 
 

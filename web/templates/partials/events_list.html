@@ -30,3 +30,5 @@
 {% include "partials/events_lines.html" %}
 </div>
 {% endif %}
+{# Under the card, so the parts loaded into it as it scrolls come above; it covers the whole list. #}
+{% with address_credit = ev.address_credit %}{% include "partials/_address_credit.html" %}{% endwith %}

@@ -3,7 +3,8 @@
    ?open_day=). Expects `trips` (list) and `day_label` (str) in scope, plus the page-level
    `t`/`fmt_dur`/`is_reev`/`research`, and `year`/`month`/`day` so the 🔗 button can address
    its own day. BOTH include paths must pass them — a header that only appears down one of
-   the two is the classic way this template has broken before. With `range_days` it is several days. #}
+   the two is the classic way this template has broken before. With `range_days` it is several days.
+   `address_credit` too: the credit is printed once, under whichever list the drawer shows. #}
 {% if range_days %}
 {% include "partials/trips_calendar_range_content.html" %}
 {% elif trips %}
@@ -84,3 +85,4 @@
 {% else %}
 <div class="text-center text-slate-500 text-sm py-6">{{ t('trips_calendar_pick_day') }}</div>
 {% endif %}
+{% include "partials/_address_credit.html" %}

@@ -1,12 +1,11 @@
-"""The 🧭 auto-generated address/time/temperature summary, for both trips and charges.
+"""The 🧭 auto-generated address/time/temperature summary of a charge.
 Simplified design: no separate read-only field — the summary is written STRAIGHT INTO
-the note (the one note field). For a brand-new trip/charge the poller populates it
+the note (the one note field). For a brand-new charge the poller populates it
 automatically (only_if_note_empty=True — see tests/test_auto_note_recorder.py); the 🧭
-button on an existing record always overwrites, but the UI warns first with a confirm
-popup when there's manual text to lose (trip_detail.html / charge_card.html's conditional
-hx-confirm). Live network calls (reverse-geocoding has no caching and Nominatim's usage
-policy forbids bulk lookups) are safe here because each call is for exactly one NEW
-trip/charge, never a historical backfill sweep.
+button on an existing charge always overwrites, but the UI warns first with a confirm
+popup when there's manual text to lose (charge_card.html's conditional hx-confirm). A trip
+has no such note any more: where it started and ended is an address of its own
+(tests/test_a_trip_shows_where_it_started_and_ended.py).
 """
 import asyncio
 
@@ -70,111 +69,6 @@ def test_get_position_near_none_outside_tolerance(pdb):
 def test_get_position_near_none_when_ts_missing_or_unparseable(pdb):
     assert db_reader.get_position_near(None) is None
     assert db_reader.get_position_near("not-a-date") is None
-
-
-# ── generate_trip_auto_note ─────────────────────────────────────────────────────
-
-def _add_trip(pdb, started, ended, start_lat=45.0, start_lon=9.0, end_lat=45.1, end_lon=9.1,
-              outside_temp_start_c=None, outside_temp_end_c=None, note=None):
-    pdb._conn.execute(
-        "INSERT INTO trips (vehicle_id, started_at, ended_at, start_lat, start_lon, end_lat, end_lon,"
-        " outside_temp_start_c, outside_temp_end_c, note) VALUES (1,?,?,?,?,?,?,?,?,?)",
-        (started, ended, start_lat, start_lon, end_lat, end_lon,
-         outside_temp_start_c, outside_temp_end_c, note))
-    pdb._conn.commit()
-    return db_reader._get().execute("SELECT MAX(id) AS id FROM trips").fetchone()["id"]
-
-
-def test_generate_trip_auto_note_builds_and_persists_into_note(pdb, monkeypatch):
-    import geocode
-    tid = _add_trip(pdb, "2026-07-04T10:00:00+00:00", "2026-07-04T10:30:00+00:00",
-                    outside_temp_start_c=18.0, outside_temp_end_c=21.0)
-    addrs = {(45.0, 9.0): "Via Roma 1, Milano", (45.1, 9.1): "Via Torino 2, Milano"}
-    monkeypatch.setattr(geocode, "reverse_geocode",
-                        lambda lat, lon, provider, api_key: addrs[(lat, lon)])
-
-    text = db_reader.generate_trip_auto_note(tid)
-
-    assert "Via Roma 1, Milano" in text
-    assert "Via Torino 2, Milano" in text
-    assert _hhmm("2026-07-04T10:00:00+00:00") in text and _hhmm("2026-07-04T10:30:00+00:00") in text
-    assert "18" in text and "21" in text
-    row = db_reader._get().execute("SELECT note FROM trips WHERE id=?", (tid,)).fetchone()
-    assert row["note"] == text
-
-
-def test_generate_trip_auto_note_missing_trip_returns_none(pdb):
-    assert db_reader.generate_trip_auto_note(999) is None
-
-
-def test_generate_trip_auto_note_survives_a_geocoding_failure(pdb, monkeypatch):
-    """One endpoint's network hiccup must not blank the other endpoint's time+temperature —
-    reverse_geocode's own urllib call can raise (timeout, DNS blip), not just return None."""
-    import geocode
-    tid = _add_trip(pdb, "2026-07-04T10:00:00+00:00", "2026-07-04T10:30:00+00:00",
-                    outside_temp_start_c=18.0, outside_temp_end_c=21.0)
-    monkeypatch.setattr(geocode, "reverse_geocode",
-                        lambda lat, lon, provider, api_key: (_ for _ in ()).throw(TimeoutError()))
-
-    text = db_reader.generate_trip_auto_note(tid)
-
-    assert _hhmm("2026-07-04T10:00:00+00:00") in text and _hhmm("2026-07-04T10:30:00+00:00") in text
-    assert "18" in text and "21" in text
-
-
-def test_generate_trip_auto_note_regenerating_overwrites(pdb, monkeypatch):
-    import geocode
-    tid = _add_trip(pdb, "2026-07-04T10:00:00+00:00", "2026-07-04T10:30:00+00:00")
-    monkeypatch.setattr(geocode, "reverse_geocode", lambda lat, lon, provider, api_key: "First")
-    first = db_reader.generate_trip_auto_note(tid)
-    monkeypatch.setattr(geocode, "reverse_geocode", lambda lat, lon, provider, api_key: "Second")
-    second = db_reader.generate_trip_auto_note(tid)
-
-    assert "First" in first and "Second" in second
-    row = db_reader._get().execute("SELECT note FROM trips WHERE id=?", (tid,)).fetchone()
-    assert row["note"] == second
-
-
-def test_generate_trip_auto_note_default_overwrites_existing_note(pdb, monkeypatch):
-    """The manual 🧭 button always overwrites — the UI is what confirms with the user
-    first, not the generator (which stays a dumb, always-overwrite primitive)."""
-    import geocode
-    tid = _add_trip(pdb, "2026-07-04T10:00:00+00:00", "2026-07-04T10:30:00+00:00",
-                    note="Traffico intenso in autostrada")
-    monkeypatch.setattr(geocode, "reverse_geocode", lambda lat, lon, provider, api_key: "New address")
-
-    text = db_reader.generate_trip_auto_note(tid)
-
-    assert "Traffico intenso" not in text
-    row = db_reader._get().execute("SELECT note FROM trips WHERE id=?", (tid,)).fetchone()
-    assert row["note"] == text
-
-
-def test_generate_trip_auto_note_only_if_empty_skips_existing_note(pdb, monkeypatch):
-    """The automatic at-trip-close path (poller) must never clobber a note that already
-    has manual text in it."""
-    import geocode
-    tid = _add_trip(pdb, "2026-07-04T10:00:00+00:00", "2026-07-04T10:30:00+00:00",
-                    note="Traffico intenso in autostrada")
-    monkeypatch.setattr(geocode, "reverse_geocode", lambda lat, lon, provider, api_key: "New address")
-
-    result = db_reader.generate_trip_auto_note(tid, only_if_note_empty=True)
-
-    assert result == "Traffico intenso in autostrada"
-    row = db_reader._get().execute("SELECT note FROM trips WHERE id=?", (tid,)).fetchone()
-    assert row["note"] == "Traffico intenso in autostrada"
-
-
-def test_generate_trip_auto_note_only_if_empty_fills_a_blank_note(pdb, monkeypatch):
-    import geocode
-    tid = _add_trip(pdb, "2026-07-04T10:00:00+00:00", "2026-07-04T10:30:00+00:00")
-    monkeypatch.setattr(geocode, "reverse_geocode", lambda lat, lon, provider, api_key: "Fresh address")
-
-    text = db_reader.generate_trip_auto_note(tid, only_if_note_empty=True)
-
-    assert "Fresh address" in text
-    row = db_reader._get().execute("SELECT note FROM trips WHERE id=?", (tid,)).fetchone()
-    assert row["note"] == text
 
 
 # ── generate_charge_auto_note ────────────────────────────────────────────────────
@@ -281,26 +175,6 @@ def main_env(pdb, monkeypatch):
     fake = _FakeTemplates()
     monkeypatch.setattr(main, "templates", fake)
     return main, fake
-
-
-def test_trip_auto_note_endpoint_writes_note_and_renders_textarea(main_env, monkeypatch):
-    import geocode
-    main, fake = main_env
-    conn = db_reader._conn_rw()
-    conn.execute(
-        "INSERT INTO trips (vehicle_id, started_at, ended_at, start_lat, start_lon, end_lat, end_lon)"
-        " VALUES (1,'2026-07-04T10:00:00+00:00','2026-07-04T10:30:00+00:00',45.0,9.0,45.1,9.1)")
-    conn.commit()
-    tid = conn.execute("SELECT MAX(id) AS id FROM trips").fetchone()["id"]
-    monkeypatch.setattr(geocode, "reverse_geocode", lambda lat, lon, provider, api_key: "Some Address")
-
-    asyncio.run(main.trip_generate_auto_note(_Req(), tid))
-
-    name, ctx = fake.rendered[-1]
-    assert name == "partials/trip_note_textarea.html"
-    assert "Some Address" in ctx["trip"]["note"]
-    row = db_reader._get().execute("SELECT note FROM trips WHERE id=?", (tid,)).fetchone()
-    assert row["note"] == ctx["trip"]["note"]
 
 
 def test_charge_auto_note_endpoint_writes_note_and_renders_textarea(main_env, monkeypatch):

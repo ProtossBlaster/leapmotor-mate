@@ -1,0 +1,28 @@
+{# Where the trip started and ended, marked like the flags on the map: a line for each end with a GPS fix, whole
+   here (the list cuts it short), a dash while it has no address, and on the first dash the ⓘ saying why and the
+   🧭 that looks the addresses up now. Its own partial: the 🧭 draws it again (main.py trip_look_up_places). #}
+{% if place_ends %}
+{% from "partials/_place_name.html" import place_name with context %}
+{% set ns = namespace(tip=false) %}
+<div id="trip-place-lines" class="rounded-lg border border-slate-700 px-3 py-2.5 mb-3 space-y-1 text-sm min-w-0" data-trip-place-lines>
+  {% for p in place_ends if p.fix %}
+  <div class="flex items-start gap-2 min-w-0" data-trip-place="{{ p.end }}">
+    <span aria-hidden="true" class="relative inline-block flex-shrink-0 mt-0.5" style="width:12px;height:16px">
+      <span class="absolute bottom-0" style="left:1px;width:2px;height:16px;border-radius:1px;background:{{ '#22c55e' if p.end == 'start' else '#94a3b8' }}"></span>
+      {% if p.end == 'start' %}<span class="absolute top-0" style="left:3px;width:0;height:0;border-top:4px solid #22c55e;border-bottom:4px solid transparent;border-left:9px solid #22c55e"></span>
+      {% else %}<span class="absolute top-0" style="left:3px;width:9px;height:7px;background:repeating-conic-gradient(#111 0% 25%,#fff 0% 50%) 0 0/3px 3px;border:1px solid #333"></span>{% endif %}
+    </span>
+    {% if p.label %}<span class="text-slate-200 min-w-0 break-words">{{ place_name(p.label, p.charging) }}</span>
+    {% else %}<span class="text-slate-500">—</span>{% if not ns.tip %}{% set ns.tip = true %}<span class="text-slate-600 cursor-help" tabindex="0" data-tip="{{ t('trip_place_unknown_help') }}">ⓘ</span>
+    <button type="button" title="{{ t('trip_place_look_up') }}" hx-post="api/trips/{{ trip.id }}/places"
+            hx-target="#trip-place-lines" hx-swap="outerHTML" hx-disabled-elt="this"
+            hx-indicator="#trip-place-spin" data-trip-place-look-up
+            class="text-slate-500 hover:text-brand disabled:opacity-40"
+            style="background:none;border:none;cursor:pointer;padding:0;font-size:14px;line-height:1">
+      <span id="trip-place-spin" class="htmx-indicator">⏳</span><span>🧭</span>
+    </button>{% endif %}{% endif %}
+  </div>
+  {% endfor %}
+  {% include "partials/_address_credit.html" %}
+</div>
+{% endif %}

@@ -630,7 +630,7 @@
       </form>
     {% endcall %}
 
-    <!-- Geocoder (Navigation address lookup) -->
+    <!-- Geocoder (address lookup: Navigation, trips' places, the 🧭 notes) -->
     {% call scard('geocoder', t('geocoder_section'), card_open.get('geocoder')) %}
       <p class="text-xs text-slate-400 mb-4">{{ t('geocoder_desc') }}</p>
       <form hx-post="api/settings/geocoder" hx-target="#geocoder-feedback" hx-swap="innerHTML" class="space-y-3">
@@ -654,9 +654,20 @@
                         text-sm font-mono focus:outline-none focus:border-brand">
           <div class="text-[11px] text-slate-500 mt-1">{{ t('geocoder_key_hint') }}</div>
         </div>
-        <!-- The one thing in this card that reaches out on its own, rather than when asked. Turning
-             it off leaves the 🧭 button on every trip and charge — the note is still one tap away,
-             it just stops happening by itself. Marker field: an unticked checkbox submits nothing. -->
+        <!-- Marker field, as for the note below: an unticked checkbox submits nothing. -->
+        <input type="hidden" name="place_lookup_present" value="1">
+        <label class="flex items-center justify-between gap-3 cursor-pointer pt-1">
+          <div>
+            <div class="text-sm text-white">{{ t('place_lookup_enable') }}</div>
+            <div class="text-xs text-slate-400">{{ t('place_lookup_enable_desc') }}</div>
+          </div>
+          <input type="checkbox" name="place_lookup" value="1"
+                 {% if settings.get('place_lookup') == '1' %}checked{% endif %}
+                 class="w-5 h-5 accent-brand cursor-pointer flex-shrink-0">
+        </label>
+        <!-- A new charge's note, written by itself. Turning it off leaves the 🧭 button on every
+             charge — the note is still one tap away, it just stops happening by itself. Marker
+             field: an unticked checkbox submits nothing. -->
         <input type="hidden" name="auto_note_present" value="1">
         <label class="flex items-center justify-between gap-3 cursor-pointer pt-1">
           <div>

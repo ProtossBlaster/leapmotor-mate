@@ -1023,6 +1023,14 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
     trips** to get the real combined consumption. Mate only says so when the car reported it: a stop
     in Park of more than a minute during which the car did not say whether it was on is not counted as
     one session.
+- **Where a trip started and ended 🆕** — a trip's row reads **"A → B"**, and the *Trip summary* on its
+  page names both ends. An end inside one of your **charging places** shows the place's name with
+  "(charging place)", so renaming the place renames those trips; elsewhere it is the address (a shop or a
+  station by its name, else the street and number, then the town). Mate looks it up shortly after a trip
+  ends, with the provider set in *Settings → Address lookup*, where a switch turns it off. A missing
+  address, on an older trip for instance, is looked up at once by 🧭 in the *Trip summary*. The search box
+  finds a trip by either end. Mate no longer writes addresses into the trip's note, which stays yours;
+  notes it wrote before stay as they are.
 - **Your note + driving tags 🆕** (#107) — in a trip's detail you can jot a **free-text note** (traffic,
   weather, road type, any remark) and tag the **drive mode** (Comfort / Normal / Sport) and **One-Pedal**
   (on/off) you used. Mate can't read these from the car — Leapmotor doesn't send them to the cloud — so
@@ -1286,7 +1294,8 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   than five minutes after the cable went in (a wallbox waiting for its schedule), how long it waited.
   The end of a trip or a charge carries the figures of Trips and Charges.
   These figures stand out from the rest of the row; a cost is green, the delay before charging amber.
-- **Places**: a row at one of your charging places (*Charge Prices → Charging places*) names it.
+- **Places**: a row at one of your charging places (*Charge Prices → Charging places*) names it; a trip's
+  start or end elsewhere is named by its address, as in Trips.
 - **The map** is hidden until **🗺 Show map** above the list shows it (beside the list on a wide screen,
   above it on a phone or a narrower one), and next time it is as you left it. Every row with a position
   has a 🌍: it shows the map if needed, lights the row's point and brings it into view, and lights the row
@@ -1298,8 +1307,8 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   poll — so a change counts only once two consecutive frames hold it. A change the car reversed between
   two of its own reports is never seen, and the cloud can drop the lock signal for a poll or two, which
   then reads as a short unlock.
-- **Filters**: a word (the event's name, a command's outcome, a place, the note of a trip or a
-  charge — an automatic trip note holds the trip's addresses), the group pills (Security,
+- **Filters**: a word (the event's name, a command's outcome, a place, where a trip started or ended —
+  its name or its full address — or the note of a trip or a charge), the group pills (Security,
   Doors, Windows, Charging, Climate, Driving, Commands) and, under ⚙, a date range and single kinds.
   The filters live in the address, so a link or a reload keeps them.
 - **History**: the events are derived from the positions Mate already stores, so on an existing install
@@ -1432,7 +1441,7 @@ stations**. The page has three parts:
 
 - **Destination** — type an **address** (and, if needed, the **city**), press **Search**: the
   destination appears on the map and with **🧭 Send to car** you send it to the on-board navigation.
-  *Searching by address requires a geocoding key* (see [Settings → Geocoder](#7-settings)).
+  *Searching by address requires a geocoding key* (see [Settings → Address lookup](#7-settings)).
 - **⚡ Charging stations — "Find charging stations"** — searches for **public charging stations around
   the car** (using its current GPS position). You can set:
   - **Max distance** — 500 m, 1, 2, **5 km** (default) or 10 km;
@@ -1516,8 +1525,9 @@ divided into three columns.
 **Column 2 — Integrations**
 
 - **ABRP** — sending telemetry to A Better Routeplanner (see [§8](#8-the-integrations-in-detail)).
-- **Geocoder** — the service that translates addresses ↔ coordinates on the Navigation page (Geoapify
-  *recommended*, LocationIQ, TomTom). It requires a free **key** for the chosen service.
+- **Address lookup** — the service that translates addresses ↔ coordinates on the Navigation page and names
+  where your trips start and end (Geoapify *recommended*, LocationIQ, TomTom). It requires a free **key**
+  for the chosen service; without one, Mate uses the keyless OpenStreetMap service.
 - **⚡ Charging stations** — enables the **station names** on charges (📍) and accepts optional keys
   (Open Charge Map, TomTom) to enrich the search. It's **off** by default.
 - **Wallbox** — connect your wallbox for **real costs** and any controls (see
