@@ -19,7 +19,7 @@
     ✎{% if _billed %} {{ t('cost_basis_billed') }}{% endif %}
   </button>
 
-  <div id="cm-form-{{ charge.id }}" class="hidden"
+  <div id="cm-form-{{ charge.id }}" class="hidden" data-row-editor
        style="position:absolute;left:0;top:calc(100% + 4px);z-index:50;
               background:#0b1220;border:1px solid #1e293b;border-radius:7px;padding:6px 7px;
               min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.5)">

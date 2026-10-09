@@ -395,7 +395,7 @@ def test_every_language_carries_the_new_strings():
     import pathlib
     root = pathlib.Path(__file__).resolve().parent.parent / "web" / "locales"
     keys = ("stats_cost100_note_odo", "manual_charge_odometer", "import_filled",
-            "import_all_known", "charge_km_since_prev", "charge_km_since_prev_hint")
+            "import_all_known", "charge_km_since_prev_hint")
     for f in sorted(root.glob("*.json")):
         d = json.loads(f.read_text(encoding="utf-8"))["translations"]
         assert not [k for k in keys if k not in d], f"{f.name} is missing strings"

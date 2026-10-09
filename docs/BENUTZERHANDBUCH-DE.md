@@ -1004,7 +1004,7 @@ Weiter unten finden Sie Ministatistiken und einen **Indikator für die „Fahrze
 Befehle reagiert hat.
 
 **Der letzte Ladevorgang nennt beides 🆕** — die Kachel **Letzter Ladevorgang** führt dieselbe Zahl
-wie die Ladekarte: zu Hause, mit einem Wallbox-Zähler, die kWh **🔌 Wallbox (zu zahlen)**, darunter
+wie seine Zeile in Ladevorgänge: zu Hause, mit einem Wallbox-Zähler, die kWh **🔌 Wallbox (zu zahlen)**, darunter
 das, was im Akku ankam — *🔋 12,0 kWh in der Batterie (DC) · Wirkungsgrad 81 %*; anderswo die Zahl
 der Batterie, mit den kWh der Ladesäule in einer eigenen Zeile, wo Sie sie eingetragen haben. Die
 Kosten darunter sind die Kosten der Zahl darüber. Früher stand dort nur die Zahl der Batterie,
@@ -1192,7 +1192,14 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
 
 ### Ladevorgänge
 **(Menü: Ladevorgänge)** — Die Liste der Ladevorgänge. Für jede: **hinzugefügte Energie (kWh)**, **Spitzenleistung**,
-**Typ** und **Kosten**, mit dem **tatsächlichen €/kWh** gut sichtbar. Der Typ ist mit einem Etikett klassifiziert:
+**Typ** und **Kosten**, mit dem **tatsächlichen €/kWh** gut sichtbar.
+
+- **Ein Ladevorgang ist eine Zeile 🆕** — die Liste liest sich wie die der Fahrten. Ein Klick auf eine
+  Zeile öffnet darunter den Rest: die Energie im Detail, das Diagramm, Ihre Notiz und die Aktionen. Typ,
+  🆓, ✎ und 📍 werden direkt in der Zeile bearbeitet. **Alle aufklappen** in der Überschrift eines Tages,
+  eines Zeitraums oder einer Suche öffnet jede Zeile, **Alle zuklappen** schließt sie.
+
+Der Typ ist mit einem Etikett klassifiziert:
 
 
 - **Das Banner „zu bestätigen" bringt Sie hin 🆕** (#240) — wenn ein Ladevorgang ohne Typ endet,
@@ -1216,8 +1223,8 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   ein**: Typ-Menü öffnen, den Betrag in der Zeile **✎ Manuell** ganz unten eintippen, **OK** (das
   **✎** neben dem Typ ist dasselbe Feld). Er überschreibt die automatische Schätzung und **lässt
   den Typ des Ladevorgangs unangetastet**: Ein Ladevorgang ohne Typ liest sich dann als
-  **✎ Manuell** und wartet nicht mehr auf Bestätigung, einer mit Typ behält ihn. Die Kosten auf der
-  Karte tragen den Vermerk **eingegeben** statt **geschätzt**, und *Zurücksetzen* im ✎ holt den
+  **✎ Manuell** und wartet nicht mehr auf Bestätigung, einer mit Typ behält ihn. Die Kosten in der
+  Zeile tragen den Vermerk **eingegeben** statt **geschätzt**, und *Zurücksetzen* im ✎ holt den
   berechneten Wert zurück. Ladevorgänge, die Sie vor v3.16.0 so eingetragen haben, lesen sich wieder
   als **✎ Manuell**, mit ihrem Preis: Es ist nichts zu tun.
 - **Zuhause / Öffentlich 🆕** — neben der Karte *AC-/DC-Verteilung* steht eine zweite:
@@ -1235,7 +1242,7 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   Auto wach, und die Nachrichten kommen weiter.
 - **Die kWh der Ladesäule 🆕** (#222) — an einer öffentlichen Ladesäule hat Mate **keinen Zähler**: es
   liest nur, was in die Batterie ging, während die Säule abrechnet, was aus ihrem eigenen Zähler kam.
-  Diesen Wert können Sie eintragen: auf der Ladekarte, unter den drei Kacheln, gibt es ein **✎**; das
+  Diesen Wert können Sie eintragen: in der geöffneten Zeile, unter der Energie, gibt es ein **✎**; das
   Feld **öffnet sich nur, wenn Sie es öffnen**, und ist **immer leer** — ein versehentlicher Klick
   ändert also nichts, und ein leeres OK lässt alles wie es war. *Entfernen* nimmt einen falschen Wert
   zurück. Von da an **bepreist** diese Zahl die Ladung, genau wie der Wallbox-Zähler zu Hause, und
@@ -1244,7 +1251,7 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   deckt die eingetragene Zahl die Teile ab, für die sie eingetragen wurde — eine später hinzugefügte
   Sitzung zählt für sich — und wenn die Teile auf unterschiedlichen Zahlen abgerechnet werden (der
   Zähler erfasste einen Teil und den anderen nicht, oder Sie trugen die Zahl vor dem Zusammenfügen
-  auf einem Teil ein), führen die Karte und die Übersicht die Summe, unter dem Wort *geliefert*, und
+  auf einem Teil ein), führen die Zeile und die Übersicht die Summe, unter dem Wort *geliefert*, und
   das €/kWh teilt durch sie 🆕. Wirkungsgrad und Verlust neben den eingetragenen Zahlen erscheinen
   nur, wenn diese Zahlen jeden Teil abdecken. Ein Zähler, der nur einen Teil erfasst hat, lässt Sie
   die eingetragene Solarenergie weiterhin sehen und korrigieren.
@@ -1261,9 +1268,10 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   sie eingetragen haben, sonst die Zahl der Batterie.
 - Auch Ladevorgänge, die stattgefunden haben, während das Auto ausgeschaltet/offline war, werden aus dem Sprung des
   Ladestands **rekonstruiert**.
-- **Ihre Notiz 🆕** (#107) — jeder Ladevorgang hat eine **freie Notiz** (direkt über *Ladevorgang löschen*) für das,
-  was die Zahlen nicht erfassen: wo die Ladesäule stand, Schatten/Unterstand, ihre Zuverlässigkeit, die
-  Parkbedingungen, das Wetter, jede persönliche Anmerkung.
+- **Ihre Notiz 🆕** (#107) — jeder Ladevorgang hat eine **freie Notiz** (in der geöffneten Zeile, unter dem
+  Diagramm) für das, was die Zahlen nicht erfassen: wo die Ladesäule stand, Schatten/Unterstand, ihre
+  Zuverlässigkeit, die Parkbedingungen, das Wetter, jede persönliche Anmerkung. *📝 Notiz hinzufügen* oder
+  ✏️ neben einer Notiz öffnet das Feld.
 - **Wo ein Ladevorgang stattfand 🆕** — neben 📍 zeigt ein Ladevorgang die Ladestation und ihre Adresse, sonst
   Ihren **Ladeort** dort oder die Adresse, gesucht wie bei den Fahrten. Eine fehlende Adresse, etwa bei
   einem älteren Ladevorgang, sucht 🧭 neben 📍 sofort. Das Suchfeld findet einen Ladevorgang darüber, und
@@ -1275,10 +1283,10 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   eintragen, gibt es ein Feld *Kilometerstand*: es ist der einzige Weg, einer Sitzung von vor der
   Mate-Installation überhaupt Kilometer zu geben — aus jenen Tagen kann sie nichts liefern.
   Eingetragen in **Ihrer** Einheit (km oder Meilen).
-- **Wie weit das Auto zwischen zwei Ladevorgängen gefahren ist 🆕** (#237) — unter dem Ladevorgang:
-  „🛣 122 km seit dem vorherigen Ladevorgang", laut Kilometerzähler des Autos. Erscheint nur, wenn
-  **beide** Ladevorgänge ihren Wert tragen, und nur wenn das Auto sich wirklich bewegt hat: zwei
-  Sitzungen am selben Nachmittag schreiben nichts, statt eine Null zu drucken.
+- **Wie weit das Auto zwischen zwei Ladevorgängen gefahren ist 🆕** (#237) — in der Zeile, nach AC/DC:
+  *🛣 122 km*, laut Kilometerzähler des Autos. Erscheint nur, wenn **beide** Ladevorgänge ihren Wert
+  tragen, und nur wenn das Auto sich wirklich bewegt hat: zwei Sitzungen am selben Nachmittag schreiben
+  nichts, statt eine Null zu drucken.
 - **Ladevorgänge aus einer Tabelle importieren (CSV)** — *Ladevorgänge aus CSV importieren* gibt
   Ihnen eine **kommentierte Vorlage**; Sie füllen sie in Excel oder Numbers aus und laden sie wieder
   hoch. Nur zwei Spalten sind Pflicht, Datum und Energie; der Rest — Kosten, AC/DC, Lade-Prozente,
@@ -1299,8 +1307,8 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   zum 21. abgerechnet wird — oder jeder andere Zeitraum, der kein Kalendermonat ist — muss nicht
   mehr von Hand addiert werden.
 
-- **Diagramm Ladedaten 🆕** — unter jedem Ladevorgang öffnet *📈 Ladedaten* ein Diagramm in
-  Bändern auf der Zeitachse der Sitzung, wie bei einer Fahrt: **Laden** (die DC-Leistung des Autos,
+- **Diagramm Ladedaten 🆕** — in der geöffneten Zeile ein Diagramm in Bändern auf der Zeitachse der
+  Sitzung, wie bei einer Fahrt: **Laden** (die DC-Leistung des Autos,
   bei einer Heimladung mit zugeordneter Wallbox daneben deren AC-Leistung, und wie viele Minuten das
   Auto noch veranschlagte), **Batterie** (SoC) und
   **Temperaturen** (die der kältesten Zelle und, wenn die Außentemperatur in den Einstellungen
@@ -1335,8 +1343,8 @@ kann. Sie können einen Preis **für jeden Ladetyp** (Zuhause, AC, Schnell, HPC)
 - **Solar-kWh (manuell) 🆕** — derselbe Fall wie oben, ohne Home Assistant. Wählen Sie das, wenn Sie
   Solar haben und lieber selbst eintragen, Ladevorgang für Ladevorgang, wie viele kWh von Ihrem Dach
   kamen: Mate zieht sie von dem ab, was die Wallbox gemessen hat, und rechnet Ihnen nur den Rest ab.
-  Am Ladevorgang erscheint ein Feld **☀️ Solar**, unter den drei Kacheln, und die Zeile daneben
-  schreibt die Rechnung aus — „20,0 abgegeben − 8,0 Solar = 12,0 bezahlt" — damit eine
+  In der geöffneten Zeile erscheint unter der Energie ein Feld **☀️ Solar**, und daneben
+  steht die Rechnung ausgeschrieben — „20,0 abgegeben − 8,0 Solar = 12,0 bezahlt" — damit eine
   verkehrt herum eingetragene Zahl sofort auffällt. Ein Wert über dem, was die Wallbox gemessen hat,
   wird abgelehnt. Das Feld erscheint nur bei Zuhause-Ladungen, die die Wallbox wirklich gemessen
   hat: ohne diese Messung gibt es nichts zum Abziehen, und eine Zeile sagt das. **Die Energie, die
@@ -1455,7 +1463,7 @@ wird geladen, sobald das Ende der Liste sichtbar wird.
   und Ladevorgängen. Diese Zahlen heben sich vom Rest der Zeile ab; Kosten sind grün, die Zeit bis zum
   Ladebeginn bernsteinfarben.
 - **Orte**: eine Zeile an einem Ihrer Ladeorte (*Ladepreise → Ladeorte*) nennt ihn; Start oder Ziel einer
-  Fahrt anderswo nennt seine Adresse, wie in Fahrten, und ein Ladevorgang heißt wie auf seiner Karte in
+  Fahrt anderswo nennt seine Adresse, wie in Fahrten, und ein Ladevorgang heißt wie in seiner Zeile in
   Ladevorgänge.
 - **Die Karte** bleibt verborgen, bis **🗺 Karte zeigen** über der Liste sie öffnet (auf einem breiten
   Bildschirm neben der Liste, auf dem Telefon oder einem schmaleren darüber), und beim nächsten Besuch ist

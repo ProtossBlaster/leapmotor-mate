@@ -1,11 +1,19 @@
-{# Single charge card — used by the day accordion (charges.html), the calendar day-drawer
-   and the search results list. Expects `c` (a charge dict, localized like get_charges_grouped
-   produces) plus the page-level `t`, `charge_types`, `ico` already in the including template's
-   context (Jinja includes share the parent scope by default). #}
+{# One charge: a row that opens. Used by the calendar's day drawer (one day or a range) and the
+   search results list. Expects `c` (a charge dict, localized like get_charges_grouped produces)
+   plus the page-level `t`, `charge_types`, `fmt_dur`, `currency` in the including template's
+   context (Jinja includes share the parent scope by default).
+
+   The row (<summary>) reads like a trip's: times and type, duration, where it happened, the
+   battery change, the kWh and the cost. Its editors (the type menu, 🆓, ✎, 🧭 🔄 ✏️, the place
+   line) stay in the row because the routes that change them swap exactly these elements, by id;
+   a read-only copy would go stale. A button, a link or a field inside a <summary> keeps its own
+   click and does not open the row: only a click on the row itself does. The rest of the card —
+   the energy in detail with the editors of typed kWh, the chart, the note with its field, merge,
+   split, edit and delete — is the body under it, drawn closed. #}
+{% import 'partials/_soc.html' as soc %}
 {# `or 0` used to stand in for a MISSING SoC, so a typed-in charge that carries none was drawn as a
    measured 0.0% → 0.0% with a yellow +0.0% beside it — an invented reading, next to real ones (#188,
-   @adoewa). Unknown now shows as an em dash and an empty bar; the numbers below are only for the
-   geometry, which needs a number either way. #}
+   @adoewa). Unknown shows as an em dash and no gauge; the numbers below are only for the geometry. #}
 {% set has_soc   = c.start_soc is not none and c.end_soc is not none %}
 {% set soc_start = c.start_soc or 0 %}
 {% set soc_end   = c.end_soc   or 0 %}
@@ -13,129 +21,94 @@
 {# Set false (before this include) by the one caller where it doesn't hold — search results,
    which don't sit inside #charges-calendar-month. See the merge/unmerge buttons below. #}
 {% set calendar_context = calendar_context if calendar_context is defined else true %}
+{# Which figure leads, and whether the efficiency under it is worth showing, is decided in
+   db_reader.charge_energy_view — the same rule the Overview's Last-charge tile reads. A merged
+   charge whose pieces bill on different figures leads with what it bills, under the word the
+   totals use for that sum ('delivered'), so the €/kWh beside it divides by the number above it. #}
+{% set e = charge_energy(c) %}
+{% set show_wb = e.headline == 'wallbox' %}
+{% set is_dc = c.charge_type == 'DC' or (c.charge_type is none and (c.max_power_kw or 0) > 11) %}
 
-<div data-charge-id="{{ c.id }}" id="charge-card-{{ c.id }}" class="charge-card"
-     style="background:#060e1a;border:1px solid #111c2e;border-radius:12px;padding:16px">
+<details data-charge-id="{{ c.id }}" id="charge-card-{{ c.id }}" class="charge-card">
+<summary class="charge-row trip-row flex-wrap sm:flex-nowrap">
 
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-4">
-    <div class="flex items-center gap-3">
-      <div style="width:4px;height:40px;background:#fbbf24;border-radius:2px;flex-shrink:0"></div>
-      <div>
-        {# The day, but only where nothing else carries it: in the calendar and the day accordion
-           the date is the heading above these cards, and repeating it there would be noise. A
-           SEARCH result stands on its own — @riri19 found a session by station name and had no
-           way to tell which day it was (#191). Set by the search route alone. #}
-        {% if c.date_label %}
-        <div class="text-[11px] text-slate-500 leading-tight">{{ c.date_label }}</div>
-        {% endif %}
-        <div class="text-white font-semibold text-sm">
-          {{ c.started_at[11:16] if c.started_at else '—' }}
-          <span class="text-slate-500 font-normal">→ {{ c.ended_at[11:16] if c.ended_at else '' }}</span>
-        </div>
-        <div class="text-slate-500 text-xs mt-0.5">
-          ⏱ {{ fmt_dur(c.duration_min) }}
-          {% if c.max_power_kw %}· {{ c.max_power_kw|dec(1) }} kW peak{% endif %}
-          {% set is_dc = c.charge_type == 'DC' or (c.charge_type is none and (c.max_power_kw or 0) > 11) %}
-          · <span style="color:{% if is_dc %}#fb923c{% else %}#38bdf8{% endif %};font-weight:700">{% if is_dc %}DC{% else %}AC{% endif %}</span>
-        </div>
-        <div class="mt-0.5">{% with charge=c %}{% include "partials/charge_location.html" %}{% endwith %}</div>
-        <div id="place-{{ c.id }}" class="text-xs text-slate-400 mt-1">
-          {% with charge=c %}{% include "partials/charge_place_line.html" %}{% endwith %}
-        </div>
-        {# #237 — the distance covered since the previous charge, from the car's own odometer. Only
-           where both readings exist and only where the car actually moved: two sessions the same
-           afternoon give 0, and a zero here says nothing worth a line. #}
-        {% if c.km_since_prev %}
-        <div class="text-[11px] text-slate-500 mt-0.5" title="{{ t('charge_km_since_prev_hint') }}">
-          🛣 {{ c.km_since_prev|dist(0) }} {{ t('charge_km_since_prev') }}
-        </div>
-        {% endif %}
-        {% if c.reconstructed %}
-        <div class="text-[11px] text-amber-400/90 mt-0.5" title="{{ t('charge_reconstructed_hint') }}">
-          ✨ {{ t('charge_reconstructed') }}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-    {# The type selector — pencil, badge, menu, the #120 free tick — is ONE partial, drawn here and
-       redrawn by every route that changes it. The card used to carry its own copy of it, and a fix
-       to one copy is a fix the other forgets (the Manual row of add-on #2 had to go into both). #}
-    {% with charge=c, cost_oob=false, badge_oob=false %}{% include "partials/charge_type_badge.html" %}{% endwith %}
-  </div>
-
-  <!-- SOC bar -->
-  <div class="mb-3">
-    <div class="flex justify-between text-xs mb-1.5">
-      <span class="text-slate-500">SOC</span>
-      <span class="text-white font-medium">
-        {% if has_soc %}
-        {{ soc_start|dec(1) }}%
-        <span class="text-slate-600 mx-1">→</span>
-        {{ soc_end|dec(1) }}%
-        <span class="text-yellow-400 ml-1 font-bold">+{{ soc_delta|dec(1) }}%</span>
-        {% else %}
-        <span class="text-slate-600" title="{{ t('soc_unknown_hint') }}">—</span>
-        {% endif %}
-      </span>
-    </div>
-    <div style="position:relative;height:12px;background:#1e293b;border-radius:6px;overflow:hidden">
-      {% if has_soc %}
-      <div style="position:absolute;left:0;top:0;height:100%;width:{{ soc_start }}%;background:#334155"></div>
-      <div class="soc-bar" style="position:absolute;left:{{ soc_start }}%;top:0;height:100%;width:{{ soc_delta }}%;background:linear-gradient(90deg,#fbbf24,#f59e0b)"></div>
+  {# On a phone this column dissolves (base.html): its first block (the times and the type) stays beside
+     the kWh column and the lines after it take the row's whole width, like a trip row's places. #}
+  <div class="charge-mid min-w-0 flex-1">
+    <div class="charge-head min-w-0">
+      {# The day, but only where nothing else carries it: in the calendar the date is the heading
+         above these rows. A SEARCH result stands on its own — @riri19 found a session by station
+         name and had no way to tell which day it was (#191). Set by the search route alone. #}
+      {% if c.date_label %}
+      <div class="text-[11px] text-slate-500 leading-tight">{{ c.date_label }}</div>
       {% endif %}
+      <div class="flex items-center gap-2 flex-wrap">
+        {# Breaks between its parts, never inside one: on a phone this block shares the line with the kWh column. #}
+        <div class="text-white text-sm font-medium min-w-0">
+          <span class="whitespace-nowrap">{{ c.started_at[11:16] if c.started_at else '—' }}</span>
+          <span class="text-slate-500 font-normal text-xs whitespace-nowrap">→ {{ c.ended_at[11:16] if c.ended_at else '' }}</span>
+          {% if c.is_merged %}<span style="font-size:10px" class="text-yellow-400 whitespace-nowrap" title="{{ c.merged_count }} {{ t('charge_merge_segments') }}">🔗 {{ c.merged_count }}</span>{% endif %}
+        </div>
+        {# The type selector — pencil, badge, menu, the #120 free tick — is ONE partial, drawn here and
+           redrawn by every route that changes it. The card used to carry its own copy of it, and a fix
+           to one copy is a fix the other forgets (the Manual row of add-on #2 had to go into both). #}
+        {% with charge=c, cost_oob=false, badge_oob=false %}{% include "partials/charge_type_badge.html" %}{% endwith %}
+      </div>
+      {% if c.reconstructed %}<div class="text-[10px] text-amber-400/90" title="{{ t('charge_reconstructed_hint') }}">✨ {{ t('charge_reconstructed') }}</div>{% endif %}
     </div>
-    <div class="flex justify-between text-xs text-slate-700 mt-1">
-      <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+    <div class="text-slate-500 text-xs">
+      ⏱ {{ fmt_dur(c.duration_min) }}
+      {% if c.max_power_kw %}· {{ c.max_power_kw|dec(1) }} kW peak{% endif %}
+      · <span style="color:{% if is_dc %}#fb923c{% else %}#38bdf8{% endif %};font-weight:700">{% if is_dc %}DC{% else %}AC{% endif %}</span>
+      {# #237 — the distance covered since the previous charge, from the car's own odometer. Only
+         where both readings exist and only where the car actually moved: two sessions the same
+         afternoon give 0, and a zero here says nothing worth a word. #}
+      {% if c.km_since_prev %}· <span class="whitespace-nowrap" data-tip="{{ t('charge_km_since_prev_hint') }}" tabindex="0">🛣 {{ c.km_since_prev|dist(0) }}</span>{% endif %}
+    </div>
+    {# The battery column is hidden on a phone, so its figures, or why there are none, come on a line of their own. #}
+    <div class="sm:hidden text-slate-500 text-[10px]">{% if has_soc %}<span class="whitespace-nowrap">{{ soc_start|dec(1) }}% → {{ soc_end|dec(1) }}%</span> <span class="whitespace-nowrap">{{ soc.change(soc_start, soc_end) }}</span>{% else %}<span data-tip="{{ t('soc_unknown_hint') }}" tabindex="0">—</span>{% endif %}</div>
+    <div class="mt-0.5">{% with charge=c %}{% include "partials/charge_location.html" %}{% endwith %}</div>
+    <div id="place-{{ c.id }}" class="text-xs text-slate-400 mt-1">
+      {% with charge=c %}{% include "partials/charge_place_line.html" %}{% endwith %}
     </div>
   </div>
 
-  <!-- Stats -->
-  <div class="grid grid-cols-3 gap-2 mt-3">
-    {# Which figure leads, and whether the efficiency under it is worth showing, is decided in
-       db_reader.charge_energy_view — the same rule the Overview's Last-charge tile reads.
-       `show_wb` selects the headline; the editors use the presence of a stored home-meter reading.
-       A merged charge whose pieces bill on different figures leads with what it bills, under the
-       word the totals use for that sum ('delivered'), so the €/kWh beside it divides by the number
-       above it. #}
-    {% set e = charge_energy(c) %}
-    {% set show_wb = e.headline == 'wallbox' %}
-    <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
-      <div class="stat-label" style="font-size:10px">{{ t('energy') }}</div>
-      <div style="font-size:16px;font-weight:700;color:#fbbf24">
-        +{{ e.headline_kwh|dec(1) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span>
-        {% if show_wb %}<span style="font-size:10px;color:#60a5fa;font-weight:400" title="{{ t('wallbox_billed_help') }}"> 🔌 {{ t('wallbox_billed') }}</span>{% elif e.headline == 'delivered' %}<span style="font-size:10px;color:#60a5fa;font-weight:400" title="{{ t('cal_kwh_delivered_help') }}"> 🔌 {{ t('cal_kwh_delivered') }}</span>{% else %}<span style="font-size:10px;color:#94a3b8;font-weight:400" title="{{ t('energy_in_battery_help') }}"> 🔋 {{ t('energy_in_battery') }} (DC)</span>{% endif %}
-      </div>
-      {% if e.headline != 'battery' %}
-      <div style="font-size:10px;color:#94a3b8;margin-top:3px" title="{{ t('wallbox_billed_help') if show_wb else t('energy_in_battery_help') }}">
-        {# Efficiency >100% is physically impossible: e.wallbox_eff comes from
-           db_reader.charge_efficiency (#295), which returns nothing rather than a number no page
-           may claim. #}
-        🔋 {{ e.battery_kwh|dec(1) }} kWh {{ t('energy_in_battery') }} (DC){% if e.wallbox_eff is not none %} · {{ t('efficiency') }} {{ e.wallbox_eff|dec(0) }}%{% endif %}
-      </div>
-      {% endif %}
+  <div class="hidden sm:flex flex-col items-end gap-1 flex-shrink-0">
+    {% if has_soc %}
+    <div class="soc-mini">
+      <i style="left:0;width:{{ soc_start }}%;background:#334155"></i>
+      <i class="soc-bar" style="left:{{ soc_start }}%;width:{{ soc_delta }}%;background:linear-gradient(90deg,#fbbf24,#f59e0b)"></i>
     </div>
-    <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
-      <div class="stat-label" style="font-size:10px">{{ t('soc_gain') }}</div>
-      <div style="font-size:16px;font-weight:700;color:white">
-        {% if has_soc %}+{{ soc_delta|dec(1) }}<span style="font-size:11px;color:#94a3b8;font-weight:400"> %</span>
-        {% else %}<span style="color:#475569" title="{{ t('soc_unknown_hint') }}">—</span>{% endif %}
-      </div>
+    <div class="text-slate-500 text-[11px] whitespace-nowrap">
+      {{ soc_start|dec(1) }}% → {{ soc_end|dec(1) }}% {{ soc.change(soc_start, soc_end) }}
     </div>
-    <div style="background:#0f172a;border-radius:8px;padding:8px 12px">
-      <div class="stat-label" style="font-size:10px">{{ t('cost') }}</div>
-      {% with charge=c %}{% include "partials/charge_cost_cell.html" %}{% endwith %}
-    </div>
+    {% else %}<div class="text-slate-600 text-[11px]" data-tip="{{ t('soc_unknown_hint') }}" tabindex="0">—</div>{% endif %}
   </div>
 
-  {# #222 — the charger's own kWh, TYPED by the owner, where Mate has no meter to read. The ENERGY
-     tile above stays the battery figure: this one prices the charge, it does not replace what was
-     measured. Read where it is edited — it first lived inside the charge-TYPE menu, which answers a
-     different question and hid it behind a click nobody would make for this — but it opens only on
-     purpose, and never comes pre-filled.
+  <div class="charge-kwh text-right flex-shrink-0" style="min-width:84px">
+    <div class="text-white text-sm font-bold whitespace-nowrap">+{{ e.headline_kwh|dec(1) }} kWh</div>
+    {% with charge=c %}{% include "partials/charge_cost_cell.html" %}{% endwith %}
+  </div>
+</summary>
 
-     Under the three tiles rather than inside the ENERGY one: on a phone those tiles stay three
-     columns, so a box in there is ~110 px wide and the panel unrolls into a thirty-line ribbon. #}
+<div class="charge-body">
+  {# The energy: the figure the row leads with and, where that is not the battery's, the battery's under
+     it with the efficiency. The typed-kWh editors keep their own lines under them, since the routes
+     redraw them by id. #}
+  <div class="text-xs text-slate-400">
+    <span><b style="color:#fbbf24">+{{ e.headline_kwh|dec(1) }} kWh</b>
+    {% if show_wb %}<span style="font-size:10px;color:#60a5fa" title="{{ t('wallbox_billed_help') }}">🔌 {{ t('wallbox_billed') }}</span>{% elif e.headline == 'delivered' %}<span style="font-size:10px;color:#60a5fa" title="{{ t('cal_kwh_delivered_help') }}">🔌 {{ t('cal_kwh_delivered') }}</span>{% else %}<span style="font-size:10px;color:#94a3b8" title="{{ t('energy_in_battery_help') }}">🔋 {{ t('energy_in_battery') }} (DC)</span>{% endif %}</span>
+    {% if e.headline != 'battery' %}
+    {# Efficiency >100% is physically impossible: e.wallbox_eff comes from
+       db_reader.charge_efficiency (#295), which returns nothing rather than a number no page
+       may claim. #}
+    <div style="font-size:10px;color:#94a3b8" title="{{ t('wallbox_billed_help') if show_wb else t('energy_in_battery_help') }}">🔋 {{ e.battery_kwh|dec(1) }} kWh {{ t('energy_in_battery') }} (DC){% if e.wallbox_eff is not none %} · {{ t('efficiency') }} {{ e.wallbox_eff|dec(0) }}%{% endif %}</div>
+    {% endif %}
+  </div>
+
+  {# #222 — the charger's own kWh, TYPED by the owner, where Mate has no meter to read. The figure
+     above stays the battery figure: this one prices the charge, it does not replace what was
+     measured. It opens only on purpose, and never comes pre-filled. #}
   {% if not e.has_home_meter and c.location_type and gross_kwh_ok() and not (solar_mode_on() and c.location_type == 'HOME') %}
   {% with charge=c %}{% include "partials/charge_gross_kwh.html" %}{% endwith %}
   {% endif %}
@@ -157,71 +130,84 @@
     {% endif %}
   {% endif %}
 
-  <!-- User note (#107) — free-text context the raw data can't capture -->
-  <div class="mt-3">
-    <div class="flex items-center justify-between">
-      <label class="stat-label" style="font-size:10px">📝 {{ t('user_note') }}</label>
+  {# The chart, fetched when the opened row first scrolls into view; closed, the body is not laid
+     out, so nothing is asked for a row nobody opens. #}
+  <div id="pchart-{{ c.id }}" class="mt-3"
+       hx-get="api/charge/{{ c.id }}/power-chart" hx-trigger="intersect once" hx-swap="innerHTML">
+    <div class="text-xs text-slate-500 py-2">…</div>
+  </div>
+
+  {# The foot: the note on one line with the way to edit it (#107), the actions on the right, or under
+     the note and wrapping where they do not fit beside it (a phone, a long language). The note's field
+     opens on purpose, as the typed-kWh editors do, so a day of opened rows is not a column of empty boxes. #}
+  <div class="flex flex-wrap justify-between items-center gap-x-3 gap-y-1 mt-3 pt-2" style="border-top:1px solid #111c2e">
+    <div class="flex items-center gap-2 min-w-0">
+      <div id="cnote-line-{{ c.id }}" class="charge-note-line text-[11px] text-slate-400 italic" data-charge-note{% if not c.note %} hidden{% endif %}>📝 <span>{{ c.note or '' }}</span></div>
+      <button type="button" id="cnote-edit-{{ c.id }}" data-label-add="📝 {{ t('note_add') }}" data-label-edit="✏️"
+              onclick="var f=document.getElementById('cnote-form-{{ c.id }}');f.classList.toggle('hidden');if(!f.classList.contains('hidden'))document.getElementById('cnote-{{ c.id }}').focus()"
+              style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b;white-space:nowrap;padding:0"
+              onmouseover="this.style.color='#38bdf8'" onmouseout="this.style.color='#64748b'">{% if c.note %}✏️{% else %}📝 {{ t('note_add') }}{% endif %}</button>
     </div>
-    <form class="mt-1" hx-post="api/charges/{{ c.id }}/note"
-          hx-target="#cnote-msg-{{ c.id }}" hx-swap="innerHTML"
-          hx-on::after-request="if(event.detail.successful){var m=document.getElementById('cnote-msg-{{ c.id }}');setTimeout(function(){if(m)m.textContent='';},2500);}">
-      <textarea name="note" rows="2" maxlength="1000"
-                placeholder="{{ t('note_ph_charge') }}"
-                style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px 10px;font-size:12px;color:#e2e8f0;resize:vertical">{{ c.note or '' }}</textarea>
-      <div class="flex items-center gap-2 mt-1">
-        <button type="submit"
-                style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:3px 12px;font-size:11px;color:#94a3b8;cursor:pointer"
-                onmouseover="this.style.borderColor='#38bdf8';this.style.color='#e2e8f0'"
-                onmouseout="this.style.borderColor='#334155';this.style.color='#94a3b8'">{{ t('note_save') }}</button>
-        <span id="cnote-msg-{{ c.id }}" class="text-xs text-green-400"></span>
-      </div>
-    </form>
+    <div class="charge-actions flex flex-wrap items-center gap-x-3 gap-y-1">
+      {# Join / split. The car reports the cable as gone the moment the current stops, so one plug-in
+         can arrive as several rows; `can_merge_prev` is set by get_charges where a close-enough charge
+         sits before this one. It is an OFFER — the route re-checks every guard, because a button is
+         not a permission. The modal it fills lives in charges.html, which is the page every one of
+         this card's uses (calendar drawer, search) is rendered into. `drawer_q` (the drawer's days,
+         from _charges_drawer_ctx) goes along so the redraw keeps them open. #}
+      {% if c.can_merge_prev %}
+      <button type="button" title="{{ t('charge_merge_help') }}"
+              hx-get="api/charges/merge-preview?a={{ c.id }}&b={{ c.prev_charge_id }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{{ drawer_q|default('')|safe }}{% endif %}"
+              hx-target="#charge-merge-modal-body" hx-swap="innerHTML"
+              onclick="document.getElementById('charge-merge-modal').style.display='flex'"
+              style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
+              onmouseover="this.style.color='#fbbf24'" onmouseout="this.style.color='#64748b'">
+        🔗 {{ t('charge_merge_btn') }}</button>
+      {% endif %}
+      {% if c.is_merged %}
+      <button type="button" hx-post="api/charges/unmerge?parent={{ c.id }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{{ drawer_q|default('')|safe }}{% endif %}"
+              hx-confirm="{{ t('charge_unmerge_confirm') }}" hx-swap="none"
+              style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
+              onmouseover="this.style.color='#fbbf24'" onmouseout="this.style.color='#64748b'">
+        ↩️ {{ t('charge_unmerge_btn') }}</button>
+      {% endif %}
+      {# #188: a TYPED-IN charge can be corrected — times, SoC, energy, cost. A measured one cannot:
+         those numbers are readings. `manual_entry` is the test, not location_type='MANUAL', which
+         doubles as the cost basis a user picks on a real charge. #}
+      {% if c.manual_entry %}
+      <button type="button" onclick="document.getElementById('cedit-{{ c.id }}').classList.toggle('hidden')"
+              style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
+              onmouseover="this.style.color='#38bdf8'" onmouseout="this.style.color='#64748b'">
+        ✏️ {{ t('charge_edit') }}</button>
+      {% endif %}
+      <button hx-delete="api/charges/{{ c.id }}" hx-confirm="{{ t('charge_delete_confirm') }}"
+              style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
+              onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'">
+        🗑 {{ t('charge_delete') }}</button>
+    </div>
   </div>
 
-  <div class="flex justify-between items-center mt-2">
-    {# #188: a TYPED-IN charge can be corrected — times, SoC, energy, cost. A measured one cannot:
-       those numbers are readings. `manual_entry` is the test, not location_type='MANUAL', which
-       doubles as the cost basis a user picks on a real charge. #}
-    {% if c.manual_entry %}
-    <button type="button" onclick="document.getElementById('cedit-{{ c.id }}').classList.toggle('hidden')"
-            style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
-            onmouseover="this.style.color='#38bdf8'" onmouseout="this.style.color='#64748b'">
-      ✏️ {{ t('charge_edit') }}</button>
-    {% else %}<span></span>{% endif %}
-    <button hx-delete="api/charges/{{ c.id }}" hx-confirm="{{ t('charge_delete_confirm') }}"
-            style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
-            onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'">
-      🗑 {{ t('charge_delete') }}</button>
-  </div>
-
-  {# Join / split. The car reports the cable as gone the moment the current stops, so one plug-in
-     can arrive as several rows; `can_merge_prev` is set by get_charges where a close-enough charge
-     sits before this one. It is an OFFER — the route re-checks every guard, because a button is
-     not a permission. The modal it fills lives in charges.html, which is the page every one of
-     this card's three uses (day accordion, calendar drawer, search) is rendered into. `drawer_q`
-     (the drawer's days, from _charges_drawer_ctx) goes along so the redraw keeps them open. #}
-  {% if c.can_merge_prev or c.is_merged %}
-  <div class="mt-2 pt-2 flex items-center gap-3" style="border-top:1px solid #111c2e">
-    {% if c.can_merge_prev %}
-    <button type="button" title="{{ t('charge_merge_help') }}"
-            hx-get="api/charges/merge-preview?a={{ c.id }}&b={{ c.prev_charge_id }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{{ drawer_q|default('')|safe }}{% endif %}"
-            hx-target="#charge-merge-modal-body" hx-swap="innerHTML"
-            onclick="document.getElementById('charge-merge-modal').style.display='flex'"
-            style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
-            onmouseover="this.style.color='#fbbf24'" onmouseout="this.style.color='#64748b'">
-      🔗 {{ t('charge_merge_btn') }}</button>
-    {% endif %}
-    {% if c.is_merged %}
-    <span style="font-size:10px" class="text-yellow-400"
-          title="{{ c.merged_count }} {{ t('charge_merge_segments') }}">🔗 {{ c.merged_count }}</span>
-    <button type="button" hx-post="api/charges/unmerge?parent={{ c.id }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{{ drawer_q|default('')|safe }}{% endif %}"
-            hx-confirm="{{ t('charge_unmerge_confirm') }}" hx-swap="none"
-            style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
-            onmouseover="this.style.color='#fbbf24'" onmouseout="this.style.color='#64748b'">
-      ↩️ {{ t('charge_unmerge_btn') }}</button>
-    {% endif %}
-  </div>
-  {% endif %}
+  {# The note's field (#107) — free-text context the raw data can't capture. A save writes the note as
+     stored into the line above and closes the field (charges.html's chargeNoteSaved). #}
+  <form id="cnote-form-{{ c.id }}" class="hidden mt-2" hx-post="api/charges/{{ c.id }}/note"
+        hx-target="#cnote-msg-{{ c.id }}" hx-swap="innerHTML"
+        hx-on::after-request="chargeNoteSaved(this, {{ c.id }}, event.detail.successful)">
+    <textarea id="cnote-{{ c.id }}" name="note" rows="2" maxlength="1000"
+              placeholder="{{ t('note_ph_charge') }}"
+              style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px 10px;font-size:12px;color:#e2e8f0;resize:vertical">{{ c.note or '' }}</textarea>
+    <div class="flex items-center gap-2 mt-1">
+      <button type="submit"
+              style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:3px 12px;font-size:11px;color:#94a3b8;cursor:pointer"
+              onmouseover="this.style.borderColor='#38bdf8';this.style.color='#e2e8f0'"
+              onmouseout="this.style.borderColor='#334155';this.style.color='#94a3b8'">{{ t('note_save') }}</button>
+      {# Cancel puts the saved note back into the field (what the line says) and closes it. #}
+      <button type="button"
+              onclick="document.getElementById('cnote-{{ c.id }}').value=document.querySelector('#cnote-line-{{ c.id }} span').textContent;this.form.classList.add('hidden')"
+              style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
+              onmouseover="this.style.color='#e2e8f0'" onmouseout="this.style.color='#64748b'">{{ t('cancel') }}</button>
+      <span id="cnote-msg-{{ c.id }}" class="text-xs text-green-400"></span>
+    </div>
+  </form>
 
   {% if c.manual_entry %}
   <div id="cedit-{{ c.id }}" class="hidden mt-2 pt-3" style="border-top:1px solid #1e293b">
@@ -271,7 +257,7 @@
         {# #309 — the same five types the rest of Mate uses. With AC and DC alone a charge typed
            as Home, HPC or Free lost its type on every save, and the type is what the cost, the
            statistics and the Charges filter are keyed on. Preselected from `location_type`, which
-           is what the badge on this card shows. #}
+           is what the badge on this row shows. #}
         <select name="charge_type" class="block mt-1 bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
           {% for key, meta in charge_types.items() %}
           <option value="{{ key }}" {% if c.location_type == key %}selected{% endif %}>{{ meta.icon }} {{ meta.label }}</option>
@@ -293,19 +279,5 @@
     </form>
   </div>
   {% endif %}
-
-  <!-- Charging data (expandable, lazy-loaded on first open) -->
-  <details class="mt-3">
-    <summary hx-get="api/charge/{{ c.id }}/power-chart"
-             hx-trigger="click once"
-             hx-target="#pchart-{{ c.id }}"
-             hx-swap="innerHTML"
-             style="cursor:pointer;color:#38bdf8;font-size:12px;list-style:none;user-select:none">
-      📈 {{ t('charge_profile') }}
-    </summary>
-    <div id="pchart-{{ c.id }}" class="mt-2">
-      <div class="text-xs text-slate-500 py-2">…</div>
-    </div>
-  </details>
-
 </div>
+</details>

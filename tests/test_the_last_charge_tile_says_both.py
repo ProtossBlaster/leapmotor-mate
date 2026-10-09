@@ -152,37 +152,35 @@ def _day(client, day):
 
 
 def _energy_tile(html):
-    """The card's ENERGY tile, whitespace collapsed — from the Stats comment to the next tile."""
-    i = html.index("<!-- Stats -->")
-    j = html.index('<div style="background:#0f172a;border-radius:8px;padding:8px 12px">', i + 200)
-    return " ".join(html[i:j].split())
+    """The opened row's energy line, whitespace collapsed — from the body's start to the first editor
+    or the chart under it."""
+    i = html.index('<div class="charge-body">')
+    block = html[i:html.index('<div id="pchart-', i)]
+    for editor in ('<div id="gk-', '<div id="sk-', '<div style="margin-top:6px;font-size:10px;color:#475569">'):
+        if editor in block:
+            block = block[:block.index(editor)]
+    return " ".join(block.split())
 
 
-# The tile as the card rendered it on v3.17.4, before the rule moved into the helper. Word for word:
-# the move is a refactor, and a refactor that changes the page is not one.
+# The energy lines as the opened row prints them. Word for word: the words are the ones the ENERGY
+# tile of the old card used, and the same figures lead for the same reasons.
 _TILE_HOME_METER = (
-    '<!-- Stats --> <div class="grid grid-cols-3 gap-2 mt-3"> '
-    '<div style="background:#0f172a;border-radius:8px;padding:8px 12px"> '
-    '<div class="stat-label" style="font-size:10px">Energy</div> '
-    '<div style="font-size:16px;font-weight:700;color:#fbbf24"> '
-    '+14.9<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span> '
-    '<span style="font-size:10px;color:#60a5fa;font-weight:400" title="Home charges are billed on the '
+    '<div class="charge-body"> <div class="text-xs text-slate-400"> '
+    '<span><b style="color:#fbbf24">+14.9 kWh</b> '
+    '<span style="font-size:10px;color:#60a5fa" title="Home charges are billed on the '
     'energy the wallbox drew (AC, conversion losses included), never less than what reached the '
-    'battery."> 🔌 wallbox (billed)</span> </div> '
-    '<div style="font-size:10px;color:#94a3b8;margin-top:3px" title="Home charges are billed on the '
+    'battery.">🔌 wallbox (billed)</span></span> '
+    '<div style="font-size:10px;color:#94a3b8" title="Home charges are billed on the '
     'energy the wallbox drew (AC, conversion losses included), never less than what reached the '
-    'battery."> 🔋 12.6 kWh In battery (DC) · efficiency 85% </div> </div>')
+    'battery.">🔋 12.6 kWh In battery (DC) · efficiency 85%</div> </div>')
 _BATTERY_HELP = ('The energy that actually entered the battery (DC). What you draw from the grid is '
                  '~10–15% higher (AC→DC conversion losses); without a wallbox reading, Mate can only '
                  'show this figure.')
 _TILE_BATTERY = (
-    '<!-- Stats --> <div class="grid grid-cols-3 gap-2 mt-3"> '
-    '<div style="background:#0f172a;border-radius:8px;padding:8px 12px"> '
-    '<div class="stat-label" style="font-size:10px">Energy</div> '
-    '<div style="font-size:16px;font-weight:700;color:#fbbf24"> '
-    '+{kwh}<span style="font-size:11px;color:#94a3b8;font-weight:400"> kWh</span> '
-    '<span style="font-size:10px;color:#94a3b8;font-weight:400" title="' + _BATTERY_HELP + '"> '
-    '🔋 In battery (DC)</span> </div> </div>')
+    '<div class="charge-body"> <div class="text-xs text-slate-400"> '
+    '<span><b style="color:#fbbf24">+{kwh} kWh</b> '
+    '<span style="font-size:10px;color:#94a3b8" title="' + _BATTERY_HELP + '">'
+    '🔋 In battery (DC)</span></span> </div>')
 _GROSS_LINE = (
     '<span style="font-size:10px;color:#94a3b8" title="What the charger&#39;s display said: the gross '
     'kWh, conversion losses included. You type it, because Mate has no meter on a public charger. It '
@@ -432,7 +430,7 @@ def test_a_partial_home_meter_keeps_its_solar_editor(mate, solar_kwh):
     _merged(pdb, 1, 2, 3, 10.0, 5.0, ac=12.0, ctype="HOME")
     db_reader.set_charge_solar_kwh(1, solar_kwh)
     html = _day(client, 3)
-    assert "+17.0<span" in _energy_tile(html)
+    assert "+17.0 kWh</b>" in _energy_tile(html)
     assert 'id="sk-form-1"' in html and 'id="gk-form-1"' not in html
     assert "the wallbox did not measure this charge" not in html
     if solar_kwh:
@@ -449,7 +447,7 @@ def test_a_partial_home_meter_does_not_offer_a_new_gross_edit(mate):
     _merged(pdb, 1, 2, 3, 10.0, 5.0, ac=12.0, ctype="HOME")
     db_reader.update_charge_type(1, "HOME")
     html = _day(client, 3)
-    assert "+17.0<span" in _energy_tile(html)
+    assert "+17.0 kWh</b>" in _energy_tile(html)
     assert 'id="gk-form-1"' not in html and 'id="sk-form-1"' not in html
     assert db_reader.get_charge_stats()["total_cost"] == 3.4
 
@@ -464,8 +462,8 @@ def test_the_card_of_a_half_measured_merged_charge_says_delivered(mate):
     pdb, client = mate
     _merged(pdb, 1, 2, 3, 10.0, 5.0, ac=12.0, ctype="HOME", cost=3.4)
     tile = _energy_tile(_day(client, 3))
-    assert "+17.0<span" in tile and "> 🔌 delivered</span>" in tile
-    assert "🔋 15.0 kWh In battery (DC) </div>" in tile
+    assert "+17.0 kWh</b>" in tile and ">🔌 delivered</span>" in tile
+    assert "🔋 15.0 kWh In battery (DC)</div> </div>" in tile
     assert "wallbox (billed)" not in tile and "efficiency" not in tile
 
 

@@ -547,6 +547,7 @@ if (HIGHLIGHT) {
     // element, and a flag would only prove that some earlier, discarded one was marked.
     card.style.border    = '1px solid #fbbf2455';
     card.style.boxShadow = 'inset 3px 0 0 #fbbf24';
+    card.open = true;                                   // the row the link meant, opened
     if (!scrolled) {
       scrolled = true;
       requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }));
@@ -563,6 +564,73 @@ if (HIGHLIGHT) {
     document.body.removeEventListener('htmx:beforeSwap', again);
   });
 }
+
+// A charge's note saved (#107): its line says the note as the server stored it. A field changed while
+// the save was on its way keeps its text and stays open, since that text is not saved.
+function chargeNoteSaved(form, id, ok) {
+  var m = document.getElementById('cnote-msg-' + id), saved = ok && m && m.querySelector('[data-saved-note]');
+  if (!saved) return;
+  var v = saved.dataset.savedNote, line = document.getElementById('cnote-line-' + id), b = document.getElementById('cnote-edit-' + id);
+  setTimeout(function () { m.textContent = ''; }, 2500);
+  line.hidden = !v;
+  line.querySelector('span').textContent = v;
+  b.textContent = v ? b.dataset.labelEdit : b.dataset.labelAdd;
+  if (document.getElementById('cnote-' + id).value.trim() === v) form.classList.add('hidden');
+}
+
+// Expand all / Collapse all in a list's heading: every charge row of the list under it. Expand all shows
+// while a row is closed, Collapse all while one is open. Delegated, since the lists are swapped in by htmx.
+(function () {
+  function rows(box) {
+    for (var el = box.parentElement; el; el = el.parentElement)
+      if (el.querySelector('details.charge-card')) return Array.prototype.slice.call(el.querySelectorAll('details.charge-card'));
+    return [];
+  }
+  function sync(box) {
+    var cards = rows(box);
+    box.querySelector('[data-charges-all="open"]').hidden = cards.every(function (c) { return c.open; });
+    box.querySelector('[data-charges-all="close"]').hidden = !cards.some(function (c) { return c.open; });
+  }
+  function syncAll() { document.querySelectorAll('[data-charges-expand]').forEach(sync); }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-charges-all]') : null;
+    if (!btn) return;
+    var box = btn.closest('[data-charges-expand]');
+    rows(box).forEach(function (c) { c.open = btn.dataset.chargesAll === 'open'; });
+    sync(box);
+  });
+  // Rows opened or closed by hand, and lists drawn with a row already open (?highlight).
+  document.addEventListener('toggle', function (e) {
+    if (e.target.matches && e.target.matches('details.charge-card')) syncAll();
+  }, true);
+  document.body.addEventListener('htmx:afterSettle', syncAll);
+})();
+
+// A merge or a split draws the calendar again, every row closed: the row of the charge it leaves opens.
+document.body.addEventListener('chargeOpen', function (e) {
+  var row = document.getElementById('charge-card-' + e.detail.value);
+  if (row) row.open = true;
+});
+
+// The row is a <summary>: a click on an editor's own words or padding or on a tooltip's mark, Enter or Space on
+// a focused mark, or a Space released in an editor's field would open or close it. Only its controls keep their
+// own activation there.
+(function () {
+  document.addEventListener('click', function (e) {
+    var t = e.target, row = t.closest && t.closest('summary.charge-row');
+    var own = row && t.closest('form, [data-row-editor], [data-tip]');
+    if (!own || !row.contains(own) || t.closest('button, a, input, select, textarea, label')) return;
+    e.preventDefault();
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if ((e.key === 'Enter' || e.key === ' ') && t.matches && t.matches('[data-tip]') && t.closest('summary.charge-row')) e.preventDefault();
+  }, true);
+  document.addEventListener('keyup', function (e) {
+    var t = e.target;
+    if (e.key === ' ' && t.closest && t.closest('summary.charge-row') && t.matches('input, textarea, select')) e.preventDefault();
+  }, true);
+})();
 
 // Auto-refresh the history when a charge completes. The live panel (#charging-live-panel) polls
 // every 30s; when its state flips charging→not-charging a charge has just ended, so reload once to

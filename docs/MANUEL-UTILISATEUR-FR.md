@@ -1017,9 +1017,10 @@ avec une barre 0–3500 W — et l'**énergie soutirée durant la session** ; il
 sur P + un appareil branché), pas depuis Mate. Il est précis à partir d'environ **42 W** (la résolution du
 capteur de courant de la voiture — une petite charge de ~10 W reste invisible).
 
-**La dernière recharge dit les deux 🆕** — la tuile **Dernière recharge** met en avant le même chiffre
-que la carte : à la maison, avec un compteur de wallbox, les kWh **🔌 wallbox (à payer)**, et en
-dessous ce qui est arrivé dans le pack — *🔋 12,0 kWh dans la batterie (DC) · rendement 81 %* ;
+**La dernière recharge dit les deux 🆕** — la tuile **Dernière recharge** met en avant le même chiffre que
+la ligne de cette recharge dans Recharges : à la maison, avec un compteur de wallbox, les kWh
+**🔌 wallbox (à payer)**, et en dessous ce qui est arrivé dans le pack —
+*🔋 12,0 kWh dans la batterie (DC) · rendement 81 %* ;
 ailleurs le chiffre de la batterie, avec les kWh de la borne sur une ligne à part là où vous les avez
 saisis. Le coût en dessous est le coût du nombre au-dessus. Avant, seul le chiffre de la batterie
 s'affichait, à côté d'un coût calculé sur l'autre.
@@ -1207,8 +1208,14 @@ valide** au lieu de faire disparaître la carte), et avec elle :
 
 ### Recharges
 **(menu : Recharges)** — La liste des recharges. Pour chacune : **énergie ajoutée (kWh)**, **puissance
-maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidence. Le type est classé par une
-étiquette :
+maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidence.
+
+- **Une recharge est une ligne 🆕** — la liste se lit comme celle des Trajets. Un clic sur une ligne ouvre
+  le reste en dessous : l'énergie en détail, le graphique, votre note et les actions. Le type, 🆓, ✎ et 📍
+  se modifient sur la ligne même. **Tout déplier**, dans l'en-tête d'un jour, d'une période ou d'une
+  recherche, ouvre toutes les lignes, et **Tout replier** les ferme.
+
+Le type est classé par une étiquette :
 
 
 - **Le bandeau « à confirmer » vous y emmène 🆕** (#240) — quand une recharge s'est terminée sans
@@ -1232,7 +1239,7 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   type, tapez-le dans la ligne **✎ Manuel** en bas, puis **OK** (le **✎** à côté du type est le même
   champ). Cette valeur remplace l'estimation automatique et **ne touche pas au type de la
   recharge** : une recharge sans type se lit alors **✎ Manuel** et n'attend plus d'être confirmée,
-  une recharge qui a un type le garde. Le coût sur la fiche porte la mention **facturé** au lieu de
+  une recharge qui a un type le garde. Le coût sur la ligne porte la mention **facturé** au lieu de
   **est.**, et *Réinitialiser*, dans le ✎, ramène la valeur calculée. Les recharges saisies ainsi
   avant la v3.16.0 se lisent de nouveau **✎ Manuel**, avec leur prix : il n'y a rien à faire.
 - **Domicile / Public 🆕** — à côté de la carte *Répartition AC / DC*, il y en a une deuxième :
@@ -1250,7 +1257,7 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   éveillée et les nouvelles arrivent.
 - **Les kWh de la borne 🆕** (#222) — sur une borne publique, Mate **n'a pas de compteur** : il ne lit
   que ce qui est entré dans la batterie, alors que la borne vous facture ce qui est sorti du sien.
-  Vous pouvez saisir ce chiffre : sur la fiche de la recharge, sous les trois tuiles, il y a un
+  Vous pouvez saisir ce chiffre : dans la ligne ouverte de la recharge, sous l'énergie, il y a un
   **✎** ; le cadre **ne s'ouvre que si vous l'ouvrez** et la case est **toujours vide** — un clic de
   trop ne change donc rien, et valider à vide laisse tout en l'état. *Retirer* enlève une valeur
   erronée. Dès lors, ce nombre **tarife la recharge**, exactement comme le compteur de la wallbox à
@@ -1259,7 +1266,7 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   chiffre que vous saisissez couvre les morceaux pour lesquels il a été saisi — une session fusionnée
   ensuite compte pour elle-même — et quand les morceaux se facturent sur des chiffres différents (le
   compteur a pris un morceau et pas l'autre, ou vous avez saisi le chiffre sur un morceau avant la
-  fusion), la carte et l'Aperçu affichent la somme, sous le mot *délivrés*, et le €/kWh divise par
+  fusion), la ligne et l'Aperçu affichent la somme, sous le mot *délivrés*, et le €/kWh divise par
   elle 🆕. Le rendement et la perte à côté des chiffres saisis n'apparaissent que si ces chiffres
   couvrent chaque morceau. Un compteur qui n'a pris qu'une partie vous laisse quand même voir et
   corriger l'énergie solaire saisie.
@@ -1278,9 +1285,10 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   saisis, sinon le chiffre de la batterie.
 - Même les recharges effectuées pendant que la voiture était éteinte/hors ligne sont **reconstruites** à
   partir du saut de pourcentage de charge.
-- **Votre note 🆕** (#107) — chaque recharge a une **note libre** (juste au-dessus de *Supprimer la
-  recharge*) pour ce que les chiffres ne capturent pas : l'emplacement de la borne, ombre/abri, sa
-  fiabilité, les conditions de stationnement, la météo, toute remarque personnelle.
+- **Votre note 🆕** (#107) — chaque recharge a une **note libre** (dans la ligne ouverte, sous le
+  graphique) pour ce que les chiffres ne capturent pas : l'emplacement de la borne, ombre/abri, sa
+  fiabilité, les conditions de stationnement, la météo, toute remarque personnelle. *📝 Ajouter une note*,
+  ou ✏️ à côté d'une note, ouvre le champ.
 - **Où a eu lieu une recharge 🆕** — à côté de 📍, une recharge affiche la borne et son adresse, sinon votre
   **lieu de recharge** à cet endroit ou l'adresse, cherchée comme pour les trajets. Une adresse manquante,
   par exemple sur une recharge plus ancienne, est recherchée tout de suite par 🧭 à côté de 📍. La
@@ -1292,10 +1300,9 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   case *Compteur* : c'est le seul moyen de donner des kilomètres à une session antérieure à
   l'installation de Mate — rien de ces jours-là ne peut les fournir. Saisi dans **votre** unité (km
   ou miles).
-- **Combien de km entre deux recharges 🆕** (#237) — sous la recharge : *« 🛣 122 km depuis la
-  recharge précédente »*, d'après le compteur de la voiture. N'apparaît que si les **deux** recharges
-  portent leur relevé et seulement si la voiture a réellement roulé : deux sessions le même
-  après-midi n'écrivent rien plutôt qu'un zéro.
+- **Combien de km entre deux recharges 🆕** (#237) — sur la ligne, après AC/DC : *🛣 122 km*, d'après le
+  compteur de la voiture. N'apparaît que si les **deux** recharges portent leur relevé et seulement si la
+  voiture a réellement roulé : deux sessions le même après-midi n'écrivent rien plutôt qu'un zéro.
 - **Importer les recharges depuis un tableur (CSV)** — *Importer des recharges depuis un CSV* vous
   donne un **modèle commenté** ; vous le remplissez dans Excel ou Numbers et vous le renvoyez. Deux
   colonnes seulement sont obligatoires, la date et l'énergie ; les autres — coût, AC/DC, pourcentages
@@ -1315,8 +1322,8 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   facturée du 22 au 21, ou toute autre période qui n'est pas un mois civil, ne se calcule plus à la
   main.
 
-- **Graphique Données de la recharge 🆕** — sous chaque recharge, *📈 Données de la recharge*
-  ouvre un graphique en bandes sur l'axe du temps de la session, comme celui d'un trajet :
+- **Graphique Données de la recharge 🆕** — dans la ligne ouverte, un graphique en bandes sur l'axe du
+  temps de la session, comme celui d'un trajet :
   **recharge** (la puissance DC de la voiture, à côté la puissance AC de la wallbox pour une recharge
   à domicile avec wallbox associée, et combien de minutes il restait selon la voiture), **batterie**
   (SoC) et **températures** (celle de la cellule la plus
@@ -1354,7 +1361,7 @@ et choisir entre :
 - **kWh solaires (manuels) 🆕** — le même cas que ci-dessus, sans Home Assistant. Choisis-le si tu
   as du solaire et préfères saisir toi-même, recharge par recharge, combien de kWh sont venus de ton
   installation : Mate les soustrait de ce que la borne a mesuré et ne te facture que le reste. Un
-  champ **☀️ Solaire** apparaît sur la recharge, sous les trois tuiles, et la ligne à côté écrit le
+  champ **☀️ Solaire** apparaît dans la ligne ouverte, sous l'énergie, et à côté s'affiche le
   calcul en toutes lettres — « 20,0 délivrés − 8,0 solaires = 12,0 payés » — pour qu'un nombre saisi
   à l'envers se voie tout de suite. Une valeur supérieure à ce que la borne a mesuré est refusée. Le
   champ n'apparaît que sur les recharges à domicile que la borne a réellement mesurées : sans cette
@@ -1477,7 +1484,7 @@ l'écran.
   et le délai avant le début de la recharge en ambre.
 - **Lieux** : une ligne à l'un de vos lieux de recharge (*Prix de recharge → Lieux de recharge*) le nomme ;
   le départ ou l'arrivée d'un trajet ailleurs porte son adresse, comme dans Trajets, et une recharge le nom
-  de sa carte dans Recharges.
+  de sa ligne dans Recharges.
 - **La carte** reste masquée jusqu'à ce que **🗺 Afficher la carte**, au-dessus de la liste, l'ouvre (à
   côté de la liste sur un écran large, au-dessus sur un téléphone ou un écran plus étroit), et la fois
   suivante elle est telle que vous l'avez laissée. Chaque ligne avec une position a un 🌍 : il ouvre la

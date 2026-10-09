@@ -50,7 +50,7 @@ def _cards(html):
 
 def test_the_range_has_one_heading_then_a_heading_per_day_newest_first(client):
     html = _drawer(client, day=3, to_day=5)
-    heading = _text(html.split('<div class="space-y-4">', 1)[0])
+    heading = _text(re.sub(r"<span data-charges-expand.*?</button>\s*</span>", "", html.split('<div class="space-y-4">', 1)[0], flags=re.DOTALL))
     assert heading.startswith("03 – 05 Jul 2026 3 sessions"), heading
     assert re.findall(r'data-cal-day="(\d+)"', html) == ["5", "3"]       # 4 July charged nothing
     assert _cards(html) == ["3", "2", "1"]

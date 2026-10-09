@@ -136,7 +136,7 @@
     .chevron { transition: transform .2s; display: inline-block; color: rgb(100 116 139); }
     details[open] > .tree-summary .chevron { transform: rotate(90deg); }
 
-    /* ── Trip row ───────────────────────────────────────────────── */
+    /* ── Trip row, and the charge row that reads like it ────────── */
     .trip-row {
       display: flex; align-items: center; gap: .75rem;
       padding: .5rem .75rem; border-radius: .5rem;
@@ -145,6 +145,26 @@
     }
     .trip-row:hover { background: rgba(51,65,85,.4); border-color: #334155; }
     @media (max-width: 639px) { .trip-row { column-gap: .5rem; } }   /* a phone's middle column needs the room */
+    /* A charge row is a <summary>: the click opens the body under it, its buttons keep their own click. */
+    .charge-row { cursor: pointer; list-style: none; border-color: #1e293b; }   /* four lines a row: a border a shade lighter than a trip's keeps them apart */
+    .charge-row::-webkit-details-marker { display: none; }
+    /* An opened card stands out from the rows around it: a lighter border on the row and the body, more room after it. */
+    .charge-card[open] { margin-bottom: 1rem; }
+    .charge-card[open] > .charge-row { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-color: #334155; }
+    .charge-body { background: #0b1526; border: 1px solid #1e293b; border-top: 0; border-radius: 0 0 .5rem .5rem; padding: .75rem; }
+    .charge-card[open] > .charge-body { border-color: #334155; }
+    .charge-note-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .charge-actions > button { white-space: nowrap; }
+    /* On a phone the middle column dissolves: the times and type stay beside the kWh, and the lines after
+       them (where it happened, the note) take the row's whole width, as a trip row's places do. One
+       element each, since the routes that redraw them address them by id. */
+    @media (max-width: 639px) {
+      .charge-row { align-items: flex-start; }   /* the kWh at the row's top, however tall the type column grows */
+      .charge-row > .charge-mid { display: contents; }
+      .charge-row > .charge-mid > * { width: 100%; order: 2; }
+      .charge-row > .charge-mid > .charge-head { width: auto; flex: 1 1 0; order: 0; }
+      .charge-row > .charge-kwh { order: 1; max-width: 34%; }   /* the €/kWh line wraps, the times keep their room */
+    }
     /* Each side ellipsised on its own; the shorter one stays whole as long as it fits half the line. */
     .trip-places { display: grid; grid-template-columns: minmax(0, max-content) auto minmax(0, max-content); justify-content: start; column-gap: .3rem; }
     .trip-places > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

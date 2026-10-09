@@ -12,8 +12,8 @@
     {% if ct %}
     <button onclick="document.getElementById('ct-menu-{{ charge.id }}').classList.toggle('hidden')"
             style="background:{{ ct.color }}22;color:{{ ct.color }};border:1px solid {{ ct.color }}55;
-                   padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
-                   display:flex;align-items:center;gap:5px">
+                   padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;
+                   display:flex;align-items:center;gap:5px;white-space:nowrap">
       {{ ct.icon }} {{ ct.label }} <span style="font-size:9px;opacity:.7">▼</span>
     </button>
     {% elif charge.cost_manual %}
@@ -22,20 +22,20 @@
        add-on #2). #}
     <button onclick="document.getElementById('ct-menu-{{ charge.id }}').classList.toggle('hidden')"
             style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b855;
-                   padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
-                   display:flex;align-items:center;gap:5px">
+                   padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;
+                   display:flex;align-items:center;gap:5px;white-space:nowrap">
       ✎ {{ t('charge_manual') }} <span style="font-size:9px;opacity:.7">▼</span>
     </button>
     {% else %}
     <button onclick="document.getElementById('ct-menu-{{ charge.id }}').classList.toggle('hidden')"
             style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b88;
-                   padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
-                   display:flex;align-items:center;gap:5px">
+                   padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;
+                   display:flex;align-items:center;gap:5px;white-space:nowrap">
       ❓ {{ t('charge_unconfirmed') }} <span style="font-size:9px;opacity:.7">▼</span>
     </button>
     {% endif %}
 
-    <div id="ct-menu-{{ charge.id }}" class="hidden"
+    <div id="ct-menu-{{ charge.id }}" class="hidden" data-row-editor
          style="position:absolute;right:0;top:calc(100% + 4px);z-index:50;
                 background:#1e293b;border:1px solid #334155;border-radius:10px;
                 padding:4px;min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
@@ -92,7 +92,7 @@
             style="background:{% if charge.is_free %}#a3e63522{% else %}transparent{% endif %};
                    color:{% if charge.is_free %}#a3e635{% else %}#64748b{% endif %};
                    border:1px solid {% if charge.is_free %}#a3e63566{% else %}#334155{% endif %};
-                   padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
+                   padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;
                    display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
       🆓 {{ t('charge_free') }}{% if charge.is_free %} ✓{% endif %}
     </button>

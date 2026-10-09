@@ -991,7 +991,7 @@ Más abajo encontrarás miniestadísticas y un indicador de **«Respuesta del co
 ⚪ si no hay datos): resume con qué fiabilidad ha respondido el coche a los últimos comandos enviados.
 
 **La última carga dice las dos 🆕** — el recuadro **Última carga** lleva por delante la misma cifra
-que la tarjeta: en casa, con un contador de wallbox, los kWh **🔌 wallbox (a pagar)**, y debajo lo
+que su fila en Cargas: en casa, con un contador de wallbox, los kWh **🔌 wallbox (a pagar)**, y debajo lo
 que llegó al paquete — *🔋 12,0 kWh en la batería (DC) · rendimiento 81 %*; en otro sitio la cifra de
 la batería, con los kWh del cargador en una línea propia donde los escribiste. El coste de debajo es
 el coste del número de arriba. Antes mostraba solo la cifra de la batería, junto a un coste
@@ -1187,8 +1187,14 @@ válida** en vez de hacer desaparecer el mapa), y con ella:
 
 ### Cargas
 **(menú: Cargas)** — La lista de cargas. De cada una: **energía añadida (kWh)**, **potencia máxima**,
-**tipo** y **coste**, con los **€/kWh efectivos** bien a la vista. El tipo se clasifica con una
-etiqueta:
+**tipo** y **coste**, con los **€/kWh efectivos** bien a la vista.
+
+- **Una carga es una fila 🆕** — la lista se lee como la de Trayectos. Pulsa una fila para abrir el resto
+  debajo: la energía en detalle, el gráfico, tu nota y las acciones. El tipo, 🆓, ✎ y 📍 se editan en la
+  propia fila. **Desplegar todo**, en la cabecera de un día, de un intervalo o de una búsqueda, abre todas
+  las filas, y **Plegar todo** las cierra.
+
+El tipo se clasifica con una etiqueta:
 
 - **La franja «por confirmar» te lleva hasta ella 🆕** (#240) — cuando una carga ha terminado sin
   tipo, aparece una franja arriba de la página. **Haz clic**: abre la carga en su propio día del
@@ -1211,7 +1217,7 @@ etiqueta:
   menú del tipo, escríbelo en la fila **✎ Manual** del final y pulsa **OK** (el **✎** que hay junto
   al tipo es el mismo campo). Sustituye a la estimación automática y **no toca el tipo de la
   carga**: una carga sin tipo se lee entonces **✎ Manual** y ya no está por confirmar, y una con
-  tipo lo conserva. El coste de la tarjeta lleva la marca **introducido** en lugar de **estim.**, y
+  tipo lo conserva. El coste de la fila lleva la marca **introducido** en lugar de **estim.**, y
   *Restablecer*, en el ✎, devuelve la cifra calculada. Las cargas que escribiste así antes de la
   v3.16.0 vuelven a leerse **✎ Manual**, con su precio: no hay nada que hacer.
 - **Casa y pública 🆕** — junto a la tarjeta *Reparto CA / CC* hay una segunda: **En casa**,
@@ -1227,7 +1233,7 @@ etiqueta:
   silencio. La pausa de una wallbox no se toca — allí el coche está despierto y las noticias llegan.
 - **Los kWh del propio cargador 🆕** (#222) — en un cargador público Mate **no tiene contador**: lee
   solo lo que entró en la batería, mientras que el cargador te factura lo que salió del suyo. Puedes
-  escribir esa cifra: en la tarjeta de la carga, bajo las tres casillas, hay un **✎**; el campo **solo
+  escribir esa cifra: en la fila abierta de la carga, bajo la energía, hay un **✎**; el campo **solo
   se abre si lo abres tú** y **siempre está vacío** — así un clic despistado no cambia nada, y darle a
   Aceptar con el campo vacío lo deja todo como estaba. *Quitar* deshace un número mal puesto. A partir
   de ahí **le pone precio a la carga**, exactamente igual que hace en casa un contador de wallbox, y
@@ -1235,7 +1241,7 @@ etiqueta:
   declara Mate sigue siendo la **medida en la batería**. En una **carga unida**, la cifra que escribes
   cubre las piezas para las que la escribiste — una sesión unida después cuenta por su cuenta — y
   cuando las piezas se facturan sobre cifras distintas (el contador cogió una pieza y la otra no, o
-  escribiste la cifra en una pieza antes de unir), la tarjeta y la Vista general llevan la suma, bajo
+  escribiste la cifra en una pieza antes de unir), la fila y la Vista general llevan la suma, bajo
   la palabra *entregados*, y el €/kWh divide por ella 🆕. El rendimiento y la pérdida junto a las
   cifras escritas aparecen solo si esas cifras cubren todas las piezas. Un contador que solo cogió
   una parte te deja ver y corregir igualmente la energía solar que introdujiste.
@@ -1253,9 +1259,10 @@ etiqueta:
   de la batería.
 - Las cargas ocurridas con el coche apagado o sin conexión también se **reconstruyen**, a partir del
   salto del estado de carga.
-- **Tu nota 🆕** (#107) — cada carga tiene una **nota libre** (justo encima de *Eliminar la carga*)
-  para lo que los números no recogen: dónde estaba el punto, si había sombra o techo, si es fiable,
-  cómo está el aparcamiento, el tiempo que hacía, cualquier comentario personal.
+- **Tu nota 🆕** (#107) — cada carga tiene una **nota libre** (en la fila abierta, debajo del gráfico) para
+  lo que los números no recogen: dónde estaba el punto, si había sombra o techo, si es fiable, cómo está
+  el aparcamiento, el tiempo que hacía, cualquier comentario personal. *📝 Añadir una nota*, o ✏️ junto a
+  una nota, abre el campo.
 - **Dónde fue una carga 🆕** — junto a 📍 una carga muestra el punto de recarga y su dirección, o si no tu
   **lugar de carga** allí o la dirección, buscada como en los trayectos. Una dirección que falta, por
   ejemplo en una carga antigua, la busca al momento 🧭 junto a 📍. El buscador encuentra una carga por
@@ -1266,10 +1273,9 @@ etiqueta:
   cargas que ya estaban en el archivo. En una carga que **escribes tú** hay una casilla
   *Cuentakilómetros*: es la única manera de que una sesión anterior a la existencia de Mate lleve
   kilómetros — nada de aquellos días puede aportarlos. Se escribe en **tu** unidad (km o millas).
-- **Cuánto anduvo el coche entre dos cargas 🆕** (#237) — bajo la carga: *«🛣 122 km desde la carga
-  anterior»*, según el cuentakilómetros del propio coche. Solo aparece donde **las dos** cargas llevan
-  una lectura y solo donde el coche se movió de verdad: dos sesiones de la misma tarde no dicen nada
-  en vez de escribir un cero.
+- **Cuánto anduvo el coche entre dos cargas 🆕** (#237) — en la fila, tras AC/DC: *🛣 122 km*, según el
+  cuentakilómetros del propio coche. Solo aparece donde **las dos** cargas llevan una lectura y solo donde
+  el coche se movió de verdad: dos sesiones de la misma tarde no dicen nada en vez de escribir un cero.
 - **Importar cargas desde una hoja de cálculo (CSV)** — *Importar cargas desde un CSV* te da una
   **plantilla que se explica sola**; rellénala con Excel o Numbers y vuelve a subirla. Solo dos
   columnas son obligatorias, la fecha y la energía; el resto — coste, AC/DC, porcentajes inicial y
@@ -1290,8 +1296,8 @@ etiqueta:
   facturada del 22 al 21, o cualquier otro periodo que no sea un mes natural, ya no hay que sumarla
   a mano.
 
-- **Gráfico Datos de la carga 🆕** — bajo cada carga, *📈 Datos de la carga* abre un gráfico en
-  bandas sobre el eje de tiempo de la sesión, como el de un viaje: **carga** (la potencia DC del
+- **Gráfico Datos de la carga 🆕** — en la fila abierta, un gráfico en bandas sobre el eje de tiempo de
+  la sesión, como el de un viaje: **carga** (la potencia DC del
   coche, al lado la potencia AC del wallbox en una carga en casa con wallbox asignado, y cuántos
   minutos decía el coche que faltaban), **batería** (SoC) y
   **temperaturas** (la de la celda más fría y, si la temperatura exterior está activada en Ajustes,
@@ -1325,8 +1331,8 @@ HPC) y elegir entre:
 
 - **kWh solares (manuales) 🆕** — el mismo caso de arriba, sin Home Assistant. Elígelo si tienes
   solar y prefieres escribir tú, carga por carga, cuántos kWh vinieron de tu instalación: Mate los
-  resta de lo que midió el cargador y te cobra solo el resto. En la carga aparece un campo **☀️
-  Solar**, bajo los tres recuadros, y la línea de al lado escribe la cuenta entera — «20,0
+  resta de lo que midió el cargador y te cobra solo el resto. En la fila abierta de la carga, bajo la
+  energía, aparece un campo **☀️ Solar**, y la línea de al lado escribe la cuenta entera — «20,0
   entregados − 8,0 solares = 12,0 pagados» — para que un número escrito al revés se vea enseguida.
   Un valor mayor de lo que midió el cargador se rechaza. El campo aparece solo en las cargas en casa
   que el cargador midió de verdad: sin esa medida no hay nada de lo que restar, y una línea te lo
@@ -1449,7 +1455,7 @@ final de la lista aparece en pantalla.
   en ámbar.
 - **Lugares**: una fila en uno de tus lugares de carga (*Precios de la carga → Lugares de carga*) lo nombra;
   el origen o el destino de un trayecto en otro sitio lleva su dirección, como en Trayectos, y una carga, el
-  nombre de su tarjeta en Cargas.
+  nombre de su fila en Cargas.
 - **El mapa** está oculto hasta que **🗺 Mostrar mapa**, sobre la lista, lo abre (junto a la lista en una
   pantalla ancha, encima en el teléfono o en una más estrecha), y la próxima vez sigue como lo dejaste.
   Cada fila con posición tiene un 🌍: abre el mapa si hace falta, resalta el punto de la fila, lo trae a la

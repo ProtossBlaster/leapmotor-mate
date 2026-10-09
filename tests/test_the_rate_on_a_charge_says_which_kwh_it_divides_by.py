@@ -61,7 +61,7 @@ def _rate_line(html):
     # loose search matched that instead and reported the rate as labelled when it was not.
     cell = re.search(r'<div id="cost-1".*?(?=<div id="(?!cost-1)|\Z)', html, re.S)
     assert cell, "the charge card has no cost cell"
-    m = re.search(r'<div style="font-size:11px;color:#94a3b8;font-weight:400">(.*?)</div>',
+    m = re.search(r'<div style="font-size:10px;color:#94a3b8;font-weight:400">(.*?)</div>',
                   cell.group(0), re.S)
     assert m, "the cost cell shows no €/kWh line at all"
     # VISIBLE text only. The label's own tooltip explains the difference, so it names both

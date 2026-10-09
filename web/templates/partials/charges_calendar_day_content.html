@@ -1,4 +1,4 @@
-{# Day header + charge cards — shared by the day-drawer's own endpoint (charges_calendar_day.html)
+{# Day header + charge rows — shared by the day-drawer's own endpoint (charges_calendar_day.html)
    and the Month view's initial "open on this day" render (charges_calendar_month.html, via
    ?open_day=). Expects `charges` (list), `day_label` (str) and `day_totals` in scope, plus the
    page-level `t`/`charge_types`/`fmt_dur`. With `range_days` it is several days. #}
@@ -6,11 +6,14 @@
 {% include "partials/charges_calendar_range_content.html" %}
 {% elif charges %}
 <div class="mb-3 flex items-center justify-between flex-wrap gap-2">
-  <span class="text-white font-semibold">{{ day_label }}</span>
+  <div class="flex items-center gap-2 flex-wrap">
+    <span class="text-white font-semibold">{{ day_label }}</span>
+    {% include "partials/_charges_expand_toggle.html" %}
+  </div>
   {% include "partials/_charges_day_totals.html" %}
 </div>
 <div data-charges-list>
-<div class="space-y-3">
+<div class="space-y-2">
   {% for c in charges %}
   {% include "partials/charge_card.html" %}
   {% endfor %}

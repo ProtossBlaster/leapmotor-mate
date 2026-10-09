@@ -1203,6 +1203,7 @@ def _retarget_charges_calendar(request: Request, charge_id: int, station: str,
     resp = _render_charges_calendar(request, year, month, station, day, to_day)
     resp.headers["HX-Retarget"] = "#charges-calendar-month"
     resp.headers["HX-Reswap"] = "outerHTML"
+    resp.headers["HX-Trigger-After-Settle"] = json.dumps({"chargeOpen": charge_id})   # its row, opened (charges.html)
     return resp
 
 
@@ -1232,10 +1233,13 @@ async def charges_unmerge(request: Request, parent: int, station: str = "", cale
 @app.post("/api/charges/{charge_id}/note", response_class=HTMLResponse)
 async def set_charge_note(request: Request, charge_id: int):
     """#107: save the charge's optional user note (station location, shade, reliability, weather…).
-    Returns a small 'saved' confirmation that HTMX drops next to the button."""
+    Returns a small 'saved' confirmation that HTMX drops next to the button, carrying the note as
+    stored, which the page writes into the note's line."""
+    from html import escape
     form = await request.form()
-    db_reader.save_charge_note(charge_id, form.get("note") or "")
-    return HTMLResponse("✓ " + i18n.get_t(db_reader.get_language())("note_saved"))
+    saved = db_reader.save_charge_note(charge_id, form.get("note") or "")
+    return HTMLResponse(f'<span data-saved-note="{escape(saved)}">✓ '
+                        + i18n.get_t(db_reader.get_language())("note_saved") + "</span>")
 
 
 @app.get("/charges", response_class=HTMLResponse)
@@ -1451,7 +1455,7 @@ async def charges_calendar(request: Request, year: int = 0, month: int = 0, stat
 @app.get("/api/charges/calendar/day", response_class=HTMLResponse)
 async def charges_calendar_day(request: Request, year: int, month: int, day: Annotated[int, Query(ge=1, le=31)],
                                to_day: Annotated[int, Query(ge=0, le=31)] = 0, station: str = ""):
-    """One day's charge cards for the Month view's day drawer, with that day's own totals.
+    """One day's charge rows for the Month view's day drawer, with that day's own totals.
     `to_day` opens the days from `day` to it instead: totals over the range, then each day's own."""
     lang = db_reader.get_language()
     return templates.TemplateResponse(request, "partials/charges_calendar_day.html", {
