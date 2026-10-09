@@ -927,6 +927,8 @@
     "trip_place_unknown_help": "Mate busca las direcciones poco después de terminar el trayecto, si está activado en Ajustes ▸ Búsqueda de direcciones, así que pueden faltar en los trayectos más antiguos; 🧭 las busca al momento. Algunos lugares no tienen dirección.",
     "trip_place_look_up": "Buscar las direcciones ahora",
     "trip_place_charging": "lugar de carga",
+    "place_lookup_none": "{provider} no tiene ninguna dirección aquí",
+    "place_lookup_failed": "La consulta a {provider} ha fallado: {why}",
     "max_regen": "Regeneración máxima",
     "max_regen_help": "La potencia más alta que volvió a la batería en las lecturas de Mate, tomadas cada pocos segundos; el pico real puede ser mayor.",
     "altitude": "Altitud",

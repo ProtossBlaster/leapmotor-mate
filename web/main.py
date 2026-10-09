@@ -322,7 +322,7 @@ templates.env.globals.update(
     dist_val=units.dist_val, speed_val=units.speed_val, temp_val=units.temp_val,
     eff_val=units.eff_val, elev_val=units.elev_val, unit_system=units.get_unit_system,
     dist100_unit=units.dist100_unit, cost100_val=units.cost100_val,
-    eff_cls=_eff_cls, display_tz_name=db_reader.display_tz_name,
+    eff_cls=_eff_cls, display_tz_name=db_reader.display_tz_name, provider_names=geocode.NAMES,
     # #222 — whether the charger's-own-kWh field can be offered at all. A GLOBAL, not a per-route
     # value: the charge card is rendered by the page AND by two partials that build their context by
     # hand, so a flag passed through _ctx reached the page and silently vanished from the day drawer
@@ -1007,15 +1007,16 @@ def _trip_place_lines(trip: dict) -> dict:
 @app.post("/api/trips/{trip_id}/places", response_class=HTMLResponse)
 async def trip_look_up_places(request: Request, trip_id: int):
     """🧭 in the Trip summary: the trip's ends without an address are looked up now, whatever the switch in
-    Address lookup says and however old the trip, as the note's 🧭 did; then its lines are drawn again."""
+    Address lookup says and however old the trip; then its lines are drawn again, saying why when an address
+    did not come."""
     import asyncio
     trip = db_reader.get_trip_detail(trip_id)
     if not trip:
         return HTMLResponse("", status_code=404)
     points = [(trip.get(f"{end}_lat"), trip.get(f"{end}_lon")) for end in ("start", "end")]
-    await asyncio.get_event_loop().run_in_executor(None, place_lookup.look_up_now, points)
+    lookup = await asyncio.get_event_loop().run_in_executor(None, place_lookup.look_up_now, points)
     return templates.TemplateResponse(request, "partials/trip_place_lines.html",
-                                      _ctx(trip=trip, **_trip_place_lines(trip)))
+                                      _ctx(trip=trip, lookup=lookup, **_trip_place_lines(trip)))
 
 
 @app.get("/trips/{trip_id}/similar", response_class=HTMLResponse)

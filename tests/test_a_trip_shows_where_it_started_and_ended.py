@@ -9,7 +9,9 @@ once on every view showing one. The trip page has no 🧭 for the note any more:
 import csv
 import io
 import re
+import urllib.error
 from datetime import datetime, timedelta, timezone
+from html import unescape
 
 import db as D
 import db_reader
@@ -160,6 +162,44 @@ def test_a_missing_address_is_looked_up_on_request(car, monkeypatch):
     assert providers.calls() == [spot(*WORK)]
     assert page_lines(redrawn) == [("start", "Via Roma, Torino", ""), ("end", "Corso Francia, Torino", "")]
     assert "data-trip-place-look-up" not in redrawn
+
+
+def _refused(code, reason, body):
+    return urllib.error.HTTPError("https://provider/reverse", code, reason, {}, io.BytesIO(body))
+
+
+@pytest.mark.parametrize("provider, host, answer, says", [
+    pytest.param("", "nominatim.openstreetmap.org", {"error": "Unable to geocode"},
+                 "Nominatim has no address here", id="nothing there"),
+    pytest.param("", "nominatim.openstreetmap.org", TimeoutError("timed out"),
+                 "Asking Nominatim failed: timed out", id="no answer in time"),
+    pytest.param("", "nominatim.openstreetmap.org",
+                 urllib.error.URLError(OSError(8, "nodename nor servname provided, or not known")),
+                 "Asking Nominatim failed: [Errno 8] nodename nor servname provided, or not known", id="no network"),
+    pytest.param("", "nominatim.openstreetmap.org", _refused(403, "Forbidden", b"<html>Access blocked</html>"),
+                 "Asking Nominatim failed: HTTP 403 Forbidden", id="refused with a page"),
+    pytest.param("geoapify", "api.geoapify.com",
+                 _refused(401, "Unauthorized", b'{"statusCode": 401, "error": "Unauthorized", "message": "Invalid apiKey"}'),
+                 "Asking Geoapify failed: HTTP 401 Unauthorized: Invalid apiKey", id="refused with a reason"),
+])
+def test_a_lookup_on_request_that_brings_no_address_says_why(car, monkeypatch, provider, host, answer, says):
+    """Else the dash stays as if the 🧭 had done nothing: the provider has nothing there, or what went wrong, in
+    the words of the network or of the provider."""
+    import geocode
+    from test_the_places_of_recent_trips_are_looked_up import Providers, spot
+    providers = Providers()
+    providers.answers[(host, spot(*WORK))] = answer
+    monkeypatch.setattr(geocode, "_get", providers)
+    if provider:
+        car.set_setting("geocoder_provider", provider)
+        db_reader.set_secret("geocoder_key", "the-key")
+    address(HOME, road="Via Roma", locality="Torino")
+    tid = trip(car, HOME, WORK)
+    redrawn = car.client.post(f"/api/trips/{tid}/places").text
+    assert providers.calls() == [spot(*WORK)]
+    said = re.findall(r"<span[^>]*data-place-lookup-said[^>]*>(.*?)</span>", redrawn, re.DOTALL)
+    assert [unescape(s).strip() for s in said] == [f"⚠️ {says}"]
+    assert "data-trip-place-look-up" in redrawn, "and it can be asked again"
 
 
 def test_the_trip_page_has_no_compass_for_the_note_any_more(car):

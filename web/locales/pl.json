@@ -927,6 +927,8 @@
     "trip_place_unknown_help": "Mate wyszukuje adresy wkrótce po zakończeniu trasy, jeśli jest to włączone w Ustawieniach ▸ Wyszukiwanie adresów, więc w starszych trasach może ich brakować; 🧭 wyszuka je od razu. Niektóre miejsca nie mają adresu.",
     "trip_place_look_up": "Wyszukaj adresy teraz",
     "trip_place_charging": "miejsce ładowania",
+    "place_lookup_none": "{provider} nie ma tu adresu",
+    "place_lookup_failed": "Zapytanie do {provider} nie powiodło się: {why}",
     "max_regen": "Maks. rekuperacja",
     "max_regen_help": "Najwyższa moc wracająca do baterii w odczytach Mate, robionych co kilka sekund; prawdziwy szczyt może być wyższy.",
     "altitude": "Wysokość",

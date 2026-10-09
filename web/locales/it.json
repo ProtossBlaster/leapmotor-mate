@@ -927,6 +927,8 @@
     "trip_place_unknown_help": "Mate cerca gli indirizzi poco dopo la fine del viaggio, se è attivo in Impostazioni ▸ Ricerca indirizzi, quindi nei viaggi più vecchi possono mancare; 🧭 li cerca subito. Alcuni luoghi non hanno un indirizzo.",
     "trip_place_look_up": "Cerca gli indirizzi ora",
     "trip_place_charging": "luogo di ricarica",
+    "place_lookup_none": "{provider} non ha un indirizzo qui",
+    "place_lookup_failed": "La richiesta a {provider} non è riuscita: {why}",
     "max_regen": "Recupero max",
     "max_regen_help": "La potenza più alta che rientra nella batteria nelle letture di Mate, prese a pochi secondi l'una dall'altra; il picco reale può essere più alto.",
     "altitude": "Quota",

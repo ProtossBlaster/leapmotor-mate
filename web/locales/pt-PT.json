@@ -927,6 +927,8 @@
     "trip_place_unknown_help": "O Mate procura as moradas pouco depois de a viagem terminar, se isso estiver ligado em Definições ▸ Pesquisa de moradas, por isso podem faltar nas viagens mais antigas; 🧭 procura-as já. Alguns locais não têm morada.",
     "trip_place_look_up": "Procurar as moradas agora",
     "trip_place_charging": "local de carregamento",
+    "place_lookup_none": "{provider} não tem morada aqui",
+    "place_lookup_failed": "O pedido a {provider} falhou: {why}",
     "max_regen": "Regeneração máxima",
     "max_regen_help": "A potência mais alta que voltou à bateria nas leituras do Mate, feitas com alguns segundos de intervalo; o pico real pode ser mais alto.",
     "altitude": "Altitude",

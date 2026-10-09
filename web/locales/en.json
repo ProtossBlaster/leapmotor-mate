@@ -927,6 +927,8 @@
     "trip_place_unknown_help": "Mate looks up the addresses shortly after a trip ends, if that is switched on in Settings ▸ Address lookup, so older trips may lack them; 🧭 looks them up now. Some places have no address.",
     "trip_place_look_up": "Look up the addresses now",
     "trip_place_charging": "charging place",
+    "place_lookup_none": "{provider} has no address here",
+    "place_lookup_failed": "Asking {provider} failed: {why}",
     "max_regen": "Max regen",
     "max_regen_help": "The highest power flowing back into the battery in Mate's readings, taken several seconds apart; the real peak can be higher.",
     "altitude": "Altitude",

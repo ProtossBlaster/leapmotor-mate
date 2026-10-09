@@ -927,6 +927,8 @@
     "trip_place_unknown_help": "Mate zoekt de adressen op kort nadat de rit is afgelopen, als dat aanstaat onder Instellingen ▸ Adressen opzoeken, dus bij oudere ritten kunnen ze ontbreken; 🧭 zoekt ze meteen op. Sommige plaatsen hebben geen adres.",
     "trip_place_look_up": "Adressen nu opzoeken",
     "trip_place_charging": "laadlocatie",
+    "place_lookup_none": "{provider} heeft hier geen adres",
+    "place_lookup_failed": "Vraag aan {provider} mislukt: {why}",
     "max_regen": "Max. regeneratie",
     "max_regen_help": "Het hoogste vermogen dat terugvloeide naar de accu in de metingen van Mate, die enkele seconden uit elkaar liggen; de echte piek kan hoger zijn.",
     "altitude": "Hoogte",
