@@ -954,6 +954,7 @@
     "charges_expand_all": "Expand all",
     "charges_collapse_all": "Collapse all",
     "note_add": "Add a note",
+    "charge_avg_power": "on average",
     "charges_search_placeholder": "Search a station, a place or a note…",
     "charges_search_advanced": "Advanced filters",
     "charges_search_all_types": "All types",

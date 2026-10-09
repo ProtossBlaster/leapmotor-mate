@@ -1223,17 +1223,17 @@ The type is classified with a label:
   delivered (with the battery figure beside it) and cost**. Electricity billed from the 22nd to the
   21st, or any other period that is not a calendar month, no longer has to be added up by hand.
 
-- **Charging data chart 🆕** — in the opened row, one chart in bands on the session's time axis, like
-  a trip's: **charging** (the car's DC power, the wallbox's AC power
-  beside it on a home charge with a mapped wallbox, and how many minutes the car said were left),
-  **battery** (SoC) and **temperatures** (the coldest cell's and, when
-  the outside temperature is switched on in Settings, the outside air at the car's spot). Each entry
-  of the legend switches its line on and off, a band with every line off folds away, the choice is
-  remembered in the browser, and the hover box opens with the time of day and the time since the
-  first reading. The AC-vs-DC comparison on the Wallbox page is this same chart.
-  While a charge runs, the same chart sits with the cards at the top of the page, live, the
-  wallbox's line beside the car's when the charge is at home: it says when the charge began and from
-  which level, and grows with every poll.
+- **Charging data chart 🆕** — in the opened row, first a line with what the readings say: the battery's
+  temperature from the first reading to the last, the outside air from its lowest to its highest and the
+  average power; then one chart in bands on the session's time axis, like a trip's: **charging** (the
+  car's DC power, the wallbox's AC power beside it on a home charge with a mapped wallbox, and how many
+  minutes the car said were left), **battery** (SoC) and **temperatures** (the coldest cell's and, when
+  the outside temperature is switched on in Settings, the outside air at the car's spot). Each entry of
+  the legend switches its line on and off, a band with every line off folds away, the choice is remembered
+  in the browser, and the hover box opens with the time of day and the time since the first reading. The
+  AC-vs-DC comparison on the Wallbox page is this same chart. While a charge runs, the same chart sits
+  with the cards at the top of the page, live, the wallbox's line beside the car's when the charge is at
+  home: it says when the charge began and from which level, and grows with every poll.
 
 ### Charge Prices
 **(menu: Charge Prices)** — Here you set **how much you pay for energy**, so Mate can calculate the

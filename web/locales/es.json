@@ -954,6 +954,7 @@
     "charges_expand_all": "Desplegar todo",
     "charges_collapse_all": "Plegar todo",
     "note_add": "Añadir una nota",
+    "charge_avg_power": "de media",
     "charges_search_placeholder": "Buscar punto de recarga, lugar o nota…",
     "charges_search_advanced": "Filtros avanzados",
     "charges_search_all_types": "Todos los tipos",

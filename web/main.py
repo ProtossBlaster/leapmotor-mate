@@ -3990,7 +3990,25 @@ async def charge_power_chart(request: Request, charge_id: int):
     home = db_reader.is_home_charge(charge_id)
     wb_power = await run_in_threadpool(_wallbox_overlay, curve, home)   # it may read Home Assistant
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=charge_id, wb_power=wb_power, **curve))
+        cid=charge_id, wb_power=wb_power, facts=_charge_facts(curve), **curve))
+
+
+def _charge_facts(curve: dict) -> dict:
+    """The line above a charge's chart, from the chart's own readings: the battery's temperature at the
+    first and the last reading, the outside temperature's lowest and highest, and the average of the power
+    readings, weighted by time, along the stretches the chart draws its power line (a merged charge's over
+    all its pieces): energy and time come from the same readings, so neither a pause nor a stretch without
+    readings counts."""
+    from itertools import pairwise
+    battery = [v for v in curve.get("battery_temp") or [] if v is not None]
+    outside = [v for v in curve.get("outside_temp") or [] if v is not None]
+    runs = _curve_runs(curve.get("times") or [], [p or None for p in curve.get("power") or []])
+    steps = [step for run in runs for step in pairwise(run)]
+    secs = sum(b[0] - a[0] for a, b in steps)
+    kw_secs = sum((b[0] - a[0]) * (a[1] + b[1]) / 2 for a, b in steps)
+    return {"battery_temp": (battery[0], battery[-1]) if battery else None,
+            "outside_temp": (min(outside), max(outside)) if outside else None,
+            "avg_kw": kw_secs / secs if secs > 0 else None}
 
 
 @app.post("/api/settings/prices", response_class=HTMLResponse)

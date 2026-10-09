@@ -1279,18 +1279,18 @@ Il tipo è classificato con un'etichetta:
   (col dato in batteria accanto) e costo** di quella finestra. L'energia fatturata dal 22 al 21, o
   qualunque altro periodo che non sia un mese solare, non va più sommata a mano.
 
-- **Grafico Dati della ricarica 🆕** — nella riga aperta, un grafico a fasce sull'asse del tempo della
-  sessione, come quello di un viaggio: **ricarica** (la
-  potenza DC dell'auto, accanto la potenza AC della wallbox in una ricarica a casa con wallbox
-  associata, e quanti minuti mancavano secondo l'auto), **batteria** (SoC) e
-  **temperature** (quella della cella più fredda e, se la temperatura esterna è attiva
-  nelle Impostazioni, l'aria esterna dove si trova l'auto). Ogni voce della legenda accende e spegne
-  la sua linea, una fascia con tutte le linee spente si ripiega, il browser ricorda la scelta e il
-  riquadro al passaggio del mouse si apre con l'ora e il tempo dalla prima lettura. Il confronto
-  AC-DC della pagina Wallbox è questo stesso grafico.
-  Mentre una ricarica è in corso, lo stesso grafico compare in diretta tra le schede in cima alla
-  pagina, con la linea della wallbox accanto a quella dell'auto in una ricarica a casa: dice quando
-  è iniziata e da quale percentuale, e cresce a ogni interrogazione.
+- **Grafico Dati della ricarica 🆕** — nella riga aperta, per prima cosa ciò che dicono le letture: la
+  temperatura della batteria dalla prima lettura all'ultima, quella dell'aria esterna dalla minima alla
+  massima e la potenza media; poi un grafico a fasce sull'asse del tempo della sessione, come quello di un
+  viaggio: **ricarica** (la potenza DC dell'auto, accanto la potenza AC della wallbox in una ricarica a
+  casa con wallbox associata, e quanti minuti mancavano secondo l'auto), **batteria** (SoC) e
+  **temperature** (quella della cella più fredda e, se la temperatura esterna è attiva nelle Impostazioni,
+  l'aria esterna dove si trova l'auto). Ogni voce della legenda accende e spegne la sua linea, una fascia
+  con tutte le linee spente si ripiega, il browser ricorda la scelta e il riquadro al passaggio del mouse
+  si apre con l'ora e il tempo dalla prima lettura. Il confronto AC-DC della pagina Wallbox è questo
+  stesso grafico. Mentre una ricarica è in corso, lo stesso grafico compare in diretta tra le schede in
+  cima alla pagina, con la linea della wallbox accanto a quella dell'auto in una ricarica a casa: dice
+  quando è iniziata e da quale percentuale, e cresce a ogni interrogazione.
 
 ### Prezzi di ricarica
 **(menu: Prezzi di ricarica)** — Qui imposti **quanto paghi l'energia**, così Mate può calcolare i

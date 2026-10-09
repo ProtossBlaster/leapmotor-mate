@@ -954,6 +954,7 @@
     "charges_expand_all": "Alle aufklappen",
     "charges_collapse_all": "Alle zuklappen",
     "note_add": "Notiz hinzufügen",
+    "charge_avg_power": "im Schnitt",
     "charges_search_placeholder": "Ladestation, Ort oder Notiz suchen…",
     "charges_search_advanced": "Erweiterte Filter",
     "charges_search_all_types": "Alle Typen",

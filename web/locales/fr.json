@@ -954,6 +954,7 @@
     "charges_expand_all": "Tout déplier",
     "charges_collapse_all": "Tout replier",
     "note_add": "Ajouter une note",
+    "charge_avg_power": "en moyenne",
     "charges_search_placeholder": "Rechercher borne, lieu ou note…",
     "charges_search_advanced": "Filtres avancés",
     "charges_search_all_types": "Tous les types",

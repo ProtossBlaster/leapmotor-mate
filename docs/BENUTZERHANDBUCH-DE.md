@@ -1308,18 +1308,18 @@ Der Typ ist mit einem Etikett klassifiziert:
   zum 21. abgerechnet wird — oder jeder andere Zeitraum, der kein Kalendermonat ist — muss nicht
   mehr von Hand addiert werden.
 
-- **Diagramm Ladedaten 🆕** — in der geöffneten Zeile ein Diagramm in Bändern auf der Zeitachse der
-  Sitzung, wie bei einer Fahrt: **Laden** (die DC-Leistung des Autos,
-  bei einer Heimladung mit zugeordneter Wallbox daneben deren AC-Leistung, und wie viele Minuten das
-  Auto noch veranschlagte), **Batterie** (SoC) und
-  **Temperaturen** (die der kältesten Zelle und, wenn die Außentemperatur in den Einstellungen
-  eingeschaltet ist, die Außenluft am Standort des Autos). Jeder Eintrag der Legende schaltet seine
-  Linie ein und aus, ein Band ohne eingeschaltete Linie klappt zusammen, die Wahl merkt sich der
-  Browser, und das Hover-Feld beginnt mit der Uhrzeit und der Zeit seit der ersten Messung. Der
-  AC-DC-Vergleich auf der Wallbox-Seite ist dasselbe Diagramm.
-  Während eine Ladung läuft, steht dasselbe Diagramm live bei den Karten oben auf der Seite, bei
-  einer Heimladung mit der Linie der Wallbox neben der des Autos: es nennt, wann die Ladung begann
-  und bei welchem Ladestand, und wächst mit jeder Abfrage.
+- **Diagramm Ladedaten 🆕** — in der geöffneten Zeile steht zuerst, was die Messwerte sagen: die Temperatur
+  der Batterie vom ersten bis zum letzten Messwert, die Außenluft vom tiefsten bis zum höchsten Wert und
+  die mittlere Leistung; darunter ein Diagramm in Bändern auf der Zeitachse der Sitzung, wie bei einer
+  Fahrt: **Laden** (die DC-Leistung des Autos, bei einer Heimladung mit zugeordneter Wallbox daneben deren
+  AC-Leistung, und wie viele Minuten das Auto noch veranschlagte), **Batterie** (SoC) und **Temperaturen**
+  (die der kältesten Zelle und, wenn die Außentemperatur in den Einstellungen eingeschaltet ist, die
+  Außenluft am Standort des Autos). Jeder Eintrag der Legende schaltet seine Linie ein und aus, ein Band
+  ohne eingeschaltete Linie klappt zusammen, die Wahl merkt sich der Browser, und das Hover-Feld beginnt
+  mit der Uhrzeit und der Zeit seit der ersten Messung. Der AC-DC-Vergleich auf der Wallbox-Seite ist
+  dasselbe Diagramm. Während eine Ladung läuft, steht dasselbe Diagramm live bei den Karten oben auf der
+  Seite, bei einer Heimladung mit der Linie der Wallbox neben der des Autos: es nennt, wann die Ladung
+  begann und bei welchem Ladestand, und wächst mit jeder Abfrage.
 
 ### Ladepreise
 **(Menü: Ladepreise)** — Hier legen Sie fest, **was Sie für die Energie zahlen**, damit Mate die Kosten berechnen

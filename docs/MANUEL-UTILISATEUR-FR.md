@@ -1323,20 +1323,19 @@ Le type est classé par une étiquette :
   facturée du 22 au 21, ou toute autre période qui n'est pas un mois civil, ne se calcule plus à la
   main.
 
-- **Graphique Données de la recharge 🆕** — dans la ligne ouverte, un graphique en bandes sur l'axe du
-  temps de la session, comme celui d'un trajet :
-  **recharge** (la puissance DC de la voiture, à côté la puissance AC de la wallbox pour une recharge
-  à domicile avec wallbox associée, et combien de minutes il restait selon la voiture), **batterie**
-  (SoC) et **températures** (celle de la cellule la plus
-  froide et, si la température extérieure est activée dans les Réglages, l'air extérieur à
-  l'emplacement de la voiture). Chaque entrée de la légende allume et éteint sa ligne, une bande dont
-  toutes les lignes sont éteintes se replie, le navigateur retient le choix, et l'encadré au survol
-  s'ouvre sur l'heure et le temps écoulé depuis le premier relevé. La comparaison AC-DC de la page
-  Wallbox est ce même graphique.
-  Pendant qu'une recharge est en cours, le même graphique s'affiche en direct parmi les cartes en
-  haut de la page, avec la ligne de la wallbox à côté de celle de la voiture pour une recharge à
-  domicile : il indique quand la recharge a commencé et à partir de quel niveau, et s'allonge à
-  chaque relevé.
+- **Graphique Données de la recharge 🆕** — dans la ligne ouverte, d'abord ce que disent les relevés : la
+  température de la batterie du premier relevé au dernier, celle de l'air extérieur, de la plus basse à la
+  plus haute, et la puissance moyenne ; puis un graphique en bandes sur l'axe du temps de la session,
+  comme celui d'un trajet : **recharge** (la puissance DC de la voiture, à côté la puissance AC de la
+  wallbox pour une recharge à domicile avec wallbox associée, et combien de minutes il restait selon la
+  voiture), **batterie** (SoC) et **températures** (celle de la cellule la plus froide et, si la
+  température extérieure est activée dans les Réglages, l'air extérieur à l'emplacement de la voiture).
+  Chaque entrée de la légende allume et éteint sa ligne, une bande dont toutes les lignes sont éteintes se
+  replie, le navigateur retient le choix, et l'encadré au survol s'ouvre sur l'heure et le temps écoulé
+  depuis le premier relevé. La comparaison AC-DC de la page Wallbox est ce même graphique. Pendant qu'une
+  recharge est en cours, le même graphique s'affiche en direct parmi les cartes en haut de la page, avec
+  la ligne de la wallbox à côté de celle de la voiture pour une recharge à domicile : il indique quand la
+  recharge a commencé et à partir de quel niveau, et s'allonge à chaque relevé.
 
 ### Prix de recharge
 **(menu : Prix de recharge)** — Ici, vous définissez **combien vous payez l'énergie**, afin que Mate puisse
