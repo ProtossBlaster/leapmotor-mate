@@ -1,6 +1,6 @@
-"""Picking a range of days on the Trips calendar, in a real browser: a gesture sends one request, for the
-range and nothing else, rings the days and fills the drawer; a reload brings the choice back, and so does
-the way back from one of its trips. Every request the drawer makes is counted, because htmx opening the
+"""Picking a range of days on the Trips calendar, and on the Charges one, in a real browser: a gesture sends one
+request, for the range and nothing else, rings the days and fills the drawer; a reload brings the choice back, and so
+does the way back from one of its trips. Every request the drawer makes is counted, because htmx opening the
 clicked day alone next to the range is exactly the failure to catch. Skips where it cannot run (no
 playwright, no Chromium), like the other browser tests.
 
@@ -261,12 +261,23 @@ def test_a_days_date_under_the_range_opens_that_day_alone(browser, mate):
     assert cal.drawer().split()[:3] == label
 
 
-def test_the_charges_calendar_opens_one_day_on_a_shift_click(browser, mate):
+def test_the_charges_calendar_opens_the_range_with_one_request(browser, mate):
     cal = Calendar(browser, mate, "charges")
     cal.swapped(lambda: cal.cell(3).click())
     cal.swapped(lambda: cal.cell(5).click(modifiers=["Shift"]))
-    assert len(cal.asked) == 2 and cal.asked[0].endswith("&day=3") and cal.asked[1].endswith("&day=5"), cal.asked
-    assert cal.ringed() == [5]
+    assert len(cal.asked) == 2 and cal.asked[1].endswith("&day=3&to_day=5"), cal.asked
+    assert cal.ringed() == [3, 5]
+    assert cal.drawer().startswith(_range_heading(3, 5))
+
+
+def test_holding_a_day_on_the_charges_calendar_waits_for_the_tap_that_ends_the_range(browser, mate):
+    cal = Calendar(browser, mate, "charges", phone=True)
+    cal.touch(3, held=True)
+    assert cal.asked == [] and cal.anchored() == 1
+    cal.swapped(lambda: cal.cell(5).tap())
+    assert len(cal.asked) == 1 and cal.asked[0].endswith("&day=3&to_day=5"), cal.asked
+    assert cal.ringed() == [3, 5]
+    assert cal.drawer().startswith(_range_heading(3, 5))
 
 
 def test_holding_a_day_waits_for_the_tap_that_ends_the_range(browser, mate):

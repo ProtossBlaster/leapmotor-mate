@@ -105,6 +105,71 @@ def test_a_calendar_unmerge_redraws_the_month_instead_of_reloading(tmp_path, mon
     assert _ids() == [2, 1]
 
 
+def _october(tmp_path, monkeypatch):
+    """1–3 October open in the drawer; the charge of the 1st began at ten to midnight on 30 September."""
+    p = _setup(tmp_path, monkeypatch)
+    con = sqlite3.connect(p)
+    con.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('timezone', 'UTC')")
+    con.commit(); con.close()
+    _charge(p, 1, "2026-09-30T23:50:00+00:00", "2026-09-30T23:58:00+00:00", 40.0, 45.0, 2.0)
+    _charge(p, 2, "2026-10-01T00:05:00+00:00", "2026-10-01T01:00:00+00:00", 45.0, 70.0, 8.0)
+    _charge(p, 3, "2026-10-02T10:00:00+00:00", "2026-10-02T11:00:00+00:00", 30.0, 60.0, 9.0)
+    _charge(p, 4, "2026-10-03T10:00:00+00:00", "2026-10-03T11:00:00+00:00", 30.0, 60.0, 7.0)
+    # A station key the fixture's charges have no coordinates for: recorded, and narrowing nothing.
+    seen = []
+    monkeypatch.setattr(db_reader, "_filter_by_station", lambda charges, station: (seen.append(station), charges)[1])
+    monkeypatch.setattr(db_reader, "get_language", lambda: "en")
+    from starlette.testclient import TestClient
+    db_reader.set_setting("setup_complete", "1")
+    return TestClient(main.app), seen
+
+
+def _drawer_days(html):
+    import re
+    return re.findall(r'data-cal-day="(\d+)"', html), re.findall(r'data-selected data-day="(\d+)"', html)
+
+
+def test_a_merge_from_a_range_redraws_the_range_on_its_month(tmp_path, monkeypatch):
+    """The parent of the merge lies in September, where the first piece began; the reader is looking at
+    1–3 October. The redraw stays there, every day of the range with its totals after the merge, and the
+    station filter in the cards' own buttons."""
+    client, seen = _october(tmp_path, monkeypatch)
+    span = {"calendar": 1, "station": "45.0,9.0", "year": 2026, "month": 10, "day": 1, "to_day": 3}
+
+    r = client.post("/api/charges/merge", params={"a": 2, "b": 1, **span})
+
+    assert r.status_code == 200 and r.headers.get("HX-Retarget") == "#charges-calendar-month"
+    assert "October 2026" in r.text and "September" not in r.text
+    assert _ids() == [4, 3, 1]
+    assert _drawer_days(r.text) == (["3", "2"], ["2", "3"])     # the 1st now charges nothing
+    assert "01 – 03 Oct 2026" in r.text and "2 sessions" in r.text and "16 kWh delivered" in r.text
+    assert "45.0,9.0" in seen and "&station=45.0,9.0" in r.text
+
+
+def test_a_split_from_a_range_redraws_the_range_on_its_month(tmp_path, monkeypatch):
+    client, _ = _october(tmp_path, monkeypatch)
+    db_reader.merge_charges(1, 2)
+    span = {"calendar": 1, "year": 2026, "month": 10, "day": 1, "to_day": 3}
+
+    r = client.post("/api/charges/unmerge", params={"parent": 1, **span})
+
+    assert r.status_code == 200 and r.headers.get("HX-Retarget") == "#charges-calendar-month"
+    assert "October 2026" in r.text
+    assert _ids() == [4, 3, 2, 1]
+    assert _drawer_days(r.text) == (["3", "2", "1"], ["1", "2", "3"])
+    assert "3 sessions" in r.text and "24 kWh delivered" in r.text
+
+
+def test_a_merge_without_the_drawers_days_opens_the_parents_day(tmp_path, monkeypatch):
+    """Nothing said which days were open: the day the merged charge falls on, in its own month."""
+    client, _ = _october(tmp_path, monkeypatch)
+
+    r = client.post("/api/charges/merge", params={"a": 2, "b": 1, "calendar": 1})
+
+    assert "September 2026" in r.text
+    assert _drawer_days(r.text) == ([], ["30"])
+
+
 def test_a_merge_outside_the_calendar_still_falls_back_to_a_reload(tmp_path, monkeypatch):
     """Search results don't carry a #charges-calendar-month to redraw (charge_card.html sets
     calendar_context=false there), so charge_card.html never sends `calendar=1` for them — the

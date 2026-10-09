@@ -1178,6 +1178,9 @@ label:
   silence. ⚠️ On a session already recorded **only** the odometer is written: a cost Mate worked out
   from a real charging curve is never overwritten.
 
+- **Several days at once 🆕** — the calendar opens a range of days the way the Trips one does
+  (Shift-click, a drag across the days or, on a phone, holding a day): one heading with the range's
+  sessions, kWh and cost, then each day under its own. An open day's heading carries the same totals.
 - **A searched period adds itself up 🆕** — above the results, that window's own **sessions, kWh
   delivered (with the battery figure beside it) and cost**. Electricity billed from the 22nd to the
   21st, or any other period that is not a calendar month, no longer has to be added up by hand.

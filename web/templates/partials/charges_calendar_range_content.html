@@ -1,0 +1,26 @@
+{# Several days in the drawer (`range_days`, see _charges_drawer_ctx): one heading with the range's
+   totals, then each day with charges under its own, newest first. A day's date opens that day alone.
+   One data-charges-list around every section, so the © OpenStreetMap credit is printed once. #}
+<div class="mb-4 flex items-center justify-between flex-wrap gap-2">
+  <span class="text-white font-semibold">{{ range_label }}</span>
+  {% include "partials/_charges_day_totals.html" %}
+</div>
+<div data-charges-list>
+<div class="space-y-4">
+  {% for d in range_days %}
+  <section class="border-t border-slate-700/60 pt-3">
+    <div class="mb-2 flex items-center justify-between flex-wrap gap-2">
+      <button type="button" data-cal-day="{{ d.day }}"
+              class="text-slate-200 text-sm font-medium hover:text-white hover:underline underline-offset-2">{{ d.label }}</button>
+      {% with day_totals = d.totals %}{% include "partials/_charges_day_totals.html" %}{% endwith %}
+    </div>
+    <div class="space-y-3">
+      {% for c in d.charges %}
+      {% include "partials/charge_card.html" %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+{% with address_credit = true %}{% include "partials/_address_credit.html" %}{% endwith %}
+</div>

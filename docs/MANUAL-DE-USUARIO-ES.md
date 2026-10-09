@@ -1248,6 +1248,10 @@ etiqueta:
   el cuentakilómetros: un coste que Mate calculó a partir de una curva de carga real no se sobrescribe
   nunca.
 
+- **Varios días a la vez 🆕** — el calendario abre un intervalo de días igual que el de Trayectos
+  (Mayús+clic, arrastrando el ratón sobre los días o, en el móvil, manteniendo pulsado un día): una
+  cabecera con las sesiones, los kWh y el coste del intervalo y debajo cada día con la suya. La cabecera
+  de un día abierto lleva los mismos totales.
 - **Un periodo buscado se suma solo 🆕** — encima de los resultados, las **sesiones, los kWh
   entregados (con la cifra en batería al lado) y el coste** de esa ventana. La electricidad
   facturada del 22 al 21, o cualquier otro periodo que no sea un mes natural, ya no hay que sumarla
