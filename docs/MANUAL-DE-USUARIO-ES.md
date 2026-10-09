@@ -1159,10 +1159,11 @@ etiqueta:
 
 - **Una carga es una fila 🆕** — la lista se lee como la de Trayectos. Una fila muestra las horas y el
   tipo, la duración, la potencia máxima y los kilómetros desde la carga anterior, dónde fue, el cambio de
-  batería y, a la derecha, los kWh y el coste. Pulsa la fila para abrir el resto debajo: la energía en
-  detalle, donde se escribe una cifra de kWh, el gráfico, tu nota y las acciones (unir, separar, editar,
-  eliminar). El tipo, 🆓, ✎ y 📍 se editan en la propia fila. **Desplegar todo**, junto a la fecha del día,
-  abre todas las filas del día o del intervalo, y **Plegar todo** las cierra.
+  batería y, a la derecha, los kWh y el coste; al lado, una miniatura de la curva, la potencia (kW) sobre
+  el estado de carga (%). Pulsa la fila para abrir el resto debajo: la energía en detalle, donde se
+  escribe una cifra de kWh, el gráfico, tu nota y las acciones (unir, separar, editar, eliminar). El tipo,
+  🆓, ✎ y 📍 se editan en la propia fila. **Desplegar todo**, junto a la fecha del día, abre todas las filas
+  del día o del intervalo, y **Plegar todo** las cierra.
 - **La franja «por confirmar» te lleva hasta ella 🆕** (#240) — cuando una carga ha terminado sin
   tipo, aparece una franja arriba de la página. **Haz clic**: abre la carga en su propio día del
   calendario y la marca, en vez de dejarte a ti averiguar en qué día está.

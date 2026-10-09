@@ -1139,10 +1139,11 @@ un'etichetta:
 
 - **Una ricarica è una riga 🆕** — l'elenco si legge come quello dei Viaggi. Una riga mostra gli orari e il
   tipo, la durata, la potenza massima e i chilometri dalla ricarica precedente, dove è avvenuta, la
-  variazione della batteria e, a destra, i kWh e il costo. Un clic sulla riga apre il resto sotto di essa:
-  l'energia nel dettaglio, dove si digita una cifra in kWh, il grafico, la tua nota e le azioni (unisci,
-  separa, modifica, elimina). Tipo, 🆓, ✎ e 📍 si modificano sulla riga stessa. **Espandi tutto**, accanto
-  alla data del giorno, apre ogni riga del giorno o dell'intervallo, e **Comprimi tutto** le chiude.
+  variazione della batteria e, a destra, i kWh e il costo; accanto, una miniatura della curva, la potenza
+  (kW) sopra lo stato di carica (%). Un clic sulla riga apre il resto sotto di essa: l'energia nel
+  dettaglio, dove si digita una cifra in kWh, il grafico, la tua nota e le azioni (unisci, separa,
+  modifica, elimina). Tipo, 🆓, ✎ e 📍 si modificano sulla riga stessa. **Espandi tutto**, accanto alla data
+  del giorno, apre ogni riga del giorno o dell'intervallo, e **Comprimi tutto** le chiude.
 - **La banda «da confermare» ti ci porta 🆕** (#240) — quando una ricarica è finita senza un tipo,
   in cima alla pagina compare una striscia. **Cliccala**: apre la ricarica sul suo giorno del
   calendario e la evidenzia, invece di lasciarti indovinare su quale giorno sia.

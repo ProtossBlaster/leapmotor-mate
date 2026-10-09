@@ -1178,10 +1178,11 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
 
 - **Une recharge est une ligne 🆕** — la liste se lit comme celle des Trajets. Une ligne montre les heures
   et le type, la durée, la puissance maximale et les kilomètres depuis la recharge précédente, où elle a
-  eu lieu, la variation de la batterie et, à droite, les kWh et le coût. Un clic sur la ligne ouvre le
-  reste en dessous : l'énergie en détail, où l'on saisit un chiffre en kWh, le graphique, votre note et
-  les actions (fusionner, séparer, modifier, supprimer). Le type, 🆓, ✎ et 📍 se modifient sur la ligne
-  même. **Tout déplier**, à côté de la date du jour, ouvre toutes les lignes du jour ou de la période, et
+  eu lieu, la variation de la batterie et, à droite, les kWh et le coût ; à côté, une miniature de la
+  courbe, la puissance (kW) au-dessus de l'état de charge (%). Un clic sur la ligne ouvre le reste en
+  dessous : l'énergie en détail, où l'on saisit un chiffre en kWh, le graphique, votre note et les actions
+  (fusionner, séparer, modifier, supprimer). Le type, 🆓, ✎ et 📍 se modifient sur la ligne même.
+  **Tout déplier**, à côté de la date du jour, ouvre toutes les lignes du jour ou de la période, et
   **Tout replier** les ferme.
 - **Le bandeau « à confirmer » vous y emmène 🆕** (#240) — quand une recharge s'est terminée sans
   type, un bandeau apparaît en haut de la page. **Cliquez dessus** : il ouvre la recharge sur son

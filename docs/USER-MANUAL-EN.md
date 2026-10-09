@@ -1091,10 +1091,11 @@ label:
 
 - **A charge is a row 🆕** — the list reads like the Trips one. A row says the times and type, the
   duration, peak power and the kilometres since the previous charge, where it happened, the battery change
-  and, on the right, the kWh and the cost. Click the row to open the rest under it: the energy in detail,
-  where a kWh figure is typed, the chart, your note and the actions (merge, split, edit, delete). The
-  type, 🆓, ✎ and 📍 are edited on the row itself. **Expand all** beside the day's date opens every row of
-  the day or of the range, and **Collapse all** closes them.
+  and, on the right, the kWh and the cost; beside them a thumbnail of the curve, the power (kW) above the
+  state of charge (%). Click the row to open the rest under it: the energy in detail, where a kWh figure
+  is typed, the chart, your note and the actions (merge, split, edit, delete). The type, 🆓, ✎ and 📍 are
+  edited on the row itself. **Expand all** beside the day's date opens every row of the day or of the
+  range, and **Collapse all** closes them.
 - **The "to confirm" banner takes you there 🆕** (#240) — when a charge has ended without a type,
   a strip appears at the top of the page. **Click it**: it opens the charge on its own day of the
   calendar and marks it, instead of leaving you to work out which day it is on.

@@ -1162,11 +1162,12 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
 
 - **Ein Ladevorgang ist eine Zeile 🆕** — die Liste liest sich wie die der Fahrten. Eine Zeile zeigt
   Uhrzeiten und Typ, Dauer, Spitzenleistung und die Kilometer seit dem vorigen Ladevorgang, wo er
-  stattfand, die Änderung des Ladestands und rechts die kWh und die Kosten. Ein Klick auf die Zeile öffnet
-  darunter den Rest: die Energie im Detail, wo ein kWh-Wert eingetippt wird, das Diagramm, Ihre Notiz und
-  die Aktionen (Zusammenführen, Trennen, Bearbeiten, Löschen). Typ, 🆓, ✎ und 📍 werden direkt auf der Zeile
-  bearbeitet. **Alle aufklappen** neben dem Datum des Tages öffnet jede Zeile des Tages oder des
-  Zeitraums, **Alle zuklappen** schließt sie.
+  stattfand, die Änderung des Ladestands und rechts die kWh und die Kosten; daneben eine Miniatur der
+  Ladekurve, die Leistung (kW) über dem Ladestand (%). Ein Klick auf die Zeile öffnet darunter den Rest:
+  die Energie im Detail, wo ein kWh-Wert eingetippt wird, das Diagramm, Ihre Notiz und die Aktionen
+  (Zusammenführen, Trennen, Bearbeiten, Löschen). Typ, 🆓, ✎ und 📍 werden direkt auf der Zeile bearbeitet.
+  **Alle aufklappen** neben dem Datum des Tages öffnet jede Zeile des Tages oder des Zeitraums,
+  **Alle zuklappen** schließt sie.
 - **Das Banner „zu bestätigen" bringt Sie hin 🆕** (#240) — wenn ein Ladevorgang ohne Typ endet,
   erscheint oben auf der Seite ein Streifen. **Klicken Sie darauf**: er öffnet den Ladevorgang an
   seinem Tag im Kalender und hebt ihn hervor, statt Sie den Tag suchen zu lassen.
