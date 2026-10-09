@@ -1306,6 +1306,10 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   tout doublait en silence. ⚠️ Sur une session déjà enregistrée, **seul** le compteur est écrit : un
   coût que Mate a calculé à partir d'une vraie courbe de charge n'est jamais écrasé.
 
+- **Plusieurs jours à la fois 🆕** — le calendrier ouvre une période comme celui des Trajets (Maj+clic,
+  un glisser de la souris sur les jours ou, sur un téléphone, un appui long sur un jour) : un en-tête
+  avec les sessions, les kWh et le coût de la période, puis chaque jour avec le sien. L'en-tête d'un jour
+  ouvert porte les mêmes totaux.
 - **Une période recherchée s'additionne toute seule 🆕** — au-dessus des résultats, les **sessions,
   les kWh délivrés (avec la valeur en batterie à côté) et le coût** de cette fenêtre. L'électricité
   facturée du 22 au 21, ou toute autre période qui n'est pas un mois civil, ne se calcule plus à la

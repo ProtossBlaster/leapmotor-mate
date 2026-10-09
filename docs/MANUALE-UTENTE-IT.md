@@ -1262,6 +1262,10 @@ un'etichetta:
   in silenzio. ⚠️ Di una ricarica già registrata viene toccato **solo** il contachilometri: un costo
   che Mate ha calcolato da una curva di ricarica vera non viene mai sovrascritto.
 
+- **Più giorni insieme 🆕** — il calendario apre un intervallo di giorni come quello dei Viaggi
+  (Maiusc-clic, trascinando il mouse sui giorni o, sul telefono, tenendo premuto un giorno):
+  un'intestazione con sessioni, kWh e costo dell'intervallo, poi ogni giorno con la sua. L'intestazione
+  di un giorno aperto riporta gli stessi totali.
 - **Un periodo cercato si somma da solo 🆕** — sopra i risultati compaiono **sessioni, kWh erogati
   (col dato in batteria accanto) e costo** di quella finestra. L'energia fatturata dal 22 al 21, o
   qualunque altro periodo che non sia un mese solare, non va più sommata a mano.

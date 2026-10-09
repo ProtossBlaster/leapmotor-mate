@@ -198,12 +198,13 @@
      can arrive as several rows; `can_merge_prev` is set by get_charges where a close-enough charge
      sits before this one. It is an OFFER — the route re-checks every guard, because a button is
      not a permission. The modal it fills lives in charges.html, which is the page every one of
-     this card's three uses (day accordion, calendar drawer, search) is rendered into. #}
+     this card's three uses (day accordion, calendar drawer, search) is rendered into. `drawer_q`
+     (the drawer's days, from _charges_drawer_ctx) goes along so the redraw keeps them open. #}
   {% if c.can_merge_prev or c.is_merged %}
   <div class="mt-2 pt-2 flex items-center gap-3" style="border-top:1px solid #111c2e">
     {% if c.can_merge_prev %}
     <button type="button" title="{{ t('charge_merge_help') }}"
-            hx-get="api/charges/merge-preview?a={{ c.id }}&b={{ c.prev_charge_id }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{% endif %}"
+            hx-get="api/charges/merge-preview?a={{ c.id }}&b={{ c.prev_charge_id }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{{ drawer_q|default('')|safe }}{% endif %}"
             hx-target="#charge-merge-modal-body" hx-swap="innerHTML"
             onclick="document.getElementById('charge-merge-modal').style.display='flex'"
             style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
@@ -213,7 +214,7 @@
     {% if c.is_merged %}
     <span style="font-size:10px" class="text-yellow-400"
           title="{{ c.merged_count }} {{ t('charge_merge_segments') }}">🔗 {{ c.merged_count }}</span>
-    <button type="button" hx-post="api/charges/unmerge?parent={{ c.id }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{% endif %}"
+    <button type="button" hx-post="api/charges/unmerge?parent={{ c.id }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{{ drawer_q|default('')|safe }}{% endif %}"
             hx-confirm="{{ t('charge_unmerge_confirm') }}" hx-swap="none"
             style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
             onmouseover="this.style.color='#fbbf24'" onmouseout="this.style.color='#64748b'">

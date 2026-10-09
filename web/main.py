@@ -1171,49 +1171,61 @@ async def delete_charge(request: Request, charge_id: int):
 
 
 @app.get("/api/charges/merge-preview", response_class=HTMLResponse)
-async def charges_merge_preview(request: Request, a: int, b: int, station: str = "", calendar: int = 0):
+async def charges_merge_preview(request: Request, a: int, b: int, station: str = "", calendar: int = 0,
+                                year: int = 0, month: int = 0, day: int = 0, to_day: int = 0):
     """The single charge the merge WOULD produce — figures plus the pause it swallows — so the
-    confirm step shows what changes, not just that something will."""
+    confirm step shows what changes, not just that something will. The drawer's days travel on to
+    the confirm button, so the redraw after the merge keeps them open."""
     g = db_reader.preview_merge_charges(a, b)
     if not g:
         return HTMLResponse("")
     return templates.TemplateResponse(request, "partials/charge_merge_preview.html",
-                                      _ctx(g=g, a=a, b=b, station=station, calendar_context=bool(calendar)))
+                                      _ctx(g=g, a=a, b=b, station=station, calendar_context=bool(calendar),
+                                           drawer_q=_drawer_query(year, month, day, to_day)))
 
 
-def _retarget_charges_calendar(request: Request, charge_id: int, station: str):
+def _retarget_charges_calendar(request: Request, charge_id: int, station: str,
+                               year: int = 0, month: int = 0, day: int = 0, to_day: int = 0):
     """After a merge/unmerge, redraw the month grid + day drawer in place instead of reloading the
     whole page — the reload used to drop the day/scroll the owner had open in Charges (they'd land
-    back at the top and have to find their place again). `None` when the affected charge can't be
-    dated (should not happen for a row that was just written) or the caller wasn't in the calendar
-    view to begin with (search results don't carry a #charges-calendar-month to redraw)."""
+    back at the top and have to find their place again). The drawer that offered the button says
+    which days it had open (`year`/`month`/`day`/`to_day`), and they open again while the charge
+    falls among them, so a range stays a range. A merged charge begins where its first piece began,
+    which may be the evening before, out of those days: then, and without them, the day the charge
+    falls on opens, in its own month, so it is on show. `None` when the charge can't be dated (should
+    not happen for a row that was just written) or the caller wasn't in the calendar view to begin
+    with (search results don't carry a #charges-calendar-month to redraw)."""
     d = db_reader.get_charge_local_date(charge_id)
     if not d:
         return None
-    resp = _render_charges_calendar(request, d.year, d.month, station, d.day)
+    if (year, month) != (d.year, d.month) or not min(day, to_day or day) <= d.day <= max(day, to_day or day):
+        year, month, day, to_day = d.year, d.month, d.day, 0
+    resp = _render_charges_calendar(request, year, month, station, day, to_day)
     resp.headers["HX-Retarget"] = "#charges-calendar-month"
     resp.headers["HX-Reswap"] = "outerHTML"
     return resp
 
 
 @app.post("/api/charges/merge", response_class=HTMLResponse)
-async def charges_merge(request: Request, a: int, b: int, station: str = "", calendar: int = 0):
+async def charges_merge(request: Request, a: int, b: int, station: str = "", calendar: int = 0,
+                        year: int = 0, month: int = 0, day: int = 0, to_day: int = 0):
     """Join two charge rows the car split when it declared the cable gone on a pause. The earlier
     becomes the parent. Reversible. Re-validates every guard here — the page only offers the
     button, it does not grant the permission."""
     res = db_reader.merge_charges(a, b)
     if res.get("ok"):
-        resp = calendar and _retarget_charges_calendar(request, res["parent_id"], station)
+        resp = calendar and _retarget_charges_calendar(request, res["parent_id"], station, year, month, day, to_day)
         return resp or Response(status_code=200, headers={"HX-Refresh": "true"})
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<div style="color:#f87171;font-size:13px;padding:6px 0">⚠️ {t("charge_merge_failed")}</div>')
 
 
 @app.post("/api/charges/unmerge", response_class=HTMLResponse)
-async def charges_unmerge(request: Request, parent: int, station: str = "", calendar: int = 0):
+async def charges_unmerge(request: Request, parent: int, station: str = "", calendar: int = 0,
+                          year: int = 0, month: int = 0, day: int = 0, to_day: int = 0):
     """Split a merged charge back into the rows the car reported (reversible — nothing was lost)."""
     db_reader.unmerge_charges(parent)
-    resp = calendar and _retarget_charges_calendar(request, parent, station)
+    resp = calendar and _retarget_charges_calendar(request, parent, station, year, month, day, to_day)
     return resp or Response(status_code=200, headers={"HX-Refresh": "true"})
 
 
@@ -1266,7 +1278,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = "", 
     ))
 
 
-def _charges_calendar_ctx(year: int, month: int, station: str, open_day: int = 0) -> dict:
+def _charges_calendar_ctx(year: int, month: int, station: str, open_day: int = 0, open_to: int = 0) -> dict:
     """The Ricariche calendar's context, WITHOUT a Response around it.
 
     Split out so the Charges page can draw the grid itself on first paint instead of shipping an
@@ -1307,10 +1319,43 @@ def _charges_calendar_ctx(year: int, month: int, station: str, open_day: int = 0
         # it stayed broken across reloads. (#240, found by Silvio pressing Refresh.)
         "currency": db_reader.get_currency(),
     }
-    if open_day and open_day in cal["days"]:
-        ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
-        ctx["open_day_charges"] = db_reader.get_charges_calendar_day(year, month, open_day, station=station or None)
-        ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
+    if open_day:
+        open_day, open_to = _day_span(year, month, open_day, open_to)
+    if open_day and any(d in cal["days"] for d in range(open_day, open_to + 1)):
+        ctx["open_day"] = open_day     # so the grid can ring the days the drawer is showing
+        ctx["open_to"] = open_to
+        # The drawer's own endpoint builds the same context, so both paths print the same heading.
+        ctx["open_drawer"] = _charges_drawer_ctx(lang, year, month, open_day, open_to, station)
+    return ctx
+
+
+def _drawer_query(year: int, month: int, day: int, to_day: int = 0) -> str:
+    """The drawer's days as query parameters a merge or split carries back, so the redraw keeps the
+    same days open; '' outside a drawer (search results reload the page instead)."""
+    if not (year and month and day):
+        return ""
+    return f"&year={year}&month={month}&day={day}" + (f"&to_day={to_day}" if to_day else "")
+
+
+def _charges_drawer_ctx(lang: str, year: int, month: int, day: int, to_day: int = 0, station: str = "") -> dict:
+    """What the day drawer prints for `day`, or for the days from `day` to `to_day`: built here for both
+    routes that render the drawer, so they cannot differ. `drawer_q` is the drawer's own span, which
+    its cards hand to a merge or split so the redraw keeps the same days open."""
+    from datetime import date
+    from itertools import groupby
+    first, last = _day_span(year, month, day, to_day)
+    charges = db_reader.get_charges_calendar_day(year, month, first, station=station or None, to_day=last)
+    ctx = {"charges": charges, "day_totals": db_reader.charges_totals(charges),
+           "drawer_q": _drawer_query(year, month, first, last if last != first else 0)}
+    if first == last:
+        ctx.update(day=first, day_label=i18n.fmt_day_month_year(lang, date(year, month, first)))
+        return ctx
+    # One heading over the range, then each day with charges under its own, newest first like the cards.
+    ctx["range_label"] = i18n.fmt_day_range(lang, date(year, month, first), date(year, month, last))
+    ctx["range_days"] = [
+        {"day": d, "label": i18n.fmt_day_month_year(lang, date(year, month, d)),
+         "charges": cs, "totals": db_reader.charges_totals(cs)}
+        for d, cs in ((d, list(g)) for d, g in groupby(charges, key=lambda c: c["_dt"].day))]
     return ctx
 
 
@@ -1320,10 +1365,10 @@ def _charges_calendar_html(year: int, month: int, station: str, open_day: int = 
         _charges_calendar_ctx(year, month, station, open_day))
 
 
-def _render_charges_calendar(request: Request, year: int, month: int, station: str, open_day: int = 0):
+def _render_charges_calendar(request: Request, year: int, month: int, station: str, open_day: int = 0, open_to: int = 0):
     """Shared by /api/charges/calendar and the search endpoint's empty-filters fallback."""
     return templates.TemplateResponse(request, "partials/charges_calendar_month.html",
-                                      _charges_calendar_ctx(year, month, station, open_day))
+                                      _charges_calendar_ctx(year, month, station, open_day, open_to))
 
 
 def _fuel_calendar_ctx(year: int, month: int, open_day: int = 0) -> dict:
@@ -1394,22 +1439,24 @@ async def fuel_calendar_day(request: Request, year: int, month: int, day: int):
 
 
 @app.get("/api/charges/calendar", response_class=HTMLResponse)
-async def charges_calendar(request: Request, year: int = 0, month: int = 0, station: str = "", open_day: int = 0):
+async def charges_calendar(request: Request, year: int = 0, month: int = 0, station: str = "",
+                           open_day: Annotated[int, Query(ge=0, le=31)] = 0,
+                           open_to: Annotated[int, Query(ge=0, le=31)] = 0):
     """Ricariche 'calendar' Month view (HTMX partial, day totals only) — the day drawer
     loads a day's actual charge cards lazily on click (see charges_calendar_day below),
     so a month never ships more markup than the handful of days the user opens."""
-    return _render_charges_calendar(request, year, month, station, open_day)
+    return _render_charges_calendar(request, year, month, station, open_day, open_to)
 
 
 @app.get("/api/charges/calendar/day", response_class=HTMLResponse)
-async def charges_calendar_day(request: Request, year: int, month: int, day: int, station: str = ""):
-    """One day's charge cards for the Month view's day drawer."""
+async def charges_calendar_day(request: Request, year: int, month: int, day: Annotated[int, Query(ge=1, le=31)],
+                               to_day: Annotated[int, Query(ge=0, le=31)] = 0, station: str = ""):
+    """One day's charge cards for the Month view's day drawer, with that day's own totals.
+    `to_day` opens the days from `day` to it instead: totals over the range, then each day's own."""
     lang = db_reader.get_language()
-    charges = db_reader.get_charges_calendar_day(year, month, day, station=station or None)
-    from datetime import date
     return templates.TemplateResponse(request, "partials/charges_calendar_day.html", {
         "t": i18n.get_t(lang), "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
-        "charges": charges, "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
+        **_charges_drawer_ctx(lang, year, month, day, to_day, station),
         "currency": db_reader.get_currency(),   # the price box is labelled in the reader's money
         "station": station,   # so a merge/unmerge from here keeps any active station filter
     })

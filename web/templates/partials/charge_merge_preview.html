@@ -13,7 +13,7 @@
   </div>
   <div class="flex gap-2 mt-3">
     <button type="button" class="rounded-lg bg-yellow-500 text-slate-900 px-3 py-1.5 text-xs font-bold hover:bg-yellow-400"
-            hx-post="api/charges/merge?a={{ a }}&b={{ b }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{% endif %}"
+            hx-post="api/charges/merge?a={{ a }}&b={{ b }}{% if station %}&station={{ station }}{% endif %}{% if calendar_context %}&calendar=1{{ drawer_q|default('')|safe }}{% endif %}"
             hx-swap="none"
             hx-on::after-request="document.getElementById('charge-merge-modal').style.display='none'">✓ {{ t('charge_merge_confirm') }}</button>
     <button type="button" class="rounded-lg border border-slate-600 text-slate-300 px-3 py-1.5 text-xs font-medium hover:border-slate-400"

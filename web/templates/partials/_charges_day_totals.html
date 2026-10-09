@@ -1,0 +1,13 @@
+{# The line of totals in a charges heading: the day's, a day's under a range, the range's. Expects
+   `day_totals` (db_reader.charges_totals) and the page-level `t`. Same words, filters and order as the
+   month strip above the grid, so the two cannot be read differently. #}
+{% if day_totals and day_totals.count %}
+<div class="flex items-center flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
+  <span class="text-slate-500 whitespace-nowrap">{{ day_totals.count }} {{ t('session_inline_one') if day_totals.count == 1 else t('session_inline_many') }}</span>
+  <span class="text-yellow-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('cal_kwh_delivered_help') }}">{{ day_totals.kwh | nice }} kWh {{ t('cal_kwh_delivered') }}</span>
+  {% if day_totals.battery_kwh and day_totals.battery_kwh != day_totals.kwh %}
+  <span class="text-slate-300 whitespace-nowrap" tabindex="0" data-tip="{{ t('energy_in_battery_help') }}">{{ day_totals.battery_kwh | nice }} {{ t('cal_kwh_in_battery') }}</span>
+  {% endif %}
+  {% if day_totals.has_cost %}<span class="text-green-400 font-medium whitespace-nowrap" tabindex="0" data-tip="{{ t('cost') }}">{{ day_totals.cost | money }}</span>{% endif %}
+</div>
+{% endif %}

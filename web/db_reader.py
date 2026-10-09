@@ -9632,9 +9632,10 @@ def get_charges_calendar_month(year: int, month: int, station: str | None = None
     return {"year": year, "month": month, "days": days, "total": charges_totals(charges)}
 
 
-def get_charges_calendar_day(year: int, month: int, day: int, station: str | None = None) -> list[dict]:
-    """The charge_card.html-ready charges for ONE calendar day — backs the Month view's
-    day drawer, most-recent-first.
+def get_charges_calendar_day(year: int, month: int, day: int, station: str | None = None,
+                             to_day: "int | None" = None) -> list[dict]:
+    """The charge_card.html-ready charges for ONE calendar day, or for `day`..`to_day` of the month —
+    backs the Month view's day drawer, most-recent-first.
 
     Two passes on purpose: with_window=False picks out WHICH charges belong to this one day
     from the cheap fields alone, and only THOSE few go through _localized_charges again to add
@@ -9644,8 +9645,9 @@ def get_charges_calendar_day(year: int, month: int, day: int, station: str | Non
     cheap = _localized_charges(get_charges(limit=1_000_000), with_window=False)
     if station:
         cheap = _filter_by_station(cheap, station)
+    last = to_day or day
     ids = {c["id"] for c in cheap
-           if c["_dt"].year == year and c["_dt"].month == month and c["_dt"].day == day}
+           if c["_dt"].year == year and c["_dt"].month == month and day <= c["_dt"].day <= last}
     if not ids:
         return []
     raw = [c for c in get_charges(limit=1_000_000) if c["id"] in ids]

@@ -1290,6 +1290,10 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   bereits gespeicherten Sitzung wird **nur** der Kilometerstand geschrieben: Kosten, die Mate aus
   einer echten Ladekurve errechnet hat, werden nie überschrieben.
 
+- **Mehrere Tage auf einmal 🆕** — der Kalender öffnet einen Zeitraum genau wie der der Fahrten
+  (Umschalt-Klick, Ziehen der Maus über die Tage oder, auf dem Handy, Gedrückthalten eines Tages): eine
+  Überschrift mit den Sitzungen, kWh und Kosten des Zeitraums, darunter jeder Tag mit seiner eigenen. Die
+  Überschrift eines geöffneten Tages trägt dieselben Summen.
 - **Ein gesuchter Zeitraum summiert sich selbst 🆕** — über den Ergebnissen stehen **Sitzungen,
   gelieferte kWh (mit dem Batteriewert daneben) und Kosten** dieses Fensters. Strom, der vom 22. bis
   zum 21. abgerechnet wird — oder jeder andere Zeitraum, der kein Kalendermonat ist — muss nicht

@@ -1,10 +1,10 @@
-"""Picking a range of days on the Trips calendar, in a real browser: a gesture sends one request, for the
-range and nothing else, rings the days and fills the drawer; a reload brings the choice back, and so does
-the way back from one of its trips. Every request the drawer makes is counted, because htmx opening the
+"""Picking a range of days on the Trips calendar, and on the Charges one, in a real browser: a gesture sends one
+request, for the range and nothing else, rings the days and fills the drawer; a reload brings the choice back, and so
+does the way back from one of its trips. Every request the drawer makes is counted, because htmx opening the
 clicked day alone next to the range is exactly the failure to catch. Skips where it cannot run (no
 playwright, no Chromium), like the other browser tests.
 
-This month: trips on the 3rd and the 5th, none on the 4th; charges on the 3rd and the 5th.
+This month: trips on the 3rd and the 5th, none on the 4th; a charge on the 3rd and nine on the 5th.
 """
 from datetime import datetime, timezone
 
@@ -42,6 +42,7 @@ def mate(tmp_path_factory):
         (TRIP_SQL, (2, _at(5, 8), _at(5, 9))),
         (CHARGE_SQL, (1, _at(3, 20), _at(3, 22))),
         (CHARGE_SQL, (2, _at(5, 20), _at(5, 22))),
+        *((CHARGE_SQL, (cid, _at(5, cid + 7), _at(5, cid + 8))) for cid in range(3, 11)),
     ])
     with served(data, db) as url:
         yield url
@@ -261,12 +262,39 @@ def test_a_days_date_under_the_range_opens_that_day_alone(browser, mate):
     assert cal.drawer().split()[:3] == label
 
 
-def test_the_charges_calendar_opens_one_day_on_a_shift_click(browser, mate):
+def test_the_charges_calendar_opens_the_range_with_one_request(browser, mate):
     cal = Calendar(browser, mate, "charges")
     cal.swapped(lambda: cal.cell(3).click())
     cal.swapped(lambda: cal.cell(5).click(modifiers=["Shift"]))
-    assert len(cal.asked) == 2 and cal.asked[0].endswith("&day=3") and cal.asked[1].endswith("&day=5"), cal.asked
-    assert cal.ringed() == [5]
+    assert len(cal.asked) == 2 and cal.asked[1].endswith("&day=3&to_day=5"), cal.asked
+    assert cal.ringed() == [3, 5]
+    assert cal.drawer().startswith(_range_heading(3, 5))
+
+
+def test_a_link_to_a_charge_in_the_remembered_range_lands_on_it(browser, mate):
+    """The link opens the charge's day, and the page's own request brings the remembered range back around
+    it, newest first, so the charge of the 3rd ends up under the nine of the 5th: the page goes to it again."""
+    cal = Calendar(browser, mate, "charges")
+    cal.swapped(lambda: cal.cell(3).click())
+    cal.swapped(lambda: cal.cell(5).click(modifiers=["Shift"]))
+    cal.page.goto(f"{mate}/charges?highlight=1")
+    cal.settle(1)
+    cal.page.wait_for_load_state("networkidle")
+    cal.page.wait_for_function("""() => new Promise(r => { const c = document.getElementById('charge-card-1');
+      const y = c.getBoundingClientRect().top; setTimeout(() => r(c.getBoundingClientRect().top === y), 300); })""")
+    assert cal.ringed() == [3, 5]
+    top = cal.page.locator("#charge-card-1").bounding_box()["y"]
+    assert 0 <= top < 900 - 60, ("the linked charge is out of sight", top)
+
+
+def test_holding_a_day_on_the_charges_calendar_waits_for_the_tap_that_ends_the_range(browser, mate):
+    cal = Calendar(browser, mate, "charges", phone=True)
+    cal.touch(3, held=True)
+    assert cal.asked == [] and cal.anchored() == 1
+    cal.swapped(lambda: cal.cell(5).tap())
+    assert len(cal.asked) == 1 and cal.asked[0].endswith("&day=3&to_day=5"), cal.asked
+    assert cal.ringed() == [3, 5]
+    assert cal.drawer().startswith(_range_heading(3, 5))
 
 
 def test_holding_a_day_waits_for_the_tap_that_ends_the_range(browser, mate):

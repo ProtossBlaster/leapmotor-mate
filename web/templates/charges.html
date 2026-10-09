@@ -556,6 +556,12 @@ if (HIGHLIGHT) {
   mark();                                               // the grid the server drew
   document.body.addEventListener('htmx:afterSwap', onBlock);
   document.body.addEventListener('htmx:afterSettle', onBlock);   // after htmx finishes with it
+  // The block's own load may bring a remembered range of days back around the row and move it: go to it once more.
+  document.body.addEventListener('htmx:beforeSwap', function again(e) {
+    if (!e.target || e.target.id !== 'charges-calendar-month-wrap') return;
+    scrolled = false;
+    document.body.removeEventListener('htmx:beforeSwap', again);
+  });
 }
 
 // Auto-refresh the history when a charge completes. The live panel (#charging-live-panel) polls
