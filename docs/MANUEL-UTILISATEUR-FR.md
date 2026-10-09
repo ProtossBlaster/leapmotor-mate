@@ -1176,6 +1176,13 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
 étiquette :
 
 
+- **Une recharge est une ligne 🆕** — la liste se lit comme celle des Trajets. Une ligne montre les heures
+  et le type, la durée, la puissance maximale et les kilomètres depuis la recharge précédente, où elle a
+  eu lieu, la variation de la batterie et, à droite, les kWh et le coût. Un clic sur la ligne ouvre le
+  reste en dessous : l'énergie en détail, où l'on saisit un chiffre en kWh, le graphique, votre note et
+  les actions (fusionner, séparer, modifier, supprimer). Le type, 🆓, ✎ et 📍 se modifient sur la ligne
+  même. **Tout déplier**, à côté de la date du jour, ouvre toutes les lignes du jour ou de la période, et
+  **Tout replier** les ferme.
 - **Le bandeau « à confirmer » vous y emmène 🆕** (#240) — quand une recharge s'est terminée sans
   type, un bandeau apparaît en haut de la page. **Cliquez dessus** : il ouvre la recharge sur son
   jour du calendrier et la met en évidence, au lieu de vous laisser deviner quel jour c'était.
@@ -1243,9 +1250,10 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   saisis, sinon le chiffre de la batterie.
 - Même les recharges effectuées pendant que la voiture était éteinte/hors ligne sont **reconstruites** à
   partir du saut de pourcentage de charge.
-- **Votre note 🆕** (#107) — chaque recharge a une **note libre** (juste au-dessus de *Supprimer la
-  recharge*) pour ce que les chiffres ne capturent pas : l'emplacement de la borne, ombre/abri, sa
-  fiabilité, les conditions de stationnement, la météo, toute remarque personnelle.
+- **Votre note 🆕** (#107) — chaque recharge a une **note libre** (dans la ligne ouverte, sous le
+  graphique) pour ce que les chiffres ne capturent pas : l'emplacement de la borne, ombre/abri, sa
+  fiabilité, les conditions de stationnement, la météo, toute remarque personnelle. Elle s'y lit en une
+  ligne ; *📝 Ajouter une note*, ou ✏️ à côté d'une note, ouvre le champ.
 - **Où a eu lieu une recharge 🆕** — à côté de 📍, une recharge affiche la borne et son adresse, sinon votre
   **lieu de recharge** à cet endroit ou l'adresse, cherchée comme pour les trajets. Une adresse manquante,
   par exemple sur une recharge plus ancienne, est recherchée tout de suite par 🧭 à côté de 📍. La
@@ -1280,8 +1288,8 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   facturée du 22 au 21, ou toute autre période qui n'est pas un mois civil, ne se calcule plus à la
   main.
 
-- **Graphique Données de la recharge 🆕** — sous chaque recharge, *📈 Données de la recharge*
-  ouvre un graphique en bandes sur l'axe du temps de la session, comme celui d'un trajet :
+- **Graphique Données de la recharge 🆕** — dans la ligne ouverte, un graphique en bandes sur l'axe du
+  temps de la session, comme celui d'un trajet :
   **recharge** (la puissance DC de la voiture, à côté la puissance AC de la wallbox pour une recharge
   à domicile avec wallbox associée, et combien de minutes il restait selon la voiture), **batterie**
   (SoC) et **températures** (celle de la cellule la plus

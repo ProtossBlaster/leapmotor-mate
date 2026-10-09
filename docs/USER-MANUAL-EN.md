@@ -1089,6 +1089,12 @@ making the map disappear), and with it:
 label:
 
 
+- **A charge is a row 🆕** — the list reads like the Trips one. A row says the times and type, the
+  duration, peak power and the kilometres since the previous charge, where it happened, the battery change
+  and, on the right, the kWh and the cost. Click the row to open the rest under it: the energy in detail,
+  where a kWh figure is typed, the chart, your note and the actions (merge, split, edit, delete). The
+  type, 🆓, ✎ and 📍 are edited on the row itself. **Expand all** beside the day's date opens every row of
+  the day or of the range, and **Collapse all** closes them.
 - **The "to confirm" banner takes you there 🆕** (#240) — when a charge has ended without a type,
   a strip appears at the top of the page. **Click it**: it opens the charge on its own day of the
   calendar and marks it, instead of leaving you to work out which day it is on.
@@ -1151,9 +1157,10 @@ label:
   own kWh where you typed it, otherwise the battery figure.
 - Charges that happened while the car was off/offline are **reconstructed** too, from the jump in the
   state of charge.
-- **Your note 🆕** (#107) — each charge has a **free-text note** (just above *Delete charge*) for the
-  things the numbers don't capture: where the station was, shade/shelter, how reliable it is, parking
-  conditions, weather, any personal remark.
+- **Your note 🆕** (#107) — each charge has a **free-text note** (in the opened row, under the chart)
+  for the things the numbers don't capture: where the station was, shade/shelter, how reliable it is,
+  parking conditions, weather, any personal remark. It reads there on one line; *📝 Add a note*, or ✏️
+  beside a note, opens the field.
 - **Where a charge happened 🆕** — beside 📍 a charge shows the station and its address, or else your
   **charging place** there or the address, looked up as for trips. A missing address, on an older charge
   for instance, is looked up at once by 🧭 beside 📍. The search box finds a charge by them, and the
@@ -1185,8 +1192,8 @@ label:
   delivered (with the battery figure beside it) and cost**. Electricity billed from the 22nd to the
   21st, or any other period that is not a calendar month, no longer has to be added up by hand.
 
-- **Charging data chart 🆕** — under each charge, *📈 Charging data* opens one chart in bands on
-  the session's time axis, like a trip's: **charging** (the car's DC power, the wallbox's AC power
+- **Charging data chart 🆕** — in the opened row, one chart in bands on the session's time axis, like
+  a trip's: **charging** (the car's DC power, the wallbox's AC power
   beside it on a home charge with a mapped wallbox, and how many minutes the car said were left),
   **battery** (SoC) and **temperatures** (the coldest cell's and, when
   the outside temperature is switched on in Settings, the outside air at the car's spot). Each entry

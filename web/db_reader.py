@@ -2955,12 +2955,14 @@ def set_charge_location_url(charge_id: int, url: str) -> None:
     db.commit()
 
 
-def save_charge_note(charge_id: int, note: str) -> None:
-    """#107: persist the optional free-text user note on a charge (empty string clears it)."""
+def save_charge_note(charge_id: int, note: str) -> str:
+    """#107: persist the optional free-text user note on a charge (empty string clears it); returns
+    the note as stored."""
     note = (note or "").strip()[:1000]
     db = _conn_rw()
     db.execute("UPDATE charges SET note=? WHERE id=?", (note or None, charge_id))
     db.commit()
+    return note
 
 
 # #107: driving-mode tag values Mate accepts (manual — the cloud doesn't expose drive mode).

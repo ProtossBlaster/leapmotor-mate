@@ -1,0 +1,10 @@
+{# Opens or closes every charge row of the list it heads (the day's, the range's, the search's); charges.html's
+   script does the work and shows each button while it has a row to act on. Styled like the 🔗 button of a Trips day. #}
+<span data-charges-expand class="inline-flex items-center gap-1">
+  {% for action, arrow, key in (("open", "▾", "charges_expand_all"), ("close", "▴", "charges_collapse_all")) %}
+  <button type="button" data-charges-all="{{ action }}"{% if action == "close" %} hidden{% endif %}
+          class="rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-colors border-slate-600 bg-slate-800/60 text-slate-300 hover:border-yellow-500/50 hover:text-yellow-400">
+    <span>{{ arrow }}</span> <span>{{ t(key) }}</span>
+  </button>
+  {% endfor %}
+</span>

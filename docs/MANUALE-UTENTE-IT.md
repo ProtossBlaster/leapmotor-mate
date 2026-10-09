@@ -1137,6 +1137,12 @@ massima**, **tipo** e **costo**, con il **€/kWh effettivo** ben in vista. Il t
 un'etichetta:
 
 
+- **Una ricarica è una riga 🆕** — l'elenco si legge come quello dei Viaggi. Una riga mostra gli orari e il
+  tipo, la durata, la potenza massima e i chilometri dalla ricarica precedente, dove è avvenuta, la
+  variazione della batteria e, a destra, i kWh e il costo. Un clic sulla riga apre il resto sotto di essa:
+  l'energia nel dettaglio, dove si digita una cifra in kWh, il grafico, la tua nota e le azioni (unisci,
+  separa, modifica, elimina). Tipo, 🆓, ✎ e 📍 si modificano sulla riga stessa. **Espandi tutto**, accanto
+  alla data del giorno, apre ogni riga del giorno o dell'intervallo, e **Comprimi tutto** le chiude.
 - **La banda «da confermare» ti ci porta 🆕** (#240) — quando una ricarica è finita senza un tipo,
   in cima alla pagina compare una striscia. **Cliccala**: apre la ricarica sul suo giorno del
   calendario e la evidenzia, invece di lasciarti indovinare su quale giorno sia.
@@ -1201,9 +1207,10 @@ un'etichetta:
   la cifra della batteria.
 - Anche le ricariche avvenute mentre l'auto era spenta/offline vengono **ricostruite** dal salto di
   percentuale di carica.
-- **La tua nota 🆕** (#107) — ogni ricarica ha una **nota libera** (subito sopra *Elimina ricarica*) per
-  ciò che i numeri non catturano: dov'era la colonnina, ombra/riparo, quanto è affidabile, le condizioni
-  del parcheggio, il meteo, qualsiasi appunto personale.
+- **La tua nota 🆕** (#107) — ogni ricarica ha una **nota libera** (nella riga aperta, sotto il grafico)
+  per ciò che i numeri non catturano: dov'era la colonnina, ombra/riparo, quanto è affidabile, le
+  condizioni del parcheggio, il meteo, qualsiasi appunto personale. Lì si legge su una sola linea;
+  *📝 Aggiungi una nota*, o ✏️ accanto a una nota, apre il campo.
 - **Dove è avvenuta una ricarica 🆕** — accanto a 📍 una ricarica mostra la colonnina e il suo indirizzo,
   altrimenti il tuo **luogo di ricarica** lì o l'indirizzo, cercato come per i viaggi. Un indirizzo
   mancante, ad esempio in una ricarica più vecchia, lo cerca subito 🧭 accanto a 📍. La ricerca trova una
@@ -1237,8 +1244,8 @@ un'etichetta:
   (col dato in batteria accanto) e costo** di quella finestra. L'energia fatturata dal 22 al 21, o
   qualunque altro periodo che non sia un mese solare, non va più sommata a mano.
 
-- **Grafico Dati della ricarica 🆕** — sotto ogni ricarica, *📈 Dati della ricarica* apre un
-  grafico a fasce sull'asse del tempo della sessione, come quello di un viaggio: **ricarica** (la
+- **Grafico Dati della ricarica 🆕** — nella riga aperta, un grafico a fasce sull'asse del tempo della
+  sessione, come quello di un viaggio: **ricarica** (la
   potenza DC dell'auto, accanto la potenza AC della wallbox in una ricarica a casa con wallbox
   associata, e quanti minuti mancavano secondo l'auto), **batteria** (SoC) e
   **temperature** (quella della cella più fredda e, se la temperatura esterna è attiva

@@ -1157,6 +1157,12 @@ válida** en vez de hacer desaparecer el mapa), y con ella:
 **tipo** y **coste**, con los **€/kWh efectivos** bien a la vista. El tipo se clasifica con una
 etiqueta:
 
+- **Una carga es una fila 🆕** — la lista se lee como la de Trayectos. Una fila muestra las horas y el
+  tipo, la duración, la potencia máxima y los kilómetros desde la carga anterior, dónde fue, el cambio de
+  batería y, a la derecha, los kWh y el coste. Pulsa la fila para abrir el resto debajo: la energía en
+  detalle, donde se escribe una cifra de kWh, el gráfico, tu nota y las acciones (unir, separar, editar,
+  eliminar). El tipo, 🆓, ✎ y 📍 se editan en la propia fila. **Desplegar todo**, junto a la fecha del día,
+  abre todas las filas del día o del intervalo, y **Plegar todo** las cierra.
 - **La franja «por confirmar» te lleva hasta ella 🆕** (#240) — cuando una carga ha terminado sin
   tipo, aparece una franja arriba de la página. **Haz clic**: abre la carga en su propio día del
   calendario y la marca, en vez de dejarte a ti averiguar en qué día está.
@@ -1220,9 +1226,10 @@ etiqueta:
   de la batería.
 - Las cargas ocurridas con el coche apagado o sin conexión también se **reconstruyen**, a partir del
   salto del estado de carga.
-- **Tu nota 🆕** (#107) — cada carga tiene una **nota libre** (justo encima de *Eliminar la carga*)
+- **Tu nota 🆕** (#107) — cada carga tiene una **nota libre** (en la fila abierta, debajo del gráfico)
   para lo que los números no recogen: dónde estaba el punto, si había sombra o techo, si es fiable,
-  cómo está el aparcamiento, el tiempo que hacía, cualquier comentario personal.
+  cómo está el aparcamiento, el tiempo que hacía, cualquier comentario personal. Se lee allí en una
+  línea; *📝 Añadir una nota*, o ✏️ junto a una nota, abre el campo.
 - **Dónde fue una carga 🆕** — junto a 📍 una carga muestra el punto de recarga y su dirección, o si no tu
   **lugar de carga** allí o la dirección, buscada como en los trayectos. Una dirección que falta, por
   ejemplo en una carga antigua, la busca al momento 🧭 junto a 📍. El buscador encuentra una carga por
@@ -1257,8 +1264,8 @@ etiqueta:
   facturada del 22 al 21, o cualquier otro periodo que no sea un mes natural, ya no hay que sumarla
   a mano.
 
-- **Gráfico Datos de la carga 🆕** — bajo cada carga, *📈 Datos de la carga* abre un gráfico en
-  bandas sobre el eje de tiempo de la sesión, como el de un viaje: **carga** (la potencia DC del
+- **Gráfico Datos de la carga 🆕** — en la fila abierta, un gráfico en bandas sobre el eje de tiempo de
+  la sesión, como el de un viaje: **carga** (la potencia DC del
   coche, al lado la potencia AC del wallbox en una carga en casa con wallbox asignado, y cuántos
   minutos decía el coche que faltaban), **batería** (SoC) y
   **temperaturas** (la de la celda más fría y, si la temperatura exterior está activada en Ajustes,

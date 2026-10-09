@@ -1160,6 +1160,13 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
 **Typ** und **Kosten**, mit dem **tatsächlichen €/kWh** gut sichtbar. Der Typ ist mit einem Etikett klassifiziert:
 
 
+- **Ein Ladevorgang ist eine Zeile 🆕** — die Liste liest sich wie die der Fahrten. Eine Zeile zeigt
+  Uhrzeiten und Typ, Dauer, Spitzenleistung und die Kilometer seit dem vorigen Ladevorgang, wo er
+  stattfand, die Änderung des Ladestands und rechts die kWh und die Kosten. Ein Klick auf die Zeile öffnet
+  darunter den Rest: die Energie im Detail, wo ein kWh-Wert eingetippt wird, das Diagramm, Ihre Notiz und
+  die Aktionen (Zusammenführen, Trennen, Bearbeiten, Löschen). Typ, 🆓, ✎ und 📍 werden direkt auf der Zeile
+  bearbeitet. **Alle aufklappen** neben dem Datum des Tages öffnet jede Zeile des Tages oder des
+  Zeitraums, **Alle zuklappen** schließt sie.
 - **Das Banner „zu bestätigen" bringt Sie hin 🆕** (#240) — wenn ein Ladevorgang ohne Typ endet,
   erscheint oben auf der Seite ein Streifen. **Klicken Sie darauf**: er öffnet den Ladevorgang an
   seinem Tag im Kalender und hebt ihn hervor, statt Sie den Tag suchen zu lassen.
@@ -1226,9 +1233,10 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   sie eingetragen haben, sonst die Zahl der Batterie.
 - Auch Ladevorgänge, die stattgefunden haben, während das Auto ausgeschaltet/offline war, werden aus dem Sprung des
   Ladestands **rekonstruiert**.
-- **Ihre Notiz 🆕** (#107) — jeder Ladevorgang hat eine **freie Notiz** (direkt über *Ladevorgang löschen*) für das,
-  was die Zahlen nicht erfassen: wo die Ladesäule stand, Schatten/Unterstand, ihre Zuverlässigkeit, die
-  Parkbedingungen, das Wetter, jede persönliche Anmerkung.
+- **Ihre Notiz 🆕** (#107) — jeder Ladevorgang hat eine **freie Notiz** (in der geöffneten Zeile, unter
+  dem Diagramm) für das, was die Zahlen nicht erfassen: wo die Ladesäule stand, Schatten/Unterstand, ihre
+  Zuverlässigkeit, die Parkbedingungen, das Wetter, jede persönliche Anmerkung. Sie steht dort einzeilig;
+  *📝 Notiz hinzufügen* oder ✏️ neben einer Notiz öffnet das Feld.
 - **Wo ein Ladevorgang stattfand 🆕** — neben 📍 zeigt ein Ladevorgang die Ladestation und ihre Adresse, sonst
   Ihren **Ladeort** dort oder die Adresse, gesucht wie bei den Fahrten. Eine fehlende Adresse, etwa bei
   einem älteren Ladevorgang, sucht 🧭 neben 📍 sofort. Das Suchfeld findet einen Ladevorgang darüber, und
@@ -1264,8 +1272,8 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   zum 21. abgerechnet wird — oder jeder andere Zeitraum, der kein Kalendermonat ist — muss nicht
   mehr von Hand addiert werden.
 
-- **Diagramm Ladedaten 🆕** — unter jedem Ladevorgang öffnet *📈 Ladedaten* ein Diagramm in
-  Bändern auf der Zeitachse der Sitzung, wie bei einer Fahrt: **Laden** (die DC-Leistung des Autos,
+- **Diagramm Ladedaten 🆕** — in der geöffneten Zeile ein Diagramm in Bändern auf der Zeitachse der
+  Sitzung, wie bei einer Fahrt: **Laden** (die DC-Leistung des Autos,
   bei einer Heimladung mit zugeordneter Wallbox daneben deren AC-Leistung, und wie viele Minuten das
   Auto noch veranschlagte), **Batterie** (SoC) und
   **Temperaturen** (die der kältesten Zelle und, wenn die Außentemperatur in den Einstellungen

@@ -1231,10 +1231,13 @@ async def charges_unmerge(request: Request, parent: int, station: str = "", cale
 @app.post("/api/charges/{charge_id}/note", response_class=HTMLResponse)
 async def set_charge_note(request: Request, charge_id: int):
     """#107: save the charge's optional user note (station location, shade, reliability, weather…).
-    Returns a small 'saved' confirmation that HTMX drops next to the button."""
+    Returns a small 'saved' confirmation that HTMX drops next to the button, carrying the note as
+    stored, which the card writes into its note line."""
+    from html import escape
     form = await request.form()
-    db_reader.save_charge_note(charge_id, form.get("note") or "")
-    return HTMLResponse("✓ " + i18n.get_t(db_reader.get_language())("note_saved"))
+    saved = db_reader.save_charge_note(charge_id, form.get("note") or "")
+    return HTMLResponse(f'<span data-saved-note="{escape(saved)}">✓ '
+                        + i18n.get_t(db_reader.get_language())("note_saved") + "</span>")
 
 
 @app.get("/charges", response_class=HTMLResponse)
