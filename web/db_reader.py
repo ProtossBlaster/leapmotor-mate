@@ -2659,6 +2659,18 @@ def get_charge(charge_id: int) -> dict:
     return dict(row) if row else {}
 
 
+def get_charge_as_shown(charge_id: int) -> dict:
+    """One charge composed as the Charges page composes it: a merged group's parent with the figures of
+    all its pieces, any other row, a piece included, with its own (as its chart shows it)."""
+    db = _get()
+    row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
+    if not row:
+        return {}
+    children = [dict(r) for r in db.execute("SELECT * FROM charges WHERE merged_into_id=?", (charge_id,))] \
+        if _charges_have_merge(db) else []
+    return _charge_group_stats(dict(row), children)
+
+
 def set_charge_cost(charge_id: int, cost: Optional[float]) -> dict:
     """The pencil-cost field: the REAL total the owner paid, independent of the charge's type. This
     is what 'Manual' used to mean as a location_type — picking it lost the charge's real type

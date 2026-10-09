@@ -1289,8 +1289,10 @@ maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidenc
   facturée du 22 au 21, ou toute autre période qui n'est pas un mois civil, ne se calcule plus à la
   main.
 
-- **Graphique Données de la recharge 🆕** — dans la ligne ouverte, un graphique en bandes sur l'axe du
-  temps de la session, comme celui d'un trajet :
+- **Graphique Données de la recharge 🆕** — dans la ligne ouverte, d'abord une ligne avec ce que disent les
+  relevés : la température de la batterie du premier relevé au dernier, l'air extérieur du minimum au
+  maximum et la puissance moyenne ; puis un graphique en bandes sur l'axe du temps de la session, comme
+  celui d'un trajet :
   **recharge** (la puissance DC de la voiture, à côté la puissance AC de la wallbox pour une recharge
   à domicile avec wallbox associée, et combien de minutes il restait selon la voiture), **batterie**
   (SoC) et **températures** (celle de la cellule la plus

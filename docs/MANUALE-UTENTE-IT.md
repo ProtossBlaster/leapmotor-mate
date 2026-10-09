@@ -1245,8 +1245,10 @@ un'etichetta:
   (col dato in batteria accanto) e costo** di quella finestra. L'energia fatturata dal 22 al 21, o
   qualunque altro periodo che non sia un mese solare, non va più sommata a mano.
 
-- **Grafico Dati della ricarica 🆕** — nella riga aperta, un grafico a fasce sull'asse del tempo della
-  sessione, come quello di un viaggio: **ricarica** (la
+- **Grafico Dati della ricarica 🆕** — nella riga aperta, prima una riga con ciò che dicono le letture: la
+  temperatura della batteria dalla prima lettura all'ultima, l'aria esterna dalla minima alla massima e la
+  potenza media; poi un grafico a fasce sull'asse del tempo della sessione, come quello di un viaggio:
+  **ricarica** (la
   potenza DC dell'auto, accanto la potenza AC della wallbox in una ricarica a casa con wallbox
   associata, e quanti minuti mancavano secondo l'auto), **batteria** (SoC) e
   **temperature** (quella della cella più fredda e, se la temperatura esterna è attiva

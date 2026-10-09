@@ -1273,8 +1273,10 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
   zum 21. abgerechnet wird — oder jeder andere Zeitraum, der kein Kalendermonat ist — muss nicht
   mehr von Hand addiert werden.
 
-- **Diagramm Ladedaten 🆕** — in der geöffneten Zeile ein Diagramm in Bändern auf der Zeitachse der
-  Sitzung, wie bei einer Fahrt: **Laden** (die DC-Leistung des Autos,
+- **Diagramm Ladedaten 🆕** — in der geöffneten Zeile zuerst eine Zeile mit dem, was die Messwerte sagen:
+  die Temperatur der Batterie vom ersten bis zum letzten Messwert, die Außenluft vom tiefsten bis zum
+  höchsten Wert und die mittlere Leistung; dann ein Diagramm in Bändern auf der Zeitachse der Sitzung, wie
+  bei einer Fahrt: **Laden** (die DC-Leistung des Autos,
   bei einer Heimladung mit zugeordneter Wallbox daneben deren AC-Leistung, und wie viele Minuten das
   Auto noch veranschlagte), **Batterie** (SoC) und
   **Temperaturen** (die der kältesten Zelle und, wenn die Außentemperatur in den Einstellungen

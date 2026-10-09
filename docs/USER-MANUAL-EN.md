@@ -1193,8 +1193,10 @@ label:
   delivered (with the battery figure beside it) and cost**. Electricity billed from the 22nd to the
   21st, or any other period that is not a calendar month, no longer has to be added up by hand.
 
-- **Charging data chart 🆕** — in the opened row, one chart in bands on the session's time axis, like
-  a trip's: **charging** (the car's DC power, the wallbox's AC power
+- **Charging data chart 🆕** — in the opened row, a line first with what the readings say: the battery's
+  temperature from the first reading to the last, the outside air from its lowest to its highest and the
+  average power; then one chart in bands on the session's time axis, like a trip's: **charging** (the
+  car's DC power, the wallbox's AC power
   beside it on a home charge with a mapped wallbox, and how many minutes the car said were left),
   **battery** (SoC) and **temperatures** (the coldest cell's and, when
   the outside temperature is switched on in Settings, the outside air at the car's spot). Each entry

@@ -3989,7 +3989,21 @@ async def charge_power_chart(request: Request, charge_id: int):
     its delivered AC power is drawn beside the car's DC power."""
     curve = db_reader.get_charge_power_curve(charge_id)
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=charge_id, wb_power=_wallbox_overlay(curve, db_reader.is_home_charge(charge_id)), **curve))
+        cid=charge_id, wb_power=_wallbox_overlay(curve, db_reader.is_home_charge(charge_id)),
+        facts=_charge_facts(charge_id, curve), **curve))
+
+
+def _charge_facts(charge_id: int, curve: dict) -> dict:
+    """The line above a charge's chart, from the chart's own readings: the battery's temperature at the
+    first and the last reading, the outside temperature's lowest and highest, and the average power over
+    the charge (the energy that reached the battery over the duration, a merged charge's over all its pieces)."""
+    battery = [v for v in curve.get("battery_temp") or [] if v is not None]
+    outside = [v for v in curve.get("outside_temp") or [] if v is not None]
+    charge = db_reader.get_charge_as_shown(charge_id)
+    kwh, mins = charge.get("energy_added_kwh") or 0, charge.get("duration_min") or 0
+    return {"battery_temp": (battery[0], battery[-1]) if battery else None,
+            "outside_temp": (min(outside), max(outside)) if outside else None,
+            "avg_kw": kwh / (mins / 60) if kwh > 0 and mins > 0 else None}
 
 
 @app.post("/api/settings/prices", response_class=HTMLResponse)

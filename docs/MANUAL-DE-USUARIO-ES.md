@@ -1265,8 +1265,10 @@ etiqueta:
   facturada del 22 al 21, o cualquier otro periodo que no sea un mes natural, ya no hay que sumarla
   a mano.
 
-- **Gráfico Datos de la carga 🆕** — en la fila abierta, un gráfico en bandas sobre el eje de tiempo de
-  la sesión, como el de un viaje: **carga** (la potencia DC del
+- **Gráfico Datos de la carga 🆕** — en la fila abierta, primero una línea con lo que dicen las lecturas:
+  la temperatura de la batería de la primera lectura a la última, el aire exterior de la mínima a la
+  máxima y la potencia media; después un gráfico en bandas sobre el eje de tiempo de la sesión, como el de
+  un viaje: **carga** (la potencia DC del
   coche, al lado la potencia AC del wallbox en una carga en casa con wallbox asignado, y cuántos
   minutos decía el coche que faltaban), **batería** (SoC) y
   **temperaturas** (la de la celda más fría y, si la temperatura exterior está activada en Ajustes,
