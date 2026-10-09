@@ -1,8 +1,22 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.12.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.13.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.12.1
+## Neu in Version 4.13.0
+
+**Fahrten zeigen, wo sie begonnen und geendet haben.** Die Zeile einer Fahrt lautet „A → B“, die
+*Fahrtübersicht* auf ihrer Seite nennt beide Enden, ebenso die Zeilen für Beginn und Ende der Fahrt
+unter Ereignisse. Ein Ende innerhalb eines Ihrer Ladeorte zeigt dessen Namen mit „(Ladeort)“; sonst ist
+es die Adresse. Mate schlägt die Adressen kurz nach dem Ende einer Fahrt nach, mit dem Dienst aus
+*Einstellungen → Adresssuche*; der neue Schalter **Start und Ziel von Fahrten nachschlagen** dort
+schaltet das ab, und nach dem Update steht er so, wie **Notiz von selbst schreiben** stand. Fahrten, die
+älter als drei Tage sind, werden nicht von selbst nachgeschlagen: 🧭 neben einer fehlenden Adresse in
+der *Fahrtübersicht* schlägt diese Fahrt sofort nach. Die Suche findet eine Fahrt über jedes ihrer
+beiden Enden, und die Fahrten-CSV erhält `start_place` und `end_place`. Mate schreibt die Notiz einer
+Fahrt nicht mehr von selbst — **Notiz von selbst schreiben** gilt jetzt nur noch für Ladevorgänge — und
+die zuvor geschriebenen Notizen bleiben, wie sie sind. Von @arekm (#404).
+
+### Neu in Version 4.12.1
 
 **Beim Neuladen bleiben Sie im Monat, den Sie gerade ansehen.** In den Kalendern Fahrten,
 Ladevorgänge, Wallbox und Tankvorgänge steht der angezeigte Monat in der Adresse der Seite (zum Beispiel

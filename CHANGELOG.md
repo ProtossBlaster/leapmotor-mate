@@ -3,6 +3,23 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.13.0] — 2026-10-09
+
+- **Trips show where they started and ended**
+  ([#404](https://github.com/ProtossBlaster/leapmotor-mate/pull/404), @arekm). A trip's row reads "A → B", the Trip summary names both ends, and so do the trip's
+  start and end rows in Events. An end inside a charging place shows the place's name, marked
+  "(charging place)"; elsewhere it is the address, kept in a new `addresses` table, one row per
+  geohash-8 cell shared by every trip and car. The ends of trips that ended in the last three days are
+  looked up in the background, with the provider set in Settings ▸ Address lookup: at most 4 requests a
+  minute, 1.1 s apart, a failure asked again from 15 minutes up to 6 hours, an address found asked again
+  after 90 days. A new switch there, "Look up where trips start and end", turns it off; after the
+  update it starts as "Write the note by itself" was. 🧭 beside a missing address in the Trip summary
+  looks that trip's ends up at once, on any trip, whatever the switch says. The Trips and Events
+  searches find a trip by either end's name or full address; the trips CSV gains `start_place` and
+  `end_place`; a view showing an OpenStreetMap address credits it once. Mate no longer writes a trip's
+  note by itself: the automatic trip note and its 🧭 are gone, "Write the note by itself" covers charges
+  only, and the notes written before stay as they are. The demo seeds its addresses.
+
 ## [4.12.1] — 2026-10-08
 
 - **A reload stays on the month being looked at**

@@ -1,8 +1,22 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.12.1 · **Idioma:** Español
+> **Versión de Mate:** v4.13.0 · **Idioma:** Español
 
-## Novedades de la versión 4.12.1
+## Novedades de la versión 4.13.0
+
+**Los trayectos muestran de dónde salieron y adónde llegaron.** La fila de un trayecto dice «A → B», el
+*Resumen del viaje* en su página nombra los dos extremos, y lo mismo las filas de inicio y fin del
+trayecto en Eventos. Un extremo dentro de uno de tus lugares de carga muestra su nombre con «(lugar de
+carga)»; en otro sitio es la dirección. Mate busca las direcciones poco después de que termine un
+trayecto, con el servicio elegido en *Ajustes → Búsqueda de direcciones*; allí el nuevo interruptor
+**Buscar el origen y el destino de los trayectos** lo desactiva, y tras la actualización empieza como
+estaba **Escribir la nota sola**. Los trayectos de más de tres días no se buscan solos: la 🧭 junto a una
+dirección que falta en el *Resumen del viaje* busca ese trayecto al momento. La búsqueda encuentra un
+trayecto por cualquiera de sus dos extremos, y el CSV de trayectos gana `start_place` y `end_place`.
+Mate ya no escribe sola la nota de un trayecto —**Escribir la nota sola** ahora vale solo para las
+cargas— y las notas escritas antes se quedan como están. De @arekm (#404).
+
+### Novedades de la versión 4.12.1
 
 **Al recargar la página te quedas en el mes que estás mirando.** En los calendarios de Trayectos,
 Cargas, Wallbox y Repostajes, el mes en pantalla va en la dirección de la página (por ejemplo

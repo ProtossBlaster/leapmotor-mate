@@ -1,8 +1,22 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.12.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.13.0 · **Lingua:** Italiano
 
-## Novità della 4.12.1
+## Novità della 4.13.0
+
+**I viaggi mostrano da dove sono partiti e dove sono arrivati.** La riga di un viaggio dice «A → B», il
+*Riepilogo del viaggio* nella sua pagina nomina i due estremi, e così le righe di inizio e di fine del
+viaggio in Eventi. Un estremo dentro uno dei tuoi luoghi di ricarica mostra il suo nome con «(luogo di
+ricarica)»; altrove è l'indirizzo. Mate cerca gli indirizzi poco dopo la fine del viaggio, con il
+servizio scelto in *Impostazioni → Ricerca indirizzi*; lì il nuovo interruttore **Cerca partenza e
+arrivo dei viaggi** la spegne, e dopo l'aggiornamento parte com'era **Scrivi la nota da sola**. I viaggi
+più vecchi di tre giorni non vengono cercati da soli: il 🧭 accanto a un indirizzo mancante nel
+*Riepilogo del viaggio* cerca subito quel viaggio. La ricerca trova un viaggio da uno qualsiasi dei due
+estremi, e il CSV dei viaggi ha in più `start_place` e `end_place`. Mate non scrive più da solo la nota
+dei viaggi — **Scrivi la nota da sola** ora vale solo per le ricariche — e le note scritte prima restano
+come sono. Di @arekm (#404).
+
+### Novità della 4.12.1
 
 **Ricaricando la pagina resti sul mese che stai guardando.** Nei calendari di Viaggi, Ricariche,
 Wallbox e Rifornimenti il mese sullo schermo va nell'indirizzo della pagina (per esempio

@@ -1,8 +1,23 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.12.1 · **Langue :** Français
+> **Version de Mate :** v4.13.0 · **Langue :** Français
 
-## Nouveautés de la version 4.12.1
+## Nouveautés de la version 4.13.0
+
+**Les trajets montrent d'où ils sont partis et où ils sont arrivés.** La ligne d'un trajet indique
+« A → B », le *Résumé du trajet* sur sa page nomme les deux extrémités, de même que les lignes de début
+et de fin du trajet dans Événements. Une extrémité située dans l'un de vos lieux de recharge affiche son
+nom suivi de « (lieu de recharge) » ; ailleurs, c'est l'adresse. Mate recherche les adresses peu après
+la fin d'un trajet, avec le service choisi dans *Paramètres → Recherche d'adresses* ; le nouvel
+interrupteur **Rechercher le départ et l'arrivée des trajets** la désactive, et après la mise à jour il
+démarre comme l'était **Rédiger la note automatiquement**. Les trajets de plus de trois jours ne sont
+pas recherchés d'eux-mêmes : la 🧭 à côté d'une adresse manquante dans le *Résumé du trajet* recherche
+ce trajet tout de suite. La recherche trouve un trajet par l'une ou l'autre extrémité, et le CSV des
+trajets gagne `start_place` et `end_place`. Mate n'écrit plus la note d'un trajet tout seul —
+**Rédiger la note automatiquement** ne concerne plus que les recharges — et les notes écrites avant
+restent telles quelles. Par @arekm (#404).
+
+### Nouveautés de la version 4.12.1
 
 **Recharger la page garde le mois que vous regardez.** Dans les calendriers Trajets, Recharges,
 Wallbox et Pleins, le mois à l'écran va dans l'adresse de la page (par exemple `?month=2026-09`) : un

@@ -1,8 +1,21 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.12.1 · **Language:** English
+> **Mate version:** v4.13.0 · **Language:** English
 
-## New in 4.12.1
+## New in 4.13.0
+
+**Trips show where they started and ended.** A trip's row reads "A → B", the *Trip summary* on its
+page names both ends, and so do the trip's start and end rows in Events. An end inside one of your
+charging places shows its name with "(charging place)"; elsewhere it is the address. Mate looks the
+addresses up shortly after a trip ends, with the provider set in *Settings → Address lookup*; the new
+switch **Look up where trips start and end** there turns that off, and after the update it starts as
+**Write the note by itself** was. Trips older than three days are not looked up by themselves: 🧭 beside
+a missing address in the *Trip summary* looks that trip up at once. The search finds a trip by either
+end, and the trips CSV gains `start_place` and `end_place`. Mate no longer writes a trip's note by
+itself — **Write the note by itself** now covers charges only — and the notes it wrote before stay as
+they are. By @arekm (#404).
+
+### New in 4.12.1
 
 **A reload stays on the month you are looking at.** In the Trips, Charges, Wallbox and Refuels
 calendars the month on screen goes into the page's address (for example `?month=2026-09`), so a
