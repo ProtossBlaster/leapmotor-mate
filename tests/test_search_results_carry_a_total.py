@@ -17,7 +17,7 @@ def test_charges_search_total_sums_the_matches():
         {"id": 1, "energy_added_kwh": 10.0, "wallbox_kwh": 12.0, "cost": 3.0},
         {"id": 2, "energy_added_kwh": 20.0, "wallbox_kwh": 22.0, "cost": 5.0},
     ]
-    t = db_reader.search_results_total_charges(charges)
+    t = db_reader.charges_totals(charges)
     assert t["count"] == 2
     assert t["battery_kwh"] == 30.0                      # what reached the battery
     assert t["kwh"] == sum(db_reader._billed_kwh(c) for c in charges)   # the delivered side
@@ -27,7 +27,7 @@ def test_charges_search_total_sums_the_matches():
 def test_charges_total_without_any_cost_says_so():
     """A period where nothing carries a price must not print a confident 0.00 — same rule the
     month strip follows (`has_cost`)."""
-    t = db_reader.search_results_total_charges([{"id": 1, "energy_added_kwh": 5.0, "cost": None}])
+    t = db_reader.charges_totals([{"id": 1, "energy_added_kwh": 5.0, "cost": None}])
     assert t["count"] == 1 and t["has_cost"] is False
 
 
@@ -46,7 +46,7 @@ def test_trips_search_total_sums_km_and_cost():
 
 
 def test_empty_search_totals_are_empty_not_zeroed():
-    assert db_reader.search_results_total_charges([])["count"] == 0
+    assert db_reader.charges_totals([])["count"] == 0
     assert db_reader.search_results_total_trips([])["count"] == 0
 
 
