@@ -43,7 +43,8 @@
     {% for wd in weekday_abbrs %}<div>{{ wd }}</div>{% endfor %}
   </div>
 
-  <div class="grid grid-cols-7 gap-1 sm:gap-1.5 lg:gap-2">
+  {# data-range: base.html's calendar script lets this grid open several days at once #}
+  <div class="grid grid-cols-7 gap-1 sm:gap-1.5 lg:gap-2" data-range>
     {% for week in weeks %}
       {% for cell in week %}
         {% if cell is none %}
@@ -52,9 +53,9 @@
         {% set is_today = (year == today.year and month == today.month and cell.day == today.day) %}
         {# the day the drawer below is showing, when the server already knows it: a ?highlight= link,
            or a reload that carried the choice back (see the calendar script in base.html) #}
-        {% set is_open = (open_day is defined and open_day and cell.day == open_day) %}
+        {% set is_open = (open_day is defined and open_day and open_day <= cell.day <= open_to) %}
         {% if cell.count %}
-        <button type="button"{% if is_open %} data-selected{% endif %}
+        <button type="button"{% if is_open %} data-selected{% endif %} data-day="{{ cell.day }}"
                 hx-get="api/charges/calendar/day?year={{ year }}&month={{ month }}&day={{ cell.day }}{% if station %}&station={{ station }}{% endif %}"
                 hx-target="#charges-day-drawer" hx-swap="innerHTML" hx-sync="#charges-day-drawer:replace"
                 class="cal-day aspect-square rounded-lg border flex flex-col items-center justify-center gap-0.5 lg:gap-1 cursor-pointer hover:border-brand transition-colors"
@@ -75,12 +76,16 @@
   </div>
 
   <div id="charges-day-drawer" class="mt-4">
-    {% if open_day_charges is defined %}
-      {% with charges = open_day_charges, day_label = open_day_label %}
+    {% if open_drawer is defined %}
+      {# Every name _charges_drawer_ctx gives the drawer's own endpoint; one left out vanishes down this path only. #}
+      {% with charges = open_drawer.charges, day_label = open_drawer.day_label, day_totals = open_drawer.day_totals,
+              day = open_drawer.day, range_label = open_drawer.range_label, range_days = open_drawer.range_days,
+              drawer_q = open_drawer.drawer_q %}
         {% include "partials/charges_calendar_day_content.html" %}
       {% endwith %}
     {% else %}
-    <div class="text-center text-slate-500 text-sm py-6">{{ t('charges_calendar_pick_day') }}</div>
+    <div class="text-center text-slate-500 text-sm py-6">{{ t('charges_calendar_pick_day') }}
+      <div class="text-xs mt-1">{{ t('trips_calendar_pick_range') }}</div></div>
     {% endif %}
   </div>
 </div>

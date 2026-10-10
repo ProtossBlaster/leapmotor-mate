@@ -173,13 +173,12 @@ def test_it_is_not_offered_on_a_wallbox_charge_or_an_untyped_one():
     assert '{% with charge=c %}{% include "partials/charge_gross_kwh.html" %}{% endwith %}' in CARD
 
 
-def test_it_sits_under_the_three_tiles_and_not_inside_one():
-    """Those tiles stay three columns on a phone. A panel inside the ~110 px ENERGY column unrolls
-    into a thirty-line ribbon — measured at 375 px, not guessed."""
-    grid = CARD.split('<div class="grid grid-cols-3 gap-2 mt-3">', 1)[1]
-    tiles, after = grid.split("\n  </div>", 1)
-    assert "charge_gross_kwh.html" not in tiles
-    assert "charge_gross_kwh.html" in after
+def test_it_sits_in_the_opened_row_under_the_energy_and_not_in_the_row_itself():
+    """A panel that opens and holds a field has no place on the one-line row; it is read where the
+    energy is spelled out, under the figure it corrects."""
+    row, body = CARD.split("</summary>", 1)
+    assert "charge_gross_kwh.html" not in row
+    assert body.index('<div class="charge-body">') < body.index("charge_gross_kwh.html") < body.index('<div id="pchart-')
 
 
 # ── what it does to the stored charge ────────────────────────────────────────

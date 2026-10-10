@@ -5,6 +5,14 @@
    static/band-chart.js; the Wallbox page's AC-vs-DC comparison is this same chart. #}
 {% if power and power|length > 1 %}
 {% set has_wb = (wb_power or [])|reject('none')|list %}
+{# What the readings say in a line, before the chart says it in curves (main.py _charge_facts). #}
+{% if facts and (facts.battery_temp or facts.outside_temp or facts.avg_kw) %}
+<div class="charge-facts text-xs text-slate-400 mb-2 flex flex-wrap gap-x-3" data-charge-facts>
+  {% if facts.battery_temp %}{% set b0, b1 = facts.battery_temp[0]|temp(0), facts.battery_temp[1]|temp(0) %}<span>🔋 {{ t('battery_temp') }} {{ b0 if b0 == b1 else b0.rsplit(' ', 1)[0] ~ ' → ' ~ b1 }}</span>{% endif %}
+  {% if facts.outside_temp %}<span>🌡 {{ t('outside_temp_label') }} {{ facts.outside_temp[0]|temp_range(facts.outside_temp[1], 1) }}</span>{% endif %}
+  {% if facts.avg_kw %}<span>⚡ {{ facts.avg_kw|dec(1) }} kW {{ t('charge_avg_power') }}</span>{% endif %}
+</div>
+{% endif %}
 {# Each entry switches its line on and off; an empty square is a line switched off. The bars
    separate the bands, top to bottom. A line the session has no readings for stays hidden. #}
 <div class="flex justify-end mb-1">

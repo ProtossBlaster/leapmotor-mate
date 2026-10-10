@@ -105,6 +105,75 @@ def test_a_calendar_unmerge_redraws_the_month_instead_of_reloading(tmp_path, mon
     assert _ids() == [2, 1]
 
 
+def _october(tmp_path, monkeypatch):
+    """Two plug-ins across midnight: 30 September 23:50 into 1 October, and 2 October 23:00 into the 3rd."""
+    p = _setup(tmp_path, monkeypatch)
+    con = sqlite3.connect(p)
+    con.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('timezone', 'UTC')")
+    con.commit(); con.close()
+    _charge(p, 1, "2026-09-30T23:50:00+00:00", "2026-09-30T23:58:00+00:00", 40.0, 45.0, 2.0)
+    _charge(p, 2, "2026-10-01T00:05:00+00:00", "2026-10-01T01:00:00+00:00", 45.0, 70.0, 8.0)
+    _charge(p, 3, "2026-10-02T23:00:00+00:00", "2026-10-02T23:58:00+00:00", 30.0, 60.0, 9.0)
+    _charge(p, 4, "2026-10-03T00:05:00+00:00", "2026-10-03T01:00:00+00:00", 60.0, 80.0, 7.0)
+    # A station key the fixture's charges have no coordinates for: recorded, and narrowing nothing.
+    seen = []
+    monkeypatch.setattr(db_reader, "_filter_by_station", lambda charges, station: (seen.append(station), charges)[1])
+    monkeypatch.setattr(db_reader, "get_language", lambda: "en")
+    from starlette.testclient import TestClient
+    db_reader.set_setting("setup_complete", "1")
+    return TestClient(main.app), seen
+
+
+def _drawer_days(html):
+    import re
+    return re.findall(r'data-cal-day="(\d+)"', html), re.findall(r'data-selected data-day="(\d+)"', html)
+
+
+def test_a_merge_inside_a_range_redraws_the_range(tmp_path, monkeypatch):
+    """1–3 October open, the 3rd's charge merged into the 2nd's: the range stays, every day of it with its
+    totals after the merge, and the station filter in the cards' own buttons."""
+    client, seen = _october(tmp_path, monkeypatch)
+    span = {"calendar": 1, "station": "45.0,9.0", "year": 2026, "month": 10, "day": 1, "to_day": 3}
+
+    r = client.post("/api/charges/merge", params={"a": 4, "b": 3, **span})
+
+    assert r.status_code == 200 and r.headers.get("HX-Retarget") == "#charges-calendar-month"
+    assert _ids() == [3, 2, 1]
+    assert _drawer_days(r.text) == (["2", "1"], ["1", "2"])     # the 3rd now charges nothing
+    assert "01 – 03 Oct 2026" in r.text and "2 sessions" in r.text and "24 kWh delivered" in r.text
+    assert "45.0,9.0" in seen and "&station=45.0,9.0" in r.text
+
+
+def test_a_split_inside_a_range_redraws_the_range(tmp_path, monkeypatch):
+    client, _ = _october(tmp_path, monkeypatch)
+    db_reader.merge_charges(3, 4)
+    span = {"calendar": 1, "year": 2026, "month": 10, "day": 1, "to_day": 3}
+
+    r = client.post("/api/charges/unmerge", params={"parent": 3, **span})
+
+    assert r.status_code == 200 and r.headers.get("HX-Retarget") == "#charges-calendar-month"
+    assert _ids() == [4, 3, 2, 1]
+    assert _drawer_days(r.text) == (["3", "2", "1"], ["1", "2", "3"])
+    assert "3 sessions" in r.text and "24 kWh delivered" in r.text
+
+
+@pytest.mark.parametrize("drawer, merge, month, day", [
+    ({}, (2, 1), "September", "30"),                                          # nothing said which days were open
+    ({"year": 2026, "month": 10, "day": 3}, (4, 3), "October", "2"),          # the 3rd alone, merged into the 2nd
+    ({"year": 2026, "month": 10, "day": 1, "to_day": 3}, (2, 1), "September", "30")])   # into the month before
+def test_a_merge_that_leaves_the_drawers_days_opens_the_merged_charges_day(tmp_path, monkeypatch,
+                                                                           drawer, merge, month, day):
+    """The merged charge begins where its first piece began: when that is not among the days the drawer
+    had open, the redraw opens its day, in its own month, with it on show."""
+    client, _ = _october(tmp_path, monkeypatch)
+
+    r = client.post("/api/charges/merge", params={"a": merge[0], "b": merge[1], "calendar": 1, **drawer})
+
+    assert f"{month} 2026" in r.text
+    assert _drawer_days(r.text) == ([], [day])
+    assert f'id="charge-card-{merge[1]}"' in r.text
+
+
 def test_a_merge_outside_the_calendar_still_falls_back_to_a_reload(tmp_path, monkeypatch):
     """Search results don't carry a #charges-calendar-month to redraw (charge_card.html sets
     calendar_context=false there), so charge_card.html never sends `calendar=1` for them — the

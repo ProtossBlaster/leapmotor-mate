@@ -87,6 +87,13 @@ def _charge(**over):
     return c
 
 
+def _drawer(day=8, label="08 Aug 2026"):
+    """What _charges_drawer_ctx hands the drawer: the day's cards and the heading's totals."""
+    charges = [_charge()]
+    return {"charges": charges, "day": day, "day_label": label, "day_totals": db_reader.charges_totals(charges),
+            "drawer_q": f"&year=2026&month=8&day={day}"}
+
+
 def _month_ctx(**over):
     """What _charges_calendar_ctx hands the month template."""
     weeks = [[None] * 5 + [{"day": 1, "count": 0, "kwh": 0.0, "cost": 0.0, "has_cost": False},
@@ -112,7 +119,7 @@ def test_the_grid_renders_the_day_drawer_inline():
     """🔴 RED before the fix: `UndefinedError: 'currency' is undefined` — the 500 that emptied the
     page. `_month_ctx` mirrors `_charges_calendar_ctx`, so if that route ever stops passing
     something the inline drawer needs, it surfaces here instead of on someone's Charges page."""
-    ctx = _month_ctx(open_day=8, open_day_charges=[_charge()], open_day_label="08 Aug 2026")
+    ctx = _month_ctx(open_day=8, open_to=8, open_drawer=_drawer())
     out = _env(jinja2.Undefined).get_template("partials/charges_calendar_month.html").render(ctx)
     assert 'name="cost"' in out, "the day's charge card was not drawn"
     assert "11.32" in out
@@ -121,7 +128,7 @@ def test_the_grid_renders_the_day_drawer_inline():
 def test_and_the_money_actually_reaches_the_card():
     """The render succeeding is not the point — the symbol has to come out. Asserting only that
     it did not raise would pass on a currency that resolved to nothing."""
-    ctx = _month_ctx(open_day=8, open_day_charges=[_charge()], open_day_label="08 Aug 2026",
+    ctx = _month_ctx(open_day=8, open_to=8, open_drawer=_drawer(),
                      currency=db_reader.CURRENCIES["PLN"])
     out = _env(jinja2.Undefined).get_template("partials/charges_calendar_month.html").render(ctx)
     import re
@@ -132,7 +139,7 @@ def test_and_the_money_actually_reaches_the_card():
 def test_a_calendar_context_without_a_currency_is_the_500_we_had():
     """The mirror: this is what the route used to hand over, and it must still blow up. A fix that
     made the template shrug instead would hide the next one."""
-    ctx = _month_ctx(open_day=8, open_day_charges=[_charge()], open_day_label="08 Aug 2026")
+    ctx = _month_ctx(open_day=8, open_to=8, open_drawer=_drawer())
     ctx.pop("currency")
     with pytest.raises(jinja2.exceptions.UndefinedError):
         _env(jinja2.Undefined).get_template("partials/charges_calendar_month.html").render(ctx)

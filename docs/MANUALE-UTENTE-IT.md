@@ -971,9 +971,10 @@ dall'auto (cambio in P + un dispositivo collegato), non da Mate. È accurato da 
 Più in basso trovi mini-statistiche e un **indicatore di "reattività auto"** (un pallino
 🟢/🟡/🔴, ⚪ se non ci sono dati): riassume quanto l'auto ha risposto agli ultimi comandi inviati.
 
-**L'ultima ricarica dice tutte e due le cose 🆕** — il riquadro **Ultima ricarica** mostra in primo
-piano la stessa cifra della card: a casa, con un contatore wallbox, i kWh **🔌 wallbox (da pagare)**,
-e sotto quel che è arrivato nel pacco — *🔋 12,0 kWh in batteria (DC) · rendimento 81%*; altrove la
+**L'ultima ricarica dice tutte e due le cose 🆕** — il riquadro **Ultima ricarica** mostra in primo piano
+la stessa cifra della riga di quella ricarica in Ricariche: a casa, con un contatore wallbox, i kWh
+**🔌 wallbox (da pagare)**, e sotto quel che è arrivato nel pacco —
+*🔋 12,0 kWh in batteria (DC) · rendimento 81%*; altrove la
 cifra della batteria, con i kWh della colonnina su una riga a parte dove li hai scritti. Il costo
 sotto è il costo del numero sopra. Prima mostrava la sola cifra della batteria, accanto a un costo
 calcolato sull'altra.
@@ -1166,8 +1167,15 @@ valida** invece di far sparire la mappa), e insieme:
 
 ### Ricariche
 **(menu: Ricariche)** — L'elenco delle ricariche. Per ognuna: **energia aggiunta (kWh)**, **potenza
-massima**, **tipo** e **costo**, con il **€/kWh effettivo** ben in vista. Il tipo è classificato con
-un'etichetta:
+massima**, **tipo** e **costo**, con il **€/kWh effettivo** ben in vista.
+
+- **Una ricarica è una riga 🆕** — l'elenco si legge come quello dei Viaggi, con una miniatura della curva
+  su ogni riga: la potenza (kW) sopra lo stato di carica (%). Un clic su una riga apre il resto sotto di
+  essa: l'energia nel dettaglio, il grafico, la tua nota e le azioni. Tipo, 🆓, ✎ e 📍 si modificano
+  direttamente nella riga. **Espandi tutto**, nell'intestazione di un giorno, di un intervallo o di una
+  ricerca, apre tutte le righe, e **Comprimi tutto** le chiude.
+
+Il tipo è classificato con un'etichetta:
 
 
 - **La banda «da confermare» ti ci porta 🆕** (#240) — quando una ricarica è finita senza un tipo,
@@ -1191,7 +1199,7 @@ un'etichetta:
   tipo, scrivilo nella riga **✎ Manuale** in fondo e premi **OK** (la **✎** accanto al tipo è lo
   stesso campo). Scavalca la stima automatica e **non tocca il tipo della ricarica**: una ricarica
   senza tipo diventa **✎ Manuale** e non è più da confermare, una con il suo tipo lo tiene. Il
-  costo sulla scheda porta la scritta **fatturato** al posto di **stima**, e *Ripristina*, nella ✎,
+  costo sulla riga porta la scritta **fatturato** al posto di **stima**, e *Ripristina*, nella ✎,
   rimette il valore calcolato. Le ricariche che avevi scritto così prima della v3.16.0 si leggono di
   nuovo **✎ Manuale**, con il loro prezzo: non c'è niente da fare.
 - **Casa vs Pubblica 🆕** — accanto alla card *Distribuzione AC vs DC* ce n'è una seconda:
@@ -1208,7 +1216,7 @@ un'etichetta:
   silenzio. La pausa di una wallbox non è toccata — lì l'auto è sveglia e le notizie arrivano.
 - **I kWh della colonnina 🆕** (#222) — su una colonnina pubblica Mate **non ha un contatore**: legge
   solo quanto è entrato in batteria, mentre la colonnina ti fattura quanto è uscito dal suo. Puoi
-  scrivere tu quel numero: sulla scheda della ricarica, sotto le tre mattonelle, c'è una **✎**; il
+  scrivere tu quel numero: nella riga aperta della ricarica, sotto l'energia, c'è una **✎**; il
   riquadro **si apre solo se lo apri tu** e la casella **è sempre vuota** — così un clic di troppo
   non cambia niente, e premere OK a vuoto lascia tutto com'era. *Rimuovi* toglie un valore
   sbagliato. Da lì in poi quel numero **prezza la ricarica**, esattamente come fa il contatore della
@@ -1216,7 +1224,7 @@ un'etichetta:
   di bordo). L'energia che Mate riporta resta quella **misurata in batteria**. Su una **ricarica
   unita** la cifra che scrivi copre i pezzi per cui l'hai scritta — una sessione unita dopo conta per
   conto suo — e quando i pezzi si fatturano su cifre diverse (il contatore ha preso un pezzo e non
-  l'altro, oppure hai scritto la cifra su un pezzo prima di unire) la card e la Panoramica mostrano
+  l'altro, oppure hai scritto la cifra su un pezzo prima di unire) la riga e la Panoramica mostrano
   la somma, sotto la parola *erogati*, e il €/kWh divide per quella 🆕. Rendimento e perdita accanto
   alle cifre scritte a mano compaiono solo se quelle cifre coprono ogni pezzo della ricarica unita.
   Un contatore che ha preso solo una parte ti lascia comunque vedere e correggere il solare inserito.
@@ -1234,9 +1242,10 @@ un'etichetta:
   la cifra della batteria.
 - Anche le ricariche avvenute mentre l'auto era spenta/offline vengono **ricostruite** dal salto di
   percentuale di carica.
-- **La tua nota 🆕** (#107) — ogni ricarica ha una **nota libera** (subito sopra *Elimina ricarica*) per
-  ciò che i numeri non catturano: dov'era la colonnina, ombra/riparo, quanto è affidabile, le condizioni
-  del parcheggio, il meteo, qualsiasi appunto personale.
+- **La tua nota 🆕** (#107) — ogni ricarica ha una **nota libera** (nella riga aperta, sotto il grafico)
+  per ciò che i numeri non catturano: dov'era la colonnina, ombra/riparo, quanto è affidabile, le
+  condizioni del parcheggio, il meteo, qualsiasi appunto personale. *📝 Aggiungi una nota*, o ✏️ accanto a
+  una nota, apre il campo.
 - **Dove è avvenuta una ricarica 🆕** — accanto a 📍 una ricarica mostra la colonnina e il suo indirizzo,
   altrimenti il tuo **luogo di ricarica** lì o l'indirizzo, cercato come per i viaggi. Un indirizzo
   mancante, ad esempio in una ricarica più vecchia, lo cerca subito 🧭 accanto a 📍. La ricerca trova una
@@ -1248,10 +1257,10 @@ un'etichetta:
   c'è una casella *Contachilometri*: è l'unico modo per dare dei chilometri a una sessione di prima
   che Mate esistesse — di quei giorni non c'è nessun dato da cui ricavarli. Si scrive nella **tua**
   unità (km o miglia).
-- **Quanti km fra una ricarica e l'altra 🆕** (#237) — sotto la ricarica compare *«🛣 122 km dalla
-  ricarica precedente»*, preso dal contachilometri dell'auto. Appare solo quando **tutte e due** le
-  ricariche hanno il loro numero e solo se l'auto si è mossa davvero: due sessioni lo stesso
-  pomeriggio non scrivono niente invece di scrivere zero.
+- **Quanti km fra una ricarica e l'altra 🆕** (#237) — nella riga, dopo AC/DC, compare *🛣 122 km*, preso
+  dal contachilometri dell'auto. Appare solo quando **tutte e due** le ricariche hanno il loro numero e
+  solo se l'auto si è mossa davvero: due sessioni lo stesso pomeriggio non scrivono niente invece di
+  scrivere zero.
 - **Importa le ricariche da un foglio (CSV)** — *Importa ricariche da CSV* scarica un **modello già
   commentato**, lo riempi con Excel o Numbers e lo ricarichi. Le colonne obbligatorie sono solo due,
   data ed energia; le altre — costo, AC/DC, percentuali di carica, ora di fine e **contachilometri
@@ -1262,22 +1271,26 @@ un'etichetta:
   in silenzio. ⚠️ Di una ricarica già registrata viene toccato **solo** il contachilometri: un costo
   che Mate ha calcolato da una curva di ricarica vera non viene mai sovrascritto.
 
+- **Più giorni insieme 🆕** — il calendario apre un intervallo di giorni come quello dei Viaggi
+  (Maiusc-clic, trascinando il mouse sui giorni o, sul telefono, tenendo premuto un giorno):
+  un'intestazione con sessioni, kWh e costo dell'intervallo, poi ogni giorno con la sua. L'intestazione
+  di un giorno aperto riporta gli stessi totali.
 - **Un periodo cercato si somma da solo 🆕** — sopra i risultati compaiono **sessioni, kWh erogati
   (col dato in batteria accanto) e costo** di quella finestra. L'energia fatturata dal 22 al 21, o
   qualunque altro periodo che non sia un mese solare, non va più sommata a mano.
 
-- **Grafico Dati della ricarica 🆕** — sotto ogni ricarica, *📈 Dati della ricarica* apre un
-  grafico a fasce sull'asse del tempo della sessione, come quello di un viaggio: **ricarica** (la
-  potenza DC dell'auto, accanto la potenza AC della wallbox in una ricarica a casa con wallbox
-  associata, e quanti minuti mancavano secondo l'auto), **batteria** (SoC) e
-  **temperature** (quella della cella più fredda e, se la temperatura esterna è attiva
-  nelle Impostazioni, l'aria esterna dove si trova l'auto). Ogni voce della legenda accende e spegne
-  la sua linea, una fascia con tutte le linee spente si ripiega, il browser ricorda la scelta e il
-  riquadro al passaggio del mouse si apre con l'ora e il tempo dalla prima lettura. Il confronto
-  AC-DC della pagina Wallbox è questo stesso grafico.
-  Mentre una ricarica è in corso, lo stesso grafico compare in diretta tra le schede in cima alla
-  pagina, con la linea della wallbox accanto a quella dell'auto in una ricarica a casa: dice quando
-  è iniziata e da quale percentuale, e cresce a ogni interrogazione.
+- **Grafico Dati della ricarica 🆕** — nella riga aperta, per prima cosa ciò che dicono le letture: la
+  temperatura della batteria dalla prima lettura all'ultima, quella dell'aria esterna dalla minima alla
+  massima e la potenza media; poi un grafico a fasce sull'asse del tempo della sessione, come quello di un
+  viaggio: **ricarica** (la potenza DC dell'auto, accanto la potenza AC della wallbox in una ricarica a
+  casa con wallbox associata, e quanti minuti mancavano secondo l'auto), **batteria** (SoC) e
+  **temperature** (quella della cella più fredda e, se la temperatura esterna è attiva nelle Impostazioni,
+  l'aria esterna dove si trova l'auto). Ogni voce della legenda accende e spegne la sua linea, una fascia
+  con tutte le linee spente si ripiega, il browser ricorda la scelta e il riquadro al passaggio del mouse
+  si apre con l'ora e il tempo dalla prima lettura. Il confronto AC-DC della pagina Wallbox è questo
+  stesso grafico. Mentre una ricarica è in corso, lo stesso grafico compare in diretta tra le schede in
+  cima alla pagina, con la linea della wallbox accanto a quella dell'auto in una ricarica a casa: dice
+  quando è iniziata e da quale percentuale, e cresce a ogni interrogazione.
 
 ### Prezzi di ricarica
 **(menu: Prezzi di ricarica)** — Qui imposti **quanto paghi l'energia**, così Mate può calcolare i
@@ -1301,8 +1314,8 @@ tra:
 
 - **kWh solari (manuali) 🆕** — lo stesso caso di sopra, senza Home Assistant. Scegli questa se hai
   il fotovoltaico e preferisci scrivere tu, ricarica per ricarica, quanti kWh sono venuti dal tuo
-  impianto: Mate li sottrae da quelli misurati dalla wallbox e ti addebita solo il resto. Sulla
-  ricarica compare un campo **☀️ Solare**, sotto i tre riquadri, e la riga accanto scrive il conto
+  impianto: Mate li sottrae da quelli misurati dalla wallbox e ti addebita solo il resto. Nella riga
+  aperta della ricarica, sotto l'energia, compare un campo **☀️ Solare**, e accanto c'è il conto
   per esteso — «20,0 erogati − 8,0 solari = 12,0 pagati» — così un numero scritto al contrario si
   vede subito. Un valore più alto di quanto la wallbox ha misurato viene rifiutato. Il campo compare
   solo sulle ricariche di casa che la wallbox ha davvero misurato: senza quella misura non c'è
@@ -1425,7 +1438,7 @@ entra nello schermo.
   è ambra.
 - **Luoghi**: una riga in uno dei tuoi luoghi di ricarica (*Prezzi di ricarica → Luoghi di ricarica*) lo
   nomina; la partenza o l'arrivo di un viaggio altrove porta il suo indirizzo, come in Viaggi, e una
-  ricarica il nome della sua scheda in Ricariche.
+  ricarica il nome della sua riga in Ricariche.
 - **La mappa** resta nascosta finché **🗺 Mostra mappa**, sopra l'elenco, non la apre (accanto all'elenco
   su uno schermo largo, sopra sul telefono o su uno più stretto), e la volta dopo è come l'hai lasciata.
   Ogni riga con una posizione ha un 🌍: apre la mappa se serve, accende il punto della riga, lo porta in

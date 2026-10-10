@@ -939,8 +939,8 @@ resolution — a tiny ~10 W load stays invisible).
 Further down you'll find mini-statistics and a **"Car responsiveness" indicator** (a 🟢/🟡/🔴 dot, ⚪
 if there's no data): it summarizes how well the car has responded to the latest commands sent.
 
-**The last charge says both 🆕** — the **Last charge** tile leads with the same figure as the charge
-card: at home, with a wallbox counter, the **🔌 wallbox (billed)** kWh, and under it what reached the
+**The last charge says both 🆕** — the **Last charge** tile leads with the same figure as the charge's
+row in Charges: at home, with a wallbox counter, the **🔌 wallbox (billed)** kWh, and under it what reached the
 pack — *🔋 12.0 kWh in battery (DC) · efficiency 81%*; elsewhere the battery figure, with the charger's
 own kWh on a line of its own where you typed it. The cost under it is the cost of the number above
 it. It used to show the battery figure alone, beside a cost computed on the other one.
@@ -1117,8 +1117,15 @@ making the map disappear), and with it:
 
 ### Charges
 **(menu: Charges)** — The list of charges. For each one: **energy added (kWh)**, **peak power**,
-**type** and **cost**, with the **effective €/kWh** clearly visible. The type is classified with a
-label:
+**type** and **cost**, with the **effective €/kWh** clearly visible.
+
+- **A charge is a row 🆕** — the list reads like the Trips one, with a thumbnail of the curve on each row:
+  the power (kW) above the state of charge (%). Click a row to open the rest under it: the energy in
+  detail, the chart, your note and the actions. The type, 🆓, ✎ and 📍 are edited on the row itself.
+  **Expand all**, in the heading of a day, a range or a search, opens every row, and **Collapse all**
+  closes them.
+
+The type is classified with a label:
 
 
 - **The "to confirm" banner takes you there 🆕** (#240) — when a charge has ended without a type,
@@ -1141,7 +1148,7 @@ label:
   type menu, type it in the **✎ Manual** row at the bottom, then **OK** (the **✎** beside the badge
   is the same box). It overrides the automatic estimate and **leaves the charge's type alone**: a
   charge with no type then reads **✎ Manual** and is no longer waiting to be confirmed, and a
-  charge with a type keeps it. The cost on the card carries a small **billed** tag instead of
+  charge with a type keeps it. The cost on the row carries a small **billed** tag instead of
   **est.**, and *Reset*, in the ✎, brings the computed figure back. The charges you priced this way
   before v3.16.0 read **✎ Manual** again, with their price: there is nothing to do.
 - **Home vs Public 🆕** — beside the *AC vs DC Distribution* card there is a second one:
@@ -1158,14 +1165,14 @@ label:
   there the car is awake and the news keeps coming.
 - **The charger's own kWh 🆕** (#222) — on a public charger Mate **has no meter**: it reads only what
   went into the battery, while the charger bills you for what came out of its own. You can type that
-  figure in: on the charge card, under the three tiles, there is a **✎**; the box **opens only if you
+  figure in: in the charge's opened row, under the energy, there is a **✎**; the box **opens only if you
   open it** and is **always empty** — so a stray click changes nothing, and pressing OK on an empty
   box leaves everything as it was. *Remove* takes a wrong number back. From then on it **prices the
   charge**, exactly as a wallbox counter does at home, and shows the **efficiency** (how much the
   on-board charger turned into heat). The energy Mate reports stays the one **measured at the
   battery**. On a **joined charge** the figure you type covers the pieces it was typed for — a session
   joined to it later counts on its own — and when the pieces bill on different figures (the wallbox
-  caught one piece and not the other, or you typed the figure on one piece before joining) the card
+  caught one piece and not the other, or you typed the figure on one piece before joining) the row
   and the Overview lead with the sum, under the word *delivered*, and the €/kWh divides by it 🆕.
   Efficiency and loss beside the typed readings are shown only when those readings cover every
   piece of the joined charge. A partial wallbox reading still lets you view and correct the solar
@@ -1183,9 +1190,9 @@ label:
   own kWh where you typed it, otherwise the battery figure.
 - Charges that happened while the car was off/offline are **reconstructed** too, from the jump in the
   state of charge.
-- **Your note 🆕** (#107) — each charge has a **free-text note** (just above *Delete charge*) for the
-  things the numbers don't capture: where the station was, shade/shelter, how reliable it is, parking
-  conditions, weather, any personal remark.
+- **Your note 🆕** (#107) — each charge has a **free-text note** (in the opened row, under the chart) for
+  the things the numbers don't capture: where the station was, shade/shelter, how reliable it is, parking
+  conditions, weather, any personal remark. *📝 Add a note*, or ✏️ beside a note, opens the field.
 - **Where a charge happened 🆕** — beside 📍 a charge shows the station and its address, or else your
   **charging place** there or the address, looked up as for trips. A missing address, on an older charge
   for instance, is looked up at once by 🧭 beside 📍. The search box finds a charge by them, and the
@@ -1196,10 +1203,9 @@ label:
   in the archive. On a charge **you type in** there is an *Odometer* box: it is the only way a
   session from before Mate existed can carry kilometres at all — nothing from those days can supply
   them. Typed in **your** unit (km or miles).
-- **How far the car went between two charges 🆕** (#237) — under the charge: *"🛣 122 km since the
-  previous charge"*, from the car's own odometer. It appears only where **both** charges carry a
-  reading and only where the car actually moved: two sessions the same afternoon say nothing rather
-  than print a zero.
+- **How far the car went between two charges 🆕** (#237) — on the row, after AC/DC: *🛣 122 km*, from the
+  car's own odometer. It appears only where **both** charges carry a reading and only where the car
+  actually moved: two sessions the same afternoon say nothing rather than print a zero.
 - **Import charges from a spreadsheet (CSV)** — *Import charges from CSV* hands you a
   **self-documenting template**; fill it in with Excel or Numbers and upload it back. Only two
   columns are required, the date and the energy; the rest — cost, AC/DC, start/end percentages, end
@@ -1210,21 +1216,24 @@ label:
   silence. ⚠️ On a session already recorded **only** the odometer is written: a cost Mate worked out
   from a real charging curve is never overwritten.
 
+- **Several days at once 🆕** — the calendar opens a range of days the way the Trips one does
+  (Shift-click, a drag across the days or, on a phone, holding a day): one heading with the range's
+  sessions, kWh and cost, then each day under its own. An open day's heading carries the same totals.
 - **A searched period adds itself up 🆕** — above the results, that window's own **sessions, kWh
   delivered (with the battery figure beside it) and cost**. Electricity billed from the 22nd to the
   21st, or any other period that is not a calendar month, no longer has to be added up by hand.
 
-- **Charging data chart 🆕** — under each charge, *📈 Charging data* opens one chart in bands on
-  the session's time axis, like a trip's: **charging** (the car's DC power, the wallbox's AC power
-  beside it on a home charge with a mapped wallbox, and how many minutes the car said were left),
-  **battery** (SoC) and **temperatures** (the coldest cell's and, when
-  the outside temperature is switched on in Settings, the outside air at the car's spot). Each entry
-  of the legend switches its line on and off, a band with every line off folds away, the choice is
-  remembered in the browser, and the hover box opens with the time of day and the time since the
-  first reading. The AC-vs-DC comparison on the Wallbox page is this same chart.
-  While a charge runs, the same chart sits with the cards at the top of the page, live, the
-  wallbox's line beside the car's when the charge is at home: it says when the charge began and from
-  which level, and grows with every poll.
+- **Charging data chart 🆕** — in the opened row, first a line with what the readings say: the battery's
+  temperature from the first reading to the last, the outside air from its lowest to its highest and the
+  average power; then one chart in bands on the session's time axis, like a trip's: **charging** (the
+  car's DC power, the wallbox's AC power beside it on a home charge with a mapped wallbox, and how many
+  minutes the car said were left), **battery** (SoC) and **temperatures** (the coldest cell's and, when
+  the outside temperature is switched on in Settings, the outside air at the car's spot). Each entry of
+  the legend switches its line on and off, a band with every line off folds away, the choice is remembered
+  in the browser, and the hover box opens with the time of day and the time since the first reading. The
+  AC-vs-DC comparison on the Wallbox page is this same chart. While a charge runs, the same chart sits
+  with the cards at the top of the page, live, the wallbox's line beside the car's when the charge is at
+  home: it says when the charge began and from which level, and grows with every poll.
 
 ### Charge Prices
 **(menu: Charge Prices)** — Here you set **how much you pay for energy**, so Mate can calculate the
@@ -1248,7 +1257,7 @@ costs. You can define a price **for each type** of charge (Home, AC, Fast, HPC) 
 - **Solar kWh (manual) 🆕** — the same case as above, without Home Assistant. Choose it if you have
   solar and would rather type, charge by charge, how many kWh came off your own roof: Mate subtracts
   them from what the wallbox measured and bills you only the rest. A **☀️ Solar** field appears on
-  the charge, under the three tiles, and the line beside it spells the sum out — "20.0 delivered −
+  the charge's opened row, under the energy, and the line beside it spells the sum out — "20.0 delivered −
   8.0 solar = 12.0 paid" — so a number typed the wrong way round shows itself at once. A figure
   larger than the wallbox measured is refused. It is offered only on home charges the wallbox
   actually measured: without that reading there is nothing to subtract from, and a line says so.
@@ -1356,7 +1365,7 @@ in parts of a thousand rows, the next one loaded as the end of the list comes in
   The end of a trip or a charge carries the figures of Trips and Charges.
   These figures stand out from the rest of the row; a cost is green, the delay before charging amber.
 - **Places**: a row at one of your charging places (*Charge Prices → Charging places*) names it; a trip's
-  start or end elsewhere is named by its address, as in Trips, and a charge as on its card in Charges.
+  start or end elsewhere is named by its address, as in Trips, and a charge as on its row in Charges.
 - **The map** is hidden until **🗺 Show map** above the list shows it (beside the list on a wide screen,
   above it on a phone or a narrower one), and next time it is as you left it. Every row with a position
   has a 🌍: it shows the map if needed, lights the row's point and brings it into view, and lights the row

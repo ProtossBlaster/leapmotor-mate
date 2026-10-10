@@ -5,7 +5,10 @@
    from the calendar — swapping the list in silently (same card, no reset control) made it
    easy to miss that a filter had actually applied at all (#175). #}
 <div class="mb-3 flex items-center justify-between flex-wrap gap-2">
-  <span class="text-white font-semibold">🔍 {{ charges|length }} {{ t('charges_search_results') }}</span>
+  <div class="flex items-center gap-2 flex-wrap">
+    <span class="text-white font-semibold">🔍 {{ charges|length }} {{ t('charges_search_results') }}</span>
+    {% if charges %}{% include "partials/_charges_expand_toggle.html" %}{% endif %}
+  </div>
   <button type="button"
           onclick="document.getElementById('charges-search-form').reset(); document.getElementById('charges-adv-filters').classList.add('hidden');"
           hx-get="api/charges/calendar?year={{ year }}&month={{ month }}{% if station %}&station={{ station }}{% endif %}"
@@ -34,7 +37,7 @@
 {% set calendar_context = false %}
 {% if charges %}
 <div data-charges-list>
-<div class="space-y-3">
+<div class="space-y-2">
   {% for c in charges %}
   {% include "partials/charge_card.html" %}
   {% endfor %}

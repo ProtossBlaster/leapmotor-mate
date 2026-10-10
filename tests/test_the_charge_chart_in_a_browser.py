@@ -66,10 +66,9 @@ _STATE = """(cid) => {
 
 
 def _open(page, url, cid):
-    """The Charges page on the charge's own day, its card open at the chart."""
+    """The Charges page on the charge's own day, the row the link meant opened, with its chart."""
     assert page.goto(f"{url}/charges?highlight={cid}").status == 200
-    page.wait_for_selector(f"#charge-card-{cid}")
-    page.click(f'#charge-card-{cid} summary[hx-get="api/charge/{cid}/power-chart"]')
+    page.wait_for_selector(f"#charge-card-{cid}[open]")
     page.wait_for_function(f"() => document.getElementById('pc-{cid}') && document.getElementById('pc-{cid}')._c")
     return page.evaluate(_STATE, cid)
 
@@ -172,7 +171,8 @@ def test_two_charts_on_one_page_each_keep_their_own_choice(mate):
     try:
         page = browser.new_page()
         _open(page, mate, 1)
-        page.click('#charge-card-2 summary[hx-get="api/charge/2/power-chart"]')
+        page.click('#charge-card-2 > summary')
+        page.locator('#pchart-2').scroll_into_view_if_needed()    # the chart loads once it is seen
         page.wait_for_function("() => document.getElementById('pc-2') && document.getElementById('pc-2')._c")
         first = _click(page, 1, "power")
         second = _click(page, 2, "soc")

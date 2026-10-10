@@ -10,6 +10,7 @@ That split is the thing worth protecting: put the date in the card unconditional
 calendar starts repeating its own heading under itself, once per charge.
 """
 import json
+import re
 import pathlib
 
 import pytest
@@ -58,13 +59,14 @@ def test_a_search_result_shows_its_day():
 def test_a_calendar_card_does_not_repeat_the_heading():
     """No date_label → no date. The day drawer already says it once, above."""
     out = _card()
-    assert "2026" not in out.split("<!-- SOC bar -->")[0]
+    row = re.sub(r"<[^>]+>", " ", out.split("</summary>")[0])      # what is read, not the thumbnail's address
+    assert "2026" not in row
 
 
 def test_the_date_sits_above_the_time_not_inside_it():
     """Cosmetic but load-bearing: it must not break the "start → end" line apart."""
     out = _card(date_label="21 lug 2026")
-    head = out.split("<!-- SOC bar -->")[0]
+    head = out.split("</summary>")[0]
     assert head.index("21 lug 2026") < head.index("16:38")
     assert "16:38" in head and "→" in head
 

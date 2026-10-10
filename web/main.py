@@ -976,6 +976,137 @@ async def trip_route_svg(trip_id: int):
                     headers={"Cache-Control": "public, max-age=86400"})
 
 
+def _nice_scale(lo: float, hi: float, min_span: float = 4.0) -> tuple[float, float]:
+    """The scale the big chart gives a band (`niceScale` in band-chart.js): a round step, four of them
+    from a round floor under `lo` to above `hi`, never narrower than `min_span`."""
+    import math
+    if hi - lo < min_span:
+        mid = (lo + hi) / 2
+        lo, hi = mid - min_span / 2, mid + min_span / 2
+    mag = 10 ** math.floor(math.log10((hi - lo) / 4))
+    for m in (1, 2, 2.5, 3, 4, 5, 10, 20):
+        step = m * mag
+        if step % 1:
+            continue
+        a = math.floor(lo / step) * step
+        if a + 4 * step >= hi:
+            return a, a + 4 * step
+    return lo, hi
+
+
+def _curve_runs(times: list, values: list) -> list[list[tuple[float, float]]]:
+    """(instant, value) runs of a series, broken where the chart breaks its line: at a reading the poll
+    did not carry (None, never a 0) and at a gap wider than three typical steps, the typical step being
+    the median spacing (`spread` in band-chart.js). A finished charge's curve holds only the samples
+    with current flowing, so a pause arrives as such a gap, not as 0 kW. A lone reading is a run of one:
+    it draws no line but holds the time axis and the scale, as on the big chart."""
+    from datetime import datetime
+    from itertools import pairwise
+    secs = []
+    for t in times:
+        try:
+            secs.append(datetime.fromisoformat(t).timestamp())
+        except (TypeError, ValueError):
+            secs.append(None)
+    deltas = sorted(b - a for a, b in pairwise(secs) if a is not None and b is not None and b > a)
+    step = deltas[len(deltas) // 2] if deltas else 0
+    runs, run, prev = [], [], None
+    for t, v in zip(secs, values):
+        gap = step > 0 and prev is not None and t is not None and t - prev > step * 3
+        if t is None or v is None or gap:
+            if run:
+                runs.append(run)
+            run = []
+        if t is not None and v is not None:
+            run.append((t, float(v)))
+        prev = t if t is not None else prev
+    if run:
+        runs.append(run)
+    return runs
+
+
+def _curve_svg(curve: dict, w: int = 84, h: int = 64) -> str:
+    """The thumbnail of a charge's curve: power above SoC on one time axis, on the big chart's scales
+    (band-chart.js). A pixel column keeps its first, lowest, highest and last sample, so a one-sample
+    dip survives; a pause is a hole in both lines, no samples a dashed baseline in both."""
+    fh, gap, pad = (h - 4) // 2, 4, 4
+    frames = [(0, fh), (fh + gap, fh)]
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}">']
+    for top, height in frames:
+        out.append(f'<rect x="0.5" y="{top + 0.5}" width="{w - 1}" height="{height - 1}" rx="6" '
+                   f'fill="#0a1424" stroke="#1a2438"/>')
+    series = [(_curve_runs(curve.get("times") or [], curve.get("power") or []), "#fbbf24", frames[0], "power"),
+              (_curve_runs(curve.get("times") or [], curve.get("soc") or []), "#22c55e", frames[1], "soc")]
+    instants = [t for runs, *_ in series for run in runs for t, _ in run]
+    t0, t1 = (min(instants), max(instants)) if instants else (0.0, 0.0)
+    span = (t1 - t0) or 1.0
+
+    def x_of(t):
+        return pad + (t - t0) / span * (w - 2 * pad)
+
+    def columns(run):
+        cols = {}
+        for t, v in run:
+            cols.setdefault(int(x_of(t)), []).append((t, v))
+        pts = []
+        for _, c in sorted(cols.items()):
+            pts.extend(sorted({c[0], min(c, key=lambda p: p[1]), max(c, key=lambda p: p[1]), c[-1]}))
+        return pts
+
+    for runs, colour, (top, height), kind in series:
+        if not runs:
+            y = top + height / 2
+            out.append(f'<path d="M{pad} {y} L{w - pad} {y}" fill="none" stroke="#334155" '
+                       f'stroke-width="1.5" stroke-dasharray="3 3"/>')
+            continue
+        values = [v for run in runs for _, v in run]
+        if kind == "power":
+            lo, hi = _nice_scale(0.0, max(max(values), 4.0))
+        else:
+            lo, hi = _nice_scale(min(values), max(values))
+            if hi > 100:
+                lo, hi = 100 - (hi - lo), 100
+        rng = (hi - lo) or 1.0
+        drawn = [[(round(x_of(t), 1), round(top + pad + (1 - (v - lo) / rng) * (height - 2 * pad), 1))
+                  for t, v in columns(run)] for run in runs]
+        out.append(_curve_unit(kind, colour, top, height, w, [p for pts in drawn for p in pts]))
+        for pts in (pts for pts in drawn if len(pts) > 1):
+            d = "M" + " L".join(f"{x} {y}" for x, y in pts)
+            out.append(f'<path d="{d}" fill="none" stroke="{colour}" stroke-width="2" '
+                       f'stroke-linecap="round" stroke-linejoin="round"/>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def _curve_unit(kind: str, colour: str, top: float, height: float, w: int, pts: list) -> str:
+    """A frame's unit in the first corner (top left, top right, bottom right, bottom left) its line
+    crosses least, so the label rarely sits under the line."""
+    text, width = ("kW", 11) if kind == "power" else ("%", 7)
+    corners = [(6, top + 10, "start"), (w - 6, top + 10, "end"),
+               (w - 6, top + height - 4, "end"), (6, top + height - 4, "start")]
+
+    def crossed(corner):
+        x, y, anchor = corner
+        x0 = x if anchor == "start" else x - width
+        return sum(x0 - 2 <= px <= x0 + width + 2 and y - 9 <= py <= y + 2 for px, py in pts)
+
+    x, y, anchor = min(corners, key=crossed)
+    return (f'<text x="{x}" y="{y}" text-anchor="{anchor}" font-family="system-ui,sans-serif" font-size="8" '
+            f'font-weight="600" fill="{colour}" fill-opacity="0.8">{text}</text>')
+
+
+@app.get("/charges/{charge_id}/curve.svg")
+async def charge_curve_svg(charge_id: int, w: int = Query(84, ge=60, le=240)):
+    """The thumbnail beside a charge's row, `w` pixels wide (a computer's row asks for a wider one
+    than a phone's). A finished charge's curve is cached for a day: the row changes the address's
+    `?v=` when a merge or split changes the curve under the same id. A running charge's curve grows,
+    so it is not cached, nor is an empty one: the curve is the selected car's, the charge may not be."""
+    curve = db_reader.get_charge_power_curve(charge_id)
+    keep = db_reader.get_charge(charge_id).get("ended_at") and curve.get("times")
+    return Response(content=_curve_svg(curve, w=w), media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=86400" if keep else "no-store"})
+
+
 @app.get("/trips/{trip_id}", response_class=HTMLResponse)
 async def trip_detail(request: Request, trip_id: int, back: str = ""):
     vehicle, _ = db_reader.get_vehicle()
@@ -1171,59 +1302,75 @@ async def delete_charge(request: Request, charge_id: int):
 
 
 @app.get("/api/charges/merge-preview", response_class=HTMLResponse)
-async def charges_merge_preview(request: Request, a: int, b: int, station: str = "", calendar: int = 0):
+async def charges_merge_preview(request: Request, a: int, b: int, station: str = "", calendar: int = 0,
+                                year: int = 0, month: int = 0, day: int = 0, to_day: int = 0):
     """The single charge the merge WOULD produce — figures plus the pause it swallows — so the
-    confirm step shows what changes, not just that something will."""
+    confirm step shows what changes, not just that something will. The drawer's days travel on to
+    the confirm button, so the redraw after the merge keeps them open."""
     g = db_reader.preview_merge_charges(a, b)
     if not g:
         return HTMLResponse("")
     return templates.TemplateResponse(request, "partials/charge_merge_preview.html",
-                                      _ctx(g=g, a=a, b=b, station=station, calendar_context=bool(calendar)))
+                                      _ctx(g=g, a=a, b=b, station=station, calendar_context=bool(calendar),
+                                           drawer_q=_drawer_query(year, month, day, to_day)))
 
 
-def _retarget_charges_calendar(request: Request, charge_id: int, station: str):
+def _retarget_charges_calendar(request: Request, charge_id: int, station: str,
+                               year: int = 0, month: int = 0, day: int = 0, to_day: int = 0):
     """After a merge/unmerge, redraw the month grid + day drawer in place instead of reloading the
     whole page — the reload used to drop the day/scroll the owner had open in Charges (they'd land
-    back at the top and have to find their place again). `None` when the affected charge can't be
-    dated (should not happen for a row that was just written) or the caller wasn't in the calendar
-    view to begin with (search results don't carry a #charges-calendar-month to redraw)."""
+    back at the top and have to find their place again). The drawer that offered the button says
+    which days it had open (`year`/`month`/`day`/`to_day`), and they open again while the charge
+    falls among them, so a range stays a range. A merged charge begins where its first piece began,
+    which may be the evening before, out of those days: then, and without them, the day the charge
+    falls on opens, in its own month, so it is on show. `None` when the charge can't be dated (should
+    not happen for a row that was just written) or the caller wasn't in the calendar view to begin
+    with (search results don't carry a #charges-calendar-month to redraw)."""
     d = db_reader.get_charge_local_date(charge_id)
     if not d:
         return None
-    resp = _render_charges_calendar(request, d.year, d.month, station, d.day)
+    if (year, month) != (d.year, d.month) or not min(day, to_day or day) <= d.day <= max(day, to_day or day):
+        year, month, day, to_day = d.year, d.month, d.day, 0
+    resp = _render_charges_calendar(request, year, month, station, day, to_day)
     resp.headers["HX-Retarget"] = "#charges-calendar-month"
     resp.headers["HX-Reswap"] = "outerHTML"
+    resp.headers["HX-Trigger-After-Settle"] = json.dumps({"chargeOpen": charge_id})   # its row, opened (charges.html)
     return resp
 
 
 @app.post("/api/charges/merge", response_class=HTMLResponse)
-async def charges_merge(request: Request, a: int, b: int, station: str = "", calendar: int = 0):
+async def charges_merge(request: Request, a: int, b: int, station: str = "", calendar: int = 0,
+                        year: int = 0, month: int = 0, day: int = 0, to_day: int = 0):
     """Join two charge rows the car split when it declared the cable gone on a pause. The earlier
     becomes the parent. Reversible. Re-validates every guard here — the page only offers the
     button, it does not grant the permission."""
     res = db_reader.merge_charges(a, b)
     if res.get("ok"):
-        resp = calendar and _retarget_charges_calendar(request, res["parent_id"], station)
+        resp = calendar and _retarget_charges_calendar(request, res["parent_id"], station, year, month, day, to_day)
         return resp or Response(status_code=200, headers={"HX-Refresh": "true"})
     t = i18n.get_t(db_reader.get_language())
     return HTMLResponse(f'<div style="color:#f87171;font-size:13px;padding:6px 0">⚠️ {t("charge_merge_failed")}</div>')
 
 
 @app.post("/api/charges/unmerge", response_class=HTMLResponse)
-async def charges_unmerge(request: Request, parent: int, station: str = "", calendar: int = 0):
+async def charges_unmerge(request: Request, parent: int, station: str = "", calendar: int = 0,
+                          year: int = 0, month: int = 0, day: int = 0, to_day: int = 0):
     """Split a merged charge back into the rows the car reported (reversible — nothing was lost)."""
     db_reader.unmerge_charges(parent)
-    resp = calendar and _retarget_charges_calendar(request, parent, station)
+    resp = calendar and _retarget_charges_calendar(request, parent, station, year, month, day, to_day)
     return resp or Response(status_code=200, headers={"HX-Refresh": "true"})
 
 
 @app.post("/api/charges/{charge_id}/note", response_class=HTMLResponse)
 async def set_charge_note(request: Request, charge_id: int):
     """#107: save the charge's optional user note (station location, shade, reliability, weather…).
-    Returns a small 'saved' confirmation that HTMX drops next to the button."""
+    Returns a small 'saved' confirmation that HTMX drops next to the button, carrying the note as
+    stored, which the page writes into the note's line."""
+    from html import escape
     form = await request.form()
-    db_reader.save_charge_note(charge_id, form.get("note") or "")
-    return HTMLResponse("✓ " + i18n.get_t(db_reader.get_language())("note_saved"))
+    saved = db_reader.save_charge_note(charge_id, form.get("note") or "")
+    return HTMLResponse(f'<span data-saved-note="{escape(saved)}">✓ '
+                        + i18n.get_t(db_reader.get_language())("note_saved") + "</span>")
 
 
 @app.get("/charges", response_class=HTMLResponse)
@@ -1266,7 +1413,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = "", 
     ))
 
 
-def _charges_calendar_ctx(year: int, month: int, station: str, open_day: int = 0) -> dict:
+def _charges_calendar_ctx(year: int, month: int, station: str, open_day: int = 0, open_to: int = 0) -> dict:
     """The Ricariche calendar's context, WITHOUT a Response around it.
 
     Split out so the Charges page can draw the grid itself on first paint instead of shipping an
@@ -1307,10 +1454,43 @@ def _charges_calendar_ctx(year: int, month: int, station: str, open_day: int = 0
         # it stayed broken across reloads. (#240, found by Silvio pressing Refresh.)
         "currency": db_reader.get_currency(),
     }
-    if open_day and open_day in cal["days"]:
-        ctx["open_day"] = open_day     # so the grid can ring the day the drawer is showing
-        ctx["open_day_charges"] = db_reader.get_charges_calendar_day(year, month, open_day, station=station or None)
-        ctx["open_day_label"] = i18n.fmt_day_month_year(lang, date(year, month, open_day))
+    if open_day:
+        open_day, open_to = _day_span(year, month, open_day, open_to)
+    if open_day and any(d in cal["days"] for d in range(open_day, open_to + 1)):
+        ctx["open_day"] = open_day     # so the grid can ring the days the drawer is showing
+        ctx["open_to"] = open_to
+        # The drawer's own endpoint builds the same context, so both paths print the same heading.
+        ctx["open_drawer"] = _charges_drawer_ctx(lang, year, month, open_day, open_to, station)
+    return ctx
+
+
+def _drawer_query(year: int, month: int, day: int, to_day: int = 0) -> str:
+    """The drawer's days as query parameters a merge or split carries back, so the redraw keeps the
+    same days open; '' outside a drawer (search results reload the page instead)."""
+    if not (year and month and day):
+        return ""
+    return f"&year={year}&month={month}&day={day}" + (f"&to_day={to_day}" if to_day else "")
+
+
+def _charges_drawer_ctx(lang: str, year: int, month: int, day: int, to_day: int = 0, station: str = "") -> dict:
+    """What the day drawer prints for `day`, or for the days from `day` to `to_day`: built here for both
+    routes that render the drawer, so they cannot differ. `drawer_q` is the drawer's own span, which
+    its cards hand to a merge or split so the redraw keeps the same days open."""
+    from datetime import date
+    from itertools import groupby
+    first, last = _day_span(year, month, day, to_day)
+    charges = db_reader.get_charges_calendar_day(year, month, first, station=station or None, to_day=last)
+    ctx = {"charges": charges, "day_totals": db_reader.charges_totals(charges),
+           "drawer_q": _drawer_query(year, month, first, last if last != first else 0)}
+    if first == last:
+        ctx.update(day=first, day_label=i18n.fmt_day_month_year(lang, date(year, month, first)))
+        return ctx
+    # One heading over the range, then each day with charges under its own, newest first like the cards.
+    ctx["range_label"] = i18n.fmt_day_range(lang, date(year, month, first), date(year, month, last))
+    ctx["range_days"] = [
+        {"day": d, "label": i18n.fmt_day_month_year(lang, date(year, month, d)),
+         "charges": cs, "totals": db_reader.charges_totals(cs)}
+        for d, cs in ((d, list(g)) for d, g in groupby(charges, key=lambda c: c["_dt"].day))]
     return ctx
 
 
@@ -1320,10 +1500,10 @@ def _charges_calendar_html(year: int, month: int, station: str, open_day: int = 
         _charges_calendar_ctx(year, month, station, open_day))
 
 
-def _render_charges_calendar(request: Request, year: int, month: int, station: str, open_day: int = 0):
+def _render_charges_calendar(request: Request, year: int, month: int, station: str, open_day: int = 0, open_to: int = 0):
     """Shared by /api/charges/calendar and the search endpoint's empty-filters fallback."""
     return templates.TemplateResponse(request, "partials/charges_calendar_month.html",
-                                      _charges_calendar_ctx(year, month, station, open_day))
+                                      _charges_calendar_ctx(year, month, station, open_day, open_to))
 
 
 def _fuel_calendar_ctx(year: int, month: int, open_day: int = 0) -> dict:
@@ -1394,22 +1574,24 @@ async def fuel_calendar_day(request: Request, year: int, month: int, day: int):
 
 
 @app.get("/api/charges/calendar", response_class=HTMLResponse)
-async def charges_calendar(request: Request, year: int = 0, month: int = 0, station: str = "", open_day: int = 0):
+async def charges_calendar(request: Request, year: int = 0, month: int = 0, station: str = "",
+                           open_day: Annotated[int, Query(ge=0, le=31)] = 0,
+                           open_to: Annotated[int, Query(ge=0, le=31)] = 0):
     """Ricariche 'calendar' Month view (HTMX partial, day totals only) — the day drawer
     loads a day's actual charge cards lazily on click (see charges_calendar_day below),
     so a month never ships more markup than the handful of days the user opens."""
-    return _render_charges_calendar(request, year, month, station, open_day)
+    return _render_charges_calendar(request, year, month, station, open_day, open_to)
 
 
 @app.get("/api/charges/calendar/day", response_class=HTMLResponse)
-async def charges_calendar_day(request: Request, year: int, month: int, day: int, station: str = ""):
-    """One day's charge cards for the Month view's day drawer."""
+async def charges_calendar_day(request: Request, year: int, month: int, day: Annotated[int, Query(ge=1, le=31)],
+                               to_day: Annotated[int, Query(ge=0, le=31)] = 0, station: str = ""):
+    """One day's charge rows for the Month view's day drawer, with that day's own totals.
+    `to_day` opens the days from `day` to it instead: totals over the range, then each day's own."""
     lang = db_reader.get_language()
-    charges = db_reader.get_charges_calendar_day(year, month, day, station=station or None)
-    from datetime import date
     return templates.TemplateResponse(request, "partials/charges_calendar_day.html", {
         "t": i18n.get_t(lang), "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
-        "charges": charges, "day_label": i18n.fmt_day_month_year(lang, date(year, month, day)),
+        **_charges_drawer_ctx(lang, year, month, day, to_day, station),
         "currency": db_reader.get_currency(),   # the price box is labelled in the reader's money
         "station": station,   # so a merge/unmerge from here keeps any active station filter
     })
@@ -1450,7 +1632,7 @@ async def charges_search(request: Request, q: str = "", type: str = "",
         "charges": charges, "station": station,
         # disc #263 — the period's own total, so a custom billing cycle (his is 22nd→21st) can be
         # read off the filtered results instead of added up by hand.
-        "search_total": db_reader.search_results_total_charges(charges),
+        "search_total": db_reader.charges_totals(charges),
         # charge_card.html labels its price box in the reader's own money, and this partial is
         # rendered on its own — it inherits nothing from _ctx. Three routes were missing it.
         "currency": db_reader.get_currency(),
@@ -3319,8 +3501,10 @@ async def wallbox_compare_chart(request: Request):
     except (TypeError, ValueError):
         return HTMLResponse('<div class="text-sm text-slate-500 py-2">—</div>')
     curve = db_reader.get_charge_power_curve(cid)
+    home = db_reader.is_home_charge(cid)
+    wb_power = await run_in_threadpool(_wallbox_overlay, curve, home)   # it may read Home Assistant
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=cid, wb_power=_wallbox_overlay(curve, db_reader.is_home_charge(cid)), **curve))
+        cid=cid, wb_power=wb_power, **curve))
 
 
 @app.get("/api/wallbox/control", response_class=HTMLResponse)
@@ -3635,7 +3819,7 @@ def _wallbox_overlay(curve: dict, home: bool) -> list | None:
     mapping = ha_client.get_mapping()
     wallbox_on = db_reader.get_setting("wallbox_enabled", "0") == "1"
     if (not wallbox_on or not times or not ha_client.is_configured()
-            or not mapping.get("power") or not home):
+            or not mapping.get("power") or not home or ha_client.recently_unreachable()):
         return None
     hist = ha_client.get_history(mapping["power"], times[0], times[-1])
     if not hist:
@@ -3803,8 +3987,28 @@ async def charge_power_chart(request: Request, charge_id: int):
     SoC, the temperatures and the rest of the readings over time. When a wallbox is configured,
     its delivered AC power is drawn beside the car's DC power."""
     curve = db_reader.get_charge_power_curve(charge_id)
+    home = db_reader.is_home_charge(charge_id)
+    wb_power = await run_in_threadpool(_wallbox_overlay, curve, home)   # it may read Home Assistant
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=charge_id, wb_power=_wallbox_overlay(curve, db_reader.is_home_charge(charge_id)), **curve))
+        cid=charge_id, wb_power=wb_power, facts=_charge_facts(curve), **curve))
+
+
+def _charge_facts(curve: dict) -> dict:
+    """The line above a charge's chart, from the chart's own readings: the battery's temperature at the
+    first and the last reading, the outside temperature's lowest and highest, and the average of the power
+    readings, weighted by time, along the stretches the chart draws its power line (a merged charge's over
+    all its pieces): energy and time come from the same readings, so neither a pause nor a stretch without
+    readings counts."""
+    from itertools import pairwise
+    battery = [v for v in curve.get("battery_temp") or [] if v is not None]
+    outside = [v for v in curve.get("outside_temp") or [] if v is not None]
+    runs = _curve_runs(curve.get("times") or [], [p or None for p in curve.get("power") or []])
+    steps = [step for run in runs for step in pairwise(run)]
+    secs = sum(b[0] - a[0] for a, b in steps)
+    kw_secs = sum((b[0] - a[0]) * (a[1] + b[1]) / 2 for a, b in steps)
+    return {"battery_temp": (battery[0], battery[-1]) if battery else None,
+            "outside_temp": (min(outside), max(outside)) if outside else None,
+            "avg_kw": kw_secs / secs if secs > 0 else None}
 
 
 @app.post("/api/settings/prices", response_class=HTMLResponse)
