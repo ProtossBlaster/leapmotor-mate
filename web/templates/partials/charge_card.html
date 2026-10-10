@@ -32,6 +32,21 @@
 <details data-charge-id="{{ c.id }}" id="charge-card-{{ c.id }}" class="charge-card">
 <summary class="charge-row trip-row flex-wrap sm:flex-nowrap">
 
+  {# The curve, power above SoC, drawn by /charges/{id}/curve.svg. A finished charge's curve changes
+     only when a merge or split changes the charge under the same id, so the address carries both. #}
+  {% if c.manual_entry %}
+  <div class="charge-thumb charge-thumb-box flex items-center justify-center text-slate-500 text-lg">✎</div>
+  {% elif c.reconstructed %}
+  <div class="charge-thumb charge-thumb-box flex items-center justify-center text-amber-400/70 text-lg">✨</div>
+  {% else %}
+  {# A computer's row has the room for a wider picture, closer to the big chart's proportions; a phone's keeps the trip row's 84 px. #}
+  {% set thumb_v = (c.merged_count or 1) ~ '-' ~ ((c.ended_at or '')|urlencode) %}
+  <picture style="flex-shrink:0;display:block;line-height:0">
+    <source media="(min-width: 640px)" srcset="charges/{{ c.id }}/curve.svg?w=120&v={{ thumb_v }}">
+    <img class="charge-thumb" loading="lazy" alt="" src="charges/{{ c.id }}/curve.svg?v={{ thumb_v }}">
+  </picture>
+  {% endif %}
+
   {# On a phone this column dissolves (base.html): its first block (the times and the type) stays beside
      the kWh column and the lines after it take the row's whole width, like a trip row's places. #}
   <div class="charge-mid min-w-0 flex-1">

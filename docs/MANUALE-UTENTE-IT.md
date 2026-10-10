@@ -1169,10 +1169,11 @@ valida** invece di far sparire la mappa), e insieme:
 **(menu: Ricariche)** — L'elenco delle ricariche. Per ognuna: **energia aggiunta (kWh)**, **potenza
 massima**, **tipo** e **costo**, con il **€/kWh effettivo** ben in vista.
 
-- **Una ricarica è una riga 🆕** — l'elenco si legge come quello dei Viaggi. Un clic su una riga apre il
-  resto sotto di essa: l'energia nel dettaglio, il grafico, la tua nota e le azioni. Tipo, 🆓, ✎ e 📍 si
-  modificano direttamente nella riga. **Espandi tutto**, nell'intestazione di un giorno, di un intervallo
-  o di una ricerca, apre tutte le righe, e **Comprimi tutto** le chiude.
+- **Una ricarica è una riga 🆕** — l'elenco si legge come quello dei Viaggi, con una miniatura della curva
+  su ogni riga: la potenza (kW) sopra lo stato di carica (%). Un clic su una riga apre il resto sotto di
+  essa: l'energia nel dettaglio, il grafico, la tua nota e le azioni. Tipo, 🆓, ✎ e 📍 si modificano
+  direttamente nella riga. **Espandi tutto**, nell'intestazione di un giorno, di un intervallo o di una
+  ricerca, apre tutte le righe, e **Comprimi tutto** le chiude.
 
 Il tipo è classificato con un'etichetta:
 

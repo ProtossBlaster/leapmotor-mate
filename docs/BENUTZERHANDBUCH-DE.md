@@ -1194,10 +1194,11 @@ Position** bei, anstatt die Karte verschwinden zu lassen), und dazu:
 **(Menü: Ladevorgänge)** — Die Liste der Ladevorgänge. Für jede: **hinzugefügte Energie (kWh)**, **Spitzenleistung**,
 **Typ** und **Kosten**, mit dem **tatsächlichen €/kWh** gut sichtbar.
 
-- **Ein Ladevorgang ist eine Zeile 🆕** — die Liste liest sich wie die der Fahrten. Ein Klick auf eine
-  Zeile öffnet darunter den Rest: die Energie im Detail, das Diagramm, Ihre Notiz und die Aktionen. Typ,
-  🆓, ✎ und 📍 werden direkt in der Zeile bearbeitet. **Alle aufklappen** in der Überschrift eines Tages,
-  eines Zeitraums oder einer Suche öffnet jede Zeile, **Alle zuklappen** schließt sie.
+- **Ein Ladevorgang ist eine Zeile 🆕** — die Liste liest sich wie die der Fahrten, mit einer Miniatur der
+  Ladekurve in jeder Zeile: oben die Leistung (kW), darunter der Ladestand (%). Ein Klick auf eine Zeile
+  öffnet darunter den Rest: die Energie im Detail, das Diagramm, Ihre Notiz und die Aktionen. Typ, 🆓, ✎
+  und 📍 werden direkt in der Zeile bearbeitet. **Alle aufklappen** in der Überschrift eines Tages, eines
+  Zeitraums oder einer Suche öffnet jede Zeile, **Alle zuklappen** schließt sie.
 
 Der Typ ist mit einem Etikett klassifiziert:
 

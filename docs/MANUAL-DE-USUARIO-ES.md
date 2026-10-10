@@ -1189,10 +1189,11 @@ válida** en vez de hacer desaparecer el mapa), y con ella:
 **(menú: Cargas)** — La lista de cargas. De cada una: **energía añadida (kWh)**, **potencia máxima**,
 **tipo** y **coste**, con los **€/kWh efectivos** bien a la vista.
 
-- **Una carga es una fila 🆕** — la lista se lee como la de Trayectos. Pulsa una fila para abrir el resto
-  debajo: la energía en detalle, el gráfico, tu nota y las acciones. El tipo, 🆓, ✎ y 📍 se editan en la
-  propia fila. **Desplegar todo**, en la cabecera de un día, de un intervalo o de una búsqueda, abre todas
-  las filas, y **Plegar todo** las cierra.
+- **Una carga es una fila 🆕** — la lista se lee como la de Trayectos, con una miniatura de la curva en
+  cada fila: la potencia (kW) encima del estado de carga (%). Pulsa una fila para abrir el resto debajo:
+  la energía en detalle, el gráfico, tu nota y las acciones. El tipo, 🆓, ✎ y 📍 se editan en la propia
+  fila. **Desplegar todo**, en la cabecera de un día, de un intervalo o de una búsqueda, abre todas las
+  filas, y **Plegar todo** las cierra.
 
 El tipo se clasifica con una etiqueta:
 

@@ -1210,9 +1210,10 @@ valide** au lieu de faire disparaître la carte), et avec elle :
 **(menu : Recharges)** — La liste des recharges. Pour chacune : **énergie ajoutée (kWh)**, **puissance
 maximale**, **type** et **coût**, avec le **€/kWh effectif** bien en évidence.
 
-- **Une recharge est une ligne 🆕** — la liste se lit comme celle des Trajets. Un clic sur une ligne ouvre
-  le reste en dessous : l'énergie en détail, le graphique, votre note et les actions. Le type, 🆓, ✎ et 📍
-  se modifient sur la ligne même. **Tout déplier**, dans l'en-tête d'un jour, d'une période ou d'une
+- **Une recharge est une ligne 🆕** — la liste se lit comme celle des Trajets, avec une miniature de la
+  courbe sur chaque ligne : la puissance (kW) au-dessus de l'état de charge (%). Un clic sur une ligne
+  ouvre le reste en dessous : l'énergie en détail, le graphique, votre note et les actions. Le type, 🆓, ✎
+  et 📍 se modifient sur la ligne même. **Tout déplier**, dans l'en-tête d'un jour, d'une période ou d'une
   recherche, ouvre toutes les lignes, et **Tout replier** les ferme.
 
 Le type est classé par une étiquette :

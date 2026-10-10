@@ -1119,10 +1119,11 @@ making the map disappear), and with it:
 **(menu: Charges)** — The list of charges. For each one: **energy added (kWh)**, **peak power**,
 **type** and **cost**, with the **effective €/kWh** clearly visible.
 
-- **A charge is a row 🆕** — the list reads like the Trips one. Click a row to open the rest under it: the
-  energy in detail, the chart, your note and the actions. The type, 🆓, ✎ and 📍 are edited on the row
-  itself. **Expand all**, in the heading of a day, a range or a search, opens every row, and
-  **Collapse all** closes them.
+- **A charge is a row 🆕** — the list reads like the Trips one, with a thumbnail of the curve on each row:
+  the power (kW) above the state of charge (%). Click a row to open the rest under it: the energy in
+  detail, the chart, your note and the actions. The type, 🆓, ✎ and 📍 are edited on the row itself.
+  **Expand all**, in the heading of a day, a range or a search, opens every row, and **Collapse all**
+  closes them.
 
 The type is classified with a label:
 

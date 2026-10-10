@@ -1,13 +1,13 @@
-"""A charge row in a real browser: on a phone and on a computer nothing sticks out of it; a click on the row
-opens the body under it and asks for the chart once, however often the row is opened and closed; the editors
-the row keeps (the type menu, 🆓, 🧭, ✏️, the place picker, the station's link) and a tooltip's mark (🛣) do
-their own work and leave the row closed, a word typed in their fields or a click on their text included;
-Expand all, there while a row is closed, opens every row of the day, and Collapse all, there while one is
-open, closes them; a link to a charge opens its row; a note is written in the opened row's foot and read
-there, and a note changed while its save is on its way stays open and unsaved; a merge or a split leaves the
-row of the charge open; an opened card's foot with every action fits a phone in four languages, and a merged,
-reconstructed charge's times keep to their column. Measured here, because only a browser says what a <summary>
-does with a click on a button inside it.
+"""A charge row in a real browser: on a phone and on a computer nothing sticks out of it and the curve beside it is
+a picture the browser drew; a click on the row opens the body under it and asks for the chart once, however often
+the row is opened and closed; the editors the row keeps (the type menu, 🆓, 🧭, ✏️, the place picker, the station's
+link) and a tooltip's mark (🛣) do their own work and leave the row closed, a word typed in their fields or a
+click on their text included; Expand all, there while a row is closed, opens every row of the day, and Collapse
+all, there while one is open, closes them; a link to a charge opens its row; a note is written in the opened
+row's foot and read there, and a note changed while its save is on its way stays open and unsaved; a merge or a
+split leaves the row of the charge open; an opened card's foot with every action fits a phone in four languages,
+and a merged, reconstructed charge's times keep to their column. Measured here, because only a browser says what
+a <summary> does with a click on a button inside it.
 Skips where it cannot run (no playwright, no Chromium), like the other browser tests.
 """
 import sqlite3
@@ -122,6 +122,8 @@ def test_nothing_sticks_out_of_a_closed_row(browser, mate, width):
     assert len(rows) == 2
     for row in rows:
         assert not row["scrolls"] and row["out"] == 0, row
+    drawn = page.eval_on_selector_all("img.charge-thumb", "imgs => imgs.map(i => i.complete && i.naturalWidth > 0)")
+    assert drawn == [True, True], ("each row's curve is a picture the browser could draw", drawn)
     if width == 390:
         assert all(row["locWidth"] > 0.9 for row in rows), ("on a phone the 📍 line has the whole row", rows)
         tops = page.eval_on_selector_all("details.charge-card > summary .sm\\:hidden", """els => els.map(e =>

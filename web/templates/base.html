@@ -155,6 +155,10 @@
     .charge-card[open] > .charge-body { border-color: #334155; }
     .charge-note-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .charge-actions > button { white-space: nowrap; }
+    /* The curve's thumbnail draws its own two frames; a charge without a curve (✎, ✨) gets one box instead. */
+    .charge-thumb { width: 84px; height: 64px; flex-shrink: 0; }
+    @media (min-width: 640px) { .charge-thumb { width: 120px; } }   /* a computer's row: proportions nearer the big chart's */
+    .charge-thumb-box { border-radius: .375rem; background: #0a1424; border: 1px solid #1a2438; }
     /* On a phone the middle column dissolves: the times and type stay beside the kWh, and the lines after
        them (where it happened, the note) take the row's whole width, as a trip row's places do. One
        element each, since the routes that redraw them address them by id. */

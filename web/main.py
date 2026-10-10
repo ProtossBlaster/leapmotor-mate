@@ -976,6 +976,137 @@ async def trip_route_svg(trip_id: int):
                     headers={"Cache-Control": "public, max-age=86400"})
 
 
+def _nice_scale(lo: float, hi: float, min_span: float = 4.0) -> tuple[float, float]:
+    """The scale the big chart gives a band (`niceScale` in band-chart.js): a round step, four of them
+    from a round floor under `lo` to above `hi`, never narrower than `min_span`."""
+    import math
+    if hi - lo < min_span:
+        mid = (lo + hi) / 2
+        lo, hi = mid - min_span / 2, mid + min_span / 2
+    mag = 10 ** math.floor(math.log10((hi - lo) / 4))
+    for m in (1, 2, 2.5, 3, 4, 5, 10, 20):
+        step = m * mag
+        if step % 1:
+            continue
+        a = math.floor(lo / step) * step
+        if a + 4 * step >= hi:
+            return a, a + 4 * step
+    return lo, hi
+
+
+def _curve_runs(times: list, values: list) -> list[list[tuple[float, float]]]:
+    """(instant, value) runs of a series, broken where the chart breaks its line: at a reading the poll
+    did not carry (None, never a 0) and at a gap wider than three typical steps, the typical step being
+    the median spacing (`spread` in band-chart.js). A finished charge's curve holds only the samples
+    with current flowing, so a pause arrives as such a gap, not as 0 kW. A lone reading is a run of one:
+    it draws no line but holds the time axis and the scale, as on the big chart."""
+    from datetime import datetime
+    from itertools import pairwise
+    secs = []
+    for t in times:
+        try:
+            secs.append(datetime.fromisoformat(t).timestamp())
+        except (TypeError, ValueError):
+            secs.append(None)
+    deltas = sorted(b - a for a, b in pairwise(secs) if a is not None and b is not None and b > a)
+    step = deltas[len(deltas) // 2] if deltas else 0
+    runs, run, prev = [], [], None
+    for t, v in zip(secs, values):
+        gap = step > 0 and prev is not None and t is not None and t - prev > step * 3
+        if t is None or v is None or gap:
+            if run:
+                runs.append(run)
+            run = []
+        if t is not None and v is not None:
+            run.append((t, float(v)))
+        prev = t if t is not None else prev
+    if run:
+        runs.append(run)
+    return runs
+
+
+def _curve_svg(curve: dict, w: int = 84, h: int = 64) -> str:
+    """The thumbnail of a charge's curve: power above SoC on one time axis, on the big chart's scales
+    (band-chart.js). A pixel column keeps its first, lowest, highest and last sample, so a one-sample
+    dip survives; a pause is a hole in both lines, no samples a dashed baseline in both."""
+    fh, gap, pad = (h - 4) // 2, 4, 4
+    frames = [(0, fh), (fh + gap, fh)]
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}">']
+    for top, height in frames:
+        out.append(f'<rect x="0.5" y="{top + 0.5}" width="{w - 1}" height="{height - 1}" rx="6" '
+                   f'fill="#0a1424" stroke="#1a2438"/>')
+    series = [(_curve_runs(curve.get("times") or [], curve.get("power") or []), "#fbbf24", frames[0], "power"),
+              (_curve_runs(curve.get("times") or [], curve.get("soc") or []), "#22c55e", frames[1], "soc")]
+    instants = [t for runs, *_ in series for run in runs for t, _ in run]
+    t0, t1 = (min(instants), max(instants)) if instants else (0.0, 0.0)
+    span = (t1 - t0) or 1.0
+
+    def x_of(t):
+        return pad + (t - t0) / span * (w - 2 * pad)
+
+    def columns(run):
+        cols = {}
+        for t, v in run:
+            cols.setdefault(int(x_of(t)), []).append((t, v))
+        pts = []
+        for _, c in sorted(cols.items()):
+            pts.extend(sorted({c[0], min(c, key=lambda p: p[1]), max(c, key=lambda p: p[1]), c[-1]}))
+        return pts
+
+    for runs, colour, (top, height), kind in series:
+        if not runs:
+            y = top + height / 2
+            out.append(f'<path d="M{pad} {y} L{w - pad} {y}" fill="none" stroke="#334155" '
+                       f'stroke-width="1.5" stroke-dasharray="3 3"/>')
+            continue
+        values = [v for run in runs for _, v in run]
+        if kind == "power":
+            lo, hi = _nice_scale(0.0, max(max(values), 4.0))
+        else:
+            lo, hi = _nice_scale(min(values), max(values))
+            if hi > 100:
+                lo, hi = 100 - (hi - lo), 100
+        rng = (hi - lo) or 1.0
+        drawn = [[(round(x_of(t), 1), round(top + pad + (1 - (v - lo) / rng) * (height - 2 * pad), 1))
+                  for t, v in columns(run)] for run in runs]
+        out.append(_curve_unit(kind, colour, top, height, w, [p for pts in drawn for p in pts]))
+        for pts in (pts for pts in drawn if len(pts) > 1):
+            d = "M" + " L".join(f"{x} {y}" for x, y in pts)
+            out.append(f'<path d="{d}" fill="none" stroke="{colour}" stroke-width="2" '
+                       f'stroke-linecap="round" stroke-linejoin="round"/>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def _curve_unit(kind: str, colour: str, top: float, height: float, w: int, pts: list) -> str:
+    """A frame's unit in the first corner (top left, top right, bottom right, bottom left) its line
+    crosses least, so the label rarely sits under the line."""
+    text, width = ("kW", 11) if kind == "power" else ("%", 7)
+    corners = [(6, top + 10, "start"), (w - 6, top + 10, "end"),
+               (w - 6, top + height - 4, "end"), (6, top + height - 4, "start")]
+
+    def crossed(corner):
+        x, y, anchor = corner
+        x0 = x if anchor == "start" else x - width
+        return sum(x0 - 2 <= px <= x0 + width + 2 and y - 9 <= py <= y + 2 for px, py in pts)
+
+    x, y, anchor = min(corners, key=crossed)
+    return (f'<text x="{x}" y="{y}" text-anchor="{anchor}" font-family="system-ui,sans-serif" font-size="8" '
+            f'font-weight="600" fill="{colour}" fill-opacity="0.8">{text}</text>')
+
+
+@app.get("/charges/{charge_id}/curve.svg")
+async def charge_curve_svg(charge_id: int, w: int = Query(84, ge=60, le=240)):
+    """The thumbnail beside a charge's row, `w` pixels wide (a computer's row asks for a wider one
+    than a phone's). A finished charge's curve is cached for a day: the row changes the address's
+    `?v=` when a merge or split changes the curve under the same id. A running charge's curve grows,
+    so it is not cached, nor is an empty one: the curve is the selected car's, the charge may not be."""
+    curve = db_reader.get_charge_power_curve(charge_id)
+    keep = db_reader.get_charge(charge_id).get("ended_at") and curve.get("times")
+    return Response(content=_curve_svg(curve, w=w), media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=86400" if keep else "no-store"})
+
+
 @app.get("/trips/{trip_id}", response_class=HTMLResponse)
 async def trip_detail(request: Request, trip_id: int, back: str = ""):
     vehicle, _ = db_reader.get_vehicle()
