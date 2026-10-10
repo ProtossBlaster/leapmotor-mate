@@ -176,6 +176,11 @@ def _rejection(status, codes):
     return error
 
 
+# A sign-in refused for its password, in the words the poller and the history worker wait an hour
+# on (#411).
+REFUSED_PASSWORD='incorrect account or password'
+
+
 class NewAPIClient(MateClientCompatibility):
     _mate_new_api = True
 
@@ -319,6 +324,11 @@ class NewAPIClient(MateClientCompatibility):
             if getattr(error,'reason',None):detail+=' ('+error.reason+')'   # why the transport failed (0.1.0a15)
             if error.http_status is not None:detail+='; HTTP='+str(error.http_status)
             if error.api_code is not None:detail+='; API='+str(error.api_code)
+            # The number alone says nothing to the poller, which reads a refused password by its
+            # words: 302010108 was asked again every 5 minutes, 257 times in a day (#411). It is
+            # "incorrect account or password" (kerniger/leapmotor-ha#74); in #338 it went the
+            # moment the right password was in.
+            if error.api_code==302010108:detail+=' ('+REFUSED_PASSWORD+')'
             with connect_db() as db:
                 set_setting(db,'api_v2_login_failure',detail)
             raise LeapmotorApiError('New API sign-in unavailable; '+detail+'; no automatic retry') from None

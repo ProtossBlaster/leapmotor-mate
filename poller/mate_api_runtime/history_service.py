@@ -20,13 +20,19 @@ def start_history_worker(on_login=None):
         if _thread is not None and _thread.is_alive():
             return
         from history_worker import sync_once
+        from api_v2_bridge import REFUSED_PASSWORD
         def loop():
             stop = threading.Event()
             while True:
+                wait = 300
                 try:
                     sync_once(on_login)
                 except Exception as error:
                     logging.getLogger('mate.history').warning('History sync unavailable (%s)', type(error).__name__)
-                stop.wait(300)
+                    # A refused password stays refused until it is changed, and a change restarts
+                    # the poller: asking every 5 minutes only piled up refusals (#411).
+                    if REFUSED_PASSWORD in str(error):
+                        wait = 3600
+                stop.wait(wait)
         _thread = threading.Thread(target=loop, name='mate-cloud-history', daemon=True)
         _thread.start()
