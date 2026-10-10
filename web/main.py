@@ -3319,8 +3319,10 @@ async def wallbox_compare_chart(request: Request):
     except (TypeError, ValueError):
         return HTMLResponse('<div class="text-sm text-slate-500 py-2">—</div>')
     curve = db_reader.get_charge_power_curve(cid)
+    home = db_reader.is_home_charge(cid)
+    wb_power = await run_in_threadpool(_wallbox_overlay, curve, home)   # it may read Home Assistant
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=cid, wb_power=_wallbox_overlay(curve, db_reader.is_home_charge(cid)), **curve))
+        cid=cid, wb_power=wb_power, **curve))
 
 
 @app.get("/api/wallbox/control", response_class=HTMLResponse)
@@ -3803,8 +3805,10 @@ async def charge_power_chart(request: Request, charge_id: int):
     SoC, the temperatures and the rest of the readings over time. When a wallbox is configured,
     its delivered AC power is drawn beside the car's DC power."""
     curve = db_reader.get_charge_power_curve(charge_id)
+    home = db_reader.is_home_charge(charge_id)
+    wb_power = await run_in_threadpool(_wallbox_overlay, curve, home)   # it may read Home Assistant
     return templates.TemplateResponse(request, "partials/charge_power_chart.html", _ctx(
-        cid=charge_id, wb_power=_wallbox_overlay(curve, db_reader.is_home_charge(charge_id)), **curve))
+        cid=charge_id, wb_power=wb_power, **curve))
 
 
 @app.post("/api/settings/prices", response_class=HTMLResponse)

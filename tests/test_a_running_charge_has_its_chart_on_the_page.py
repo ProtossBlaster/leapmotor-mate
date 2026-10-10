@@ -4,7 +4,10 @@ card is there only for a charge in progress,
 and only once it has two readings to draw; a finished charge leaves the panel empty, and its chart is
 where it always was, under the card. The wallbox's line is drawn while the charge runs when the charge
 is at home: typed HOME at its start, or the wallbox delivering power while the car is plugged in.
+Either chart reads the wallbox's history off the event loop, so a Home Assistant out of reach holds
+that chart alone, never every other request of the app.
 """
+import asyncio
 import datetime as dt
 import re
 from types import SimpleNamespace
@@ -177,3 +180,24 @@ def test_an_idle_wallbox_says_the_charge_is_elsewhere(car, monkeypatch):
                         lambda *a: pytest.fail("the home wallbox's history was read for a charge elsewhere"))
     polled = TestClient(main.app).get("/api/charging-chart").text
     assert 'id="pc-9"' in polled and "data: col([])" in _wallbox_line(polled)
+
+
+@pytest.mark.parametrize("route", ["/api/charging-chart", "/api/charge/9/power-chart",
+                                   "/api/wallbox/compare-chart?charge_id=9"])
+def test_the_wallbox_history_is_read_off_the_event_loop(car, monkeypatch, route):
+    import ha_client
+    car.db.execute("UPDATE charges SET location_type = 'HOME' WHERE id = 9")
+    car.db.commit()
+    car.polls(5)
+    _wallbox(monkeypatch, car, power_kw=0)
+    on_the_loop = []
+
+    def history(entity, start, end):
+        try:
+            on_the_loop.append(asyncio.get_running_loop())
+        except RuntimeError:
+            pass
+        return [(ha_client.epoch(start) - 1, 3.1)]
+
+    monkeypatch.setattr(ha_client, "get_history", history)
+    assert "3.1" in _wallbox_line(TestClient(main.app).get(route).text) and not on_the_loop
