@@ -1,8 +1,26 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.13.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.14.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.13.1
+## Neu in Version 4.14.0
+
+**Mate schreibt die Notiz eines Ladevorgangs nicht mehr selbst.** Bisher schrieb Mate mit den
+Standardeinstellungen auf jeden Ladevorgang, den es abschloss, eine Notiz — die Adresse, die Uhrzeiten,
+die Temperaturen — und schickte, um die Adresse zu finden, die Position jedes Ladevorgangs außerhalb des
+Zuhauses an OpenStreetMap, auch bei ausgeschalteter Adresssuche. Beides hört auf: Die Notiz gehört Ihnen,
+wie die einer Fahrt seit 4.13.0, und vorher geschriebene Notizen bleiben, wie sie sind. Die Uhrzeiten
+stehen in der Überschrift des Ladevorgangs, die Temperaturen in seinem Diagramm und die Adresse in seiner
+📍-Zeile. Ein Ladevorgang, der dort noch keine Adresse hat, etwa ein älterer, hat **🧭** neben 📍: Es
+fragt sofort den unter *Einstellungen → Adresssuche* gewählten Dienst, auch bei ausgeschaltetem Schalter,
+und zeichnet die Zeile neu; kommt keine Adresse, sagt eine Zeile darunter, warum. *Notiz von selbst
+schreiben* verschwindet aus dieser Karte. Auch das 🧭 einer Fahrt sagt jetzt, warum keine Adresse kam:
+Der Dienst hat dort nichts, oder woran die Anfrage scheiterte. Von @arekm (#406).
+
+**Mate in Home Assistant aus einer Docker-Installation.** Mit hass_ingress im Standardmodus `ingress`
+tragen Sie in `MATE_FRAME_ANCESTORS` die Adresse ein, mit der Sie Home Assistant öffnen. Die README
+erklärt jetzt, was ein Mate-Passwort in einem Frame bewirkt (#407).
+
+### Neu in Version 4.13.1
 
 **Jeder Ladevorgang zeigt, wo er stattfand.** Neben 📍 zeigt ein Ladevorgang die Ladestation mit ihrer
 Adresse dahinter; ohne Ladestation Ihren Ladeort dort, mit „(Ladeort)“, oder die Adresse — auch für einen

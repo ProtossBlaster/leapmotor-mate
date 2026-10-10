@@ -1,8 +1,26 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.13.1 · **Idioma:** Español
+> **Versión de Mate:** v4.14.0 · **Idioma:** Español
 
-## Novedades de la versión 4.13.1
+## Novedades de la versión 4.14.0
+
+**Mate ya no escribe la nota de las cargas.** Hasta ahora, con los ajustes predeterminados, Mate escribía
+una nota en cada carga que cerraba — la dirección, las horas, las temperaturas — y, para encontrar la
+dirección, enviaba a OpenStreetMap la posición de cada carga fuera de casa, incluso con la búsqueda de
+direcciones apagada. Las dos cosas se acaban: la nota es tuya, como la de los trayectos desde la 4.13.0,
+y las notas escritas antes se quedan como están. Las horas están en el encabezado de la carga, las
+temperaturas en su gráfico y la dirección en su línea 📍. Una carga que allí aún no tiene dirección, una
+más antigua por ejemplo, tiene **🧭** junto a 📍: pregunta en el momento al servicio elegido en *Ajustes →
+Búsqueda de direcciones*, incluso con el interruptor apagado, y vuelve a dibujar la línea; si no llega
+ninguna dirección, una línea debajo dice por qué. *Escribir la nota sola* desaparece de esa tarjeta. El
+🧭 de un trayecto también dice ahora por qué no llegó una dirección: el servicio no tiene nada allí, o
+cómo falló la petición. De @arekm (#406).
+
+**Mate dentro de Home Assistant desde una instalación Docker.** Con hass_ingress en su modo
+predeterminado `ingress`, pon en `MATE_FRAME_ANCESTORS` la dirección con la que abres Home Assistant. El
+README explica ahora qué hace una contraseña de Mate dentro de un marco (#407).
+
+### Novedades de la versión 4.13.1
 
 **Cada carga muestra dónde se hizo.** Junto a 📍 una carga muestra el cargador con su dirección detrás;
 sin cargador, tu lugar de carga allí, con «(lugar de carga)», o la dirección — también una carga en casa.

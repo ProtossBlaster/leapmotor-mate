@@ -1,8 +1,25 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.13.1 · **Language:** English
+> **Mate version:** v4.14.0 · **Language:** English
 
-## New in 4.13.1
+## New in 4.14.0
+
+**Mate no longer writes a charge's note.** Until now, with the default settings, Mate wrote a note on
+every charge it closed — the address, the times, the temperatures — and to find the address it sent the
+position of every charge away from home to OpenStreetMap, even with the address lookup switched off.
+Both stop: the note is yours, as a trip's has been since 4.13.0, and the notes written before stay as
+they are. The times are in the charge's heading, the temperatures on its chart and the address on its 📍
+line. A charge with no address there yet, an older one for instance, has **🧭** beside 📍: it asks the
+provider chosen in *Settings → Address lookup* at once, even with the switch off, and draws the line
+again; when no address comes, a row under it says why. *Write the note by itself* is gone from that
+card. The 🧭 of a trip also says why no address came: the provider has nothing there, or how asking it
+failed. By @arekm (#406).
+
+**Mate inside Home Assistant from a Docker install.** With hass_ingress in its default `ingress` mode,
+put the address you open Home Assistant with in `MATE_FRAME_ANCESTORS`. The README now says what a Mate
+password does inside a frame (#407).
+
+### New in 4.13.1
 
 **Every charge shows where it happened.** Beside 📍 a charge shows the station with its address after
 it; without a station, your charging place there, with "(charging place)", or the address — a charge at

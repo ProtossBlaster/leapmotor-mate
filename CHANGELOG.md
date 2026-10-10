@@ -3,6 +3,29 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.14.0] — 2026-10-10
+
+- **Mate no longer writes a charge's note; 🧭 looks its address up instead**
+  ([#406](https://github.com/ProtossBlaster/leapmotor-mate/pull/406), @arekm). With the default settings Mate wrote a note on every charge it closed (the station's
+  address, the times, the outside and battery temperatures), and to find that address it sent the
+  position of every charge closed away from home to OpenStreetMap's Overpass, even with ⚡ Charging
+  stations and the address lookup switched off. Both stop: the note is the user's, as a trip's is
+  since 4.13.0, and notes written before stay as they are. The times are in the card's heading, the
+  temperatures on the charge's chart and the address on its 📍 line (4.13.1). Where that line has no
+  address and no charging place names the charge, 🧭 beside it asks the provider chosen in Settings ▸
+  Address lookup at once (`POST /api/charges/{id}/address`), whatever the card's switch says, and
+  draws the line again; when no address comes, a row under it says why. Settings ▸ Address lookup
+  loses *Write the note by itself*; the setting stays in the database, unread. The refuel's 🧭 is
+  unchanged. The 🧭 in a trip's summary also says why no address came: the provider has nothing there,
+  or how asking it failed, in the provider's or the network's words.
+- **A network error without words still names itself** in the row under 🧭, where it read "Asking
+  Nominatim failed: " with nothing after it.
+- **Docs: Mate inside Home Assistant through hass_ingress** ([#407](https://github.com/ProtossBlaster/leapmotor-mate/issues/407)). The README and `.env.example`
+  name hass_ingress's `ingress` mode and the addresses to put in `MATE_FRAME_ANCESTORS`. The README
+  said that with a password, logging in inside a frame does not work and to log in in a regular tab
+  first; it now says what was measured: in a frame on the same site as Mate logging in works, and in a
+  frame on another host the login page comes back even after logging in in a tab.
+
 ## [4.13.1] — 2026-10-09
 
 - **A charge shows where it happened**

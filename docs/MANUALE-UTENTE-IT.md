@@ -1,8 +1,26 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.13.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.14.0 · **Lingua:** Italiano
 
-## Novità della 4.13.1
+## Novità della 4.14.0
+
+**Mate non scrive più la nota delle ricariche.** Finora, con le impostazioni predefinite, Mate scriveva
+una nota su ogni ricarica che chiudeva — l'indirizzo, gli orari, le temperature — e per trovare
+l'indirizzo mandava a OpenStreetMap la posizione di ogni ricarica fuori casa, anche con la ricerca
+indirizzi spenta. Smette di fare entrambe le cose: la nota è tua, come quella dei viaggi dalla 4.13.0, e
+le note scritte prima restano come sono. Gli orari sono nell'intestazione della ricarica, le temperature
+nel suo grafico e l'indirizzo sulla riga 📍. Una ricarica che lì non ha ancora un indirizzo, per esempio
+una più vecchia, ha **🧭** accanto a 📍: chiede subito al servizio scelto in *Impostazioni → Ricerca
+indirizzi*, anche con l'interruttore spento, e ridisegna la riga; se non arriva nessun indirizzo, una
+riga sotto dice perché. Da quella scheda sparisce *Scrivi la nota da sola*. Anche il 🧭 di un viaggio
+ora dice perché non è arrivato un indirizzo: il servizio lì non ha niente, oppure come è fallita la
+richiesta. Di @arekm (#406).
+
+**Mate dentro Home Assistant da un'installazione Docker.** Con hass_ingress nella modalità predefinita
+`ingress`, metti in `MATE_FRAME_ANCESTORS` l'indirizzo con cui apri Home Assistant. Il README ora spiega
+cosa fa la password di Mate dentro un frame (#407).
+
+### Novità della 4.13.1
 
 **Ogni ricarica mostra dove è avvenuta.** Accanto a 📍 una ricarica mostra la colonnina con il suo
 indirizzo; senza colonnina, il tuo luogo di ricarica lì, con «(luogo di ricarica)», oppure l'indirizzo —

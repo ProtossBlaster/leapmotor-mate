@@ -1,8 +1,26 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.13.1 · **Langue :** Français
+> **Version de Mate :** v4.14.0 · **Langue :** Français
 
-## Nouveautés de la version 4.13.1
+## Nouveautés de la version 4.14.0
+
+**Mate n'écrit plus la note des recharges.** Jusqu'ici, avec les réglages par défaut, Mate écrivait une
+note sur chaque recharge qu'il clôturait — l'adresse, les heures, les températures — et, pour trouver
+l'adresse, il envoyait à OpenStreetMap la position de chaque recharge hors du domicile, même avec la
+recherche d'adresses désactivée. Les deux s'arrêtent : la note est la vôtre, comme celle des trajets
+depuis la 4.13.0, et les notes écrites avant restent telles quelles. Les heures sont dans l'en-tête de la
+recharge, les températures sur son graphique et l'adresse sur sa ligne 📍. Une recharge qui n'y a pas
+encore d'adresse, une plus ancienne par exemple, a **🧭** à côté de 📍 : il interroge tout de suite le
+service choisi dans *Paramètres → Recherche d'adresses*, même interrupteur désactivé, et redessine la
+ligne ; quand aucune adresse n'arrive, une ligne en dessous dit pourquoi. *Rédiger la note
+automatiquement* disparaît de cette carte. Le 🧭 d'un trajet dit lui aussi pourquoi aucune adresse
+n'est venue : le service n'a rien à cet endroit, ou comment la demande a échoué. Par @arekm (#406).
+
+**Mate dans Home Assistant depuis une installation Docker.** Avec hass_ingress dans son mode par défaut
+`ingress`, mettez dans `MATE_FRAME_ANCESTORS` l'adresse avec laquelle vous ouvrez Home Assistant. Le
+README explique désormais ce que fait un mot de passe de Mate dans un cadre (#407).
+
+### Nouveautés de la version 4.13.1
 
 **Chaque recharge montre où elle a eu lieu.** À côté de 📍, une recharge affiche la borne suivie de son
 adresse ; sans borne, votre lieu de recharge à cet endroit, avec « (lieu de recharge) », ou l'adresse —
