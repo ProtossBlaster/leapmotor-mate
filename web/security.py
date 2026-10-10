@@ -40,9 +40,10 @@ MUTATING = frozenset(("POST", "PUT", "PATCH", "DELETE"))
 EXEMPT_PREFIXES = ("/static/", "/healthz")
 
 SECURITY_HEADERS = {
-    # No framing at all: clickjacking needs a frame, and Mate is never legitimately embedded
-    # outside add-on mode (where this whole module is skipped). X-Frame-Options for older
-    # browsers, frame-ancestors for the ones that have moved on.
+    # No framing by default: clickjacking needs a frame. A page that embeds Mate on purpose (a Home
+    # Assistant dashboard, hass_ingress) is named in MATE_FRAME_ANCESTORS — see security_headers();
+    # as an add-on this whole module is skipped. X-Frame-Options for older browsers,
+    # frame-ancestors for the ones that have moved on.
     "X-Frame-Options": "DENY",
     "Content-Security-Policy": "frame-ancestors 'none'",
     # Don't let a browser second-guess a Content-Type and run something as script.
