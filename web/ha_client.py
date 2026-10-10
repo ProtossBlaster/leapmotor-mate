@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 import ssl
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -22,6 +23,8 @@ from urllib.parse import quote
 import db_reader
 
 _TIMEOUT = 8  # seconds — local network, keep snappy
+_UNREACHABLE_FOR = 60  # seconds a request with no answer keeps the charts from asking again
+_unreachable_at: float | None = None
 
 # Entities likely to belong to a wallbox / EV charger, by name or device_class.
 _WB_KEYWORDS = (
@@ -85,12 +88,28 @@ def _request(path: str, method: str = "GET", payload: object | None = None) -> t
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
-    with urllib.request.urlopen(req, timeout=_TIMEOUT, context=ctx) as resp:
-        raw = resp.read().decode("utf-8", "replace")
-        try:
-            return resp.status, json.loads(raw)
-        except json.JSONDecodeError:
-            return resp.status, raw
+    global _unreachable_at
+    try:
+        with urllib.request.urlopen(req, timeout=_TIMEOUT, context=ctx) as resp:
+            raw = resp.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError:
+        _unreachable_at = None
+        raise
+    except OSError:
+        _unreachable_at = time.monotonic()
+        raise
+    _unreachable_at = None
+    try:
+        return resp.status, json.loads(raw)
+    except json.JSONDecodeError:
+        return resp.status, raw
+
+
+def recently_unreachable() -> bool:
+    """True within a minute of a request Home Assistant did not answer at all (refused, timed out), until one
+    is answered: a page of charts then asks once instead of each one waiting the whole timeout."""
+    at = _unreachable_at   # read once: another thread may clear it in between
+    return at is not None and time.monotonic() - at < _UNREACHABLE_FOR
 
 
 def test_connection() -> dict:

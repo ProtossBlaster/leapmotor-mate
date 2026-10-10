@@ -3637,7 +3637,7 @@ def _wallbox_overlay(curve: dict, home: bool) -> list | None:
     mapping = ha_client.get_mapping()
     wallbox_on = db_reader.get_setting("wallbox_enabled", "0") == "1"
     if (not wallbox_on or not times or not ha_client.is_configured()
-            or not mapping.get("power") or not home):
+            or not mapping.get("power") or not home or ha_client.recently_unreachable()):
         return None
     hist = ha_client.get_history(mapping["power"], times[0], times[-1])
     if not hist:
