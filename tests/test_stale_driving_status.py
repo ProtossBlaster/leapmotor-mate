@@ -11,7 +11,6 @@ from test_a_trip_ends_when_the_car_last_spoke import rig, _vd, _ms, T0
 @pytest.fixture
 def screen(rig, monkeypatch):
     db, rec, poll, wall = rig
-    db.set_setting("auto_note", "0")
     db.set_setting("language", "en")
     monkeypatch.setattr(db_reader, "DB_PATH", db._path)
     monkeypatch.setattr(db_reader, "_current_vehicle_id", lambda: rec._vehicle_id)

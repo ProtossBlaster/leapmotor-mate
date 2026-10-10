@@ -3,7 +3,8 @@ nearest charging place or the address, and a search finds it by any of them.
 
 The name is worked out when the charge is read (db_reader.charge_places), in one order: the charging
 place assigned to it, the station, the charging place whose radius holds its point, the address stored
-for its spot (place_lookup). Every route that redraws the card's 📍 line names it the same way.
+for its spot (place_lookup). Every route that redraws the card's 📍 line names it the same way. A missing
+address is looked up on request by the line's 🧭; the note is the user's, Mate writes nothing into it.
 """
 import csv
 import io
@@ -145,6 +146,95 @@ def test_relocating_or_typing_a_station_keeps_the_address(car, monkeypatch):
     assert where(car.client.get(f"/api/charges/{cid}/locate/cancel").text, cid) == "📍 Corso Francia, Torino"
 
 
+# ── the 🧭 ──────────────────────────────────────────────────────────────────────
+
+def look_up(cid):
+    return f'hx-post="api/charges/{cid}/address"'
+
+
+def test_the_charge_card_has_no_compass_for_the_note_any_more(car):
+    cid = charge(car, WORK)
+    assert f"api/charges/{cid}/auto-note" not in drawer(car)
+    assert car.client.post(f"/api/charges/{cid}/auto-note").status_code in (404, 405)
+    card = car.client.get("/settings").text.split('hx-post="api/settings/geocoder"')[1].split("</form>")[0]
+    assert "auto_note" not in card
+
+
+def test_a_missing_address_is_looked_up_on_request(car, monkeypatch):
+    """Whatever the switch in Address lookup says and however old the charge (DAY is weeks ago): its point is
+    asked about once, and the line comes back with the address, without the 🧭."""
+    import geocode
+    from test_the_places_of_recent_trips_are_looked_up import Providers, nominatim, spot
+    providers = Providers()
+    providers.answers[("nominatim.openstreetmap.org", spot(*WORK))] = nominatim("Corso Francia")
+    monkeypatch.setattr(geocode, "_get", providers)
+    car.set_setting("place_lookup", "0")
+    cid = charge(car, WORK, station="Ionity Torino")
+    assert look_up(cid) in drawer(car)
+    redrawn = car.client.post(f"/api/charges/{cid}/address").text
+    assert providers.calls() == [spot(*WORK)]
+    assert where(redrawn, cid) == "📍 Ionity Torino · Corso Francia, Torino" and osm_marked(redrawn, cid)
+    assert look_up(cid) not in redrawn
+
+
+def _station_with_its_address(car):
+    address(WORK, road="Corso Francia", locality="Torino")
+    return charge(car, WORK, station="Ionity Torino")
+
+
+def _inside_a_charging_place(car):
+    charging_place(car, WORK, "Office")
+    return charge(car, WORK)
+
+
+def _a_place_assigned(car):
+    charging_place(car, SHOP, "Office")
+    cid = charge(car, WORK)
+    db_reader.assign_charging_place(cid, place_id(car, "Office"))
+    return cid
+
+
+def _only_the_providers_full_text(car):
+    """The provider answered, without a part the line shows beside a station: asking again brings the same."""
+    address(WORK, display_name="Località Sconosciuta, Piemonte, Italia")
+    return charge(car, WORK, station="Ionity Torino")
+
+
+@pytest.mark.parametrize("make, compass", [
+    pytest.param(lambda car: charge(car, WORK, station="Ionity Torino"), True, id="a station without an address"),
+    pytest.param(lambda car: charge(car, WORK), True, id="nothing names it"),
+    pytest.param(lambda car: charge(car, HOME, kind="HOME"), True, id="at home"),
+    pytest.param(lambda car: charge(car, (0.0, 18.0)), True, id="on the equator"),
+    pytest.param(lambda car: charge(car, (51.0, 0.0)), True, id="on the prime meridian"),
+    pytest.param(_station_with_its_address, False, id="a station with its address"),
+    pytest.param(_inside_a_charging_place, False, id="inside a charging place"),
+    pytest.param(_a_place_assigned, False, id="a place assigned"),
+    pytest.param(_only_the_providers_full_text, False, id="an address of the provider's full text only"),
+    pytest.param(lambda car: charge(car, (0.0, 0.0)), False, id="no GPS fix"),
+    pytest.param(lambda car: charge(car, None), False, id="typed in, without coordinates"),
+])
+def test_the_compass_shows_only_where_an_address_is_missing(car, make, compass):
+    cid = make(car)
+    assert (look_up(cid) in drawer(car)) is compass
+
+
+@pytest.mark.parametrize("answer, says", [
+    pytest.param({"error": "Unable to geocode"}, "Nominatim has no address here", id="nothing there"),
+    pytest.param(TimeoutError("timed out"), "Asking Nominatim failed: timed out", id="no answer"),
+])
+def test_a_lookup_on_request_that_finds_nothing_says_why(car, monkeypatch, answer, says):
+    """Else the unchanged line would read as a button that did nothing; why, as the trip's 🧭 says it."""
+    import geocode
+    from test_the_places_of_recent_trips_are_looked_up import Providers, spot
+    providers = Providers()
+    providers.answers[("nominatim.openstreetmap.org", spot(*WORK))] = answer
+    monkeypatch.setattr(geocode, "_get", providers)
+    cid = charge(car, WORK)
+    redrawn = car.client.post(f"/api/charges/{cid}/address").text
+    assert providers.calls() == [spot(*WORK)]
+    assert says in redrawn and look_up(cid) in redrawn
+
+
 # ── the credit ────────────────────────────────────────────────────────────────
 
 def test_a_list_of_charges_carries_the_credit_and_marks_the_addresses_from_openstreetmap(car):
@@ -205,4 +295,7 @@ def test_the_csv_export_says_where_each_charge_happened(car):
     rows = list(csv.DictReader(io.StringIO(car.client.get("/api/export/charges.csv").text)))
     assert [(r["place"], r["address"]) for r in rows] == [("Via Roma, Torino", "Via Roma, Torino"),
                                                           ("Ionity Torino", "Corso Francia, Torino")]
-    assert not {"search_text", "place_osm", "place_charging", "address_osm"} & set(rows[0])
+    probe = {"vehicle_id": car.vid, "latitude": WORK[0], "longitude": WORK[1]}
+    db_reader.charge_places([probe])
+    helpers = set(probe) - {"vehicle_id", "latitude", "longitude", "place", "address"}
+    assert helpers and not helpers & set(rows[0]), "what only a card needs stays out of the export"

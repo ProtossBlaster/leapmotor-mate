@@ -322,7 +322,7 @@ templates.env.globals.update(
     dist_val=units.dist_val, speed_val=units.speed_val, temp_val=units.temp_val,
     eff_val=units.eff_val, elev_val=units.elev_val, unit_system=units.get_unit_system,
     dist100_unit=units.dist100_unit, cost100_val=units.cost100_val,
-    eff_cls=_eff_cls, display_tz_name=db_reader.display_tz_name,
+    eff_cls=_eff_cls, display_tz_name=db_reader.display_tz_name, provider_names=geocode.NAMES,
     # #222 — whether the charger's-own-kWh field can be offered at all. A GLOBAL, not a per-route
     # value: the charge card is rendered by the page AND by two partials that build their context by
     # hand, so a flag passed through _ctx reached the page and silently vanished from the day drawer
@@ -1007,15 +1007,16 @@ def _trip_place_lines(trip: dict) -> dict:
 @app.post("/api/trips/{trip_id}/places", response_class=HTMLResponse)
 async def trip_look_up_places(request: Request, trip_id: int):
     """🧭 in the Trip summary: the trip's ends without an address are looked up now, whatever the switch in
-    Address lookup says and however old the trip, as the note's 🧭 did; then its lines are drawn again."""
+    Address lookup says and however old the trip; then its lines are drawn again, saying why when an address
+    did not come."""
     import asyncio
     trip = db_reader.get_trip_detail(trip_id)
     if not trip:
         return HTMLResponse("", status_code=404)
     points = [(trip.get(f"{end}_lat"), trip.get(f"{end}_lon")) for end in ("start", "end")]
-    await asyncio.get_event_loop().run_in_executor(None, place_lookup.look_up_now, points)
+    lookup = await asyncio.get_event_loop().run_in_executor(None, place_lookup.look_up_now, points)
     return templates.TemplateResponse(request, "partials/trip_place_lines.html",
-                                      _ctx(trip=trip, **_trip_place_lines(trip)))
+                                      _ctx(trip=trip, lookup=lookup, **_trip_place_lines(trip)))
 
 
 @app.get("/trips/{trip_id}/similar", response_class=HTMLResponse)
@@ -1223,25 +1224,6 @@ async def set_charge_note(request: Request, charge_id: int):
     form = await request.form()
     db_reader.save_charge_note(charge_id, form.get("note") or "")
     return HTMLResponse("✓ " + i18n.get_t(db_reader.get_language())("note_saved"))
-
-
-@app.post("/api/charges/{charge_id}/auto-note", response_class=HTMLResponse)
-async def charge_generate_auto_note(request: Request, charge_id: int):
-    """🧭 manual 'Generate' button: builds the station-address + start/end time+temperature
-    summary and writes it straight into the charge's note field, replacing whatever was
-    there (the UI confirms with the user first when there was something to lose —
-    charge_card.html's conditional hx-confirm). Both the station lookup and the
-    reverse-geocoding a HOME charge skips are live network calls, so this only ever runs
-    on a click for THIS one charge — never a background sweep. Swaps in just the
-    textarea, so the Salva button below still submits the fresh text normally."""
-    import asyncio
-    provider = db_reader.get_setting("geocoder_provider", "")
-    key = db_reader.get_secret("geocoder_key", "") or None
-    note = await asyncio.get_event_loop().run_in_executor(
-        None, db_reader.generate_charge_auto_note, charge_id, provider, key)
-    t = i18n.get_t(db_reader.get_language())
-    return templates.TemplateResponse(request, "partials/charge_note_textarea.html",
-                                      {"c": {"id": charge_id, "note": note}, "t": t})
 
 
 @app.get("/charges", response_class=HTMLResponse)
@@ -2095,8 +2077,8 @@ async def fuel_detected_dismiss(request: Request):
 async def fuel_generate_auto_note(request: Request, purchase_id: int):
     """🧭 on a refuel: writes where the car was standing into that refuel's note, so the pump
     identifies itself instead of being typed in — asked for by @gm27271 (beta discussion #14).
-    Same shape as the charge button above: a live reverse-geocode, so it only ever runs on a click
-    for THIS one refuel, never as a background sweep. Swaps the whole list back because the note
+    A live reverse-geocode, so it only ever runs on a click for THIS one refuel, never as a
+    background sweep. Swaps the whole list back because the note
     is shown inline on the row rather than in an editable field of its own."""
     if _fuel_blocked():
         return RedirectResponse(request.headers.get("x-ingress-path", "") + "/", status_code=303)
@@ -3536,6 +3518,20 @@ def _charge_location_line(request: Request, charge: dict, t, **state):
     return templates.TemplateResponse(request, "partials/charge_location.html", {"charge": charge, "t": t, **state})
 
 
+@app.post("/api/charges/{charge_id}/address", response_class=HTMLResponse)
+async def charge_look_up_address(request: Request, charge_id: int):
+    """🧭 on a charge's 📍 line: the address of its point is looked up now, whatever the switch in Address
+    lookup says and however old the charge; then the line is drawn again, saying why when none came."""
+    import asyncio
+    charge = db_reader.get_charge_location(charge_id)
+    if not charge:
+        return HTMLResponse("", status_code=404)
+    lookup = await asyncio.get_event_loop().run_in_executor(
+        None, place_lookup.look_up_now, [(charge["latitude"], charge["longitude"])])
+    t = i18n.get_t(db_reader.get_language())
+    return _charge_location_line(request, charge, t, lookup=lookup)
+
+
 @app.post("/api/charges/{charge_id}/locate", response_class=HTMLResponse)
 async def relocate_charge(request: Request, charge_id: int):
     """Manual 📍 recalculation, on demand — unlike the automatic background sweep
@@ -3970,13 +3966,8 @@ async def save_geocoder(request: Request):
     form = await request.form()
     if "geocoder_provider" in form:
         db_reader.set_setting("geocoder_provider", (form.get("geocoder_provider") or "").strip())
-    if "place_lookup_present" in form:      # the same marker reason as auto_note's, below
+    if "place_lookup_present" in form:      # the marker, not the box: unticked, it submits nothing, like a form without it
         db_reader.set_setting("place_lookup", "1" if form.get("place_lookup") else "0")
-    # The switch for a new charge's automatic 🧭 note. Guarded by the marker rather than by the
-    # checkbox alone, because an unticked box submits nothing at all and would otherwise read as
-    # "turn it off" on any form that never showed it.
-    if "auto_note_present" in form:
-        db_reader.set_setting("auto_note", "1" if form.get("auto_note") else "0")
     gkey = (form.get("geocoder_key") or "").strip()
     if gkey:  # masked field: only overwrite on a non-empty submit
         db_reader.set_secret("geocoder_key", gkey)
@@ -4183,7 +4174,7 @@ async def export_charges_csv():
     charges = db_reader.get_charges(limit=1_000_000)
     db_reader.charge_places(charges)                 # place as its card names it; the address, also beside a station
     for c in charges:
-        for key in ("search_text", "place_osm", "place_charging", "address_osm"):
+        for key in ("search_text", "place_osm", "place_charging", "address_osm", "gps_fix", "address_found"):
             c.pop(key, None)
     return _csv_response(charges, "leapmotor-mate-charges.csv")
 

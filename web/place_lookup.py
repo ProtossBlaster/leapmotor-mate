@@ -13,10 +13,10 @@ provider that said it, for the pass. Another one chosen later is asked at once w
 nothing or failed; an address found stays until it is ADDRESS_REFRESH_DAYS old, then the next trip or
 charge there asks again, and only a new address replaces it. Only the ends of trips and the charges that
 ended in the last RECENT_DAYS are looked up, and only while the switch in that card is on; the 🧭 on a
-trip's page asks about that trip's ends whenever the user wants (look_up_now). The history is never
-swept: Nominatim's usage policy counts the requests of every install of an application together and
-treats an application's periodic requests as bulk. Its other rules are kept here too: at most one
-request per second, from the pass and the 🧭 together, a few per sweep, and every answer stored.
+trip's page and on a charge's 📍 line asks about its points whenever the user wants (look_up_now). The
+history is never swept: Nominatim's usage policy counts the requests of every install of an application
+together and treats an application's periodic requests as bulk. Its other rules are kept here too: at most
+one request per second, from the pass and the 🧭 together, a few per sweep, and every answer stored.
 """
 import contextlib
 import logging
@@ -123,12 +123,14 @@ def _known(cells) -> dict:
 
 
 def _ask(gh: str, lat: float, lon: float, row, chosen: str, key: str | None, provider: str,
-         now: datetime) -> str:
-    """Ask the provider about one cell and keep the answer: "found", "none" or "failed" (asked again later)."""
+         now: datetime) -> tuple[str, str | None]:
+    """Ask the provider about one cell and keep the answer: "found", "none" or "failed" (asked again later), with
+    what went wrong on a failure (geocode.failure)."""
     refresh = row is not None and row["status"] == "found"
     try:
         place = geocode.reverse_place(lat, lon, chosen, key)
     except Exception as e:  # noqa: BLE001 — timeout, HTTP, malformed answer: all asked again later
+        why = geocode.failure(e)
         again = row is not None and row["retry_provider"] == provider
         attempts = (row["attempts"] if again else 0) + 1
         wait = min(_RETRY_S * 2 ** (attempts - 1), _RETRY_MAX_S)
@@ -137,13 +139,13 @@ def _ask(gh: str, lat: float, lon: float, row, chosen: str, key: str | None, pro
         else:
             _store(gh, lat, lon, provider, now, "failed", attempts=attempts,
                    retry_at=_iso(now + timedelta(seconds=wait)), retry_provider=provider)
-        log.warning("%s failed (%s), asked again in %d min", provider, e, wait // 60)
-        return "failed"
+        log.warning("%s failed (%s), asked again in %d min", provider, why, wait // 60)
+        return "failed", why
     if refresh and not place:
         _keep(gh, looked_up_at=_iso(now), attempts=0, retry_at=None, retry_provider=None)
     else:
         _store(gh, lat, lon, provider, now, "found" if place else "none", place)
-    return "found" if place else "none"
+    return ("found" if place else "none"), None
 
 
 def _ask_each(cells: list, wanted, chosen: str, key: str | None, now: datetime, pause,
@@ -151,10 +153,11 @@ def _ask_each(cells: list, wanted, chosen: str, key: str | None, now: datetime, 
     """Ask about each (geohash, lat, lon) whose row is `wanted(row, provider)`, at most `limit` of them, each
     _GAP_S after the request before it, whichever batch made that one. The rows are read once no other batch
     is asking, so a cell it just found is not asked again. The first failure ends the batch: the provider is
-    most likely down, and the cell that failed waits without holding up the others."""
+    most likely down, and the cell that failed waits without holding up the others. Returns the counts, the
+    provider asked and, after a failure, what went wrong (`why`)."""
     global _asked_at
     provider = geocode.lookup_provider(chosen, key)
-    n = {"known": 0, "calls": 0, "found": 0, "none": 0, "failed": 0}
+    n = {"known": 0, "calls": 0, "found": 0, "none": 0, "failed": 0, "provider": provider, "why": None}
     with _asking:
         known = _known(gh for gh, _, _ in cells)
         for gh, lat, lon in cells:
@@ -169,11 +172,12 @@ def _ask_each(cells: list, wanted, chosen: str, key: str | None, now: datetime, 
                 pause(wait)
             n["calls"] += 1
             try:
-                outcome = _ask(gh, lat, lon, row, chosen, key, provider, now)
+                outcome, why = _ask(gh, lat, lon, row, chosen, key, provider, now)
             finally:
                 _asked_at = time.monotonic()
             n[outcome] += 1
             if outcome == "failed":
+                n["why"] = why
                 break
     return n
 
@@ -194,8 +198,9 @@ def sweep(now: datetime | None = None, pause=time.sleep) -> dict:
 
 
 def look_up_now(points, now: datetime | None = None, pause=time.sleep) -> dict:
-    """The 🧭 on a trip's page: the points' cells without an address found are asked about now, whatever the
-    switch says and however old the trip, since the user asked. Returns the counts of _ask_each."""
+    """The 🧭 on a trip's page or a charge's 📍 line: the points' cells without an address found are asked about
+    now, whatever the switch says and however old the trip or the charge, since the user asked. Returns the
+    counts of _ask_each."""
     now = now or datetime.now(timezone.utc)
     chosen = db_reader.get_setting("geocoder_provider", "")
     key = db_reader.get_secret("geocoder_key", "") or None

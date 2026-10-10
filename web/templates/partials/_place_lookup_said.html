@@ -1,0 +1,7 @@
+{# Why a 🧭 brought no address, from place_lookup.look_up_now's `lookup`: asking failed, in the words of the
+   network or the provider, or the provider has nothing there. Nothing before a 🧭 was pressed. #}
+{% if lookup and lookup.failed %}
+<span class="{{ said_size|default('text-xs') }} text-red-400 min-w-0 break-words"{% if said_style %} style="{{ said_style }}"{% endif %} data-place-lookup-said>⚠️ {{ t('place_lookup_failed').format(provider=provider_names[lookup.provider], why=lookup.why) }}</span>
+{% elif lookup and lookup.none %}
+<span class="{{ said_size|default('text-xs') }} text-amber-400 min-w-0 break-words"{% if said_style %} style="{{ said_style }}"{% endif %} data-place-lookup-said>⚠️ {{ t('place_lookup_none').format(provider=provider_names[lookup.provider]) }}</span>
+{% endif %}

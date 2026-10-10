@@ -237,6 +237,32 @@ def reverse_geocode(lat: float, lon: float, provider: str = "", api_key: str | N
     return res["display_name"] if res else None
 
 
+NAMES = {"nominatim": "Nominatim", "geoapify": "Geoapify", "locationiq": "LocationIQ", "tomtom": "TomTom"}
+
+
+def failure(e: Exception) -> str:
+    """What went wrong asking a provider, as it happened: the HTTP status with what the provider said, else the
+    network's or the exception's own words."""
+    if isinstance(e, urllib.error.HTTPError):
+        said = _said(e)
+        return f"HTTP {e.code} {e.reason}" + (f": {said}" if said else "")
+    if isinstance(e, urllib.error.URLError):
+        return str(e.reason)
+    return str(e) or type(e).__name__
+
+
+def _said(e: urllib.error.HTTPError) -> str | None:
+    """The message of an error answer in JSON (each provider has its own key), None in a page or nothing."""
+    try:
+        body = json.loads(e.read(4096))
+    except Exception:  # noqa: BLE001 — no body, a cut one or an HTML page: the status says it
+        return None
+    said = body.get("message") or body.get("errorText") or body.get("error") if isinstance(body, dict) else None
+    if isinstance(said, dict):
+        said = said.get("message")
+    return str(said)[:200] if said else None
+
+
 def lookup_provider(provider: str = "", api_key: str | None = None) -> str:
     """Who reverse_place asks: the keyed provider when it has its key, otherwise Nominatim."""
     p = (provider or "").lower()
