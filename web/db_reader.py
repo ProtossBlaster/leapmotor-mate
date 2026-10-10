@@ -4058,8 +4058,11 @@ def _coord_from_signals(signals: dict, axis: str) -> float:
     return abs(u) * (known or 1.0)
 
 
-def save_fresh_signals(signals: dict) -> None:
-    """Write a fresh position row from raw API signals (called after a command)."""
+def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
+    """Write a fresh position row from raw API signals (called after a command).
+
+    `vin` is the car the signals were read from: the row goes under that car, whatever the picker
+    says by now (#338). Without it, under the picker's car."""
     # A frame without a charge level is no reading (capability_profile.has_soc_reading): the
     # poller stores nothing from it, and neither does its second writer — which used to store a
     # SoC the car did not send as 0 %.
@@ -4072,7 +4075,12 @@ def save_fresh_signals(signals: dict) -> None:
     # See get_vehicle(): an unordered LIMIT 1 rides the UNIQUE(vin) covering index and can name
     # the wrong car. This one WRITES a position row, so the wrong id would file live telemetry
     # under the other vehicle.
-    vehicle_id = _current_vehicle_id()
+    if vin:
+        row = db.execute("SELECT id, vin FROM vehicles WHERE vin = ? COLLATE NOCASE",
+                         (vin,)).fetchone()
+        vehicle_id, vin = (row[0], row[1]) if row else (None, None)
+    else:
+        vehicle_id = _current_vehicle_id()
     if vehicle_id is None:
         return
 
@@ -4128,7 +4136,7 @@ def save_fresh_signals(signals: dict) -> None:
     # Windows: flag OR position % (the T03 reports only the %, the B10 only the flag) — same shared
     # logic as the Vehicle page so the Overview tile / Commands grid agree with it (#62). use_pct is
     # gated by the capability profile, exactly as _parse_vehicle_status does.
-    _wvin = (get_vehicle()[0] or {}).get("vin")
+    _wvin = vin or (get_vehicle()[0] or {}).get("vin")
     _wstates = capability_profile.window_open_states(
         signals, bool(_wvin) and capability_profile.is_shown(_wvin, "windows_pct"))
     windows_open = int(any(_wstates))

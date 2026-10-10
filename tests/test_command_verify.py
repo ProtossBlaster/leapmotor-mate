@@ -35,8 +35,10 @@ def _patch(monkeypatch, signals_fn):
     # The web app's own `time`, not the process's: its background threads sleep on that one too.
     monkeypatch.setattr(main, "time", SimpleNamespace(time=clock.time, sleep=clock.sleep))
     calls = {"save": [], "clear": 0, "extend": 0}
-    monkeypatch.setattr(main.command_client, "get_fresh_signals", signals_fn)
-    monkeypatch.setattr(main.db_reader, "save_fresh_signals", lambda s: calls["save"].append(s))
+    # Both take the car the command went to (#338); these stand-ins answer for any car.
+    monkeypatch.setattr(main.command_client, "get_fresh_signals", lambda vin=None: signals_fn())
+    monkeypatch.setattr(main.db_reader, "save_fresh_signals",
+                        lambda s, vin=None: calls["save"].append(s))
     monkeypatch.setattr(main.db_reader, "clear_optimistic_status",
                         lambda: calls.__setitem__("clear", calls["clear"] + 1))
     monkeypatch.setattr(main.db_reader, "extend_optimistic_status",

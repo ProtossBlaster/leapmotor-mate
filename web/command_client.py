@@ -289,14 +289,16 @@ class LeapmotorSession:
             return None
         try:
             import db_reader as _dr
-            want = (_dr.get_setting(_dr.ACTIVE_VEHICLE_SETTING, "") or "").strip().lower()
+            want = _dr.get_setting(_dr.ACTIVE_VEHICLE_SETTING, "") or ""
         except Exception:      # noqa: BLE001 — a command must not die on a settings read
             want = ""
-        if want:
-            for v in cars:
-                if (getattr(v, "vin", "") or "").lower() == want:
-                    return v
-        return cars[0]
+        return self._car(want) or cars[0]
+
+    def _car(self, vin: str):
+        """The car on this account with this VIN, or None."""
+        want = (vin or "").strip().lower()
+        return next((v for v in self._vehicles
+                     if want and (getattr(v, "vin", "") or "").lower() == want), None)
 
     def _use_pin_of(self, vin):
         """Authorise this command with the PIN of the car it is going to (#186).
@@ -448,12 +450,21 @@ class LeapmotorSession:
                         own or "?", self._STATUS_PATH_FALLBACK)
             return raw
 
-    def get_fresh_signals(self) -> dict | None:
+    def get_fresh_signals(self, vin: str | None = None) -> dict | None:
+        """The live signals of the car `vin` names; without one, of the car the picker is on.
+
+        🔴 A caller that WRITES what it reads names the car, and hands the same VIN to
+        db_reader.save_fresh_signals. Asking the picker twice — here to read, there to write — let
+        it move in between: #338's T03 reading (53 %, 9,275 km) was filed under the A10.
+        → tests/test_a_reading_stays_with_the_car_it_was_read_from.py"""
         with self._lock:
             for attempt in range(2):
                 try:
                     self._connect()
-                    raw = self._raw_status()
+                    car = self._car(vin) if vin else None
+                    if vin and car is None:
+                        return None    # a car this account no longer lists: read no other one instead
+                    raw = self._raw_status(car)
                     data = (raw or {}).get("data") or {}
                     # C10/B10: numeric `signal` dict. T03/EU: named fields at top level.
                     return data.get("signal") or _named_fields_to_signal(data)
@@ -961,8 +972,8 @@ def detect_vehicle(user: str, pwd: str, pin: str) -> dict:
         return {"error": str(e)}
 
 
-def get_fresh_signals() -> dict | None:
-    return _session.get_fresh_signals()
+def get_fresh_signals(vin: str | None = None) -> dict | None:
+    return _session.get_fresh_signals(vin)
 
 def get_charge_plan() -> dict | None:
     return _session.get_charge_plan()

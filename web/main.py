@@ -4811,9 +4811,12 @@ async def refresh_now(request: Request):
     status card. Mate still reads PASSIVELY, so this won't wake a sleeping car — it only skips the
     wait when the car is already awake (e.g. while charging or just used)."""
     import asyncio
-    signals = await asyncio.get_event_loop().run_in_executor(None, command_client.get_fresh_signals)
+    # One car for the read AND the write: the picker can move while the cloud answers (#338).
+    vin = (db_reader.get_vehicle()[0] or {}).get("vin")
+    signals = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: command_client.get_fresh_signals(vin))
     if signals:
-        db_reader.save_fresh_signals(signals)
+        db_reader.save_fresh_signals(signals, vin)
     # Global button (sidebar) → reload the current page so the fresh state shows wherever the user is.
     return Response(status_code=200, headers={"HX-Refresh": "true"})
 
@@ -6077,7 +6080,8 @@ def _command_confirmed(expected: dict, signals: dict) -> bool:
     return True
 
 
-def _post_command_refresh(expected: dict, epoch: int, delay: int = 3, deadline_s: int = 30):
+def _post_command_refresh(expected: dict, epoch: int, delay: int = 3, deadline_s: int = 30,
+                          vin: str | None = None):
     """Verify a command against the car, polling until it confirms or we give up.
 
     The Leapmotor cloud often hasn't ingested the new state a few seconds after a
@@ -6088,22 +6092,25 @@ def _post_command_refresh(expected: dict, epoch: int, delay: int = 3, deadline_s
     stale, 2nd/3rd tap "fixing" it). Instead we keep the optimistic overlay alive and
     retry until the cloud agrees, only persisting a sample once it confirms — or, on
     timeout, accept reality (the command most likely didn't take).
+
+    `vin` is the car the command went to: every read and every write here is that car's, wherever
+    the picker goes in the meantime (#338).
     """
     start = time.time()
     time.sleep(delay)
     while True:
         if _command_epoch != epoch:          # a newer command owns the state now
             return
-        signals = command_client.get_fresh_signals()
+        signals = command_client.get_fresh_signals(vin)
         if signals and _command_confirmed(expected, signals):
-            db_reader.save_fresh_signals(signals)     # truth matches the expectation
+            db_reader.save_fresh_signals(signals, vin)     # truth matches the expectation
             return
         if time.time() - start >= deadline_s:
             # Gave up waiting: show reality rather than a stuck optimistic overlay.
             if _command_epoch == epoch:
                 db_reader.clear_optimistic_status()
                 if signals:
-                    db_reader.save_fresh_signals(signals)
+                    db_reader.save_fresh_signals(signals, vin)
             return
         db_reader.extend_optimistic_status()  # keep the overlay alive across the wait
         time.sleep(4)
@@ -6262,7 +6269,8 @@ async def run_command(name: str, request: Request, background_tasks: BackgroundT
         # spinner and refresh from real signals after a delay (like slow commands).
         slow = name in _SLOW_COMMANDS or field is not None
         refresh_delay = 2
-        background_tasks.add_task(_post_command_refresh, expected, epoch, refresh_delay)
+        background_tasks.add_task(_post_command_refresh, expected, epoch, refresh_delay,
+                                  vin=(_veh or {}).get("vin"))
         if "cloud accepted" in msg.lower():
             from html import escape
             message = i18n.get_t(db_reader.get_language())("command_accepted_unconfirmed")
