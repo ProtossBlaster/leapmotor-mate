@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.14.1] — 2026-10-10
+
+- **A reading stays with the car it was read from**
+  ([#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)). On an account with two cars,
+  the check after a command and the 🔄 Refresh button asked twice which car was meant: once to read
+  it, once to write the reading. Switching car in the sidebar while the cloud answered filed one car's
+  reading under the other. On @dommi1966's install, right after a command to the T03, the T03's 53 % and
+  9,275 km were filed under the A10, which then showed a day "driven 8,527 km" and a standby loss of 39 %
+  a day it never had. The car is now chosen once, and the reading goes under that car; a car the account
+  no longer lists is neither read nor written. A row already filed under the wrong car stays where it is.
+
 ## [4.14.0] — 2026-10-10
 
 - **Mate no longer writes a charge's note; 🧭 looks its address up instead**

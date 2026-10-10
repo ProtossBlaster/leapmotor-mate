@@ -1,8 +1,16 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.14.0 · **Language:** English
+> **Mate version:** v4.14.1 · **Language:** English
 
-## New in 4.14.0
+## New in 4.14.1
+
+**A reading stays with its car.** On an account with two cars, a reading Mate took after a command, or
+with the 🔄 Refresh button, could be filed under the other car if you switched car in the sidebar while
+the cloud was answering: that car then showed a day with thousands of kilometres and a standby loss it
+never had. The reading now always goes under the car it was read from (#338). A row already filed under
+the wrong car stays where it is.
+
+### New in 4.14.0
 
 **Mate no longer writes a charge's note.** Until now, with the default settings, Mate wrote a note on
 every charge it closed — the address, the times, the temperatures — and to find the address it sent the

@@ -1,8 +1,17 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.14.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.14.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.14.0
+## Neu in Version 4.14.1
+
+**Eine Messung bleibt bei ihrem Auto.** Bei einem Konto mit zwei Autos konnte eine Messung, die Mate
+nach einem Befehl oder mit der Schaltfläche 🔄 Aktualisieren abrief, beim anderen Auto landen, wenn du in
+der Seitenleiste das Auto gewechselt hast, während die Cloud antwortete: Dieses Auto zeigte dann einen
+Tag mit Tausenden Kilometern und einen Standby-Verlust, den es nie hatte. Die Messung wird jetzt immer
+bei dem Auto gespeichert, von dem sie stammt (#338). Eine Zeile, die schon beim falschen Auto liegt,
+bleibt, wo sie ist.
+
+### Neu in Version 4.14.0
 
 **Mate schreibt die Notiz eines Ladevorgangs nicht mehr selbst.** Bisher schrieb Mate mit den
 Standardeinstellungen auf jeden Ladevorgang, den es abschloss, eine Notiz — die Adresse, die Uhrzeiten,

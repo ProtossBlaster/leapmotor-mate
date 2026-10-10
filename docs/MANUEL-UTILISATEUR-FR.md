@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.14.0 · **Langue :** Français
+> **Version de Mate :** v4.14.1 · **Langue :** Français
 
-## Nouveautés de la version 4.14.0
+## Nouveautés de la version 4.14.1
+
+**Une mesure reste avec sa voiture.** Sur un compte avec deux voitures, une mesure prise par Mate après
+une commande, ou avec le bouton 🔄 Actualiser, pouvait être rangée sous l'autre voiture si vous changiez
+de voiture dans la barre latérale pendant que le cloud répondait : cette voiture montrait alors une
+journée de plusieurs milliers de kilomètres et une perte à l'arrêt qu'elle n'avait jamais eue. La mesure
+est désormais toujours rangée sous la voiture dont elle vient (#338). Une ligne déjà rangée sous la
+mauvaise voiture reste où elle est.
+
+### Nouveautés de la version 4.14.0
 
 **Mate n'écrit plus la note des recharges.** Jusqu'ici, avec les réglages par défaut, Mate écrivait une
 note sur chaque recharge qu'il clôturait — l'adresse, les heures, les températures — et, pour trouver

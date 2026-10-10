@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.14.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.14.1 · **Lingua:** Italiano
 
-## Novità della 4.14.0
+## Novità della 4.14.1
+
+**Una lettura resta alla sua auto.** Su un account con due auto, una lettura fatta da Mate dopo un
+comando, o con il pulsante 🔄 Aggiorna, poteva finire sotto l'altra auto se nella barra laterale cambiavi
+auto mentre il cloud rispondeva: quell'auto mostrava allora un giorno con migliaia di chilometri e una
+perdita da ferma che non aveva mai avuto. Adesso la lettura va sempre sotto l'auto da cui è stata letta
+(#338). Una riga già finita sotto l'auto sbagliata resta dov'è.
+
+### Novità della 4.14.0
 
 **Mate non scrive più la nota delle ricariche.** Finora, con le impostazioni predefinite, Mate scriveva
 una nota su ogni ricarica che chiudeva — l'indirizzo, gli orari, le temperature — e per trovare

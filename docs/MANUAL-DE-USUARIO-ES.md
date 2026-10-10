@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.14.0 · **Idioma:** Español
+> **Versión de Mate:** v4.14.1 · **Idioma:** Español
 
-## Novedades de la versión 4.14.0
+## Novedades de la versión 4.14.1
+
+**Una lectura se queda con su coche.** En una cuenta con dos coches, una lectura que Mate tomaba después
+de un comando, o con el botón 🔄 Actualizar, podía guardarse en el otro coche si cambiabas de coche en la
+barra lateral mientras la nube respondía: ese coche mostraba entonces un día con miles de kilómetros y
+una pérdida en reposo que nunca tuvo. Ahora la lectura se guarda siempre en el coche del que se leyó
+(#338). Una fila ya guardada en el coche equivocado se queda donde está.
+
+### Novedades de la versión 4.14.0
 
 **Mate ya no escribe la nota de las cargas.** Hasta ahora, con los ajustes predeterminados, Mate escribía
 una nota en cada carga que cerraba — la dirección, las horas, las temperaturas — y, para encontrar la

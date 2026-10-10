@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.14.0:** Mate **no longer writes a charge's note**, so it no longer asks OpenStreetMap about every charge it closes; a charge without an address gets **🧭** beside 📍 to look it up when you ask ([#406](https://github.com/ProtossBlaster/leapmotor-mate/pull/406)). Docs for showing Mate inside Home Assistant through hass_ingress ([#407](https://github.com/ProtossBlaster/leapmotor-mate/issues/407)). In **4.13.1**: every charge shows where it happened ([#405](https://github.com/ProtossBlaster/leapmotor-mate/pull/405)).
-See [release notes and upgrade impact](docs/releases/v4.14.0.md).
+**v4.14.1:** on an account with two cars, a reading taken after a command or with 🔄 Refresh **stays with the car it was read from**, also when you switch car while the cloud answers ([#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)). In **4.14.0**: Mate no longer writes a charge's note; 🧭 beside 📍 looks a missing address up when you ask ([#406](https://github.com/ProtossBlaster/leapmotor-mate/pull/406)).
+See [release notes and upgrade impact](docs/releases/v4.14.1.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -360,8 +360,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.14.0:** Mate **non scrive più la nota delle ricariche**, quindi non chiede più a OpenStreetMap di ogni ricarica che chiude; una ricarica senza indirizzo ha **🧭** accanto a 📍 per cercarlo quando lo chiedi tu ([#406](https://github.com/ProtossBlaster/leapmotor-mate/pull/406)). Istruzioni per mostrare Mate dentro Home Assistant con hass_ingress ([#407](https://github.com/ProtossBlaster/leapmotor-mate/issues/407)). Nella **4.13.1**: ogni ricarica mostra dove è avvenuta ([#405](https://github.com/ProtossBlaster/leapmotor-mate/pull/405)). [Note di rilascio](docs/releases/v4.14.0.md#italiano)
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.14.0.md#italiano).
+**v4.14.1:** su un account con due auto, una lettura fatta dopo un comando o con 🔄 Aggiorna **resta all'auto da cui è stata letta**, anche se cambi auto mentre il cloud risponde ([#338](https://github.com/ProtossBlaster/leapmotor-mate/issues/338)). Nella **4.14.0**: Mate non scrive più la nota delle ricariche; 🧭 accanto a 📍 cerca l'indirizzo che manca quando lo chiedi tu ([#406](https://github.com/ProtossBlaster/leapmotor-mate/pull/406)). [Note di rilascio](docs/releases/v4.14.1.md#italiano)
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.14.1.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
