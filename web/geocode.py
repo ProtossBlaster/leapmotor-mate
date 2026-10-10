@@ -247,7 +247,7 @@ def failure(e: Exception) -> str:
         said = _said(e)
         return f"HTTP {e.code} {e.reason}" + (f": {said}" if said else "")
     if isinstance(e, urllib.error.URLError):
-        return str(e.reason)
+        return str(e.reason) or type(e.reason).__name__
     return str(e) or type(e).__name__
 
 

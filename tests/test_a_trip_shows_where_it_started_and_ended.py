@@ -176,6 +176,8 @@ def _refused(code, reason, body):
     pytest.param("", "nominatim.openstreetmap.org",
                  urllib.error.URLError(OSError(8, "nodename nor servname provided, or not known")),
                  "Asking Nominatim failed: [Errno 8] nodename nor servname provided, or not known", id="no network"),
+    pytest.param("", "nominatim.openstreetmap.org", urllib.error.URLError(ConnectionResetError()),
+                 "Asking Nominatim failed: ConnectionResetError", id="a network error without words"),
     pytest.param("", "nominatim.openstreetmap.org", _refused(403, "Forbidden", b"<html>Access blocked</html>"),
                  "Asking Nominatim failed: HTTP 403 Forbidden", id="refused with a page"),
     pytest.param("geoapify", "api.geoapify.com",
