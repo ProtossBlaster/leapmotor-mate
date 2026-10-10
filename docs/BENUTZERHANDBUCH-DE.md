@@ -1,8 +1,16 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.14.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.14.2 · **Sprache:** Deutsch
 
-## Neu in Version 4.14.1
+## Neu in Version 4.14.2
+
+**Ein abgelehntes Passwort wird beim Namen genannt.** Wenn Leapmotor die E-Mail und das Passwort ablehnt,
+die du Mate gegeben hast, sagt die Übersicht jetzt „das Passwort wurde abgelehnt“ und verweist auf das
+Leapmotor-Konto in den Einstellungen, und Mate wartet eine Stunde, bevor es dasselbe Passwort erneut
+versucht, statt alle 5 Minuten (#411). Ein Passwort, das du in den Einstellungen änderst, wird sofort
+versucht.
+
+### Neu in Version 4.14.1
 
 **Eine Messung bleibt bei ihrem Auto.** Bei einem Konto mit zwei Autos konnte eine Messung, die Mate
 nach einem Befehl oder mit der Schaltfläche 🔄 Aktualisieren abrief, beim anderen Auto landen, wenn du in

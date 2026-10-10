@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.14.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.14.2 · **Lingua:** Italiano
 
-## Novità della 4.14.1
+## Novità della 4.14.2
+
+**Una password rifiutata viene chiamata per nome.** Quando Leapmotor rifiuta l'email e la password che
+hai dato a Mate, la Panoramica ora dice «la password è stata rifiutata» e ti manda all'account Leapmotor
+nelle Impostazioni, e Mate aspetta un'ora prima di riprovare la stessa password, invece di riprovare ogni
+5 minuti (#411). Una password che cambi nelle Impostazioni viene provata subito.
+
+### Novità della 4.14.1
 
 **Una lettura resta alla sua auto.** Su un account con due auto, una lettura fatta da Mate dopo un
 comando, o con il pulsante 🔄 Aggiorna, poteva finire sotto l'altra auto se nella barra laterale cambiavi

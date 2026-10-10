@@ -3,6 +3,18 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.14.2] — 2026-10-11
+
+- **A password Leapmotor refuses is named, and Mate waits an hour**
+  ([#411](https://github.com/ProtossBlaster/leapmotor-mate/issues/411)). Since 4.x Mate keeps only the
+  number of a refused sign-in, and `302010108`, "incorrect account or password" (matched by @arekm against
+  the 3.x diagnostics, as in kerniger/leapmotor-ha#74), read as a passing failure: the startup login asked
+  again every 5 minutes, the cloud-history worker every 5 minutes on its own, and the Overview said "the
+  Leapmotor cloud refuses the login" without pointing at the password. On @DJ-Elo-Ostfriesland's install
+  that made 257 refused sign-ins in one day. Mate now names the code: it waits an hour before offering the
+  same password again, the Overview reads "the password was rejected" with "Check the Leapmotor account in
+  Settings", and the log says "check credentials". A password changed in Settings is still tried at once.
+
 ## [4.14.1] — 2026-10-10
 
 - **A reading stays with the car it was read from**

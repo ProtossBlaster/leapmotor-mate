@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.14.1 · **Idioma:** Español
+> **Versión de Mate:** v4.14.2 · **Idioma:** Español
 
-## Novedades de la versión 4.14.1
+## Novedades de la versión 4.14.2
+
+**Una contraseña rechazada se nombra.** Cuando Leapmotor rechaza el correo y la contraseña que diste a
+Mate, el Resumen dice ahora «la contraseña fue rechazada» y te remite a la cuenta de Leapmotor en
+Ajustes, y Mate espera una hora antes de volver a probar la misma contraseña, en lugar de cada 5 minutos
+(#411). Una contraseña que cambies en Ajustes se prueba enseguida.
+
+### Novedades de la versión 4.14.1
 
 **Una lectura se queda con su coche.** En una cuenta con dos coches, una lectura que Mate tomaba después
 de un comando, o con el botón 🔄 Actualizar, podía guardarse en el otro coche si cambiabas de coche en la

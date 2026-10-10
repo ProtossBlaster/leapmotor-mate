@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.14.1 · **Language:** English
+> **Mate version:** v4.14.2 · **Language:** English
 
-## New in 4.14.1
+## New in 4.14.2
+
+**A refused password is named.** When Leapmotor refuses the email and password you gave Mate, the
+Overview now says "the password was rejected" and points you to the Leapmotor account in Settings, and
+Mate waits an hour before trying the same password again, instead of every 5 minutes (#411). A password
+you change in Settings is tried at once.
+
+### New in 4.14.1
 
 **A reading stays with its car.** On an account with two cars, a reading Mate took after a command, or
 with the 🔄 Refresh button, could be filed under the other car if you switched car in the sidebar while

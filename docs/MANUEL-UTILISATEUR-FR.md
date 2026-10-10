@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.14.1 · **Langue :** Français
+> **Version de Mate :** v4.14.2 · **Langue :** Français
 
-## Nouveautés de la version 4.14.1
+## Nouveautés de la version 4.14.2
+
+**Un mot de passe refusé est nommé.** Quand Leapmotor refuse l'e-mail et le mot de passe que vous avez
+donnés à Mate, l'Aperçu dit désormais « le mot de passe a été refusé » et vous renvoie au compte
+Leapmotor dans les Paramètres, et Mate attend une heure avant de réessayer le même mot de passe, au lieu
+de toutes les 5 minutes (#411). Un mot de passe que vous changez dans les Paramètres est essayé tout de
+suite.
+
+### Nouveautés de la version 4.14.1
 
 **Une mesure reste avec sa voiture.** Sur un compte avec deux voitures, une mesure prise par Mate après
 une commande, ou avec le bouton 🔄 Actualiser, pouvait être rangée sous l'autre voiture si vous changiez
