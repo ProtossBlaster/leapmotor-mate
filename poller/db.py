@@ -2145,6 +2145,23 @@ class Database:
             "UPDATE charges SET wallbox_energy_start_kwh=?, ac_energy_kwh=0 WHERE id=?", (kwh, charge_id))
         self._conn.commit()
 
+    def save_ha_samples_at_position(self, position_id: int, samples: dict) -> None:
+        """Keep what the poller read of another device in this poll, {kind: value} (see schema.WALLBOX_*),
+        dated by the poll's own position row so the readings line up with the car's. A value of None was
+        not read and leaves no row."""
+        rows = [(kind, float(v), position_id) for kind, v in samples.items() if v is not None]
+        if rows:
+            self._conn.executemany("INSERT INTO ha_samples (vehicle_id, recorded_at, kind, value) "
+                                   "SELECT vehicle_id, recorded_at, ?, ? FROM positions WHERE id = ?", rows)
+            self._conn.commit()
+
+    def save_ha_samples(self, vehicle_id: int, recorded_at: str, samples: dict) -> None:
+        """The same, for a reading taken on a cycle with no position row (the car said nothing)."""
+        rows = [(vehicle_id, recorded_at, kind, float(v)) for kind, v in samples.items() if v is not None]
+        if rows:
+            self._conn.executemany("INSERT INTO ha_samples (vehicle_id, recorded_at, kind, value) VALUES (?,?,?,?)", rows)
+            self._conn.commit()
+
     def note_wallbox_unread(self, charge_id: int, minutes: float) -> None:
         """Count time this charge was open AT THE WALLBOX with no counter reading taken (#295).
 

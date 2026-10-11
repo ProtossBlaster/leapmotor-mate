@@ -298,7 +298,7 @@ Only **Max charging current** writes to the wallbox; everything else is read‑o
 What you get on the new **Wallbox** page:
 - a **live panel** (power, status, session energy, charging speed, max available power) plus the session cost (reused from your home charges);
 - a **max‑current control** to set the wallbox charging current — note your own HA load‑balancing automations may override it;
-- an **AC‑vs‑DC comparison** per charge session (kWh delivered vs into the battery + efficiency), laid out as a year/month/day history; expand a session for its power chart. The wallbox curve uses Home Assistant's history (kept ~10 days), so the comparison appears for recent sessions;
+- an **AC‑vs‑DC comparison** per charge session (kWh delivered vs into the battery + efficiency), laid out as a year/month/day history; expand a session for its power chart. The wallbox curve is drawn from readings Mate keeps for each session, so it stays after Home Assistant's own history (~10 days) is gone;
 - optional **auto‑assign "Home"** (Settings → Wallbox): charges the wallbox measured are confirmed as **Home** automatically, with the cost computed from your prices and time‑of‑use bands exactly like a manual confirm. Off by default. *(Idea: @hubcasale.)*
 
 ### ABRP (A Better Route Planner)
@@ -630,7 +630,7 @@ Solo **Controllo potenza** scrive sulla wallbox; tutto il resto è in sola lettu
 Cosa ottieni nella nuova pagina **Wallbox**:
 - un **pannello live** (potenza, stato, energia sessione, velocità di carica, potenza max disponibile) più il costo sessione (riusato dalle tue ricariche home);
 - un **controllo della corrente max** per impostare la corrente di carica della wallbox — nota che le tue automazioni HA di bilanciamento del carico potrebbero sovrascriverlo;
-- un **confronto AC‑vs‑DC** per sessione (kWh erogati vs entrati in batteria + rendimento), come storico anno/mese/giorno; espandi una sessione per il grafico di potenza. La curva wallbox usa lo storico di Home Assistant (conservato ~10 giorni), quindi il confronto compare per le sessioni recenti;
+- un **confronto AC‑vs‑DC** per sessione (kWh erogati vs entrati in batteria + rendimento), come storico anno/mese/giorno; espandi una sessione per il grafico di potenza. La curva wallbox è tracciata dalle letture che Mate conserva per ogni sessione, quindi resta anche quando lo storico di Home Assistant (~10 giorni) è stato cancellato;
 - l'**assegnazione automatica "Casa"** opzionale (Impostazioni → Wallbox): le ricariche misurate dal wallbox vengono confermate come **Casa** da sole, col costo calcolato dai tuoi prezzi e fasce orarie esattamente come una conferma manuale. Spenta di default. *(Idea: @hubcasale.)*
 
 ### ABRP (A Better Route Planner)

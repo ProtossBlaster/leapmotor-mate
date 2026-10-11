@@ -166,7 +166,7 @@ def build_system_info(version: str) -> dict:
         "language": settings.get("language", "en"),
         "db_size_mb": round(db_reader.get_db_size_bytes() / 1048576, 1),
         "counts": {"trips": _count("trips"), "charges": _count("charges"),
-                   "positions": _count("positions")},
+                   "positions": _count("positions"), "ha_samples": _count("ha_samples")},
         "poll_parked": settings.get("poll_parked", "30"),
         "poll_driving": settings.get("poll_driving", "10"),
         "retention_days": settings.get("positions_retention_days", "0"),
@@ -926,7 +926,8 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
             f"DB size (MB) : {info['db_size_mb']}",
             f"Journal mode : {_journal_line(info['journal_mode'])}",
             f"Rows         : trips={info['counts']['trips']} "
-            f"charges={info['counts']['charges']} positions={info['counts']['positions']}",
+            f"charges={info['counts']['charges']} positions={info['counts']['positions']} "
+            f"ha_samples={info['counts']['ha_samples']}",
             f"Poll (s)     : parked={info['poll_parked']} driving={info['poll_driving']}",
             # 🔴 The floor a charge has to clear to be SEEN. Default 2.0 A; a home AC charge moves
             # the pack at 11-12 A, so anything above that silently stops every charge from being

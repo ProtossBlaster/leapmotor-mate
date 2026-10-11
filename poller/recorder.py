@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import NamedTuple, Optional
 
 from db import (Database, _WB_STUCK_MIN_KW, _now_iso, _generator_was_running)
+from schema import WALLBOX_ENERGY_KWH, WALLBOX_POWER_KW
 from state_machine import (State, StateMachine, StateEvent, _PARKED_STATES,
                            FROZEN_DRIVE_LIMIT_S)
 from client import VehicleData
@@ -236,7 +237,11 @@ class Recorder:
                 self._max_charge_kw = data.charge_power_kw
                 self._db.update_charge_max_power(self._active_charge_id, self._max_charge_kw)
             if self._charge_at_wallbox:
-                wb = self._read_wallbox().get("energy_kwh")
+                reading = self._read_wallbox()
+                wb = reading.get("energy_kwh")
+                # Kept with the poll's row: the chart's wallbox line reads from here, not from Home Assistant's history.
+                self._db.save_ha_samples_at_position(position_id, {WALLBOX_POWER_KW: reading.get("power_kw"),
+                                                             WALLBOX_ENERGY_KWH: wb})
                 if wb is not None:
                     # What the CAR says it took over this poll — the only thing that can tell a
                     # STOPPED counter from a slow one (#215). Sent only while the car reports real
@@ -513,7 +518,10 @@ class Recorder:
         """
         if self._active_charge_id is None or not self._charge_at_wallbox:
             return
-        wb = self._read_wallbox().get("energy_kwh")
+        reading = self._read_wallbox()
+        wb = reading.get("energy_kwh")
+        self._db.save_ha_samples(self._vehicle_id, _now_iso(), {WALLBOX_POWER_KW: reading.get("power_kw"),
+                                                                WALLBOX_ENERGY_KWH: wb})
         if wb is not None:
             self._db.accumulate_wallbox_energy(self._active_charge_id, wb, 0.0)
         else:

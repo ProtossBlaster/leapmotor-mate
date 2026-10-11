@@ -104,6 +104,18 @@ CREATE TABLE IF NOT EXISTS trip_positions (
     soc         REAL
 );
 
+-- What the poller reads of another device during a poll, by role (see the kinds below SCHEMA):
+-- the home wallbox's power and counter while a charge runs there. Kept for good, like trip_positions:
+-- the chart's wallbox line reads from here, where Home Assistant's own history is purged after its
+-- recorder's retention.
+CREATE TABLE IF NOT EXISTS ha_samples (
+    id          INTEGER PRIMARY KEY,
+    vehicle_id  INTEGER REFERENCES vehicles(id),
+    recorded_at TEXT NOT NULL,
+    kind        TEXT NOT NULL,
+    value       REAL NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS charges (
     id               INTEGER PRIMARY KEY,
     vehicle_id       INTEGER REFERENCES vehicles(id),
@@ -167,6 +179,7 @@ CREATE INDEX IF NOT EXISTS idx_positions_vehicle ON positions(vehicle_id, record
 -- (Database.get_last_odometer_reading) walks them from the newest without sorting the history.
 CREATE INDEX IF NOT EXISTS idx_positions_vehicle_order ON positions(vehicle_id, id);
 CREATE INDEX IF NOT EXISTS idx_trip_positions_trip ON trip_positions(trip_id);
+CREATE INDEX IF NOT EXISTS idx_ha_samples_kind ON ha_samples(vehicle_id, kind, recorded_at);
 CREATE INDEX IF NOT EXISTS idx_trips_vehicle ON trips(vehicle_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_charges_vehicle ON charges(vehicle_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_maintenance_vehicle ON maintenance_logs(vehicle_id, service_type);
@@ -293,6 +306,11 @@ CREATE TABLE IF NOT EXISTS addresses (
     looked_up_at  TEXT NOT NULL          -- UTC ISO
 );
 """
+
+# The kinds `ha_samples` holds, each in the unit its name says. A role, not an entity id, so a sensor
+# mapped anew keeps the readings its predecessor gave readable.
+WALLBOX_POWER_KW = "wallbox_power_kw"
+WALLBOX_ENERGY_KWH = "wallbox_energy_kwh"
 
 
 # A reading that is a sample of a charge: the car's own flag, or current entering the pack while parked.

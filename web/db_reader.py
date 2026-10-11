@@ -13,6 +13,7 @@ from itertools import groupby, pairwise
 from pathlib import Path
 from typing import Optional
 import os
+import sys
 import contextlib
 import threading
 
@@ -8685,6 +8686,26 @@ def get_charge_power_curve(charge_id: int) -> dict:
             "battery_temp": [r["battery_min_temp"] for r in rows],
             "outside_temp": [r["outside_temp"] for r in rows],
             "remaining_min": [r["remaining_charge_min"] for r in rows]}
+
+
+def wallbox_power_samples(lo: str, hi: str) -> list[tuple[float, float]]:
+    """The wallbox's power as the poller read it from `lo` to `hi` (raw UTC ISO, as positions are stamped), as
+    sorted (epoch, value): the shape ha_client.get_history gives, so a line drawn from Home Assistant's history
+    draws from here unchanged. Empty for a charge from before Mate kept its readings."""
+    import ha_client
+    # The kind names live with the table, in the poller's dependency-free module; on the path for the length
+    # of one import, since the two directories share module names.
+    poller = str(Path(__file__).resolve().parent.parent / "poller")
+    sys.path.insert(0, poller)
+    try:
+        from schema import WALLBOX_POWER_KW
+    finally:
+        sys.path.remove(poller)
+    rows = _get().execute(
+        "SELECT recorded_at, value FROM ha_samples WHERE vehicle_id = COALESCE(?, vehicle_id) AND kind = ? "
+        "AND recorded_at >= ? AND recorded_at <= ? ORDER BY recorded_at",
+        (_current_vehicle_id(), WALLBOX_POWER_KW, lo, hi)).fetchall()
+    return [(ha_client.epoch(r["recorded_at"]), r["value"]) for r in rows]
 
 
 def latest_charge_id_with_power() -> int | None:

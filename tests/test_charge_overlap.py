@@ -171,6 +171,8 @@ def test_recorder_does_not_duplicate_charge_on_resume():
             return True
         def finalize_charge(self, *a, **k):
             pass
+        def save_ha_samples_at_position(self, *a, **k):
+            pass
 
     db = _FakeDB()
     rec = R.Recorder(db, vehicle_id=1)

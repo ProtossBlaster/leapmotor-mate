@@ -3832,12 +3832,17 @@ def _wallbox_overlay(curve: dict, home: bool) -> list | None:
     Only a charge at home gets the overlay — on a public/away charge the home wallbox
     is irrelevant (and could even be charging another car); the caller says which it is."""
     times = curve.get("times") or []
-    mapping = ha_client.get_mapping()
     wallbox_on = db_reader.get_setting("wallbox_enabled", "0") == "1"
-    if (not wallbox_on or not times or not ha_client.is_configured()
-            or not mapping.get("power") or not home or ha_client.recently_unreachable()):
+    if not wallbox_on or not times or not home:
         return None
-    hist = ha_client.get_history(mapping["power"], times[0], times[-1])
+    # Mate's own readings; a charge from before it kept them draws from Home Assistant's history while
+    # its recorder still has it.
+    hist = db_reader.wallbox_power_samples(times[0], times[-1])
+    if not hist:
+        mapping = ha_client.get_mapping()
+        if not ha_client.is_configured() or not mapping.get("power") or ha_client.recently_unreachable():
+            return None
+        hist = ha_client.get_history(mapping["power"], times[0], times[-1])
     if not hist:
         return None
     out, j, last = [], 0, None

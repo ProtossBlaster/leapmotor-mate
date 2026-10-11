@@ -33,6 +33,7 @@ class _SpyDB:
     def update_charge_max_power(self, charge_id, kw): self.peaks.append(kw)
     def add_trip_position(self, trip_id, data): pass
     def note_wallbox_unread(self, *a, **kw): pass
+    def save_ha_samples_at_position(self, *a, **kw): pass
 
 
 def _charging_recorder(db):
