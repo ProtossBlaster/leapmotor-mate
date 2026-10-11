@@ -33,7 +33,7 @@ def _vd(odometer_km, soc=84.3):
 def _drive(tmp_path, km, end_soc=83.9):
     db = D.Database(str(tmp_path / "t.db"))
     rec = R.Recorder(db, vehicle_id=1)
-    rec._read_wallbox_energy = lambda: None
+    rec._read_wallbox = lambda: {}
     start = _vd(1000.0)
     rec._handle_event(StateEvent(State.PARKED_ACTIVE, State.DRIVING, start), start)
     trip_id = rec._active_trip_id

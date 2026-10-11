@@ -114,9 +114,9 @@ def loop(tmp_path, monkeypatch):
         def _read(self):
             v = queue.pop(0) if queue else (taken[-1] if taken else None)
             taken.append(v)
-            return v
+            return {"energy_kwh": v}
 
-        monkeypatch.setattr(Recorder, "_read_wallbox_energy", _read)
+        monkeypatch.setattr(Recorder, "_read_wallbox", _read)
         client = _Client(frames)
         client.budget = rounds
         monkeypatch.setattr(PM, "LeapmotorMateClient", lambda **kw: client)

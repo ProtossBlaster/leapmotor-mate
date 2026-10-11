@@ -84,7 +84,7 @@ def _run_slow_charge(tmp_path, soc_step):
     db._conn.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (1,'REEVTEST','C10')")
     db._conn.commit()
     rec = Recorder(db, vehicle_id=1)
-    rec._read_wallbox_energy = lambda: None      # hermetic — no live HA wallbox
+    rec._read_wallbox = lambda: {}      # hermetic — no live HA wallbox
     sm = StateMachine()
 
     def feed(off, **kw):

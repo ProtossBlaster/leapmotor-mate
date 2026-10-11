@@ -83,9 +83,9 @@ def test_switching_back_on_restores_it(ha):
 
 
 def test_the_poller_reads_through_that_same_door():
-    """The poller has no gate of its own — `_read_wallbox_energy` calls `get_live()` and takes
-    `energy_kwh`. That is why the switch belongs there and not in four places."""
+    """The poller has no gate of its own — `_read_wallbox` calls `get_live()` and hands its reading
+    on. That is why the switch belongs there and not in four places."""
     import pathlib
     src = (pathlib.Path(__file__).resolve().parent.parent / "poller" / "recorder.py").read_text()
-    body = src.split("def _read_wallbox_energy", 1)[1].split("\n    def ", 1)[0]
-    assert 'ha_client.get_live().get("energy_kwh")' in body
+    body = src.split("def _read_wallbox", 1)[1].split("\n    def ", 1)[0]
+    assert 'return ha_client.get_live()' in body

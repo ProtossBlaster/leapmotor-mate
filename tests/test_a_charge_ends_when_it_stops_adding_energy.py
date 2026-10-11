@@ -163,7 +163,7 @@ def test_the_wallbox_total_is_measured_over_the_session_not_the_charge(rig, monk
     the battery was full is billed energy: the plausibility ceiling spans the time the counter was read."""
     db, rec, _poll, _wall = rig
     meter = {"kwh": 100.0}
-    monkeypatch.setattr(rec, "_read_wallbox_energy", lambda: meter["kwh"])
+    monkeypatch.setattr(rec, "_read_wallbox", lambda: {"energy_kwh": meter["kwh"]})
     _read(rig, 0, 99.0, charging=True)
     for _ in range(6):
         meter["kwh"] += 1.8 * 30 / 3600

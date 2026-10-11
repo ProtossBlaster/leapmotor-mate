@@ -236,7 +236,7 @@ class Recorder:
                 self._max_charge_kw = data.charge_power_kw
                 self._db.update_charge_max_power(self._active_charge_id, self._max_charge_kw)
             if self._charge_at_wallbox:
-                wb = self._read_wallbox_energy()
+                wb = self._read_wallbox().get("energy_kwh")
                 if wb is not None:
                     # What the CAR says it took over this poll — the only thing that can tell a
                     # STOPPED counter from a slow one (#215). Sent only while the car reports real
@@ -513,7 +513,7 @@ class Recorder:
         """
         if self._active_charge_id is None or not self._charge_at_wallbox:
             return
-        wb = self._read_wallbox_energy()
+        wb = self._read_wallbox().get("energy_kwh")
         if wb is not None:
             self._db.accumulate_wallbox_energy(self._active_charge_id, wb, 0.0)
         else:
@@ -559,7 +559,7 @@ class Recorder:
                 now = _now_iso()                # read just now, so it ended no later than now
                 end = (data.soc, min(_frame_iso(data) or now, now))
         if self._charge_at_wallbox:
-            end_wb = self._read_wallbox_energy()
+            end_wb = self._read_wallbox().get("energy_kwh")
             if end_wb is not None:
                 self._db.accumulate_wallbox_energy(self._active_charge_id, end_wb)
         log.info("Charge #%d: the charge is over — closing it on the last reading seen while "
@@ -572,10 +572,11 @@ class Recorder:
         self._max_charge_kw = 0.0
         self._charge_closed_this_poll = True
 
-    def _read_wallbox_energy(self) -> Optional[float]:
-        """Current wallbox kWh-counter reading from Home Assistant (best-effort, never raises).
-        Returns None when no wallbox is configured/reachable → the charge falls back to DC billing.
-        Reuses web/ha_client.get_live() (the same reader the web layer uses)."""
+    def _read_wallbox(self) -> dict:
+        """The wallbox as Home Assistant reports it now: `energy_kwh` (the counter) and `power_kw`, each
+        None when unread; {} when no wallbox is configured or reachable → the charge falls back to DC
+        billing. Best-effort, never raises. Reuses web/ha_client.get_live() (the same reader the web
+        layer uses)."""
         try:
             import sys
             import pathlib
@@ -583,10 +584,10 @@ class Recorder:
             if web not in sys.path:
                 sys.path.insert(0, web)
             import ha_client
-            return ha_client.get_live().get("energy_kwh")
+            return ha_client.get_live()
         except Exception as e:  # noqa: BLE001
-            log.debug("wallbox energy read failed: %s", e)
-            return None
+            log.debug("wallbox read failed: %s", e)
+            return {}
 
     def _handle_event(self, event: StateEvent, data: Optional[VehicleData]) -> None:
         frm, to = event.from_state, event.to_state
@@ -666,7 +667,7 @@ class Recorder:
                     self._charge_at_wallbox = self._db.wallbox_energy_applies(
                         self._vehicle_id, data.latitude, data.longitude)
                     if self._charge_at_wallbox:
-                        start_wb = self._read_wallbox_energy()  # seed the wallbox-counter baseline
+                        start_wb = self._read_wallbox().get("energy_kwh")  # seed the wallbox-counter baseline
                         if start_wb is not None:
                             self._db.set_charge_wallbox_start(self._active_charge_id, start_wb)
                             log.info("Charge #%d: wallbox counter at start = %.3f kWh",
@@ -685,7 +686,7 @@ class Recorder:
                 return
             if self._active_charge_id and data:
                 if self._charge_at_wallbox:
-                    end_wb = self._read_wallbox_energy()          # final reading → capture the last rise
+                    end_wb = self._read_wallbox().get("energy_kwh")   # final reading → capture the last rise
                     if end_wb is not None:
                         self._db.accumulate_wallbox_energy(self._active_charge_id, end_wb)
                         log.info("Charge #%d: wallbox counter at stop = %.3f kWh",

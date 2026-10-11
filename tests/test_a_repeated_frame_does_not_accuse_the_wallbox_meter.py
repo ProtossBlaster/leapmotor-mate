@@ -64,7 +64,7 @@ def _recorder_mid_charge(monkeypatch, wallbox_reading):
     rec._charge_at_wallbox = True
     rec._last_soc, rec._last_soc_ts = 50.0, "2026-08-31T10:00:00+00:00"
     rec._odometer_reading = R.OdometerReading(1000.0, 50.0, "2026-08-31T10:00:00+00:00")
-    monkeypatch.setattr(rec, "_read_wallbox_energy", lambda: wallbox_reading)
+    monkeypatch.setattr(rec, "_read_wallbox", lambda: {"energy_kwh": wallbox_reading})
     # Seed the counter baseline, so the first real poll is a rise of zero rather than a seed.
     db.accumulate_wallbox_energy(charge_id, wallbox_reading, 0.0)
     return db, rec, charge_id

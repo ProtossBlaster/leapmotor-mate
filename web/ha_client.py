@@ -411,7 +411,7 @@ def get_live() -> dict:
            "max_current_a": None, "charging": False, "speed": None, "speed_unit": "",
            "max_power": None, "max_power_unit": ""}
     # The switch in Settings, honoured HERE because this is the only door wallbox data comes
-    # through — the web tile calls it, and so does the poller (recorder._read_wallbox_energy).
+    # through — the web tile calls it, and so does the poller (recorder._read_wallbox).
     # It used to gate the wallbox PAGE, the session-energy line and the chart overlay, and nothing
     # else: with the feature off and a mapping still saved, every poll kept reading the meter into
     # `ac_energy_kwh`, and `poller/db.py` bills a home charge on that column whenever it is set. The

@@ -72,7 +72,7 @@ def _recorder_charge(db, lat, lon, wb_start, wb_end):
     from state_machine import State, StateEvent
     rec = R.Recorder(db, vehicle_id=1)
     readings = iter([wb_start, wb_end])
-    rec._read_wallbox_energy = lambda: next(readings)
+    rec._read_wallbox = lambda: {"energy_kwh": next(readings)}
     # plug/deferred are on the fake because the close now reads them to record WHY the charge
     # stopped (#289) — a real VehicleData always carries both, so the fake has to as well.
     data = types.SimpleNamespace(soc=30, latitude=lat, longitude=lon, charge_power_kw=7.0,

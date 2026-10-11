@@ -64,7 +64,7 @@ def test_an_unknown_power_counts_nothing_against_a_stuck_wallbox_counter(monkeyp
     db.accumulate_wallbox_energy = lambda cid, wb, car_kwh: seen.append(car_kwh)
     rec = _charging_recorder(db)
     rec._charge_at_wallbox = True
-    monkeypatch.setattr(rec, "_read_wallbox_energy", lambda: 12.5)
+    monkeypatch.setattr(rec, "_read_wallbox", lambda: {"energy_kwh": 12.5})
     rec.process(_frame(charge_power_kw=None))
     assert seen == [0.0]
 

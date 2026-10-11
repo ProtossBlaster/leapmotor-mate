@@ -118,7 +118,7 @@ def test_the_recorder_reports_a_poll_home_assistant_did_not_answer(tmp_path, mon
     db.set_charge_wallbox_start(cid, 11.78)
     rec._active_charge_id = cid
     rec._charge_at_wallbox = True
-    monkeypatch.setattr(Recorder, "_read_wallbox_energy", lambda self: None)
+    monkeypatch.setattr(Recorder, "_read_wallbox", lambda self: {})
     rec.sample_wallbox_meter()
     assert (_dark(db, cid) or 0) == pytest.approx(rec.poll_interval / 60, abs=0.01)
 

@@ -27,7 +27,7 @@ def _vd(soc=50.0, lat=45.0, lon=9.0, odometer_km=1000.0):
 
 def _rec(db):
     rec = R.Recorder(db, vehicle_id=1)
-    rec._read_wallbox_energy = lambda: None   # no HA wallbox in this test env
+    rec._read_wallbox = lambda: {}   # no HA wallbox in this test env
     return rec
 
 

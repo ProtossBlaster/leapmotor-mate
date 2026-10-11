@@ -114,7 +114,7 @@ def test_recorder_opens_charge_row_only_on_current(tmp_path):
     db._conn.execute("INSERT INTO vehicles (id, vin) VALUES (1, 'V')")
     db._conn.commit()
     rec = R.Recorder(db, vehicle_id=1)
-    rec._read_wallbox_energy = lambda: None           # hermetic (no live HA wallbox)
+    rec._read_wallbox = lambda: {}                    # hermetic (no live HA wallbox)
 
     rec.process(_parse_signal("V", _parked()))
     rec.process(_parse_signal("V", _cable_only()))    # plugged, waiting — must NOT open a row
