@@ -529,12 +529,20 @@ def epoch(iso: str) -> float | None:
 
 
 def get_history(entity_id: str, start_iso: str, end_iso: str) -> list[tuple[float, float]]:
-    """Numeric history of one entity over [start, end] as sorted (epoch, value).
+    """Numeric history of one entity over [start, end] as sorted (epoch, value); [] whether Home Assistant
+    had none or did not answer. See read_history for a caller that must tell the two apart."""
+    return read_history(entity_id, start_iso, end_iso) or []
+
+
+def read_history(entity_id: str, start_iso: str, end_iso: str) -> list[tuple[float, float]] | None:
+    """Numeric history of one entity over [start, end] as sorted (epoch, value): [] when Home Assistant has
+    none (purged, or nothing recorded), None when it did not answer, or answered other than 200, or is not
+    configured: not a reading, so a caller that records what it read does not record that.
 
     Uses HA's /api/history/period — no need to store wallbox samples ourselves;
     HA's recorder already has them (default retention ~10 days)."""
     if not entity_id or not is_configured():
-        return []
+        return None
     path = (f"/api/history/period/{quote(start_iso, safe='')}"
             f"?filter_entity_id={quote(entity_id, safe='')}"
             f"&end_time={quote(end_iso, safe='')}"
@@ -542,15 +550,17 @@ def get_history(entity_id: str, start_iso: str, end_iso: str) -> list[tuple[floa
     try:
         status, body = _request(path)
     except Exception:  # noqa: BLE001
+        return None
+    if status != 200 or not isinstance(body, list):
+        return None
+    if not body or not isinstance(body[0], list):
         return []
-    if status != 200 or not isinstance(body, list) or not body or not isinstance(body[0], list):
-        return []
-    # With minimal_response HA sends full attributes only on the FIRST sample, so
-    # read the unit there to normalise W→kW (some wallboxes report power in watts).
+    # With minimal_response HA sends full attributes only on the FIRST sample, so read the unit there
+    # to normalise W→kW and Wh→kWh, as get_live reads the same sensors (some wallboxes report in watts).
     unit = ""
     if isinstance(body[0][0], dict):
         unit = (body[0][0].get("attributes", {}) or {}).get("unit_of_measurement", "")
-    scale = 0.001 if unit.lower() == "w" else 1.0
+    scale = 0.001 if unit.lower() in ("w", "wh") else 1.0
     out: list[tuple[float, float]] = []
     for s in body[0]:
         ts = s.get("last_changed") or s.get("last_updated")

@@ -178,6 +178,50 @@ _pin_auto_timezone()
 _repair_manual_charge_timezones()
 _repair_merged_charge_pieces()
 
+
+def _keep_earlier_wallbox_lines() -> None:
+    """Once, after the wallbox's readings began to be kept: the lines of the home charges from before, of every
+    car, read from Home Assistant's history while its recorder still has them, are kept like the readings
+    since; a charge the history no longer reaches keeps nothing. A charge Home Assistant did not answer for,
+    on any of its readings, keeps nothing yet and is not done, so a later start reads it again."""
+    mapping = ha_client.get_mapping()
+    complete = True
+    if db_reader.get_setting("wallbox_enabled", "0") == "1" and ha_client.is_configured() and mapping.get("power"):
+        roles = {role: kind for role, kind in db_reader.wallbox_sample_kinds().items() if mapping.get(role)}
+        kept, charges = 0, 0
+        for vehicle in db_reader.get_vehicles():
+            with db_reader.vehicle_scope(vehicle["id"]):
+                for charge in db_reader.finished_home_charges_without_wallbox_samples():
+                    times = db_reader.get_charge_power_curve(charge["id"])["times"]
+                    if not times:
+                        continue
+                    hists = {kind: ha_client.read_history(mapping[role], times[0], times[-1]) for role, kind in roles.items()}
+                    if any(h is None for h in hists.values()):
+                        complete = False
+                        continue
+                    n = db_reader.save_wallbox_samples(vehicle["id"], times,
+                                                       {kind: ha_client.step_hold(times, h) for kind, h in hists.items() if h})
+                    kept, charges = kept + n, charges + bool(n)
+        if charges:
+            log.info("Wallbox lines kept: %d earlier charge(s), %d reading(s) from Home Assistant's history", charges, kept)
+    if complete:
+        db_reader.set_setting("wallbox_lines_kept", "1")
+
+
+def _maybe_keep_earlier_wallbox_lines() -> None:
+    """Not on the start itself (it reads Home Assistant), and once per hour across the workers that import
+    this module, through a stamp in the database as the sweeps do."""
+    if db_reader.get_setting("wallbox_lines_kept", "0") == "1":
+        return
+    now = time.time()
+    if now - float(db_reader.get_setting("wallbox_lines_keep_at", "0") or 0) < 3600:
+        return
+    db_reader.set_setting("wallbox_lines_keep_at", str(now))
+    threading.Thread(target=_keep_earlier_wallbox_lines, daemon=True).start()
+
+
+_maybe_keep_earlier_wallbox_lines()
+
 app = FastAPI(title="LeapMotor Mate")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
