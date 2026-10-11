@@ -3845,16 +3845,7 @@ def _wallbox_overlay(curve: dict, home: bool) -> list | None:
         hist = ha_client.get_history(mapping["power"], times[0], times[-1])
     if not hist:
         return None
-    out, j, last = [], 0, None
-    for t in times:
-        e = ha_client.epoch(t)
-        if e is None:
-            out.append(None)
-            continue
-        while j < len(hist) and hist[j][0] <= e:   # step-hold: last known wallbox value ≤ sample time
-            last = hist[j][1]
-            j += 1
-        out.append(round(last, 3) if last is not None else None)
+    out = ha_client.step_hold(times, hist)
     return out if any(v is not None for v in out) else None
 
 

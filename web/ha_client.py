@@ -504,6 +504,22 @@ def set_max_current(value: float) -> bool:
     return call_service("number", "set_value", {"entity_id": eid, "value": value})
 
 
+def step_hold(times: list[str], hist: list[tuple[float, float]]) -> list[float | None]:
+    """A history as sorted (epoch, value) read at each of `times` (ISO): the last value known at or before
+    each instant, None before the first; the shape a chart draws beside the car's own readings."""
+    out, j, last = [], 0, None
+    for t in times:
+        e = epoch(t)
+        if e is None:
+            out.append(None)
+            continue
+        while j < len(hist) and hist[j][0] <= e:
+            last = hist[j][1]
+            j += 1
+        out.append(round(last, 3) if last is not None else None)
+    return out
+
+
 def epoch(iso: str) -> float | None:
     """ISO-8601 (with offset) → epoch seconds, or None."""
     try:
