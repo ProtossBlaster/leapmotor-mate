@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{# 0 = no idle reload, as on Trips (#236): both figures are history, and the capacity chart's Time /
+   Distance axis is a choice held in the page, which a reload would put back on Time. #}
+{% block autorefresh %}0{% endblock %}
 {% block title %}{{ t('nav_battery') }} — LeapMotor Mate{% endblock %}
 
 {% block content %}

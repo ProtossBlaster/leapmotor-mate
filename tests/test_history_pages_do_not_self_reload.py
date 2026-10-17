@@ -17,6 +17,13 @@ Both pages show history: there is nothing live for a reload to fetch, and the ma
 sits in the header. Declared plainly, because it is a trade: a Trips page left open on a wall
 display stops picking up a trip that just ended. Nobody has asked for that; @michapr has asked for
 this.
+
+The Battery page shows history too, the capacity of each charge and the drain of each park, and holds
+a choice the same way: the capacity chart's Time / Distance axis lives in the page, and the reload put
+it back on Time within 30 s, whether the mouse was moving over the chart or not (moving the pointer is
+no interaction to the idle guards). A new charge, and the bar of a park still going on, wait for the
+refresh button; while the car sleeps the cloud repeats its last battery level, so that bar barely
+moves anyway.
 """
 import re
 import pathlib
@@ -24,13 +31,13 @@ import pathlib
 import pytest
 
 TPL = pathlib.Path(__file__).parents[1] / "web" / "templates"
-HISTORY = ("trips.html", "statistics.html")
+HISTORY = ("trips.html", "statistics.html", "battery.html")
 BLOCK = re.compile(r"{%\s*block\s+autorefresh\s*%}\s*(\d+)\s*{%\s*endblock\s*%}")
 
 
 @pytest.mark.parametrize("page", HISTORY)
 def test_a_history_page_declares_no_auto_reload(page):
-    """Seen red before the change: both pages inherited base.html's 30 s default."""
+    """Seen red before the change: each page inherited base.html's 30 s default."""
     m = BLOCK.search((TPL / page).read_text(encoding="utf-8"))
     assert m, f"{page} must state its auto-refresh explicitly, not inherit the default"
     assert m.group(1) == "0", f"{page} still reloads itself every {m.group(1)}s"
@@ -46,7 +53,7 @@ def test_it_says_why(page):
 
 
 def test_the_default_is_still_thirty_seconds_for_everyone_else():
-    """The fix is two pages opting out, NOT the mechanism being switched off for the whole app —
+    """The fix is pages opting out, NOT the mechanism being switched off for the whole app —
     that would silently freeze every page nobody complained about."""
     base = (TPL / "base.html").read_text(encoding="utf-8")
     assert 'data-autorefresh="{% block autorefresh %}30{% endblock %}"' in base
@@ -60,9 +67,9 @@ def test_the_pages_with_their_own_live_updates_are_untouched():
         assert m and m.group(1) == "0", f"{page} changed meaning"
 
 
-@pytest.mark.parametrize("page", ["battery.html", "trip_detail.html", "vehicle.html"])
+@pytest.mark.parametrize("page", ["trip_detail.html", "vehicle.html"])
 def test_a_page_with_nothing_to_lose_still_refreshes(page):
-    """The other side of the trade, and the reason the fix is TWO pages and not a global switch.
+    """The other side of the trade, and the reason the fix is single pages and not a global switch.
 
     These reload harmlessly: whatever they show comes from the address, so `location.reload()`
     rebuilds the same screen. trip_detail is the one worth naming — it looks like a history page,
