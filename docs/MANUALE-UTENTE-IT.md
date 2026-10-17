@@ -989,7 +989,7 @@ ricarica in corso…) restano freschi senza ricaricare la pagina.
 
 Un calendario tiene nell'indirizzo della pagina il mese che stai guardando, quindi un ricaricamento —
 della pagina o tuo — riporta quel mese con il giorno o l'intervallo che avevi aperto; **Torna a oggi**
-torna al mese corrente.
+torna al mese corrente. **Salute batteria** fa lo stesso con le viste scelte nei suoi due grafici.
 
 **Lingua, valuta e unità** si cambiano da *Impostazioni → 🌍 Lingua e valuta*:
 

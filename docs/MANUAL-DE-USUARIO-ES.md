@@ -1007,7 +1007,7 @@ Muchas páginas **se actualizan solas** más o menos cada 30 segundos, así que 
 
 Un calendario guarda en la dirección de la página el mes que estás mirando, así que una recarga —la de
 la página o la tuya— devuelve ese mes con el día o el intervalo que tenías abierto; **Ir a hoy** vuelve
-al mes actual.
+al mes actual. **Salud de la batería** hace lo mismo con las vistas elegidas en sus dos gráficos.
 
 **El idioma, la moneda y las unidades** se cambian desde *Ajustes → 🌍 Idioma y moneda*:
 

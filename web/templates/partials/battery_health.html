@@ -143,9 +143,12 @@
     var off = 'px-2.5 py-1 rounded-md border border-slate-600 text-slate-300 hover:text-white';
     document.getElementById('soh-x-time').className = (m === 'time') ? on : off;
     document.getElementById('soh-x-dist').className = (m === 'dist') ? on : off;
+    lmKeepInAddress('capacity_by', m === 'dist' ? 'distance' : null);
     build();
   };
-  build();
+  // The axis picked is in the address, so the page's idle reload comes back to it.
+  if (new URLSearchParams(location.search).get('capacity_by') === 'distance') sohSetX('dist');
+  else build();
 })();
 </script>
 

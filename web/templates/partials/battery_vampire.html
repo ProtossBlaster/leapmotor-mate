@@ -67,7 +67,10 @@
   // #88: the bars can be shown per parked window or aggregated per calendar day, and the Y axis can
   // show the normalised rate (%/day) or the actual SoC lost (%). Each window already carries both
   // drop_pct and pct_per_day, so the toggles are a pure client-side re-render.
-  var state = { unit: 'rate', group: 'park' };   // unit: rate|abs ; group: park|day
+  // The views picked are in the address, so the page's idle reload comes back to them.
+  var q = new URLSearchParams(location.search);
+  var state = { unit: q.get('drain') === 'lost' ? 'abs' : 'rate',       // unit: rate|abs ; group: park|day
+                group: q.get('drain_per') === 'date' ? 'day' : 'park' };
   var cur = [];
 
   function aggDay(ws) {
@@ -142,18 +145,23 @@
   el._c.render();
   build();
 
-  function wire(id, key, v) {
+  function wire(id, key, v, param, value) {
     var b = document.getElementById(id); if (!b) return;
+    function press() {
+      document.querySelectorAll('[data-vp="' + key + '"]').forEach(function (x) { x.classList.remove('vp-on'); });
+      b.classList.add('vp-on');
+    }
+    if (state[key] === v) press();
     b.addEventListener('click', function () {
       if (state[key] === v) return;
       state[key] = v;
-      document.querySelectorAll('[data-vp="' + key + '"]').forEach(function (x) { x.classList.remove('vp-on'); });
-      b.classList.add('vp-on');
+      press();
+      lmKeepInAddress(param, value);
       build();
     });
   }
-  wire('vp-rate', 'unit', 'rate'); wire('vp-abs', 'unit', 'abs');
-  wire('vp-park', 'group', 'park'); wire('vp-day', 'group', 'day');
+  wire('vp-rate', 'unit', 'rate', 'drain', null); wire('vp-abs', 'unit', 'abs', 'drain', 'lost');
+  wire('vp-park', 'group', 'park', 'drain_per', null); wire('vp-day', 'group', 'day', 'drain_per', 'date');
 })();
 </script>
 {% else %}

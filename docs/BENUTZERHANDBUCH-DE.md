@@ -1022,7 +1022,8 @@ laufender Ladevorgang…) frisch bleiben, ohne die Seite neu zu laden.
 
 Ein Kalender hält den angezeigten Monat in der Adresse der Seite, sodass ein Neuladen — das der Seite
 oder Ihres — diesen Monat mit dem geöffneten Tag oder Zeitraum zurückbringt; **Zu heute springen** kehrt
-zum aktuellen Monat zurück.
+zum aktuellen Monat zurück. **Batteriezustand** hält ebenso die auf seinen beiden Diagrammen gewählten
+Ansichten in der Adresse.
 
 **Sprache, Währung und Einheiten** ändern Sie unter *Einstellungen → 🌍 Sprache & Währung*:
 

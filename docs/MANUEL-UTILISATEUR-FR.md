@@ -1036,7 +1036,8 @@ De nombreuses pages **se mettent à jour toutes seules** environ toutes les 30 s
 
 Un calendrier garde dans l'adresse de la page le mois que vous regardez : un rechargement — celui de la
 page ou le vôtre — ramène ce mois avec le jour ou la période que vous aviez ouverts ; **Revenir à
-aujourd'hui** revient au mois en cours.
+aujourd'hui** revient au mois en cours. **Santé de la batterie** fait de même avec les vues choisies sur
+ses deux graphiques.
 
 **La langue, la devise et les unités** se changent depuis *Paramètres → 🌍 Langue et Devise* :
 

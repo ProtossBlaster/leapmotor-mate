@@ -956,7 +956,7 @@ progress…) stay fresh without reloading the page.
 
 A calendar keeps the month you are looking at in the page's address, so a reload — the page's own or
 yours — brings that month back with the day or range you had open; **Jump to today** returns to the
-current month.
+current month. **Battery health** does the same with the views picked on its two charts.
 
 **Language, currency and units** are changed from *Settings → 🌍 Language & Currency*:
 
