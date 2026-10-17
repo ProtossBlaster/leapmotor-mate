@@ -66,11 +66,13 @@ class OutsideTempSampler:
     `fetch` for tests."""
 
     def __init__(self, fetch: Callable[[float, float], Optional[float]] = fetch_current_temp,
-                 last_fix: Optional[tuple] = None):
+                 last_fix: Optional[tuple] = None, last_temp: Optional[tuple] = None):
         self._fetch = fetch
         # (lat, lon, odometer_km) of the newest real fix — from the database at startup, then from
         # each frame that has one. Odometer None = unknown, so it can't vouch the car is still there.
         self._fix: Optional[tuple] = last_fix
+        # (temp, epoch) stored before a restart: the last reading on the first poll if still trusted
+        self._stored: Optional[tuple] = last_temp
         self._temp: Optional[float] = None
         self._ts: Optional[float] = None
         self._lat: Optional[float] = None
@@ -78,6 +80,11 @@ class OutsideTempSampler:
         self._failed_ts: Optional[float] = None
 
     def sample(self, lat, lon, now_ts, odometer_km=None) -> Optional[float]:
+        if self._stored is not None:
+            temp, ts = self._stored
+            self._stored = None
+            if 0 <= now_ts - ts < _MAX_AGE_S:
+                self._temp = temp
         # `None` never arrives: `client._resolve_coord` returns 0.0 when no usable value exists, so
         # this guard tested for something the parser cannot produce and a frame without a fix asked
         # for the weather at 0,0 — Null Island, in the Gulf of Guinea — stored it as the car's

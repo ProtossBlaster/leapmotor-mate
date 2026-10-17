@@ -1695,6 +1695,17 @@ class Database:
             " ORDER BY id DESC LIMIT 1", (vehicle_id,)).fetchone()
         return (row["latitude"], row["longitude"], row["odometer_km"]) if row else None
 
+    def last_outside_temp(self, vehicle_id: int) -> Optional[tuple]:
+        """(outside_temp, recorded_at in epoch seconds) of this car's newest position, or None if that
+        position carries no outside temperature. The outside-temperature sampler starts from it after a
+        restart, so a lookup refused then keeps the reading the car had, as one refused later does."""
+        row = self._conn.execute(
+            "SELECT outside_temp, recorded_at FROM positions WHERE vehicle_id = ?"
+            " ORDER BY id DESC LIMIT 1", (vehicle_id,)).fetchone()
+        if not row or row["outside_temp"] is None:
+            return None
+        return row["outside_temp"], datetime.fromisoformat(row["recorded_at"]).timestamp()
+
     # ── Trip ─────────────────────────────────────────────────────────────────
 
     def _default_trip_tags(self) -> tuple:

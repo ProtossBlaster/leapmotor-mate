@@ -794,8 +794,9 @@ class VehicleContext:
         self.empty_status_count = 0   # consecutive "no live signals" responses (car asleep)
         self.poll_error_count = 0     # consecutive hard API errors (cloud unreachable)
         self.research_last_sig: dict = {}   # beta build: last value per signal id, for delta logging
-        # live outside temp (Open-Meteo), cached per car; starts from the last real fix on disk
-        self.outside_sampler = OutsideTempSampler(last_fix=db.last_fix(vehicle_id))
+        # live outside temp (Open-Meteo), cached per car; starts from the last real fix and reading on disk
+        self.outside_sampler = OutsideTempSampler(last_fix=db.last_fix(vehicle_id),
+                                                  last_temp=db.last_outside_temp(vehicle_id))
         self.abrp_last_sent = abrp.NOTHING_SENT   # (token, frame ts) last taken by ABRP; a repeat is not a point
         self.interval = 30.0
         self.next_due = 0.0           # monotonic; 0 = due now, so the first round polls every car
