@@ -13,6 +13,7 @@
   <div id="map" style="height:560px"></div>
   <link rel="stylesheet" href="static/vendor/leaflet/leaflet.css"/>
   <script src="static/vendor/leaflet/leaflet.js"></script>
+  <script src="static/trip-track.js"></script>
   <script>
     const segments = {{ track | tojson }};
     const places   = {{ places | tojson }};
@@ -31,24 +32,7 @@
       referrerPolicy: 'origin'
     }).addTo(map);
 
-    // Each trip as its own connected polyline — never joined across trips. A white
-    // casing under a blue line keeps the route legible over any road colour (OSM
-    // motorways/primaries are red/orange/yellow, so a plain red line blended in). A
-    // gap-bridge run (real signal loss — see db_reader._split_track_gaps) gets its own white
-    // casing too, then a bold magenta dash on top — a colour used nowhere else on this map
-    // (not the route blue, not OSM's own grey/brown dashed tracks and borders), with dashes
-    // wide enough to read as a deliberate marking instead of blending into the base tiles.
-    segments.forEach(function (trip) {
-      trip.forEach(function (run) {
-        if (run.gap) {
-          L.polyline(run.points, { color: '#ffffff', weight: 5, opacity: 0.6, lineCap: 'round' }).addTo(map);
-          L.polyline(run.points, { color: '#ec4899', weight: 3, opacity: 0.95, dashArray: '10,8', lineCap: 'round' }).addTo(map);
-        } else {
-          L.polyline(run.points, { color: '#ffffff', weight: 5,   opacity: 0.7, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-          L.polyline(run.points, { color: '#2563eb', weight: 2.5, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-        }
-      });
-    });
+    tripTracks(segments).addTo(map);
 
     // Frequent places: bubble sized by visit count, on top of the routes.
     const placesLayer = L.layerGroup();
