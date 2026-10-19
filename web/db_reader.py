@@ -11482,6 +11482,36 @@ def get_month_track(month: str, max_points: int = 8000) -> list[list[dict]]:
     return _rows_to_segments(rows, max_points)
 
 
+def get_todays_track() -> dict:
+    """The Overview map's line: the selected car's latest trip (by start, merged pieces included),
+    drawn whole from the trip page's own points (_trip_points), with its solid runs and dashed gaps.
+    Drawn while under way, and once ended only if its last reading is from today in the owner's
+    timezone — by recorded_at, the host's clock, since trips.ended_at can be the car's.
+
+    {"key", "segments"}; the key changes with the points, so a map that has drawn them can be told
+    they are unchanged. {"key": None, "segments": []} when there is nothing to draw — also when the
+    newest trip has no readings, joined or not: an older line would end somewhere the car is not."""
+    nothing = {"key": None, "segments": []}
+    db = _get()
+    newest = db.execute("SELECT id, ended_at FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+                        "ORDER BY started_at DESC, id DESC LIMIT 1", (_current_vehicle_id(),)).fetchone()
+    if not newest:
+        return nothing
+    # Its own last reading, before any frozen one is left out: a frozen end past midnight is still today.
+    last = db.execute("SELECT MAX(recorded_at) FROM trip_positions WHERE trip_id = ?", (newest["id"],)).fetchone()[0]
+    if last is None:
+        return nothing
+    day = _local_dt(last)
+    if newest["ended_at"] is not None and (day is None or day.date() != today_local()):
+        return nothing
+    seg_ids = _segment_ids(db, newest["id"])
+    points = _trip_points(db, seg_ids)
+    # Points are only appended and the filter only ever changes the last run, so a changed line has
+    # another count or another last point.
+    return {"key": f"{seg_ids[0]}:{len(points)}:{points[-1]['recorded_at']}",
+            "segments": _split_track_gaps(points)}
+
+
 def get_frequent_places(min_visits: int = 2, top_n: int = 15) -> list[dict]:
     """Cluster trip start/end points into recurring places (Home, Work, …) by snapping
     coordinates to a ~110 m grid (3 decimals) and counting visits. Returns the busiest

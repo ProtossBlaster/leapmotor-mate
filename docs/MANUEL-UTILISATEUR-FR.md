@@ -1159,6 +1159,9 @@ avec une barre 0–3500 W — et l'**énergie soutirée durant la session** ; il
 sur P + un appareil branché), pas depuis Mate. Il est précis à partir d'environ **42 W** (la résolution du
 capteur de courant de la voiture — une petite charge de ~10 W reste invisible).
 
+La carte **Dernière position connue** affiche aussi le tracé GPS du dernier trajet du jour — pendant la
+conduite, celui du trajet en cours — comme le détail du trajet.
+
 **La dernière recharge dit les deux 🆕** — la tuile **Dernière recharge** met en avant le même chiffre que
 la ligne de cette recharge dans Recharges : à la maison, avec un compteur de wallbox, les kWh
 **🔌 wallbox (à payer)**, et en dessous ce qui est arrivé dans le pack —

@@ -43,7 +43,7 @@ LeapMotor Mate is free and open-source, developed in my spare time. If it's usef
 ## Features
 
 **At a glance**
-- **Overview** — live status, battery, range, **READY state**, location map and the car's own picture.
+- **Overview** — live status, battery, range, **READY state**, location map with today's last trip and the car's own picture.
 - **Security and charge state** — a **Security** indicator (green *Active* when the car is locked and the alarm is armed) and, while the cable is still in after a completed charge, a **Fully charged** badge.
 - **When the data is old, it says so** — the cloud answers even when the car cannot reach it, by re-serving the last frame it holds. Mate shows that frame's real age instead of passing it off as current.
 - **Whether the data can be trusted at all** — a tile beside the heading, **Mate → cloud → car**, with the facts behind each word on a hover: how long the poller has been running, whether the cloud is letting it in and when it last answered, when the car last sent a frame. When Mate itself cannot fetch it turns red and names the consequence, the next attempt and the error — and says the password is the thing to check only when the cloud blamed the password. Home Assistant gets the same verdict as `sensor.<car>_data_link`, and Settings gets a **Cloud link** card: a day of polling in five-minute windows and a week of counts.

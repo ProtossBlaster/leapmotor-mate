@@ -1105,6 +1105,9 @@ dall'auto (cambio in P + un dispositivo collegato), non da Mate. È accurato da 
 Più in basso trovi mini-statistiche e un **indicatore di "reattività auto"** (un pallino
 🟢/🟡/🔴, ⚪ se non ci sono dati): riassume quanto l'auto ha risposto agli ultimi comandi inviati.
 
+La mappa **Ultima posizione nota** disegna anche il tracciato GPS dell'ultimo viaggio di oggi — mentre
+guidi, quello del viaggio in corso — come nel dettaglio del viaggio.
+
 **L'ultima ricarica dice tutte e due le cose 🆕** — il riquadro **Ultima ricarica** mostra in primo piano
 la stessa cifra della riga di quella ricarica in Ricariche: a casa, con un contatore wallbox, i kWh
 **🔌 wallbox (da pagare)**, e sotto quel che è arrivato nel pacco —
