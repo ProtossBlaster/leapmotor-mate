@@ -5302,6 +5302,17 @@ def _filter_frozen_telemetry(positions: list[dict]) -> list[dict]:
     return [p for p, d in zip(positions, drop) if not d]
 
 
+def _trip_points(db, seg_ids: list) -> list[dict]:
+    """The readings a trip is drawn from: every piece of its group in time order, the stretches the
+    cloud served frozen left out (_filter_frozen_telemetry)."""
+    ph = ",".join("?" * len(seg_ids))
+    rows = db.execute(
+        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m, power_kw, battery_temp_c, "
+        "range_km, outside_temp_c, trip_id FROM trip_positions "
+        f"WHERE trip_id IN ({ph}) ORDER BY recorded_at, id", seg_ids).fetchall()
+    return _filter_frozen_telemetry([dict(r) for r in rows])
+
+
 def _interpolate_elevation(positions: list[dict]) -> list[dict]:
     """Fill elevation_m gaps BETWEEN two known samples by linear interpolation over elapsed time.
     Legitimate because altitude changes physically continuously (unlike SoC/speed, which can have
@@ -7770,16 +7781,10 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     children = _children_by_parent(db).get(parent_id, [])
     seg_ids = _segment_ids(db, parent_id)
     ph = ",".join("?" * len(seg_ids))
-    positions = db.execute(
-        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m, power_kw, battery_temp_c, "
-        "range_km, outside_temp_c, trip_id FROM trip_positions "
-        f"WHERE trip_id IN ({ph}) ORDER BY recorded_at, id",
-        seg_ids,
-    ).fetchall()
-    # Drop cloud-cached/frozen stretches (see _filter_frozen_telemetry) BEFORE anything else reads
-    # `positions` — so the chart, the map track and the speed stats below all agree on what actually
-    # happened, instead of the chart alone showing a gap while the stats stay skewed.
-    positions = _filter_frozen_telemetry([dict(p) for p in positions])
+    # Frozen stretches are dropped (see _trip_points) BEFORE anything else reads `positions` — so the
+    # chart, the map track and the speed stats below all agree on what actually happened, instead of
+    # the chart alone showing a gap while the stats stay skewed.
+    positions = _trip_points(db, seg_ids)
     # Whether the chart has a real point to draw a Quota line from — checked BEFORE interpolation
     # (which needs one to fill from). A trip enriched before per-point storage existed has
     # elevation_gain_m/loss_m set but every trip_positions.elevation_m still NULL: the aggregate being
