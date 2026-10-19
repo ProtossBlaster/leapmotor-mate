@@ -212,7 +212,7 @@
             }).addTo(map);
             const icon = L.divIcon({
               html: '<div style="background:#14b8a6;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5)"></div>',
-              iconSize: [14,14], iconAnchor: [7,7]
+              className: '', iconSize: [14,14], iconAnchor: [7,7]
             });
             // Nothing to open on it any more: not a button, not a tab stop.
             marker = L.marker(at, {icon, interactive: false, keyboard: false}).addTo(map);
