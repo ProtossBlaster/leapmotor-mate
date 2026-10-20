@@ -271,11 +271,12 @@ class NewAPIClient(MateClientCompatibility):
         if not isinstance(envelope,dict):
             raise LeapmotorApiError('New API returned an invalid envelope')
         codes = [envelope[k] for k in ('code','result') if k in envelope]
-        self._audit(path,method,response.status,codes)
+        accepted = answer_accepted(response.status, codes)
+        self._audit(path,method,response.status,'not_a_zip' if binary and accepted else codes)
         if not login and any(str(code) == '302002004' for code in codes):
             self._invalidate_session(headers['token'])
             raise LeapmotorApiError('Session unavailable; invalidated without replay')
-        if not answer_accepted(response.status, codes):
+        if not accepted:
             raise _rejection(response.status, codes)
         if binary:
             raise LeapmotorApiError('Picture endpoint did not return a ZIP')
