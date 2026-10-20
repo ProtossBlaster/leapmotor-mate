@@ -131,6 +131,11 @@ def _read_allowed(path):
                                   and bool(_OLD_STATUS_MODEL.fullmatch(path[len(OLD_STATUS_PATH):])))
 
 
+def answer_accepted(status, codes):
+    """The cloud said yes: HTTP 200, and every code it sent is 0 (a bool never counts as one)."""
+    return status == 200 and bool(codes) and not any(type(c) is bool or str(c) != '0' for c in codes)
+
+
 def connect_db():
     return sqlite3.connect(DB, timeout=30)
 
@@ -270,7 +275,7 @@ class NewAPIClient(MateClientCompatibility):
         if not login and any(str(code) == '302002004' for code in codes):
             self._invalidate_session(headers['token'])
             raise LeapmotorApiError('Session unavailable; invalidated without replay')
-        if response.status != 200 or not codes or any(type(c) is bool or str(c)!='0' for c in codes):
+        if not answer_accepted(response.status, codes):
             raise _rejection(response.status, codes)
         if binary:
             raise LeapmotorApiError('Picture endpoint did not return a ZIP')
