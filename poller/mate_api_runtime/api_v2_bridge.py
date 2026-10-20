@@ -136,6 +136,15 @@ def answer_accepted(status, codes):
     return status == 200 and bool(codes) and not any(type(c) is bool or str(c) != '0' for c in codes)
 
 
+def recorded_answer_accepted(status, api_code):
+    """answer_accepted for a row of the request log, which keeps str() of the codes: an element there
+    reads 0 or '0' only when the cloud sent one, and of the words kept instead binary_ok is the yes."""
+    if api_code == 'binary_ok':
+        return status == 200
+    listed = api_code[1:-1].split(', ') if api_code[:1] == '[' and api_code[-1:] == ']' else [api_code]
+    return answer_accepted(status, [{'0': 0, "'0'": '0'}.get(code) for code in listed])
+
+
 def connect_db():
     return sqlite3.connect(DB, timeout=30)
 
