@@ -1,8 +1,19 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.15.7 · **Lingua:** Italiano
+> **Versione di Mate:** v4.15.8 · **Lingua:** Italiano
 
-## Novità della 4.15.7
+## Novità della 4.15.8
+
+**La procedura guidata offre i pacchi del range extender.** Una C10 o una B10 con range extender può
+scegliere il suo pacco (*28.4 kWh — REEV* o *18.8 kWh — REEV*) sotto *Pacco batteria* nella procedura
+guidata. Finora la versione ufficiale li lasciava fuori dall'elenco.
+
+**Il pacchetto di diagnostica mostra cosa ha risposto il cloud.** Con *Info sistema* spuntato, il file di
+*Impostazioni → Diagnostica → Scarica diagnostica* ha una sezione con le risposte del cloud alle ultime
+richieste di Mate: quante per indirizzo, e ogni accesso, rinnovo e risposta rifiutata, con l'ora. Non
+contiene parametri, VIN né token.
+
+### Novità della 4.15.7
 
 **La salute della batteria conta intera una ricarica unita.** Una ricarica che l'auto ha registrato a
 pezzi e che è stata unita in una sola sessione (da Mate dopo una breve pausa, o a mano con *Unisci alla

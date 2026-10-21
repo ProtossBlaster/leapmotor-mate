@@ -3,6 +3,21 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.15.8] — 2026-10-21
+
+- **The official setup wizard offers the range-extender packs** ([BetaTester #13](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/13), @ebagnoli).
+  Since 4.7.0 the server hands the wizard every pack, range-extenders included, but the page took them
+  out again on every build but the BetaTester. A C10 or a B10 with a range extender could not pick its
+  pack (28.4 or 18.8 kWh) in the official wizard; an owner moving from the beta got it back only because
+  the restore carries the setting. The page now draws every pack; a browser test checks both pickers, the
+  one for a single car and the per-car cards.
+- **The diagnostics bundle shows what the cloud answered** ([#432](https://github.com/ProtossBlaster/leapmotor-mate/pull/432), @arekm). With *System info*
+  ticked, a new section after *polling* counts the answers per endpoint by HTTP status and cloud code,
+  then lists every login, renewal and refused answer, oldest first, at most 200 lines: time, endpoint,
+  status and code, never a parameter, a VIN or a token. It comes from the record Mate already kept of
+  each answer (the last 10,000). A car picture answered without its package is now recorded as refused
+  (`not_a_zip`) rather than as an accepted `[0]`.
+
 ## [4.15.7] — 2026-10-20
 
 - **Battery health counts a joined charge whole** ([#430](https://github.com/ProtossBlaster/leapmotor-mate/pull/430), @ElRoscaoJr). A charge the car

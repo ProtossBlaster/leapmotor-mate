@@ -1,8 +1,19 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.15.7 · **Language:** English
+> **Mate version:** v4.15.8 · **Language:** English
 
-## New in 4.15.7
+## New in 4.15.8
+
+**The setup wizard offers the range-extender packs.** A C10 or B10 with a range extender can pick its
+pack (*28.4 kWh — REEV* or *18.8 kWh — REEV*) under *Battery pack* in the setup wizard. Until now the
+official build left those packs out of the list.
+
+**The diagnostics bundle shows what the cloud answered.** With *System info* ticked, the file from
+*Settings → Diagnostics → Download diagnostics* has a section with the cloud's answers to Mate's last
+requests: how many per endpoint, and every sign-in, renewal and refused answer, with its time. It holds
+no parameters, VIN or tokens.
+
+### New in 4.15.7
 
 **Battery health counts a joined charge whole.** A charge the car reported in pieces and that is joined
 into one session (by Mate after a short pause, or by hand with *Join with previous* on the *Charges* page)

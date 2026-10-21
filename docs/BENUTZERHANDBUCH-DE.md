@@ -1,8 +1,19 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.15.7 · **Sprache:** Deutsch
+> **Mate-Version:** v4.15.8 · **Sprache:** Deutsch
 
-## Neu in Version 4.15.7
+## Neu in Version 4.15.8
+
+**Der Einrichtungsassistent bietet die Range-Extender-Pakete an.** Ein C10 oder B10 mit Range-Extender
+kann im Einrichtungsassistenten unter *Batteriepaket* sein Paket wählen (*28.4 kWh — REEV* oder
+*18.8 kWh — REEV*). Bisher ließ die offizielle Version diese Pakete aus der Liste weg.
+
+**Das Diagnosepaket zeigt, was die Cloud geantwortet hat.** Mit angehakter *Systeminfo* enthält die Datei
+aus *Einstellungen → Diagnose → Diagnose herunterladen* einen Abschnitt mit den Antworten der Cloud auf
+Mates letzte Anfragen: wie viele pro Endpunkt, und jede Anmeldung, Erneuerung und abgelehnte Antwort mit
+ihrer Uhrzeit. Er enthält keine Parameter, keine FIN und keine Tokens.
+
+### Neu in Version 4.15.7
 
 **Der Batteriezustand zählt einen zusammengeführten Ladevorgang ganz.** Ein Ladevorgang, den das Auto in
 Teilen gemeldet hat und der zu einer Sitzung zusammengeführt wurde (von Mate nach einer kurzen Pause oder

@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.15.7 · **Langue :** Français
+> **Version de Mate :** v4.15.8 · **Langue :** Français
 
-## Nouveautés de la version 4.15.7
+## Nouveautés de la version 4.15.8
+
+**L'assistant de configuration propose les packs du prolongateur d'autonomie.** Une C10 ou une B10 avec
+prolongateur d'autonomie peut choisir son pack (*28.4 kWh — REEV* ou *18.8 kWh — REEV*) sous *Pack
+batterie* dans l'assistant de configuration. Jusqu'ici la version officielle les laissait hors de la
+liste.
+
+**Le paquet de diagnostic montre ce que le cloud a répondu.** Avec *Infos système* coché, le fichier de
+*Paramètres → Diagnostic → Télécharger le diagnostic* contient une section avec les réponses du cloud aux
+dernières requêtes de Mate : combien par adresse, et chaque connexion, renouvellement et réponse refusée,
+avec son heure. Elle ne contient ni paramètres, ni VIN, ni jetons.
+
+### Nouveautés de la version 4.15.7
 
 **La santé de la batterie compte une recharge fusionnée en entier.** Une recharge que la voiture a
 enregistrée en plusieurs morceaux et qui a été réunie en une seule séance (par Mate après une courte pause,
