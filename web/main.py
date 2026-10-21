@@ -6579,12 +6579,11 @@ def battery_options_for_build() -> dict[str, list[dict]]:
 
 @app.get("/setup", response_class=HTMLResponse)
 async def setup_page(request: Request):
-    # The battery list is rendered from the server's map (already filtered for this build), so the
-    # official wizard's HTML never even contains the REEV packs — and the page can't drift from what
-    # detect-vehicle answers, since both read battery_options_for_build().
+    # The battery list is rendered from the server's map, range-extender packs included, and the page
+    # draws all of it — so it can't drift from what detect-vehicle answers, since both read
+    # battery_options_for_build().
     return templates.TemplateResponse(request, "setup.html", {
         "battery_options": battery_options_for_build(),
-        "research": research.research_enabled(),
         # Asked here, pre-filled with what Mate detected — see the note in setup_submit. The full
         # grouped list is the same one Settings uses, so the two pickers can never diverge.
         "tz_options": db_reader.timezone_options(),

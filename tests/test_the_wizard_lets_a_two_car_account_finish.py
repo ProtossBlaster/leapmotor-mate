@@ -33,10 +33,7 @@ def _rendered_script(tmp_path: pathlib.Path) -> pathlib.Path:
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(str(ROOT / "web" / "templates")))
     html = env.get_template("setup.html").render(
         request=_Request(),
-        # The official build's list: the range-extender packs are filtered out server-side.
-        battery_options={ct: [o for o in opts if not o.get("reev")]
-                         for ct, opts in battery_packs.EU_BATTERY_MAP.items()},
-        research=False,
+        battery_options=battery_packs.EU_BATTERY_MAP,   # what battery_options_for_build() hands over
         tz_options=[], tz_detected="Europe/Rome", prefill=None,
     )
     body = html[html.rindex("<script>") + len("<script>"):html.rindex("</script>")]
