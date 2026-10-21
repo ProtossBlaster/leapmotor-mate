@@ -131,6 +131,20 @@ def _read_allowed(path):
                                   and bool(_OLD_STATUS_MODEL.fullmatch(path[len(OLD_STATUS_PATH):])))
 
 
+def answer_accepted(status, codes):
+    """The cloud said yes: HTTP 200, and every code it sent is 0 (a bool never counts as one)."""
+    return status == 200 and bool(codes) and not any(type(c) is bool or str(c) != '0' for c in codes)
+
+
+def recorded_answer_accepted(status, api_code):
+    """answer_accepted for a row of the request log, which keeps str() of the codes: an element there
+    reads 0 or '0' only when the cloud sent one, and of the words kept instead binary_ok is the yes."""
+    if api_code == 'binary_ok':
+        return status == 200
+    listed = api_code[1:-1].split(', ') if api_code[:1] == '[' and api_code[-1:] == ']' else [api_code]
+    return answer_accepted(status, [{'0': 0, "'0'": '0'}.get(code) for code in listed])
+
+
 def connect_db():
     return sqlite3.connect(DB, timeout=30)
 
@@ -266,11 +280,12 @@ class NewAPIClient(MateClientCompatibility):
         if not isinstance(envelope,dict):
             raise LeapmotorApiError('New API returned an invalid envelope')
         codes = [envelope[k] for k in ('code','result') if k in envelope]
-        self._audit(path,method,response.status,codes)
+        accepted = answer_accepted(response.status, codes)
+        self._audit(path,method,response.status,'not_a_zip' if binary and accepted else codes)
         if not login and any(str(code) == '302002004' for code in codes):
             self._invalidate_session(headers['token'])
             raise LeapmotorApiError('Session unavailable; invalidated without replay')
-        if response.status != 200 or not codes or any(type(c) is bool or str(c)!='0' for c in codes):
+        if not accepted:
             raise _rejection(response.status, codes)
         if binary:
             raise LeapmotorApiError('Picture endpoint did not return a ZIP')

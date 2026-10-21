@@ -12,6 +12,7 @@ import os
 import re
 import sqlite3
 import time
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -893,6 +894,46 @@ def _polling_section() -> str:
     return "\n".join(lines)
 
 
+_CLOUD_LINES = 200   # the list of answers keeps its newest lines, and says how many it left out
+
+
+def _cloud_answers_section() -> str:
+    """What the cloud answered Mate's last requests, from the bridge's record of each answer: time,
+    endpoint, HTTP status and the cloud's code, never a parameter, a VIN or a token. Logins and
+    renewals are listed with the refusals, so the end of a session reads against its start."""
+    from api_v2_bridge import LOGIN_PATH, REFRESH_PATH, recorded_answer_accepted
+    try:
+        db = db_reader._get()
+        if not db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' "
+                          "AND name = 'api_v2_http_log'").fetchone():
+            return "(none recorded)"
+        rows = db.execute("SELECT at, method, path, http_status, api_code "
+                          "FROM api_v2_http_log ORDER BY id").fetchall()
+    except sqlite3.Error as e:
+        return f"(unavailable: {e})"
+    if not rows:
+        return "(none recorded)"
+    answers = defaultdict(Counter)
+    listed = []
+    for r in rows:
+        answer = (r["http_status"], str(r["api_code"]))
+        answers[(r["method"], r["path"])][answer] += 1
+        if r["path"] in (LOGIN_PATH, REFRESH_PATH) or not recorded_answer_accepted(*answer):
+            listed.append(r)
+    width = max(len(path) for _, path in answers)
+    out = [(f"{len(rows)} requests · {(rows[0]['at'] or '')[:19]} → {(rows[-1]['at'] or '')[:19]} · "
+            "per endpoint: HTTP status, cloud code ×times")]
+    for (method, path), seen in sorted(answers.items(), key=lambda item: -item[1].total()):
+        out.append(f"  {seen.total():5d}  {method:4} {path:{width}}  "
+                   + " · ".join(f"{status} {code} ×{n}" for (status, code), n in seen.most_common()))
+    out.append(f"logins, renewals and every answer that was not a success (oldest first, at most {_CLOUD_LINES}):")
+    if len(listed) > _CLOUD_LINES:
+        out.append(f"  … {len(listed) - _CLOUD_LINES} earlier not shown")
+    out += [f"  {(r['at'] or '')[:19]}  {r['method']:4} {r['path']}  {r['http_status']} {r['api_code']}"
+            for r in listed[-_CLOUD_LINES:]]
+    return "\n".join(out)
+
+
 def _cloud_history_section() -> str:
     """Did the cloud's own trip history arrive, and did it carry fuel? Counts only — this text is
     attached to public issues. Since 4.5.3 every install stages these records, range-extender
@@ -990,6 +1031,7 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
                 _missed_charges_section()]
         out += ["", "----- vehicle abilities (what the car DECLARES it can do) -----", _abilities_section()]
         out += ["", "----- polling (last 7 days, local days) -----", _polling_section()]
+        out += ["", "----- cloud answers (Mate's last requests, UTC) -----", _cloud_answers_section()]
         out += ["", "----- cloud trip history (staged from Leapmotor) -----",
                 _cloud_history_section()]
     if "poller" in want:
