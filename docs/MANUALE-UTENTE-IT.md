@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.15.8 · **Lingua:** Italiano
+> **Versione di Mate:** v4.15.9 · **Lingua:** Italiano
 
-## Novità della 4.15.8
+## Novità della 4.15.9
+
+**La Salute batteria conta le ricariche della T03.** La T03 manda il livello della batteria a punti
+interi, e la pagina *Salute batteria* prendeva ogni punto guadagnato in una ricarica AC per una
+ricalibrazione della batteria, lasciando fuori la ricarica: la pagina restava senza cifra. Ora un punto
+alla volta è una salita normale; un salto vero lascia ancora fuori la ricarica. Contano anche le ricariche
+già registrate.
+
+### Novità della 4.15.8
 
 **La procedura guidata offre i pacchi del range extender.** Una C10 o una B10 con range extender può
 scegliere il suo pacco (*28.4 kWh — REEV* o *18.8 kWh — REEV*) sotto *Pacco batteria* nella procedura

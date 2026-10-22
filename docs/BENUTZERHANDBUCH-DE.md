@@ -1,8 +1,16 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.15.8 · **Sprache:** Deutsch
+> **Mate-Version:** v4.15.9 · **Sprache:** Deutsch
 
-## Neu in Version 4.15.8
+## Neu in Version 4.15.9
+
+**Der Batteriezustand zählt die Ladevorgänge eines T03.** Der T03 meldet seinen Ladestand in ganzen
+Prozentpunkten, und die Seite *Batteriezustand* hielt jeden Punkt, den er beim AC-Laden gewann, für eine
+Neukalibrierung der Batterie und ließ den Ladevorgang weg: Die Seite blieb ohne Wert. Jetzt ist ein Punkt
+nach dem anderen ein normaler Anstieg; ein echter Sprung lässt einen Ladevorgang weiterhin weg. Auch
+bereits aufgezeichnete Ladevorgänge zählen.
+
+### Neu in Version 4.15.8
 
 **Der Einrichtungsassistent bietet die Range-Extender-Pakete an.** Ein C10 oder B10 mit Range-Extender
 kann im Einrichtungsassistenten unter *Batteriepaket* sein Paket wählen (*28.4 kWh — REEV* oder

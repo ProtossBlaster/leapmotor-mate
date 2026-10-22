@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.15.8 · **Langue :** Français
+> **Version de Mate :** v4.15.9 · **Langue :** Français
 
-## Nouveautés de la version 4.15.8
+## Nouveautés de la version 4.15.9
+
+**La santé de la batterie compte les recharges d'une T03.** La T03 envoie son niveau de batterie en
+points entiers, et la page *Santé de la batterie* prenait chaque point gagné pendant une recharge AC pour
+un recalibrage de la batterie, et laissait la recharge de côté : la page restait sans valeur. Désormais
+un point à la fois est une montée normale ; un vrai saut écarte toujours une recharge. Les recharges déjà
+enregistrées comptent aussi.
+
+### Nouveautés de la version 4.15.8
 
 **L'assistant de configuration propose les packs du prolongateur d'autonomie.** Une C10 ou une B10 avec
 prolongateur d'autonomie peut choisir son pack (*28.4 kWh — REEV* ou *18.8 kWh — REEV*) sous *Pack

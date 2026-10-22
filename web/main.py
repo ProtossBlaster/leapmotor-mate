@@ -34,7 +34,7 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "4.15.8"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "4.15.9"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo

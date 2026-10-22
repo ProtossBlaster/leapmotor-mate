@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.15.8 · **Language:** English
+> **Mate version:** v4.15.9 · **Language:** English
 
-## New in 4.15.8
+## New in 4.15.9
+
+**Battery health counts the charges of a T03.** The T03 reports its battery level in whole points, and
+*Battery health* took each point it gained during an AC charge for a battery recalibration, leaving the
+charge out: the page had no figure. Now one point at a time is a normal rise; a real jump still leaves a
+charge out. Charges already recorded count too.
+
+### New in 4.15.8
 
 **The setup wizard offers the range-extender packs.** A C10 or B10 with a range extender can pick its
 pack (*28.4 kWh — REEV* or *18.8 kWh — REEV*) under *Battery pack* in the setup wizard. Until now the

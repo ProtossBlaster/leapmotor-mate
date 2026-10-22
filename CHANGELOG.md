@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.15.9] — 2026-10-22
+
+- **Battery health counts the charges of a T03** ([#435](https://github.com/ProtossBlaster/leapmotor-mate/issues/435), @matttiaromano). The page leaves out an
+  AC charge whose SoC rose faster than 0.8 points a minute between two readings, to skip the jumps a
+  battery makes when it recalibrates. The T03 reports its SoC in whole points, so every point it gains
+  appeared between two readings 30 s apart, about 2 points a minute: every AC charge of a T03 was left
+  out, and the page had no figure. A rise of one step of the SoC's own resolution (a whole point, or a
+  tenth on a precise SoC) no longer counts as a jump; a real leap still does. On a B10 the same rule
+  clears a charge left out for a single 0.1 step between two readings 6 s apart. The page works from the
+  stored charges, so earlier charges count too.
+
 ## [4.15.8] — 2026-10-21
 
 - **The official setup wizard offers the range-extender packs** ([BetaTester #13](https://github.com/ProtossBlaster/MateBetaTesterOnly/issues/13), @ebagnoli).

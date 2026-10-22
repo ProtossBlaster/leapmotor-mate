@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.15.8 · **Idioma:** Español
+> **Versión de Mate:** v4.15.9 · **Idioma:** Español
 
-## Novedades de la versión 4.15.8
+## Novedades de la versión 4.15.9
+
+**La salud de la batería cuenta las cargas de un T03.** El T03 envía el nivel de batería en puntos
+enteros, y la página *Salud de la batería* tomaba cada punto ganado en una carga AC por una recalibración
+de la batería y dejaba fuera la carga: la página se quedaba sin cifra. Ahora un punto cada vez es una
+subida normal; un salto real sigue dejando fuera una carga. También cuentan las cargas ya registradas.
+
+### Novedades de la versión 4.15.8
 
 **El asistente de configuración ofrece los paquetes del extensor de autonomía.** Un C10 o un B10 con
 extensor de autonomía puede elegir su paquete (*28.4 kWh — REEV* o *18.8 kWh — REEV*) en *Paquete de
