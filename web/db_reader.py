@@ -10739,7 +10739,15 @@ def _charge_has_soc_jump(db, start: str, end: str | None,
     faster than max_rate_per_min %/min — a BMS recalibration snap, not real energy.
     At AC rates (≤ 22 kW on 67 kWh), the physical max is ~0.55%/min; a threshold of 0.8
     leaves margin for fast 3-phase AC while still catching BMS jumps (e.g. +2.5%/min).
-    Only call this for AC charge types — DC fast-charging can legitimately reach 3-4%/min."""
+    Only call this for AC charge types — DC fast-charging can legitimately reach 3-4%/min.
+
+    A rise of ONE step of the SoC's own resolution is a tick, never a jump. The T03 reports its SoC
+    in whole points (no precise SoC, signal 100003), so each tick is a full point between two polls
+    30 s apart, about 2 %/min: every AC charge of a T03 was left out of the SoH, and the page had no
+    figure after four charges (#435, @matttiaromano: 123 of 831 charging pairs). The step is read
+    from the charge itself — whole points when no sample carries a fraction, a tenth otherwise — so
+    a precise SoC that leaps a whole point between two samples still counts as a jump.
+    → tests/test_a_charge_whose_soc_counts_in_whole_points_is_not_a_jump.py"""
     clause = "recorded_at >= ? AND recorded_at <= ?" if end else "recorded_at >= ?"
     params = (start, end) if end else (start,)
     rows = db.execute(
@@ -10748,6 +10756,7 @@ def _charge_has_soc_jump(db, start: str, end: str | None,
         "AND soc IS NOT NULL ORDER BY recorded_at",
         (_current_vehicle_id(), *params),
     ).fetchall()
+    step = 1.0 if all(float(r["soc"]).is_integer() for r in rows) else SOC_QUANTUM
     prev_soc, prev_t = None, None
     for r in rows:
         soc = r["soc"]
@@ -10758,7 +10767,8 @@ def _charge_has_soc_jump(db, start: str, end: str | None,
             continue
         if prev_soc is not None and prev_t is not None:
             dt_min = (t - prev_t).total_seconds() / 60.0
-            if 0 < dt_min <= 15.0 and (soc - prev_soc) / dt_min > max_rate_per_min:
+            rise = soc - prev_soc
+            if 0 < dt_min <= 15.0 and rise > step + 1e-9 and rise / dt_min > max_rate_per_min:
                 return True
         prev_soc, prev_t = soc, t
     return False
