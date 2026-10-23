@@ -4246,7 +4246,10 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
             capability_profile.battery_range_km(signals),   # the poller's rule (#365)
             gear_map.get(sig("1010"), "P"),
             int(_is_charging()),
-            sigf("1182"), sigf("2183"), sigf("1349"),
+            # Absent stays absent, as the poller's _temp_or_none (#144): `float(x or 0)` filed a
+            # temperature the car never sent as 0 °C, and on a T03, which sends no battery temperature,
+            # one fresh reading during a charge made the charge cold to the SoH page (#435).
+            sigf_or_none("1182"), sigf_or_none("2183"), sigf_or_none("1349"),
             sig("1298"), sig("1938"), int(plug_connected),
             int(sig("2669") == 2), int(sig("2681") == 2), int(sig("1945") == 2),
             sig("1281"), windows_open,
@@ -10790,10 +10793,13 @@ def _charge_has_active_use(db, start: str, end: str | None) -> bool:
     return row is not None
 
 
-def _charge_temp_odo(db, start: str, end: str | None):
+def _charge_temp_odo(db, start: str, end: str | None, zero_is_absent: bool = False):
     """Coldest battery temperature (°C) and the odometer (km) seen WHILE CHARGING in a session,
     from the positions log. The min temp is the conservative basis for the cold-charge gate; the
-    odometer gives the per-distance (cycle-ageing) axis of the SoH trend."""
+    odometer gives the per-distance (cycle-ageing) axis of the SoH trend.
+
+    `zero_is_absent`: this car has never sent a battery temperature other than 0, so its zeros are
+    the ones the web's fresh reading wrote for a signal the car did not send — see `_battery_health`."""
     if end:
         rows = db.execute(
             "SELECT battery_min_temp, odometer_km FROM positions "
@@ -10805,7 +10811,8 @@ def _charge_temp_odo(db, start: str, end: str | None):
             "SELECT battery_min_temp, odometer_km FROM positions "
             "WHERE vehicle_id = COALESCE(?, vehicle_id) AND " + _charging_sample() + " "
             "AND recorded_at >= ? ORDER BY recorded_at", (_current_vehicle_id(), start)).fetchall()
-    temps = [r["battery_min_temp"] for r in rows if r["battery_min_temp"] is not None]
+    temps = [r["battery_min_temp"] for r in rows if r["battery_min_temp"] is not None
+             and not (zero_is_absent and r["battery_min_temp"] == 0)]
     odos = [r["odometer_km"] for r in rows if r["odometer_km"] is not None]
     return (min(temps) if temps else None), (max(odos) if odos else None)
 
@@ -10865,6 +10872,12 @@ def _battery_health(min_soc_delta: float, temp_min_c, min_start_soc: float) -> d
     _kids = _charge_children_by_parent(db)
     rows = [_charge_group_stats(dict(r), _kids.get(r["id"], [])) for r in rows]
     zone = _local_tz()          # once for the whole chart, not once per charge dated
+    # Before #435's fix the web's fresh reading stored a battery temperature the car did not send as 0 °C
+    # (#435). A T03 sends none, so those zeros sit in its database and made three of four charges
+    # "cold". A car that has never reported any other battery temperature did not report that one.
+    zero_is_absent = db.execute(
+        "SELECT 1 FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) AND battery_min_temp <> 0 "
+        "LIMIT 1", (_current_vehicle_id(),)).fetchone() is None
     points = []
     for r in rows:
         delta = (r["end_soc"] or 0) - (r["start_soc"] or 0)
@@ -10890,7 +10903,7 @@ def _battery_health(min_soc_delta: float, temp_min_c, min_start_soc: float) -> d
         # Drop physically implausible estimates (sampling gaps, bad V/I spikes).
         if not (nominal * 0.5 <= est <= nominal * 1.15):
             continue
-        temp, odo = _charge_temp_odo(db, r["started_at"], r["ended_at"])
+        temp, odo = _charge_temp_odo(db, r["started_at"], r["ended_at"], zero_is_absent)
         cold = temp is not None and temp < temp_min_c
         # Bottom guard: a charge that STARTED near-empty over-reports its SoC rise → capacity
         # under-estimate (the isolated low outlier riri19 saw). Excluded like cold; still charted.
