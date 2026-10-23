@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.15.9 · **Idioma:** Español
+> **Versión de Mate:** v4.15.10 · **Idioma:** Español
 
-## Novedades de la versión 4.15.9
+## Novedades de la versión 4.15.10
+
+**La salud de la batería ya no lee una temperatura ausente como 0 °C.** En un coche que no envía la
+temperatura de la batería, como el T03, una lectura hecha por la página web durante una carga guardaba
+0 °C, y la *Salud de la batería* dejaba fuera la carga como hecha en frío. Ahora una temperatura ausente
+queda vacía, y los 0 °C ya guardados de un coche así ya no se toman como lecturas.
+
+### Novedades de la versión 4.15.9
 
 **La salud de la batería cuenta las cargas de un T03.** El T03 envía el nivel de batería en puntos
 enteros, y la página *Salud de la batería* tomaba cada punto ganado en una carga AC por una recalibración

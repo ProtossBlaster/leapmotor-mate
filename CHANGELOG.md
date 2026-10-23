@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.15.10] — 2026-10-23
+
+- **A temperature the car did not send is not 0 °C** ([#435](https://github.com/ProtossBlaster/leapmotor-mate/issues/435), @matttiaromano). The web's fresh
+  reading, taken after a command or a refresh, stored the battery temperature, the cabin's and the A/C
+  target as `float(x or 0)`, so a car that does not send them got 0 °C. The T03 sends no battery
+  temperature: one fresh reading during a charge made that charge's coldest battery 0 °C, and Battery
+  health left it out as a cold charge, three of four in #435. The poller has kept an absent temperature
+  empty since #144; the web now follows the same rule, and a real 0 °C stays 0. The zeros already
+  stored stay in the database: for a car that has never reported a battery temperature other than 0,
+  Battery health no longer takes them as readings.
+
 ## [4.15.9] — 2026-10-22
 
 - **Battery health counts the charges of a T03** ([#435](https://github.com/ProtossBlaster/leapmotor-mate/issues/435), @matttiaromano). The page leaves out an

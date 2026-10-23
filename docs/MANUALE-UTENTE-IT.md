@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.15.9 · **Lingua:** Italiano
+> **Versione di Mate:** v4.15.10 · **Lingua:** Italiano
 
-## Novità della 4.15.9
+## Novità della 4.15.10
+
+**La Salute batteria non legge più una temperatura mancante come 0 °C.** Su un'auto che non manda la
+temperatura della batteria, come la T03, una lettura fatta dalla pagina web durante una ricarica salvava
+0 °C, e la *Salute batteria* lasciava fuori la ricarica come fatta al freddo. Ora una temperatura
+mancante resta vuota, e gli 0 °C già salvati da un'auto così non vengono più presi come letture.
+
+### Novità della 4.15.9
 
 **La Salute batteria conta le ricariche della T03.** La T03 manda il livello della batteria a punti
 interi, e la pagina *Salute batteria* prendeva ogni punto guadagnato in una ricarica AC per una

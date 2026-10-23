@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.15.9:** Battery health **counts the charges of a T03**, whose SoC in whole points made every AC charge read as a battery recalibration ([#435](https://github.com/ProtossBlaster/leapmotor-mate/issues/435), @matttiaromano). In **4.15.8**: the official setup wizard offers the range-extender packs; the diagnostics bundle shows what the cloud answered.
-See [release notes and upgrade impact](docs/releases/v4.15.9.md).
+**v4.15.10:** a temperature the car did not send **is no longer stored as 0 °C**, so Battery health stops leaving a T03's charges out as cold ([#435](https://github.com/ProtossBlaster/leapmotor-mate/issues/435), @matttiaromano). In **4.15.9**: Battery health counts the charges of a T03, whose SoC comes in whole points.
+See [release notes and upgrade impact](docs/releases/v4.15.10.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -360,8 +360,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.15.9:** la Salute batteria **conta le ricariche della T03**, il cui SoC a punti interi faceva sembrare ogni ricarica AC una ricalibrazione della batteria ([#435](https://github.com/ProtossBlaster/leapmotor-mate/issues/435), @matttiaromano). Nella **4.15.8**: la procedura guidata ufficiale offre i pacchi del range extender; il pacchetto di diagnostica mostra cosa ha risposto il cloud.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.15.9.md#italiano).
+**v4.15.10:** una temperatura che l'auto non ha mandato **non viene più salvata come 0 °C**, così la Salute batteria smette di lasciare fuori come fredde le ricariche della T03 ([#435](https://github.com/ProtossBlaster/leapmotor-mate/issues/435), @matttiaromano). Nella **4.15.9**: la Salute batteria conta le ricariche della T03, il cui SoC arriva a punti interi.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.15.10.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

@@ -1,8 +1,16 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.15.9 · **Sprache:** Deutsch
+> **Mate-Version:** v4.15.10 · **Sprache:** Deutsch
 
-## Neu in Version 4.15.9
+## Neu in Version 4.15.10
+
+**Der Batteriezustand liest eine fehlende Temperatur nicht mehr als 0 °C.** Bei einem Auto, das seine
+Batterietemperatur nicht sendet, etwa dem T03, speicherte eine Abfrage der Weboberfläche während eines
+Ladevorgangs 0 °C, und der *Batteriezustand* ließ den Ladevorgang als kalt geladen weg. Eine fehlende
+Temperatur bleibt jetzt leer, und die bereits gespeicherten 0 °C eines solchen Autos gelten nicht mehr als
+Messwerte.
+
+### Neu in Version 4.15.9
 
 **Der Batteriezustand zählt die Ladevorgänge eines T03.** Der T03 meldet seinen Ladestand in ganzen
 Prozentpunkten, und die Seite *Batteriezustand* hielt jeden Punkt, den er beim AC-Laden gewann, für eine

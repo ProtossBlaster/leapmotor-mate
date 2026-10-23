@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.15.9 · **Language:** English
+> **Mate version:** v4.15.10 · **Language:** English
 
-## New in 4.15.9
+## New in 4.15.10
+
+**Battery health no longer reads a missing temperature as 0 °C.** On a car that does not send its battery
+temperature, such as the T03, a reading taken by the web page during a charge stored 0 °C, and *Battery
+health* left the charge out as charged in the cold. A missing temperature now stays empty, and the zeros
+already stored from such a car are no longer taken as readings.
+
+### New in 4.15.9
 
 **Battery health counts the charges of a T03.** The T03 reports its battery level in whole points, and
 *Battery health* took each point it gained during an AC charge for a battery recalibration, leaving the
