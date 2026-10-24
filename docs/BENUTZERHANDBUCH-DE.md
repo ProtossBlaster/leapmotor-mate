@@ -1,8 +1,16 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.15.10 · **Sprache:** Deutsch
+> **Mate-Version:** v4.15.11 · **Sprache:** Deutsch
 
-## Neu in Version 4.15.10
+## Neu in Version 4.15.11
+
+**Der Kilometerstand über MQTT fällt nicht mehr auf 0 km.** Wenn eine Abfrage des Autos keinen
+Kilometerstand enthält, wie manche beim T03, veröffentlichte Mate 0 km über MQTT (der
+Kilometerstand-Sensor in Home Assistant) und schickte 0 km an ABRP. Eine solche Abfrage veröffentlicht
+jetzt nichts für den Kilometerstand: Der Sensor behält den letzten Wert, wie es die Reichweite schon tat,
+und ABRP bekommt keinen Kilometerstand.
+
+### Neu in Version 4.15.10
 
 **Der Batteriezustand liest eine fehlende Temperatur nicht mehr als 0 °C.** Bei einem Auto, das seine
 Batterietemperatur nicht sendet, etwa dem T03, speicherte eine Abfrage der Weboberfläche während eines

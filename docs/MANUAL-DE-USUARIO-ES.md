@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.15.10 · **Idioma:** Español
+> **Versión de Mate:** v4.15.11 · **Idioma:** Español
 
-## Novedades de la versión 4.15.10
+## Novedades de la versión 4.15.11
+
+**El odómetro en MQTT ya no baja a 0 km.** Cuando una lectura del coche no trae el odómetro, como
+algunas del T03, Mate publicaba 0 km en MQTT (el sensor del odómetro en Home Assistant) y enviaba 0 km a
+ABRP. Ahora una lectura así no publica nada para el odómetro: el sensor conserva el último valor, como ya
+hacía la autonomía, y ABRP no recibe el odómetro.
+
+### Novedades de la versión 4.15.10
 
 **La salud de la batería ya no lee una temperatura ausente como 0 °C.** En un coche que no envía la
 temperatura de la batería, como el T03, una lectura hecha por la página web durante una carga guardaba

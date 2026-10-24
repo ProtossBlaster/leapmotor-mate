@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.15.10 · **Langue :** Français
+> **Version de Mate :** v4.15.11 · **Langue :** Français
 
-## Nouveautés de la version 4.15.10
+## Nouveautés de la version 4.15.11
+
+**Le compteur kilométrique sur MQTT ne tombe plus à 0 km.** Quand une lecture de la voiture ne porte pas
+le compteur, comme certaines de la T03, Mate publiait 0 km sur MQTT (le capteur du compteur dans Home
+Assistant) et envoyait 0 km à ABRP. Une telle lecture ne publie désormais rien pour le compteur : le
+capteur garde la dernière valeur, comme le faisait déjà l'autonomie, et ABRP ne reçoit pas de compteur.
+
+### Nouveautés de la version 4.15.10
 
 **La santé de la batterie ne lit plus une température absente comme 0 °C.** Sur une voiture qui n'envoie
 pas la température de sa batterie, comme la T03, une lecture faite par la page web pendant une recharge

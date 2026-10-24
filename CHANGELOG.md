@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.15.11] — 2026-10-24
+
+- **An odometer the car did not send is not published as 0 km** ([PR #358](https://github.com/ProtossBlaster/leapmotor-mate/pull/358), @arekm). The
+  poller keeps an absent odometer as 0 in memory, for the state machine and the recorder, and the
+  database has stored it as empty since 4.7.2; MQTT and ABRP read the number in memory, so MQTT
+  published a retained 0.0 and ABRP sent odometer 0. The T03 leaves the odometer out of some readings:
+  two diagnostics bundles show it, in #338 and #400. A reading without an odometer now publishes nothing
+  on the odometer topic, so the broker keeps the last value, as for a reading without a range (#365),
+  and ABRP gets no odometer field. An odometer the car sent, 0 included, is published as before.
+
 ## [4.15.10] — 2026-10-23
 
 - **A temperature the car did not send is not 0 °C** ([#435](https://github.com/ProtossBlaster/leapmotor-mate/issues/435), @matttiaromano). The web's fresh

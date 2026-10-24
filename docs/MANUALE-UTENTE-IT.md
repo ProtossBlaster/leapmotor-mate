@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.15.10 · **Lingua:** Italiano
+> **Versione di Mate:** v4.15.11 · **Lingua:** Italiano
 
-## Novità della 4.15.10
+## Novità della 4.15.11
+
+**Il contachilometri su MQTT non scende più a 0 km.** Quando una lettura dell'auto non porta il
+contachilometri, come alcune della T03, Mate pubblicava 0 km su MQTT (il sensore del contachilometri in
+Home Assistant) e mandava 0 km ad ABRP. Ora una lettura così non pubblica niente per il contachilometri:
+il sensore tiene l'ultimo valore, come faceva già l'autonomia, e ABRP non riceve il contachilometri.
+
+### Novità della 4.15.10
 
 **La Salute batteria non legge più una temperatura mancante come 0 °C.** Su un'auto che non manda la
 temperatura della batteria, come la T03, una lettura fatta dalla pagina web durante una ricarica salvava

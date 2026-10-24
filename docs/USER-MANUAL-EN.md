@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.15.10 · **Language:** English
+> **Mate version:** v4.15.11 · **Language:** English
 
-## New in 4.15.10
+## New in 4.15.11
+
+**The MQTT odometer no longer drops to 0 km.** When a reading from the car carries no odometer, as some
+from the T03 do, Mate published 0 km on MQTT (the Home Assistant odometer sensor) and sent 0 km to ABRP.
+Such a reading now publishes nothing for the odometer: the sensor keeps the last value, as the range
+already did, and ABRP gets no odometer.
+
+### New in 4.15.10
 
 **Battery health no longer reads a missing temperature as 0 °C.** On a car that does not send its battery
 temperature, such as the T03, a reading taken by the web page during a charge stored 0 °C, and *Battery
