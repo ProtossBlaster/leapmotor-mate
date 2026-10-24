@@ -379,7 +379,12 @@ class MqttService:
         # `unknown` at every sleep of the car (#365).
         if data.range_km is not None:
             pub("range", data.range_km)
-        pub("odometer", data.odometer_km);     pub("speed", data.speed_kmh)
+        # The same for a frame with no odometer: in memory it is 0 for the state machine, and a
+        # retained 0 would drop the sensor to 0 km and back (PR #358). An empty retained payload
+        # would delete the broker's value instead, so nothing is published.
+        if data.odometer_reported:
+            pub("odometer", data.odometer_km)
+        pub("speed", data.speed_kmh)
         pub("gear", data.gear);                pub("state", data.vehicle_state)
         # The car is powered up — signal 1258 (ON3), the same one the Ready automation triggers on.
         # `state` above cannot stand in for it: it only turns to "driving" once a gear is engaged or

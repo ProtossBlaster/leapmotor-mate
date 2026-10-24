@@ -73,7 +73,7 @@ def _build_tlm(data, facts: CarFacts | None = None) -> dict:
         "is_dcfc": (data.charging_status > 0 and data.dc_gun_connected
                     if data.dc_gun_connected is not None else None),
         "is_parked": data.vehicle_state == "parked",
-        "odometer": data.odometer_km,
+        "odometer": data.odometer_km if data.odometer_reported else None,   # 0 in memory when absent
         "ext_temp": data.outside_temp,
         "cabin_temp": data.inside_temp,
     }
