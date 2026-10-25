@@ -993,6 +993,7 @@
     "cal_kwh_delivered_help": "kWh UIT de lader: de wallbox-meter waar die er is, de kWh van de lader waar je ze hebt ingevuld, anders de batterijwaarde — het enige getal dat bestaat voor een publieke lading zonder invoer. Ernaast wat er echt in de batterij aankwam. Het verschil is wat de boordlader in warmte omzette: het eerste betaal je, het tweede verbruikt een rit.",
     "charge_limit": "Doel van de geplande laadbeurt",
     "charge_limit_desc": "De SoC waarbij de LAADPLANNING van de auto stopt — niet de bovengrens in de app van de auto, die de cloud niet doorgeeft",
+    "charge_limit_desc_simple": "De SoC waarbij de laadplanning van de auto stopt. Bij dit model toont de officiële app hem als bovengrens van het laden",
     "set_limit": "Limiet instellen",
     "sched_charge_title": "Laadplanning",
     "sched_charge_desc": "Alleen binnen een tijdvenster laden (bijv. daltarief)",

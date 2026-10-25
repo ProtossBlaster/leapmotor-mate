@@ -993,6 +993,7 @@
     "cal_kwh_delivered_help": "kWh que SALEN del cargador: el contador del wallbox donde lo hay, los kWh del propio cargador donde los escribiste, y si no la cifra de la batería — el único número que existe para una carga pública en la que nadie escribió ninguno. Al lado, lo que de verdad llegó a la batería. La diferencia es lo que el cargador de a bordo convirtió en calor: la primera es la que pagas, la segunda es la que consume un trayecto.",
     "charge_limit": "Objetivo de la carga programada",
     "charge_limit_desc": "El SoC en el que se detiene la PROGRAMACIÓN de carga del coche — no el límite superior de la app del coche, que la nube no envía",
+    "charge_limit_desc_simple": "El SoC en el que se detiene la programación de carga del coche. En este modelo la app oficial lo muestra como límite superior de carga",
     "set_limit": "Fijar el límite",
     "sched_charge_title": "Programación de la carga",
     "sched_charge_desc": "Cargar solo dentro de una franja horaria (p. ej. la hora valle)",

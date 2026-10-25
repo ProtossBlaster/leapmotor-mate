@@ -993,6 +993,7 @@
     "cal_kwh_delivered_help": "kWh AUS der Ladesäule: der Wallbox-Zähler, wo es einen gibt, die kWh der Säule, wo Sie sie eingetragen haben, sonst der Batteriewert — die einzige Zahl, die es für eine öffentliche Ladung ohne Eintrag gibt. Daneben, was wirklich in der Batterie ankam. Die Differenz ist das, was das Bordladegerät in Wärme umgewandelt hat: das Erste zahlen Sie, das Zweite verbraucht eine Fahrt.",
     "charge_limit": "Ziel der geplanten Ladung",
     "charge_limit_desc": "Der SoC, bei dem die LADEPLANUNG des Autos stoppt — nicht das obere Limit in der Auto-App, das die Cloud nicht meldet",
+    "charge_limit_desc_simple": "Der SoC, bei dem die Ladeplanung des Autos stoppt. Bei diesem Modell zeigt die offizielle App ihn als oberes Ladelimit an",
     "set_limit": "Setzen",
     "sched_charge_title": "Ladeplan",
     "sched_charge_desc": "Nur in einem Zeitfenster laden (z. B. Nachttarif)",

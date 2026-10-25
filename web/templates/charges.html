@@ -91,7 +91,8 @@
         — %
       </span>
     </div>
-    <div class="text-xs text-slate-500 mb-3">{{ t('charge_limit_desc') }}</div>
+    {# On the simple scheduler (T03) the plan's target is the official app's upper limit, measured in #436. #}
+    <div class="text-xs text-slate-500 mb-3">{{ t('charge_limit_desc') if charge_schedule_advanced else t('charge_limit_desc_simple') }}</div>
     <form hx-post="api/charge-limit"
           hx-target="#cl-result"
           hx-swap="innerHTML"
