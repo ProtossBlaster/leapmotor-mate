@@ -1,8 +1,15 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.15.11 · **Sprache:** Deutsch
+> **Mate-Version:** v4.15.12 · **Sprache:** Deutsch
 
-## Neu in Version 4.15.11
+## Neu in Version 4.15.12
+
+**Beim T03 sagt die Karte des Ladeziels, was sie ist.** Die Karte *Ziel der geplanten Ladung* auf der
+Seite Ladevorgänge sagte, ihr Wert sei nicht das obere Limit der Auto-App. Beim T03 ist er es: Ein
+Besitzer hat über die Karte 92 % und dann 90 % eingestellt, und die offizielle App zeigte beide als oberes
+Ladelimit. Bei einem Auto mit der einfachen Ladeplanung, etwa dem T03, sagt die Karte das jetzt.
+
+### Neu in Version 4.15.11
 
 **Der Kilometerstand über MQTT fällt nicht mehr auf 0 km.** Wenn eine Abfrage des Autos keinen
 Kilometerstand enthält, wie manche beim T03, veröffentlichte Mate 0 km über MQTT (der

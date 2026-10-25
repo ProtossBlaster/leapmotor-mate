@@ -3,6 +3,15 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.15.12] — 2026-10-25
+
+- **On a T03 the target card says it is the official app's upper limit** ([#436](https://github.com/ProtossBlaster/leapmotor-mate/issues/436), @sarifarm).
+  The Charges page's target card writes its number into the car's charge plan, and its description
+  said that target is not the upper limit in the car's own app. On a T03 it is: @sarifarm set 92 % and
+  then 90 % from the card, and the official app showed each as its upper charging limit. A car with the
+  simple charge scheduler now reads so, in every language; a car with the weekly scheduler keeps the
+  old description.
+
 ## [4.15.11] — 2026-10-24
 
 - **An odometer the car did not send is not published as 0 km** ([PR #358](https://github.com/ProtossBlaster/leapmotor-mate/pull/358), @arekm). The

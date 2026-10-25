@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.15.11:** a reading without an odometer **no longer publishes 0 km** on MQTT and to ABRP: the sensor keeps the last value ([PR #358](https://github.com/ProtossBlaster/leapmotor-mate/pull/358), @arekm). In **4.15.10**: a temperature the car did not send is no longer stored as 0 °C.
-See [release notes and upgrade impact](docs/releases/v4.15.11.md).
+**v4.15.12:** on a T03 the Charges page's target card **says it is the official app's upper charging limit** ([#436](https://github.com/ProtossBlaster/leapmotor-mate/issues/436), @sarifarm). In **4.15.11**: a reading without an odometer no longer publishes 0 km on MQTT and to ABRP.
+See [release notes and upgrade impact](docs/releases/v4.15.12.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -360,8 +360,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.15.11:** una lettura senza contachilometri **non pubblica più 0 km** su MQTT e ad ABRP: il sensore tiene l'ultimo valore ([PR #358](https://github.com/ProtossBlaster/leapmotor-mate/pull/358), @arekm). Nella **4.15.10**: una temperatura che l'auto non ha mandato non viene più salvata come 0 °C.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.15.11.md#italiano).
+**v4.15.12:** sulla T03 la carta del traguardo nella pagina Ricariche **dice che è il limite massimo di ricarica dell'app ufficiale** ([#436](https://github.com/ProtossBlaster/leapmotor-mate/issues/436), @sarifarm). Nella **4.15.11**: una lettura senza contachilometri non pubblica più 0 km su MQTT e ad ABRP.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.15.12.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

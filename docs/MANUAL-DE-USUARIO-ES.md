@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.15.11 · **Idioma:** Español
+> **Versión de Mate:** v4.15.12 · **Idioma:** Español
 
-## Novedades de la versión 4.15.11
+## Novedades de la versión 4.15.12
+
+**En el T03 la tarjeta del objetivo de carga dice lo que es.** La tarjeta *Objetivo de la carga
+programada* de la página Cargas decía que su número no es el límite superior de la app del coche. En el
+T03 lo es: un propietario fijó 92 % y luego 90 % desde la tarjeta, y la app oficial mostró cada uno como su
+límite superior de carga. En un coche con la programación sencilla, como el T03, la tarjeta ahora lo dice.
+
+### Novedades de la versión 4.15.11
 
 **El odómetro en MQTT ya no baja a 0 km.** Cuando una lectura del coche no trae el odómetro, como
 algunas del T03, Mate publicaba 0 km en MQTT (el sensor del odómetro en Home Assistant) y enviaba 0 km a

@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.15.11 · **Langue :** Français
+> **Version de Mate :** v4.15.12 · **Langue :** Français
 
-## Nouveautés de la version 4.15.11
+## Nouveautés de la version 4.15.12
+
+**Sur la T03, la carte de l'objectif de recharge dit ce qu'elle est.** La carte *Objectif de la recharge
+programmée* de la page Recharges disait que son nombre n'est pas la limite haute de l'application de la
+voiture. Sur la T03, il l'est : un propriétaire a réglé 92 % puis 90 % depuis la carte, et l'application
+officielle a affiché chacun comme limite haute de recharge. Sur une voiture à programmation simple, comme
+la T03, la carte le dit désormais.
+
+### Nouveautés de la version 4.15.11
 
 **Le compteur kilométrique sur MQTT ne tombe plus à 0 km.** Quand une lecture de la voiture ne porte pas
 le compteur, comme certaines de la T03, Mate publiait 0 km sur MQTT (le capteur du compteur dans Home

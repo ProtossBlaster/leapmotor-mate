@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.15.11 · **Language:** English
+> **Mate version:** v4.15.12 · **Language:** English
 
-## New in 4.15.11
+## New in 4.15.12
+
+**On a T03 the charge target card says what it is.** The *Scheduled charge target* card on the Charges
+page said its number is not the upper limit in the car's own app. On a T03 it is: an owner set 92 % and
+then 90 % from the card, and the official app showed each as its upper charging limit. On a car with the
+simple charge scheduler, such as the T03, the card now says so.
+
+### New in 4.15.11
 
 **The MQTT odometer no longer drops to 0 km.** When a reading from the car carries no odometer, as some
 from the T03 do, Mate published 0 km on MQTT (the Home Assistant odometer sensor) and sent 0 km to ABRP.

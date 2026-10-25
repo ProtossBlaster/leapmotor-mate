@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.15.11 · **Lingua:** Italiano
+> **Versione di Mate:** v4.15.12 · **Lingua:** Italiano
 
-## Novità della 4.15.11
+## Novità della 4.15.12
+
+**Sulla T03 la carta del traguardo di ricarica dice cos'è.** La carta *Traguardo ricarica programmata*
+della pagina Ricariche diceva che il suo numero non è il limite massimo dell'app dell'auto. Sulla T03 lo
+è: un proprietario ha impostato 92 % e poi 90 % dalla carta, e l'app ufficiale li ha mostrati come limite
+massimo di ricarica. Su un'auto con la programmazione semplice, come la T03, ora la carta lo dice.
+
+### Novità della 4.15.11
 
 **Il contachilometri su MQTT non scende più a 0 km.** Quando una lettura dell'auto non porta il
 contachilometri, come alcune della T03, Mate pubblicava 0 km su MQTT (il sensore del contachilometri in
