@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.15.12 · **Langue :** Français
+> **Version de Mate :** v4.16.0 · **Langue :** Français
 
-## Nouveautés de la version 4.15.12
+## Nouveautés de la version 4.16.0
+
+**La carte de l'Aperçu trace le dernier trajet du jour.** Sous le point de la voiture, la carte *Dernière
+position connue* trace désormais l'itinéraire du dernier trajet : celui en cours pendant que vous roulez, et
+celui terminé aujourd'hui pour le reste de la journée. Les lignes sont celles de la page du trajet. Après
+minuit la carte est de nouveau vide.
+
+**Les commandes ne sont plus refusées à cause d'une horloge d'ordinateur en retard de quelques secondes.**
+Avant une commande, Mate regarde l'heure de la dernière lecture de la voiture, et refusait une lecture datée
+après l'horloge de l'ordinateur (*Command not sent: state_timestamp_invalid*). Une lecture jusqu'à une minute
+en avance compte désormais comme actuelle.
+
+### Nouveautés de la version 4.15.12
 
 **Sur la T03, la carte de l'objectif de recharge dit ce qu'elle est.** La carte *Objectif de la recharge
 programmée* de la page Recharges disait que son nombre n'est pas la limite haute de l'application de la

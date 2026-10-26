@@ -1,8 +1,20 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.15.12 · **Sprache:** Deutsch
+> **Mate-Version:** v4.16.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.15.12
+## Neu in Version 4.16.0
+
+**Die Karte der Übersicht zeichnet die letzte Fahrt von heute.** Unter dem Punkt des Autos zeichnet die
+Karte *Letzte bekannte Position* jetzt die Strecke der letzten Fahrt: die laufende, während Sie fahren, und
+die heute beendete für den Rest des Tages. Die Linien sind die der Fahrtseite. Nach Mitternacht ist die
+Karte wieder leer.
+
+**Befehle werden nicht mehr abgelehnt, weil die Uhr des Computers ein paar Sekunden nachgeht.** Vor einem
+Befehl prüft Mate die Zeit der letzten Abfrage des Autos und lehnte eine ab, die nach der Uhr des Computers
+lag (*Command not sent: state_timestamp_invalid*). Eine Abfrage bis zu einer Minute voraus gilt jetzt als
+aktuell.
+
+### Neu in Version 4.15.12
 
 **Beim T03 sagt die Karte des Ladeziels, was sie ist.** Die Karte *Ziel der geplanten Ladung* auf der
 Seite Ladevorgänge sagte, ihr Wert sei nicht das obere Limit der Auto-App. Beim T03 ist er es: Ein

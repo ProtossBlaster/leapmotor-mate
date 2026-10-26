@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.15.12 · **Lingua:** Italiano
+> **Versione di Mate:** v4.16.0 · **Lingua:** Italiano
 
-## Novità della 4.15.12
+## Novità della 4.16.0
+
+**La mappa della Panoramica disegna l'ultimo viaggio di oggi.** Sotto il pallino dell'auto, la mappa
+*Ultima posizione nota* ora disegna il percorso dell'ultimo viaggio dell'auto: quello in corso mentre guidi,
+e quello finito oggi per il resto della giornata. Le linee sono quelle della pagina del viaggio. Dopo
+mezzanotte la mappa torna pulita.
+
+**I comandi non vengono più rifiutati per un orologio del computer indietro di qualche secondo.** Prima di
+un comando Mate guarda l'ora dell'ultima lettura dell'auto, e la rifiutava se era successiva all'orologio
+del computer (*Command not sent: state_timestamp_invalid*). Ora una lettura fino a un minuto avanti vale
+come attuale.
+
+### Novità della 4.15.12
 
 **Sulla T03 la carta del traguardo di ricarica dice cos'è.** La carta *Traguardo ricarica programmata*
 della pagina Ricariche diceva che il suo numero non è il limite massimo dell'app dell'auto. Sulla T03 lo

@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.15.12 · **Idioma:** Español
+> **Versión de Mate:** v4.16.0 · **Idioma:** Español
 
-## Novedades de la versión 4.15.12
+## Novedades de la versión 4.16.0
+
+**El mapa del Resumen dibuja el último viaje de hoy.** Bajo el punto del coche, el mapa *Última posición
+conocida* dibuja ahora la ruta del último viaje: el que está en curso mientras conduces, y el que terminó hoy
+durante el resto del día. Las líneas son las de la página del viaje. Pasada la medianoche el mapa vuelve a
+quedar limpio.
+
+**Los comandos ya no se rechazan por un reloj del ordenador atrasado unos segundos.** Antes de un comando
+Mate mira la hora de la última lectura del coche, y rechazaba una con hora posterior al reloj del ordenador
+(*Command not sent: state_timestamp_invalid*). Ahora una lectura hasta un minuto adelantada cuenta como
+actual.
+
+### Novedades de la versión 4.15.12
 
 **En el T03 la tarjeta del objetivo de carga dice lo que es.** La tarjeta *Objetivo de la carga
 programada* de la página Cargas decía que su número no es el límite superior de la app del coche. En el

@@ -3,6 +3,20 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.16.0] — 2026-10-26
+
+- **The Overview map draws today's last trip** ([PR #440](https://github.com/ProtossBlaster/leapmotor-mate/pull/440), @arekm). The Last Known Position map
+  drew only where the car is. It now also draws the route of the car's latest trip, while it is under way
+  and for the rest of the day it ended, with the lines a trip's own page draws. The map asks every few
+  seconds, so it sends the route it already has and gets the points again only when they change. The
+  car's dot loses the white square behind it. The trip's page, the Map page and the report's month map
+  draw their routes with one shared script, unchanged to look at.
+- **A computer clock a little behind the car's no longer blocks commands** ([D#437](https://github.com/ProtossBlaster/leapmotor-mate/discussions/437), @Letraz).
+  Before a command Mate checks the car's latest reading, and refused any reading dated after the
+  computer's clock (`state_timestamp_invalid`). A Windows PC synchronised with NTP ran up to 25 s
+  behind the car's readings, and every command sent while the car was awake was refused. A reading
+  dated up to 60 s after the clock is now taken as current; one further ahead is still refused.
+
 ## [4.15.12] — 2026-10-25
 
 - **On a T03 the target card says it is the official app's upper limit** ([#436](https://github.com/ProtossBlaster/leapmotor-mate/issues/436), @sarifarm).

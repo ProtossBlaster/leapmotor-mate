@@ -1,8 +1,18 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.15.12 · **Language:** English
+> **Mate version:** v4.16.0 · **Language:** English
 
-## New in 4.15.12
+## New in 4.16.0
+
+**The Overview map draws today's last trip.** Under the car's dot, the *Last Known Position* map now draws
+the route of the car's latest trip: the trip under way while you drive, and the trip that ended today for
+the rest of the day. The lines are the ones the trip's own page draws. After midnight the map is clear again.
+
+**Commands are no longer refused because of a computer clock a few seconds behind the car.** Mate checks the
+time of the car's latest reading before a command, and refused one dated after the computer's clock
+(*Command not sent: state_timestamp_invalid*). A reading up to a minute ahead is now taken as current.
+
+### New in 4.15.12
 
 **On a T03 the charge target card says what it is.** The *Scheduled charge target* card on the Charges
 page said its number is not the upper limit in the car's own app. On a T03 it is: an owner set 92 % and
