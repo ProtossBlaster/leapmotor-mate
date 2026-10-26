@@ -146,6 +146,7 @@
   <div class="card md:col-span-1 lg:col-span-1 min-h-64">
     <link rel="stylesheet" href="static/vendor/leaflet/leaflet.css"/>
     <script src="static/vendor/leaflet/leaflet.js"></script>
+    <script src="static/trip-track.js"></script>
     <div id="map-box"{% if last_position.lat is none %} style="display:none"{% endif %}>
       {# The heading, not a popup on the map, says how old the position is: a popup covered the
          map above the car and was cut off near an edge. The car's name is at the top of the page. #}
@@ -173,7 +174,9 @@
        wanders — and then recentres on it once it comes within a quarter of the view from an edge,
        before it reaches the edge. Never under the owner's hand: a move that arrives while the map
        is being dragged, flung or zoomed waits until it settles; and never because the owner panned
-       away from a car standing still. Local data only; nothing here reaches Leapmotor. #}
+       away from a car standing still. Under the marker, the route of today's last trip, as the trip's
+       own page draws it; a map that has one says so (?track=<key>) and gets its points again only
+       when they change. Local data only; nothing here reaches Leapmotor. #}
     <script>
       (function () {
         const START_ZOOM = 15;
@@ -184,6 +187,7 @@
         const empty = document.getElementById('map-empty');
         const when = document.getElementById('map-when');
         let map = null, marker = null, refreshS = null, timer = null, busy = false;
+        let track = null, trackKey = null;   // the route drawn, and the key the server gave it
         let gesture = false, follow = false;   // the owner is moving the map; a car move waits for it
 
         function show(pos) {
@@ -212,18 +216,27 @@
             }).addTo(map);
             const icon = L.divIcon({
               html: '<div style="background:#14b8a6;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5)"></div>',
-              iconSize: [14,14], iconAnchor: [7,7]
+              className: '', iconSize: [14,14], iconAnchor: [7,7]
             });
             // Nothing to open on it any more: not a button, not a tab stop.
             marker = L.marker(at, {icon, interactive: false, keyboard: false}).addTo(map);
             map.on('movestart', function () { gesture = true; });
             map.on('moveend', function () { gesture = false; followCar(); });
-            return;
+          } else {
+            if (reappears) map.invalidateSize();   // a resize while it was hidden measured it as 0×0
+            if (marker.getLatLng().distanceTo(at) >= STILL_M) follow = true;
+            marker.setLatLng(at);
+            followCar();
           }
-          if (reappears) map.invalidateSize();   // a resize while it was hidden measured it as 0×0
-          if (marker.getLatLng().distanceTo(at) >= STILL_M) follow = true;
-          marker.setLatLng(at);
-          followCar();
+          showTrack(pos.track);
+        }
+
+        // A changed route replaces the one drawn; no segments means it is the one drawn, [] none at all.
+        function showTrack(t) {
+          if (t === null || typeof t !== 'object' || !Array.isArray(t.segments) || t.key === trackKey) return;
+          if (track) track.remove();
+          track = tripTrack(t.segments).addTo(map);
+          trackKey = t.key;
         }
 
         // Recentre on a car that moved and now sits near an edge — once the map is still: a panTo
@@ -247,7 +260,8 @@
           busy = true;
           const ctl = new AbortController();
           const deadline = setTimeout(function () { ctl.abort(); }, refreshS * 1000);
-          fetch('api/last-position', { cache: 'no-store', signal: ctl.signal })
+          const have = trackKey ? '?track=' + encodeURIComponent(trackKey) : '';
+          fetch('api/last-position' + have, { cache: 'no-store', signal: ctl.signal })
             .then(function (r) { return r.ok ? r.json() : null; })   // an abort rejects this too
             .then(function (pos) { if (pos) show(pos); })
             .catch(function () {})

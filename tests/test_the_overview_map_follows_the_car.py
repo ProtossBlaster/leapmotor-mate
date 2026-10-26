@@ -81,7 +81,8 @@ def test_it_asks_at_the_pollers_driving_cadence_whatever_the_car_is_doing(mate, 
 def test_before_any_position_it_says_so_and_still_when_to_ask(mate):
     _, client = mate
     assert _served(client) == {"lat": None, "lon": None, "ago": None,
-                               "refresh_s": db_reader.POLL_DRIVING_DEFAULT_S}
+                               "refresh_s": db_reader.POLL_DRIVING_DEFAULT_S,
+                               "track": {"key": None, "segments": []}}
 
 
 def test_a_first_poll_without_a_fix_is_not_a_position(mate):

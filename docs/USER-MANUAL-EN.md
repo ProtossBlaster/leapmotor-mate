@@ -1069,6 +1069,9 @@ resolution — a tiny ~10 W load stays invisible).
 Further down you'll find mini-statistics and a **"Car responsiveness" indicator** (a 🟢/🟡/🔴 dot, ⚪
 if there's no data): it summarizes how well the car has responded to the latest commands sent.
 
+The **Last Known Position** map also draws the GPS track of today's last trip — while you drive, the
+trip under way — as the trip's detail draws it.
+
 **The last charge says both 🆕** — the **Last charge** tile leads with the same figure as the charge's
 row in Charges: at home, with a wallbox counter, the **🔌 wallbox (billed)** kWh, and under it what reached the
 pack — *🔋 12.0 kWh in battery (DC) · efficiency 81%*; elsewhere the battery figure, with the charger's

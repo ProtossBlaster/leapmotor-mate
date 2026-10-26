@@ -539,9 +539,13 @@ def _ago(t, seconds) -> str:
     return t("ago_d").format(n=s // 86400)
 
 
-def _last_position(status, t) -> dict:
+def _last_position(status, t, have=None) -> dict:
     """The Overview map's marker: where the car is, how old that position is (the map card's
-    heading says it), and when to ask again.
+    heading says it), and when to ask again — and under it, the route of today's last trip
+    (db_reader.get_todays_track).
+
+    `have` is the route key the map has drawn: the map asks all day, so the same route comes back
+    without its points (`segments` None) instead of a few kilobytes every poll.
 
     ONE builder for the page's first paint and for /api/last-position, which the map polls — so the
     marker can only ever move to a position the page itself would have drawn. It reads what the
@@ -565,11 +569,14 @@ def _last_position(status, t) -> dict:
     map never branch on the shape, and the map still learns when to ask again."""
     status = status or {}
     refresh_s = db_reader.poll_seconds(driving=True)
+    track = db_reader.get_todays_track()
+    if have is not None and track["key"] == have:
+        track["segments"] = None
     if not db_reader.has_gps_fix(status.get("latitude"), status.get("longitude")):
-        return {"lat": None, "lon": None, "ago": None, "refresh_s": refresh_s}
+        return {"lat": None, "lon": None, "ago": None, "refresh_s": refresh_s, "track": track}
     return {"lat": status["latitude"], "lon": status["longitude"],
             "ago": _ago(t, status.get("position_age_s")),
-            "refresh_s": refresh_s}
+            "refresh_s": refresh_s, "track": track}
 
 
 def _ctx(**kwargs):
@@ -4999,12 +5006,12 @@ async def link_pill(request: Request):
 
 
 @app.get("/api/last-position", response_class=JSONResponse)
-async def last_position():
+async def last_position(track: str | None = None):
     """The Overview map's marker, polled by the map itself. It was drawn once, at page load, and
     never moved: the status card beside it refreshes every 30 s, so "last seen 6 s ago" stood next
     to a marker left wherever the car was when the page was opened. Local data only — see
     _last_position."""
-    pos = _last_position(db_reader.get_latest_status(), i18n.get_t(db_reader.get_language()))
+    pos = _last_position(db_reader.get_latest_status(), i18n.get_t(db_reader.get_language()), have=track)
     return JSONResponse(pos, headers={"Cache-Control": "no-store"})
 
 

@@ -5302,6 +5302,17 @@ def _filter_frozen_telemetry(positions: list[dict]) -> list[dict]:
     return [p for p, d in zip(positions, drop) if not d]
 
 
+def _trip_points(db, seg_ids: list) -> list[dict]:
+    """The readings a trip is drawn from: every piece of its group in time order, the stretches the
+    cloud served frozen left out (_filter_frozen_telemetry)."""
+    ph = ",".join("?" * len(seg_ids))
+    rows = db.execute(
+        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m, power_kw, battery_temp_c, "
+        "range_km, outside_temp_c, trip_id FROM trip_positions "
+        f"WHERE trip_id IN ({ph}) ORDER BY recorded_at, id", seg_ids).fetchall()
+    return _filter_frozen_telemetry([dict(r) for r in rows])
+
+
 def _interpolate_elevation(positions: list[dict]) -> list[dict]:
     """Fill elevation_m gaps BETWEEN two known samples by linear interpolation over elapsed time.
     Legitimate because altitude changes physically continuously (unlike SoC/speed, which can have
@@ -7770,16 +7781,10 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     children = _children_by_parent(db).get(parent_id, [])
     seg_ids = _segment_ids(db, parent_id)
     ph = ",".join("?" * len(seg_ids))
-    positions = db.execute(
-        "SELECT recorded_at, latitude, longitude, speed_kmh, soc, elevation_m, power_kw, battery_temp_c, "
-        "range_km, outside_temp_c, trip_id FROM trip_positions "
-        f"WHERE trip_id IN ({ph}) ORDER BY recorded_at, id",
-        seg_ids,
-    ).fetchall()
-    # Drop cloud-cached/frozen stretches (see _filter_frozen_telemetry) BEFORE anything else reads
-    # `positions` — so the chart, the map track and the speed stats below all agree on what actually
-    # happened, instead of the chart alone showing a gap while the stats stay skewed.
-    positions = _filter_frozen_telemetry([dict(p) for p in positions])
+    # Frozen stretches are dropped (see _trip_points) BEFORE anything else reads `positions` — so the
+    # chart, the map track and the speed stats below all agree on what actually happened, instead of
+    # the chart alone showing a gap while the stats stay skewed.
+    positions = _trip_points(db, seg_ids)
     # Whether the chart has a real point to draw a Quota line from — checked BEFORE interpolation
     # (which needs one to fill from). A trip enriched before per-point storage existed has
     # elevation_gain_m/loss_m set but every trip_positions.elevation_m still NULL: the aggregate being
@@ -11475,6 +11480,36 @@ def get_month_track(month: str, max_points: int = 8000) -> list[list[dict]]:
         "ORDER BY trip_id, id", ids
     ).fetchall()
     return _rows_to_segments(rows, max_points)
+
+
+def get_todays_track() -> dict:
+    """The Overview map's line: the selected car's latest trip (by start, merged pieces included),
+    drawn whole from the trip page's own points (_trip_points), with its solid runs and dashed gaps.
+    Drawn while under way, and once ended only if its last reading is from today in the owner's
+    timezone — by recorded_at, the host's clock, since trips.ended_at can be the car's.
+
+    {"key", "segments"}; the key changes with the points, so a map that has drawn them can be told
+    they are unchanged. {"key": None, "segments": []} when there is nothing to draw — also when the
+    newest trip has no readings, joined or not: an older line would end somewhere the car is not."""
+    nothing = {"key": None, "segments": []}
+    db = _get()
+    newest = db.execute("SELECT id, ended_at FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+                        "ORDER BY started_at DESC, id DESC LIMIT 1", (_current_vehicle_id(),)).fetchone()
+    if not newest:
+        return nothing
+    # Its own last reading, before any frozen one is left out: a frozen end past midnight is still today.
+    last = db.execute("SELECT MAX(recorded_at) FROM trip_positions WHERE trip_id = ?", (newest["id"],)).fetchone()[0]
+    if last is None:
+        return nothing
+    day = _local_dt(last)
+    if newest["ended_at"] is not None and (day is None or day.date() != today_local()):
+        return nothing
+    seg_ids = _segment_ids(db, newest["id"])
+    points = _trip_points(db, seg_ids)
+    # Points are only appended and the filter only ever changes the last run, so a changed line has
+    # another count or another last point.
+    return {"key": f"{seg_ids[0]}:{len(points)}:{points[-1]['recorded_at']}",
+            "segments": _split_track_gaps(points)}
 
 
 def get_frequent_places(min_visits: int = 2, top_n: int = 15) -> list[dict]:

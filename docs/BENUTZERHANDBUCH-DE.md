@@ -1142,6 +1142,9 @@ Weiter unten finden Sie Ministatistiken und einen **Indikator für die „Fahrze
 🟢/🟡/🔴, ⚪ wenn keine Daten vorliegen): Er fasst zusammen, wie zuverlässig das Auto auf die zuletzt gesendeten
 Befehle reagiert hat.
 
+Die Karte **Letzte bekannte Position** zeichnet auch den GPS-Verlauf der letzten Fahrt von heute — unterwegs
+den der laufenden Fahrt —, so wie ihn das Detail der Fahrt zeigt.
+
 **Der letzte Ladevorgang nennt beides 🆕** — die Kachel **Letzter Ladevorgang** führt dieselbe Zahl
 wie seine Zeile in Ladevorgänge: zu Hause, mit einem Wallbox-Zähler, die kWh **🔌 Wallbox (zu zahlen)**, darunter
 das, was im Akku ankam — *🔋 12,0 kWh in der Batterie (DC) · Wirkungsgrad 81 %*; anderswo die Zahl

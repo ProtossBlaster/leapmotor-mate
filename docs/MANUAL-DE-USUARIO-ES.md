@@ -1123,6 +1123,9 @@ queda invisible).
 Más abajo encontrarás miniestadísticas y un indicador de **«Respuesta del coche»** (un punto 🟢/🟡/🔴,
 ⚪ si no hay datos): resume con qué fiabilidad ha respondido el coche a los últimos comandos enviados.
 
+El mapa **Última posición conocida** dibuja también la traza GPS del último trayecto de hoy —mientras
+conduces, la del trayecto en curso—, igual que el detalle del trayecto.
+
 **La última carga dice las dos 🆕** — el recuadro **Última carga** lleva por delante la misma cifra
 que su fila en Cargas: en casa, con un contador de wallbox, los kWh **🔌 wallbox (a pagar)**, y debajo lo
 que llegó al paquete — *🔋 12,0 kWh en la batería (DC) · rendimiento 81 %*; en otro sitio la cifra de
