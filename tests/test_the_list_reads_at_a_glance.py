@@ -24,8 +24,10 @@ DAY = datetime.now(ZONE).date() - timedelta(days=1)
 HOME = (52.2297, 21.0122)
 
 
-def _local(hh, mm=0):
-    return datetime(DAY.year, DAY.month, DAY.day, hh, mm, tzinfo=ZONE).astimezone(timezone.utc)
+def _local(hh, mm=0, day=DAY):
+    """A local wall-clock time, in UTC. Days are counted on the wall clock, so a week that changes
+    between summer and winter time keeps its hours: `_local(8) - timedelta(days=2)` would not."""
+    return datetime(day.year, day.month, day.day, hh, mm, tzinfo=ZONE).astimezone(timezone.utc)
 
 
 def _day_page(client, query=""):
@@ -119,7 +121,7 @@ def test_a_state_shorter_than_a_minute_lasts_seconds(tmp_path, monkeypatch, lang
 def test_a_start_off_the_list_is_named_in_a_chip(tmp_path, monkeypatch, lang, chip):
     car = Car(tmp_path)
     client = web(car, monkeypatch, lang=lang)
-    event_row(car, "cable", _local(8) - timedelta(days=2))
+    event_row(car, "cable", _local(8, day=DAY - timedelta(days=2)))
     event_row(car, "cable", _local(8) + timedelta(seconds=5), state=0)
     event_row(car, "trunk", _local(9))
     event_row(car, "trunk", _local(9, 3), state=0)
@@ -156,7 +158,7 @@ def test_a_rows_parts_stay_whole_and_inside_the_card_on_a_phone(tmp_path, monkey
     event_row(car, "cable", _local(8, 26), state=0, soc=89.9)
     event_row(car, "climate", _local(9, 53), climate_target_temp=21.0, outside_temp=11.0, inside_temp=14.0)
     event_row(car, "climate", _local(10, 2), state=0, inside_temp=20.5)
-    event_row(car, "trunk", _local(8) - timedelta(days=2))
+    event_row(car, "trunk", _local(8, day=DAY - timedelta(days=2)))
     event_row(car, "trunk", _local(11), state=0)
     with pw.sync_playwright() as p:
         browser = p.chromium.launch()
