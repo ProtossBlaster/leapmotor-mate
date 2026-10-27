@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.16.3] — 2026-10-27
+
+- **A wallbox that moved house is found again** ([#442](https://github.com/ProtossBlaster/leapmotor-mate/issues/442), @JoseRMorales).
+  Mate learns where the wallbox is from the charges it measured, and a charge far from there never got
+  the wallbox counter. After a move every home charge was far, none was measured, and the location
+  could not follow: 25 charges in a row at the new house had no wallbox energy. A charge away from the
+  learned location now reads the counter on the side and keeps it only if the counter followed the
+  car: more than 2 kWh, never standing still while the car drew power. Those charges move the learned
+  location. Charges recorded before this version are not changed.
+
 ## [4.16.2] — 2026-10-27
 
 - **The map takes the screen it is on** ([D#438](https://github.com/ProtossBlaster/leapmotor-mate/discussions/438), @Tommy73LMB05).

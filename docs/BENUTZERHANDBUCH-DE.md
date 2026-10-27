@@ -1,8 +1,17 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.16.2 · **Sprache:** Deutsch
+> **Mate-Version:** v4.16.3 · **Sprache:** Deutsch
 
-## Neu in Version 4.16.2
+## Neu in Version 4.16.3
+
+**Eine umgezogene Wallbox wird wiedergefunden.** Mate lernt aus den gemessenen Ladevorgängen, wo Ihre
+Wallbox steht, und ordnet den Wallbox-Zähler nur Ladevorgängen dort zu. Nach einem Umzug blieben die
+Ladevorgänge zu Hause ohne ihn. Jetzt liest ein Ladevorgang abseits dieses Ortes den Zähler trotzdem und
+behält ihn, wenn der Zähler mit dem Auto gestiegen ist (mehr als 2 kWh, nie stehend, während das Auto lud);
+diese Ladevorgänge verlegen den Ort an Ihr neues Zuhause. Vor dieser Version erfasste Ladevorgänge
+ändern sich nicht.
+
+### Neu in Version 4.16.2
 
 **Die Karte nimmt den Bildschirm ein, auf dem sie ist.** Die Karte der Seite *Karte* nimmt jetzt die
 ganze Breite der Seite ein und endet dort, wo die Zeile darunter mit *Angezeigte Fahrten* und *Angezeigte

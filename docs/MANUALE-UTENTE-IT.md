@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.16.2 · **Lingua:** Italiano
+> **Versione di Mate:** v4.16.3 · **Lingua:** Italiano
 
-## Novità della 4.16.2
+## Novità della 4.16.3
+
+**Una wallbox che ha cambiato casa viene ritrovata.** Mate impara dov'è la tua wallbox dalle ricariche che
+ha misurato, e dà il contatore della wallbox solo alle ricariche lì. Dopo un trasloco le ricariche di casa
+restavano senza. Ora una ricarica lontana da quel posto legge comunque il contatore e lo tiene se è salito
+insieme all'auto (più di 2 kWh, mai fermo mentre l'auto caricava); quelle ricariche spostano il posto alla
+casa nuova. Le ricariche registrate prima di questa versione non cambiano.
+
+### Novità della 4.16.2
 
 **La mappa prende lo schermo su cui è.** La mappa della pagina *Mappa* ora occupa tutta la larghezza della
 pagina e finisce dove la riga sotto, con *Viaggi mostrati* e *Colonnine mostrate*, sta ancora sullo

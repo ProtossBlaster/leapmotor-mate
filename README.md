@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.16.2:** the Map page's map **takes the screen it is on**: the whole width of the page, and down to the row under it ([D#438](https://github.com/ProtossBlaster/leapmotor-mate/discussions/438), @Tommy73LMB05). In **4.16.1**: a T03 shows its charge target on the Charges page and on MQTT.
-See [release notes and upgrade impact](docs/releases/v4.16.2.md).
+**v4.16.3:** a wallbox that **moved house is found again**: after a move, home charges get the wallbox counter back ([#442](https://github.com/ProtossBlaster/leapmotor-mate/issues/442), @JoseRMorales). In **4.16.2**: the Map page's map takes the screen it is on.
+See [release notes and upgrade impact](docs/releases/v4.16.3.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -360,8 +360,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.16.2:** la mappa della pagina Mappa **prende lo schermo su cui è**: tutta la larghezza della pagina, e in basso fino alla riga sotto ([D#438](https://github.com/ProtossBlaster/leapmotor-mate/discussions/438), @Tommy73LMB05). Nella **4.16.1**: la T03 mostra il suo traguardo di ricarica nella pagina Ricariche e su MQTT.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.16.2.md#italiano).
+**v4.16.3:** una wallbox che **ha cambiato casa viene ritrovata**: dopo un trasloco le ricariche di casa riprendono il contatore della wallbox ([#442](https://github.com/ProtossBlaster/leapmotor-mate/issues/442), @JoseRMorales). Nella **4.16.2**: la mappa della pagina Mappa prende lo schermo su cui è.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.16.3.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

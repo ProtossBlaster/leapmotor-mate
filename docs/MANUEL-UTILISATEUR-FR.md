@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.16.2 · **Langue :** Français
+> **Version de Mate :** v4.16.3 · **Langue :** Français
 
-## Nouveautés de la version 4.16.2
+## Nouveautés de la version 4.16.3
+
+**Une wallbox qui a déménagé est retrouvée.** Mate apprend où se trouve votre wallbox à partir des
+recharges qu'elle a mesurées, et n'attribue son compteur qu'aux recharges à cet endroit. Après un
+déménagement, les recharges à domicile restaient sans lui. Désormais, une recharge éloignée de cet endroit
+lit quand même le compteur et le garde s'il a augmenté avec la voiture (plus de 2 kWh, jamais immobile
+pendant que la voiture chargeait) ; ces recharges déplacent l'endroit vers votre nouveau domicile. Les
+recharges enregistrées avant cette version ne changent pas.
+
+### Nouveautés de la version 4.16.2
 
 **La carte prend l'écran sur lequel elle est.** La carte de la page *Carte* occupe désormais toute la
 largeur de la page et s'arrête là où la ligne du dessous, avec *Trajets affichés* et *Bornes affichées*,

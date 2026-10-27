@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.16.2 · **Idioma:** Español
+> **Versión de Mate:** v4.16.3 · **Idioma:** Español
 
-## Novedades de la versión 4.16.2
+## Novedades de la versión 4.16.3
+
+**Un wallbox que se ha mudado se vuelve a encontrar.** Mate aprende dónde está tu wallbox a partir de las
+cargas que ha medido, y solo da el contador del wallbox a las cargas en ese lugar. Tras una mudanza, las
+cargas en casa se quedaban sin él. Ahora una carga lejos de ese lugar lee igualmente el contador y lo
+conserva si subió junto con el coche (más de 2 kWh, nunca parado mientras el coche cargaba); esas cargas
+trasladan el lugar a tu nueva casa. Las cargas registradas antes de esta versión no cambian.
+
+### Novedades de la versión 4.16.2
 
 **El mapa ocupa la pantalla en la que está.** El mapa de la página *Mapa* ocupa ahora todo el ancho de la
 página y termina donde la fila de abajo, con *Trayectos mostrados* y *Puntos mostrados*, todavía cabe en

@@ -1,8 +1,16 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.16.2 · **Language:** English
+> **Mate version:** v4.16.3 · **Language:** English
 
-## New in 4.16.2
+## New in 4.16.3
+
+**A wallbox that moved house is found again.** Mate learns where your wallbox is from the charges it
+measured, and gives the wallbox counter only to charges there. After a move, home charges stayed without
+it. Now a charge away from that place still reads the counter and keeps it if the counter rose with the
+car (more than 2 kWh, never standing still while the car was charging); those charges move the place to
+your new home. Charges recorded before this version do not change.
+
+### New in 4.16.2
 
 **The map takes the screen it is on.** The *Map* page's map now takes the whole width of the page and
 ends where the row under it, with *Trips shown* and *Stations shown*, still fits on screen: larger on a
