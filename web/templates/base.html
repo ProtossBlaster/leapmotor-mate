@@ -566,7 +566,8 @@
                 font-weight:700;text-decoration:none;white-space:nowrap">{{ t('unconfigured_banner_btn') }}</a>
     </div>
     {% endif %}
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+    {# The pages' column. The Map empties it: on a wide screen the map is the page (D#438). #}
+    <div class="{% block content_width %}max-w-6xl{% endblock %} mx-auto px-4 sm:px-6 py-6">
       {% block content %}{% endblock %}
     </div>
   </main>

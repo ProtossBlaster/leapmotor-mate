@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block autorefresh %}0{% endblock %}{# interactive map (reload would reset view) #}
 {% block title %}{{ t('nav_map') }} — LeapMotor Mate{% endblock %}
+{% block content_width %}{% endblock %}{# the whole width of the page, not the 1152 px column (D#438) #}
 
 {% block content %}
 <div class="mb-5">
@@ -143,6 +144,31 @@
                   color:#e2e8f0;padding:2px 6px;font-size:11px">
   </form>
 </div>
+{% if track %}
+<script>
+  // The map takes the height of the screen it is on (D#438): it ends where the legend row under it
+  // still fits, and never gets shorter than 400 px. It was 560 px everywhere — empty page under the
+  // legend on a 28", the legend's two boxes below the fold on a 14". Down here, not beside the map:
+  // the legend row is what is measured, and up there it has not been parsed yet.
+  (function () {
+    const el = document.getElementById('map');
+    const main = el.closest('main');
+    const wrapper = document.getElementById('map-top-n').closest('div').parentElement;
+    let framed = false;
+    function fit() {
+      const box = el.getBoundingClientRect(), mainBox = main.getBoundingClientRect();
+      const top = box.top - mainBox.top + main.scrollTop;
+      const below = wrapper.getBoundingClientRect().bottom - box.bottom;
+      el.style.height = Math.max(400, Math.floor(main.clientHeight - top - below)) + 'px';
+      map.invalidateSize();
+      // Framed once more at the size it now has; after that a resize keeps the reader's pan and zoom.
+      if (!framed) { map.fitBounds(L.latLngBounds(allPts).pad(0.05)); framed = true; }
+    }
+    fit();
+    window.addEventListener('resize', fit);
+  })();
+</script>
+{% endif %}
 {% if track and places %}
 <script>
   const placesToggle = document.getElementById('map-show-places');
