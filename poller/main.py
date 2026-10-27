@@ -273,7 +273,7 @@ def _apply_charge_schedule(api, db, vin: str, payload: dict):
     # Keep the Overview's cached window in step with what we just wrote (#173) — the periodic
     # re-read is 30 minutes away, and a chip still showing the old times right after an automation
     # moved them looks like a fault rather than like a cache.
-    _store_charge_schedule(db, {"chargeEnable": 1 if enabled else 0,
+    _store_charge_schedule(db, {"chargeEnable": 1 if enabled else 0, "chargesoc": soc,
                                 "starttime": start_time, "endtime": end_time}, vin)
     log.info("MQTT: charge schedule → %s", applied)
     return applied
@@ -321,6 +321,7 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                     log.warning("MQTT: charge_limit %d%% out of range 50-100 — ignored", pct)
                     return
                 _set_charge_limit_preserving(api, vin, pct)
+                _plan_target[vin] = pct   # in step with what we just wrote, as the window is (#173, #436)
             elif cmd == "charge_schedule":  # writable HA text (#151): JSON {start,stop,soc,active,days}
                 try:
                     sched = json.loads(value)
@@ -493,6 +494,7 @@ def _write_comfort_state(db, data):
 
 _SCHEDULE_REFRESH_INTERVAL = 1800   # 30 min — a charge window is set once and left alone for months
 _last_schedule_refresh = 0.0
+_plan_target: dict[str, int] = {}   # the SoC each car's charge plan (190) stops at, by VIN (#436)
 
 
 def _maybe_refresh_charge_schedule(db, client):
@@ -520,6 +522,10 @@ def _store_charge_schedule(db, sched, vin: str = "") -> None:
     leaves the previous value alone rather than blanking the chip on one bad call."""
     if not sched:
         return
+    try:
+        _plan_target[vin] = int(sched["chargesoc"])
+    except (KeyError, TypeError, ValueError):
+        pass
     try:
         db.set_charge_schedule(vin, bool(int(sched.get("chargeEnable", 0) or 0)),
                                str(sched.get("starttime") or ""), str(sched.get("endtime") or ""))
@@ -1064,9 +1070,12 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
         # changes, so the Overview hero can label the charge ETA with the real % read cheaply
         # from settings — works even when the limit is changed from the official app. Write
         # only on change, like the GPS sign above → no per-poll churn.
-        _persist_charge_limit(db, data.vin, data.charge_limit_percent)
-
         _maybe_refresh_charge_schedule(db, client)
+        if data.charge_limit_percent is None:
+            # A T03's status carries no limit; its charge plan does (#436). Only then: on our B10
+            # the plan is a copy of the last command and can disagree with the car.
+            data.charge_limit_percent = _plan_target.get(data.vin)
+        _persist_charge_limit(db, data.vin, data.charge_limit_percent)
 
         # Daily ledger of the official lifetime energy/mileage counters + getEC split
         # (silent phase-1 collector) — throttled to 24h, best-effort.

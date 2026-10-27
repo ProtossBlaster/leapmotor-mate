@@ -481,8 +481,17 @@ class LeapmotorSession:
                     self._connect()
                     raw = self._raw_status()
                     plan = ((raw.get("data") or {}).get("config") or {}).get("3") or {}
+                    limit = plan.get("percent")
+                    if limit is None:
+                        # A T03's status carries no limit; its charge plan (190) does, and reads back
+                        # what was written (#436). Asked only then: on our B10 the plan is a copy of
+                        # the last command and can disagree with the car.
+                        try:
+                            limit = (self._api.get_charge_schedule(self._target().vin) or {}).get("chargesoc")
+                        except Exception as e:  # noqa: BLE001 — the status read stands; no reset for this
+                            log.warning("Charge plan target read: %s", e)
                     return {
-                        "charge_limit_percent": plan.get("percent"),
+                        "charge_limit_percent": limit,
                         "charge_enabled": plan.get("isEnable"),
                         "start_time": plan.get("beginTime"),
                         "end_time": plan.get("endTime"),
