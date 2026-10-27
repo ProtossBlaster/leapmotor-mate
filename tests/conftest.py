@@ -27,6 +27,17 @@ def pytest_sessionstart(session):
     # nothing itself, and a file chosen there would reach every worker. Every other process chooses.
     if not session.config.pluginmanager.hasplugin("dsession"):
         os.environ.setdefault("DB_PATH", str(pathlib.Path(tempfile.mkdtemp(prefix="mate-suite-")) / "leapmotor_mate.db"))
+        # web/main.py starts three background sweepers at import. In the suite they outlive the test
+        # that imported main and read whatever file a LATER test has pointed db_reader.DB_PATH at: a
+        # tick inside a restore test held a second connection on its backup, so the WAL was never
+        # folded into it ("missing tables", CI on 1b6d931). Marked as started, they never start.
+        # After the DB_PATH line above: these import db_reader, which reads it once.
+        # → tests/test_the_suite_runs_no_background_sweeper.py
+        import ec_enrich
+        import elevation_enrich
+        import place_lookup
+        for sweeper in (ec_enrich, elevation_enrich, place_lookup):
+            sweeper._bg_started = True
 
 # Whatever databases were sitting in the repository when the suite started, and when they were last
 # written. A test compares against this: the suite must leave every one of them untouched, because
