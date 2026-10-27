@@ -117,6 +117,15 @@ _WB_HOME_RADIUS_KM = 1.0      # within this of the learned wallbox → treat the
 _WB_HOME_MIN_KWH = 2.0        # wallbox energy that rules out standby → a certain home charge
 _WB_HOME_MIN_SAMPLES = 2      # min real home charges before trusting the learned location
 
+# #442 @JoseRMorales: the rule above can never learn a MOVE. After it every home charge is "far",
+# so none is measured and the median stays at the old address for good — 25 charges in a row at his
+# new house read "away from the home wallbox". So a charge away from the learned location still reads
+# the counter, on the side (wb_probe_*), and keeps it only if the counter FOLLOWED the car: more than
+# standby can reach (_WB_HOME_MIN_KWH) and never flat for _WB_STUCK_KWH of what the car drew — the
+# same two measurements, never the DC estimate. A kept charge feeds the median, which then moves.
+_WB_COLS = ("wallbox_energy_start_kwh", "ac_energy_kwh", "wb_stuck_kwh")
+_WB_PROBE_COLS = ("wb_probe_last_kwh", "wb_probe_kwh", "wb_probe_stuck_kwh")
+
 # A reconstructed charge whose ΔSoC over its real duration implies a charge power above this is
 # physically impossible (a spurious SoC=0 poll makes a full pack look "charged" in seconds) → it's
 # a glitch, not a charge. Set well above any real charger (incl. DC fast-charge) so a real charge
@@ -2161,11 +2170,13 @@ class Database:
             return True
         return haversine_km(lat, lon, home[0], home[1]) <= _WB_HOME_RADIUS_KM
 
-    def set_charge_wallbox_start(self, charge_id: int, kwh: float) -> None:
+    def set_charge_wallbox_start(self, charge_id: int, kwh: float, probe: bool = False) -> None:
         """Seed the wallbox energy tracking at charge START: store the first counter reading and reset
-        the running total to 0. From here accumulate_wallbox_energy() sums the counter's positive rises."""
+        the running total to 0. From here accumulate_wallbox_energy() sums the counter's positive rises.
+        `probe` keeps it on the side, for a charge away from the learned wallbox location (#442)."""
+        last, accum, _stuck = _WB_PROBE_COLS if probe else _WB_COLS
         self._conn.execute(
-            "UPDATE charges SET wallbox_energy_start_kwh=?, ac_energy_kwh=0 WHERE id=?", (kwh, charge_id))
+            f"UPDATE charges SET {last}=?, {accum}=0 WHERE id=?", (kwh, charge_id))
         self._conn.commit()
 
     def save_ha_samples_at_position(self, position_id: int, samples: dict) -> None:
@@ -2202,7 +2213,7 @@ class Database:
         self._conn.commit()
 
     def accumulate_wallbox_energy(self, charge_id: int, reading: float,
-                                  car_kwh_since_last: float = 0.0) -> None:
+                                  car_kwh_since_last: float = 0.0, probe: bool = False) -> None:
         """Add the wallbox counter's POSITIVE rise since the last reading to the charge's running total
         (ac_energy_kwh), called every poll while charging. Race/reset-proof: a counter that zeroes
         mid-session is a single negative step (ignored) and the post-reset rise is still counted — so it
@@ -2214,10 +2225,14 @@ class Database:
         interval), and it is only used to catch a counter that has stopped (#215, see _WB_STUCK_KWH):
         while the counter does not move, that energy piles up in wb_stuck_kwh. A real rise clears it
         again — unless it has already passed the threshold, in which case it LATCHES: energy the meter
-        missed while frozen stays missed even if the meter later comes back to life."""
+        missed while frozen stays missed even if the meter later comes back to life.
+
+        `probe` sums into the wb_probe_* columns instead, for a charge away from the learned wallbox
+        location: nothing reads those as wallbox energy until finalize_charge says they are (#442)."""
+        last_col, accum_col, stuck_col = _WB_PROBE_COLS if probe else _WB_COLS
         row = self._conn.execute(
-            "SELECT wallbox_energy_start_kwh AS last, ac_energy_kwh AS accum, "
-            "started_at, max_power_kw, wb_stuck_kwh AS stuck FROM charges WHERE id=?",
+            f"SELECT {last_col} AS last, {accum_col} AS accum, "
+            f"started_at, max_power_kw, {stuck_col} AS stuck FROM charges WHERE id=?",
             (charge_id,)).fetchone()
         if row is None:
             return
@@ -2248,9 +2263,31 @@ class Database:
                 log.warning("Charge #%d: ignoring implausible wallbox step +%.1f kWh "
                             "(counter glitch / lifetime total)", charge_id, rise)
         self._conn.execute(
-            "UPDATE charges SET wallbox_energy_start_kwh=?, ac_energy_kwh=?, wb_stuck_kwh=? "
+            f"UPDATE charges SET {last_col}=?, {accum_col}=?, {stuck_col}=? "
             "WHERE id=?", (reading, round(accum, 3), round(stuck, 3), charge_id))
         self._conn.commit()
+
+    def _settle_wallbox_probe(self, charge):
+        """A charge whose counter was read on the side (#442): did the counter follow the car? Yes →
+        it is this charge's wallbox energy, moved into the columns everything reads. No → it was
+        never this charge's, and neither were the minutes it went unread. Returns the row as now."""
+        probed = charge["wb_probe_kwh"]
+        if charge["wb_probe_last_kwh"] is None or probed is None:
+            return charge
+        stuck = charge["wb_probe_stuck_kwh"] or 0.0
+        cid = charge["id"]
+        if probed > _WB_HOME_MIN_KWH and stuck < _WB_STUCK_KWH:
+            self._conn.execute(
+                "UPDATE charges SET ac_energy_kwh=?, wallbox_energy_start_kwh=?, wb_stuck_kwh=? "
+                "WHERE id=?", (probed, charge["wb_probe_last_kwh"], stuck, cid))
+            log.info("Charge #%d: away from the learned wallbox location, but its counter followed "
+                     "the car (+%.1f kWh) → attributed to this charge", cid, probed)
+        else:
+            self._conn.execute("UPDATE charges SET wb_dark_min=NULL WHERE id=?", (cid,))
+            log.info("Charge #%d: the wallbox counter did not follow this charge (+%.2f kWh, "
+                     "%.1f kWh drawn while it stood still) → not attributed", cid, probed, stuck)
+        self._conn.commit()
+        return self._conn.execute("SELECT * FROM charges WHERE id = ?", (cid,)).fetchone()
 
     def _last_energising_soc(self, vehicle_id: int, started_at: str, ended_at: str | None = None):
         """Last SoC sampled while the cable was in and current was still entering the pack.
@@ -2427,6 +2464,7 @@ class Database:
         # that delivered nothing. If it gained no SoC AND the wallbox measured no energy, it isn't a
         # real session: drop the row instead of persisting a phantom charge (a genuine charge always
         # shows one or the other). Reconstructed charges have energy by definition, so never here.
+        charge = self._settle_wallbox_probe(charge)
         ac_kwh = charge["ac_energy_kwh"]
         if energy_added <= 0.05 and (ac_kwh is None or ac_kwh <= 0.05) and not charge["reconstructed"]:
             self._conn.execute("DELETE FROM charges WHERE id = ?", (charge_id,))
@@ -2734,8 +2772,8 @@ class Database:
     def get_open_charge(self, vehicle_id: int):
         """Latest charge session left open (ended_at NULL), or None."""
         return self._conn.execute(
-            "SELECT id, start_soc, max_power_kw, started_at, latitude, longitude FROM charges "
-            "WHERE vehicle_id = ? AND ended_at IS NULL ORDER BY id DESC LIMIT 1",
+            "SELECT id, start_soc, max_power_kw, started_at, latitude, longitude, wb_probe_last_kwh "
+            "FROM charges WHERE vehicle_id = ? AND ended_at IS NULL ORDER BY id DESC LIMIT 1",
             (vehicle_id,),
         ).fetchone()
 

@@ -62,7 +62,7 @@ def test_a_measured_power_still_does():
 def test_an_unknown_power_counts_nothing_against_a_stuck_wallbox_counter(monkeypatch):
     db = _SpyDB()
     seen = []
-    db.accumulate_wallbox_energy = lambda cid, wb, car_kwh: seen.append(car_kwh)
+    db.accumulate_wallbox_energy = lambda cid, wb, car_kwh, probe=False: seen.append(car_kwh)
     rec = _charging_recorder(db)
     rec._charge_at_wallbox = True
     monkeypatch.setattr(rec, "_read_wallbox", lambda: {"energy_kwh": 12.5})

@@ -198,10 +198,12 @@ def test_no_charge_open_means_no_wallbox_call(loop):
 
 def test_a_charge_away_from_the_wallbox_is_still_not_attributed(loop, monkeypatch):
     """The home-radius rule (#46/#215 family) decides attribution; reading in the dark must not
-    quietly bypass it and hang the house meter on a public charge."""
+    quietly bypass it and hang the house meter on a public charge. Since #442 the counter IS read
+    there, on the side, and only finalize_charge may move it into the wallbox columns."""
     monkeypatch.setattr(D.Database, "wallbox_energy_applies", lambda *a, **k: False)
     db, taken = loop(
         frames=[_frame(charging=True), RuntimeError("down"), RuntimeError("down")],
         meter=[11.78, 12.50, 13.20], rounds=3)
-    assert taken == []
+    assert len(taken) >= 3
     assert _charge(db)["ac_energy_kwh"] is None
+    assert _charge(db)["wallbox_energy_start_kwh"] is None
