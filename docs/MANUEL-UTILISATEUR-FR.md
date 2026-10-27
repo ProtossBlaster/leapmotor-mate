@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.16.0 · **Langue :** Français
+> **Version de Mate :** v4.16.1 · **Langue :** Français
 
-## Nouveautés de la version 4.16.0
+## Nouveautés de la version 4.16.1
+
+**Un T03 affiche son objectif de recharge.** Sur un T03, la carte *Objectif de la recharge programmée* de la
+page Recharges restait vide juste après un enregistrement, et le *Charge Limit* de Home Assistant restait
+inconnu : l'état de la voiture ne le contient pas. Mate le lit désormais dans le plan de recharge de la
+voiture, qui le contient.
+
+### Nouveautés de la version 4.16.0
 
 **La carte de l'Aperçu trace le dernier trajet du jour.** Sous le point de la voiture, la carte *Dernière
 position connue* trace désormais l'itinéraire du dernier trajet : celui en cours pendant que vous roulez, et

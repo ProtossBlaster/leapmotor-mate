@@ -1,8 +1,14 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.16.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.16.1 · **Lingua:** Italiano
 
-## Novità della 4.16.0
+## Novità della 4.16.1
+
+**La T03 mostra il suo traguardo di ricarica.** Sulla T03 la carta *Traguardo ricarica programmata* della
+pagina Ricariche restava vuota subito dopo un salvataggio, e il *Charge Limit* di Home Assistant restava
+sconosciuto: lo stato dell'auto non lo porta. Ora Mate lo legge dal piano di ricarica dell'auto, che lo porta.
+
+### Novità della 4.16.0
 
 **La mappa della Panoramica disegna l'ultimo viaggio di oggi.** Sotto il pallino dell'auto, la mappa
 *Ultima posizione nota* ora disegna il percorso dell'ultimo viaggio dell'auto: quello in corso mentre guidi,

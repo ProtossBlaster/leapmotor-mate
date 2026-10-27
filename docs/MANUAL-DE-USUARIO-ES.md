@@ -1,8 +1,14 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.16.0 · **Idioma:** Español
+> **Versión de Mate:** v4.16.1 · **Idioma:** Español
 
-## Novedades de la versión 4.16.0
+## Novedades de la versión 4.16.1
+
+**Un T03 muestra su objetivo de carga.** En un T03 la tarjeta *Objetivo de la carga programada* de la página
+Cargas quedaba vacía justo después de guardar, y el *Charge Limit* de Home Assistant seguía desconocido: el
+estado del coche no lo trae. Mate ahora lo lee del plan de carga del coche, que sí lo trae.
+
+### Novedades de la versión 4.16.0
 
 **El mapa del Resumen dibuja el último viaje de hoy.** Bajo el punto del coche, el mapa *Última posición
 conocida* dibuja ahora la ruta del último viaje: el que está en curso mientras conduces, y el que terminó hoy

@@ -1,8 +1,14 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.16.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.16.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.16.0
+## Neu in Version 4.16.1
+
+**Ein T03 zeigt sein Ladeziel.** Bei einem T03 blieb die Karte *Ziel der geplanten Ladung* auf der Seite
+Ladevorgänge direkt nach dem Speichern leer, und das *Charge Limit* in Home Assistant blieb unbekannt: der
+Status des Autos enthält es nicht. Mate liest es jetzt aus dem Ladeplan des Autos, der es enthält.
+
+### Neu in Version 4.16.0
 
 **Die Karte der Übersicht zeichnet die letzte Fahrt von heute.** Unter dem Punkt des Autos zeichnet die
 Karte *Letzte bekannte Position* jetzt die Strecke der letzten Fahrt: die laufende, während Sie fahren, und

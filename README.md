@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.16.0:** the Overview map **draws today's last trip** under the car ([PR #440](https://github.com/ProtossBlaster/leapmotor-mate/pull/440), @arekm), and a computer clock a few seconds behind the car's **no longer blocks commands** ([D#437](https://github.com/ProtossBlaster/leapmotor-mate/discussions/437), @Letraz). In **4.15.12**: on a T03 the Charges page's target card says it is the official app's upper charging limit.
-See [release notes and upgrade impact](docs/releases/v4.16.0.md).
+**v4.16.1:** a T03 **shows its charge target** on the Charges page and on MQTT ([#436](https://github.com/ProtossBlaster/leapmotor-mate/issues/436), @sarifarm). In **4.16.0**: the Overview map draws today's last trip, and a computer clock a few seconds behind the car's no longer blocks commands.
+See [release notes and upgrade impact](docs/releases/v4.16.1.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -360,8 +360,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.16.0:** la mappa della Panoramica **disegna l'ultimo viaggio di oggi** sotto l'auto ([PR #440](https://github.com/ProtossBlaster/leapmotor-mate/pull/440), @arekm), e un orologio del computer indietro di qualche secondo rispetto all'auto **non blocca più i comandi** ([D#437](https://github.com/ProtossBlaster/leapmotor-mate/discussions/437), @Letraz). Nella **4.15.12**: sulla T03 la carta del traguardo nella pagina Ricariche dice che è il limite massimo di ricarica dell'app ufficiale.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.16.0.md#italiano).
+**v4.16.1:** la T03 **mostra il suo traguardo di ricarica** nella pagina Ricariche e su MQTT ([#436](https://github.com/ProtossBlaster/leapmotor-mate/issues/436), @sarifarm). Nella **4.16.0**: la mappa della Panoramica disegna l'ultimo viaggio di oggi, e un orologio del computer indietro di qualche secondo rispetto all'auto non blocca più i comandi.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.16.1.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

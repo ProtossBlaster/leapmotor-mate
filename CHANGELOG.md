@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.16.1] — 2026-10-27
+
+- **A T03 shows its charge target** ([#436](https://github.com/ProtossBlaster/leapmotor-mate/issues/436), @sarifarm).
+  A T03's status carries no charge limit, so right after a save the Charges page's target card showed
+  nothing, and the MQTT `charge_limit` stayed unknown. Its charge plan carries it: in @sarifarm's log
+  the plan answered the target on 21 reads out of 21, and read back what Mate had written. Mate now reads
+  it there when the status has none; a car whose status carries the limit keeps reading it there.
+
 ## [4.16.0] — 2026-10-26
 
 - **The Overview map draws today's last trip** ([PR #440](https://github.com/ProtossBlaster/leapmotor-mate/pull/440), @arekm). The Last Known Position map

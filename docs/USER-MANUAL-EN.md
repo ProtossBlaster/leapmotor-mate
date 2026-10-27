@@ -1,8 +1,14 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.16.0 · **Language:** English
+> **Mate version:** v4.16.1 · **Language:** English
 
-## New in 4.16.0
+## New in 4.16.1
+
+**A T03 shows its charge target.** On a T03 the *Scheduled charge target* card on the Charges page showed
+nothing right after a save, and Home Assistant's *Charge Limit* stayed unknown: the car's status does not
+carry it. Mate now reads it from the car's charge plan, which does.
+
+### New in 4.16.0
 
 **The Overview map draws today's last trip.** Under the car's dot, the *Last Known Position* map now draws
 the route of the car's latest trip: the trip under way while you drive, and the trip that ended today for
