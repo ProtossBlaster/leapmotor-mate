@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.16.1:** a T03 **shows its charge target** on the Charges page and on MQTT ([#436](https://github.com/ProtossBlaster/leapmotor-mate/issues/436), @sarifarm). In **4.16.0**: the Overview map draws today's last trip, and a computer clock a few seconds behind the car's no longer blocks commands.
-See [release notes and upgrade impact](docs/releases/v4.16.1.md).
+**v4.16.2:** the Map page's map **takes the screen it is on**: the whole width of the page, and down to the row under it ([D#438](https://github.com/ProtossBlaster/leapmotor-mate/discussions/438), @Tommy73LMB05). In **4.16.1**: a T03 shows its charge target on the Charges page and on MQTT.
+See [release notes and upgrade impact](docs/releases/v4.16.2.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -360,8 +360,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.16.1:** la T03 **mostra il suo traguardo di ricarica** nella pagina Ricariche e su MQTT ([#436](https://github.com/ProtossBlaster/leapmotor-mate/issues/436), @sarifarm). Nella **4.16.0**: la mappa della Panoramica disegna l'ultimo viaggio di oggi, e un orologio del computer indietro di qualche secondo rispetto all'auto non blocca più i comandi.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.16.1.md#italiano).
+**v4.16.2:** la mappa della pagina Mappa **prende lo schermo su cui è**: tutta la larghezza della pagina, e in basso fino alla riga sotto ([D#438](https://github.com/ProtossBlaster/leapmotor-mate/discussions/438), @Tommy73LMB05). Nella **4.16.1**: la T03 mostra il suo traguardo di ricarica nella pagina Ricariche e su MQTT.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.16.2.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

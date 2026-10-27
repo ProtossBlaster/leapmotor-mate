@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.16.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.16.2 · **Lingua:** Italiano
 
-## Novità della 4.16.1
+## Novità della 4.16.2
+
+**La mappa prende lo schermo su cui è.** La mappa della pagina *Mappa* ora occupa tutta la larghezza della
+pagina e finisce dove la riga sotto, con *Viaggi mostrati* e *Colonnine mostrate*, sta ancora sullo
+schermo: più grande su un monitor grande, più piccola su un portatile, almeno 400 px. Segue la finestra
+quando la ridimensioni.
+
+### Novità della 4.16.1
 
 **La T03 mostra il suo traguardo di ricarica.** Sulla T03 la carta *Traguardo ricarica programmata* della
 pagina Ricariche restava vuota subito dopo un salvataggio, e il *Charge Limit* di Home Assistant restava

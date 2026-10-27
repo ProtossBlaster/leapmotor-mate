@@ -1,8 +1,15 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.16.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.16.2 · **Sprache:** Deutsch
 
-## Neu in Version 4.16.1
+## Neu in Version 4.16.2
+
+**Die Karte nimmt den Bildschirm ein, auf dem sie ist.** Die Karte der Seite *Karte* nimmt jetzt die
+ganze Breite der Seite ein und endet dort, wo die Zeile darunter mit *Angezeigte Fahrten* und *Angezeigte
+Stationen* noch auf den Bildschirm passt: größer auf einem großen Monitor, kleiner auf einem Laptop,
+mindestens 400 px. Sie folgt dem Fenster, wenn Sie es in der Größe ändern.
+
+### Neu in Version 4.16.1
 
 **Ein T03 zeigt sein Ladeziel.** Bei einem T03 blieb die Karte *Ziel der geplanten Ladung* auf der Seite
 Ladevorgänge direkt nach dem Speichern leer, und das *Charge Limit* in Home Assistant blieb unbekannt: der

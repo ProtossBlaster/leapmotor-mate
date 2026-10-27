@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.16.1 · **Langue :** Français
+> **Version de Mate :** v4.16.2 · **Langue :** Français
 
-## Nouveautés de la version 4.16.1
+## Nouveautés de la version 4.16.2
+
+**La carte prend l'écran sur lequel elle est.** La carte de la page *Carte* occupe désormais toute la
+largeur de la page et s'arrête là où la ligne du dessous, avec *Trajets affichés* et *Bornes affichées*,
+tient encore à l'écran : plus grande sur un grand moniteur, plus petite sur un portable, 400 px au moins.
+Elle suit la fenêtre quand vous la redimensionnez.
+
+### Nouveautés de la version 4.16.1
 
 **Un T03 affiche son objectif de recharge.** Sur un T03, la carte *Objectif de la recharge programmée* de la
 page Recharges restait vide juste après un enregistrement, et le *Charge Limit* de Home Assistant restait

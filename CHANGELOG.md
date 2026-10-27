@@ -3,6 +3,15 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.16.2] — 2026-10-27
+
+- **The map takes the screen it is on** ([D#438](https://github.com/ProtossBlaster/leapmotor-mate/discussions/438), @Tommy73LMB05).
+  The Map page's map was 560 px tall and as wide as the pages' 1152 px column on every screen: on a 28"
+  monitor it left a band of empty page under it, on a 14" laptop the legend row with *Trips shown* and
+  *Stations shown* sat below the fold. It now takes the page's whole width and ends where the legend row
+  still fits, 400 px at least, so on a phone or a very low window the page scrolls as before. Resizing
+  the window resizes the map. Only the Map page changes width; every other page keeps its column.
+
 ## [4.16.1] — 2026-10-27
 
 - **A T03 shows its charge target** ([#436](https://github.com/ProtossBlaster/leapmotor-mate/issues/436), @sarifarm).

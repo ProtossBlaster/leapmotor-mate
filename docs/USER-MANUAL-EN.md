@@ -1,8 +1,14 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.16.1 · **Language:** English
+> **Mate version:** v4.16.2 · **Language:** English
 
-## New in 4.16.1
+## New in 4.16.2
+
+**The map takes the screen it is on.** The *Map* page's map now takes the whole width of the page and
+ends where the row under it, with *Trips shown* and *Stations shown*, still fits on screen: larger on a
+big monitor, smaller on a laptop, 400 px at least. It follows the window when you resize it.
+
+### New in 4.16.1
 
 **A T03 shows its charge target.** On a T03 the *Scheduled charge target* card on the Charges page showed
 nothing right after a save, and Home Assistant's *Charge Limit* stayed unknown: the car's status does not

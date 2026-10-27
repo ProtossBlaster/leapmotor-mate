@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.16.1 · **Idioma:** Español
+> **Versión de Mate:** v4.16.2 · **Idioma:** Español
 
-## Novedades de la versión 4.16.1
+## Novedades de la versión 4.16.2
+
+**El mapa ocupa la pantalla en la que está.** El mapa de la página *Mapa* ocupa ahora todo el ancho de la
+página y termina donde la fila de abajo, con *Trayectos mostrados* y *Puntos mostrados*, todavía cabe en
+pantalla: más grande en un monitor grande, más pequeño en un portátil, 400 px como mínimo. Sigue a la
+ventana cuando la redimensionas.
+
+### Novedades de la versión 4.16.1
 
 **Un T03 muestra su objetivo de carga.** En un T03 la tarjeta *Objetivo de la carga programada* de la página
 Cargas quedaba vacía justo después de guardar, y el *Charge Limit* de Home Assistant seguía desconocido: el
