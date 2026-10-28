@@ -326,6 +326,35 @@ def _end_time(end, start) -> str:
 
 templates.env.filters["end_time"] = _end_time
 
+
+def _charge_finish(status) -> str | None:
+    """When the running charge ends, "HH:MM" local (with its day when not the reading's), or None (D#444).
+
+    The car's minutes left count from when the car MEASURED them, not from now: an old reading would
+    otherwise push the end later by its own age. The car's clock (`frame_ts`) when it is not after our
+    reading — a frame cannot be measured after we received it — else when Mate read it."""
+    from datetime import datetime, timedelta, timezone
+    minutes = (status or {}).get("remaining_charge_min")
+    if not minutes or minutes <= 0:
+        return None
+    read = db_reader._local_dt(status.get("recorded_at"))
+    if read is None:
+        return None
+    at = read
+    if status.get("frame_ts"):
+        try:
+            frame = datetime.fromtimestamp(int(status["frame_ts"]) / 1000, timezone.utc)
+            if frame <= read:
+                at = frame.astimezone(read.tzinfo)
+        except (TypeError, ValueError, OverflowError, OSError):
+            pass
+    end = at + timedelta(minutes=minutes)
+    if end.date() != at.date():
+        return f"{i18n.fmt_day_month(db_reader.get_language(), end)} {end:%H:%M}"
+    return f"{end:%H:%M}"
+
+templates.env.globals["charge_finish"] = _charge_finish
+
 # Display-time unit conversion (DB stays metric — see units.py). Filters format "<value> <unit>";
 # the *_unit() / *_val() globals give a bare unit label or converted number (chart axes / JS data).
 import units

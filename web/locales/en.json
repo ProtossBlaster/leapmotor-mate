@@ -1060,6 +1060,7 @@
     "security_off": "Inactive",
     "power": "Power",
     "time_remaining": "Time remaining",
+    "charge_ends_at": "Ends at {time}",
     "current_a": "Current",
     "voltage": "Voltage",
     "no_charges_yet": "No charges recorded yet",

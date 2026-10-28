@@ -29,6 +29,8 @@
         {% set h = (status.remaining_charge_min // 60)|int %}
         {% set m = (status.remaining_charge_min % 60)|int %}
         {% if h > 0 %}{{ h }}h {{ m }}m{% else %}{{ m }}m{% endif %}
+        {% set finish = charge_finish(status) %}
+        {% if finish %}<div class="text-xs font-normal text-slate-400">{{ t('charge_ends_at').format(time=finish) }}</div>{% endif %}
       {% else %}—{% endif %}
     </div>
   </div>

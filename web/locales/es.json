@@ -1060,6 +1060,7 @@
     "security_off": "Inactiva",
     "power": "Potencia",
     "time_remaining": "Tiempo restante",
+    "charge_ends_at": "Termina a las {time}",
     "current_a": "Corriente",
     "voltage": "Tensión",
     "no_charges_yet": "Todavía no hay ninguna carga registrada",

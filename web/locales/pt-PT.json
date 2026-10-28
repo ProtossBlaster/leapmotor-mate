@@ -1060,6 +1060,7 @@
     "security_off": "Inativo",
     "power": "Potência",
     "time_remaining": "Tempo restante",
+    "charge_ends_at": "Termina às {time}",
     "current_a": "Corrente",
     "voltage": "Tensão",
     "no_charges_yet": "Ainda não há carregamentos registados",
