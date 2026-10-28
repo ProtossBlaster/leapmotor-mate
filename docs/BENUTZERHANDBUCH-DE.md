@@ -1,8 +1,15 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.16.3 · **Sprache:** Deutsch
+> **Mate-Version:** v4.17.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.16.3
+## Neu in Version 4.17.0
+
+**Das Ladefeld zeigt, wann der Ladevorgang endet.** Auf der Seite *Ladevorgänge* zeigt *Ladestatus*
+unter der Restzeit die Uhrzeit, zu der der Ladevorgang endet, z. B. „Ende um 14:30", mit dem Tag, wenn
+er an einem anderen endet. Gezählt wird ab dem Zeitpunkt, an dem das Auto die Restminuten gemessen hat,
+daher verschiebt ein einige Minuten alter Messwert sie nicht.
+
+### Neu in Version 4.16.3
 
 **Eine umgezogene Wallbox wird wiedergefunden.** Mate lernt aus den gemessenen Ladevorgängen, wo Ihre
 Wallbox steht, und ordnet den Wallbox-Zähler nur Ladevorgängen dort zu. Nach einem Umzug blieben die

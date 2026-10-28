@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.17.0] — 2026-10-28
+
+- **The charging panel says when the charge ends** ([D#444](https://github.com/ProtossBlaster/leapmotor-mate/discussions/444), @banolka).
+  The Charges page's *Charging status* showed only the minutes left the car sends. Under them it now
+  shows the time the charge ends: the moment the car measured those minutes plus the minutes, in the
+  time zone every other time is shown in, with its day when it falls on another one. A reading a few
+  minutes old does not push the end later.
+
 ## [4.16.3] — 2026-10-27
 
 - **A wallbox that moved house is found again** ([#442](https://github.com/ProtossBlaster/leapmotor-mate/issues/442), @JoseRMorales).

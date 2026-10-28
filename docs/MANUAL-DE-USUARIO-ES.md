@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.16.3 · **Idioma:** Español
+> **Versión de Mate:** v4.17.0 · **Idioma:** Español
 
-## Novedades de la versión 4.16.3
+## Novedades de la versión 4.17.0
+
+**El panel de carga dice cuándo termina la carga.** En la página *Cargas*, *Estado de la carga* muestra
+bajo el tiempo restante la hora a la que termina la carga, p. ej. «Termina a las 14:30», con el día
+cuando termina en otro. Cuenta desde que el coche midió los minutos restantes, así que una lectura de
+hace unos minutos no la mueve.
+
+### Novedades de la versión 4.16.3
 
 **Un wallbox que se ha mudado se vuelve a encontrar.** Mate aprende dónde está tu wallbox a partir de las
 cargas que ha medido, y solo da el contador del wallbox a las cargas en ese lugar. Tras una mudanza, las

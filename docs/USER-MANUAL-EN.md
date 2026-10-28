@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.16.3 · **Language:** English
+> **Mate version:** v4.17.0 · **Language:** English
 
-## New in 4.16.3
+## New in 4.17.0
+
+**The charging panel says when the charge ends.** On the *Charges* page, *Charging status* shows under
+the time remaining the time the charge ends, e.g. "Ends at 14:30", with its day when it ends on another
+one. It counts from when the car measured the minutes left, so a reading a few minutes old does not move
+it.
+
+### New in 4.16.3
 
 **A wallbox that moved house is found again.** Mate learns where your wallbox is from the charges it
 measured, and gives the wallbox counter only to charges there. After a move, home charges stayed without

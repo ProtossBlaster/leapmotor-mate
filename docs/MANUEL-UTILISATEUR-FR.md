@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.16.3 · **Langue :** Français
+> **Version de Mate :** v4.17.0 · **Langue :** Français
 
-## Nouveautés de la version 4.16.3
+## Nouveautés de la version 4.17.0
+
+**Le panneau de recharge indique quand la recharge se termine.** Sur la page *Recharges*, *État de charge*
+affiche sous le temps restant l'heure de fin de la recharge, par ex. « Fin à 14:30 », avec le
+jour quand elle se termine un autre jour. Le calcul part du moment où la voiture a mesuré les minutes
+restantes : une lecture vieille de quelques minutes ne la déplace pas.
+
+### Nouveautés de la version 4.16.3
 
 **Une wallbox qui a déménagé est retrouvée.** Mate apprend où se trouve votre wallbox à partir des
 recharges qu'elle a mesurées, et n'attribue son compteur qu'aux recharges à cet endroit. Après un

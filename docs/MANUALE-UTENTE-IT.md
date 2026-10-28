@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.16.3 · **Lingua:** Italiano
+> **Versione di Mate:** v4.17.0 · **Lingua:** Italiano
 
-## Novità della 4.16.3
+## Novità della 4.17.0
+
+**Il pannello della ricarica dice quando finisce.** Nella pagina *Ricariche*, *Stato di carica* mostra
+sotto il tempo rimanente l'ora in cui la ricarica finisce, es. «Fine alle 14:30», con il giorno quando
+finisce in un altro. Conta da quando l'auto ha misurato i minuti rimanenti, quindi una lettura di qualche
+minuto fa non la sposta.
+
+### Novità della 4.16.3
 
 **Una wallbox che ha cambiato casa viene ritrovata.** Mate impara dov'è la tua wallbox dalle ricariche che
 ha misurato, e dà il contatore della wallbox solo alle ricariche lì. Dopo un trasloco le ricariche di casa

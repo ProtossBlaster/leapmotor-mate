@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.16.3:** a wallbox that **moved house is found again**: after a move, home charges get the wallbox counter back ([#442](https://github.com/ProtossBlaster/leapmotor-mate/issues/442), @JoseRMorales). In **4.16.2**: the Map page's map takes the screen it is on.
-See [release notes and upgrade impact](docs/releases/v4.16.3.md).
+**v4.17.0:** the Charges page's charging panel **says when the charge ends**, under the minutes left ([D#444](https://github.com/ProtossBlaster/leapmotor-mate/discussions/444), @banolka). In **4.16.3**: a wallbox that moved house is found again.
+See [release notes and upgrade impact](docs/releases/v4.17.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -360,8 +360,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.16.3:** una wallbox che **ha cambiato casa viene ritrovata**: dopo un trasloco le ricariche di casa riprendono il contatore della wallbox ([#442](https://github.com/ProtossBlaster/leapmotor-mate/issues/442), @JoseRMorales). Nella **4.16.2**: la mappa della pagina Mappa prende lo schermo su cui è.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.16.3.md#italiano).
+**v4.17.0:** il pannello della ricarica nella pagina Ricariche **dice a che ora finisce la ricarica**, sotto i minuti rimanenti ([D#444](https://github.com/ProtossBlaster/leapmotor-mate/discussions/444), @banolka). Nella **4.16.3**: una wallbox che ha cambiato casa viene ritrovata.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.17.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
