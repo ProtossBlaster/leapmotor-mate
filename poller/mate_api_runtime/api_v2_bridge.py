@@ -533,7 +533,7 @@ class NewAPIClient(MateClientCompatibility):
                     if not row.get('vin'):continue
                     vehicles.append(Vehicle.from_dict(row,is_shared=shared))
                     self.__dict__.setdefault('_listed_car_types',{})[row['vin']]=str(row.get('carType') or '').upper()
-                    raw={key:row.get(key) for key in ('vin','carType','rightList','moduleRights','abilities','rudder')}
+                    raw={key:row.get(key) for key in ('vin','carType','rightList','moduleRights','abilities','rudder','funcConfig')}
                     set_setting(db,snapshot_key(row['vin']),json.dumps(dict(
                         account=account_hash(self.username),at=time.time(),shared=shared,vehicle=raw)))
         return vehicles
