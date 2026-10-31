@@ -1811,7 +1811,7 @@ cercanos**. La página tiene tres partes:
 ### Vehículo
 **(menú: Vehículo)** — La tarjeta de **estado completo** del coche: todos los sensores disponibles en tu
 modelo (carga, autonomía, temperatura interior, marcha, puertas, ventanillas, neumáticos, cierres,
-estado de la carga…), y ahora también el **detalle de la climatización**: **nivel del ventilador** (1–7),
+estado de la carga…), y ahora también el **detalle de la climatización**: **nivel del ventilador** (1–7, o más si el coche tiene más, p. ej. 1–9),
 **recirculación del aire** (exterior / recirculación) y el **modo de climatización activo** (AUTO /
 Frío / Calor / Ventilación). Mate muestra **solo lo que tu coche informa de verdad** (algunos modelos no
 exponen ciertos datos). La casilla del parasol indica cuánto está abierto —
@@ -1974,7 +1974,7 @@ Publica el estado del coche (carga, autonomía, posición, puertas, estado de la
 desde las entidades de HA — incluidos un número **Límite de carga** escribible para fijar el SoC
 objetivo, una entidad de texto **Programación de carga** escribible que acepta un plan en JSON para
 automatizaciones (`{"start":"23:00","soc":90}` — cada clave es opcional, y lo que omitas conserva su
-valor actual), un número **Nivel del ventilador** escribible (1–7) y un interruptor **Recirculación**
+valor actual), un número **Nivel del ventilador** escribible (1–7, o más si el coche tiene más, p. ej. 1–9) y un interruptor **Recirculación**
 escribible, más un sensor **Modo de climatización** (AUTO / Frío / Calor / Ventilación). Las entidades
 publicadas incluyen además tres de V2L de solo lectura: **`V2L Active`** (sensor binario), **`V2L
 Power`** (W) y **`V2L Session Energy`** (Wh), y un sensor binario **`Ready`** que se enciende en cuanto

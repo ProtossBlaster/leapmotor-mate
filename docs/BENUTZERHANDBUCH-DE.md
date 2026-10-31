@@ -1760,7 +1760,7 @@ zuerst eintritt.
 **Die Klimakarte** zeigt für jeden Modus eine eigene **Kachel** — **A/C AUTO · Kühlen · Heizen · Lüften ·
 Enteisen** — und es leuchtet immer **nur eine gleichzeitig**, genau dem echten Modus des Autos entsprechend, wie in
 der offiziellen App. Darunter gibt es drei Bedienelemente: einen **Temperatur-Schieberegler**, einen
-**Lüfter-Schieberegler** (Stufe 1–7) und einen **Umluft-Schalter** (Frischluft ↔ Umluft):
+**Lüfter-Schieberegler** (Stufe 1–7, bei Autos mit mehr Stufen mehr, z. B. 1–9) und einen **Umluft-Schalter** (Frischluft ↔ Umluft):
 
 - In den **drei manuellen Modi** (Kühlen / Heizen / Lüften) stellen Sie **Zieltemperatur** und **Lüfterstufe** ein;
   das Auto **bleibt in diesem Modus und behält den Wert**.
@@ -1830,7 +1830,7 @@ Nähe**. Die Seite hat drei Teile:
 ### Fahrzeug
 **(Menü: Fahrzeug)** — Die Karte mit dem **vollständigen Zustand** des Autos: alle auf Ihrem Modell verfügbaren
 Sensoren (Ladung, Reichweite, Innentemperatur, Gang, Türen, Fenster, Reifen, Verriegelungen, Ladezustand…). Mate
-liest jetzt auch die **Lüfterstufe** (1–7), die **Luftumwälzung** (Frischluft / Umluft) und den **aktiven
+liest jetzt auch die **Lüfterstufe** (1–7, bei Autos mit mehr Stufen mehr, z. B. 1–9), die **Luftumwälzung** (Frischluft / Umluft) und den **aktiven
 Klimamodus** (AUTO / Kühlen / Heizen / Lüften) aus. Mate zeigt **nur das, was Ihr Auto wirklich meldet** (manche
 Modelle stellen bestimmte Daten nicht bereit). Die Kachel der Sonnenblende zeigt, wie weit sie offen
 ist — „40%“ über „Offen“ —, wie es die Fensterkacheln tun.
@@ -1991,7 +1991,7 @@ Sendet die Telemetrie des Autos an ABRP für die Routenplanung in Echtzeit.
 
 ### MQTT → Home Assistant
 Veröffentlicht den Zustand des Autos (Ladung, Reichweite, Position, Türen, Ladezustand…) als **Entitäten in Home
-Assistant**, mit **Auto-Discovery**. Sie können das Auto auch über die Entitäten von HA **steuern** — einschließlich eines beschreibbaren **Ladelimits** (`number`) zum Einstellen des Ziel-SoC und einer beschreibbaren **Ladeplan**-`text`-Entität, die einen JSON-Plan für Automationen entgegennimmt (`{"start":"23:00","soc":90}` — jedes Feld ist optional, und was Sie weglassen, bleibt unverändert). Zum Klima kommen die **beschreibbare Lüfterstufe** (`number`, 1–7), der **beschreibbare Umluft-Schalter** (Frischluft ↔ Umluft) und ein **Klimamodus**-Sensor (AUTO / Kühlen / Heizen / Lüften) hinzu. Außerdem gibt es drei **schreibgeschützte** V2L-Entitäten: **`V2L Active`** (Binärsensor), **`V2L Power`** (W) und **`V2L Session Energy`** (Wh) sowie einen Binärsensor **`Ready`**, der angeht, sobald das Auto eingeschaltet ist — noch bevor es losfährt, also solange eine Automatisierung überhaupt noch handeln kann. Ein Sensor **`Sunshade Position`** zeigt, wie weit die Sonnenblende offen ist, in % (0 = geschlossen); der Binärsensor **`Sunshade`** bleibt, wie er war, und ist bei jeder Öffnung an.
+Assistant**, mit **Auto-Discovery**. Sie können das Auto auch über die Entitäten von HA **steuern** — einschließlich eines beschreibbaren **Ladelimits** (`number`) zum Einstellen des Ziel-SoC und einer beschreibbaren **Ladeplan**-`text`-Entität, die einen JSON-Plan für Automationen entgegennimmt (`{"start":"23:00","soc":90}` — jedes Feld ist optional, und was Sie weglassen, bleibt unverändert). Zum Klima kommen die **beschreibbare Lüfterstufe** (`number`, 1–7, bei Autos mit mehr Stufen mehr, z. B. 1–9), der **beschreibbare Umluft-Schalter** (Frischluft ↔ Umluft) und ein **Klimamodus**-Sensor (AUTO / Kühlen / Heizen / Lüften) hinzu. Außerdem gibt es drei **schreibgeschützte** V2L-Entitäten: **`V2L Active`** (Binärsensor), **`V2L Power`** (W) und **`V2L Session Energy`** (Wh) sowie einen Binärsensor **`Ready`**, der angeht, sobald das Auto eingeschaltet ist — noch bevor es losfährt, also solange eine Automatisierung überhaupt noch handeln kann. Ein Sensor **`Sunshade Position`** zeigt, wie weit die Sonnenblende offen ist, in % (0 = geschlossen); der Binärsensor **`Sunshade`** bleibt, wie er war, und ist bei jeder Öffnung an.
 
 Entitäten, die **Ihr** Auto nicht unterstützt, bleiben Ihnen nicht: Was das Modell nicht hat (Sitzheizung,
 Lenkrad…), wird gar nicht erst erzeugt, und eine **Temperatur-Entität**, deren Sensor das Auto nie gemeldet

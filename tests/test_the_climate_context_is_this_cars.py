@@ -56,19 +56,19 @@ def due_auto(tmp_path):
 def test_it_reads_the_panel_of_the_car_the_command_is_for(due_auto):
     """Il difetto in una riga: chiedendo il pannello dell'auto A si deve ottenere quello di A,
     anche se l'ultima riga scritta è di B."""
-    modo, ricircolo, ventola, temp = PM._climate_ctx_from_db(due_auto, A_VIN)
+    modo, ricircolo, ventola, temp = PM._climate_ctx_from_db(due_auto, A_VIN, fan_top=7)
     assert (modo, ricircolo, ventola, temp) == ("hot", "in", 2, 22), (
         f"ha letto ({modo}, {ricircolo}, {ventola}, {temp}): è il pannello dell'altra auto")
 
 
 def test_the_other_car_gets_its_own(due_auto):
-    assert PM._climate_ctx_from_db(due_auto, B_VIN) == ("cold", "out", 6, 30)
+    assert PM._climate_ctx_from_db(due_auto, B_VIN, fan_top=7) == ("cold", "out", 6, 30)
 
 
 def test_an_unknown_vin_falls_back_to_the_safe_defaults(due_auto):
     """Un VIN che non conosciamo non deve prendersi il pannello di un'auto a caso: meglio i valori
     di riposo, che è quello che il codice fa già quando non trova niente."""
-    assert PM._climate_ctx_from_db(due_auto, "LFZZZZ0000000009") == ("wind", "out", 3, 26)
+    assert PM._climate_ctx_from_db(due_auto, "LFZZZZ0000000009", fan_top=7) == ("wind", "out", 3, 26)
 
 
 def test_both_handlers_pass_the_vin(due_auto):

@@ -466,8 +466,8 @@ def ensure_schema(conn) -> None:
     # inside the schema script fails on a fresh database and takes the WHOLE script down with it.
     conn.execute("CREATE INDEX IF NOT EXISTS idx_positions_v2l ON positions(vehicle_id, recorded_at)"
                  " WHERE ac_port_mode = 2")
-    # migration: extended climate panel (validated on-car 2026-06-20) — fan level (1941 acAirVolume,
-    # 1-7), recirculation (1943: 1=recirc / 0=fresh), base climate mode (3713: 0 auto/1 cool/3 heat/4 vent).
+    # migration: extended climate panel (validated on-car 2026-06-20) — fan level (1941 acAirVolume),
+    # recirculation (1943: 1=recirc / 0=fresh), base climate mode (3713: 0 auto/1 cool/3 heat/4 vent).
     if "fan_level" not in cols:
         _add_column(conn, "ALTER TABLE positions ADD COLUMN fan_level INTEGER DEFAULT NULL")
     if "recirculation" not in cols:

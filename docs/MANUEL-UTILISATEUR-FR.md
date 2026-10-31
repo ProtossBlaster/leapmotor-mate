@@ -1783,7 +1783,7 @@ car c'est la première échéance atteinte qui compte.
 La carte climatisation comporte une rangée de **tuiles de mode** (A/C AUTO · Refroidir · Chauffer · Ventiler ·
 Dégivrage) : celle qui correspond au **mode réel de la voiture s'allume**, une seule à la fois, comme dans
 l'application officielle. En dessous, trois commandes : un **curseur de température**, un **curseur de
-ventilation** (1–7) et un **interrupteur de recyclage** (air frais / recyclage).
+ventilation** (1–7, ou plus si la voiture en a plus, p. ex. 1–9) et un **interrupteur de recyclage** (air frais / recyclage).
 
 - Dans les **trois modes manuels** (Refroidir, Chauffer, Ventiler), vous réglez à la fois la **température
   cible** et la **vitesse de ventilation** : la voiture **reste dans ce mode et conserve la valeur** choisie.
@@ -1856,7 +1856,7 @@ La page comporte trois parties :
 **(menu : Véhicule)** — La fiche **état complet** de la voiture : tous les capteurs disponibles sur votre
 modèle (charge, autonomie, température intérieure, rapport, portes, vitres, pneus, verrouillages, état de
 charge…). Mate lit désormais aussi, en direct, les réglages de **climatisation** : la **vitesse de ventilation**
-(1–7), le **recyclage de l'air** (air frais / recyclage) et le **mode de climatisation actif** (AUTO /
+(1–7, ou plus si la voiture en a plus, p. ex. 1–9), le **recyclage de l'air** (air frais / recyclage) et le **mode de climatisation actif** (AUTO /
 Refroidissement / Chauffage / Ventilation). Mate n'affiche **que ce que votre voiture rapporte réellement**
 (certains modèles n'exposent pas certaines données). La tuile du pare-soleil indique de combien il
 est ouvert — « 40% » au-dessus de « Ouvert » —, comme le font celles des vitres.
@@ -2016,7 +2016,7 @@ Envoie la télémétrie de la voiture à ABRP pour la planification d'itinérair
 
 ### MQTT → Home Assistant
 Publie l'état de la voiture (charge, autonomie, position, portes, état de charge…) sous forme d'**entités dans
-Home Assistant**, avec **auto-discovery**. Vous pouvez aussi **commander** la voiture depuis les entités de HA — y compris une **limite de charge** (`number` modifiable) pour régler le SoC cible et une entité **Programmation de charge** (`text` modifiable) qui accepte un plan JSON pensé pour les automatisations (`{"start":"23:00","soc":90}` — chaque champ est optionnel, et ce que vous omettez reste inchangé). Les réglages de climatisation sont également exposés : **Vitesse de ventilation** (`number` modifiable, 1–7), **Recyclage** (`switch` modifiable) et **Mode climatisation** (capteur : AUTO / Refroidissement / Chauffage / Ventilation). Trois entités V2L en lecture seule sont aussi publiées : **`V2L Active`** (binary sensor), **`V2L Power`** (W) et **`V2L Session Energy`** (Wh), ainsi qu'un binary sensor **`Ready`** qui s'allume dès que la voiture est sous tension — avant qu'elle ne roule, c'est-à-dire tant qu'une automatisation a encore le temps d'agir. Un capteur **`Sunshade Position`** indique de combien le pare-soleil est ouvert, en % (0 = fermé) ; le binary sensor **`Sunshade`** reste tel quel, allumé dès la moindre ouverture.
+Home Assistant**, avec **auto-discovery**. Vous pouvez aussi **commander** la voiture depuis les entités de HA — y compris une **limite de charge** (`number` modifiable) pour régler le SoC cible et une entité **Programmation de charge** (`text` modifiable) qui accepte un plan JSON pensé pour les automatisations (`{"start":"23:00","soc":90}` — chaque champ est optionnel, et ce que vous omettez reste inchangé). Les réglages de climatisation sont également exposés : **Vitesse de ventilation** (`number` modifiable, 1–7, ou plus si la voiture en a plus, p. ex. 1–9), **Recyclage** (`switch` modifiable) et **Mode climatisation** (capteur : AUTO / Refroidissement / Chauffage / Ventilation). Trois entités V2L en lecture seule sont aussi publiées : **`V2L Active`** (binary sensor), **`V2L Power`** (W) et **`V2L Session Energy`** (Wh), ainsi qu'un binary sensor **`Ready`** qui s'allume dès que la voiture est sous tension — avant qu'elle ne roule, c'est-à-dire tant qu'une automatisation a encore le temps d'agir. Un capteur **`Sunshade Position`** indique de combien le pare-soleil est ouvert, en % (0 = fermé) ; le binary sensor **`Sunshade`** reste tel quel, allumé dès la moindre ouverture.
 
 Les entités que **votre** voiture ne prend pas en charge ne vous restent pas sur les bras : celles que le
 modèle n'a pas (sièges chauffants, volant…) ne sont jamais créées, et une **entité de température** dont le
