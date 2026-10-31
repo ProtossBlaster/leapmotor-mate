@@ -50,16 +50,21 @@ def fail(message):
     raise CommandContractError('Command not sent: '+message)
 
 
+def _positive(value):
+    """A positive whole number as a car's cloud entry writes it, a number or its decimal text; None otherwise."""
+    if type(value) is int:return value if value>0 else None
+    if not (isinstance(value,str) and value.isascii() and value.isdecimal()):return None
+    try:number=int(value)
+    except ValueError:return None   # more digits than int() reads (sys.get_int_max_str_digits)
+    return number if number>0 else None
+
+
 def _declared(vehicle,codes):
     """Whether the car's own cloud entry declares any of `codes`; an unreadable list declares none."""
     raw=getattr(vehicle,'raw',{}).get('abilities')
     if not isinstance(raw,list):return any(vehicle.has_ability(code) for code in codes)
-    try:
-        if any(not (type(v) is int and v>0 or isinstance(v,str) and v.isascii() and v.isdecimal() and int(v)>0) for v in raw):
-            raise ValueError()
-        declared={int(v) for v in raw}
-    except (ValueError,TypeError):return False
-    return any(code in declared for code in codes)
+    declared={_positive(v) for v in raw}
+    return None not in declared and any(code in declared for code in codes)
 
 
 def require(vehicle,cmd,ability=None):
@@ -106,7 +111,21 @@ def text(value,limit=512):
         fail('invalid text field')
 
 
-def air(state):
+# The most fan speeds a car has been measured to take from the cloud; a higher declared top is not sent.
+FAN_TOP_MEASURED=9
+
+
+def fan_top(func_config):
+    """The highest fan level a climate command may carry for a car with this `funcConfig`: 7, or the top
+    the car declares when it is higher, up to `FAN_TOP_MEASURED`. 1..7 stays open to every car, as the
+    fixed bodies in `mate_compat` send 7."""
+    hvac=func_config.get('HVAC') if isinstance(func_config,dict) and func_config.get('valid') is True else None
+    fan=hvac.get('fan') if isinstance(hvac,dict) else None
+    low,high=(_positive(fan.get('min')),_positive(fan.get('max'))) if isinstance(fan,dict) else (None,None)
+    return min(max(7,high),FAN_TOP_MEASURED) if low and high and low<=high else 7
+
+
+def air(state,vehicle):
     # Full-off is the one place the cars genuinely disagree, and both forms are measured on-car:
     #  * B10/C10 obey a bare {"operate":"off"} (acSwitch 1938 -> 0, 2026-06-06) and IGNORE the
     #    full body;
@@ -116,9 +135,12 @@ def air(state):
     # So the shape belongs to the caller: reshaping either one yields an accepted no-op.
     if state=={'operate':'off'}:return state
     fields(state,AIR_KEYS)
+    top=fan_top(getattr(vehicle,'raw',{}).get('funcConfig'))
+    # Only the text str() writes for the level passes: an int, "07" or " 7" does not.
+    level=_positive(state['windlevel'])
     if (state['operate'] not in ('auto','manual','off','close') or state['mode'] not in ('cold','hot','wind','nohotcold')
         or state['circle'] not in ('in','out') or state['position']!='all'
-        or state['windlevel'] not in tuple(str(i) for i in range(1,8)) or state['wshld'] not in ('0','1','2')):
+        or level is None or level>top or str(level)!=state['windlevel'] or state['wshld'] not in ('0','1','2')):
         fail('unsupported climate setting')
     finite(state['temperature'],16,32)
     # `close` is accepted and ignored by every car measured, `off` is the one that acts: it is
@@ -184,7 +206,7 @@ def bundle(state,vehicle):
         if not isinstance(part,dict) or part.get('enable') is not True:fail('preparation items must be explicitly enabled')
         value={k:v for k,v in part.items() if k!='enable'}
         if key=='air_condition':
-            require(vehicle,'170');value=air(value)
+            require(vehicle,'170');value=air(value,vehicle)
         elif key=='syn_path':
             require(vehicle,'180');value=navigation(value)
         elif key=='steeringWheelHeatCtrl':
@@ -233,7 +255,7 @@ def appointment(cmd,state,vehicle,*,timezone_name=None,now=None):
         out=dict(entry)
         if cmd=='171':
             if entry['on'] not in ('0','1'):fail('invalid appointment enable flag')
-            out.update(air({k:entry[k] for k in AIR_KEYS}))
+            out.update(air({k:entry[k] for k in AIR_KEYS},vehicle))
         else:
             if type(entry['enable'])is not bool:fail('invalid preparation enable flag')
             out['datacontent']=bundle(entry['datacontent'],vehicle)
@@ -272,7 +294,7 @@ def prepare(cmd,state,vehicle,*,timezone_name=None,now=None):
         fields(state,{'position','level'})
         if state['level'] not in ('0','1','2','3'):fail('seat level must be 0..3')
         return dict(position=seat_position(state['position'],vehicle),level=state['level'])
-    if cmd=='170':return air(state)
+    if cmd=='170':return air(state,vehicle)
     if cmd=='180':return navigation(state)
     if cmd=='190':return charge(state)
     if cmd=='360':return bundle(state,vehicle)
