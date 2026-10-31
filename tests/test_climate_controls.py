@@ -28,6 +28,7 @@ def _stub(monkeypatch, status):
     fake = _FakeSession()
     monkeypatch.setattr(cc, "_session", fake)
     monkeypatch.setattr(db_reader, "get_latest_status", lambda: status)
+    monkeypatch.setattr(db_reader, "get_vehicle", lambda: (None, {}))   # no car listed: the fan keeps 1..7
     return fake
 
 

@@ -4261,7 +4261,7 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
             1 if _wstates[0] else 0, 1 if _wstates[2] else 0,
             int(signals.get("47") or 0),     # ac_port_mode — same as the poller; without it this
                                              # web-side write left NULL, fragmenting V2L sessions (#)
-            sig("1941") or None,             # fan_level (1941 acAirVolume 1-7; 0 → NULL = no data)
+            sig("1941") or None,             # fan_level (1941 acAirVolume; 0 → NULL = no data)
             int(sig("1943") == 1),           # recirculation (1=recirc/in, 0=fresh/out)
             int(signals["3713"]) if signals.get("3713") is not None else None,  # climate_mode (3713)
             # REEV dual-energy (mirror the poller's save_position): fuel level % (3235) MUST be None on a

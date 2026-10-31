@@ -334,13 +334,13 @@
       <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-3 flex flex-col items-center gap-2 text-center h-full{% if not clim_fan_ed %} opacity-60{% endif %}">
         <span class="h-7 flex items-center text-teal-400">{{ ico.mdi('fan') }}</span>
         <span class="text-xs font-medium text-slate-200 min-h-[2rem] flex items-center justify-center leading-tight">{{ t('fan_level') }}</span>
-        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full text-teal-400 bg-teal-400/10 border border-teal-400/30"><span id="clim-fan-val">{{ _cfan }}</span> / 7</span>
+        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full text-teal-400 bg-teal-400/10 border border-teal-400/30"><span id="clim-fan-val">{{ _cfan }}</span> / {{ fan_top }}</span>
         <div class="mt-auto w-full space-y-1">
-          <input type="range" min="1" max="7" step="1" value="{{ _cfan }}" name="level" id="clim-fan-slider"
+          <input type="range" min="1" max="{{ fan_top }}" step="1" value="{{ _cfan }}" name="level" id="clim-fan-slider"
                  class="w-full {% if clim_fan_ed %}cursor-pointer accent-teal-400{% else %}cursor-not-allowed accent-slate-600{% endif %}"
                  {% if clim_fan_ed %}hx-post="api/climate-fan" hx-trigger="change" hx-target="#clim-fan-res" hx-swap="innerHTML"
                  oninput="document.getElementById('clim-fan-val').textContent=this.value"{% else %}disabled{% endif %}>
-          <div class="flex justify-between text-[9px] text-slate-500 px-0.5"><span>1</span><span>7</span></div>
+          <div class="flex justify-between text-[9px] text-slate-500 px-0.5"><span>1</span><span>{{ fan_top }}</span></div>
           <div id="clim-fan-res" class="text-[11px] text-emerald-400 min-h-[16px]"></div>
         </div>
       </div>

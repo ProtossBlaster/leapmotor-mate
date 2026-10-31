@@ -117,10 +117,11 @@ def _charge_fields(data) -> str:
     return f"plug={plug} chg={data.charging_status} A={amps}"
 
 
-def _climate_ctx_from_db(db, vin: str = ""):
-    """(mode_token, circle, fan, temp) from THIS car's latest stored position — lets an MQTT
-    fan/recirc change PRESERVE the rest of the panel. Short-lived connection: this runs on paho's
-    network thread and the poller's shared db connection is not safe cross-thread.
+def _climate_ctx_from_db(db, vin: str = "", *, fan_top):
+    """(mode_token, circle, fan, temp) from THIS car's latest stored position, the fan kept from 1 to
+    `fan_top`, the car's top speed — lets an MQTT fan/recirc change PRESERVE the rest of the
+    panel. Short-lived connection: this runs on paho's network thread and the poller's shared db
+    connection is not safe cross-thread.
 
     ⚠️ `vin` is what makes the panel belong to the right car. Without it this read the newest row of
     `positions` FULL STOP, and the poller polls every car on the account, each writing its own rows:
@@ -148,7 +149,7 @@ def _climate_ctx_from_db(db, vin: str = ""):
         if row:
             mode = _CLIM_MODE_TOKEN.get(row[0], "wind")
             circle = "in" if row[1] else "out"
-            try: fan = max(1, min(int(row[2] or 3), 7))
+            try: fan = max(1, min(int(row[2] or 3), fan_top))
             except (TypeError, ValueError): fan = 3
             try: temp = max(18, min(int(float(row[3] or 26)), 32))
             except (TypeError, ValueError): temp = 26
@@ -357,7 +358,7 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                 # (climate mode 3713=0), so NO manual mode is engaged. Target temp from THIS car's
                 # last panel reading. Same body as web/command_client.ac_on — #292 asked for it
                 # from an automation and the bridge had neither a button nor this branch.
-                _m, _c, _f, _tmp = _climate_ctx_from_db(db, vin)
+                _m, _c, _f, _tmp = _climate_ctx_from_db(db, vin, fan_top=service.fan_top_for(vin))
                 try:
                     _tmp = max(18, min(int(float(_tmp)), 32))
                 except (TypeError, ValueError):
@@ -400,19 +401,20 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                 api._remote_control(vin=vin, action="ac_on",
                     cmd_content='{"circle":"in","mode":"wind","operate":"manual","position":"all","temperature":"26","windlevel":"7","wshld":"0"}')
                 optimistic = ("climate_on", True)
-            elif cmd == "fan_level":      # writable HA number: value = fan 1-7 (signal 1941)
+            elif cmd == "fan_level":      # writable HA number: value = one of the car's fan speeds (signal 1941)
+                top = service.fan_top_for(vin)
                 try:
-                    lvl = max(1, min(int(float(value)), 7))
+                    lvl = max(1, min(int(float(value)), top))
                 except (TypeError, ValueError):
                     log.warning("MQTT: fan_level value %r not a number — ignored", value); return
-                m, circ, _f, tmp = _climate_ctx_from_db(db, vin)
+                m, circ, _f, tmp = _climate_ctx_from_db(db, vin, fan_top=top)
                 api._remote_control(vin=vin, action="ac_on", cmd_content=json.dumps(
                     {"circle": circ, "mode": m, "operate": "manual", "position": "all",
                      "temperature": str(tmp), "windlevel": str(lvl), "wshld": "0"}, separators=(",", ":")))
                 optimistic = ("climate_on", True)
             elif cmd == "recirculation":  # writable HA switch: ON = recirc / OFF = fresh (signal 1943)
                 on = str(value).upper() == "ON"
-                m, _circ, f, tmp = _climate_ctx_from_db(db, vin)
+                m, _circ, f, tmp = _climate_ctx_from_db(db, vin, fan_top=service.fan_top_for(vin))
                 api._remote_control(vin=vin, action="ac_on", cmd_content=json.dumps(
                     {"circle": "in" if on else "out", "mode": m, "operate": "manual", "position": "all",
                      "temperature": str(tmp), "windlevel": str(f), "wshld": "0"}, separators=(",", ":")))

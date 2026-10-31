@@ -100,7 +100,7 @@ class VehicleData:
     dc_gun_connected: bool | None = None  # DC fast-charge gun inserted (signal 1197); None = not reported
 
     # Climate detail (read+write validated on-car 2026-06-20): fan level (signal 1941 acAirVolume,
-    # 1-7; HOLDS the last level even when A/C is off), recirculation (signal 1943: 1=recirc/in,
+    # up to the car's top speed; HOLDS the last level even when A/C is off), recirculation (signal 1943: 1=recirc/in,
     # 0=fresh/out), base mode (signal 3713: 0=auto·1=cool·3=heat·4=vent). NB: the old SDK
     # mislabels 1941 as drive_status — the on-car diff proved it's the fan air-volume.
     fan_level: int = 0
@@ -825,7 +825,7 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         climate_cooling=int(sig.get("2669") or 0) == 2,
         climate_heating=int(sig.get("2681") or 0) == 2,
         climate_defrost=int(sig.get("1945") or 0) == 2,
-        fan_level=int(sig.get("1941") or 0),                        # 1941 acAirVolume: fan level 1-7
+        fan_level=int(sig.get("1941") or 0),                        # 1941 acAirVolume: fan level
         recirculation=int(sig.get("1943") or 0) == 1,              # 1943: 1=recirc(in) / 0=fresh(out)
         climate_mode=_si(sig, "3713"),    # 3713: 0 auto/1 cool/3 heat/4 vent
         climate_power=_si(sig, "1348"),   # 1348 PTC power (W)
