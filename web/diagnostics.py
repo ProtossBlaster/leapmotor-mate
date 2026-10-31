@@ -794,7 +794,8 @@ def _account_rights(vehicle, settings) -> list[str]:
     """What the ACCOUNT may do with this car, as the cloud's vehicle list last gave it (#400). A
     command needs the account's right beside the car's ability, and an account the car is shared
     with can hold fewer; with the abilities alone a refused command could not be told from a right
-    the account lacks. Parsed by the client's own reader; the account's hash stays out."""
+    the account lacks. Parsed by the client's own reader; the account's hash stays out.
+    The entry's `funcConfig` (the fan's and the temperature's range for remote climate) follows as sent."""
     try:
         from ui_command_access import snapshot_key
         from leapmotor_cloud.mate_compat import Vehicle
@@ -807,7 +808,8 @@ def _account_rights(vehicle, settings) -> list[str]:
         return [f"rights : (unreadable access snapshot: {type(exc).__name__})"]
     return [f"rights : {','.join(map(str, sorted(car.rights))) or '(none)'}",
             f"modules: {','.join(map(str, sorted(car.module_rights))) or '(none)'}",
-            f"shared : {'yes' if car.is_shared else 'no'}"]
+            f"shared : {'yes' if car.is_shared else 'no'}",
+            f"funcConfig: {json.dumps(snapshot['vehicle'].get('funcConfig'))}"]
 
 
 def _declared_abilities(vehicle) -> str:
