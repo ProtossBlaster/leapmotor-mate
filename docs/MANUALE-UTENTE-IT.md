@@ -1793,7 +1793,7 @@ nelle vicinanze**. La pagina ha tre parti:
 modello (carica, autonomia, temperatura interna, marcia, porte, finestrini, pneumatici, blocchi,
 stato di ricarica…). Mate mostra **solo ciò che la tua auto riporta davvero** (alcuni modelli non
 espongono certi dati). Tra questi ora ci sono anche i dati del clima letti dall'auto: **livello
-ventola** (1–7), **ricircolo aria** (aria fresca / ricircolo) e **modalità clima** attiva (AUTO /
+ventola** (1–7, o di più se l'auto ne ha di più, ad es. 1–9), **ricircolo aria** (aria fresca / ricircolo) e **modalità clima** attiva (AUTO /
 Raffreddamento / Riscaldamento / Ventilazione). Il riquadro del parasole dice quanto è aperto — «40%»
 sopra «Aperto» —, come fanno quelli dei finestrini.
 
@@ -1958,7 +1958,7 @@ Invia la telemetria dell'auto ad ABRP per la pianificazione viaggi in tempo real
 Pubblica lo stato dell'auto (carica, autonomia, posizione, porte, stato ricarica…) come **entità in
 Home Assistant**, con **auto-discovery**. Tra queste, tre nuove entità V2L **di sola lettura**:
 **`V2L Active`** (binary sensor), **`V2L Power`** (W) e **`V2L Session Energy`** (Wh), un binary sensor **`Ready`** che si accende appena l'auto viene accesa — prima che si muova, cioè finché un'automazione fa ancora in tempo ad agire, più i dati del
-clima letti dall'auto: il **Livello ventola** (`number` scrivibile, 1–7), il **Ricircolo**
+clima letti dall'auto: il **Livello ventola** (`number` scrivibile, 1–7, o di più se l'auto ne ha di più, ad es. 1–9), il **Ricircolo**
 (interruttore scrivibile) e la **Modalità clima** (sensore: AUTO / Raffreddamento / Riscaldamento /
 Ventilazione). Puoi anche **comandare** l'auto dalle entità di HA — incluso un **limite di carica**
 (`number` scrivibile) per impostare il SoC target e una **Programmazione ricarica** (`text`

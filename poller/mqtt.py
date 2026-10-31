@@ -123,6 +123,11 @@ class MqttService:
         off, and skipping on ANOTHER car's state is how a real off gets silently swallowed."""
         return self._climate_on.get(vin)
 
+    def fan_top_for(self, vin):
+        """This car's top fan speed: the Fan Level number's max, kept to by its command."""
+        from ui_command_access import fan_top
+        return fan_top(vin, self.get_setting)
+
     def set_climate_on(self, vin, value) -> None:
         self._climate_on[vin] = value
 
@@ -216,8 +221,9 @@ class MqttService:
             snapshot = json.loads(self.get_setting(snapshot_key(vin), '{}'))
             # Effective permissions include freshness/account matching, but not the
             # timestamp itself: healthy refreshes must not republish every entity.
+            # The fan's top speed is the Fan Level number's max, from the same list entry.
             return (account_hash(username), tuple(allowed(snapshot, username, vin, key)
-                                                  for key in sorted(COMMANDS)))
+                                                  for key in sorted(COMMANDS)), self.fan_top_for(vin))
         except Exception:
             return ('unavailable',)
 
@@ -408,7 +414,7 @@ class MqttService:
         pub("outside_temp", data.outside_temp)              # Open-Meteo (opt-in); None → entity dropped
         pub("ac_target_temp", data.climate_target_temp)
         pub("locked", data.is_locked);          pub("climate_on", data.climate_on)
-        pub("fan_level", data.fan_level or None)              # acAirVolume 1-7 (empty when no data)
+        pub("fan_level", data.fan_level or None)              # acAirVolume (empty when no data)
         pub("climate_power", data.climate_power)             # 1348 PTC power in W (None when absent)
         pub("recirculation", data.recirculation)             # binary: recirc on / fresh off
         pub("climate_mode", data.climate_mode_label or None) # auto/cool/heat/vent
@@ -636,15 +642,15 @@ class MqttService:
         self.client.publish(f"{prefix}/{vin}/ota_notice", "", retain=True)
         self.client.publish(f"{prefix}/{vin}/ota_notice/attrs", "", retain=True)
 
-        # Fan level (signal 1941) as a writable HA NUMBER (1-7) and air recirculation (signal 1943)
-        # as a writable HA SWITCH — both validated on-car 2026-06-20. state_topic mirrors the live
-        # value; the /set command_topic routes to set_fan_level / set_recirc (poller dispatch). A
-        # single entity each = state + control (no separate read-only sensor).
+        # Fan level (signal 1941) as a writable HA NUMBER over the car's speeds and air recirculation
+        # (signal 1943) as a writable HA SWITCH — both validated on-car 2026-06-20. state_topic
+        # mirrors the live value; the /set command_topic routes to set_fan_level / set_recirc (poller
+        # dispatch). A single entity each = state + control (no separate read-only sensor).
         cfg("number", "fan_level", {
             "name": "Fan Level",
             "state_topic": f"{prefix}/{vin}/fan_level",
             "command_topic": f"{prefix}/{vin}/fan_level/set",
-            "min": 1, "max": 7, "step": 1, "icon": "mdi:fan",
+            "min": 1, "max": self.fan_top_for(vin), "step": 1, "icon": "mdi:fan",
             # Same reason as climate_power: `pub("fan_level", data.fan_level or None)` sends "" when
             # the car is not reporting the fan, and a number entity cannot read that.
             "value_template": _EMPTY_NONE,

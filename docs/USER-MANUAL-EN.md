@@ -1705,7 +1705,7 @@ stations**. The page has three parts:
 ### Vehicle
 **(menu: Vehicle)** — The **full status** card for the car: all the sensors available on your model
 (charge, range, inside temperature, gear, doors, windows, tyres, locks, charge status…), now also the
-**climate detail**: **fan level** (1–7), **air recirculation** (fresh / recirculate) and the **active
+**climate detail**: **fan level** (1–7, or more on a car that has more, such as 1–9), **air recirculation** (fresh / recirculate) and the **active
 climate mode** (AUTO / Cool / Heat / Vent). Mate shows **only what your car actually reports** (some
 models don't expose certain data). The sunshade tile says how far it is open — "40%" over "Open" —
 as the window tiles do.
@@ -1864,7 +1864,7 @@ Sends the car's telemetry to ABRP for real-time trip planning.
 
 ### MQTT → Home Assistant
 Publishes the car's status (charge, range, position, doors, charge status…) as **entities in Home
-Assistant**, with **auto-discovery**. You can also **command** the car from the HA entities — including a writable **Charge Limit** number to set the target SoC, a writable **Charge Schedule** text entity that takes a JSON plan for automations (`{"start":"23:00","soc":90}` — every key optional, and anything you omit keeps its current value), a writable **Fan Level** number (1–7) and a writable **Recirculation** switch, plus a **Climate Mode** sensor (AUTO / Cool / Heat / Vent). The published entities also include three read-only V2L ones: **`V2L Active`** (binary sensor), **`V2L Power`** (W) and **`V2L Session Energy`** (Wh), and a **`Ready`** binary sensor that turns on the moment the car is powered up — before it moves, which is when an automation still has time to act. A **`Sunshade Position`** sensor says how far the sunshade is open, in % (0 = closed); the binary **`Sunshade`** stays as it was, on for any opening.
+Assistant**, with **auto-discovery**. You can also **command** the car from the HA entities — including a writable **Charge Limit** number to set the target SoC, a writable **Charge Schedule** text entity that takes a JSON plan for automations (`{"start":"23:00","soc":90}` — every key optional, and anything you omit keeps its current value), a writable **Fan Level** number (1–7, or more on a car that has more, such as 1–9) and a writable **Recirculation** switch, plus a **Climate Mode** sensor (AUTO / Cool / Heat / Vent). The published entities also include three read-only V2L ones: **`V2L Active`** (binary sensor), **`V2L Power`** (W) and **`V2L Session Energy`** (Wh), and a **`Ready`** binary sensor that turns on the moment the car is powered up — before it moves, which is when an automation still has time to act. A **`Sunshade Position`** sensor says how far the sunshade is open, in % (0 = closed); the binary **`Sunshade`** stays as it was, on for any opening.
 
 Entities **your** car doesn't support aren't left on your hands: the ones the model lacks (heated seats,
 steering wheel…) are never created, and a **temperature entity** whose sensor the car has never reported

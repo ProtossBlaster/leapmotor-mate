@@ -1406,7 +1406,7 @@ def set_climate_temp(temp, inside=None):
     operate, mode = _t03_force_manual(operate, mode)   # T03 ignores operate=auto (#67) → manual+cold
     circle = "in" if st.get("recirculation") else "out"
     try:
-        fan = max(1, min(int(st.get("fan_level") or 5), 7))
+        fan = max(1, min(int(st.get("fan_level") or 5), _fan_top()))
     except (TypeError, ValueError):
         fan = 5
     body = json.dumps({"circle": circle, "mode": mode, "operate": operate, "position": "all",
@@ -1417,8 +1417,14 @@ def set_climate_temp(temp, inside=None):
 # Change ONE field while PRESERVING the rest of the panel (mode/recirc/temp/fan), read from the last
 # stored position so there's no extra cloud round-trip. ac_on (cmd 170) with mode cold/hot/wind +
 # windlevel is the SAME path set_climate_temp already ships, so cool/heat keep working at the chosen
-# fan. The car rejects windlevel 0 (verified on-car) → clamp to 1-7.
+# fan. The car rejects windlevel 0 (verified on-car) → clamp from 1 to the car's top speed.
 _MODE_TOKEN = {1: "cold", 3: "hot", 4: "wind"}     # signal 3713 → ac_on MANUAL mode token
+def _fan_top():
+    """The top fan speed of the car on screen, the one a command goes to."""
+    import db_reader as _dr
+    from ui_command_access import fan_top
+    vehicle, settings = _dr.get_vehicle()
+    return fan_top((vehicle or {}).get("vin"), settings.get)
 def _climate_ctx():
     """(operate, mode_token, circle, fan, temp) from the latest stored position — PRESERVES the panel
     on a single-field change without a cloud fetch. AUTO (3713=0) / unknown → operate=auto+nohotcold,
@@ -1429,7 +1435,7 @@ def _climate_ctx():
     operate, mode = ("manual", tok) if tok else ("auto", "nohotcold")
     operate, mode = _t03_force_manual(operate, mode)   # T03 ignores operate=auto (#67) → manual+cold
     circle = "in" if st.get("recirculation") else "out"
-    try: fan = max(1, min(int(st.get("fan_level") or 3), 7))
+    try: fan = max(1, min(int(st.get("fan_level") or 3), _fan_top()))
     except (TypeError, ValueError): fan = 3
     try: temp = max(18, min(int(float(st.get("climate_target_temp") or 26)), 32))
     except (TypeError, ValueError): temp = 26
@@ -1440,8 +1446,8 @@ def _send_ac_on(operate, mode, circle, windlevel, temp):
                       separators=(",", ":"))
     return _session.execute(lambda api, vin: api._remote_control(vin=vin, action="ac_on", cmd_content=body))
 def set_fan_level(level):
-    """Set the A/C fan to a 1-7 level (signal 1941), preserving mode/recirc/temp. 0 → clamped to 1."""
-    try: lvl = max(1, min(int(level), 7))
+    """Set the A/C fan to one of the car's speeds (signal 1941), preserving mode/recirc/temp. 0 → clamped to 1."""
+    try: lvl = max(1, min(int(level), _fan_top()))
     except (TypeError, ValueError): return False, "bad fan level"
     operate, mode, circle, _fan, temp = _climate_ctx()
     return _send_ac_on(operate, mode, circle, lvl, temp)

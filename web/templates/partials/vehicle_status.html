@@ -123,7 +123,7 @@
       {% else %}
         {{ tile(mdi(IC_THERMO), t('climate_mode'), (t('mode_' ~ cm.mode) if cm.mode else t('on_state')), 'text-emerald-400', 'text-emerald-400') }}
       {% endif %}
-      {{ tile(mdi(IC_FAN), t('fan_level'), ((cm.fan ~ ' / 7') if cm.fan else '—')) }}
+      {{ tile(mdi(IC_FAN), t('fan_level'), ((cm.fan ~ ' / ' ~ fan_top) if cm.fan else '—')) }}
       {% if cm.recirc is none %}
         {{ tile(mdi(IC_RECIRC), t('recirculation'), '—', 'text-slate-500', 'text-slate-500') }}
       {% elif cm.recirc %}

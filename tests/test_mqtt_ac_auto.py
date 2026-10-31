@@ -61,14 +61,15 @@ def _dispatch(cmd, tmp_path, car_type="B10", value=None, panel=None):
     import db as D
     pm = _poller_main()
     if panel is not None:
-        pm._climate_ctx_from_db = lambda db, vin="": panel
+        pm._climate_ctx_from_db = lambda db, vin="", fan_top=None: panel
     api = types.SimpleNamespace(calls=[])
     api._remote_control = lambda vin, action, cmd_content=None: api.calls.append(
         (action, vin, cmd_content))
     client = types.SimpleNamespace(_api=api,
                                    _vehicle=types.SimpleNamespace(car_type=car_type))
     service = types.SimpleNamespace(set_climate_on=lambda vin, v: None,
-                                    climate_on_for=lambda vin: None)
+                                    climate_on_for=lambda vin: None,
+                                    fan_top_for=lambda vin: 7)
     db = D.Database(str(tmp_path / "t.db"))
     pm._handle_mqtt_command(client, service, db, "VIN1", cmd, value)
     return api.calls
