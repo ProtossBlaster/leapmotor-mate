@@ -1,8 +1,16 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.18.0 · **Language:** English
+> **Mate version:** v4.18.1 · **Language:** English
 
-## New in 4.18.0
+## New in 4.18.1
+
+**The Location tracker in Home Assistant follows the car's zone.** The `Location` device_tracker
+Mate publishes over MQTT read `home` whenever the car sent a position, wherever it was. It now reads
+the zone of the car's coordinates: `home`, `not_home`, or the name of another zone of yours; with no
+GPS it reads `not_home`. An automation that used it to tell whether the car is at home now sees the
+car leave.
+
+### New in 4.18.0
 
 **Each car has its own operation PIN.** In *Settings → Vehicle* the form reads "Operation PIN of this
 car", with the car's model and the end of its VIN; with two cars, pick the car first (there is no

@@ -1,8 +1,16 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.18.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.18.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.18.0
+## Neu in Version 4.18.1
+
+**Der Location-Tracker in Home Assistant folgt der Zone des Autos.** Der device_tracker
+`Location`, den Mate über MQTT veröffentlicht, zeigte `home`, sobald das Auto eine Position sendete,
+wo immer es war. Jetzt zeigt er die Zone der Koordinaten des Autos: `home`, `not_home` oder den Namen
+einer anderen Zone; ohne GPS zeigt er `not_home`. Eine Automation, die damit prüfte, ob das Auto zu
+Hause ist, sieht das Auto jetzt wegfahren.
+
+### Neu in Version 4.18.0
 
 **Jedes Auto hat seine eigene Bedien-PIN.** Unter *Einstellungen → Fahrzeug* heißt das Formular
 „Bedien-PIN dieses Autos", mit dem Modell und dem Ende der FIN; bei zwei Autos wählt man zuerst das

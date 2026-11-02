@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.18.1] — 2026-11-02
+
+- **The Location tracker in Home Assistant reads the zone of the car's coordinates** ([#453](https://github.com/ProtossBlaster/leapmotor-mate/issues/453), @scoprire87).
+  The `Location` device_tracker Mate publishes over MQTT sent Home Assistant the state `home` whenever
+  the car reported a position, wherever it was, and Home Assistant shows that state instead of the zone
+  of the coordinates. It now reads `home`, `not_home` or the name of the zone the car is in; with no GPS
+  it still reads `not_home`. The same symptom was reported in [#81](https://github.com/ProtossBlaster/leapmotor-mate/issues/81).
+
 ## [4.18.0] — 2026-11-01
 
 - **Each car has its own operation PIN, so the PIN typed in Settings is the one commands use** ([#449](https://github.com/ProtossBlaster/leapmotor-mate/pull/449), @arekm).

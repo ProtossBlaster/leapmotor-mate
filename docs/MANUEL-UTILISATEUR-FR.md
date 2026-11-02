@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.18.0 · **Langue :** Français
+> **Version de Mate :** v4.18.1 · **Langue :** Français
 
-## Nouveautés de la version 4.18.0
+## Nouveautés de la version 4.18.1
+
+**Le traceur Location dans Home Assistant suit la zone de la voiture.** Le device_tracker
+`Location` que Mate publie sur MQTT indiquait `home` dès que la voiture envoyait une position, où
+qu'elle soit. Il indique maintenant la zone des coordonnées de la voiture : `home`, `not_home` ou le
+nom d'une autre de vos zones ; sans GPS, il indique `not_home`. Une automatisation qui s'en servait
+pour savoir si la voiture est à la maison voit maintenant la voiture partir.
+
+### Nouveautés de la version 4.18.0
 
 **Chaque voiture a son propre code PIN d'opération.** Dans *Paramètres → Véhicule*, le formulaire
 indique « Code PIN d'opération de cette voiture », avec le modèle et la fin du VIN ; avec deux
