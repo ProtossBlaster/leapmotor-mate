@@ -10124,8 +10124,13 @@ def get_ac_dc_stats() -> dict:
 
     `home_count`/`home_kwh`, `public_count`/`public_kwh` and `unconfirmed_count`/`unconfirmed_kwh`
     are the OTHER, independent axis this feeds (the "Home vs Public" card) — `location_type`, not
-    `charge_type`. `home_count + public_count + manual_count + unconfirmed_count` always equals `total`, by
-    construction: every charge lands in exactly one.
+    `charge_type`. `home_count + public_count + free_count + manual_count + unconfirmed_count`
+    always equals `total`, by construction: every charge lands in exactly one.
+
+    `free_count`/`free_kwh` are the charges typed FREE (a public charger that costs nothing): carved
+    OUT of public rather than counted twice, so the card can show them as their own slice — only
+    when there are any. A HOME charge flagged free (#120, solar) stays under Home, as the badge
+    itself keeps it there.
 
     ⚠️ NOT nested under `ac` any more, and NOT gated on `is_dc`. It used to be — "every home
     wallbox charges on AC" — which is true almost always, but the type badge itself offers every
@@ -10162,6 +10167,7 @@ def get_ac_dc_stats() -> dict:
     dc = {"count": 0, "kwh": 0.0}
     home_count, home_kwh = 0, 0.0
     public_count, public_kwh = 0, 0.0
+    free_count, free_kwh = 0, 0.0
     manual_count, manual_kwh = 0, 0.0
     unconfirmed_count, unconfirmed_kwh = 0, 0.0
     for r in rows:
@@ -10179,6 +10185,9 @@ def get_ac_dc_stats() -> dict:
         if lt == "HOME":            # regardless of is_dc — a real, confirmed type either way
             home_count += 1
             home_kwh += kwh
+        elif lt == "FREE":          # public and costless: its own slice, not folded into "public"
+            free_count += 1
+            free_kwh += kwh
         elif lt in CHARGE_TYPES:    # a real, confirmed type other than HOME — genuinely public
             public_count += 1
             public_kwh += kwh
@@ -10193,6 +10202,7 @@ def get_ac_dc_stats() -> dict:
     return {"ac": ac, "dc": dc, "total": ac["count"] + dc["count"],
             "home_count": home_count, "home_kwh": round(home_kwh, 2),
             "public_count": public_count, "public_kwh": round(public_kwh, 2),
+            "free_count": free_count, "free_kwh": round(free_kwh, 2),
             "manual_count": manual_count, "manual_kwh": round(manual_kwh, 2),
             "unconfirmed_count": unconfirmed_count, "unconfirmed_kwh": round(unconfirmed_kwh, 2)}
 

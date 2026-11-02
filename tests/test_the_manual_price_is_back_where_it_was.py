@@ -261,7 +261,26 @@ def test_the_home_public_card_draws_the_manual_charges():
     assert "charge_manual" in card
     series = re.search(r"getElementById\('homepublic-chart'\).*?series: \[([^\]]*)\]", html, re.S)
     assert series, "no Home vs Public ring"
-    assert [int(x) for x in series.group(1).split(",")] == [1, 0, 3, 1]
+    # home, public, free, manual, unconfirmed — the free slot is there but empty without free charges
+    assert [int(x) for x in series.group(1).split(",")] == [1, 0, 0, 3, 1]
+    assert "charge_free" not in card, "a free tile with no free charges"
+
+
+def test_the_home_public_card_shows_free_charges_only_when_there_are_some():
+    ac_dc = {"ac": {"count": 4, "kwh": 40.0}, "dc": {"count": 1, "kwh": 10.0}, "total": 5,
+             "home_count": 2, "home_kwh": 20.0, "public_count": 1, "public_kwh": 10.0,
+             "free_count": 2, "free_kwh": 20.0,
+             "manual_count": 0, "manual_kwh": 0.0, "unconfirmed_count": 0, "unconfirmed_kwh": 0.0}
+    html = _render("charges.html", stats={}, prices={}, status={}, total=5, ac_dc=ac_dc,
+                   unconfirmed=0, station="", station_info=None, cal_year=2026, cal_month=9,
+                   cal_open_day=0, cal_years=[2026], highlight=0, vehicle={},
+                   charges_have_odometer=True, request=type("R", (), {"headers": {}})(),
+                   page="charges", version="test", demo=False)
+    start = html.index("home_public_distribution")
+    card = html[start:html.index("<script>", start)]
+    assert "charge_free" in card and "· 40%" in card      # 2 of 5 sessions
+    series = re.search(r"getElementById\('homepublic-chart'\).*?series: \[([^\]]*)\]", html, re.S)
+    assert [int(x) for x in series.group(1).split(",")] == [2, 1, 2, 0, 0]
 
 
 def test_the_monthly_report_prints_the_manual_line(tmp_path, monkeypatch):

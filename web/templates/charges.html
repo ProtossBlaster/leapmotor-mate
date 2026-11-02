@@ -234,36 +234,29 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
      never a further breakdown of the ring beside it) — two matching cards, same row. Global
      totals, hidden while a station filter narrows the tree below. -->
 {% if not station and ac_dc and ac_dc.total > 0 %}
+{# One legend tile for both rings, so every card reads the same: a coloured dot, the number of
+   sessions, the name beside it — and under it the kWh and the share of all charges. No "sessions
+   recorded" (the ring's centre already says what is being counted), and two short lines per
+   tile, so a card never grows with the number of tiles it holds the way the big ones did: the
+   pair, stretched to one height, left one half empty. #}
+{% macro legend_tile(color, label, count, kwh_text, total) %}
+<div class="min-w-0" style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:5px 12px">
+  <div class="flex items-center gap-2">
+    <span class="w-3 h-3 rounded-full flex-shrink-0" style="background:{{ color }}"></span>
+    <span class="text-xl font-bold text-white leading-tight">{{ count }}</span>
+    <span class="text-slate-300 text-sm font-medium truncate">{{ label }}</span>
+  </div>
+  <div class="text-xs text-slate-500 whitespace-nowrap leading-tight">{{ kwh_text }} kWh{% if total %} · {{ (count / total * 100) | round | int }}%{% endif %}</div>
+</div>
+{% endmacro %}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
   <div class="card">
     <h2 class="font-semibold text-white mb-3">{{ t('ac_dc_distribution') }}</h2>
     <div class="flex flex-col sm:flex-row items-center gap-6">
       <div id="acdc-chart" class="w-[190px] flex-shrink-0 mx-auto sm:mx-0"></div>
-      <div class="w-full flex-1 grid grid-cols-1 xs:grid-cols-2 gap-4">
-        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="w-3 h-3 rounded-full" style="background:#38bdf8"></span>
-            <span class="text-slate-300 text-sm font-medium">{{ t('ac_charge') }}</span>
-          </div>
-          <div class="text-2xl font-bold text-white">{{ ac_dc.ac.count }}
-            <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
-          </div>
-          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.ac.kwh | nice }} kWh
-            {% if ac_dc.total %}· {{ (ac_dc.ac.count / ac_dc.total * 100) | round | int }}%{% endif %}
-          </div>
-        </div>
-        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="w-3 h-3 rounded-full" style="background:#fb923c"></span>
-            <span class="text-slate-300 text-sm font-medium">{{ t('dc_charge') }}</span>
-          </div>
-          <div class="text-2xl font-bold text-white">{{ ac_dc.dc.count }}
-            <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
-          </div>
-          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.dc.kwh | nice }} kWh
-            {% if ac_dc.total %}· {{ (ac_dc.dc.count / ac_dc.total * 100) | round | int }}%{% endif %}
-          </div>
-        </div>
+      <div class="w-full flex-1 min-w-0 grid grid-cols-1 gap-2">
+        {{ legend_tile('#38bdf8', t('ac_charge'), ac_dc.ac.count, (ac_dc.ac.kwh | nice), ac_dc.total) }}
+        {{ legend_tile('#fb923c', t('dc_charge'), ac_dc.dc.count, (ac_dc.dc.kwh | nice), ac_dc.total) }}
       </div>
     </div>
   </div>
@@ -285,63 +278,15 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
     <h2 class="font-semibold text-white mb-3">{{ t('home_public_distribution') }}</h2>
     <div class="flex flex-col sm:flex-row items-center gap-6">
       <div id="homepublic-chart" class="w-[190px] flex-shrink-0 mx-auto sm:mx-0"></div>
-      <div class="w-full flex-1 grid grid-cols-1 xs:grid-cols-2 gap-4">
-        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="w-3 h-3 rounded-full" style="background:#22c55e"></span>
-            <span class="text-slate-300 text-sm font-medium">{{ t('report_home') }}</span>
-          </div>
-          <div class="text-2xl font-bold text-white">{{ ac_dc.home_count }}
-            <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
-          </div>
-          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.home_kwh | nice }} kWh
-            {% if ac_dc.total %}· {{ (ac_dc.home_count / ac_dc.total * 100) | round | int }}%{% endif %}
-          </div>
-        </div>
-        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="w-3 h-3 rounded-full" style="background:#7dd3fc"></span>
-            <span class="text-slate-300 text-sm font-medium">{{ t('ac_charge_public') }}</span>
-          </div>
-          <div class="text-2xl font-bold text-white">{{ ac_dc.public_count }}
-            <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
-          </div>
-          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.public_kwh | nice }} kWh
-            {% if ac_dc.total %}· {{ (ac_dc.public_count / ac_dc.total * 100) | round | int }}%{% endif %}
-          </div>
-        </div>
-        {# Priced by hand with no type (db_reader.is_manual_charge): not public — a Manual charge made
-           at home is not — and not waiting either, the owner answered with the price (add-on #2).
-           The two last tiles share a row when both are there, and span it when alone. #}
-        {% set _extra = (1 if ac_dc.manual_count else 0) + (1 if ac_dc.unconfirmed_count else 0) %}
-        {% if ac_dc.manual_count %}
-        <div class="{% if _extra == 1 %}xs:col-span-2{% endif %}" style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="w-3 h-3 rounded-full" style="background:#94a3b8"></span>
-            <span class="text-slate-300 text-sm font-medium">✎ {{ t('charge_manual') }}</span>
-          </div>
-          <div class="text-2xl font-bold text-white">{{ ac_dc.manual_count }}
-            <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
-          </div>
-          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.manual_kwh | nice }} kWh
-            {% if ac_dc.total %}· {{ (ac_dc.manual_count / ac_dc.total * 100) | round | int }}%{% endif %}
-          </div>
-        </div>
-        {% endif %}
-        {% if ac_dc.unconfirmed_count %}
-        <div class="{% if _extra == 1 %}xs:col-span-2{% endif %}" style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:16px">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="w-3 h-3 rounded-full" style="background:#f59e0b"></span>
-            <span class="text-slate-300 text-sm font-medium">{{ t('charge_unconfirmed') }}</span>
-          </div>
-          <div class="text-2xl font-bold text-white">{{ ac_dc.unconfirmed_count }}
-            <span class="text-sm font-normal text-slate-500">{{ t('sessions_recorded') }}</span>
-          </div>
-          <div class="text-xs text-slate-500 mt-1">{{ ac_dc.unconfirmed_kwh | nice }} kWh
-            {% if ac_dc.total %}· {{ (ac_dc.unconfirmed_count / ac_dc.total * 100) | round | int }}%{% endif %}
-          </div>
-        </div>
-        {% endif %}
+      {# Free (a costless public charger) sits after Public, only when there is one. Priced by hand with
+         no type (db_reader.is_manual_charge): not public — a Manual charge made at home is not — and not
+         waiting either, the owner answered with the price (add-on #2). #}
+      <div class="w-full flex-1 min-w-0 grid grid-cols-1 gap-2">
+        {{ legend_tile('#22c55e', t('report_home'), ac_dc.home_count, (ac_dc.home_kwh | nice), ac_dc.total) }}
+        {{ legend_tile('#7dd3fc', t('ac_charge_public'), ac_dc.public_count, (ac_dc.public_kwh | nice), ac_dc.total) }}
+        {% if ac_dc.free_count %}{{ legend_tile('#a3e635', '🆓 ' ~ t('charge_free'), ac_dc.free_count, (ac_dc.free_kwh | nice), ac_dc.total) }}{% endif %}
+        {% if ac_dc.manual_count %}{{ legend_tile('#94a3b8', '✎ ' ~ t('charge_manual'), ac_dc.manual_count, (ac_dc.manual_kwh | nice), ac_dc.total) }}{% endif %}
+        {% if ac_dc.unconfirmed_count %}{{ legend_tile('#f59e0b', t('charge_unconfirmed'), ac_dc.unconfirmed_count, (ac_dc.unconfirmed_kwh | nice), ac_dc.total) }}{% endif %}
       </div>
     </div>
   </div>
@@ -383,9 +328,9 @@ document.body.addEventListener('htmx:afterSwap', function (e) {
   if (el._c) { try { el._c.destroy(); } catch (e) {} }
   el._c = new ApexCharts(el, {
     chart: { type: 'donut', height: 200, fontFamily: 'inherit', background: 'transparent' },
-    series: [{{ ac_dc.home_count }}, {{ ac_dc.public_count }}, {{ ac_dc.manual_count }}, {{ ac_dc.unconfirmed_count }}],
-    labels: ['{{ t('report_home') }}', '{{ t('ac_charge_public') }}', '✎ {{ t('charge_manual') }}', '{{ t('charge_unconfirmed') }}'],
-    colors: ['#22c55e', '#7dd3fc', '#94a3b8', '#f59e0b'],
+    series: [{{ ac_dc.home_count }}, {{ ac_dc.public_count }}, {{ ac_dc.free_count or 0 }}, {{ ac_dc.manual_count }}, {{ ac_dc.unconfirmed_count }}],
+    labels: ['{{ t('report_home') }}', '{{ t('ac_charge_public') }}', '🆓 {{ t('charge_free') }}', '✎ {{ t('charge_manual') }}', '{{ t('charge_unconfirmed') }}'],
+    colors: ['#22c55e', '#7dd3fc', '#a3e635', '#94a3b8', '#f59e0b'],
     legend: { show: false },
     stroke: { width: 0 },
     dataLabels: { enabled: true, formatter: function (v) { return Math.round(v) + '%'; },
