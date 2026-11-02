@@ -1666,7 +1666,7 @@ vuoto te lo dice, invece di mostrarti in silenzio quello prima. E su un mese sen
 compare nessun confronto col mese precedente — ogni casella direbbe −100 %, che descrive il
 calendario e non la tua guida.
 
-**Da dove viene il consumo, e quando Mate lo scavalca.** *Consumo medio* ed *Energia consumata*
+**Da dove viene il consumo, e quando Mate lo scavalca.** *Consumo medio* e *Consumo totale*
 normalmente sono il totale ufficiale dell'auto per quel mese. Quel totale è completo quanto lo è
 stato il collegamento della tua auto: se durante un viaggio l'auto non è riuscita a parlare col
 cloud, quel viaggio lì dentro non c'è. Quando il totale torna molto sotto la somma dei viaggi che

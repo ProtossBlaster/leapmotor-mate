@@ -1586,7 +1586,7 @@ shows no comparison against the one before (every figure would read −100 %, wh
 calendar and not your driving).
 
 **Where the consumption figure comes from, and when Mate overrules it.** *Average consumption* and
-*Energy used* normally come from the car's own official total for the month. That total is only as
+*Total consumption* normally come from the car's own official total for the month. That total is only as
 complete as your car's connection was: if the car couldn't reach the cloud during a drive, that
 whole drive is missing from it. When the total comes back far below what Mate's own trips add up to
 for the same month, Mate shows **its own figure instead** — the same one the Trips page shows — and

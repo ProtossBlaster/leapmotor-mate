@@ -22,7 +22,8 @@
   {% endif %}
 </div>
 <div class="card">
-  <div class="stat-label">{{ t('energy_used') }}</div>
+  {# The cloud's total named as on the energy card; Mate's own sum, when it stands in, as on Statistics. #}
+  <div class="stat-label">{{ t('energy_used') if short else t('ec_total') }}</div>
   <div class="flex items-baseline gap-2">
     {% if used is not none %}
     <span class="stat-value">{{ used | nice }}</span><span class="text-slate-400 text-sm">kWh</span>
