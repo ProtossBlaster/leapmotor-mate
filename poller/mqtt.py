@@ -780,9 +780,13 @@ class MqttService:
         # Clearing the retained configs makes HA drop them on existing installs too.
         self.client.publish(f"{_DISC}/button/{device_id}/lock/config", "", retain=True)
         self.client.publish(f"{_DISC}/button/{device_id}/unlock/config", "", retain=True)
+        # With coordinates the template answers 'None', the tracker's default reset payload, so Home
+        # Assistant takes the zone from the latitude/longitude attributes; a 'home' sent here would
+        # win over them wherever the car is (#453). Keeping the state topic lets an existing entity
+        # follow on the next message: without it, it showed the raw payload until HA restarted.
         cfg("device_tracker", "location", {"name": "Location",
                                            "json_attributes_topic": f"{prefix}/{vin}/location",
                                            "state_topic": f"{prefix}/{vin}/location",
-                                           "value_template": "{{ 'home' if value_json.latitude else 'not_home' }}",
+                                           "value_template": "{{ 'None' if value_json.latitude else 'not_home' }}",
                                            "source_type": "gps"})
         log.info("MQTT: Home Assistant discovery published for %s", device_id)
