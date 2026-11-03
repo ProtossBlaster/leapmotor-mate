@@ -6929,7 +6929,7 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
 
 def _totals_node() -> dict:
     return {"count": 0, "cloud_zero_count": 0, "km": 0.0, "regen": 0.0, "cost": 0.0, "fuel_l": 0.0,
-            "_eff_wsum": 0.0, "_eff_wdist": 0.0, "_ec_kwh": 0.0, "_ec_km": 0.0}
+            "_eff_wsum": 0.0, "_eff_wdist": 0.0, "_ec_kwh": 0.0, "_ec_km": 0.0, "_kwh": []}
 
 
 def _totals_add(node: dict, trip: dict) -> None:
@@ -6982,11 +6982,14 @@ def _totals_add(node: dict, trip: dict) -> None:
     if (eff is not None) and km > 0:
         node["_eff_wsum"] += km * eff
         node["_eff_wdist"] += km
+    node["_kwh"].append(trip_energy_used(trip))
 
 
 def _totals_seal(node: dict) -> dict:
     """Turn the running weights into avg_eff and drop them. Call once per node."""
     node["avg_eff"] = round(node["_eff_wsum"] / node["_eff_wdist"], 1) if node["_eff_wdist"] > 0 else None
+    # Energy Used's rule, trip by trip, so the months add up to what Statistics gives for all of them.
+    node["kwh_used"] = energy_used_total(node["_kwh"])
     # Over ALL the kilometres, like the car's own figure and every other L/100 km in Mate since
     # BetaTester #23 — not over the ones the generator ran.
     node["fuel_l_100km"] = (round(node["fuel_l"] / node["km"] * 100, 1)
@@ -7010,6 +7013,7 @@ def _totals_seal(node: dict) -> dict:
     del node["_eff_wdist"]
     del node["_ec_kwh"]
     del node["_ec_km"]
+    del node["_kwh"]
     return node
 
 
@@ -8455,6 +8459,19 @@ TRIP_ENERGY_USED_SQL = (f"CASE WHEN {ZERO_UNVOUCHED_SQL} THEN NULL"
                         " WHEN ec_kwh IS NOT NULL AND ec_stable = 1 THEN ec_kwh END")
 
 
+def energy_used_total(values) -> Optional[float]:
+    """Energy Used over trips, from their trip_energy_used() figures: added exactly, so the order they
+    come in cannot tip the sum across a hundredth, and rounded half up on that exact sum, as SQLite's
+    ROUND does (in integers: the desktop shell carries no `decimal`). None with no figure at all."""
+    values = [v for v in values if v is not None]
+    if not values:
+        return None
+    n, d = math.fsum(values).as_integer_ratio()
+    cents, rest = divmod(abs(n) * 100, d)
+    cents += 2 * rest >= d
+    return (cents if n >= 0 else -cents) / 100
+
+
 def _merged_trip_statistics(db, begin=None, end=None):
     """Overrides for beta #44: aggregate logical trips, not their stored segments.
 
@@ -8535,7 +8552,7 @@ def _merged_trip_statistics(db, begin=None, end=None):
     summary = {
         "trip_count": len(groups),
         "total_km": period["distance_km"],
-        "total_kwh_used": total(trip_energy_used(g) for g in groups),
+        "total_kwh_used": energy_used_total(trip_energy_used(g) for g in groups),
         "energy_trips": len(covered) if groups else None,
         "energy_km": total((g.get("distance_km") for g in covered), 1),
         "avg_efficiency": (rounded(sum(energy(g) or 0 for g in average_trips) / km * 100, 1)
@@ -9172,7 +9189,7 @@ def get_stats_grouped() -> list[dict]:
     it read the consumption from `efficiency_kwh_100km` over the km THAT has (→ 12.2), grouped by the
     car's UTC clock, and counted merged children — while the Trips page read getEC over the km getEC
     covers (→ 10.1), local, non-merged. `avg_efficiency` here IS that getEC figure (kwh_100km);
-    `total_kwh` the getEC energy behind it. Newest year/month/day first, trips kept chronological."""
+    `total_kwh` its share of Energy Used. Newest year/month/day first, trips kept chronological."""
     from collections import OrderedDict
     lang = get_language()
     years: "OrderedDict[str, dict]" = OrderedDict()
@@ -9207,8 +9224,7 @@ def get_stats_grouped() -> list[dict]:
         # figure uses. Two denominators, so they stay under two different words.
         node["total_fuel_l"] = round(s["fuel_l"], 2)
         node["fuel_l_100km"] = s["fuel_l_100km"]
-        node["total_kwh"] = (round(s["kwh_100km"] * s["kwh_100km_km"] / 100, 2)
-                             if s["kwh_100km"] is not None else 0.0)   # the getEC energy behind it
+        node["total_kwh"] = s["kwh_used"] or 0.0
         return node
 
     out = []
@@ -10224,7 +10240,7 @@ def _month_shift(month_key: str, delta: int) -> str:
 
 def _report_bucket() -> dict:
     return {
-        "trip_count": 0, "total_km": 0.0, "total_kwh_used": 0.0,
+        "trip_count": 0, "total_km": 0.0, "total_kwh_used": 0.0, "_kwh": [],
         "regen_kwh": 0.0, "drive_min": 0.0,
         "_eff_wsum": 0.0, "_eff_wdist": 0.0, "avg_efficiency": None,
         "charge_count": 0, "charge_kwh": 0.0, "charge_cost": 0.0, "has_cost": False,
@@ -10279,7 +10295,7 @@ def _collect_monthly_buckets() -> dict:
         eff = tr.get("efficiency_kwh_100km") if figured else None
         b["trip_count"]     += 1
         b["total_km"]       += km
-        b["total_kwh_used"] += km * (eff or 0) / 100.0
+        b["_kwh"].append(trip_energy_used(tr))
         b["regen_kwh"]      += tr.get("regen_kwh") or 0
         # Same rule as the Statistics card: a reconstructed trip's "duration" is the blackout it
         # was found across, so it never becomes driving time — here too, or the monthly report and
@@ -10366,6 +10382,7 @@ def _collect_monthly_buckets() -> dict:
         pass
 
     for b in buckets.values():
+        b["total_kwh_used"] = energy_used_total(b.pop("_kwh")) or 0.0
         if b["_eff_wdist"] > 0:
             b["avg_efficiency"] = round(b["_eff_wsum"] / b["_eff_wdist"], 1)
         # The measured twin, over EVERY trip the cloud answered for — generator ones included.
@@ -10375,7 +10392,7 @@ def _collect_monthly_buckets() -> dict:
         # the litres beside it are the other half of that answer.
         if b["_ec_km"] > 0:
             b["avg_efficiency_measured"] = round(b["_ec_kwh"] / b["_ec_km"] * 100, 1)
-        for k in ("total_km", "total_kwh_used", "regen_kwh", "charge_kwh", "charge_cost",
+        for k in ("total_km", "regen_kwh", "charge_kwh", "charge_cost",
                   "charge_kwh_priced", "fuel_cost_burned", "elec_cost_driven"):
             b[k] = round(b[k], 2)
         b["drive_min"] = int(round(b["drive_min"]))
