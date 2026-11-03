@@ -1,8 +1,17 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.19.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.20.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.19.0
+## Neu in Version 4.20.0
+
+**Fahrten zeigt die verbrauchte Energie.** Eine fünfte Kachel unter Fahrten zeigt die Energie, die alle
+deine Fahrten verbraucht haben, dieselbe Zahl wie *Verbrauchte Energie* in der Statistik; auch die
+Überschrift eines Tages, der Monatsstreifen und die Summe einer Suche zeigen ihre kWh. Die Energiekarte
+zeigt neben Strecke und Durchschnitt den *Gesamtverbrauch* des Autos; die beiden können leicht abweichen,
+weil die Cloud nach Datum zählt und Mate nach den aufgezeichneten Fahrten. Monate und Jahre der Statistik
+ergeben jetzt genau die *Verbrauchte Energie*.
+
+### Neu in Version 4.19.0
 
 **Das Gebläse hat so viele Stufen wie das Auto.** Die Cloud teilt Mate mit, wie viele Gebläsestufen
 die Fernklimatisierung jedes Autos hat. Bei einem Auto mit mehr als sieben, etwa einem B10 mit neun, zeigt

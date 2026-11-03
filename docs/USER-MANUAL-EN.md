@@ -1,8 +1,16 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.19.0 · **Language:** English
+> **Mate version:** v4.20.0 · **Language:** English
 
-## New in 4.19.0
+## New in 4.20.0
+
+**Trips says the energy used.** A fifth tile on Trips gives the energy all your trips used, the same
+figure as Statistics' *Energy Used*, and a day's heading, the month strip and a search's total give their
+kWh too. The energy card adds the car's own *Total consumption* beside the distance and the average; the
+two can differ a little, because the cloud counts by date and Mate by the trips it recorded. Statistics'
+months and years now add up exactly to *Energy Used*.
+
+### New in 4.19.0
 
 **The fan has as many speeds as the car.** The cloud tells Mate how many fan speeds each car's remote
 climate has. On a car with more than seven, such as a B10 with nine, the Vehicle page reads "x / 9", the

@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.19.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.20.0 · **Lingua:** Italiano
 
-## Novità della 4.19.0
+## Novità della 4.20.0
+
+**Viaggi dice l'energia consumata.** Un quinto riquadro in Viaggi dà l'energia consumata da tutti i tuoi
+viaggi, la stessa cifra dell'*Energia consumata* delle Statistiche, e anche l'intestazione di un giorno, la
+striscia del mese e il totale di una ricerca danno i loro kWh. La scheda dell'energia aggiunge il *Consumo
+totale* dell'auto accanto alla distanza e alla media; i due possono differire di poco, perché il cloud
+conta per data e Mate per i viaggi che ha registrato. I mesi e gli anni delle Statistiche ora sommano
+esattamente all'*Energia consumata*.
+
+### Novità della 4.19.0
 
 **La ventola ha le velocità dell'auto.** Il cloud dice a Mate quante velocità ha la ventola del clima
 da remoto di ogni auto. Su un'auto che ne ha più di sette, come una B10 con nove, la pagina Veicolo dice

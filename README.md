@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.19.0:** **the fan has as many speeds as the car declares**, 1–9 on a B10, on the Vehicle page, in Commands and in Home Assistant ([#447](https://github.com/ProtossBlaster/leapmotor-mate/pull/447), @arekm), and **a trip's regen counts the time each reading stands for** ([#454](https://github.com/ProtossBlaster/leapmotor-mate/pull/454), @arekm). In **4.18.1**: Home Assistant's Location tracker reads the zone of the car's coordinates. In **4.18.0**: each car has its own operation PIN.
-See [release notes and upgrade impact](docs/releases/v4.19.0.md).
+**v4.20.0:** **Trips says the energy used**, in a fifth tile and in its day, month and search totals ([#456](https://github.com/ProtossBlaster/leapmotor-mate/pull/456), @arekm), and **every month and year on Statistics adds up to Energy Used** ([#455](https://github.com/ProtossBlaster/leapmotor-mate/pull/455), @arekm). In **4.19.0**: the fan has as many speeds as the car declares, 1–9 on a B10, and a trip's regen counts the time each reading stands for. In **4.18.1**: Home Assistant's Location tracker reads the zone of the car's coordinates.
+See [release notes and upgrade impact](docs/releases/v4.20.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -360,8 +360,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.19.0:** **la ventola ha le velocità che l'auto dichiara**, da 1 a 9 su una B10, nella pagina Veicolo, in Comandi e in Home Assistant ([#447](https://github.com/ProtossBlaster/leapmotor-mate/pull/447), @arekm), e **il recupero di un viaggio conta il tempo che ogni lettura rappresenta** ([#454](https://github.com/ProtossBlaster/leapmotor-mate/pull/454), @arekm). Nella **4.18.1**: il tracker Posizione di Home Assistant dice la zona delle coordinate dell'auto. Nella **4.18.0**: ogni auto ha il suo PIN operativo.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.19.0.md#italiano).
+**v4.20.0:** **Viaggi dice l'energia consumata**, in un quinto riquadro e nei totali del giorno, del mese e della ricerca ([#456](https://github.com/ProtossBlaster/leapmotor-mate/pull/456), @arekm), e **ogni mese e anno delle Statistiche somma all'Energia consumata** ([#455](https://github.com/ProtossBlaster/leapmotor-mate/pull/455), @arekm). Nella **4.19.0**: la ventola ha le velocità che l'auto dichiara, da 1 a 9 su una B10, e il recupero di un viaggio conta il tempo che ogni lettura rappresenta. Nella **4.18.1**: il tracker Posizione di Home Assistant dice la zona delle coordinate dell'auto.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.20.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

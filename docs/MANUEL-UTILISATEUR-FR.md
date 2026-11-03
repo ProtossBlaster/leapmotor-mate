@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.19.0 · **Langue :** Français
+> **Version de Mate :** v4.20.0 · **Langue :** Français
 
-## Nouveautés de la version 4.19.0
+## Nouveautés de la version 4.20.0
+
+**Trajets indique l'énergie consommée.** Une cinquième tuile dans Trajets donne l'énergie consommée par
+tous vos trajets, le même chiffre que l'*Énergie consommée* des Statistiques, et l'en-tête d'un jour, la
+bande du mois et le total d'une recherche donnent aussi leurs kWh. La carte d'énergie ajoute la *Conso
+totale* de la voiture à côté de la distance et de la moyenne ; les deux peuvent différer un peu, car le
+cloud compte par date et Mate par les trajets qu'il a enregistrés. Les mois et années des Statistiques
+s'additionnent maintenant exactement à l'*Énergie consommée*.
+
+### Nouveautés de la version 4.19.0
 
 **Le ventilateur a les vitesses de la voiture.** Le cloud indique à Mate combien de vitesses a le
 ventilateur de la climatisation à distance de chaque voiture. Sur une voiture qui en a plus de sept, comme

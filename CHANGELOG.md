@@ -3,6 +3,19 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.20.0] — 2026-11-03
+
+- **Trips says the energy used** ([#456](https://github.com/ProtossBlaster/leapmotor-mate/pull/456), @arekm).
+  A fifth tile gives the energy all trips used, Statistics' Energy Used, and a day's heading, the month
+  strip and a searched period's total give their kWh. The energy card gives the cloud's *Total
+  consumption* beside the distance and the average, and the Report's tile beside it is called the same.
+  The tiles' icon sits above the figure at every width. A range-extender's Trips page is unchanged.
+- **A month's kWh adds up to Energy Used** ([#455](https://github.com/ProtossBlaster/leapmotor-mate/pull/455), @arekm).
+  Statistics' months and years, the Trips calendar and the monthly Report sum their trips by Energy
+  Used's rule, exactly, instead of multiplying a rounded average back by the kilometres; a trip that used
+  energy without moving now counts in its month. The *Avg consumption* tile on Trips leaves out a cloud
+  0.0 kWh the battery does not vouch for.
+
 ## [4.19.0] — 2026-11-03
 
 - **The fan has as many speeds as the car declares** ([#447](https://github.com/ProtossBlaster/leapmotor-mate/pull/447), @arekm; [#445](https://github.com/ProtossBlaster/leapmotor-mate/issues/445), @Tommy73LMB05).
