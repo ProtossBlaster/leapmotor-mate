@@ -1739,8 +1739,8 @@ dit, au lieu de vous montrer sans rien signaler celui d'avant. Et sur un mois en
 comparaison avec le précédent n'apparaît — chaque case afficherait −100 %, ce qui décrit le
 calendrier et non votre conduite.
 
-**D'où vient la consommation, et quand Mate la remplace.** *Consommation moyenne* et *Énergie
-consommée* sont normalement le total officiel de la voiture pour ce mois. Ce total n'est complet que
+**D'où vient la consommation, et quand Mate la remplace.** *Consommation moyenne* et *Conso
+totale* sont normalement le total officiel de la voiture pour ce mois. Ce total n'est complet que
 dans la mesure où la liaison de votre voiture l'a été : si la voiture n'a pas pu joindre le cloud
 pendant un trajet, ce trajet n'y figure pas. Quand le total revient très en dessous de la somme des
 trajets que Mate a enregistrés pour le même mois, Mate affiche **son propre chiffre** — celui de la

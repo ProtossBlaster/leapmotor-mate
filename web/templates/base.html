@@ -202,11 +202,16 @@
     .soc-used { background: linear-gradient(90deg, #f59e0b, #ef4444); }
 
     /* ── Trips dashboard: hero tiles (Mushroom-gradient) ────────── */
+    .hero-wrap { container-type: inline-size; }
     .hero-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; }
-    @media (min-width: 768px) { .hero-grid { grid-template-columns: repeat(4, 1fr); } }
+    /* All the tiles in one row where five fit, measured on the page beside Mate's and HA's sidebars, not the window;
+       narrower, two by two, an odd last one across both. */
+    @container (min-width: 880px) { .hero-grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; } }
+    @container (max-width: 879.98px) { .hero-grid > .hero-tile:last-child:nth-child(odd) { grid-column: 1 / -1; } }
+    /* The icon above the figure: beside it, a fifth of the page has no room for a long label such as "Verbrauchte Energie". */
     .hero-tile {
       position: relative; overflow: hidden; border-radius: 1rem;
-      padding: 1rem 1.1rem; display: flex; align-items: center; gap: .85rem;
+      padding: 1rem 1.1rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem;
       border: 1px solid rgba(148,163,184,.12);
     }
     .hero-ico {
@@ -222,6 +227,7 @@
     .t-trips { background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); }
     .t-eff   { background: linear-gradient(135deg, #334155 0%, #1e293b 100%); }
     .t-regen { background: linear-gradient(135deg, #16a34a 0%, #14532d 100%); }
+    .t-energy { background: linear-gradient(135deg, #0284c7 0%, #0c4a6e 100%); }
 
     /* ── Inline collapse button (inside year/month summaries) ─────── */
     .collapse-btn {
@@ -235,12 +241,9 @@
     .collapse-btn:hover { background: rgba(51,65,85,.6); border-color: #475569; color: #e2e8f0; }
     details[open] > summary .collapse-btn { display: inline-flex; }
 
-    /* ── Hero tiles: compact vertical layout on small phones ───────── */
+    /* ── Hero tiles: compact on small phones ───────── */
     @media (max-width: 639px) {
       .hero-tile {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
         padding: .65rem .4rem;
         gap: .3rem;
       }

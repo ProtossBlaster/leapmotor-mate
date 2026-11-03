@@ -1715,8 +1715,8 @@ Monat sagt das, statt Ihnen stillschweigend den vorherigen zu zeigen. Und für e
 erscheint kein Vergleich mit dem vorherigen — jede Kachel läse −100 %, was den Kalender beschreibt
 und nicht Ihr Fahren.
 
-**Woher der Verbrauch kommt und wann Mate ihn übergeht.** *Durchschnittsverbrauch* und *Verbrauchte
-Energie* sind normalerweise die offizielle Monatssumme des Autos. Diese Summe ist nur so vollständig
+**Woher der Verbrauch kommt und wann Mate ihn übergeht.** *Durchschnittsverbrauch* und
+*Gesamtverbrauch* sind normalerweise die offizielle Monatssumme des Autos. Diese Summe ist nur so vollständig
 wie die Verbindung Ihres Autos war: Konnte das Auto während einer Fahrt die Cloud nicht erreichen,
 fehlt diese Fahrt darin. Liegt die Summe weit unter dem, was Mates eigene Fahrten für denselben
 Monat ergeben, zeigt Mate **die eigene Zahl** — dieselbe wie auf der Seite Fahrten — und schreibt es

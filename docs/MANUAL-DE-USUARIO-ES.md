@@ -1695,7 +1695,7 @@ vacío lo dice en vez de enseñarte calladamente el anterior, y un mes en el que
 comparación con el precedente (todas las cifras darían −100 %, lo cual describe el calendario y no tu
 conducción).
 
-**De dónde sale la cifra de consumo, y cuándo Mate la corrige.** *Consumo medio* y *Energía consumida*
+**De dónde sale la cifra de consumo, y cuándo Mate la corrige.** *Consumo medio* y *Consumo total*
 salen normalmente del total oficial del propio coche para ese mes. Ese total solo es tan completo como
 lo fuera la conexión de tu coche: si el coche no pudo llegar a la nube durante un recorrido, ese
 recorrido entero falta. Cuando el total vuelve muy por debajo de lo que suman los trayectos del propio

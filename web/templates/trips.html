@@ -30,7 +30,7 @@
 
 {% if summary and summary.count %}
 <!-- ── Hero summary ─────────────────────────────────────────────── -->
-<div class="hero-grid mb-8">
+<div class="hero-wrap mb-8"><div class="hero-grid">
   <div class="hero-tile t-dist">
     <div class="hero-ico">🛣️</div>
     <div>
@@ -73,6 +73,15 @@
       <div class="hero-label">{{ t('avg_efficiency') }}</div>
     </div>
   </div>
+  {% if summary.kwh_used and not is_reev %}
+  <div class="hero-tile t-energy">
+    <div class="hero-ico">🔋</div>
+    <div>
+      <div class="hero-val">{{ summary.kwh_used|nice }}<span class="u">kWh</span></div>
+      <div class="hero-label">{{ t('energy_used') }}</div>
+    </div>
+  </div>
+  {% endif %}
   {# On a range-extender the regen tile is hidden (a SoC delta stops measuring recovery once the
      generator is refilling the pack), which left an empty slot where the fuel belongs. #}
   {% if is_reev and reev_summary and reev_summary.total_l %}
@@ -93,7 +102,7 @@
     </div>
   </div>
   {% endif %}
-</div>
+</div></div>
 {% endif %}
 
 {% if ec_periods and summary and summary.count %}

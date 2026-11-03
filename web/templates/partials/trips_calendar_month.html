@@ -29,6 +29,7 @@
     <span class="text-slate-400">{{ main_count }} {{ t('trip_singular') if main_count == 1 else t('trips_plural') }}</span>
     {% if total.cloud_zero_count %}<span class="text-slate-500">+ {{ total.cloud_zero_count }} {{ t('cloud_zero_segments') }}</span>{% endif %}
     <span class="text-white font-semibold" tabindex="0" data-tip="{{ t('distance') }}">{{ total.km | dist(1) }}</span>
+    {% if total.kwh_used and not is_reev %}<span class="text-slate-300 font-semibold" tabindex="0" data-tip="{{ t('energy_used') }}">{{ total.kwh_used | nice }} kWh</span>{% endif %}
     {# On a range-extender: the SAME kilometres the litres beside it are divided by. `avg_eff` is
        the efficiency the car MEASURED, and Mate stores none for a generator trip — so it covers the
        battery-driven half of the month while the L/100 km covers all of it. Two figures ending in

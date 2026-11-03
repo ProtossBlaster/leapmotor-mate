@@ -4,7 +4,8 @@
   {% else %}
   <h2 class="font-semibold text-white">{{ t('energy_distribution') }}</h2>
   {% endif %}
-  {% if eb and eb.total_kwh and eb.total_kwh > 0 %}
+  {# With the distance row below, the total is one of its columns. #}
+  {% if eb and eb.total_kwh and eb.total_kwh > 0 and not eb.distance_km %}
   <span class="text-xs text-slate-500">{% if not eb_label %}{{ t('last_week') }} · {% endif %}{{ eb.total_kwh | nice }} kWh</span>
   {% endif %}
 </div>
@@ -12,7 +13,7 @@
 {% if eb and eb.total_kwh and eb.total_kwh > 0 %}
 {% if eb.distance_km %}
 <!-- Distanza/Durata/Media — come la schermata "Dall'ultima ricarica" dell'auto stessa -->
-<div class="grid grid-cols-3 gap-3 mb-4 pb-4 border-b border-slate-700/60">
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 pb-4 border-b border-slate-700/60">
   <div>
     <div class="text-xs text-slate-400">{{ t('distance') }}</div>
     <div class="text-white font-bold mt-1">{{ eb.distance_km | dist(1) }}</div>
@@ -39,6 +40,10 @@
           and (eb.distance_km - eb.avg_kwh100_km) > 0.5 %}
     <div class="text-[11px] text-slate-500 mt-0.5">{{ (t('stats_eff_over_km_reev') if eb.avg_kwh100_basis == 'battery' else t('stats_eff_over_km')).format(km=eb.avg_kwh100_km|nice) }}</div>
     {% endif %}
+  </div>
+  <div>
+    <div class="text-xs text-slate-400">{{ t('ec_total') }}</div>
+    <div class="text-white font-bold mt-1">{{ eb.total_kwh | nice }} kWh</div>
   </div>
   {# REEV — the petrol half of the same window (@michapr, beta #11). Only when litres were actually
      burned: a range-extender week driven on the battery alone must not carry an empty tile, and a
