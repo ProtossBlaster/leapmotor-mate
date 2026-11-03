@@ -8435,6 +8435,26 @@ def zero_unvouched(t: dict) -> bool:
 ZERO_UNVOUCHED_SQL = "(COALESCE(ec_kwh = 0, 0) AND NOT COALESCE(start_soc = end_soc, 0))"
 
 
+def trip_energy_used(t: dict) -> Optional[float]:
+    """The energy a trip used, as Energy Used adds it up: the energy picked for the trip, else its
+    consumption over its distance, else the car's settled getEC figure (a range-extender's generator
+    trip has no consumption). None with none of them, or for a zero no reading vouches for."""
+    if zero_unvouched(t):
+        return None
+    if t.get("energy_source"):
+        return t["energy_kwh"]
+    km, eff = t.get("distance_km"), t.get("efficiency_kwh_100km")
+    if eff is not None:
+        return km * eff / 100.0 if km is not None else None
+    return t["ec_kwh"] if t.get("ec_kwh") is not None and t.get("ec_stable") == 1 else None
+
+
+# trip_energy_used() for a query, on the stored figures.
+TRIP_ENERGY_USED_SQL = (f"CASE WHEN {ZERO_UNVOUCHED_SQL} THEN NULL"
+                        " WHEN efficiency_kwh_100km IS NOT NULL THEN distance_km * efficiency_kwh_100km / 100.0"
+                        " WHEN ec_kwh IS NOT NULL AND ec_stable = 1 THEN ec_kwh END")
+
+
 def _merged_trip_statistics(db, begin=None, end=None):
     """Overrides for beta #44: aggregate logical trips, not their stored segments.
 
@@ -8515,8 +8535,7 @@ def _merged_trip_statistics(db, begin=None, end=None):
     summary = {
         "trip_count": len(groups),
         "total_km": period["distance_km"],
-        "total_kwh_used": total(energy(g) if g.get("energy_source") or g.get("efficiency_kwh_100km") is not None
-                                else g.get("ec_kwh") for g in covered),
+        "total_kwh_used": total(trip_energy_used(g) for g in groups),
         "energy_trips": len(covered) if groups else None,
         "energy_km": total((g.get("distance_km") for g in covered), 1),
         "avg_efficiency": (rounded(sum(energy(g) or 0 for g in average_trips) / km * 100, 1)
@@ -9874,11 +9893,7 @@ def get_stats_summary() -> dict:
                -- SUM(ec_kwh) said 41.6, and could not trace the difference to anything on screen.
                -- With ec as the fallback those trips contribute what the CAR measured, and a BEV,
                -- whose trips all carry an efficiency, sees no change at all.
-               ROUND(SUM(CASE WHEN {UNVOUCHED} THEN NULL
-                              WHEN efficiency_kwh_100km IS NOT NULL
-                                   THEN distance_km * efficiency_kwh_100km / 100.0
-                              WHEN ec_kwh IS NOT NULL AND ec_stable = 1 THEN ec_kwh END), 2)
-                                                                             AS total_kwh_used,
+               ROUND(SUM({ENERGY_USED}), 2)                                AS total_kwh_used,
                -- …and how much of the driving that figure could speak for, so the page can say so
                -- rather than leave the reader to wonder.
                SUM(CASE WHEN {UNVOUCHED} THEN 0
@@ -9922,7 +9937,8 @@ def get_stats_summary() -> dict:
                ROUND(AVG(regen_kwh), 2)                                      AS avg_regen_kwh,
                MIN(started_at)                                               AS _since_trip
            FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL"""
-        .replace("{MEASURED}", measured).replace("{UNVOUCHED}", ZERO_UNVOUCHED_SQL),
+        .replace("{MEASURED}", measured).replace("{ENERGY_USED}", TRIP_ENERGY_USED_SQL)
+        .replace("{UNVOUCHED}", ZERO_UNVOUCHED_SQL),
         (_current_vehicle_id(),)
     ).fetchone()
     charges = db.execute(
