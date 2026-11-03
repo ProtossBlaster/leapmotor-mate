@@ -11681,11 +11681,8 @@ def _finish_ev_detail(row):
 def _ev_energy_summary(summary):
     if is_reev_car():
         return summary
-    rows = get_trips(limit=1000000)
-    weighted = [(row.get("efficiency_kwh_100km"), row.get("distance_km") or 0) for row in rows]
-    eligible = [(eff, km) for eff, km in weighted if eff is not None and km > 0]
-    distance = sum(km for _, km in eligible)
-    summary["avg_eff"] = sum(eff * km for eff, km in eligible) / distance if distance else None
+    # Through the strips' own totals, so the tile averages by their rule: a zero no reading vouches for counts in none.
+    summary["avg_eff"] = trips_totals(get_trips(limit=1000000))["avg_eff"]
     return summary
 
 

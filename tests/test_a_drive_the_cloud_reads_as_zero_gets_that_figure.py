@@ -140,6 +140,7 @@ def test_a_taken_zero_counts_in_every_average(tmp_path, monkeypatch):
     begin, end = int(started.timestamp()) - 7200, int(started.timestamp()) + 7200
 
     assert db_reader.trips_totals(db_reader.get_trips())["kwh_100km"] == 14.3, "the Trips strip"
+    assert db_reader.get_trips_summary()["avg_eff"] == 14.3, "the Trips tile"
     assert db_reader.get_stats_summary()["avg_efficiency"] == 14.3, "the Statistics card"
     tot = db_reader.get_trip_totals_between(begin, end)
     assert (tot["ec_km"], tot["ec_kwh_sum"]) == (10.46, 1.5), "the period card's pair"
@@ -191,6 +192,8 @@ def test_a_zero_the_battery_does_not_vouch_for_counts_in_no_average(tmp_path, mo
     for reev in ("0", "1"):
         db_reader.set_setting("is_reev", reev)
         assert db_reader.trips_totals(db_reader.get_trips())["kwh_100km"] == 14.3, "the Trips strip"
+        if reev == "0":   # a range-extender's tile reads its own total, over all its kilometres
+            assert db_reader.get_trips_summary()["avg_eff"] == 14.3, "the Trips tile"
         assert db_reader.get_stats_summary()["avg_efficiency"] == 14.3, "the Statistics card"
         tot = db_reader.get_trip_totals_between(begin, end)
         assert (tot["ec_km"], tot["ec_kwh_sum"]) == (10.46, 1.5), "the period card's pair"
