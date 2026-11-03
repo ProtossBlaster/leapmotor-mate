@@ -1,8 +1,19 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.18.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.19.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.18.1
+## Neu in Version 4.19.0
+
+**Das Gebläse hat so viele Stufen wie das Auto.** Die Cloud teilt Mate mit, wie viele Gebläsestufen
+die Fernklimatisierung jedes Autos hat. Bei einem Auto mit mehr als sieben, etwa einem B10 mit neun, zeigt
+die Fahrzeugseite „x / 9", der Gebläseregler unter Befehle reicht von 1 bis 9, und die Zahl *Fan Level* in
+Home Assistant geht bis 9. Andere Autos behalten 1 bis 7.
+
+**Die Rekuperation einer Fahrt zählt die Zeit, für die jede Messung steht.** Jede Messung beim Bremsen
+zählt jetzt für die Zeit seit der vorherigen Messung des Autos, nicht für das Abfrageintervall; neue
+Fahrten zeigen daher mehr Rekuperation als bisher. Bereits erfasste Fahrten behalten ihren Wert.
+
+### Neu in Version 4.18.1
 
 **Der Location-Tracker in Home Assistant folgt der Zone des Autos.** Der device_tracker
 `Location`, den Mate über MQTT veröffentlicht, zeigte `home`, sobald das Auto eine Position sendete,

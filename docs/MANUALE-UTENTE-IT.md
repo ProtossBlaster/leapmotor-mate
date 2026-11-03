@@ -1,8 +1,19 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.18.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.19.0 · **Lingua:** Italiano
 
-## Novità della 4.18.1
+## Novità della 4.19.0
+
+**La ventola ha le velocità dell'auto.** Il cloud dice a Mate quante velocità ha la ventola del clima
+da remoto di ogni auto. Su un'auto che ne ha più di sette, come una B10 con nove, la pagina Veicolo dice
+«x / 9», il cursore della ventola in Comandi va da 1 a 9 e il numero *Fan Level* di Home Assistant arriva a
+9. Le altre auto restano da 1 a 7.
+
+**Il recupero di un viaggio conta il tempo che ogni lettura rappresenta.** Ogni lettura in frenata ora vale
+il tempo dalla lettura precedente dell'auto, non l'intervallo di poll, quindi i viaggi nuovi dicono più
+recupero di prima. I viaggi registrati prima tengono il loro valore.
+
+### Novità della 4.18.1
 
 **Il tracker Posizione in Home Assistant segue la zona dell'auto.** Il device_tracker `Location`
 che Mate pubblica su MQTT diceva `home` ogni volta che l'auto mandava una posizione, ovunque fosse.

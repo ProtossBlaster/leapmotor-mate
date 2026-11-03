@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.18.1 · **Langue :** Français
+> **Version de Mate :** v4.19.0 · **Langue :** Français
 
-## Nouveautés de la version 4.18.1
+## Nouveautés de la version 4.19.0
+
+**Le ventilateur a les vitesses de la voiture.** Le cloud indique à Mate combien de vitesses a le
+ventilateur de la climatisation à distance de chaque voiture. Sur une voiture qui en a plus de sept, comme
+un B10 avec neuf, la page Véhicule indique « x / 9 », le curseur du ventilateur dans Commandes va de 1 à 9
+et le nombre *Fan Level* de Home Assistant monte jusqu'à 9. Les autres voitures restent de 1 à 7.
+
+**La récupération d'un trajet compte le temps que représente chaque lecture.** Chaque lecture au freinage
+compte maintenant le temps depuis la lecture précédente de la voiture, et non l'intervalle d'interrogation :
+les nouveaux trajets indiquent donc plus de récupération qu'avant. Les trajets déjà enregistrés gardent
+leur valeur.
+
+### Nouveautés de la version 4.18.1
 
 **Le traceur Location dans Home Assistant suit la zone de la voiture.** Le device_tracker
 `Location` que Mate publie sur MQTT indiquait `home` dès que la voiture envoyait une position, où

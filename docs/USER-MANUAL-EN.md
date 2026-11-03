@@ -1,8 +1,19 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.18.1 · **Language:** English
+> **Mate version:** v4.19.0 · **Language:** English
 
-## New in 4.18.1
+## New in 4.19.0
+
+**The fan has as many speeds as the car.** The cloud tells Mate how many fan speeds each car's remote
+climate has. On a car with more than seven, such as a B10 with nine, the Vehicle page reads "x / 9", the
+Commands fan slider runs from 1 to 9, and Home Assistant's *Fan Level* number goes up to 9. Other cars keep
+1 to 7.
+
+**A trip's regen counts the time each reading stands for.** Each braking reading now counts for the time
+since the car's previous reading, not for the poll interval, so new trips read more regen than before.
+Trips recorded before keep their figure.
+
+### New in 4.18.1
 
 **The Location tracker in Home Assistant follows the car's zone.** The `Location` device_tracker
 Mate publishes over MQTT read `home` whenever the car sent a position, wherever it was. It now reads

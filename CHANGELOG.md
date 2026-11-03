@@ -3,6 +3,19 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.19.0] — 2026-11-03
+
+- **The fan has as many speeds as the car declares** ([#447](https://github.com/ProtossBlaster/leapmotor-mate/pull/447), @arekm; [#445](https://github.com/ProtossBlaster/leapmotor-mate/issues/445), @Tommy73LMB05).
+  A car whose cloud entry declares more than seven fan speeds, such as a B10 with 1–9, gets them on the
+  Vehicle page, the Commands slider and Home Assistant's *Fan Level* number, and a new temperature or
+  recirculation at fan 9 keeps 9 instead of sending 7. The cloud library's climate check takes the
+  declared top, up to 9 ([MATE-API#9](https://github.com/ProtossBlaster/MATE-API/pull/9)). A car that
+  declares nothing, or seven speeds or fewer, keeps 1–7.
+- **A trip's regen counts the time each reading stands for** ([#454](https://github.com/ProtossBlaster/leapmotor-mate/pull/454), @arekm).
+  Each driving reading of regen counted the poll interval, but readings come further apart, so every trip
+  recorded too little regen. A reading now counts the time since the previous fresh frame on the car's
+  clock, or one interval where that cannot be told. Trips recorded before keep their figure.
+
 ## [4.18.1] — 2026-11-02
 
 - **The Location tracker in Home Assistant reads the zone of the car's coordinates** ([#453](https://github.com/ProtossBlaster/leapmotor-mate/issues/453), @scoprire87).
