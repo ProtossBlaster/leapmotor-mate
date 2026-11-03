@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.20.0 · **Langue :** Français
+> **Version de Mate :** v4.21.0 · **Langue :** Français
 
-## Nouveautés de la version 4.20.0
+## Nouveautés de la version 4.21.0
+
+**Les recharges gratuites ont leur propre part dans Domicile / Public.** Dans Recharges, une recharge de
+type **Gratuit** comptait comme Publique ; elle a maintenant sa propre part vert citron et une tuile
+**🆓 Gratuit**, affichée seulement s'il y en a une. Une recharge à domicile que vous avez marquée
+gratuite (solaire, par exemple) reste sous Domicile. La légende des deux anneaux est plus compacte :
+chaque type donne ses sessions et son nom, et en dessous ses kWh et sa part.
+
+### Nouveautés de la version 4.20.0
 
 **Trajets indique l'énergie consommée.** Une cinquième tuile dans Trajets donne l'énergie consommée par
 tous vos trajets, le même chiffre que l'*Énergie consommée* des Statistiques, et l'en-tête d'un jour, la
@@ -1474,10 +1482,11 @@ Le type est classé par une étiquette :
   **est.**, et *Réinitialiser*, dans le ✎, ramène la valeur calculée. Les recharges saisies ainsi
   avant la v3.16.0 se lisent de nouveau **✎ Manuel**, avec leur prix : il n'y a rien à faire.
 - **Domicile / Public 🆕** — à côté de la carte *Répartition AC / DC*, il y en a une deuxième :
-  **Domicile**, **Publique**, **✎ Manuel** et **À confirmer**, en anneau et une tuile chacune (les
-  deux dernières seulement s'il y en a). Elles font toujours le nombre de recharges écrit au-dessus :
-  une recharge au prix saisi à la main n'est pas comptée comme publique, et une recharge qui attend
-  son type se voit comme telle.
+  **Domicile**, **Publique**, **🆓 Gratuit**, **✎ Manuel** et **À confirmer**, en anneau et une tuile
+  chacune (les trois dernières seulement s'il y en a). Elles font toujours le nombre de recharges écrit
+  au-dessus : une recharge au prix saisi à la main n'est pas comptée comme publique, une de type
+  Gratuit non plus, et une recharge qui attend son type se voit comme telle. Une recharge à domicile
+  marquée gratuite reste sous Domicile.
 - **Une recharge abandonnée par le cloud se termine au dernier passage de courant 🆕** (#289) —
   quand la voiture s'endort câble branché, le cloud ne le dit pas : il répète les dernières
   nouvelles qu'il détient, et le câble y est toujours donné pour branché. La recharge restait

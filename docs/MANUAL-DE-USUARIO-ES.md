@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.20.0 · **Idioma:** Español
+> **Versión de Mate:** v4.21.0 · **Idioma:** Español
 
-## Novedades de la versión 4.20.0
+## Novedades de la versión 4.21.0
+
+**Las cargas gratuitas tienen su propia porción en Casa y pública.** En Cargas, una carga de tipo
+**Gratis** contaba como Pública; ahora tiene su propia porción verde lima y una casilla **🆓 Gratis**,
+que aparece solo si tienes alguna. Una carga en casa que marcaste como gratuita (solar, por ejemplo) se
+queda en En casa. La leyenda de los dos roscos es más compacta: cada tipo da sus sesiones y su nombre, y
+debajo sus kWh y su porcentaje.
+
+### Novedades de la versión 4.20.0
 
 **Trayectos muestra la energía consumida.** Una quinta tarjeta en Trayectos da la energía que consumieron
 todos tus viajes, la misma cifra que *Energía consumida* en Estadísticas, y el encabezado de un día, la
@@ -1439,9 +1447,10 @@ El tipo se clasifica con una etiqueta:
   *Restablecer*, en el ✎, devuelve la cifra calculada. Las cargas que escribiste así antes de la
   v3.16.0 vuelven a leerse **✎ Manual**, con su precio: no hay nada que hacer.
 - **Casa y pública 🆕** — junto a la tarjeta *Reparto CA / CC* hay una segunda: **En casa**,
-  **Pública**, **✎ Manual** y **Por confirmar**, en forma de rosco y una casilla cada una (las dos
-  últimas solo si las hay). Suman siempre el número de cargas escrito encima, así que una carga con
-  el precio escrito a mano no se cuenta como pública, y una que espera su tipo se ve como tal.
+  **Pública**, **🆓 Gratis**, **✎ Manual** y **Por confirmar**, en forma de rosco y una casilla cada
+  una (las tres últimas solo si las hay). Suman siempre el número de cargas escrito encima, así que
+  una carga con el precio escrito a mano no se cuenta como pública, ni una de tipo Gratis, y una que
+  espera su tipo se ve como tal. Una carga en casa marcada como gratuita se queda en En casa.
 - **Una carga abandonada por la nube termina cuando pasó corriente por última vez 🆕** (#289) —
   cuando el coche se duerme con el cable puesto, la nube no lo dice: sigue repitiendo la última
   noticia que tiene, y ahí el cable consta todavía como conectado. La carga se quedaba abierta

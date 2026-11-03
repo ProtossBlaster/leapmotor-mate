@@ -1,8 +1,16 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.20.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.21.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.20.0
+## Neu in Version 4.21.0
+
+**Kostenlose Ladevorgänge haben ihr eigenes Segment in Zuhause / Öffentlich.** Unter Ladevorgänge zählte ein
+Ladevorgang vom Typ **Gratis** als Öffentlich; jetzt hat er ein eigenes limettengrünes Segment und eine
+Kachel **🆓 Gratis**, die nur erscheint, wenn es einen gibt. Ein Heimladevorgang, den du als gratis
+markiert hast (zum Beispiel Solarstrom), bleibt unter Zuhause. Die Legende beider Ringe ist kompakter:
+jede Art zeigt ihre Ladevorgänge und ihren Namen, darunter die kWh und den Anteil.
+
+### Neu in Version 4.20.0
 
 **Fahrten zeigt die verbrauchte Energie.** Eine fünfte Kachel unter Fahrten zeigt die Energie, die alle
 deine Fahrten verbraucht haben, dieselbe Zahl wie *Verbrauchte Energie* in der Statistik; auch die
@@ -1453,10 +1461,11 @@ Der Typ ist mit einem Etikett klassifiziert:
   berechneten Wert zurück. Ladevorgänge, die Sie vor v3.16.0 so eingetragen haben, lesen sich wieder
   als **✎ Manuell**, mit ihrem Preis: Es ist nichts zu tun.
 - **Zuhause / Öffentlich 🆕** — neben der Karte *AC-/DC-Verteilung* steht eine zweite:
-  **Zuhause**, **Öffentlich**, **✎ Manuell** und **Zu bestätigen**, als Ring und je eine Kachel (die
-  letzten beiden nur, wenn es welche gibt). Sie ergeben immer die Zahl der Ladevorgänge darüber:
-  Ein Ladevorgang mit von Hand eingetragenem Preis zählt nicht als öffentlich, und einer, der noch
-  auf seinen Typ wartet, erscheint als wartend.
+  **Zuhause**, **Öffentlich**, **🆓 Gratis**, **✎ Manuell** und **Zu bestätigen**, als Ring und je eine
+  Kachel (die letzten drei nur, wenn es welche gibt). Sie ergeben immer die Zahl der Ladevorgänge
+  darüber: Ein Ladevorgang mit von Hand eingetragenem Preis zählt nicht als öffentlich, einer vom Typ
+  Gratis auch nicht, und einer, der noch auf seinen Typ wartet, erscheint als wartend. Ein als gratis
+  markierter Heimladevorgang bleibt unter Zuhause.
 - **Ein von der Cloud verlassener Ladevorgang endet, wenn zuletzt Strom floss 🆕** (#289) — schläft
   das Auto mit gestecktem Kabel ein, sagt die Cloud das nicht: Sie wiederholt weiter die letzte
   Nachricht, die sie hat, und darin gilt das Kabel nach wie vor als gesteckt. Der Ladevorgang blieb

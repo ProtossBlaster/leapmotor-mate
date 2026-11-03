@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.20.0:** **Trips says the energy used**, in a fifth tile and in its day, month and search totals ([#456](https://github.com/ProtossBlaster/leapmotor-mate/pull/456), @arekm), and **every month and year on Statistics adds up to Energy Used** ([#455](https://github.com/ProtossBlaster/leapmotor-mate/pull/455), @arekm). In **4.19.0**: the fan has as many speeds as the car declares, 1–9 on a B10, and a trip's regen counts the time each reading stands for. In **4.18.1**: Home Assistant's Location tracker reads the zone of the car's coordinates.
-See [release notes and upgrade impact](docs/releases/v4.20.0.md).
+**v4.21.0:** **free charges have their own slice in Home vs Public** on Charges, instead of counting as public ([#450](https://github.com/ProtossBlaster/leapmotor-mate/pull/450), @hubcasale). In **4.20.0**: Trips says the energy used, and every month and year on Statistics adds up to Energy Used. In **4.19.0**: the fan has as many speeds as the car declares, 1–9 on a B10, and a trip's regen counts the time each reading stands for.
+See [release notes and upgrade impact](docs/releases/v4.21.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -360,8 +360,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.20.0:** **Viaggi dice l'energia consumata**, in un quinto riquadro e nei totali del giorno, del mese e della ricerca ([#456](https://github.com/ProtossBlaster/leapmotor-mate/pull/456), @arekm), e **ogni mese e anno delle Statistiche somma all'Energia consumata** ([#455](https://github.com/ProtossBlaster/leapmotor-mate/pull/455), @arekm). Nella **4.19.0**: la ventola ha le velocità che l'auto dichiara, da 1 a 9 su una B10, e il recupero di un viaggio conta il tempo che ogni lettura rappresenta. Nella **4.18.1**: il tracker Posizione di Home Assistant dice la zona delle coordinate dell'auto.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.20.0.md#italiano).
+**v4.21.0:** **le ricariche gratuite hanno la loro fetta in Casa vs Pubblica** nelle Ricariche, invece di contare come pubbliche ([#450](https://github.com/ProtossBlaster/leapmotor-mate/pull/450), @hubcasale). Nella **4.20.0**: Viaggi dice l'energia consumata, e ogni mese e anno delle Statistiche somma all'Energia consumata. Nella **4.19.0**: la ventola ha le velocità che l'auto dichiara, da 1 a 9 su una B10, e il recupero di un viaggio conta il tempo che ogni lettura rappresenta.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.21.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

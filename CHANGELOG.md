@@ -3,6 +3,13 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.21.0] — 2026-11-03
+
+- **Free charges have their own slice in Home vs Public** ([#450](https://github.com/ProtossBlaster/leapmotor-mate/pull/450), @hubcasale). A charge typed Free
+  was counted as Public; it now has a lime slice and a *Free* tile of its own, shown only when there is
+  one. A Home charge marked free stays under Home. The legend of both rings on Charges is one compact
+  tile per kind: the sessions, the name, and under them the kWh and the share.
+
 ## [4.20.0] — 2026-11-03
 
 - **Trips says the energy used** ([#456](https://github.com/ProtossBlaster/leapmotor-mate/pull/456), @arekm).

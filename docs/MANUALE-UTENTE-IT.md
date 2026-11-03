@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.20.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.21.0 · **Lingua:** Italiano
 
-## Novità della 4.20.0
+## Novità della 4.21.0
+
+**Le ricariche gratuite hanno la loro fetta in Casa vs Pubblica.** Nelle Ricariche, una ricarica di
+tipo **Gratis** contava come Pubblica; ora ha una sua fetta verde lime e una mattonella **🆓 Gratis**,
+che compare solo se ne hai almeno una. Una ricarica di Casa segnata gratuita (per esempio col solare)
+resta sotto Casa. La legenda dei due anelli è più compatta: ogni voce dà le sue sessioni e il nome, e
+sotto i kWh e la quota.
+
+### Novità della 4.20.0
 
 **Viaggi dice l'energia consumata.** Un quinto riquadro in Viaggi dà l'energia consumata da tutti i tuoi
 viaggi, la stessa cifra dell'*Energia consumata* delle Statistiche, e anche l'intestazione di un giorno, la
@@ -1420,10 +1428,11 @@ Il tipo è classificato con un'etichetta:
   rimette il valore calcolato. Le ricariche che avevi scritto così prima della v3.16.0 si leggono di
   nuovo **✎ Manuale**, con il loro prezzo: non c'è niente da fare.
 - **Casa vs Pubblica 🆕** — accanto alla card *Distribuzione AC vs DC* ce n'è una seconda:
-  **Casa**, **Pubblica**, **✎ Manuale** e **Da confermare**, con una ciambella e una mattonella
-  ciascuna (le ultime due solo se ce ne sono). Fanno sempre il numero di ricariche scritto sopra,
-  così una ricarica col prezzo scritto a mano non finisce fra le pubbliche, e una che aspetta il suo
-  tipo si vede come tale.
+  **Casa**, **Pubblica**, **🆓 Gratis**, **✎ Manuale** e **Da confermare**, con una ciambella e una
+  mattonella ciascuna (le ultime tre solo se ce ne sono). Fanno sempre il numero di ricariche scritto
+  sopra, così una ricarica col prezzo scritto a mano non finisce fra le pubbliche, nemmeno una di tipo
+  Gratis, e una che aspetta il suo tipo si vede come tale. Una ricarica di Casa segnata gratuita resta
+  sotto Casa.
 - **Una ricarica abbandonata dal cloud finisce quando passava corrente l'ultima volta 🆕** (#289) —
   se l'auto si addormenta col cavo attaccato, il cloud non lo dice: continua a ripetere l'ultima
   notizia che ha, e lì dentro il cavo risulta ancora collegato. Prima la ricarica restava aperta

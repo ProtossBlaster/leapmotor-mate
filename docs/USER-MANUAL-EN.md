@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.20.0 · **Language:** English
+> **Mate version:** v4.21.0 · **Language:** English
 
-## New in 4.20.0
+## New in 4.21.0
+
+**Free charges have their own slice in Home vs Public.** On Charges, a charge typed **Free** used to
+count as Public; it now has its own lime slice and a **🆓 Free** tile, shown only when you have one. A
+Home charge you marked free (solar, for example) stays under Home. The legend of both rings is more
+compact: each kind gives its sessions and name, and under them its kWh and its share.
+
+### New in 4.20.0
 
 **Trips says the energy used.** A fifth tile on Trips gives the energy all your trips used, the same
 figure as Statistics' *Energy Used*, and a day's heading, the month strip and a search's total give their
@@ -1361,10 +1368,10 @@ The type is classified with a label:
   **est.**, and *Reset*, in the ✎, brings the computed figure back. The charges you priced this way
   before v3.16.0 read **✎ Manual** again, with their price: there is nothing to do.
 - **Home vs Public 🆕** — beside the *AC vs DC Distribution* card there is a second one:
-  **Home**, **Public**, **✎ Manual** and **To confirm**, as a donut and a tile each (the last two
-  only when there are any). They always add up to the number of charges written above them, so a
-  charge priced by hand is not counted as public, and one still waiting for its type shows as
-  waiting.
+  **Home**, **Public**, **🆓 Free**, **✎ Manual** and **To confirm**, as a donut and a tile each (the
+  last three only when there are any). They always add up to the number of charges written above
+  them, so a charge priced by hand is not counted as public, one typed Free is not either, and one
+  still waiting for its type shows as waiting. A Home charge marked free stays under Home.
 - **A charge abandoned by the cloud ends when current last flowed 🆕** (#289) — when the car falls
   asleep with the cable in, the cloud does not say so: it keeps repeating the last news it has, and
   in that news the cable still reads connected. The charge used to stay open until the car next woke
