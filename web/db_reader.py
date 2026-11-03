@@ -11714,8 +11714,9 @@ def _finish_ev_detail(row):
 def _ev_energy_summary(summary):
     if is_reev_car():
         return summary
-    # Through the strips' own totals, so the tile averages by their rule: a zero no reading vouches for counts in none.
-    summary["avg_eff"] = trips_totals(get_trips(limit=1000000))["avg_eff"]
+    # Through the strips' own totals, so the tile averages and sums by their rules.
+    totals = trips_totals(get_trips(limit=1000000))
+    summary["avg_eff"], summary["kwh_used"] = totals["avg_eff"], totals["kwh_used"]
     return summary
 
 
