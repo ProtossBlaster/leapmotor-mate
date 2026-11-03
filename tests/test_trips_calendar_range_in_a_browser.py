@@ -135,6 +135,7 @@ def test_a_shift_click_opens_the_range_with_one_request(browser, mate):
 
 def test_a_mouse_drag_opens_the_range_with_one_request(browser, mate):
     cal = Calendar(browser, mate)
+    cal.cell(5).scroll_into_view_if_needed()   # a bare mouse gesture lands only on what is on screen
     start, end = cal.cell(3).bounding_box(), cal.cell(5).bounding_box()
     mouse = cal.page.mouse
 
