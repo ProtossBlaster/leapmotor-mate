@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import NamedTuple, Optional
 
-from db import (Database, _WB_STUCK_MIN_KW, _now_iso, _generator_was_running)
+from db import (Database, _RECOVERY_MAX_GAP_S, _WB_STUCK_MIN_KW, _now_iso, _generator_was_running)
 from schema import WALLBOX_ENERGY_KWH, WALLBOX_POWER_KW
 from state_machine import (State, StateMachine, StateEvent, _PARKED_STATES,
                            FROZEN_DRIVE_LIMIT_S)
@@ -84,6 +84,8 @@ class Recorder:
         self._last_fresh_ts: Optional[str] = None
         # Timestamp of the last cloud frame (#128) — see process() for what a repeat means.
         self._last_frame_ts: Optional[int] = None
+        # The last fresh frame's clock (None without one): where the next reading's regen span starts.
+        self._last_reading_ts: Optional[int] = None
         # Our clock as this poll began, before its frame was saved: every `positions` row older than
         # this was already on disk. See _settle_trip_after_outage.
         self._polled_at: Optional[str] = None
@@ -180,6 +182,11 @@ class Recorder:
         # (#128). Frame identity is the test — it needs no threshold, so a host clock skewed against
         # the cloud (−48s in the wild) cannot fool it.
         stale = bool(data.timestamp_ms) and data.timestamp_ms == self._last_frame_ts
+        went_back = bool(data.timestamp_ms and self._last_frame_ts and data.timestamp_ms < self._last_frame_ts)
+        prev_reading_ts = self._last_reading_ts
+        if not stale:
+            # Without a clock, or older than the frame before it, a frame cannot place the next one in time.
+            self._last_reading_ts = None if went_back else data.timestamp_ms or None
         if data.timestamp_ms:
             self._last_frame_ts = data.timestamp_ms
 
@@ -233,7 +240,14 @@ class Recorder:
             regen = 0.0
             if (not data.plug_connected and (data.charge_current_a or 0) < -3.0
                     and data.charge_power_kw is not None and not _generator_ran):
-                regen = data.charge_power_kw * (self._sm.poll_driving / 3600)
+                # A reading stands for the time since the previous fresh frame on the car's clock (polls come
+                # late, and some cars send frames less often); one interval without a usable gap.
+                span = self._sm.poll_driving
+                if data.timestamp_ms and prev_reading_ts:
+                    gap = (data.timestamp_ms - prev_reading_ts) / 1000
+                    if 0 < gap <= _RECOVERY_MAX_GAP_S:
+                        span = gap
+                regen = data.charge_power_kw * span / 3600
             self._trip_polls.append(_TripPoll(position_id, point_id, regen))
 
         # During active charge: track peak power, and sum the wallbox counter's rises so the billed
