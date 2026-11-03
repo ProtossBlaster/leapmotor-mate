@@ -670,6 +670,7 @@ def _ctx(**kwargs):
     # default pack. On every page, because the figures it bends are on every page.
     _unconfigured = db_reader.unconfigured_vehicles()
     _command_css = ""
+    from ui_command_access import fan_top as _fan_top
     if not _IS_DEMO:
         from ui_command_access import hidden_controls_css
         _vin = (_veh or {}).get("vin", "")
@@ -701,6 +702,8 @@ def _ctx(**kwargs):
             # Charge-schedule view: cars without weekly/cyclic charge abilities (e.g. T03) get the
             # simple start-time + SoC form — no end-time window, no day chips (#146).
             "charge_schedule_advanced": capability_profile.charge_schedule_advanced(_abilities),
+            # The car's top fan speed, for the Vehicle page's Climate card and the Commands slider.
+            "fan_top": _fan_top((_veh or {}).get("vin"), db_reader.get_setting),
             # The car's charge window as "HH:MM – HH:MM", or "" when there isn't one enabled. Lives
             # here rather than in the Overview routes because the hero card is rendered from TWO
             # places (the page, and the 30-second self-refresh) and a value wired into only one of
@@ -2789,7 +2792,8 @@ def _parse_vehicle_status(sig: dict, vin: str | None = None, cmd_pct: int | None
         },
         "temps": {"battery": f("1182"), "cabin": f("1349")},  # no ambient-temp signal exists
         # Climate panel — signals validated on-car 2026-06-20: base mode 3713 (0 auto/1 cool/3 heat/
-        # 4 vent), fan level 1941 (acAirVolume 1-7; holds last level when off), recirculation 1943.
+        # 4 vent), fan level 1941 (acAirVolume, up to the car's top speed; holds last level when off),
+        # recirculation 1943.
         "climate": {
             "on": is_open("1938"),
             "mode": {0: "auto", 1: "cool", 3: "heat", 4: "vent"}.get(i("3713")),
@@ -5339,10 +5343,13 @@ async def set_climate_temp_api(request: Request):
 
 @app.post("/api/climate-fan", response_class=HTMLResponse)
 async def set_fan_level_api(request: Request):
-    """Set the A/C fan level 1-7 (signal 1941), preserving the current mode / recirc / temp."""
+    """Set the A/C fan to one of the car's speeds (signal 1941), preserving the current mode / recirc / temp."""
     form = await request.form()
+    from ui_command_access import fan_top
+    vehicle, settings = db_reader.get_vehicle()
+    top = fan_top((vehicle or {}).get("vin"), settings.get)
     try:
-        level = max(1, min(int(form.get("level", 0)), 7))
+        level = max(1, min(int(form.get("level", 0)), top))
     except (TypeError, ValueError):
         return HTMLResponse('<span style="color:#ef4444">✗</span>', status_code=400)
     import asyncio
@@ -5351,7 +5358,7 @@ async def set_fan_level_api(request: Request):
     if ok:
         import time
         db_reader.boost_selected_car(60)   # re-poll THIS car within seconds, not 30s
-        return HTMLResponse(f'<span style="color:#22c55e">✓ {level}/7</span>')
+        return HTMLResponse(f'<span style="color:#22c55e">✓ {level}/{top}</span>')
     return HTMLResponse(_cmd_error_html(msg))
 
 

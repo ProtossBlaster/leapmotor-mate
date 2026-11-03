@@ -33,3 +33,4 @@ seat_position = _compat(_core.seat_position)
 bundle = _compat(_core.bundle)
 appointment = _compat(_core.appointment)
 prepare = _compat(_core.prepare)
+fan_top = _core.fan_top

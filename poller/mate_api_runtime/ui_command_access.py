@@ -4,7 +4,7 @@ import json
 import os
 import time
 from types import SimpleNamespace
-from command_contracts import require, prepare
+from command_contracts import fan_top as contract_fan_top, require, prepare
 from leapmotor_cloud.mate_compat import Vehicle
 
 GROUPS = {
@@ -95,6 +95,15 @@ def allowed(snapshot, username, vin, command, *, now=None, refusals=()):
         return True
     except Exception:
         return False
+
+
+def fan_top(vin, get_setting):
+    """This car's top fan speed as the climate contract takes it, from the vehicle list a command is
+    checked against; 7, which every car takes, before a list has been read."""
+    try:
+        return contract_fan_top(json.loads(get_setting(snapshot_key(vin), '{}'))['vehicle'].get('funcConfig'))
+    except Exception:
+        return contract_fan_top(None)
 
 
 def account_username(get_setting):
