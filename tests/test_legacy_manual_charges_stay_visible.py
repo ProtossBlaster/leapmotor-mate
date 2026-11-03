@@ -136,3 +136,17 @@ def test_home_public_manual_and_unconfirmed_always_sum_to_the_grand_total(tmp_pa
     assert stats["public_count"] == 1
     assert stats["manual_count"] == 1
     assert stats["unconfirmed_count"] == 1
+
+
+# ── free charges get their own slice of the "Home vs Public" card ──────────────
+
+def test_a_free_charge_is_its_own_slice_not_public(tmp_path, monkeypatch):
+    pdb = _setup(tmp_path, monkeypatch)
+    _charge(pdb, 1, ctype="HOME", cost=3.0, charge_type="AC")
+    _charge(pdb, 2, ctype="FAST", cost=10.0, charge_type="DC", max_power_kw=50)
+    _charge(pdb, 3, ctype="FREE", cost=0.0, charge_type="AC")
+    stats = db_reader.get_ac_dc_stats()
+    assert (stats["home_count"], stats["public_count"], stats["free_count"]) == (1, 1, 1)
+    assert stats["free_kwh"] == 10.0
+    assert (stats["home_count"] + stats["public_count"] + stats["free_count"]
+            + stats["manual_count"] + stats["unconfirmed_count"]) == stats["total"]
