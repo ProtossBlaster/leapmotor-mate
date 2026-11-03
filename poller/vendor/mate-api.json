@@ -1,7 +1,7 @@
 {
   "version": "0.1.0a16",
   "source": "https://github.com/ProtossBlaster/MATE-API",
-  "commit": "cd8876554983bade253b60f45f50eef37c41ef58",
+  "commit": "68e217f3cb1a3f66bfb5509a457993e69932b8aa",
   "sha256": {
     "leapmotor_cloud/__init__.py": "ab9c3e71a18f9e6eddf0edc96f9b4e92f0b4145e33f929c432f5a3b0357458e4",
     "leapmotor_cloud/account_material.py": "fe2ead6c0b5a3ff8ed0de27963d99553a8fc0713971d7206039f9a2e5bba6c65",
