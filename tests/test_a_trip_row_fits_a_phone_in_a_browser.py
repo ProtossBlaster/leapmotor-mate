@@ -1,9 +1,9 @@
-"""A trip row on a phone keeps room for its clock and duration. Beside the thumbnail, the distance column
-and the energy source label, the middle column was squeezed to no width at all, and its times ran under
-the consumption pill. On a phone the label now takes a line of its own; a wide screen keeps one line.
-Where the trip started and ended does the same: a line of its own on a phone, the middle column on a
-wide screen, each place cut short on its own so a long street never pushes the short one out; the
-trip's own page shows them whole.
+"""A trip row keeps room for its clock, its duration and where it went, by its own width rather than the
+window's. Beside the thumbnail, the battery, the distance and the energy source label, the middle column was
+squeezed to no width at all, and its times ran under the consumption pill: on a phone, and on a tablet beside
+the sidebar. A narrow row puts the places, the battery and the label on lines of their own, a wider one only the
+label, and a wide one keeps everything on one line. Each place is cut short on its own, so a long street never
+pushes the short one out, and names itself whole when hovered; the trip's own page shows them whole.
 Measured in a real browser, because only layout says how wide a column came out.
 Skips where it cannot run (no playwright, no Chromium), like the other browser tests.
 """
@@ -36,7 +36,7 @@ _PLACES = """() => [...document.querySelectorAll('#trips-day-drawer .trip-row')]
   const [from, , to] = line.children;
   return {copies: shown.length, inside: line.getBoundingClientRect().right <= row.getBoundingClientRect().right + 0.5,
           fromWhole: from.scrollWidth <= from.clientWidth, from: from.textContent,
-          toCut: to.scrollWidth > to.clientWidth, toWidth: to.clientWidth, to: to.textContent,
+          toCut: to.scrollWidth > to.clientWidth, toWidth: to.clientWidth, to: to.textContent, toTitle: to.title,
           gap: to.getBoundingClientRect().left - from.getBoundingClientRect().right}; })"""
 _MIDDLE = """() => { const m = document.querySelector('#trips-day-drawer .trip-row .min-w-0');
   return {width: m.clientWidth, needs: m.scrollWidth}; }"""
@@ -56,7 +56,7 @@ def mate(tmp_path_factory):
         yield url
 
 
-@pytest.mark.parametrize("width", [390, 1280])
+@pytest.mark.parametrize("width", [390, 800, 1024, 1280])   # a phone, beside the sidebar a tablet and a laptop, wide
 def test_the_middle_of_a_trip_row_is_as_wide_as_what_it_holds(mate, width):
     pw, browser = chromium(sync_api)
     try:
@@ -71,6 +71,8 @@ def test_the_middle_of_a_trip_row_is_as_wide_as_what_it_holds(mate, width):
             assert places["inside"] and places["fromWhole"] and places["from"] == "Home (charging place)", places
             assert places["gap"] < 30, ("the arrow and the destination follow the start", places)
         assert far["toWidth"] > 100 and (far["toCut"] or width > 390), far
+        assert far["toTitle"] == ("Viale della Repubblica Partigiana e dei Martiri della Libertà 128, "
+                                  "San Giovanni in Persiceto"), far
         assert near["to"] == "Via Po 3, Torino" and not near["toCut"], near
     finally:
         browser.close()
