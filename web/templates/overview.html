@@ -284,28 +284,11 @@
       <a href="trips" class="text-brand text-sm hover:underline">{{ t('view_all') }}</a>
     </div>
     {% if recent_trips %}
-    <div class="space-y-3">
-      {% for trip in recent_trips %}
-      <a href="trips/{{ trip.id }}" class="flex items-center justify-between p-3 bg-slate-750 rounded-lg hover:bg-slate-700 transition-colors block">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full bg-brand/20 flex items-center justify-center text-brand">🗺</div>
-          <div>
-            <div class="text-sm font-medium text-white">
-              {{ trip.started_at | localdate if trip.started_at else '—' }}
-              <span class="text-slate-400 font-normal ml-1">{{ trip.started_at[11:16] if trip.started_at else '' }}</span>
-            </div>
-            <div class="text-xs text-slate-400">{{ fmt_dur(trip.duration_min) }}</div>
-          </div>
-        </div>
-        <div class="text-right">
-          <div class="text-sm font-bold text-white">{{ (trip.distance_km or 0) | dist(1) }}</div>
-          <div class="text-xs text-slate-400">
-            {% if trip.efficiency_kwh_100km %}{{ trip.efficiency_kwh_100km | eff }}{% endif %}
-          </div>
-        </div>
-      </a>
-      {% endfor %}
+    {# The rows of the Trips page, without their route. #}
+    <div class="space-y-2" data-recent-trips>
+      {% for trip in recent_trips %}{% with route_thumb = false %}{% include "partials/trip_row.html" %}{% endwith %}{% endfor %}
     </div>
+    {% include "partials/_address_credit.html" %}
     {% else %}
     <div class="text-center py-6 text-slate-500 text-sm">{{ t('no_trips') }}</div>
     {% endif %}

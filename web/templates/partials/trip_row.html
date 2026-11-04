@@ -1,4 +1,5 @@
-{# Single trip row — reused by the day-drawer (plain and in 🔗 merge mode) and search results.
+{# Single trip row — reused by the day-drawer (plain and in 🔗 merge mode), search results and the
+   Overview's Recent Trips, which sets `route_thumb` false: its rows have no route.
    Expects `trip` in scope, plus the page-level `t`/`fmt_dur`/`is_reev`/`research` already in
    context (Jinja includes share the parent scope). `eff_cls` and the `dist`/`eff`/`nice`
    filters are global (see main.py), no extra wiring needed.
@@ -18,7 +19,8 @@
 {% macro places(row, cls) %}{% if row.start_place or row.end_place %}<div class="trip-places text-[11px] text-slate-400 {{ cls }}" data-trip-places><span{% if row.start_place %} title="{{ row.start_place }}"{% endif %}>{{ place_name(row.start_place, row.start_place_charging) if row.start_place else '—' }}</span><span class="text-slate-600">→</span><span{% if row.end_place %} title="{{ row.end_place }}"{% endif %}>{{ place_name(row.end_place, row.end_place_charging) if row.end_place else '—' }}</span></div>{% endif %}{% endmacro %}
 <a href="trips/{{ trip.id }}" data-trip-id="{{ trip.id }}" class="trip-row flex-wrap">
 
-  {% if trip.has_gps is defined and not trip.has_gps %}
+  {% if route_thumb is defined and not route_thumb %}
+  {% elif trip.has_gps is defined and not trip.has_gps %}
   <div class="trip-thumb flex items-center justify-center text-slate-500 text-[10px] text-center px-1"
        title="{{ t('gps_unavailable') }}">{{ t('gps_unavailable') }}</div>
   {% elif trip.reconstructed %}
@@ -29,9 +31,9 @@
   {% endif %}
 
   <div class="min-w-0 flex-1">
-    {# Only a search result carries a date (set by the search route, #191's split) — in the day
-       drawer the date is the heading above these rows, and printing it here too would repeat that
-       heading once per trip. #}
+    {# Only a row standing on its own carries a date (a search result, the Overview: #191's split) — in
+       the day drawer the date is the heading above these rows, and printing it here too would repeat
+       that heading once per trip. #}
     {% if trip.date_label %}
     <div class="text-[11px] text-slate-500 leading-tight">{{ trip.date_label }}</div>
     {% endif %}

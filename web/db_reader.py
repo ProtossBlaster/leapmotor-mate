@@ -6886,7 +6886,8 @@ def _prepared_trips(trips: list[dict]) -> list[dict]:
     """A trip list made ready to show: a trip with no readable start is left out, and the rest get local
     start/end times, the ec_pending flag (the car's own energy figure still to come, ⏳) and a private
     `_dt` (aware, local-tz datetime) for the caller's OWN day/date bucketing or filtering. What they
-    cost is _localized_trips()'s to add."""
+    cost is _localized_trips()'s to add: a list that shows none, as the Overview's, takes this alone,
+    since pricing replays the whole charge history."""
     ec_on = get_setting("ec_trip_energy_enabled", "1") == "1"
     ec_cutoff = get_setting("ec_trip_since", "")
     now_ts = datetime.now(timezone.utc).timestamp()

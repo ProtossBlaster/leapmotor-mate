@@ -30,7 +30,7 @@ _HOME = ("INSERT INTO charging_places (vehicle_id, name, latitude, longitude, ra
 _FAR = ("INSERT INTO addresses (geohash, latitude, longitude, provider, status, road, house_number, locality,"
         " looked_up_at) VALUES (?, 44.64, 11.19, 'nominatim', 'found',"
         " 'Viale della Repubblica Partigiana e dei Martiri della Libertà', '128', 'San Giovanni in Persiceto', '')")
-_PLACES = """() => [...document.querySelectorAll('#trips-day-drawer .trip-row')].map(row => {
+_PLACES = """list => [...document.querySelectorAll(list + ' .trip-row')].map(row => {
   const shown = [...row.querySelectorAll('[data-trip-places]')].filter(e => e.offsetParent !== null);
   const line = shown[0];
   const [from, , to] = line.children;
@@ -65,7 +65,7 @@ def test_the_middle_of_a_trip_row_is_as_wide_as_what_it_holds(mate, width):
         page.locator("#trips-day-drawer .trip-row").filter(has_text="Mate").first.wait_for()
         middle = page.evaluate(_MIDDLE)
         assert middle["width"] > 0 and middle["needs"] <= middle["width"], middle
-        far, near = page.evaluate(_PLACES)
+        far, near = page.evaluate(_PLACES, "#trips-day-drawer")
         for places in (far, near):
             assert places["copies"] == 1, ("one copy of the line per screen width", places)
             assert places["inside"] and places["fromWhole"] and places["from"] == "Home (charging place)", places
@@ -74,6 +74,23 @@ def test_the_middle_of_a_trip_row_is_as_wide_as_what_it_holds(mate, width):
         assert far["toTitle"] == ("Viale della Repubblica Partigiana e dei Martiri della Libertà 128, "
                                   "San Giovanni in Persiceto"), far
         assert near["to"] == "Via Po 3, Torino" and not near["toCut"], near
+    finally:
+        browser.close()
+        pw.stop()
+
+
+@pytest.mark.parametrize("width", [1024, 1280])
+def test_a_recent_trip_keeps_its_places_on_the_overview(mate, width):
+    """The Overview's card is two thirds of the page beside the sidebar, and its rows lay out for that room."""
+    pw, browser = chromium(sync_api)
+    try:
+        page = browser.new_page(viewport={"width": width, "height": 900})
+        assert page.goto(mate + "/").status == 200
+        page.locator("[data-recent-trips] .trip-row").first.wait_for()
+        far, near = page.evaluate(_PLACES, "[data-recent-trips]")
+        for places in (far, near):
+            assert places["copies"] == 1 and places["fromWhole"] and places["from"] == "Home (charging place)", places
+        assert far["toWidth"] > 100 and near["to"] == "Via Po 3, Torino" and not near["toCut"], (far, near)
     finally:
         browser.close()
         pw.stop()
