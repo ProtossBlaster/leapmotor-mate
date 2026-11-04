@@ -8472,6 +8472,12 @@ def energy_used_total(values) -> Optional[float]:
     return (cents if n >= 0 else -cents) / 100
 
 
+def trip_kwh_used(t: dict) -> Optional[float]:
+    """trip_energy_used() as a trip's row prints it: rounded as energy_used_total() rounds a total, so a trip
+    alone in its day reads the day's figure."""
+    return energy_used_total([trip_energy_used(t)])
+
+
 def _merged_trip_statistics(db, begin=None, end=None):
     """Overrides for beta #44: aggregate logical trips, not their stored segments.
 
