@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.21.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.22.0 · **Lingua:** Italiano
 
-## Novità della 4.21.0
+## Novità della 4.22.0
+
+**I Viaggi recenti sono le righe di Viaggi.** Nella Panoramica, *Viaggi recenti* mostra ora ogni viaggio
+come la sua riga in Viaggi, senza il percorso: da dove è partito e dove è arrivato, la batteria prima e
+dopo, l'energia consumata e da dove viene quella cifra (per esempio *Misurata dall'auto*). La Panoramica
+non dà il costo; le liste di Viaggi sì. In Viaggi ogni riga dà ora i suoi kWh fra la distanza e il
+consumo, e una riga accanto alla barra laterale tiene interi i luoghi di partenza e di arrivo; un luogo
+ancora tagliato dà il nome intero quando ci passi sopra col mouse.
+
+### Novità della 4.21.0
 
 **Le ricariche gratuite hanno la loro fetta in Casa vs Pubblica.** Nelle Ricariche, una ricarica di
 tipo **Gratis** contava come Pubblica; ora ha una sua fetta verde lime e una mattonella **🆓 Gratis**,

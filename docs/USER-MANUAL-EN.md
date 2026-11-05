@@ -1,8 +1,17 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.21.0 · **Language:** English
+> **Mate version:** v4.22.0 · **Language:** English
 
-## New in 4.21.0
+## New in 4.22.0
+
+**Recent Trips are the rows of Trips.** On the Overview, *Recent Trips* now shows each trip as its row on
+Trips, without the route: where it started and ended, the battery before and after, the energy it used and
+where that figure came from (*Measured by the car*, for example). The Overview gives no cost; the Trips
+lists still do. On Trips, every row now gives its kWh between the distance and the consumption, and a row
+beside the sidebar keeps its start and end places whole; a place still cut short gives its full name when
+you hover over it.
+
+### New in 4.21.0
 
 **Free charges have their own slice in Home vs Public.** On Charges, a charge typed **Free** used to
 count as Public; it now has its own lime slice and a **🆓 Free** tile, shown only when you have one. A

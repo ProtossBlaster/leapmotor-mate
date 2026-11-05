@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.21.0 · **Idioma:** Español
+> **Versión de Mate:** v4.22.0 · **Idioma:** Español
 
-## Novedades de la versión 4.21.0
+## Novedades de la versión 4.22.0
+
+**Los trayectos recientes son las filas de Trayectos.** En Resumen, *Trayectos recientes* muestra ahora
+cada trayecto como su fila en Trayectos, sin el recorrido: dónde empezó y dónde terminó, la batería antes
+y después, la energía consumida y de dónde viene esa cifra (*Medida por el coche*, por ejemplo). Resumen
+no da el coste; las listas de Trayectos sí. En Trayectos cada fila da ahora sus kWh entre la distancia y
+el consumo, y una fila junto a la barra lateral muestra enteros los lugares de salida y llegada; un lugar
+que aún queda cortado da su nombre completo al pasar el ratón por encima.
+
+### Novedades de la versión 4.21.0
 
 **Las cargas gratuitas tienen su propia porción en Casa y pública.** En Cargas, una carga de tipo
 **Gratis** contaba como Pública; ahora tiene su propia porción verde lima y una casilla **🆓 Gratis**,

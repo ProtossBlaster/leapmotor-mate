@@ -1,8 +1,17 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.21.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.22.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.21.0
+## Neu in Version 4.22.0
+
+**Die letzten Fahrten sind die Zeilen von Fahrten.** In der Übersicht zeigt *Letzte Fahrten* jede Fahrt
+jetzt als ihre Zeile unter Fahrten, ohne die Route: wo sie begann und endete, die Batterie davor und
+danach, die verbrauchte Energie und woher diese Zahl stammt (zum Beispiel *Vom Auto gemessen*). Die
+Übersicht nennt keine Kosten; die Listen unter Fahrten schon. Unter Fahrten gibt jede Zeile jetzt ihre kWh
+zwischen Strecke und Verbrauch an, und eine Zeile neben der Seitenleiste zeigt Start- und Zielort
+vollständig; ein Ort, der noch abgeschnitten ist, zeigt seinen vollen Namen, wenn du mit der Maus darüberfährst.
+
+### Neu in Version 4.21.0
 
 **Kostenlose Ladevorgänge haben ihr eigenes Segment in Zuhause / Öffentlich.** Unter Ladevorgänge zählte ein
 Ladevorgang vom Typ **Gratis** als Öffentlich; jetzt hat er ein eigenes limettengrünes Segment und eine

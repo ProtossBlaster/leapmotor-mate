@@ -3,6 +3,18 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.22.0] — 2026-11-05
+
+- **Recent Trips are the rows of the Trips page** ([#457](https://github.com/ProtossBlaster/leapmotor-mate/pull/457), @arekm).
+  On the Overview a recent trip gave its date, start time, duration, distance and consumption; it is now
+  its row on Trips without the route: where it started and ended, the battery before and after, the energy
+  it used and where that figure came from. The Overview prices no trip, so its rows show no cost.
+- **A trip row gives the energy it used.** On Trips each row gives its kWh between the distance and the
+  consumption, the figure its day's heading adds up. A range-extender's row has none, as its totals have none.
+- **A trip row lays out by the room it has, not by the window.** Beside the sidebar, at 800 to 1,024 px, the
+  start and end places of a trip were cut short or left without room; they now read whole, and a place
+  still cut short gives its full name on hover.
+
 ## [4.21.0] — 2026-11-03
 
 - **Free charges have their own slice in Home vs Public** ([#450](https://github.com/ProtossBlaster/leapmotor-mate/pull/450), @hubcasale). A charge typed Free
