@@ -417,6 +417,7 @@ templates.env.globals.update(
     eff_val=units.eff_val, elev_val=units.elev_val, unit_system=units.get_unit_system,
     dist100_unit=units.dist100_unit, cost100_val=units.cost100_val,
     eff_cls=_eff_cls, display_tz_name=db_reader.display_tz_name, provider_names=geocode.NAMES,
+    trip_kwh_used=db_reader.trip_kwh_used,   # trip_row.html, in every list that renders it
     # #222 — whether the charger's-own-kWh field can be offered at all. A GLOBAL, not a per-route
     # value: the charge card is rendered by the page AND by two partials that build their context by
     # hand, so a flag passed through _ctx reached the page and silently vanished from the day drawer
@@ -796,17 +797,18 @@ async def logout(request: Request):
 async def overview(request: Request):
     vehicle, settings = db_reader.get_vehicle()
     status = db_reader.get_latest_status()
-    trips = db_reader.get_trips(limit=3)
-    # get_trips() returns raw UTC rows; overview.html slices started_at[:10]/[11:16]
-    # directly, so localize here like the Trips page / trip detail do (issue #12).
-    for tr in trips:
-        tr["started_at"] = db_reader._local_iso(tr.get("started_at"))
-        tr["ended_at"] = db_reader._local_iso(tr.get("ended_at"))
+    # Made ready as the Trips lists make theirs, for the same row (local times, a figure still provisional),
+    # but not priced: its rows show no cost.
+    trips = db_reader._prepared_trips(db_reader.get_trips(limit=3))
+    lang = db_reader.get_language()
+    for tr in trips:            # its rows stand on their own, as a search result's do: each says its day
+        dt = db_reader._local_dt(tr.get("started_at"))
+        tr["date_label"] = i18n.fmt_day_month_year(lang, dt) if dt else None
     charges = db_reader.get_charges(limit=1)
-    t = i18n.get_t(db_reader.get_language())
+    t = i18n.get_t(lang)
     return templates.TemplateResponse(request, "overview.html", _ctx(
         page="overview", vehicle=vehicle, settings=settings,
-        status=status, recent_trips=trips,
+        status=status, recent_trips=trips, address_credit=db_reader.trip_places(trips),
         last_position=_last_position(status, t),
         last_charge=charges[0] if charges else None,
         v2l=db_reader.get_v2l_status(),
@@ -1012,10 +1014,11 @@ async def trips_search(request: Request, q: str = "", drive_mode: str = "",
         eff_min=n_eff_min, eff_max=n_eff_max, duration_min=n_duration_min, duration_max=n_duration_max,
         date_from=date_from, date_to=date_to)
     # The same split Ricariche got in #191, which Viaggi never got: a result standing on its own has
-    # to say WHICH DAY it was — a hit read "17:52 → 18:15" and nothing more. Set the label HERE, in
-    # the search route only, and let the row print it when it's there. Unconditionally in the row
-    # and the calendar's day drawer starts repeating its own heading underneath itself, once per
-    # trip — the same reason merging moved INTO the drawer rather than carrying its own dates (#204).
+    # to say WHICH DAY it was — a hit read "17:52 → 18:15" and nothing more. Set the label here, as
+    # every route whose rows stand alone does (the Charges search, the Overview), and let the row print
+    # it when it's there. Unconditionally in the row and the calendar's day drawer starts repeating its
+    # own heading underneath itself, once per trip — the same reason merging moved INTO the drawer
+    # rather than carrying its own dates (#204).
     for t in trips:
         dt = db_reader._local_dt(t.get("started_at"))
         t["date_label"] = i18n.fmt_day_month_year(lang, dt) if dt else None

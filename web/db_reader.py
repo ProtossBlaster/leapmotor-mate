@@ -6882,15 +6882,12 @@ def _trip_blended_rate_fn():
     return _rate_at
 
 
-def _localized_trips(trips: list[dict]) -> list[dict]:
-    """Per-trip localization + derived cost shared by the Trips calendar, search, Statistics and the
-    Monthly Report: the ec_pending flag, local start/end times, and `cost` — the electric cost of the
-    trip, priced the SAME way the trip detail prices it so every page agrees. On a REEV that is the
-    depleting PAID STOCK (reev_trip_electric_cost, generator kWh free); on a BEV it is efficiency ×
-    distance × the blended €/kWh in effect AT the trip's time (_wac_blend), unchanged. Adds a private
-    `_dt` (aware, local-tz datetime) for the caller's OWN day/date bucketing or filtering."""
-    rate_at = _trip_blended_rate_fn()
-    reev_costs = _reev_electric_cost_by_trip()   # {} on a BEV → the BEV branch below runs unchanged
+def _prepared_trips(trips: list[dict]) -> list[dict]:
+    """A trip list made ready to show: a trip with no readable start is left out, and the rest get local
+    start/end times, the ec_pending flag (the car's own energy figure still to come, ⏳) and a private
+    `_dt` (aware, local-tz datetime) for the caller's OWN day/date bucketing or filtering. What they
+    cost is _localized_trips()'s to add: a list that shows none, as the Overview's, takes this alone,
+    since pricing replays the whole charge history."""
     ec_on = get_setting("ec_trip_energy_enabled", "1") == "1"
     ec_cutoff = get_setting("ec_trip_since", "")
     now_ts = datetime.now(timezone.utc).timestamp()
@@ -6902,7 +6899,6 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
         dt = _local_dt(t["started_at"], zone)
         if dt is None:
             continue
-        raw_start = t["started_at"]
         ee = _trip_epoch(t.get("ended_at")) if t.get("ended_at") else None
         t["ec_pending"] = bool(
             ec_on and not t.get("ec_stable") and ec_cutoff
@@ -6910,6 +6906,23 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
             and ee and (now_ts - ee) < 6 * 3600)
         t["started_at"] = dt.isoformat()
         t["ended_at"] = _local_iso(t.get("ended_at"), zone)
+        t["_dt"] = dt
+        out.append(t)
+    return _clear_cloud_pending(out)
+
+
+def _localized_trips(trips: list[dict]) -> list[dict]:
+    """_prepared_trips() plus `cost`, shared by the Trips calendar, search, Statistics and the Monthly
+    Report: the electric cost of the trip, priced the SAME way the trip detail prices it so every page
+    agrees. On a REEV that is the depleting PAID STOCK (reev_trip_electric_cost, generator kWh free); on
+    a BEV it is efficiency × distance × the blended €/kWh in effect AT the trip's time (_wac_blend),
+    unchanged."""
+    trips = list(trips)                                        # read twice: for its UTC starts, then prepared
+    utc_start = {id(t): t.get("started_at") for t in trips}   # the rate is looked up in UTC, as stored
+    out = _prepared_trips(trips)
+    rate_at = _trip_blended_rate_fn()
+    reev_costs = _reev_electric_cost_by_trip()   # {} on a BEV → the BEV branch below runs unchanged
+    for t in out:
         if reev_costs:
             # REEV: the electric cost from the depleting PAID STOCK the trip detail uses, so list,
             # calendar, Statistics and Report all agree — and generator kWh come out free (already
@@ -6920,11 +6933,9 @@ def _localized_trips(trips: list[dict]) -> list[dict]:
             km = t.get("distance_km") or 0
             eff = t.get("efficiency_kwh_100km")
             energy = (t["energy_kwh"] if t.get("energy_source") else ((eff * km / 100) if (eff and km) else 0))
-            rate = rate_at(t.get("vehicle_id"), raw_start) if energy else None
+            rate = rate_at(t.get("vehicle_id"), utc_start[id(t)]) if energy else None
             t["cost"] = (energy * rate) if (energy and rate) else 0
-        t["_dt"] = dt
-        out.append(t)
-    return _clear_cloud_pending(out)
+    return out
 
 
 def _totals_node() -> dict:
@@ -8470,6 +8481,12 @@ def energy_used_total(values) -> Optional[float]:
     cents, rest = divmod(abs(n) * 100, d)
     cents += 2 * rest >= d
     return (cents if n >= 0 else -cents) / 100
+
+
+def trip_kwh_used(t: dict) -> Optional[float]:
+    """trip_energy_used() as a trip's row prints it: rounded as energy_used_total() rounds a total, so a trip
+    alone in its day reads the day's figure."""
+    return energy_used_total([trip_energy_used(t)])
 
 
 def _merged_trip_statistics(db, begin=None, end=None):

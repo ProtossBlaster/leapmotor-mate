@@ -1,9 +1,9 @@
-"""A trip row on a phone keeps room for its clock and duration. Beside the thumbnail, the distance column
-and the energy source label, the middle column was squeezed to no width at all, and its times ran under
-the consumption pill. On a phone the label now takes a line of its own; a wide screen keeps one line.
-Where the trip started and ended does the same: a line of its own on a phone, the middle column on a
-wide screen, each place cut short on its own so a long street never pushes the short one out; the
-trip's own page shows them whole.
+"""A trip row keeps room for its clock, its duration and where it went, by its own width rather than the
+window's. Beside the thumbnail, the battery, the distance and the energy source label, the middle column was
+squeezed to no width at all, and its times ran under the consumption pill: on a phone, and on a tablet beside
+the sidebar. A narrow row puts the places, the battery and the label on lines of their own, a wider one only the
+label, and a wide one keeps everything on one line. Each place is cut short on its own, so a long street never
+pushes the short one out, and names itself whole when hovered; the trip's own page shows them whole.
 Measured in a real browser, because only layout says how wide a column came out.
 Skips where it cannot run (no playwright, no Chromium), like the other browser tests.
 """
@@ -30,13 +30,13 @@ _HOME = ("INSERT INTO charging_places (vehicle_id, name, latitude, longitude, ra
 _FAR = ("INSERT INTO addresses (geohash, latitude, longitude, provider, status, road, house_number, locality,"
         " looked_up_at) VALUES (?, 44.64, 11.19, 'nominatim', 'found',"
         " 'Viale della Repubblica Partigiana e dei Martiri della Libertà', '128', 'San Giovanni in Persiceto', '')")
-_PLACES = """() => [...document.querySelectorAll('#trips-day-drawer .trip-row')].map(row => {
+_PLACES = """list => [...document.querySelectorAll(list + ' .trip-row')].map(row => {
   const shown = [...row.querySelectorAll('[data-trip-places]')].filter(e => e.offsetParent !== null);
   const line = shown[0];
   const [from, , to] = line.children;
   return {copies: shown.length, inside: line.getBoundingClientRect().right <= row.getBoundingClientRect().right + 0.5,
           fromWhole: from.scrollWidth <= from.clientWidth, from: from.textContent,
-          toCut: to.scrollWidth > to.clientWidth, toWidth: to.clientWidth, to: to.textContent,
+          toCut: to.scrollWidth > to.clientWidth, toWidth: to.clientWidth, to: to.textContent, toTitle: to.title,
           gap: to.getBoundingClientRect().left - from.getBoundingClientRect().right}; })"""
 _MIDDLE = """() => { const m = document.querySelector('#trips-day-drawer .trip-row .min-w-0');
   return {width: m.clientWidth, needs: m.scrollWidth}; }"""
@@ -56,7 +56,7 @@ def mate(tmp_path_factory):
         yield url
 
 
-@pytest.mark.parametrize("width", [390, 1280])
+@pytest.mark.parametrize("width", [390, 800, 1024, 1280])   # a phone, beside the sidebar a tablet and a laptop, wide
 def test_the_middle_of_a_trip_row_is_as_wide_as_what_it_holds(mate, width):
     pw, browser = chromium(sync_api)
     try:
@@ -65,13 +65,32 @@ def test_the_middle_of_a_trip_row_is_as_wide_as_what_it_holds(mate, width):
         page.locator("#trips-day-drawer .trip-row").filter(has_text="Mate").first.wait_for()
         middle = page.evaluate(_MIDDLE)
         assert middle["width"] > 0 and middle["needs"] <= middle["width"], middle
-        far, near = page.evaluate(_PLACES)
+        far, near = page.evaluate(_PLACES, "#trips-day-drawer")
         for places in (far, near):
             assert places["copies"] == 1, ("one copy of the line per screen width", places)
             assert places["inside"] and places["fromWhole"] and places["from"] == "Home (charging place)", places
             assert places["gap"] < 30, ("the arrow and the destination follow the start", places)
         assert far["toWidth"] > 100 and (far["toCut"] or width > 390), far
+        assert far["toTitle"] == ("Viale della Repubblica Partigiana e dei Martiri della Libertà 128, "
+                                  "San Giovanni in Persiceto"), far
         assert near["to"] == "Via Po 3, Torino" and not near["toCut"], near
+    finally:
+        browser.close()
+        pw.stop()
+
+
+@pytest.mark.parametrize("width", [1024, 1280])
+def test_a_recent_trip_keeps_its_places_on_the_overview(mate, width):
+    """The Overview's card is two thirds of the page beside the sidebar, and its rows lay out for that room."""
+    pw, browser = chromium(sync_api)
+    try:
+        page = browser.new_page(viewport={"width": width, "height": 900})
+        assert page.goto(mate + "/").status == 200
+        page.locator("[data-recent-trips] .trip-row").first.wait_for()
+        far, near = page.evaluate(_PLACES, "[data-recent-trips]")
+        for places in (far, near):
+            assert places["copies"] == 1 and places["fromWhole"] and places["from"] == "Home (charging place)", places
+        assert far["toWidth"] > 100 and near["to"] == "Via Po 3, Torino" and not near["toCut"], (far, near)
     finally:
         browser.close()
         pw.stop()

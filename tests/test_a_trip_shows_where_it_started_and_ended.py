@@ -69,10 +69,10 @@ def drawer(db, day=DAY, **q):
 
 
 def lines(html):
-    """Each row's "from → to" as the computer shows it (the phone's copy, `sm:hidden`, is the same line)."""
+    """Each row's "from → to" as a wide row shows it (a narrow row's copy, `trip-places-under`, is the same line)."""
     out = []
     for attrs, inner in re.findall(r"<div([^>]*\bdata-trip-places\b[^>]*)>(.*?)</div>", html, re.DOTALL):
-        if "hidden" in re.search(r'class="([^"]*)"', attrs).group(1).split():
+        if "trip-places-beside" in re.search(r'class="([^"]*)"', attrs).group(1).split():
             start, end = re.split(r"<span[^>]*>→</span>", inner)
             out.append((re.sub(r"<[^>]+>", "", start), re.sub(r"<[^>]+>", "", end)))
     return out

@@ -145,6 +145,18 @@
     }
     .trip-row:hover { background: rgba(51,65,85,.4); border-color: #334155; }
     @media (max-width: 639px) { .trip-row { column-gap: .5rem; } }   /* a phone's middle column needs the room */
+    /* A trip row lays out by its own width, not the window's: a sidebar, or the Overview's card, leaves it far less.
+       Narrow, the places and the battery take lines of their own; wider, the energy's source goes under the figures;
+       wide, all of it is one line. */
+    .trip-row[data-trip-id] { container-type: inline-size; }
+    .trip-row .trip-places-beside, .trip-row .trip-soc { display: none; }
+    .trip-row .trip-source { width: 100%; margin-top: -.5rem; text-align: right; }
+    @container (min-width: 560px) {
+      .trip-row .trip-places-beside { display: grid; }
+      .trip-row .trip-soc { display: flex; }
+      .trip-row .trip-places-under, .trip-row .trip-soc-line { display: none; }
+    }
+    @container (min-width: 800px) { .trip-row .trip-source { width: auto; margin-top: 0; margin-left: .5rem; text-align: left; } }
     /* A charge row is a <summary>: the click opens the body under it, its buttons keep their own click. */
     .charge-row { cursor: pointer; list-style: none; border-color: #1e293b; }   /* four lines a row: a border a shade lighter than a trip's keeps them apart */
     .charge-row::-webkit-details-marker { display: none; }
