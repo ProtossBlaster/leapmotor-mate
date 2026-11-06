@@ -572,6 +572,22 @@
         </label>
         <div id="outside-temp-feedback" class="text-xs mt-2" style="min-height:16px"></div>
       </form>
+
+      {# Elevation and each trip's own temperature (Open-Meteo), looked up from the trip's GPS track a
+         few minutes after it ends. On unless switched off here: the track leaves the device. #}
+      <form hx-post="api/settings/elevation" hx-trigger="change"
+            hx-target="#elevation-feedback" hx-swap="innerHTML" class="mt-4 pt-4 border-t border-slate-700">
+        <label class="flex items-center justify-between gap-3 cursor-pointer">
+          <div>
+            <div class="text-sm text-white">{{ t('elevation_enable_title') }}</div>
+            <div class="text-xs text-slate-400">{{ t('elevation_enable_desc') }}</div>
+          </div>
+          <input type="checkbox" name="elevation_enabled" value="1"
+                 {% if settings.get('elevation_enabled', '1') == '1' %}checked{% endif %}
+                 class="w-5 h-5 accent-brand cursor-pointer flex-shrink-0">
+        </label>
+        <div id="elevation-feedback" class="text-xs mt-2" style="min-height:16px"></div>
+      </form>
     {% endcall %}
 
   </div>

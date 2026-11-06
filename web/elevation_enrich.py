@@ -14,8 +14,8 @@ each makes at most two Open-Meteo calls — both keyless and free (10 000 reques
 
 Unlike ec_enrich's cloud getEC, terrain and a past hour's weather are static — no convergence/
 stability logic needed, a single successful lookup is final; a failed one just retries next sweep, up
-to a small ceiling (see db_reader.get_trips_needing_elevation). Opt-in via the `elevation_enabled`
-setting (the GPS track leaves the device). Temperature is best-effort alongside elevation in the same
+to a small ceiling (see db_reader.get_trips_needing_elevation). On unless the `elevation_enabled`
+setting is "0" — Settings → Trips has the switch, since the GPS track leaves the device. Temperature is best-effort alongside elevation in the same
 pass: whatever comes back is stored, and elev_done is set on the elevation result (the primary datum).
 """
 import json

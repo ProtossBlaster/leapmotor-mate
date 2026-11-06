@@ -577,6 +577,8 @@
     "retention_saved": "✓ Guardado",
     "outside_temp_title": "Temperatura exterior (meteorologia)",
     "outside_temp_desc": "A temperatura do ar exterior para a localização do carro, do Open-Meteo — na vista geral, como sensor do Home Assistant e em cada viagem. O carro não a comunica (nem a app oficial), por isso é obtida da meteorologia; a posição sai do dispositivo.",
+    "elevation_enable_title": "Desnível e temperatura da viagem",
+    "elevation_enable_desc": "Poucos minutos depois de uma viagem terminar, o seu traçado GPS é enviado ao Open-Meteo para a linha de altitude, os metros subidos e descidos e a temperatura exterior da viagem. Desligado, nada é enviado automaticamente; o botão Calcular desnível na página de uma viagem continua a procurá-la a pedido.",
     "outside_temp_label": "Exterior",
     "export_section": "Exportar / Cópia de segurança",
     "export_trips": "Viagens (CSV)",

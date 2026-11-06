@@ -577,6 +577,8 @@
     "retention_saved": "✓ Saved",
     "outside_temp_title": "Outside temperature (weather)",
     "outside_temp_desc": "The outside air temperature for the car's location, from Open-Meteo — on the overview, as a Home Assistant sensor and on each trip. The car doesn't report it (nor does the official app), so it's looked up from the weather; the position leaves the device.",
+    "elevation_enable_title": "Elevation and trip temperature",
+    "elevation_enable_desc": "A few minutes after a trip ends, its GPS track is sent to Open-Meteo for the altitude line, the metres climbed and descended and the outside temperature of the drive. Switched off, nothing is sent automatically; the Calculate elevation button on a trip's page still looks that trip up on request.",
     "outside_temp_label": "Outside",
     "export_section": "Export / Backup",
     "export_trips": "Trips (CSV)",
