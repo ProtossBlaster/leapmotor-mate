@@ -21,7 +21,10 @@ import db_reader
 import diagnostics
 import pytest
 
-T0 = datetime(2026, 8, 7, 11, 35, tzinfo=timezone.utc)
+# Twenty days ago at 11:35 UTC. It was 07/08/2026 at 11:35, and the section looks back 90 days: from
+# 06/11/2026 every park of this file fell outside the window and seven tests went red with the code
+# unchanged. The time of day stays fixed; only the date follows the clock.
+T0 = (datetime.now(timezone.utc) - timedelta(days=20)).replace(hour=11, minute=35, second=0, microsecond=0)
 
 
 def _iso(m):
