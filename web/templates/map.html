@@ -84,6 +84,70 @@
       L.marker([s.latitude, s.longitude], { icon: icon }).addTo(map).bindPopup(popup);
     });
   </script>
+  {# The car, where the Overview shows it (D#459): the same builder (main._last_position) for the
+     first paint and for /api/last-position, polled at the pace it says, one request at a time,
+     none while the tab is hidden or the box is off. The marker moves; the map does not — the
+     reader framed the routes. Local data only; nothing here reaches Leapmotor. #}
+  <script>
+    const carLayer = L.layerGroup();
+    const carVisibilityKey = 'mate.map.carVisible';
+    let showCar = true;
+    try { showCar = localStorage.getItem(carVisibilityKey) !== 'false'; } catch (_) {}
+    if (showCar) carLayer.addTo(map);
+    (function () {
+      const MAX_TIMER_MS = 2 ** 31 - 1;
+      // Looked up when used: the legend row that holds it is parsed after this script.
+      function when() { return document.getElementById('map-car-when'); }
+      const icon = L.divIcon({
+        html: '<div style="background:#14b8a6;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5)"></div>',
+        className: '', iconSize: [14, 14], iconAnchor: [7, 7]
+      });
+      let marker = null, refreshS = null, timer = null, busy = false, trackKey = null;
+
+      function show(pos) {
+        if (pos === null || typeof pos !== 'object') return;
+        const s = Number(pos.refresh_s);
+        if (Number.isInteger(s) && s > 0 && s * 1000 <= MAX_TIMER_MS) refreshS = s;
+        if (pos.track && typeof pos.track === 'object') trackKey = pos.track.key;
+        if (pos.lat === null || pos.lon === null) {
+          if (marker) { marker.remove(); marker = null; }
+          if (when()) when().textContent = '';
+          return;
+        }
+        if (typeof pos.lat !== 'number' || typeof pos.lon !== 'number') return;
+        if (when()) when().textContent = '(' + pos.ago + ')';
+        if (marker) marker.setLatLng([pos.lat, pos.lon]);
+        else marker = L.marker([pos.lat, pos.lon], {icon, car: true, interactive: false, keyboard: false})
+                       .addTo(carLayer);
+      }
+
+      function schedule() {
+        clearTimeout(timer);
+        if (refreshS) timer = setTimeout(refresh, refreshS * 1000);
+      }
+
+      function refresh() {
+        clearTimeout(timer);
+        if (document.hidden || busy || !map.hasLayer(carLayer)) return;
+        busy = true;
+        const ctl = new AbortController();
+        const deadline = setTimeout(function () { ctl.abort(); }, refreshS * 1000);
+        const have = trackKey ? '?track=' + encodeURIComponent(trackKey) : '';
+        fetch('api/last-position' + have, { cache: 'no-store', signal: ctl.signal })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (pos) { if (pos) show(pos); })
+          .catch(function () {})
+          .finally(function () { clearTimeout(deadline); busy = false; schedule(); });
+      }
+      window.refreshCar = refresh;
+
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) refresh();
+      });
+      show({{ (last_position or none) | tojson }});
+      schedule();
+    })();
+  </script>
 </div>
 
 {% else %}
@@ -115,6 +179,11 @@
     <span><span style="color:#14b8a6">●</span> {{ t('map_frequent_places') }} ({{ places|length }})</span>
   </label>
   {% endif %}
+  {# The car's marker, on by default; the choice is kept like the frequent places' one (D#459). #}
+  <label class="inline-flex items-center gap-1.5 cursor-pointer">
+    <input id="map-show-car" type="checkbox" checked style="accent-color:#14b8a6">
+    <span><span style="color:#14b8a6">◉</span> {{ t('last_position') }} <span id="map-car-when">{% if last_position and last_position.ago %}({{ last_position.ago }}){% endif %}</span></span>
+  </label>
   {% if stations %}<span><span style="color:#f59e0b">●</span> {{ t('map_charging_stations') }} ({{ stations|length }})</span>{% endif %}
   {# Counted here rather than by the map script: that line ran while the page was still being
      parsed and looked for `#map-pts`, an element that appears further DOWN this same document,
@@ -167,6 +236,17 @@
     fit();
     window.addEventListener('resize', fit);
   })();
+</script>
+{% endif %}
+{% if track %}
+<script>
+  const carToggle = document.getElementById('map-show-car');
+  carToggle.checked = showCar;
+  carToggle.addEventListener('change', function () {
+    if (this.checked) { carLayer.addTo(map); refreshCar(); }
+    else map.removeLayer(carLayer);
+    try { localStorage.setItem(carVisibilityKey, String(this.checked)); } catch (_) {}
+  });
 </script>
 {% endif %}
 {% if track and places %}

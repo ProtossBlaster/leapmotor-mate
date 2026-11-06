@@ -2543,9 +2543,14 @@ async def map_page(request: Request):
         s["cost_fmt"] = _money(s["cost"]) if s["cost"] is not None else None
         for c in s["recent"]:
             c["cost_fmt"] = _money(c["cost"]) if c["cost"] is not None else None
+    # The car's marker, from the Overview's own builder (D#459). The Map draws routes, not today's
+    # trip under the car, so it keeps the route's key and drops its points: the poll then sends them
+    # only if that route changes.
+    car = _last_position(db_reader.get_latest_status(), i18n.get_t(db_reader.get_language()))
+    car["track"]["segments"] = None
     return templates.TemplateResponse(request, "map.html", _ctx(
         page="map", vehicle=vehicle, track=track, places=places, stations=stations,
-        stations_top_n=stations_top_n, trips_shown=trips_shown,
+        stations_top_n=stations_top_n, trips_shown=trips_shown, last_position=car,
     ))
 
 
