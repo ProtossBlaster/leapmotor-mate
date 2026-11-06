@@ -4063,7 +4063,24 @@ _COORD_SIGNALS = {"lat": ("3", ("3725", "2190")), "lon": ("2", ("3724", "2191"))
 _MERIDIAN_NEAR_DEG = 1.0
 
 
-def _coord_from_signals(signals: dict, axis: str) -> float:
+def _remembered_sign(axis: str, vin: Optional[str]) -> float:
+    """The sign the poller learned for this car (db.set_gps_signs writes it per VIN), else the
+    shared key every install predating that has. -1.0, 1.0, or 0.0 = never learned one."""
+    own = get_setting(f"gps_{axis}_sign_{vin.lower()}", "") if vin else ""
+    try:
+        sign = float(own or get_setting(f"gps_{axis}_sign", "0") or 0)
+    except (TypeError, ValueError):
+        sign = 0.0
+    return -1.0 if sign < 0 else (1.0 if sign > 0 else 0.0)
+
+
+def remembered_signs(vin: Optional[str]) -> dict:
+    """The sign per axis this car's positions are resolved with, as the diagnostics show it:
+    '-1.0', '1.0' or 'unknown'."""
+    return {axis: (str(s) if (s := _remembered_sign(axis, vin)) else "unknown") for axis in ("lat", "lon")}
+
+
+def _coord_from_signals(signals: dict, axis: str, vin: Optional[str] = None) -> float:
     """One GPS axis from a raw signal dict: signed signal first, else magnitude × remembered sign."""
     def _f(raw) -> float:
         if raw in (None, ""):
@@ -4074,11 +4091,7 @@ def _coord_from_signals(signals: dict, axis: str) -> float:
             return 0.0
 
     signed_id, unsigned_ids = _COORD_SIGNALS[axis]
-    try:
-        sign = float(get_setting(f"gps_{axis}_sign", "0") or 0)
-    except (TypeError, ValueError):
-        sign = 0.0
-    known = -1.0 if sign < 0 else (1.0 if sign > 0 else 0.0)     # 0.0 = never learned one
+    known = _remembered_sign(axis, vin)
 
     s = _f(signals.get(signed_id))
     if s != 0.0:
@@ -4123,6 +4136,8 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
         vehicle_id, vin = (row[0], row[1]) if row else (None, None)
     else:
         vehicle_id = _current_vehicle_id()
+        row = db.execute("SELECT vin FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
+        vin = row[0] if row else None
     if vehicle_id is None:
         return
 
@@ -4233,8 +4248,8 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
         (
             vehicle_id,
             datetime.now(timezone.utc).isoformat(),
-            _coord_from_signals(signals, "lat"),   # signed pair first (#158) — never the bare
-            _coord_from_signals(signals, "lon"),   # unsigned magnitude, or west cars land at sea
+            _coord_from_signals(signals, "lat", vin),   # signed pair first (#158) — never the bare
+            _coord_from_signals(signals, "lon", vin),   # unsigned magnitude, or west cars land at sea
             sigf_or_none("1319"), sigf_or_none("1318"),
             sigf("100003") or sigf("1204"),
             capability_profile.battery_range_km(signals),   # the poller's rule (#365)

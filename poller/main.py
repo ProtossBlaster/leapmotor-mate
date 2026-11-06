@@ -726,11 +726,13 @@ def reconcile_coord_signs(db, vehicle_id: int, vin: str) -> None:
 
     ⚠️ The setting is REWRITTEN when it loses, not merely ignored — the web reads that setting and
     has no history of its own, so leaving it wrong would fix the poller and leave the map at sea.
+    Read and written per car (db.get_gps_signs / set_gps_signs), the keys the poll loop and the
+    web use: corrected on the shared key alone, the web would go on applying the poisoned one.
     """
     stored: dict[str, float] = {}
-    for axis in ("lat", "lon"):
+    for axis, raw in db.get_gps_signs(vin).items():
         try:
-            stored[axis] = float(db.get_setting(f"gps_{axis}_sign", "0") or 0)
+            stored[axis] = float(raw or 0)
         except (TypeError, ValueError):
             stored[axis] = 0.0
     try:
@@ -740,6 +742,7 @@ def reconcile_coord_signs(db, vehicle_id: int, vin: str) -> None:
                     exc_info=True)
         history = {}
 
+    corrected = False
     for axis, was in stored.items():
         now = history.get(axis)
         if now is None or now == was:
@@ -754,9 +757,11 @@ def reconcile_coord_signs(db, vehicle_id: int, vin: str) -> None:
             # and it is the ordinary state of every install that predates this code — warning about
             # it would put an alarm in the log of every user who has nothing wrong with them.
             log.info("GPS %s: no sign on record, taking %+g from this car's own history", axis, now)
-        db.set_setting(f"gps_{axis}_sign", str(now))
         stored[axis] = now
+        corrected = True
 
+    if corrected:
+        db.set_gps_signs(vin, *(str(stored[a]) if stored[a] else "" for a in ("lat", "lon")))
     seed_coord_signs(vin, stored["lat"], stored["lon"])
 
 

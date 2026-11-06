@@ -253,7 +253,7 @@ def read_full_log(which: str) -> str:
 _BUNDLE_PARTS = ("info", "poller", "web", "signals")   # user-selectable sections
 
 
-def _gps_shape_line(signals: dict) -> str:
+def _gps_shape_line(signals: dict, vin: str | None = None) -> str:
     """Which coordinate signals the car sends, and the hemisphere sign — no coordinates.
 
     Stripping all six GPS ids protects the user's address, but it also blinded triage on the one
@@ -282,11 +282,11 @@ def _gps_shape_line(signals: dict) -> str:
     shapes = ", ".join(f"{i}:{_shape(signals.get(i))}"
                        for i in sorted(_GPS_SIGNAL_IDS, key=int)
                        if signals.get(i) not in (None, ""))
+    signs = db_reader.remembered_signs(vin)
     return (f"signals present : {shapes or 'none'} "
             f"(2/3 = signed · 3724/3725 + 2190/2191 = unsigned magnitudes · "
             f"zero = arrives but says nothing)\n"
-            f"remembered sign : lat={db_reader.get_setting('gps_lat_sign') or 'unknown'} "
-            f"lon={db_reader.get_setting('gps_lon_sign') or 'unknown'} "
+            f"remembered sign : lat={signs['lat']} lon={signs['lon']} "
             f"(learned from a signed poll; unknown = never seen one)")
 
 
@@ -965,11 +965,14 @@ def _cloud_history_section() -> str:
     ])
 
 
-def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: dict | None = None) -> str:
+def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: dict | None = None,
+                 vin: str | None = None) -> str:
     """One redacted text blob to attach to an issue. `parts` selects which sections to include
     (any of 'info', 'poller', 'web', 'signals'); a one-line version header is always present. The
     'signals' section dumps the car's raw signals with GPS coordinates stripped (caller passes a
-    freshly-fetched signal dict) so the whole bundle stays safe to share publicly."""
+    freshly-fetched signal dict and `vin`, the car it read them from, so the picker moving during
+    the fetch cannot pair one car's signals with another's sign) so the whole bundle stays safe to
+    share publicly."""
     want = {p for p in parts if p in _BUNDLE_PARTS} or set(_BUNDLE_PARTS)
     out = [f"===== LeapMotor Mate {version} — diagnostics ====="]
 
@@ -1041,10 +1044,9 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
     if "web" in want:
         out += ["", "----- web log (full retained window) -----", read_full_log("web")]
     if "signals" in want:
-        vehicle, _ = db_reader.get_vehicle()
+        vin = vin or ((db_reader.get_vehicle()[0] or {}).get("vin"))
         if signals:
-            out += ["", "----- GPS shape (no coordinates) -----", _gps_shape_line(signals)]
-        out += ["", "----- raw signals (GPS removed) -----",
-                _signals_section(signals, (vehicle or {}).get("vin"))]
+            out += ["", "----- GPS shape (no coordinates) -----", _gps_shape_line(signals, vin)]
+        out += ["", "----- raw signals (GPS removed) -----", _signals_section(signals, vin)]
     out += ["", "===== end ====="]
     return "\n".join(out)
