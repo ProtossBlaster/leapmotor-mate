@@ -1,8 +1,14 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.22.0 · **Language:** English
+> **Mate version:** v4.23.0 · **Language:** English
 
-## New in 4.22.0
+## New in 4.23.0
+
+**The Map shows where the car is.** On the Map, a marker now gives the car's last known position, as on
+the Overview, and follows the car while the page is open; the map's view stays where you put it. To hide
+it, untick *Last Known Position* on the row under the map: the page remembers your choice.
+
+### New in 4.22.0
 
 **Recent Trips are the rows of Trips.** On the Overview, *Recent Trips* now shows each trip as its row on
 Trips, without the route: where it started and ended, the battery before and after, the energy it used and

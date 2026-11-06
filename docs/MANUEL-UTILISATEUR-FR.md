@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.22.0 · **Langue :** Français
+> **Version de Mate :** v4.23.0 · **Langue :** Français
 
-## Nouveautés de la version 4.22.0
+## Nouveautés de la version 4.23.0
+
+**La Carte montre où se trouve la voiture.** Sur la Carte, un repère donne maintenant la dernière
+position connue de la voiture, comme dans l'Aperçu, et suit la voiture tant que la page est ouverte ; la
+vue de la carte reste où vous l'avez mise. Pour le masquer, décochez *Dernière position connue* sur la
+ligne sous la carte : la page retient votre choix.
+
+### Nouveautés de la version 4.22.0
 
 **Les trajets récents sont les lignes de Trajets.** Dans Aperçu, *Trajets récents* montre maintenant
 chaque trajet comme sa ligne dans Trajets, sans le parcours : d'où il est parti et où il est arrivé, la

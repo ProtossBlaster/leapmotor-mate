@@ -3,6 +3,13 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.23.0] — 2026-11-06
+
+- **The Map shows where the car is** ([D#459](https://github.com/ProtossBlaster/leapmotor-mate/discussions/459), @Coooogz).
+  A marker gives the car's last known position, as on the Overview, and follows the car while the page is
+  open; the map's view does not move. A box on the row under the map, *Last Known Position*, switches it
+  off, and the choice is remembered like the frequent places' one.
+
 ## [4.22.0] — 2026-11-05
 
 - **Recent Trips are the rows of the Trips page** ([#457](https://github.com/ProtossBlaster/leapmotor-mate/pull/457), @arekm).

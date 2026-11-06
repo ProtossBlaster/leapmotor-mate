@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.22.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.23.0 · **Lingua:** Italiano
 
-## Novità della 4.22.0
+## Novità della 4.23.0
+
+**La Mappa mostra dove si trova l'auto.** Nella Mappa un segnaposto dà ora l'ultima posizione nota
+dell'auto, come nella Panoramica, e segue l'auto finché la pagina è aperta; la vista della mappa resta dove
+l'hai messa. Per nasconderlo togli la spunta a *Ultima posizione nota* nella riga sotto la mappa: la
+pagina ricorda la scelta.
+
+### Novità della 4.22.0
 
 **I Viaggi recenti sono le righe di Viaggi.** Nella Panoramica, *Viaggi recenti* mostra ora ogni viaggio
 come la sua riga in Viaggi, senza il percorso: da dove è partito e dove è arrivato, la batteria prima e

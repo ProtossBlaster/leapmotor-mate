@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.22.0 · **Idioma:** Español
+> **Versión de Mate:** v4.23.0 · **Idioma:** Español
 
-## Novedades de la versión 4.22.0
+## Novedades de la versión 4.23.0
+
+**El Mapa muestra dónde está el coche.** En el Mapa, un marcador da ahora la última posición conocida
+del coche, como en el Resumen, y sigue al coche mientras la página está abierta; la vista del mapa se queda
+donde la dejaste. Para ocultarlo, desmarca *Última posición conocida* en la fila bajo el mapa: la página
+recuerda tu elección.
+
+### Novedades de la versión 4.22.0
 
 **Los trayectos recientes son las filas de Trayectos.** En Resumen, *Trayectos recientes* muestra ahora
 cada trayecto como su fila en Trayectos, sin el recorrido: dónde empezó y dónde terminó, la batería antes

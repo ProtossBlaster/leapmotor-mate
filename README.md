@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.22.0:** **Recent Trips on the Overview are the rows of the Trips page**: where each trip started and ended, the battery before and after, and the energy it used; and **a trip row on Trips gives its kWh** and keeps its places whole beside the sidebar ([#457](https://github.com/ProtossBlaster/leapmotor-mate/pull/457), @arekm). In **4.21.0**: free charges have their own slice in Home vs Public. In **4.20.0**: Trips says the energy used, and every month and year on Statistics adds up to Energy Used.
-See [release notes and upgrade impact](docs/releases/v4.22.0.md).
+**v4.23.0:** **the Map shows where the car is**, as the Overview does, and a box under the map switches it off ([D#459](https://github.com/ProtossBlaster/leapmotor-mate/discussions/459), @Coooogz). In **4.22.0**: Recent Trips on the Overview are the rows of the Trips page, and a trip row on Trips gives its kWh. In **4.21.0**: free charges have their own slice in Home vs Public.
+See [release notes and upgrade impact](docs/releases/v4.23.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -360,8 +360,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.22.0:** **i Viaggi recenti della Panoramica sono le righe della pagina Viaggi**: da dove è partito e dove è arrivato ogni viaggio, la batteria prima e dopo e l'energia consumata; e **una riga di Viaggi dà i suoi kWh** e tiene interi i luoghi accanto alla barra laterale ([#457](https://github.com/ProtossBlaster/leapmotor-mate/pull/457), @arekm). Nella **4.21.0**: le ricariche gratuite hanno la loro fetta in Casa vs Pubblica. Nella **4.20.0**: Viaggi dice l'energia consumata, e ogni mese e anno delle Statistiche somma all'Energia consumata.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.22.0.md#italiano).
+**v4.23.0:** **la Mappa mostra dove si trova l'auto**, come la Panoramica, e una casella sotto la mappa la spegne ([D#459](https://github.com/ProtossBlaster/leapmotor-mate/discussions/459), @Coooogz). Nella **4.22.0**: i Viaggi recenti della Panoramica sono le righe della pagina Viaggi, e una riga di Viaggi dà i suoi kWh. Nella **4.21.0**: le ricariche gratuite hanno la loro fetta in Casa vs Pubblica.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.23.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

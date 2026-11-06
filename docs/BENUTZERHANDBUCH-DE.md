@@ -1,8 +1,15 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.22.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.23.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.22.0
+## Neu in Version 4.23.0
+
+**Die Karte zeigt, wo das Auto ist.** Auf der Karte zeigt eine Markierung jetzt die letzte bekannte
+Position des Autos, wie in der Übersicht, und folgt dem Auto, solange die Seite offen ist; der
+Kartenausschnitt bleibt, wo Sie ihn hingelegt haben. Zum Ausblenden entfernen Sie den Haken bei *Letzte
+bekannte Position* in der Zeile unter der Karte: Die Seite merkt sich Ihre Wahl.
+
+### Neu in Version 4.22.0
 
 **Die letzten Fahrten sind die Zeilen von Fahrten.** In der Übersicht zeigt *Letzte Fahrten* jede Fahrt
 jetzt als ihre Zeile unter Fahrten, ohne die Route: wo sie begann und endete, die Batterie davor und
