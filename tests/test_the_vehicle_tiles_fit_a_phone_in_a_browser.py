@@ -11,7 +11,7 @@ import pytest
 pytest.importorskip("fastapi", reason="web.main needs fastapi")
 from events_fixture import Car, serve, web
 
-LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es")
+LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs")
 # Each tile label whose text ends right of its tile's border, and by how many pixels.
 _PAST = """() => [...document.querySelectorAll('#vehicle-status .rounded-xl')].map(tile => {
   const label = tile.querySelector('.uppercase');

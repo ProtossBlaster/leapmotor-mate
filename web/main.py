@@ -4792,7 +4792,7 @@ async def set_language(request: Request):
     (HX-Refresh) so every server-rendered string switches to the new language."""
     form = await request.form()
     lang = form.get("language", "en")
-    db_reader.set_setting("language", lang if lang in ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es") else "en")
+    db_reader.set_setting("language", lang if lang in ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs") else "en")
     return Response(status_code=204, headers={"HX-Refresh": "true"})
 
 
@@ -6819,7 +6819,7 @@ async def setup_submit(request: Request):
     db_reader.set_secret("leapmotor_pass", pwd)
     db_reader.set_setting("battery_capacity_kwh", str(battery_kwh))
     db_reader.set_setting("is_reev", is_reev)   # REEV variant selected in the wizard → gates fuel features
-    db_reader.set_setting("language", lang if lang in ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es") else "en")
+    db_reader.set_setting("language", lang if lang in ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs") else "en")
     # set_timezone validates against the tz database and falls back to Auto on anything unknown, so
     # a tampered field cannot wedge every date render. Marked as pinned either way, so the startup
     # migration never comes back and overwrites a fresh answer with the container's clock.

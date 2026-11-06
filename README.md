@@ -96,7 +96,7 @@ LeapMotor Mate is free and open-source, developed in my spare time. If it's usef
 
 **Setup and the rest**
 - **Demo mode** — the whole app on a realistic month of sample data — commutes, home and DC charging, costs, battery health — with **no car and no account**. One click on the welcome screen. *Nothing in it is real.*
-- **Eight languages** — English · Italiano · Français · Deutsch · Polski · Nederlands · Português · Español.
+- **Nine languages** — English · Italiano · Français · Deutsch · Polski · Nederlands · Português · Español · Čeština.
 - **Currency and units** — 30 currencies, and **metric / imperial UK / imperial US**. Display only: what is stored stays metric, so you can switch back with nothing lost.
 - **Editable battery capacity** — pre-filled per model, editable if yours differs, or adopt the value Mate worked out **from your own charges**. Changing it never rewrites past charges. When a default Mate itself shipped has since been disproved by real charges, Settings says so and offers the corrected figure with one button — it never rewrites the number behind you.
 - **A car nobody was asked about says so** — a second car added to an install where the sign-in was already done never meets the wizard: it takes the **default pack of its model**, which bends its kWh, its price per kWh and its consumption. A strip across every page names it and opens the wizard. Cars already there when you update are never accused.
@@ -230,7 +230,7 @@ A full written manual — every page explained, the setup wizard step by step, a
 | 🇩🇪 Deutsch | [BENUTZERHANDBUCH-DE.md](docs/BENUTZERHANDBUCH-DE.md) |
 | 🇪🇸 Español | [MANUAL-DE-USUARIO-ES.md](docs/MANUAL-DE-USUARIO-ES.md) |
 
-The **interface** speaks eight languages (Polski, Nederlands and Português too) — the written
+The **interface** speaks nine languages (Polski, Nederlands, Português and Čeština too) — the written
 manual, for now, exists in these five.
 
 ## Setup wizard
@@ -249,7 +249,7 @@ Everything is configured from the web UI (**Settings**), no YAML needed:
 
 - **Polling interval** — parked (default 30 s) and driving (default 10 s). Faster catches trips/charges sooner; slower means fewer API calls. Polling the cloud does not wake or drain the car.
 - **Charge prices** — flat or time-of-use, on the dedicated *Charge Prices* page (see below).
-- **Language & currency** — English / Italiano / Français / Deutsch / Polski / Nederlands / Português / **Español**, and your display currency (€, $, £, CHF, zł… 30 currencies). The number format (decimal/thousands separator) follows the selected language.
+- **Language & currency** — English / Italiano / Français / Deutsch / Polski / Nederlands / Português / Español / **Čeština**, and your display currency (€, $, £, CHF, zł… 30 currencies). The number format (decimal/thousands separator) follows the selected language.
 
 ### Charge prices
 
@@ -439,7 +439,7 @@ LeapMotor Mate è gratuito e open-source, sviluppato nel tempo libero. Se ti è 
 
 **Configurazione e tutto il resto**
 - **Modalità demo** — l'app intera su un mese realistico di dati di esempio — pendolarismo, ricariche di casa e in DC, costi, salute della batteria — **senza auto e senza account**. Un clic sulla schermata di benvenuto. *Niente di quello che vedi è reale.*
-- **Otto lingue** — Italiano · English · Français · Deutsch · Polski · Nederlands · Português · Español.
+- **Nove lingue** — Italiano · English · Français · Deutsch · Polski · Nederlands · Português · Español · Čeština.
 - **Valuta e unità** — 30 valute, e **metrico / imperiale UK / imperiale US**. Solo visualizzazione: quello che è salvato resta metrico, quindi torni indietro senza perdere niente.
 - **Capacità batteria modificabile** — precompilata per modello, modificabile se la tua è diversa, oppure prendi il valore che Mate ha ricavato **dalle tue ricariche**. Cambiarla non riscrive mai le ricariche passate.
 - **Impostazioni avanzate** — i casi particolari in una scheda richiudibile: soglia delle ricariche perse, rumore del consumo da fermo, soglia di potenza AC/DC per le wallbox da 22 kW, taglio a freddo della salute batteria. Valori sensati, ripristino in un tocco.
@@ -567,7 +567,7 @@ domande frequenti e un glossario:
 | 🇩🇪 Deutsch | [BENUTZERHANDBUCH-DE.md](docs/BENUTZERHANDBUCH-DE.md) |
 | 🇪🇸 Español | [MANUAL-DE-USUARIO-ES.md](docs/MANUAL-DE-USUARIO-ES.md) |
 
-L'**interfaccia** parla otto lingue (anche polacco, olandese, portoghese e spagnolo) — il manuale
+L'**interfaccia** parla nove lingue (anche polacco, olandese, portoghese, spagnolo e ceco) — il manuale
 scritto, per ora, esiste in queste cinque.
 
 ## Wizard di setup
@@ -584,7 +584,7 @@ Tutto si configura dalla UI web (**Impostazioni**), senza YAML:
 
 - **Intervallo di polling** — parcheggiata (default 30 s) e in marcia (default 10 s). Più veloce rileva prima viaggi/ricariche; più lento riduce le chiamate. Interrogare il cloud non sveglia né scarica l'auto.
 - **Prezzi di ricarica** — fisso o a fasce orarie, dalla pagina dedicata *Prezzi di ricarica* (vedi sotto).
-- **Lingua e valuta** — Italiano / English / Français / Deutsch / Polski / Nederlands / Português / **Español**, e la valuta di visualizzazione (€, $, £, CHF, zł… 30 valute). Il formato numero (separatore decimale/migliaia) segue la lingua selezionata.
+- **Lingua e valuta** — Italiano / English / Français / Deutsch / Polski / Nederlands / Português / Español / **Čeština**, e la valuta di visualizzazione (€, $, £, CHF, zł… 30 valute). Il formato numero (separatore decimale/migliaia) segue la lingua selezionata.
 
 ### Prezzi di ricarica
 

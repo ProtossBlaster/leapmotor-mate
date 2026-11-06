@@ -14,7 +14,7 @@ import i18n
 import pytest
 from events_fixture import Car, event_row, web
 
-LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es")
+LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs")
 BASE = pathlib.Path(__file__).resolve().parent.parent / "web" / "templates" / "base.html"
 PAGE = pathlib.Path(__file__).resolve().parent.parent / "web" / "templates" / "events.html"
 

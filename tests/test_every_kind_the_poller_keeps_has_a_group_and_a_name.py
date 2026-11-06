@@ -15,7 +15,7 @@ import pytest
 from events_fixture import Car, event_row, grouped, rows, web
 
 LOCALES = pathlib.Path(__file__).resolve().parent.parent / "web" / "locales"
-LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es")
+LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs")
 
 
 def test_the_page_lists_exactly_the_kinds_the_poller_keeps():
