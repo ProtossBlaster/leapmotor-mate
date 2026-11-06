@@ -102,3 +102,69 @@ def test_restore_rejects_garbage_and_foreign_db(tmp_path, monkeypatch):
     # the live DB was NOT touched by the refused restores, and no temp file was left behind
     assert _count(new, "settings") == before
     assert not os.path.exists(new + ".restore.tmp")
+
+
+def _gz(data: bytes) -> bytes:
+    import gzip
+    return gzip.compress(data)
+
+
+def test_restore_reads_a_gzip_backup_as_the_export_writes_it(tmp_path, monkeypatch):
+    """The export is a .db.gz (gzip_db_stream); what it wrote is what comes back."""
+    import db as poller_db
+
+    old = str(tmp_path / "old.db")
+    _crypto, dbr = _point(monkeypatch, old)
+    db = poller_db.Database(old)
+    db._conn.execute("INSERT OR IGNORE INTO vehicles (id, vin) VALUES (1,'V')")
+    for i in range(50):
+        db.insert_raw_signal_changes(1, 1_700_000_000_000 + i, {"3235": str(i)})
+    db._conn.commit()
+    db.close()
+    dbr.checkpoint()
+    backup = b"".join(dbr.gzip_db_stream(old))
+    assert backup[:2] == b"\x1f\x8b"
+
+    new = str(tmp_path / "new.db")
+    _crypto, dbr = _point(monkeypatch, new)
+    poller_db.Database(new).close()
+    # a chunk far smaller than the backup: the database is put together from many pieces
+    monkeypatch.setattr(dbr._gunzip_backup, "__defaults__", (1024,))
+    assert dbr.restore_database(backup)["counts"]["raw_signals_log"] == 50
+    assert _count(new, "raw_signals_log") == 50
+    assert not os.path.exists(new + ".restore.tmp")
+
+
+def test_restore_refuses_a_gzip_that_grows_past_the_limit(tmp_path, monkeypatch):
+    """A few kilobytes of gzip can hold gigabytes of zeros, and the whole of it used to be inflated in
+    memory before anything looked at it. The backup is written a chunk at a time and refused at the
+    limit, with the live database untouched and nothing left behind."""
+    import db as poller_db
+
+    new = str(tmp_path / "n.db")
+    _crypto, dbr = _point(monkeypatch, new)
+    poller_db.Database(new).close()
+    before = _count(new, "settings")
+    monkeypatch.setattr(dbr, "RESTORE_MAX_BYTES", 1024 * 1024)
+
+    bomb = _gz(b"SQLite format 3\x00" + b"\x00" * (8 * 1024 * 1024))
+    assert len(bomb) < 16 * 1024
+    with pytest.raises(ValueError, match="too large"):
+        dbr.restore_database(bomb)
+
+    assert _count(new, "settings") == before
+    assert not os.path.exists(new + ".restore.tmp")
+
+
+@pytest.mark.parametrize("damage", [lambda gz: gz[:len(gz) // 2],           # cut short
+                                    lambda gz: gz[:10] + b"\xff" * 64])     # not deflate at all
+def test_restore_refuses_a_damaged_gzip(tmp_path, monkeypatch, damage):
+    import db as poller_db
+
+    new = str(tmp_path / "n.db")
+    _crypto, dbr = _point(monkeypatch, new)
+    poller_db.Database(new).close()
+
+    with pytest.raises(ValueError, match="gzip"):
+        dbr.restore_database(damage(_gz(b"SQLite format 3\x00" + os.urandom(64 * 1024))))
+    assert not os.path.exists(new + ".restore.tmp")

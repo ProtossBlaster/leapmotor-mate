@@ -1335,6 +1335,43 @@ def gzip_db_stream(path: str | None = None, chunk_size: int = 256 * 1024):
             _safe_unlink(tmp)
 
 
+# The largest database a .db.gz backup may hold. gzip reaches about 1000:1 on a file of zeros, so a
+# few megabytes uploaded could ask for gigabytes; this is far above any real installation's database
+# and well below a disk.
+RESTORE_MAX_BYTES = 4 * 1024 ** 3
+
+
+def _gunzip_backup(blob: bytes, path: str, chunk_size: int = 256 * 1024) -> None:
+    """Write the database inside a gzip backup to `path`, a chunk at a time, so it is never in memory
+    whole — the export streams for the same reason (gzip_db_stream) — and refuse one that would grow
+    past RESTORE_MAX_BYTES. Raises ValueError; the caller removes the file.
+
+    zlib, not gzip: zlib is already in every build (zipfile's ZIP_DEFLATED pulls it), so this needs no
+    new module in the frozen MateDesktop shell. wbits=31 decodes the gzip wrapper; our export writes
+    one gzip member."""
+    inflate = zlib.decompressobj(31)
+    written = 0
+    try:
+        with open(path, "wb") as f:
+            # Fed a slice at a time: what a call leaves unread (unconsumed_tail) is a copy, and a
+            # copy of the rest of a whole backup at every step would cost more than the restore.
+            for start in range(0, len(blob), chunk_size):
+                data = blob[start:start + chunk_size]
+                while data and not inflate.eof:
+                    out = inflate.decompress(data, chunk_size)
+                    written += len(out)
+                    if written > RESTORE_MAX_BYTES:
+                        raise ValueError("backup is too large")
+                    f.write(out)
+                    data = inflate.unconsumed_tail
+                if inflate.eof:
+                    break
+    except zlib.error as e:                # any malformed gzip is a bad upload, not a server bug
+        raise ValueError("not a valid gzip backup") from e
+    if not inflate.eof:
+        raise ValueError("not a valid gzip backup")
+
+
 def restore_database(blob: bytes) -> dict:
     """Replace the live DB with an uploaded `leapmotor_mate.db` backup — losing ZERO data — while
     KEEPING the current install's freshly-entered credentials, so the user stays logged in.
@@ -1355,20 +1392,16 @@ def restore_database(blob: bytes) -> dict:
     `[WinError 5] Accesso negato` (#383, @matttiaromano; measured on 1.2.0 with 4.7.17). The page copy takes SQLite's write lock, so a poller
     write waits for it as for any other; the file name, and the poller's handle, stay untouched.
     → tests/test_a_restore_does_not_replace_the_file_the_poller_holds.py"""
-    if blob[:2] == b"\x1f\x8b":                       # a gzip-compressed backup (.db.gz, disc #264)
-        try:
-            # wbits=31 decodes the gzip wrapper → the raw SQLite bytes below (a raw .db skips this).
-            # zlib, not gzip: zlib is already in every build (zipfile's ZIP_DEFLATED pulls it), so this
-            # needs no new module in the frozen MateDesktop shell. Our export writes one gzip member.
-            blob = zlib.decompress(blob, 31)
-        except Exception as e:  # noqa: BLE001 — any malformed gzip is a bad upload, not a server bug
-            raise ValueError("not a valid gzip backup") from e
-    if blob[:16] != b"SQLite format 3\x00":
-        raise ValueError("not a valid SQLite database file")
     tmp = DB_PATH + ".restore.tmp"
-    with open(tmp, "wb") as f:
-        f.write(blob)
     try:
+        if blob[:2] == b"\x1f\x8b":                   # a gzip-compressed backup (.db.gz, disc #264)
+            _gunzip_backup(blob, tmp)
+        else:
+            with open(tmp, "wb") as f:
+                f.write(blob)
+        with open(tmp, "rb") as f:
+            if f.read(16) != b"SQLite format 3\x00":
+                raise ValueError("not a valid SQLite database file")
         # The connection is closed before the file is deleted on EVERY path: a refused backup left
         # its temporary file behind on Windows, where an open file cannot be removed (the Windows
         # CI job, the first time it ran these tests).
