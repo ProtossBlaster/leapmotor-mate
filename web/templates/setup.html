@@ -985,7 +985,9 @@ function showManagedSetupError(state) {
     document.getElementById('back-link').insertAdjacentElement('afterend', box);
   }
   const italian = (document.documentElement.lang || navigator.language || '').startsWith('it');
-  box.textContent = italian
+  box.textContent = currentLang === 'cs'
+    ? 'Automatické nastavení není k dispozici. Distribuce musí před přihlášením poskytnout platný aplikační materiál. Nenahrávejte osobní certifikáty. Stav: ' + state
+    : italian
     ? 'Configurazione automatica non disponibile. La distribuzione deve fornire materiale applicativo valido prima del login. Non caricare certificati personali. Stato: ' + state
     : 'Automatic setup unavailable. The distribution must provide valid application material before login. Do not upload personal certificates. Status: ' + state;
   box.style.display = 'block';
