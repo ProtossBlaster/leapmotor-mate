@@ -197,9 +197,9 @@ class StateMachine:
         # split — only a sustained gear P ends it (see DRIVING branch below).
         is_driving  = data.gear in ("D", "R", "N") or data.speed_kmh > 1
         # A charge SESSION opens only on REAL charging current: charging_status = a measured current
-        # ≥ 2 A (or 1149==2 on a C10, see _is_charging). NEVER on the cable alone — a car waiting for
-        # its programmed window reports 1149==4 with no current (#243), and that must NOT start
-        # counting a charge (see _is_charging vs _is_plugged_in). This is the documented
+        # into the pack ≥ 2 A (or 1149==2 on a C10, see _is_charging). NEVER on the cable alone — a
+        # car waiting for its programmed window reports 1149==4 with no current (#243), and that must
+        # NOT start counting a charge (see _is_charging vs _is_plugged_in). This is the documented
         # ANY_PARKED→CHARGING condition (charging_status>0).
         charge_active = data.charging_status > 0
         # ...except on a REEV, where neither of those two ever appears during an AC home charge

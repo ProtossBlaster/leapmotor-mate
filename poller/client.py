@@ -645,6 +645,8 @@ def _is_charging(sig: dict) -> bool:
     power     = _charge_power_kw(sig)
 
     if current is not None:
+        if current >= _CHARGE_CURRENT_MIN_A:       # + is current out of the pack: a load, not a charge
+            return False
         if abs(current) < _CHARGE_CURRENT_MIN_A:   # resting/plugged-idle → not charging
             # ...EXCEPT a C10 REEV charging in AC: on that car the pack current (1178) reads ~0
             # during slow AC charging — the on-board charger feeds the pack by a path this sensor
