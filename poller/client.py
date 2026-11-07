@@ -9,6 +9,7 @@ import mate_api  # explicit independent runtime; no sitecustomize hook
 import logging
 import os
 import re
+import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -678,11 +679,16 @@ def _is_charging(sig: dict) -> bool:
 _gps: dict[str, gps_position.Memory] = {}
 
 
-def seed_coord_signs(vin: str, lat_sign: float = 0.0, lon_sign: float = 0.0) -> None:
-    """Prime the per-VIN GPS sign memory at poller startup. 0 = unknown (leaves it unset)."""
+def seed_coord_signs(vin: str, lat_sign: float = 0.0, lon_sign: float = 0.0,
+                     newest_frame_ts: Optional[int] = None) -> None:
+    """Prime the per-VIN GPS sign memory at poller startup. 0 = unknown (leaves it unset).
+    `newest_frame_ts` is the newest usable frame clock on record (db.get_newest_frame_ts), so no
+    frame heard before the restart, the one the cloud re-serves first among them, is new again."""
     if not vin:
         return
-    signs = _gps.setdefault(vin, gps_position.Memory()).signs
+    mem = _gps.setdefault(vin, gps_position.Memory())
+    mem.newest_frame_ts = max(mem.newest_frame_ts, newest_frame_ts or 0)
+    signs = mem.signs
     if lat_sign:
         signs["lat"] = -1.0 if lat_sign < 0 else 1.0
     if lon_sign:
@@ -816,5 +822,6 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
                          else int(sig.get("1255") or 0) != 0),   # B10 reads 2 when armed; truthy
     )
     data.latitude, data.longitude = gps_position.resolve(
-        _gps.setdefault(vin, gps_position.Memory()), sig, learn=True)
+        _gps.setdefault(vin, gps_position.Memory()), sig, learn=True,
+        frame_ts=data.timestamp_ms, now_ms=int(time.time() * 1000))
     return data

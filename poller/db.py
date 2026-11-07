@@ -1655,6 +1655,16 @@ class Database:
             args.append(frame_ts)
         return self._conn.execute(sql + " LIMIT 1", args).fetchone() is not None
 
+    def get_newest_frame_ts(self, vehicle_id: int, not_after_ms: int):
+        """The largest positive frame clock on record for this vehicle that is not past `not_after_ms`,
+        or None. The GPS sign memory counts only frames newer than every earlier one (gps_position),
+        so it needs the newest frame heard, not the last row's (a late frame's), nor a clock so far
+        ahead that no real frame after it would ever be newer."""
+        row = self._conn.execute(
+            "SELECT MAX(frame_ts) FROM positions WHERE vehicle_id = ? AND frame_ts > 0 AND frame_ts <= ?",
+            (vehicle_id, not_after_ms)).fetchone()
+        return int(row[0]) if row and row[0] else None
+
     def get_last_frame_ts(self, vehicle_id: int):
         """The newest cloud-frame timestamp on record for this vehicle, or None. Seeds the recorder's
         stale-frame baseline across a poller restart — the third of the three baselines, and the one

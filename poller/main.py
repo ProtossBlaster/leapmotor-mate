@@ -12,6 +12,7 @@ _PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 
 import abrp
 import energy_snapshots
+import gps_position
 import ready_automation
 import session_share
 from client import (LeapmotorMateClient, set_charge_current_min, EmptyStatusError,
@@ -762,7 +763,8 @@ def reconcile_coord_signs(db, vehicle_id: int, vin: str) -> None:
 
     if corrected:
         db.set_gps_signs(vin, *(str(stored[a]) if stored[a] else "" for a in ("lat", "lon")))
-    seed_coord_signs(vin, stored["lat"], stored["lon"])
+    seed_coord_signs(vin, stored["lat"], stored["lon"], db.get_newest_frame_ts(
+        vehicle_id, int(time.time() * 1000) + gps_position.FUTURE_CLOCK_MS))
 
 
 class VehicleContext:

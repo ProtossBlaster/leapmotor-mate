@@ -20,7 +20,10 @@ log = logging.getLogger(__name__)
 # through zero, so a real crossing is always observed NEAR the line; a dropped sign is observed at
 # full magnitude (8.6° W becoming 8.6° E is 1720 km between two polls).
 NEAR_LINE_DEG = 1.0          # within ~85 km of the line a crossing is ordinary — believe it
-FLIP_CONFIRMATIONS = 10      # far from it, the flip must be argued: 10 polls in a row
+FLIP_CONFIRMATIONS = 10      # far from it, the flip must be argued: 10 frames in a row
+# A frame clock further ahead of ours is no clock. A stamp ahead holds later frames back until ours
+# catches up; a crossing among them is learned only within 1° of the line, so keep it to minutes.
+FUTURE_CLOCK_MS = 300_000
 
 # Signed slot first, then the unsigned magnitudes in the order they are trusted.
 SIGNALS = {"lat": ("3", ("3725", "2190")), "lon": ("2", ("3724", "2191"))}
@@ -29,12 +32,13 @@ LIMITS = {"lat": 90.0, "lon": 180.0}
 
 @dataclass
 class Memory:
-    """What one car's frames taught: the sign per axis (-1.0 / 1.0; absent = never learned) and,
-    per axis, how many signed polls in a row have asked for the other side. The counter is kept
-    apart from the signs: poller/main.py persists the signs, and a counter among them would
-    rewrite the setting on every poll."""
+    """What one car's frames taught: the sign per axis (-1.0 / 1.0; absent = never learned), per
+    axis how many new frames in a row have asked for the other side, and the clock of the newest
+    frame seen. The counter is kept apart from the signs: poller/main.py persists the signs, and a
+    counter among them would rewrite the setting on every poll."""
     signs: dict = field(default_factory=dict)
     pending: dict = field(default_factory=dict)
+    newest_frame_ts: int = 0
 
 
 def coordinate(raw, limit: float) -> Optional[float]:
@@ -64,12 +68,28 @@ def _reading(sig: dict, axis: str) -> Optional[tuple[Optional[float], float]]:
     return None
 
 
-def resolve(mem: Memory, sig: dict, *, learn: bool) -> tuple[float, float]:
+def is_new_observation(mem: Memory, frame_ts: int, now_ms: int) -> bool:
+    """Whether a frame tells the memory something it has not heard: one newer than every frame
+    before. A repeat, or an older frame replayed, is the same observation again and can neither
+    count towards a flip nor teach a sign. A frame without a usable clock — none, not positive, or
+    more than FUTURE_CLOCK_MS ahead of ours — cannot be ordered, so it counts as the poll it arrived
+    in: refusing it instead would hold a car that really changed sides on the wrong one for good."""
+    if frame_ts <= 0 or frame_ts > now_ms + FUTURE_CLOCK_MS:
+        return True
+    if frame_ts <= mem.newest_frame_ts:
+        return False
+    mem.newest_frame_ts = frame_ts
+    return True
+
+
+def resolve(mem: Memory, sig: dict, *, learn: bool, frame_ts: int = 0, now_ms: int = 0) -> tuple[float, float]:
     """(latitude, longitude) of a frame. A frame that lacks one of the two axes places the car
-    nowhere — (0, 0), the no-fix marker the Overview and the trip already skip — and teaches the
-    memory nothing, so a partial frame can neither move the car to the equator or the meridian nor
-    take part in a sign argument."""
+    nowhere — (0, 0), the no-fix marker the Overview and the trip already skip — and takes no part
+    in a sign argument, so a partial frame can neither move the car to the equator or the meridian
+    nor flip it. With `learn`, only a new observation (is_new_observation) counts or learns, and a
+    frame without a fix is heard too; any other frame is placed by what the memory holds."""
     readings = {axis: _reading(sig, axis) for axis in ("lat", "lon")}
+    learn = learn and is_new_observation(mem, frame_ts, now_ms)
     if None in readings.values():
         return 0.0, 0.0
     return (_resolve_axis(mem, "lat", *readings["lat"], learn=learn),
@@ -83,8 +103,8 @@ def _resolve_axis(mem: Memory, axis: str, s: Optional[float], magnitude: float, 
     unsigned value is used as-is, so east-of-Greenwich cars are never affected.
 
     A signed read that contradicts a hemisphere we already know is only believed near the line, or
-    after FLIP_CONFIRMATIONS polls in a row say the same thing (#232). Without `learn` nothing is
-    counted or learned: the web writes one row on a button and cannot count polls, so it refuses
+    after FLIP_CONFIRMATIONS new frames in a row say the same thing (#232). Without `learn` nothing
+    is counted or learned: the web writes one row on a button and cannot count frames, so it refuses
     every far-from-the-line flip and follows the sign the poller persists."""
     if s is not None:
         proposed = -1.0 if s < 0 else 1.0
@@ -108,7 +128,7 @@ def _resolve_axis(mem: Memory, axis: str, s: Optional[float], magnitude: float, 
         if seen >= FLIP_CONFIRMATIONS:
             # Argued for long enough to be real: a car shipped across the line with its SIM dark
             # never gets to be seen near it, and refusing forever would strand that owner.
-            log.warning("GPS %s: the opposite hemisphere has now been reported %d polls running — "
+            log.warning("GPS %s: the opposite hemisphere has now been reported %d frames running — "
                         "accepting it and re-learning the sign", axis, seen)
             mem.signs[axis] = proposed
             mem.pending.pop(axis, None)

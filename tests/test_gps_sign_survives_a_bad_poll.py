@@ -24,8 +24,8 @@ Two numbers, chosen and declared rather than tuned:
 
 - `NEAR_LINE_DEG = 1.0` — within ~85 km of the line, a crossing is ordinary. Believe it at
   once, or a car driving Lisbon→Madrid would fight its own memory.
-- `FLIP_CONFIRMATIONS = 10` — far from the line the flip has to be argued for, ten polls in
-  a row (5 min parked, 100 s driving). A transient frame never gets there; a car genuinely shipped
+- `FLIP_CONFIRMATIONS = 10` — far from the line the flip has to be argued for, ten new frames
+  in a row (100 s driving). A transient frame never gets there; a car genuinely shipped
   across the meridian with its SIM dark the whole way re-registers within minutes of coming back.
   Without this escape that owner would be mirrored forever with no way out.
 
@@ -53,8 +53,14 @@ PORTO = {"1": 1781076766374, "sts": 1781076766616,
 PORTO_MIRRORED = dict(PORTO, **{"2": 8.610000})
 
 
+_CLOCK = [PORTO["1"]]
+
+
 def _lon(vin, sig):
-    return client._parse_signal(vin, sig).longitude
+    """One poll of a frame the car has just sent: a repeat of an earlier frame is not new and
+    would argue nothing."""
+    _CLOCK[0] += 30_000
+    return client._parse_signal(vin, dict(sig, **{"1": _CLOCK[0], "sts": _CLOCK[0]})).longitude
 
 
 @pytest.fixture(autouse=True)
@@ -112,7 +118,7 @@ def test_the_first_signed_poll_still_teaches_the_sign():
 
 def test_a_car_that_really_moved_hemisphere_wins_in_the_end():
     """The escape hatch: shipped abroad with the SIM dark, so the crossing was never observed near
-    the line. Ten agreeing polls override the memory."""
+    the line. Ten agreeing frames override the memory."""
     _lon("VIN232F", PORTO)
     for _ in range(gps_position.FLIP_CONFIRMATIONS - 1):
         assert _lon("VIN232F", PORTO_MIRRORED) == -8.61      # still refused
