@@ -700,6 +700,16 @@ def get_coord_signs(vin: str) -> dict:
     return dict(_gps[vin].signs) if vin in _gps else {}
 
 
+def restore_gps_record(vin: str, text: str) -> None:
+    """Load what the last run persisted (gps_position.record), after the signs are seeded."""
+    if vin:
+        gps_position.restore(_gps.setdefault(vin, gps_position.Memory()), text)
+
+
+def get_gps_record(vin: str) -> str:
+    return gps_position.record(_gps.setdefault(vin, gps_position.Memory()))
+
+
 def _parse_signal(vin: str, sig: dict) -> VehicleData:
     gear      = _GEAR_MAP.get(int(sig.get("1010") or 0), "P")
     speed_kmh = float(sig.get("1319") or 0)

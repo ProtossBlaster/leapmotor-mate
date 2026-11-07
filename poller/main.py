@@ -16,7 +16,7 @@ import gps_position
 import ready_automation
 import session_share
 from client import (LeapmotorMateClient, set_charge_current_min, EmptyStatusError,
-                    seed_coord_signs, get_coord_signs, use_pin_of)
+                    seed_coord_signs, get_coord_signs, restore_gps_record, get_gps_record, use_pin_of)
 from db import Database, log_login
 from mqtt import MqttService
 from outside_temp import OutsideTempSampler
@@ -765,6 +765,7 @@ def reconcile_coord_signs(db, vehicle_id: int, vin: str) -> None:
         db.set_gps_signs(vin, *(str(stored[a]) if stored[a] else "" for a in ("lat", "lon")))
     seed_coord_signs(vin, stored["lat"], stored["lon"], db.get_newest_frame_ts(
         vehicle_id, int(time.time() * 1000) + gps_position.FUTURE_CLOCK_MS))
+    restore_gps_record(vin, db.get_gps_record(vin))
 
 
 class VehicleContext:
@@ -786,7 +787,7 @@ class VehicleContext:
     """
 
     __slots__ = ("vehicle", "vehicle_id", "vin", "recorder", "persisted_signs",
-                 "empty_status_count", "poll_error_count", "research_last_sig",
+                 "persisted_gps_record", "empty_status_count", "poll_error_count", "research_last_sig",
                  "interval", "next_due", "outside_sampler", "abrp_last_sent", "link")
 
     def __init__(self, db, vehicle, vehicle_id: int):
@@ -799,6 +800,7 @@ class VehicleContext:
         # fragmentation) and only closes it if the activity has actually ended.
         self.recorder = Recorder(db, vehicle_id)
         self.persisted_signs: dict = {}
+        self.persisted_gps_record = ""
         self.empty_status_count = 0   # consecutive "no live signals" responses (car asleep)
         self.poll_error_count = 0     # consecutive hard API errors (cloud unreachable)
         self.research_last_sig: dict = {}   # beta build: last value per signal id, for delta logging
@@ -1067,6 +1069,12 @@ def _poll_vehicle(db, client, ctx, acct) -> None:
             # learning overwrote the first's — and that car goes back into the sea.
             db.set_gps_signs(ctx.vehicle.vin, str(signs.get("lat") or ""), str(signs.get("lon") or ""))
             ctx.persisted_signs = signs
+        # The anchor (gps_position): the web places its rows by it, and a restart must not lose it
+        # (#458's poller restarted between parking and the frames it refused). ~1 write per km.
+        gps_record = get_gps_record(ctx.vin)
+        if gps_record != ctx.persisted_gps_record:
+            db.set_gps_record(ctx.vehicle.vin, gps_record)
+            ctx.persisted_gps_record = gps_record
 
         # Persist the car's configured charge limit (the SoC it will stop at) whenever it
         # changes, so the Overview hero can label the charge ETA with the real % read cheaply

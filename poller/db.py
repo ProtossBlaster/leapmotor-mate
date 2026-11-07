@@ -1020,6 +1020,13 @@ class Database:
             out[axis] = own or self.get_setting(f"gps_{axis}_sign", "unknown")
         return out
 
+    def set_gps_record(self, vin: str, record: str) -> None:
+        """This car's anchor and odometer readings (gps_position.record); per car, as the signs."""
+        self.set_setting(f"gps_anchor_{str(vin).lower()}", record)
+
+    def get_gps_record(self, vin: str) -> str:
+        return self.get_setting(f"gps_anchor_{str(vin).lower()}", "") if vin else ""
+
     def get_operate_pin(self, vin: str = "") -> str:
         """The PIN that authorises a command ON THIS CAR — its own, else `LEAPMOTOR_PIN` (#186).
 

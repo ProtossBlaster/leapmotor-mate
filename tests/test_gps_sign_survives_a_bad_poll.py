@@ -118,22 +118,25 @@ def test_the_first_signed_poll_still_teaches_the_sign():
 
 def test_a_car_that_really_moved_hemisphere_wins_in_the_end():
     """The escape hatch: shipped abroad with the SIM dark, so the crossing was never observed near
-    the line. Ten agreeing frames override the memory."""
+    the line. Ten agreeing frames override the memory. The odometer did not move on the ship."""
+    naples = dict(PORTO, **{"2": 14.27, "3724": 14.27, "3": 40.85, "3725": 40.85})
     _lon("VIN232F", PORTO)
     for _ in range(gps_position.FLIP_CONFIRMATIONS - 1):
-        assert _lon("VIN232F", PORTO_MIRRORED) == -8.61      # still refused
-    assert _lon("VIN232F", PORTO_MIRRORED) == 8.61           # argued for long enough
+        assert _lon("VIN232F", naples) == -14.27             # still refused
+    assert _lon("VIN232F", naples) == 14.27                  # argued for long enough
     assert client.get_coord_signs("VIN232F")["lon"] == 1.0
 
 
 def test_one_good_frame_in_between_resets_the_argument():
     """🔑 A cloud that flickers must never accumulate. Nine bad frames and one good one leaves the
-    car exactly where it was — otherwise a long enough drive collects ten glitches by chance."""
-    _lon("VIN232G", PORTO)
+    car exactly where it was — otherwise a long enough drive collects ten glitches by chance. Each
+    frame is a kilometre on, so no frame is settled by where an earlier one put the car."""
+    km = iter(range(2008, 2030))
+    _lon("VIN232G", dict(PORTO, **{"1318": next(km)}))
     for _ in range(gps_position.FLIP_CONFIRMATIONS - 1):
-        _lon("VIN232G", PORTO_MIRRORED)
-    _lon("VIN232G", PORTO)                                   # the car reports itself west again
-    assert _lon("VIN232G", PORTO_MIRRORED) == -8.61          # count restarted, not resumed
+        assert _lon("VIN232G", dict(PORTO_MIRRORED, **{"1318": next(km)})) == -8.61
+    _lon("VIN232G", dict(PORTO, **{"1318": next(km)}))       # the car reports itself west again
+    assert _lon("VIN232G", dict(PORTO_MIRRORED, **{"1318": next(km)})) == -8.61   # count restarted
 
 
 def test_a_negative_reading_is_never_second_guessed():

@@ -4077,11 +4077,14 @@ def remembered_signs(vin: Optional[str]) -> dict:
 
 
 def position_from_signals(signals: dict, vin: Optional[str] = None) -> tuple[float, float]:
-    """(latitude, longitude) of a raw signal dict, by the poller's rule with the sign it persisted.
-    This write runs once, on a button: it cannot count polls, so it never learns (#232) — the
-    poller stays the only process that does, and when it does the setting changes and this follows."""
-    signs = {axis: known for axis in ("lat", "lon") if (known := _remembered_sign(axis, vin))}
-    return gps_position.resolve(gps_position.Memory(signs=signs), signals, learn=False)
+    """(latitude, longitude) of a raw signal dict, by the poller's rule with the signs and the anchor
+    it persisted. This write runs once, on a button: it cannot count polls, so it never learns (#232)
+    — the poller stays the only process that does, and when it does the setting changes and this
+    follows."""
+    mem = gps_position.Memory(signs={axis: known for axis in ("lat", "lon")
+                                     if (known := _remembered_sign(axis, vin))})
+    gps_position.restore(mem, get_setting(f"gps_anchor_{vin.lower()}", "") if vin else "")
+    return gps_position.resolve(mem, signals, learn=False)
 
 
 def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
