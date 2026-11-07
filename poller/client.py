@@ -712,7 +712,7 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
     fuel_pct = _sf(sig, "3235")
     fuel_ml = _sf(sig, "3263")
 
-    return VehicleData(
+    data = VehicleData(
         vin=vin,
         timestamp_ms=int(sig.get("sts") or sig.get("1") or 0),
         soc=float(sig.get("100003") or sig.get("1204") or 0),
@@ -734,10 +734,9 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         # west-of-Greenwich cars lost the longitude sign there (GitHub #30: Lichfield B10
         # reports 2=-1.915912 but 3724=+1.915912; on east-of-Greenwich cars 2 == 3724). When
         # a poll omits the signed pair, gps_position re-applies the last known sign (#43).
-        latitude=gps_position.resolve_axis(_gps.setdefault(vin, gps_position.Memory()), "lat",
-                                           sig.get("3"), sig.get("3725") or sig.get("2190"), learn=True),
-        longitude=gps_position.resolve_axis(_gps.setdefault(vin, gps_position.Memory()), "lon",
-                                            sig.get("2"), sig.get("3724") or sig.get("2191"), learn=True),
+        # Set last, below: a frame that fails to parse must not have taught the sign memory.
+        latitude=0.0,
+        longitude=0.0,
         outside_temp=None,   # no ambient-temp signal exists (2101 = driverSeatVentilation)
         # 🔴 A temperature the car did not send is ABSENT, not zero. `or 0` turned silence into
         # 0.0 — a value that looks like a reading, and in August, at forty degrees outside, an
@@ -816,3 +815,6 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         security_active=(None if sig.get("1255") is None
                          else int(sig.get("1255") or 0) != 0),   # B10 reads 2 when armed; truthy
     )
+    data.latitude, data.longitude = gps_position.resolve(
+        _gps.setdefault(vin, gps_position.Memory()), sig, learn=True)
+    return data

@@ -5127,8 +5127,7 @@ async def debug_signals():
     gps_ids = ("2", "3", "3724", "3725", "2190", "2191")
     return JSONResponse({
         "gps_signals": {k: sig.get(k) for k in gps_ids if k in sig},
-        "parsed": {"latitude":  db_reader._coord_from_signals(sig, "lat", vin),
-                   "longitude": db_reader._coord_from_signals(sig, "lon", vin)},
+        "parsed": dict(zip(("latitude", "longitude"), db_reader.position_from_signals(sig, vin))),
         "remembered_sign": db_reader.remembered_signs(vin),
         "all_signals": sig,
     })

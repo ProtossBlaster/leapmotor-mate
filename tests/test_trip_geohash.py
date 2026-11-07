@@ -71,7 +71,7 @@ def test_backfill_skips_trips_without_coordinates(tmp_path):
 
 
 def test_backfill_leaves_a_null_island_trip_without_a_geohash(tmp_path):
-    """gps_position.resolve_axis returns 0.0 — never None — when a frame carries no usable GPS fix, so
+    """gps_position.resolve returns (0, 0) — never None — when a frame carries no usable GPS fix, so
     trips holding start_lat/start_lon = 0.0 are already sitting in every existing database.
     Geohashing those would drop all of them into one bogus bucket off West Africa, and a trip
     whose FIRST fix happened to be missing would then never match its own siblings on the same

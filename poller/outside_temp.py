@@ -85,7 +85,7 @@ class OutsideTempSampler:
             self._stored = None
             if 0 <= now_ts - ts < _MAX_AGE_S:
                 self._temp = temp
-        # `None` never arrives: `gps_position` returns 0.0 when no usable value exists, so
+        # `None` never arrives: `gps_position` returns (0, 0) when a frame has no fix, so
         # this guard tested for something the parser cannot produce and a frame without a fix asked
         # for the weather at 0,0 — Null Island, in the Gulf of Guinea — stored it as the car's
         # outside temperature, and moved the anchor there, which then suppressed the next real fetch

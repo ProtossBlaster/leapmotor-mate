@@ -10,7 +10,9 @@ the two cannot disagree about where the car is.
 separate sys.path roots and cannot import each other (tests/test_basics.py holds them equal).
 """
 import logging
+import math
 from dataclasses import dataclass, field
+from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +21,10 @@ log = logging.getLogger(__name__)
 # full magnitude (8.6° W becoming 8.6° E is 1720 km between two polls).
 NEAR_LINE_DEG = 1.0          # within ~85 km of the line a crossing is ordinary — believe it
 FLIP_CONFIRMATIONS = 10      # far from it, the flip must be argued: 10 polls in a row
+
+# Signed slot first, then the unsigned magnitudes in the order they are trusted.
+SIGNALS = {"lat": ("3", ("3725", "2190")), "lon": ("2", ("3724", "2191"))}
+LIMITS = {"lat": 90.0, "lon": 180.0}
 
 
 @dataclass
@@ -31,28 +37,56 @@ class Memory:
     pending: dict = field(default_factory=dict)
 
 
-def number(raw) -> float:
+def coordinate(raw, limit: float) -> Optional[float]:
+    """A finite number within ±limit; None when absent, unreadable, NaN, infinite or out of range."""
     if raw in (None, ""):
-        return 0.0
+        return None
     try:
-        return float(raw)
+        value = float(raw)
     except (TypeError, ValueError):
-        return 0.0
+        return None
+    return value if math.isfinite(value) and abs(value) <= limit else None
 
 
-def resolve_axis(mem: Memory, axis: str, signed_raw, unsigned_raw, *, learn: bool) -> float:
+def _reading(sig: dict, axis: str) -> Optional[tuple[Optional[float], float]]:
+    """(signed, magnitude) of one axis: the signed value when it is a nonzero coordinate, else the
+    first nonzero unsigned one, else a zero the frame did send. None when the frame carries no
+    coordinate for this axis at all — absent and unreadable are no reading, a sent 0 is one."""
+    signed_id, unsigned_ids = SIGNALS[axis]
+    signed = coordinate(sig.get(signed_id), LIMITS[axis])
+    if signed:
+        return signed, abs(signed)
+    unsigned = [u for u in (coordinate(sig.get(i), LIMITS[axis]) for i in unsigned_ids) if u is not None]
+    if any(unsigned):
+        return None, abs(next(u for u in unsigned if u))
+    if signed is not None or unsigned:
+        return None, 0.0
+    return None
+
+
+def resolve(mem: Memory, sig: dict, *, learn: bool) -> tuple[float, float]:
+    """(latitude, longitude) of a frame. A frame that lacks one of the two axes places the car
+    nowhere — (0, 0), the no-fix marker the Overview and the trip already skip — and teaches the
+    memory nothing, so a partial frame can neither move the car to the equator or the meridian nor
+    take part in a sign argument."""
+    readings = {axis: _reading(sig, axis) for axis in ("lat", "lon")}
+    if None in readings.values():
+        return 0.0, 0.0
+    return (_resolve_axis(mem, "lat", *readings["lat"], learn=learn),
+            _resolve_axis(mem, "lon", *readings["lon"], learn=learn))
+
+
+def _resolve_axis(mem: Memory, axis: str, s: Optional[float], magnitude: float, *, learn: bool) -> float:
     """Resolve one GPS axis. The signed signal (2/3) is authoritative and refreshes the
     remembered sign; when only the unsigned signal is present, re-apply the remembered sign
-    to its magnitude (#43). Returns 0.0 when no usable value exists. With no memory yet (a
-    fresh install before any signed poll) the unsigned value is used as-is — unchanged from
-    the pre-#43 behaviour, so east-of-Greenwich cars are never affected.
+    to its magnitude (#43). With no memory yet (a fresh install before any signed poll) the
+    unsigned value is used as-is, so east-of-Greenwich cars are never affected.
 
     A signed read that contradicts a hemisphere we already know is only believed near the line, or
     after FLIP_CONFIRMATIONS polls in a row say the same thing (#232). Without `learn` nothing is
     counted or learned: the web writes one row on a button and cannot count polls, so it refuses
     every far-from-the-line flip and follows the sign the poller persists."""
-    s = number(signed_raw)
-    if s != 0.0:
+    if s is not None:
         proposed = -1.0 if s < 0 else 1.0
         known = mem.signs.get(axis)
         if known is None or known == proposed or s < 0.0 or abs(s) <= NEAR_LINE_DEG:
@@ -85,7 +119,4 @@ def resolve_axis(mem: Memory, axis: str, signed_raw, unsigned_raw, *, learn: boo
                     "a car cannot cross it in one poll, keeping the remembered sign",
                     axis, seen, FLIP_CONFIRMATIONS)
         return abs(s) * known
-    u = number(unsigned_raw)
-    if u == 0.0:
-        return 0.0
-    return abs(u) * mem.signs.get(axis, 1.0)
+    return magnitude * mem.signs.get(axis, 1.0)

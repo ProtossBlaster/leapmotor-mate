@@ -1,8 +1,8 @@
 """With no GPS fix the outside-temperature sampler asked Open-Meteo for 0,0 (30/08 audit).
 
 `OutsideTempSampler.sample` guards with `if lat is None or lon is None` — and nothing upstream ever
-sends None. `gps_position.resolve_axis` says so in its own docstring: *"Returns 0.0 when no usable value
-exists"*. So the guard is dead code, and a frame with no fix asked for the weather at latitude 0,
+sends None. `gps_position.resolve` says so in its own docstring: a frame without a fix places the car at
+*"(0, 0), the no-fix marker"*. So the guard is dead code, and a frame with no fix asked for the weather at latitude 0,
 longitude 0 — Null Island, in the Gulf of Guinea — then stored that as the car's outside temperature
 and moved the sampler's anchor there, which also suppresses the next real fetch until the car has
 "moved" 10 km back.

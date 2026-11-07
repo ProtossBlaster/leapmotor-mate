@@ -4057,7 +4057,6 @@ def write_optimistic_status(overrides: dict) -> None:
 # nothing to prefer it. When a poll omits it, re-apply the sign the poller persisted (#43) —
 # the web is a separate process and can't see the poller's in-memory sign, but it can read the
 # setting the poller writes. Unknown sign → magnitude as-is. Both now resolve through gps_position.
-_COORD_SIGNALS = {"lat": ("3", ("3725", "2190")), "lon": ("2", ("3724", "2191"))}
 
 
 def _remembered_sign(axis: str, vin: Optional[str]) -> float:
@@ -4077,15 +4076,12 @@ def remembered_signs(vin: Optional[str]) -> dict:
     return {axis: (str(s) if (s := _remembered_sign(axis, vin)) else "unknown") for axis in ("lat", "lon")}
 
 
-def _coord_from_signals(signals: dict, axis: str, vin: Optional[str] = None) -> float:
-    """One GPS axis from a raw signal dict, by the poller's rule with the sign it persisted. This
-    write runs once, on a button: it cannot count polls, so it never learns (#232) — the poller
-    stays the only process that does, and when it does the setting changes and this follows."""
-    signed_id, unsigned_ids = _COORD_SIGNALS[axis]
-    known = _remembered_sign(axis, vin)
-    mem = gps_position.Memory(signs={axis: known} if known else {})
-    unsigned = next((v for v in (gps_position.number(signals.get(i)) for i in unsigned_ids) if v != 0.0), 0.0)
-    return gps_position.resolve_axis(mem, axis, signals.get(signed_id), unsigned, learn=False)
+def position_from_signals(signals: dict, vin: Optional[str] = None) -> tuple[float, float]:
+    """(latitude, longitude) of a raw signal dict, by the poller's rule with the sign it persisted.
+    This write runs once, on a button: it cannot count polls, so it never learns (#232) — the
+    poller stays the only process that does, and when it does the setting changes and this follows."""
+    signs = {axis: known for axis in ("lat", "lon") if (known := _remembered_sign(axis, vin))}
+    return gps_position.resolve(gps_position.Memory(signs=signs), signals, learn=False)
 
 
 def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
@@ -4223,8 +4219,8 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
         (
             vehicle_id,
             datetime.now(timezone.utc).isoformat(),
-            _coord_from_signals(signals, "lat", vin),   # signed pair first (#158) — never the bare
-            _coord_from_signals(signals, "lon", vin),   # unsigned magnitude, or west cars land at sea
+            *position_from_signals(signals, vin),   # signed pair first (#158) — never the bare
+                                                    # unsigned magnitude, or west cars land at sea
             sigf_or_none("1319"), sigf_or_none("1318"),
             sigf("100003") or sigf("1204"),
             capability_profile.battery_range_km(signals),   # the poller's rule (#365)
