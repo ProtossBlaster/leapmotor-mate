@@ -2154,8 +2154,8 @@ def _next_charge_start_utc(db, started_at, exclude_ids=()) -> Optional[str]:
 
 
 # ── Which `positions` rows belong to a charge ────────────────────────────────────────────────────
-# `positions.charging` is the car's OWN flag (`poller/client._is_charging`, which needs
-# `abs(pack current) >= _CHARGE_CURRENT_MIN_A` — the user's charge-detection setting, 2.0 A by
+# `positions.charging` is the car's OWN flag (`poller/client._is_charging`, which needs a current
+# into the pack of at least `_CHARGE_CURRENT_MIN_A` — the user's charge-detection setting, 2.0 A by
 # default). Some cars stop asserting it while they are still charging. @arzthilfe's C10 (#341) drops
 # it the moment his wallbox goes from 11 A to 8 A, because the pack current then reads 1.7 A:
 #
@@ -4200,7 +4200,7 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
         except (TypeError, ValueError): volt = None
         power = abs(cur * volt) / 1000.0 if (cur is not None and volt is not None and abs(cur) >= 3.0) else None
         if cur is not None:
-            if abs(cur) < 3.0:
+            if cur > -3.0:   # below the floor, or + (current out of the pack: a load, not a charge)
                 return False
             return rem is not None or (power is not None and power >= 1.0)
         if power is not None:
@@ -4405,6 +4405,7 @@ def get_latest_status() -> Optional[dict]:
     limit = configured_charge_limit(car["vin"] if car else "") or 100
     at_limit = d.get("soc") is not None and d["soc"] >= limit - _AT_THE_LIMIT_PCT
     current_in = (d.get("charge_current_a") or 0) <= -_CHARGE_SAMPLE_MIN_A
+    current_out = (d.get("charge_current_a") or 0) >= _CHARGE_SAMPLE_MIN_A   # the pack supplying a load
     # A charge already running does not vanish from the screen because the current dipped (#307).
     # `charging` on a position row is the poll's own answer, and it comes from `_is_charging`, which
     # refuses a pack current below `charge_detect_min_a`. That threshold exists to notice a charge
@@ -4416,7 +4417,8 @@ def get_latest_status() -> Optional[dict]:
     # The cable is the guard: unplugged, the answer is the poll's again, so a session left open by
     # any other defect cannot print "charging" for ever. At the car's limit with no current going in
     # the charge is over, not dipping: the car ends its session some time after the energy stops.
-    if not d.get("charging") and d.get("plug_connected") and (current_in or not at_limit):
+    # Current out of the pack is no dip either: the car is running a load from it.
+    if not d.get("charging") and d.get("plug_connected") and not current_out and (current_in or not at_limit):
         open_charge = db.execute(
             "SELECT 1 FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) "
             "AND ended_at IS NULL LIMIT 1", (_current_vehicle_id(),)).fetchone()

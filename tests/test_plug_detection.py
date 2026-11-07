@@ -86,7 +86,7 @@ def test_parse_signal_frozen_snapshot_not_plugged():
 def test_parse_signal_active_charge_is_plugged():
     charging = {
         "1010": 0, "1319": 0.0, "100003": 55.0,
-        "1178": 16.0, "1177": 230.0, "1149": 2, "1200": 120,
+        "1178": -16.0, "1177": 230.0, "1149": 2, "1200": 120,
     }
     data = client._parse_signal("VIN123", charging)
     assert data.plug_connected is True
@@ -163,7 +163,7 @@ def test_charge_session_closes_on_unplug_despite_stuck_47():
 
     sm = StateMachine()
     charging = client._parse_signal("VIN", {
-        "1010": 0, "1319": 0, "100003": 55, "1178": 16, "1177": 230, "1149": 2, "1200": 120})
+        "1010": 0, "1319": 0, "100003": 55, "1178": -16, "1177": 230, "1149": 2, "1200": 120})
     sm.update(charging)
     assert sm.state == State.CHARGING
 

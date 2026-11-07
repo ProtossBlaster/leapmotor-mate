@@ -67,7 +67,7 @@ def test_a_deferred_cable_that_starts_drawing_IS_charging():
     assume the car relabels itself to 2. Treating 4 as "never charging" would drop the whole
     scheduled charge in silence, which is far worse than the blank cable this fixes. The current
     is the evidence; the cable code only says the cable is there."""
-    assert client._is_charging(_sig(**{"1149": 4, "1178": 16, "1177": 230, "1200": 120})) is True
+    assert client._is_charging(_sig(**{"1149": 4, "1178": -16, "1177": 230, "1200": 120})) is True
 
 
 def test_the_deferred_state_is_still_motion_gated():
@@ -94,7 +94,7 @@ def test_an_ordinary_connection_is_not_flagged_deferred():
 # ── 2) the session must still close when the schedule takes over ────────────────
 def _charging_sig(soc=58.8):
     return {"1010": 0, "1319": 0, "100003": soc, "1149": 2,
-            "1178": 16, "1177": 230, "1200": 120}
+            "1178": -16, "1177": 230, "1200": 120}
 
 
 def _deferred_sig(soc=59.4):

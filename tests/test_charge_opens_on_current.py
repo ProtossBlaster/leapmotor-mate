@@ -26,8 +26,8 @@ def _cable_only(soc=55):
     return {"1010": 0, "1319": 0, "100003": soc, "1149": 1}
 
 def _charging(soc=55):
-    # Real charge: 1149==2 "charging" + 16 A current.
-    return {"1010": 0, "1319": 0, "100003": soc, "1149": 2, "1178": 16, "1177": 230, "1200": 120}
+    # Real charge: 1149==2 "charging" + 16 A into the pack.
+    return {"1010": 0, "1319": 0, "100003": soc, "1149": 2, "1178": -16, "1177": 230, "1200": 120}
 
 def _dip(soc=56):
     # Cable still in (1149==2) but current momentarily below the 2 A floor → charging_status 0,
