@@ -3,8 +3,9 @@
    plus the page-level `t`/`fmt_dur`/`eff_cls` already in context (Jinja includes share the parent
    scope). Deliberately its own partial rather than reusing trip_row.html: this view spans weeks,
    so the FULL date matters (trip_row only ever shows one calendar day at a time), and it needs
-   fields (avg speed, overlap %) no other trip list shows. #}
-<a href="trips/{{ s.id }}" class="trip-row">
+   fields (avg speed, overlap %) no other trip list shows. `here`: the page's address, which the trip page
+   leads back to, to this row (scroll-mt: below the bars that stick). #}
+<a href="trips/{{ s.id }}?back={{ (here ~ '#trip-row-' ~ s.id)|urlencode }}" id="trip-row-{{ s.id }}" class="trip-row scroll-mt-32">
   <div class="min-w-0 flex-1">
     <div class="text-white text-sm font-medium">
       {{ s.started_at | localdate }}

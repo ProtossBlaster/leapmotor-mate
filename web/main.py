@@ -1275,7 +1275,7 @@ async def trip_look_up_places(request: Request, trip_id: int):
 
 
 @app.get("/trips/{trip_id}/similar", response_class=HTMLResponse)
-def trip_similar(request: Request, trip_id: int):
+def trip_similar(request: Request, trip_id: int, back: str = ""):
     """🔎 'Compare similar trips' — every OTHER trip on the same route (same start/end
     corner of the map AND a validated GPS-overlap of the actual path, not just nearby
     endpoints — see db_reader.get_similar_trips), so temperature/traffic/efficiency can be
@@ -1295,6 +1295,7 @@ def trip_similar(request: Request, trip_id: int):
     similar = db_reader.get_similar_trips(trip_id)
     return templates.TemplateResponse(request, "trip_similar.html", _ctx(
         page="trips", vehicle=vehicle, trip=trip, similar=similar, fmt_dur=_fmt_dur,
+        back_link=_back_link(back),
     ))
 
 
@@ -2577,6 +2578,7 @@ _BACK_PAGES = (
     (re.compile(r"events"), "back_events"),
     (re.compile(r"\."), "back_overview"),
     (re.compile(r"trips/[0-9]+"), "back_to_trip"),
+    (re.compile(r"trips/[0-9]+/similar"), "back_similar"),
 )
 
 
