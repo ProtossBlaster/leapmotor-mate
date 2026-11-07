@@ -61,7 +61,9 @@ def test_the_lock_is_free_again_once_released(tmp_path):
         pass
     fd = os.open(lock, os.O_RDWR)
     try:
+        # One at a time: on macOS the two are one lock table, and holding both conflicts with itself.
         fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.lockf(fd, fcntl.LOCK_UN)
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     finally:
         os.close(fd)
@@ -79,3 +81,22 @@ def test_run_sh_prepares_the_installation_before_it_starts_the_two_services():
     line = next(l for l in normal.splitlines() if "prepare_installation()" in l)
     assert re.search(r"\|\|", line) or "|| " in normal[normal.index(line):normal.index(line) + 400]
 
+
+
+def test_taking_the_lock_does_not_wait_for_itself(tmp_path):
+    """On macOS itself (the desktop app) flock() and lockf() are one lock table: 4.24.0 took lockf, then
+    flock on the same file, and the process waited for itself for ever. Measured on 07/11/2026 on a Mac:
+    with the 4.25.0 payload the web and the poller never got past it, and the web never opened its port."""
+    try:
+        out = subprocess.run(
+            [sys.executable, "-c", textwrap.dedent(f"""
+                import sys
+                sys.path.insert(0, {str(ROOT / 'poller' / 'mate_api_runtime')!r})
+                from process_lock import exclusive
+                with exclusive({str(tmp_path / 'self.lock')!r}):
+                    print("held", flush=True)
+            """)],
+            capture_output=True, text=True, timeout=10)
+    except subprocess.TimeoutExpired:
+        pytest.fail("the process waited for its own lock")
+    assert out.stdout.strip() == "held", out.stderr
