@@ -53,6 +53,14 @@ def test_with_coordinates_the_sent_state_is_cleared_so_the_zone_comes_from_them(
 def test_with_no_gps_it_reads_not_home():
     conf = _tracker_config()
     assert _state(conf, json.dumps({"latitude": None, "longitude": None})) == "not_home"
+    assert _state(conf, json.dumps({"latitude": 0.0, "longitude": 0.0})) == "not_home"
+
+
+@pytest.mark.parametrize("lat, lon", [(0.0, 17.9), (51.48, 0.0)], ids=["equator", "prime meridian"])
+def test_a_car_on_the_equator_or_the_prime_meridian_takes_the_zone_too(lat, lon):
+    """Only the pair of zeros is no fix, as `has_gps_fix` reads it: one zero is a real place."""
+    conf = _tracker_config()
+    assert _state(conf, json.dumps({"latitude": lat, "longitude": lon})) == HA_DEFAULT_PAYLOAD_RESET
 
 
 def test_the_coordinates_stay_its_attributes_on_the_same_topic():

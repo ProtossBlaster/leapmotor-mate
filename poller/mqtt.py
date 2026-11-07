@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 import paho.mqtt.client as mqtt
 
 import capability_profile
+from db import _coord_valid
 
 log = logging.getLogger(__name__)
 
@@ -457,9 +458,11 @@ class MqttService:
             pub("frame_ts", None)
             pub("data_age", None)
         self._publish_evcc(base, data)
-        self.client.publish(f"{base}/location",
-                            json.dumps({"latitude": data.latitude, "longitude": data.longitude}),
-                            retain=True)
+        # A frame without a fix reads (0, 0): the broker keeps the last fix, as for the odometer
+        if _coord_valid(data.latitude, data.longitude):
+            self.client.publish(f"{base}/location",
+                                json.dumps({"latitude": data.latitude, "longitude": data.longitude}),
+                                retain=True)
 
     def _publish_evcc(self, base, data):
         """EVCC-friendly boolean mirrors of plug/charging/climate.
@@ -549,10 +552,11 @@ class MqttService:
             ("charge_time_remaining", "Charge Time Remaining", {"dc": "duration", "unit": "min"}),
             ("v2l_power", "V2L Power", {"dc": "power", "unit": "W", "icon": "mdi:home-lightning-bolt"}),
             ("v2l_energy_session", "V2L Session Energy", {"unit": "Wh", "icon": "mdi:lightning-bolt"}),
-            ("tire_fl", "Tyre FL", {"dc": "pressure", "unit": "bar", "icon": "mdi:tire"}),
-            ("tire_fr", "Tyre FR", {"dc": "pressure", "unit": "bar", "icon": "mdi:tire"}),
-            ("tire_rl", "Tyre RL", {"dc": "pressure", "unit": "bar", "icon": "mdi:tire"}),
-            ("tire_rr", "Tyre RR", {"dc": "pressure", "unit": "bar", "icon": "mdi:tire"}),
+            # Empty-to-none like the current and voltage above: a pressure the car did not send is ""
+            ("tire_fl", "Tyre FL", {"dc": "pressure", "unit": "bar", "icon": "mdi:tire", "tpl": _EMPTY_NONE}),
+            ("tire_fr", "Tyre FR", {"dc": "pressure", "unit": "bar", "icon": "mdi:tire", "tpl": _EMPTY_NONE}),
+            ("tire_rl", "Tyre RL", {"dc": "pressure", "unit": "bar", "icon": "mdi:tire", "tpl": _EMPTY_NONE}),
+            ("tire_rr", "Tyre RR", {"dc": "pressure", "unit": "bar", "icon": "mdi:tire", "tpl": _EMPTY_NONE}),
             ("gear", "Gear", {"icon": "mdi:car-shift-pattern"}),
             ("state", "State", {"icon": "mdi:car-info"}),
             ("last_seen", "Last Seen", {"dc": "timestamp", "icon": "mdi:clock-outline"}),
@@ -790,9 +794,11 @@ class MqttService:
         # Assistant takes the zone from the latitude/longitude attributes; a 'home' sent here would
         # win over them wherever the car is (#453). Keeping the state topic lets an existing entity
         # follow on the next message: without it, it showed the raw payload until HA restarted.
+        # Only the pair of zeros is no fix: one zero is the equator or the prime meridian.
         cfg("device_tracker", "location", {"name": "Location",
                                            "json_attributes_topic": f"{prefix}/{vin}/location",
                                            "state_topic": f"{prefix}/{vin}/location",
-                                           "value_template": "{{ 'None' if value_json.latitude else 'not_home' }}",
+                                           "value_template": "{{ 'None' if value_json.latitude or value_json.longitude"
+                                                             " else 'not_home' }}",
                                            "source_type": "gps"})
         log.info("MQTT: Home Assistant discovery published for %s", device_id)

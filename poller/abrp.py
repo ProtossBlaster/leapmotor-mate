@@ -13,6 +13,8 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 
+from db import _coord_valid
+
 log = logging.getLogger(__name__)
 
 _API_URL = "https://api.iternio.com/1/tlm/send"
@@ -62,13 +64,14 @@ def send(token: str, data, facts: CarFacts | None = None) -> bool:
 def _build_tlm(data, facts: CarFacts | None = None) -> dict:
     """Map VehicleData (+ CarFacts) → ABRP telemetry payload (null fields filtered out)."""
     facts = facts or CarFacts()
+    fix = _coord_valid(data.latitude, data.longitude)   # a frame without a fix reads (0, 0)
     tlm = {
         # the time of the reading (a sleeping car repeats one frame for hours), not of the send
         "utc": data.timestamp_ms // 1000 if data.timestamp_ms else int(time.time()),
         "soc": data.soc,
         "speed": data.speed_kmh,
-        "lat": data.latitude,
-        "lon": data.longitude,
+        "lat": data.latitude if fix else None,
+        "lon": data.longitude if fix else None,
         "is_charging": data.charging_status > 0,
         "is_dcfc": (data.charging_status > 0 and data.dc_gun_connected
                     if data.dc_gun_connected is not None else None),
