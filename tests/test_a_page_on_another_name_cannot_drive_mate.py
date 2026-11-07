@@ -121,3 +121,13 @@ def test_ingress_itself_is_unchanged(standalone, monkeypatch):
     assert response.status_code != 403
     page = client.get("/healthz")
     assert "x-frame-options" not in page.headers
+
+
+def test_the_add_on_refusal_points_at_the_panel(standalone, monkeypatch):
+    """An add-on has no password and no environment to set: the refusal names what works there."""
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "x")
+    response = TestClient(main.app, client=("192.168.1.20", 50000)).get(
+        "/api/nav/current-address", headers={"Host": "mate.mydomain.net:4000"})
+    assert response.status_code == 403
+    assert "Home Assistant" in response.text
+    assert "MATE_ALLOWED_HOSTS" not in response.text

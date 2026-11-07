@@ -23,7 +23,7 @@ def test_a_public_home_assistant_is_verified(url):
 
 @pytest.mark.parametrize("url", [
     "https://192.168.1.10:8123", "https://homeassistant.local:8123", "https://homeassistant:8123",
-    "https://[fd00::10]:8123", "https://ha.home.arpa",
+    "https://[fd00::10]:8123", "https://ha.home.arpa", "https://100.101.5.7:8123",
 ])
 def test_a_home_assistant_on_the_lan_may_keep_a_self_signed_certificate(url):
     ctx = ha_client._tls_context(url)

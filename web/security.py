@@ -221,8 +221,15 @@ def is_home_name(host: str) -> bool:
         return bool(name) and name.endswith(_HOME_SUFFIXES)
 
 
-HOST_REFUSED = ("Mate answers on this name only with a password. Set one in Settings, or name this "
-                "host in MATE_ALLOWED_HOSTS.")
+HOST_REFUSED = ("Mate answers on this name only with a password. Open Mate by its address on your "
+                "network and set one in Settings → Access, or name this host in MATE_ALLOWED_HOSTS.")
+# The add-on has neither: its port answers only on a home network name, and the panel always works.
+HOST_REFUSED_ADDON = ("Mate answers on this name only through Home Assistant. Open it from the Home "
+                      "Assistant panel, or by this machine's address on your network.")
+
+
+def host_refused() -> str:
+    return HOST_REFUSED_ADDON if is_addon() else HOST_REFUSED
 
 
 def origin_allowed(method: str, path: str, headers, base_url: str, *, ingress: "bool | None" = None) -> bool:

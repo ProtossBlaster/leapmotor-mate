@@ -475,7 +475,7 @@ async def setup_check(request: Request, call_next):
     # password the session cookie belongs to the real name, and a rebound page never carries it.
     if not ingress and not auth.enabled() and path != "/healthz" \
             and not security.host_allowed(request.headers.get("host", "")):
-        return Response(security.HOST_REFUSED, status_code=403)
+        return Response(security.host_refused(), status_code=403)
     # Cross-site write guard. Ahead of every other gate — including the always-public paths and
     # the auth check — because it protects the install that has NO password, which is the default
     # one. See web/security.py for why an absent origin is allowed and why ingress is exempt.

@@ -83,7 +83,9 @@ def _tls_context(base: str) -> ssl.SSLContext:
     host = urlsplit(base).hostname or ""
     try:
         ip = ipaddress.ip_address(host)
-        tolerate = ip.is_private or ip.is_loopback or ip.is_link_local
+        # 100.64.0.0/10 is shared address space (RFC 6598), not public: Tailscale gives its devices these.
+        tolerate = (ip.is_private or ip.is_loopback or ip.is_link_local
+                    or ip in ipaddress.ip_network("100.64.0.0/10"))
     except ValueError:
         tolerate = security.is_home_name(host)
     if tolerate:
