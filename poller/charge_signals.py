@@ -40,7 +40,7 @@ def _charge_power_kw(sig: dict) -> float:
 
 def is_plugged_in(sig: dict) -> bool:
     """Whether the charge cable is physically connected. Uses signal 1149 (charge
-    state: 1–4 = a cable in, see below), gated by motion.
+    state: 1–4 and 6 = a cable in, see below), gated by motion.
 
     Why 1149 and not 47: signal 47 (acInputSlowCharge) was the old primary, but on the
     B10 it LATCHES at 1 after an AC charge and only clears ~5 min later, when the car's
@@ -78,7 +78,8 @@ def is_plugged_in(sig: dict) -> bool:
         # the official app, reading that same frame, kept drawing the cable. It used to fall into
         # "unplugged" by exclusion, which is what blanked the cable on the Overview. See
         # `_is_deferred_charge`: 4 must never be read as charging.
-        return conn in (1, 2, 3, 4)
+        # 6 = the charge paused with the cable in (the official app interprets 6 as paused); it resumes on 1.
+        return conn in (1, 2, 3, 4, 6)
     return _si(sig, "47") == 1                   # legacy fallback when 1149 is missing
 
 
