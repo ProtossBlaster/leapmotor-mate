@@ -577,6 +577,8 @@
     "retention_saved": "✓ Gespeichert",
     "outside_temp_title": "Außentemperatur (Wetter)",
     "outside_temp_desc": "Die Außentemperatur für den Standort des Autos, von Open-Meteo — in der Übersicht, als Home-Assistant-Sensor und bei jeder Fahrt. Das Auto meldet sie nicht (die offizielle App auch nicht), sie wird also aus dem Wetter ermittelt; die Position verlässt das Gerät.",
+    "elevation_enable_title": "Höhenprofil und Temperatur der Fahrt",
+    "elevation_enable_desc": "Wenige Minuten nach dem Ende einer Fahrt wird ihre GPS-Spur an Open-Meteo gesendet, für die Höhenlinie, die Höhenmeter bergauf und bergab und die Außentemperatur der Fahrt. Ausgeschaltet wird nichts automatisch gesendet; die Schaltfläche Höhenprofil berechnen auf der Seite einer Fahrt schlägt diese Fahrt weiterhin auf Wunsch nach.",
     "outside_temp_label": "Außen",
     "export_section": "Export / Backup",
     "export_trips": "Fahrten (CSV)",

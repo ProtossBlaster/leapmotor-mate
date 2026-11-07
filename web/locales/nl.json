@@ -577,6 +577,8 @@
     "retention_saved": "✓ Opgeslagen",
     "outside_temp_title": "Buitentemperatuur (weer)",
     "outside_temp_desc": "De buitentemperatuur voor de locatie van de auto, van Open-Meteo — op het overzicht, als Home Assistant-sensor en bij elke rit. De auto meldt hem niet (de officiële app ook niet), dus wordt hij uit het weer opgehaald; de positie verlaat het apparaat.",
+    "elevation_enable_title": "Hoogteverloop en temperatuur van de rit",
+    "elevation_enable_desc": "Enkele minuten na afloop van een rit wordt het GPS-spoor naar Open-Meteo gestuurd voor de hoogtelijn, de gestegen en gedaalde meters en de buitentemperatuur van de rit. Staat dit uit, dan wordt er niets automatisch verstuurd; de knop Hoogteverloop berekenen op de pagina van een rit zoekt die rit nog steeds op verzoek op.",
     "outside_temp_label": "Buiten",
     "export_section": "Export / back-up",
     "export_trips": "Ritten (CSV)",

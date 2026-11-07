@@ -577,6 +577,8 @@
     "retention_saved": "✓ Zapisano",
     "outside_temp_title": "Temperatura zewnętrzna (pogoda)",
     "outside_temp_desc": "Temperatura powietrza na zewnątrz dla lokalizacji auta, z Open-Meteo — w podglądzie, jako sensor Home Assistant i przy każdej podróży. Auto jej nie podaje (ani oficjalna aplikacja), więc pobierana jest z pogody; pozycja opuszcza urządzenie.",
+    "elevation_enable_title": "Przewyższenie i temperatura trasy",
+    "elevation_enable_desc": "Kilka minut po zakończeniu trasy jej ślad GPS trafia do Open-Meteo, aby uzyskać linię wysokości, metry podjazdów i zjazdów oraz temperaturę zewnętrzną podczas jazdy. Po wyłączeniu nic nie jest wysyłane automatycznie; przycisk Oblicz przewyższenie na stronie trasy nadal wyszuka ją na żądanie.",
     "outside_temp_label": "Na zewnątrz",
     "export_section": "Eksport / Backup",
     "export_trips": "Trasy (CSV)",

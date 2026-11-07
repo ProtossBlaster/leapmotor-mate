@@ -3351,6 +3351,18 @@ async def save_outside_temp(request: Request):
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("retention_saved")}</span>')
 
 
+@app.post("/api/settings/elevation", response_class=HTMLResponse)
+async def save_elevation(request: Request):
+    """The switch for the lookup of a trip's elevation and temperature (elevation_enrich): a few
+    minutes after a trip ends its GPS track goes to Open-Meteo. On unless switched off here; the
+    'Calculate elevation' button on a trip's page looks that one trip up either way."""
+    form = await request.form()
+    val = "1" if form.get("elevation_enabled") in ("1", "on", "true") else "0"
+    db_reader.set_setting("elevation_enabled", val)
+    t = i18n.get_t(db_reader.get_language())
+    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("retention_saved")}</span>')
+
+
 # ── Wallbox saved profiles ───────────────────────────────────────────────────
 
 def _get_wallbox_profiles() -> list:
