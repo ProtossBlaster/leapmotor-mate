@@ -151,7 +151,7 @@ def test_a_restart_while_deferred_does_not_resume_the_charge():
     assert rec._active_charge_id is None
 
 
-# ── 3) the web copy must agree — two readers of 1149, one meaning ───────────────
+# ── 3) the row the web writes agrees — two writers, one reading of 1149 ─────────
 def _web_db(tmp_path, monkeypatch):
     path = str(tmp_path / "web.db")
     poller_db.Database(path)
