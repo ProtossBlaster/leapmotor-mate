@@ -90,6 +90,14 @@ else
   echo "[LeapMotor Mate] Starting..."
   echo "[LeapMotor Mate] DB: ${DB_PATH}"
   echo "[LeapMotor Mate] Home Assistant API: $([ -n "${SUPERVISOR_TOKEN}" ] && echo "available (add-on mode)" || echo "not available (standalone)")"
+  # Prepare the installation (the Leapmotor app certificate and the common parameters, on a new
+  # /data) once, BEFORE the two services start: each of them prepares it again on import, and two
+  # processes creating the same lock file at the same instant are not kept apart on a Docker Desktop
+  # bind mount (macOS). Measured 07/11/2026: on an empty ./data the two installs collided and the
+  # container restarted for ever. A failure here does not stop Mate: each service then prepares it
+  # itself, as before, and the page shows the state.
+  PYTHONPATH=/app/web python3 -c 'import mate_api; from runtime_paths import prepare_installation; prepare_installation()' \
+    || echo "[LeapMotor Mate] Installation not prepared before start — the services will retry"
   PYTHONPATH=/app/poller python3 /app/poller/main.py &
   POLLER_PID=$!
   echo "[LeapMotor Mate] Poller PID: ${POLLER_PID}"

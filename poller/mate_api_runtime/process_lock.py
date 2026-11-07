@@ -41,8 +41,17 @@ def exclusive(path):
                 msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
         else:
             import fcntl
-            fcntl.flock(lock, fcntl.LOCK_EX)
+            # Two locks, because neither holds everywhere. flock() locks the open file, so it also
+            # keeps out another thread of this process; but on a Docker Desktop bind mount (macOS)
+            # it does not keep out another process, and the web and the poller then installed the
+            # application material at the same time on a fresh /data. lockf() locks for the process
+            # and holds on that mount, as SQLite's own locks do. Always lockf first, then flock.
+            fcntl.lockf(lock, fcntl.LOCK_EX)
             try:
-                yield
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                try:
+                    yield
+                finally:
+                    fcntl.flock(lock, fcntl.LOCK_UN)
             finally:
-                fcntl.flock(lock, fcntl.LOCK_UN)
+                fcntl.lockf(lock, fcntl.LOCK_UN)
