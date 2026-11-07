@@ -2576,6 +2576,7 @@ async def map_page(request: Request):
 _BACK_PAGES = (
     (re.compile(r"events"), "back_events"),
     (re.compile(r"\."), "back_overview"),
+    (re.compile(r"trips/[0-9]+"), "back_to_trip"),
 )
 
 
