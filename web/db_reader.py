@@ -21,6 +21,7 @@ import i18n
 import crypto  # hard import at module top: a missing crypto dep must fail web boot loudly,
               # never silently degrade a per-request secret read
 import capability_profile
+import gps_position
 
 # Timestamps are stored in UTC (poller uses datetime.now(timezone.utc)); the UI must show
 # LOCAL time. The zone is resolved with this precedence (see _local_tz):
@@ -4077,9 +4078,9 @@ def write_optimistic_status(overrides: dict) -> None:
 
 # ── GPS sign on the web write path (GitHub #158 — same root cause as #30/#43) ───────────
 # The cloud sends the coordinates twice: signals 2/3 are SIGNED, 3724/3725 (and 2190/2191) are
-# unsigned magnitudes. The poller resolves this properly (client._resolve_coord), but this
-# module keeps its own copy of the parse for the after-a-command / Refresh-button write — and
-# that copy read ONLY the unsigned pair. So a west-of-Greenwich car had its history stored
+# unsigned magnitudes. The poller resolves this properly, but this module kept its own copy of
+# the parse for the after-a-command / Refresh-button write — and that copy read ONLY the unsigned
+# pair. So a west-of-Greenwich car had its history stored
 # correctly by the poller and then, on the very next Refresh, the NEWEST row filed at the
 # mirrored longitude: Andreexylus' Lisbon B10 (-9.14) jumped to +9.14, i.e. the sea off
 # Sardinia, which is what the Overview map shows. Everything east of Greenwich was unaffected,
@@ -4088,49 +4089,35 @@ def write_optimistic_status(overrides: dict) -> None:
 # The signed pair arrives in the very same dict get_fresh_signals() already returns, so it costs
 # nothing to prefer it. When a poll omits it, re-apply the sign the poller persisted (#43) —
 # the web is a separate process and can't see the poller's in-memory sign, but it can read the
-# setting the poller writes. Unknown sign → magnitude as-is, i.e. exactly today's behaviour.
-_COORD_SIGNALS = {"lat": ("3", ("3725", "2190")), "lon": ("2", ("3724", "2191"))}
-
-# Twin of poller/client._MERIDIAN_NEAR_DEG (#232) — the two processes must not disagree about
-# where the car is, so test_gps_sign_survives_a_bad_poll.py asserts they stay equal.
-_MERIDIAN_NEAR_DEG = 1.0
+# setting the poller writes. Unknown sign → magnitude as-is. Both now resolve through gps_position.
 
 
-def _coord_from_signals(signals: dict, axis: str) -> float:
-    """One GPS axis from a raw signal dict: signed signal first, else magnitude × remembered sign."""
-    def _f(raw) -> float:
-        if raw in (None, ""):
-            return 0.0
-        try:
-            return float(raw)
-        except (TypeError, ValueError):
-            return 0.0
-
-    signed_id, unsigned_ids = _COORD_SIGNALS[axis]
+def _remembered_sign(axis: str, vin: Optional[str]) -> float:
+    """The sign the poller learned for this car (db.set_gps_signs writes it per VIN), else the
+    shared key every install predating that has. -1.0, 1.0, or 0.0 = never learned one."""
+    own = get_setting(f"gps_{axis}_sign_{vin.lower()}", "") if vin else ""
     try:
-        sign = float(get_setting(f"gps_{axis}_sign", "0") or 0)
+        sign = float(own or get_setting(f"gps_{axis}_sign", "0") or 0)
     except (TypeError, ValueError):
         sign = 0.0
-    known = -1.0 if sign < 0 else (1.0 if sign > 0 else 0.0)     # 0.0 = never learned one
+    return -1.0 if sign < 0 else (1.0 if sign > 0 else 0.0)
 
-    s = _f(signals.get(signed_id))
-    if s != 0.0:
-        # Authoritative — it carries its own sign. But a frame that LOST that sign is
-        # indistinguishable from a genuine one (#232), and this copy runs once, on a button: it
-        # cannot count polls the way the poller does, so it never overrules a hemisphere it
-        # already knows unless the car is at the line. The poller stays the only process that
-        # learns; when it does, the setting changes and this follows.
-        # One-directional, like the poller: a dropped sign can only ever arrive POSITIVE, since the
-        # signals it gets confused with are magnitudes and have no minus to lose. So the only
-        # reading worth doubting is a positive one, far from the line, on a car we remember as
-        # west/south — every other combination proves itself and passes straight through.
-        if known == -1.0 and s > _MERIDIAN_NEAR_DEG:
-            return -s
-        return s
-    u = next((v for v in (_f(signals.get(i)) for i in unsigned_ids) if v != 0.0), 0.0)
-    if u == 0.0:
-        return 0.0
-    return abs(u) * (known or 1.0)
+
+def remembered_signs(vin: Optional[str]) -> dict:
+    """The sign per axis this car's positions are resolved with, as the diagnostics show it:
+    '-1.0', '1.0' or 'unknown'."""
+    return {axis: (str(s) if (s := _remembered_sign(axis, vin)) else "unknown") for axis in ("lat", "lon")}
+
+
+def position_from_signals(signals: dict, vin: Optional[str] = None) -> tuple[float, float]:
+    """(latitude, longitude) of a raw signal dict, by the poller's rule with the signs and the anchor
+    it persisted. This write runs once, on a button: it cannot count polls, so it never learns (#232)
+    — the poller stays the only process that does, and when it does the setting changes and this
+    follows."""
+    mem = gps_position.Memory(signs={axis: known for axis in ("lat", "lon")
+                                     if (known := _remembered_sign(axis, vin))})
+    gps_position.restore(mem, get_setting(f"gps_anchor_{vin.lower()}", "") if vin else "")
+    return gps_position.resolve(mem, signals, learn=False)
 
 
 def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
@@ -4156,6 +4143,8 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
         vehicle_id, vin = (row[0], row[1]) if row else (None, None)
     else:
         vehicle_id = _current_vehicle_id()
+        row = db.execute("SELECT vin FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
+        vin = row[0] if row else None
     if vehicle_id is None:
         return
 
@@ -4266,8 +4255,8 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
         (
             vehicle_id,
             datetime.now(timezone.utc).isoformat(),
-            _coord_from_signals(signals, "lat"),   # signed pair first (#158) — never the bare
-            _coord_from_signals(signals, "lon"),   # unsigned magnitude, or west cars land at sea
+            *position_from_signals(signals, vin),   # signed pair first (#158) — never the bare
+                                                    # unsigned magnitude, or west cars land at sea
             sigf_or_none("1319"), sigf_or_none("1318"),
             sigf("100003") or sigf("1204"),
             capability_profile.battery_range_km(signals),   # the poller's rule (#365)

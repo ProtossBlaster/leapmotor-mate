@@ -14,7 +14,7 @@ the update IS the repair.
 
 ⚠️ Two ideas were measured and thrown away before this one, both recorded so they don't come back:
 
-- **"forget the sign"** — with the memory cleared `known is None`, and `_resolve_coord` takes its
+- **"forget the sign"** — with the memory cleared `known is None`, and the resolver takes its
   first branch: it re-learns `+1` from the next positive frame and is back in the sea within one
   poll.
 - **"ask the owner which hemisphere"** — Silvio: *«l'utente potrebbe dirti qualsiasi cosa»*. And
@@ -27,7 +27,9 @@ import importlib.util
 import logging
 import pathlib
 
+import client
 import db as D
+import db_reader
 import diagnostics
 import pytest
 
@@ -137,7 +139,8 @@ def test_a_split_history_says_nothing(tmp_path):
 # ── the startup reconciliation ────────────────────────────────────────────────
 
 def _stored(database, axis):
-    return database.get_setting(f"gps_{axis}_sign", "")
+    """The sign as both readers see it: this car's own key, else the shared one."""
+    return database.get_gps_signs("VIN232")[axis]
 
 
 def test_a_poisoned_setting_is_corrected_from_the_history(tmp_path):
@@ -149,16 +152,21 @@ def test_a_poisoned_setting_is_corrected_from_the_history(tmp_path):
     assert float(_stored(database, "lon")) == -1.0
 
 
-def test_the_correction_reaches_the_setting_the_web_reads(tmp_path):
-    """⚠️ The web has no history of its own — it applies this setting and nothing else. Correcting
-    only the poller's memory would fix the trips and leave the marker at sea, which is precisely the
-    split rop12770 reported."""
+def test_the_correction_reaches_the_sign_the_web_reads(tmp_path, monkeypatch):
+    """⚠️ The web has no history of its own — it applies the sign the poll loop persists per car
+    (db.set_gps_signs) and nothing else. Correcting the shared key alone would fix the poller's
+    memory and leave the web filing the mirror on every Refresh, which is precisely the split
+    rop12770 reported."""
+    monkeypatch.setattr(client, "_gps", {})
     database = _db(tmp_path)
     _places(database, WEST)
-    database.set_setting("gps_lon_sign", "1.0")
+    database.set_gps_signs("VIN232", "1.0", "1.0")       # the poll loop's own key, poisoned
     poller_main.reconcile_coord_signs(database, 1, "VIN232")
-    reopened = D.Database(str(tmp_path / "h.db"))
-    assert float(reopened.get_setting("gps_lon_sign", "0")) == -1.0
+    monkeypatch.setattr(db_reader, "DB_PATH", str(tmp_path / "h.db"))
+    unsigned = {"3725": 40.5, "3724": 7.2, "1010": 0, "100003": 52.6}
+    db_reader.save_fresh_signals(unsigned)
+    filed = database._conn.execute("SELECT longitude FROM positions ORDER BY id DESC LIMIT 1").fetchone()[0]
+    assert (client._parse_signal("VIN232", unsigned).longitude, filed) == (-7.2, -7.2)
 
 
 def test_a_setting_the_history_agrees_with_is_left_alone(tmp_path, caplog):
@@ -194,6 +202,14 @@ def test_an_unreadable_history_does_not_stop_the_poller(tmp_path, monkeypatch, c
     with caplog.at_level(logging.WARNING, logger="main"):
         poller_main.reconcile_coord_signs(database, 1, "VIN232")
     assert float(_stored(database, "lon")) == -1.0
+
+
+def test_the_bundle_reports_the_sign_the_car_is_resolved_with(monkeypatch):
+    """The corrected sign lives on the car's own key; a bundle still quoting the shared one would
+    send the next triage after a sign Mate no longer uses."""
+    keys = {"gps_lon_sign_vin232": "-1.0", "gps_lon_sign": "1.0"}
+    monkeypatch.setattr(diagnostics.db_reader, "get_setting", lambda k, d=None: keys.get(k, "1.0"))
+    assert "lon=-1.0" in diagnostics._gps_shape_line({"3724": 7.2}, "VIN232")
 
 
 # ── the bundle line that sent me the wrong way ────────────────────────────────

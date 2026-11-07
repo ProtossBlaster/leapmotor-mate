@@ -5127,22 +5127,22 @@ async def debug_signals():
     wrong sign. `gps_signals` isolates the GPS ids so a west-longitude user can paste just those;
     `all_signals` is the full dict for spotting an unmapped sign/hemisphere field."""
     import asyncio
-    sig = await asyncio.get_event_loop().run_in_executor(None, command_client.get_fresh_signals)
+    vin = (db_reader.get_vehicle()[0] or {}).get("vin")
+    sig = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: command_client.get_fresh_signals(vin))
     if not sig:
         return JSONResponse(
             {"error": "no live signals (car asleep or unreachable) — retry right after using the car"},
             status_code=503)
     # 2/3 are the SIGNED pair, 3724/3725 the unsigned magnitudes (2190/2191 fallbacks). The signed
     # ids were missing from this list — the one endpoint written to debug a sign bug didn't show
-    # the sign (#158). `parsed` now goes through the same resolver that writes the position row,
-    # so what you read here is what Mate would store.
+    # the sign (#158). `parsed` goes through the same resolver that writes the position row, with
+    # this car's own sign, so what you read here is what Mate would store.
     gps_ids = ("2", "3", "3724", "3725", "2190", "2191")
     return JSONResponse({
         "gps_signals": {k: sig.get(k) for k in gps_ids if k in sig},
-        "parsed": {"latitude":  db_reader._coord_from_signals(sig, "lat"),
-                   "longitude": db_reader._coord_from_signals(sig, "lon")},
-        "remembered_sign": {"lat": db_reader.get_setting("gps_lat_sign", "unknown"),
-                            "lon": db_reader.get_setting("gps_lon_sign", "unknown")},
+        "parsed": dict(zip(("latitude", "longitude"), db_reader.position_from_signals(sig, vin))),
+        "remembered_sign": db_reader.remembered_signs(vin),
         "all_signals": sig,
     })
 
@@ -5190,11 +5190,15 @@ async def diagnostics_bundle(parts: str = "info,poller,web,signals"):
     coordinates stripped → the whole bundle is safe to share publicly. When 'signals' is selected
     we do one live fetch (same as the Refresh button) so the dump reflects the car's current state."""
     sel = [p.strip() for p in parts.split(",") if p.strip()]
-    signals = None
+    signals = vin = None
     if "signals" in sel:
         import asyncio
-        signals = await asyncio.get_event_loop().run_in_executor(None, command_client.get_fresh_signals)
-    body = diagnostics.build_bundle(MATE_VERSION, parts=sel, signals=signals)
+        # One car for the read and for the sign it is read with: the picker can move while the
+        # cloud answers (#338).
+        vin = (db_reader.get_vehicle()[0] or {}).get("vin")
+        signals = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: command_client.get_fresh_signals(vin))
+    body = diagnostics.build_bundle(MATE_VERSION, parts=sel, signals=signals, vin=vin)
     # The bundle is now days of logs; ship it zipped (plain text → ~10× smaller) so it stays a small
     # attachment on a GitHub issue. One entry, same redaction already applied to `body`.
     import io, zipfile

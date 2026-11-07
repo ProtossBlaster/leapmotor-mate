@@ -1020,6 +1020,13 @@ class Database:
             out[axis] = own or self.get_setting(f"gps_{axis}_sign", "unknown")
         return out
 
+    def set_gps_record(self, vin: str, record: str) -> None:
+        """This car's anchor and odometer readings (gps_position.record); per car, as the signs."""
+        self.set_setting(f"gps_anchor_{str(vin).lower()}", record)
+
+    def get_gps_record(self, vin: str) -> str:
+        return self.get_setting(f"gps_anchor_{str(vin).lower()}", "") if vin else ""
+
     def get_operate_pin(self, vin: str = "") -> str:
         """The PIN that authorises a command ON THIS CAR — its own, else `LEAPMOTOR_PIN` (#186).
 
@@ -1400,8 +1407,8 @@ class Database:
             "WHERE (start_geohash IS NULL AND start_lat IS NOT NULL AND start_lon IS NOT NULL) "
             "OR (end_geohash IS NULL AND end_lat IS NOT NULL AND end_lon IS NOT NULL)").fetchall()
         for r in rows:
-            # Same falsy guard create_trip uses, and for the same reason: _resolve_coord
-            # returns 0.0 (never None) when a frame carries no usable fix, so trips with
+            # Same falsy guard create_trip uses, and for the same reason: gps_position
+            # returns (0, 0) (never None) when a frame carries no usable fix, so trips with
             # start_lat/start_lon = 0.0 are already sitting in every existing database.
             # Testing `is not None` would geohash (0,0) into one bogus "Gulf of Guinea"
             # bucket — and worse, a trip whose first fix was missing would then never match
@@ -1654,6 +1661,16 @@ class Database:
             sql += " AND frame_ts IS NOT ?"
             args.append(frame_ts)
         return self._conn.execute(sql + " LIMIT 1", args).fetchone() is not None
+
+    def get_newest_frame_ts(self, vehicle_id: int, not_after_ms: int):
+        """The largest positive frame clock on record for this vehicle that is not past `not_after_ms`,
+        or None. The GPS sign memory counts only frames newer than every earlier one (gps_position),
+        so it needs the newest frame heard, not the last row's (a late frame's), nor a clock so far
+        ahead that no real frame after it would ever be newer."""
+        row = self._conn.execute(
+            "SELECT MAX(frame_ts) FROM positions WHERE vehicle_id = ? AND frame_ts > 0 AND frame_ts <= ?",
+            (vehicle_id, not_after_ms)).fetchone()
+        return int(row[0]) if row and row[0] else None
 
     def get_last_frame_ts(self, vehicle_id: int):
         """The newest cloud-frame timestamp on record for this vehicle, or None. Seeds the recorder's

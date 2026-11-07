@@ -5,7 +5,7 @@ marker **22 seconds old**. Latitude right, longitude mirrored — the #30/#43/#1
 code that resolves the sign had not changed since v2.8.8 (`git log -S _resolve_coord`), so nothing
 we shipped moved it.
 
-Reading it again found the hole the comment above `_coord_sign` denies:
+Reading it again found the hole the comment above the sign memory denied:
 
     # The memory is only ever written by a signed read, never by the fallback, so it can't
     # be polluted.
@@ -22,10 +22,10 @@ dropped sign is observed at full magnitude — 8.6° W becoming 8.6° E is 1720 
 
 Two numbers, chosen and declared rather than tuned:
 
-- `_MERIDIAN_NEAR_DEG = 1.0` — within ~85 km of the line, a crossing is ordinary. Believe it at
+- `NEAR_LINE_DEG = 1.0` — within ~85 km of the line, a crossing is ordinary. Believe it at
   once, or a car driving Lisbon→Madrid would fight its own memory.
-- `_SIGN_FLIP_CONFIRMATIONS = 10` — far from the line the flip has to be argued for, ten polls in
-  a row (5 min parked, 100 s driving). A transient frame never gets there; a car genuinely shipped
+- `FLIP_CONFIRMATIONS = 10` — far from the line the flip has to be argued for, ten new frames
+  in a row (100 s driving). A transient frame never gets there; a car genuinely shipped
   across the meridian with its SIM dark the whole way re-registers within minutes of coming back.
   Without this escape that owner would be mirrored forever with no way out.
 
@@ -38,6 +38,7 @@ import logging
 import client
 import db as D
 import db_reader
+import gps_position
 import pytest
 
 
@@ -52,17 +53,22 @@ PORTO = {"1": 1781076766374, "sts": 1781076766616,
 PORTO_MIRRORED = dict(PORTO, **{"2": 8.610000})
 
 
+_CLOCK = [PORTO["1"]]
+
+
 def _lon(vin, sig):
-    return client._parse_signal(vin, sig).longitude
+    """One poll of a frame the car has just sent: a repeat of an earlier frame is not new and
+    would argue nothing."""
+    _CLOCK[0] += 30_000
+    return client._parse_signal(vin, dict(sig, **{"1": _CLOCK[0], "sts": _CLOCK[0]})).longitude
 
 
 @pytest.fixture(autouse=True)
 def _clean_memory():
-    """`_coord_sign` is module-level and outlives a test. Every test below owns its VIN, but the
-    pending-flip counter is a second dict and forgetting it would leak a count into the next test."""
+    """The sign memory is module-level and outlives a test. Every test below owns its VIN, but a
+    pending-flip count left behind would leak into the next test."""
     yield
-    client._coord_sign.clear()
-    client._sign_flip_pending.clear()
+    client._gps.clear()
 
 
 # ── the refusal ───────────────────────────────────────────────────────────────
@@ -112,22 +118,25 @@ def test_the_first_signed_poll_still_teaches_the_sign():
 
 def test_a_car_that_really_moved_hemisphere_wins_in_the_end():
     """The escape hatch: shipped abroad with the SIM dark, so the crossing was never observed near
-    the line. Ten agreeing polls override the memory."""
+    the line. Ten agreeing frames override the memory. The odometer did not move on the ship."""
+    naples = dict(PORTO, **{"2": 14.27, "3724": 14.27, "3": 40.85, "3725": 40.85})
     _lon("VIN232F", PORTO)
-    for _ in range(client._SIGN_FLIP_CONFIRMATIONS - 1):
-        assert _lon("VIN232F", PORTO_MIRRORED) == -8.61      # still refused
-    assert _lon("VIN232F", PORTO_MIRRORED) == 8.61           # argued for long enough
+    for _ in range(gps_position.FLIP_CONFIRMATIONS - 1):
+        assert _lon("VIN232F", naples) == -14.27             # still refused
+    assert _lon("VIN232F", naples) == 14.27                  # argued for long enough
     assert client.get_coord_signs("VIN232F")["lon"] == 1.0
 
 
 def test_one_good_frame_in_between_resets_the_argument():
     """🔑 A cloud that flickers must never accumulate. Nine bad frames and one good one leaves the
-    car exactly where it was — otherwise a long enough drive collects ten glitches by chance."""
-    _lon("VIN232G", PORTO)
-    for _ in range(client._SIGN_FLIP_CONFIRMATIONS - 1):
-        _lon("VIN232G", PORTO_MIRRORED)
-    _lon("VIN232G", PORTO)                                   # the car reports itself west again
-    assert _lon("VIN232G", PORTO_MIRRORED) == -8.61          # count restarted, not resumed
+    car exactly where it was — otherwise a long enough drive collects ten glitches by chance. Each
+    frame is a kilometre on, so no frame is settled by where an earlier one put the car."""
+    km = iter(range(2008, 2030))
+    _lon("VIN232G", dict(PORTO, **{"1318": next(km)}))
+    for _ in range(gps_position.FLIP_CONFIRMATIONS - 1):
+        assert _lon("VIN232G", dict(PORTO_MIRRORED, **{"1318": next(km)})) == -8.61
+    _lon("VIN232G", dict(PORTO, **{"1318": next(km)}))       # the car reports itself west again
+    assert _lon("VIN232G", dict(PORTO_MIRRORED, **{"1318": next(km)})) == -8.61   # count restarted
 
 
 def test_a_negative_reading_is_never_second_guessed():
@@ -218,13 +227,6 @@ def test_the_web_lets_a_negative_reading_through(tmp_path, monkeypatch):
     db_reader.save_fresh_signals({"2": -8.610000, "3": 41.15, "3724": 8.610000, "3725": 41.15,
                                   "1010": 0, "1319": 0.0, "100003": 52.6})
     assert _stored_lon(path) == -8.61
-
-
-def test_the_two_processes_agree_on_what_near_the_line_means():
-    """⚠️ The threshold lives twice — `poller/client` and `web/db_reader` are separate sys.path
-    roots and cannot import each other. Two values would mean the Refresh button and the poller
-    disagreeing about the same car within one degree of the meridian."""
-    assert db_reader._MERIDIAN_NEAR_DEG == client._MERIDIAN_NEAR_DEG
 
 
 def test_the_web_never_rewrites_the_remembered_sign(tmp_path, monkeypatch):

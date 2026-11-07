@@ -6,6 +6,7 @@ trovate 26 senza lo scope. Le più sono scritture per `id`, che agiscono sulla r
 elenco già filtrato. Ma cinque erano perdite vere, e questo file le blocca.
 → [[feedback-gate-a-feature-find-every-copy]]
 """
+import json
 import pathlib
 
 import db as D
@@ -136,3 +137,57 @@ def test_a_car_that_has_learnt_nothing_falls_back_to_the_shared_sign(two_cars):
     two_cars.set_setting("gps_lat_sign", "negative")
     two_cars.set_setting("gps_lon_sign", "negative")
     assert two_cars.get_gps_signs(A) == {"lat": "negative", "lon": "negative"}
+
+
+def _stored_lon(database, vehicle_id):
+    return database._conn.execute("SELECT longitude FROM positions WHERE vehicle_id = ? ORDER BY id DESC LIMIT 1",
+                                  (vehicle_id,)).fetchone()[0]
+
+
+def test_the_position_the_web_files_after_a_command_uses_this_cars_own_sign(two_cars):
+    """The poller learns the sign per car and the web's write after a command read only the shared
+    key, which the poller writes at startup alone: a frame without the signed pair put the western
+    car of the pair at the mirrored longitude until the next restart."""
+    two_cars.set_gps_signs(A, lat="1.0", lon="-1.0")
+    two_cars.set_gps_signs(B, lat="1.0", lon="1.0")
+    unsigned = {"3724": 8.61, "3725": 41.15, "1010": 0, "1319": 0.0, "100003": 52.6}
+    db_reader.save_fresh_signals(unsigned, A)
+    db_reader.save_fresh_signals(unsigned, B)
+    assert (_stored_lon(two_cars, 1), _stored_lon(two_cars, 2)) == (-8.61, 8.61)
+
+
+def test_the_signals_diagnostic_resolves_the_selected_cars_own_sign(two_cars, monkeypatch):
+    """/api/debug/signals exists to show what Mate would store for a frame (#158): the car it reads
+    is the one picked, and so are the sign it resolves with and the sign it reports."""
+    import asyncio
+    import main
+    two_cars.set_gps_signs(A, lat="1.0", lon="-1.0")
+    two_cars.set_gps_signs(B, lat="1.0", lon="1.0")
+    db_reader.set_active_vehicle(A)
+    read = []
+    monkeypatch.setattr(main.command_client, "get_fresh_signals",
+                        lambda vin=None: read.append(vin) or {"3724": 8.61, "3725": 41.15, "100003": 52.6})
+    body = json.loads(asyncio.run(main.debug_signals()).body)
+    assert (read, body["parsed"]["longitude"], body["remembered_sign"]) == ([A], -8.61, {"lat": "1.0", "lon": "-1.0"})
+
+
+def test_the_bundle_keeps_the_car_its_signals_were_read_from(two_cars, monkeypatch):
+    """The picker can move while the cloud answers (#338): the bundle's GPS line must report the
+    sign of the car the signals came from, not of the car picked by the time it is written."""
+    import asyncio
+    import io
+    import main
+    import zipfile
+    two_cars.set_gps_signs(A, lat="1.0", lon="-1.0")
+    two_cars.set_gps_signs(B, lat="1.0", lon="1.0")
+    db_reader.set_active_vehicle(A)
+    read = []
+
+    def fetch(vin=None):
+        read.append(vin)
+        db_reader.set_active_vehicle(B)          # the picker moves during the fetch
+        return {"2": -8.61, "3": 41.15, "100003": 52.6}
+    monkeypatch.setattr(main.command_client, "get_fresh_signals", fetch)
+    response = asyncio.run(main.diagnostics_bundle(parts="signals"))
+    text = zipfile.ZipFile(io.BytesIO(response.body)).read("leapmotor-mate-diagnostics.txt").decode()
+    assert read == [A] and "remembered sign : lat=1.0 lon=-1.0" in text
