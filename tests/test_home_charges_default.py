@@ -19,7 +19,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SETTINGS_HTML = (ROOT / "web" / "templates" / "settings.html").read_text(encoding="utf-8")
 _BOX = ROOT / "web" / "templates" / "partials" / "home_default_box.html"
 BOX_HTML = _BOX.read_text(encoding="utf-8") if _BOX.exists() else ""
-LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es")
+LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs")
 
 
 @pytest.fixture

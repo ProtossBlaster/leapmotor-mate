@@ -23,7 +23,7 @@ import pytest
 
 WEB = pathlib.Path(__file__).resolve().parent.parent / "web"
 LOCALES = WEB / "locales"
-LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es")
+LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs")
 
 NAMED_KEY = "wb_car_unplugged"            # carries {car} — the model goes here
 GENERIC_KEY = "wb_car_unplugged_unknown"  # no subject to name yet

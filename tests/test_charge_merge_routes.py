@@ -244,7 +244,7 @@ def test_every_language_can_say_it(tmp_path):
             "charge_unmerge_confirm", "charge_merge_segments", "charge_merge_pause"}
     locales = pathlib.Path(__file__).resolve().parent.parent / "web" / "locales"
     files = sorted(locales.glob("*.json"))
-    assert len(files) == 8, f"lingue attese 8, trovate {len(files)}"
+    assert len(files) == 9, f"lingue attese 9, trovate {len(files)}"
     for f in files:
         have = set(json.loads(f.read_text())["translations"])
         assert not (keys - have), f"{f.name}: mancano {sorted(keys - have)}"

@@ -22,7 +22,7 @@ import pathlib
 import pytest
 
 LOCALES = pathlib.Path(__file__).resolve().parent.parent / "web" / "locales"
-LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es")
+LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs")
 KEYS = ("trip_energy_source_cloud", "trip_energy_source_getec", "trip_energy_source_mate")
 
 

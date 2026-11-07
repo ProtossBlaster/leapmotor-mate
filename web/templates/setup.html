@@ -56,6 +56,10 @@
               class="px-4 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer">
         🇪🇸 Español
       </button>
+      <button type="button" onclick="setLang('cs')" id="btn-cs"
+              class="px-4 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer">
+        🇨🇿 Čeština
+      </button>
     </div>
     <h1 id="setup-title" class="text-2xl font-bold text-white mb-1">Welcome to LeapMotor Mate</h1>
     <p id="setup-subtitle" class="text-slate-400 text-sm">Configure your vehicle connection to get started</p>
@@ -469,6 +473,38 @@ const strings = {
     demoNote:      "Solo datos de ejemplo — nada es real. Puedes salir cuando quieras.",
     demoStarting:  "Iniciando la demostración…",
   },
+  cs: {
+    title:         "Vítejte v LeapMotor Mate",
+    subtitle:      "Vyberte, jak chcete začít",
+    acctWarn:      "⚠️ Použijte účet Leapmotor vyhrazený pouze pro Mate. Nepoužívejte tento účet současně v žádné jiné aplikaci, doplňku, Dockeru ani integraci — navzájem si ruší relaci a data pak budou chybět nebo nebudou souhlasit.",
+    email:         "E-mail účtu Leapmotor",
+    emailPh:       "vy@example.com",
+    password:      "Heslo",
+    pin:           "Provozní PIN (nastavený v autě)",
+    pinPerCar:     "Provozní PIN tohoto auta",
+    pinPh:         "4místný PIN",
+    tz:            "Časové pásmo",
+    tzHint:        "Jízdy a nabíjení se zobrazují v tomto pásmu. Zjištěno: {tz} — pokud se nacházíte jinde, změňte ho.",
+    detectBtn:     "🔍 Najít moje auto",
+    detecting:     "⏳ Hledám…",
+    detected:      "Auto nalezeno",
+    carLine:       (model, vin) => `Leapmotor ${model} · VIN ···${vin.slice(-6)}`,
+    batteryLabel:  "Baterie",
+    batteryHint:   "Vyberte variantu baterie",
+    batteryAutoSet:"Baterie zjištěna (evropská specifikace)",
+    detectFail:    "Vozidlo se nepodařilo najít",
+    pinNotSaved:   "Bez nalezeného auta se PIN neuloží. Jakmile Mate auto najde, zadejte ho v Nastavení → Vozidlo.",
+    manualEntry:   "Zadat kapacitu baterie ručně (kWh)",
+    manualHint:    "B10 Pro: 55,0 · B10 Pro Max: 65,0 · B05 Pro: 55,0 · B05 Pro Max: 65,0 · T03: 36,0 · C10 RWD: 67,0 · C10 AWD: 81,9 · B03X 292 km: 39,0 · B03X 382 km: 52,0",
+    submit:        "Připojit a spustit",
+    required:      "E-mail, heslo a PIN jsou povinné.",
+    noBattery:     "Nejprve vyberte variantu baterie.",
+    setupChoice:   "Nastavit moje auto",
+    back:          "Zpět",
+    demoBtn:       "Vyzkoušet demo",
+    demoNote:      "Pouze ukázková data — nic není skutečné. Demo můžete kdykoli opustit.",
+    demoStarting:  "Spouštím demo…",
+  },
 };
 
 let currentLang = 'en';
@@ -506,6 +542,7 @@ function setLang(lang) {
   document.getElementById('btn-pt-PT').className = lang === 'pt-PT' ? active : inactive;
   document.getElementById('btn-nl').className = lang === 'nl' ? active : inactive;
   document.getElementById('btn-es').className = lang === 'es' ? active : inactive;
+  document.getElementById('btn-cs').className = lang === 'cs' ? active : inactive;
 }
 
 // ── Demo mode ─────────────────────────────────────────────────────────────────
@@ -893,6 +930,7 @@ const initLang = navigator.language.startsWith('it') ? 'it'
                : navigator.language.startsWith('pt') ? 'pt-PT'
                : navigator.language.startsWith('nl') ? 'nl'
                : navigator.language.startsWith('es') ? 'es'
+               : navigator.language.startsWith('cs') ? 'cs'
                : 'en';
 setLang('{{ prefill.language if prefill else "" }}' || initLang);
 
@@ -947,7 +985,9 @@ function showManagedSetupError(state) {
     document.getElementById('back-link').insertAdjacentElement('afterend', box);
   }
   const italian = (document.documentElement.lang || navigator.language || '').startsWith('it');
-  box.textContent = italian
+  box.textContent = currentLang === 'cs'
+    ? 'Automatické nastavení není k dispozici. Distribuce musí před přihlášením poskytnout platný aplikační materiál. Nenahrávejte osobní certifikáty. Stav: ' + state
+    : italian
     ? 'Configurazione automatica non disponibile. La distribuzione deve fornire materiale applicativo valido prima del login. Non caricare certificati personali. Stato: ' + state
     : 'Automatic setup unavailable. The distribution must provide valid application material before login. Do not upload personal certificates. Status: ' + state;
   box.style.display = 'block';
