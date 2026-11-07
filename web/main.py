@@ -4538,12 +4538,13 @@ async def import_database(request: Request):
         return HTMLResponse("<div class='text-sm text-red-400'>⚠️ " + t("restore_db_nofile") + "</div>",
                             status_code=400)
     blob = await up.read()
+    from html import escape as _esc   # the text of an exception can quote the uploaded file
     try:
         res = db_reader.restore_database(blob)
     except ValueError as e:
-        return HTMLResponse("<div class='text-sm text-red-400'>⚠️ " + str(e) + "</div>", status_code=400)
+        return HTMLResponse("<div class='text-sm text-red-400'>⚠️ " + _esc(str(e)) + "</div>", status_code=400)
     except Exception as e:  # noqa: BLE001
-        return HTMLResponse("<div class='text-sm text-red-400'>⚠️ " + str(e) + "</div>", status_code=500)
+        return HTMLResponse("<div class='text-sm text-red-400'>⚠️ " + _esc(str(e)) + "</div>", status_code=500)
     _restart_container()   # exit 42 → run.sh relaunches poller + web → both reopen the restored DB
     n = res["counts"]
     return HTMLResponse(
@@ -4602,7 +4603,8 @@ async def test_mqtt(request: Request):
     t = i18n.get_t(db_reader.get_language())
     if ok:
         return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">🟢 {t("mqtt_connected")}</span>')
-    return HTMLResponse(f'<span style="color:#ef4444;font-size:13px">🔴 {t("mqtt_failed")}: {reason}</span>')
+    from html import escape as _esc   # the reason can be the broker's or the resolver's own words
+    return HTMLResponse(f'<span style="color:#ef4444;font-size:13px">🔴 {t("mqtt_failed")}: {_esc(str(reason))}</span>')
 
 
 # Every collapsible card on the Settings accordion. Used both to build the initial
@@ -6366,7 +6368,10 @@ def _cmd_error_html(msg: str) -> str:
         return f'<span data-warn="1" style="color:#fbbf24">⏱️ {t("cmd_timeout_car")}</span>'
     if outcome == "cloud_unreachable":
         return f'<span data-warn="1" style="color:#fbbf24">📡 {t("cmd_cloud_unreach")}</span>'
-    return f'<span style="color:#ef4444">✗ {msg}</span>'
+    # The message is the cloud's answer or an exception's text, and htmx puts this into the page:
+    # escaped, it is shown as written and never run.
+    from html import escape as _esc
+    return f'<span style="color:#ef4444">✗ {_esc(str(msg))}</span>'
 
 
 def _command_confirmed(expected: dict, signals: dict) -> bool:
