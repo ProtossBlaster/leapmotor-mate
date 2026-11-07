@@ -230,7 +230,8 @@ class StateMachine:
         # So on such a wallbox this OR-term goes false on every pause and the session DOES fragment.
         # Deliberately not fixed here: a grace window would have to guess, and its guess would be
         # irreversible. The chosen remedy is to let the user join the rows afterwards, the way trips
-        # are merged — reversible, and it never recomputes a cost.
+        # are merged — reversible, and it never recomputes a cost. A pause the car reports as one
+        # (1149 == 6, cable in) is no guess, and holds the session: `is_plugged_in` reads it as connected.
         #
         # The cable also ends the trip immediately on plug-in (DRIVING branch), before any current flows.
         #
