@@ -23,6 +23,14 @@ import crypto  # hard import at module top: a missing crypto dep must fail web b
 import capability_profile
 import gps_position
 
+# The poller's reading of a frame, on the path for one import: the two directories share module names.
+_POLLER_DIR = str(Path(__file__).resolve().parent.parent / "poller")
+sys.path.insert(0, _POLLER_DIR)
+try:
+    from charge_signals import _sf, _si, is_charging, is_plugged_in
+finally:
+    sys.path.remove(_POLLER_DIR)
+
 # Timestamps are stored in UTC (poller uses datetime.now(timezone.utc)); the UI must show
 # LOCAL time. The zone is resolved with this precedence (see _local_tz):
 #   1. the user's explicit choice in Settings → settings['timezone'] (an IANA name)
@@ -4151,51 +4159,6 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
     def sig(key, default=0):  return int(signals.get(key) or default)
     def sigf(key, default=0.0): return float(signals.get(key) or default)
 
-    def sigf_or_none(key):   # a signal the car did not send stays absent in `positions`, not 0
-        try:
-            return float(signals[key]) if signals.get(key) is not None else None
-        except (TypeError, ValueError):
-            return None
-
-    def sigi_or_none(key):   # as the poller's _si
-        try:
-            return int(signals[key]) if signals.get(key) is not None else None
-        except (TypeError, ValueError):
-            return None
-
-    def _is_charging() -> bool:
-        """Charging only happens while PARKED, so the car must be stationary (gear P,
-        speed ~0); plus the cable plugged in (1149) AND a real charge current (1178). The
-        motion gate is essential: during regen the pack current is strongly negative (same
-        sign as charging) and 1149 reads 1 spuriously, so without it driving is mistaken
-        for charging. Signal 1939 (AC fan mode) is not used."""
-        if int(signals.get("1010") or 0) != 0:   # gear R/N/D → moving
-            return False
-        try:
-            if float(signals.get("1319") or 0) > 2.0:   # speed > 2 km/h → moving
-                return False
-        except (TypeError, ValueError):
-            pass
-        # 0 = unplugged, 5 = the drive-time cable code the REEVs emit while moving (never a
-        # connection). 4 (charge postponed to the programmed window) is deliberately NOT here: see
-        # the poller's _is_charging — excluding it would drop a scheduled charge whole if the car
-        # keeps reporting 4 once its window opens. Kept identical so both readers of 1149 agree.
-        if int(signals.get("1149") or 0) in (0, 5):
-            return False
-        cur = signals.get("1178"); volt = signals.get("1177"); rem = signals.get("1200")
-        try:    cur = float(cur) if cur is not None else None
-        except (TypeError, ValueError): cur = None
-        try:    volt = float(volt) if volt is not None else None
-        except (TypeError, ValueError): volt = None
-        power = abs(cur * volt) / 1000.0 if (cur is not None and volt is not None and abs(cur) >= 3.0) else None
-        if cur is not None:
-            if cur > -3.0:   # below the floor, or + (current out of the pack: a load, not a charge)
-                return False
-            return rem is not None or (power is not None and power >= 1.0)
-        if power is not None:
-            return power >= 1.0 and rem is not None
-        return int(signals.get("1149") or 0) == 2
-
     gear_map = {0: "P", 1: "R", 2: "N", 3: "D"}
     # Windows: flag OR position % (the T03 reports only the %, the B10 only the flag) — same shared
     # logic as the Vehicle page so the Overview tile / Commands grid agree with it (#62). use_pct is
@@ -4206,35 +4169,9 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
     windows_open = int(any(_wstates))
     windows_open_count = sum(1 for w in _wstates if w)
 
-    # Plug from signal 1149 (charge connection status), gated by motion. Signal 47
-    # (acInputSlowCharge) latches at 1 for ~5 min after an AC charge on the B10 and does
-    # NOT clear on unplug, so it cannot drive session-close; 1149 drops to 0 immediately.
-    # 1149 reads 1 spuriously during regen at speed → suppress while moving (mirrors
-    # _is_charging). 47 is only a fallback when 1149 is absent. See poller/client._is_plugged_in.
-    def _is_plugged() -> bool:
-        if int(signals.get("1010") or 0) != 0:          # gear R/N/D → moving
-            return False
-        try:
-            if float(signals.get("1319") or 0) > 2.0:   # speed > 2 km/h → moving
-                return False
-        except (TypeError, ValueError):
-            pass
-        conn = signals.get("1149")
-        if conn is None:
-            return int(signals.get("47") or 0) == 1     # legacy fallback when 1149 absent
-        try:
-            # 3 is the third connected state the REEVs cycle THROUGH mid-charge (1→2→3→2, parked,
-            # current ~0). The poller learned that in v2.8.4 — reading 3 as unplugged closed and
-            # reopened the session on every flicker and shredded one slow AC charge into empty
-            # fragments (beta #12/#13) — but this copy never got it and still disagreed with
-            # poller/client._is_plugged_in. 5 stays out: that one is the drive-time cable code.
-            # 4 is the cable connected with the charge DEFERRED to its programmed window — the
-            # state that blanked the cable on the Overview (#243), since it fell into "unplugged"
-            # by exclusion. Charging is judged separately, above: 4 is plugged and NOT charging.
-            return int(conn) in (1, 2, 3, 4)
-        except (TypeError, ValueError):
-            return False
-    plug_connected = _is_plugged()
+    # The poller's rules and floor, so the two writers of `positions` read a frame alike.
+    plug_connected = is_plugged_in(signals)
+    charging = is_charging(signals, charge_detect_min_a())
 
     db.execute(
         """INSERT INTO positions (
@@ -4257,26 +4194,26 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
             datetime.now(timezone.utc).isoformat(),
             *position_from_signals(signals, vin),   # signed pair first (#158) — never the bare
                                                     # unsigned magnitude, or west cars land at sea
-            sigf_or_none("1319"), sigf_or_none("1318"),
+            _sf(signals, "1319"), _sf(signals, "1318"),   # _sf/_si: a signal the car did not send stays absent, not 0
             sigf("100003") or sigf("1204"),
             capability_profile.battery_range_km(signals),   # the poller's rule (#365)
             gear_map.get(sig("1010"), "P"),
-            int(_is_charging()),
+            int(charging),
             # Absent stays absent, as the poller's _temp_or_none (#144): `float(x or 0)` filed a
             # temperature the car never sent as 0 °C, and on a T03, which sends no battery temperature,
             # one fresh reading during a charge made the charge cold to the SoH page (#435).
-            sigf_or_none("1182"), sigf_or_none("2183"), sigf_or_none("1349"),
+            _sf(signals, "1182"), _sf(signals, "2183"), _sf(signals, "1349"),
             sig("1298"), sig("1938"), int(plug_connected),
             int(sig("2669") == 2), int(sig("2681") == 2), int(sig("1945") == 2),
             sig("1281"), windows_open,
-            sigi_or_none("1724"),
+            _si(signals, "1724"),
             sig("1200") or None,
             sigf("1177") or None,
             sigf("1178") or None,
             int(int(signals.get("3736") or 0) != 0),
             # assente → NULL, come il poller: due scrittori sullo stesso campo, una sola regola
             (None if signals.get("1255") is None else int(int(signals.get("1255") or 0) != 0)),
-            None if (ready := sigf_or_none("1258")) is None else int(ready == 1),   # READY; absent → NULL
+            None if (ready := _sf(signals, "1258")) is None else int(ready == 1),   # READY; absent → NULL
             windows_open_count,
             1 if sig("1277") else 0, 1 if sig("1278") else 0,
             1 if sig("1279") else 0, 1 if sig("1280") else 0,
@@ -5630,6 +5567,11 @@ def get_merge_candidates(gap_min: int = TRIP_MERGE_GAP_DEFAULT, day=None) -> lis
 _RESTING_CURRENT_A = 1.0
 
 
+def charge_detect_min_a() -> float:
+    """The charge-detection floor (A) the user set, which the poller applies each cycle."""
+    return float(get_setting("charge_detect_min_a", "2.0") or 2.0)
+
+
 def charge_threshold_too_high() -> "float | None":
     """The highest charging current this car has ever shown, when the charge-detection floor is set
     ABOVE it — i.e. when that setting has switched the detector off. None when it hasn't, or when
@@ -5646,7 +5588,7 @@ def charge_threshold_too_high() -> "float | None":
     charges. Which is the point — a check that used the charges would go quiet at the same moment
     the problem starts."""
     try:
-        floor = float(get_setting("charge_detect_min_a", "2.0") or 2.0)
+        floor = charge_detect_min_a()
     except (TypeError, ValueError):
         return None
     try:
