@@ -5626,6 +5626,11 @@ def get_merge_candidates(gap_min: int = TRIP_MERGE_GAP_DEFAULT, day=None) -> lis
 _RESTING_CURRENT_A = 1.0
 
 
+def charge_detect_min_a() -> float:
+    """The charge-detection floor (A) the user set, which the poller applies each cycle."""
+    return float(get_setting("charge_detect_min_a", "2.0") or 2.0)
+
+
 def charge_threshold_too_high() -> "float | None":
     """The highest charging current this car has ever shown, when the charge-detection floor is set
     ABOVE it — i.e. when that setting has switched the detector off. None when it hasn't, or when
@@ -5642,7 +5647,7 @@ def charge_threshold_too_high() -> "float | None":
     charges. Which is the point — a check that used the charges would go quiet at the same moment
     the problem starts."""
     try:
-        floor = float(get_setting("charge_detect_min_a", "2.0") or 2.0)
+        floor = charge_detect_min_a()
     except (TypeError, ValueError):
         return None
     try:
