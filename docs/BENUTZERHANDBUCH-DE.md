@@ -1,8 +1,24 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.23.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.24.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.23.0
+## Neu in Version 4.24.0
+
+**Tschechisch.** Mate spricht Tschechisch: *Einstellungen → Sprache → Čeština* (danke an @petrw1).
+
+**Ein Schalter für das Höhenprofil.** *Einstellungen → Fahrt-Standardwerte → Höhenprofil und Temperatur der
+Fahrt*: Ohne Haken schickt Mate die GPS-Spur einer beendeten Fahrt nicht mehr von selbst an Open-Meteo. Die
+Schaltfläche **Höhenprofil berechnen** auf der Seite einer Fahrt schlägt diese Fahrt weiterhin auf Wunsch nach.
+
+**Ein geparktes Auto bleibt, wo es steht.** Ein geparktes Auto westlich von Greenwich oder südlich des Äquators
+springt nicht mehr an den gespiegelten Punkt, wenn seine GPS-Werte das Minuszeichen verlieren. Die *Location*
+in Home Assistant behält die letzte Position, wenn das Auto keine hat, und ein Auto, das keinen Reifendruck
+sendet, zeigt ihn als unbekannt statt 0 bar.
+
+**Laden, in der richtigen Richtung gelesen.** Ein angestecktes Auto, das seine Klimaanlage aus der Batterie
+versorgt, gilt nicht mehr als ladend, und eine Ladung, die das Auto pausiert, bleibt eine Ladung.
+
+### Neu in Version 4.23.0
 
 **Die Karte zeigt, wo das Auto ist.** Auf der Karte zeigt eine Markierung jetzt die letzte bekannte
 Position des Autos, wie in der Übersicht, und folgt dem Auto, solange die Seite offen ist; der
@@ -1206,7 +1222,7 @@ Ansichten in der Adresse.
 
 **Sprache, Währung und Einheiten** ändern Sie unter *Einstellungen → 🌍 Sprache & Währung*:
 
-- **Sprache:** Italiano, English, Français, Deutsch, Polski, Nederlands, Português, Español.
+- **Sprache:** Italiano, English, Français, Deutsch, Polski, Nederlands, Português, Español, Čeština.
   *(Ein geschriebenes Handbuch wie dieses gibt es auf Deutsch, Englisch, Italienisch, Französisch und Spanisch.)*
 - **Währung:** für die Kosten (€, £, …).
 - **Einheiten:** metrisch (km, °C) oder imperial UK/US (Meilen, °F). Die Daten bleiben immer in km/°C gespeichert;
@@ -1362,8 +1378,8 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   niedrigste** Temperatur der Fahrt — kein Mittelwert, sodass eine Auffahrt vom Tal zum Pass den
   echten Abfall zeigt. Zusammen erklären die beiden einen guten Teil des Verbrauchs einer Fahrt:
   Steigen kostet Energie, Kälte kostet Reichweite. Fahrten, die vor dieser Funktion aufgezeichnet
-  wurden, haben eine Schaltfläche **Höhenmeter berechnen**, und das Ganze lässt sich in den
-  Einstellungen abschalten. Ist der Schalter für die Außentemperatur an (siehe *Übersicht*), stammen
+  wurden, haben eine Schaltfläche **Höhenprofil berechnen**, und die automatische Abfrage lässt sich in
+  *Einstellungen → Fahrt-Standardwerte → Höhenprofil und Temperatur der Fahrt* abschalten. Ist der Schalter für die Außentemperatur an (siehe *Übersicht*), stammen
   die Temperaturen der Fahrt aus den **unterwegs** genommenen Messungen; diese nachträgliche Abfrage
   bleibt der Rückfall für ältere Fahrten 🆕.
 - **Fahrzeit und Standzeit 🆕.** Unter der Dauer teilt das Detail sie in Fahrzeit und Standzeit

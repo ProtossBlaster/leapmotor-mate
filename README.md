@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.23.0:** **the Map shows where the car is**, as the Overview does, and a box under the map switches it off ([D#459](https://github.com/ProtossBlaster/leapmotor-mate/discussions/459), @Coooogz). In **4.22.0**: Recent Trips on the Overview are the rows of the Trips page, and a trip row on Trips gives its kWh. In **4.21.0**: free charges have their own slice in Home vs Public.
-See [release notes and upgrade impact](docs/releases/v4.23.0.md).
+**v4.24.0:** **Czech is the ninth language** (@petrw1); **the elevation lookup has a switch**; **a bad GPS reading does not move a parked car**, Home Assistant and ABRP get no zeros the car did not send, and **a parked car drawing from its battery is not charging** (@arekm); a new Docker install on a Mac starts. In **4.23.0**: the Map shows where the car is. In **4.22.0**: Recent Trips on the Overview are the rows of the Trips page.
+See [release notes and upgrade impact](docs/releases/v4.24.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -379,8 +379,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.23.0:** **la Mappa mostra dove si trova l'auto**, come la Panoramica, e una casella sotto la mappa la spegne ([D#459](https://github.com/ProtossBlaster/leapmotor-mate/discussions/459), @Coooogz). Nella **4.22.0**: i Viaggi recenti della Panoramica sono le righe della pagina Viaggi, e una riga di Viaggi dà i suoi kWh. Nella **4.21.0**: le ricariche gratuite hanno la loro fetta in Casa vs Pubblica.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.23.0.md#italiano).
+**v4.24.0:** **il ceco è la nona lingua** (@petrw1); **la ricerca dell'altimetria ha un interruttore**; **una lettura GPS sbagliata non sposta un'auto ferma**, Home Assistant e ABRP non ricevono zeri che l'auto non ha mandato, e **un'auto ferma che prende corrente dalla batteria non è in ricarica** (@arekm); una nuova installazione Docker su Mac parte. Nella **4.23.0**: la Mappa mostra dove si trova l'auto. Nella **4.22.0**: i Viaggi recenti della Panoramica sono le righe della pagina Viaggi.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.24.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

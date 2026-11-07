@@ -1,8 +1,24 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.23.0 · **Idioma:** Español
+> **Versión de Mate:** v4.24.0 · **Idioma:** Español
 
-## Novedades de la versión 4.23.0
+## Novedades de la versión 4.24.0
+
+**El checo.** Mate habla checo: *Ajustes → Idioma → Čeština* (gracias a @petrw1).
+
+**Un interruptor para la altimetría.** *Ajustes → Valores por defecto de los trayectos → Altimetría y temperatura
+del viaje*: desmárcalo y Mate deja de enviar por su cuenta la traza GPS de un viaje terminado a Open-Meteo. El
+botón **Calcular la altimetría** en la página de un viaje lo sigue buscando cuando lo pulsas.
+
+**Un coche aparcado se queda donde está.** Un coche aparcado al oeste de Greenwich o al sur del ecuador ya no
+salta al punto simétrico cuando sus lecturas GPS pierden el signo menos. La *Location* de Home Assistant
+conserva la última posición cuando el coche no tiene ninguna, y un coche que no envía la presión de los
+neumáticos la muestra como desconocida, no 0 bar.
+
+**La carga, leída en el sentido correcto.** Un coche enchufado que alimenta el clima desde la batería ya no
+aparece cargando, y una carga que el coche pausa sigue siendo una sola.
+
+### Novedades de la versión 4.23.0
 
 **El Mapa muestra dónde está el coche.** En el Mapa, un marcador da ahora la última posición conocida
 del coche, como en el Resumen, y sigue al coche mientras la página está abierta; la vista del mapa se queda
@@ -1186,7 +1202,7 @@ al mes actual. **Salud de la batería** hace lo mismo con las vistas elegidas en
 
 **El idioma, la moneda y las unidades** se cambian desde *Ajustes → 🌍 Idioma y moneda*:
 
-- **Idioma:** English, Italiano, Français, Deutsch, Polski, Nederlands, Português, Español.
+- **Idioma:** English, Italiano, Français, Deutsch, Polski, Nederlands, Português, Español, Čeština.
   *(Un manual escrito como este existe en inglés, italiano, francés, alemán y español.)*
 - **Moneda:** para los costes (€, £, …).
 - **Unidades:** métricas (km, °C) o imperiales RU/EE. UU. (millas, °F). Los datos se guardan siempre en
@@ -1337,7 +1353,7 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   trayecto — no una media, para que una subida de valle a puerto muestre la caída real. Entre las
   dos explican buena parte del consumo de un recorrido: subir cuesta energía, el frío cuesta
   autonomía. Los trayectos registrados antes de que esto existiera tienen un botón **Calcular la
-  altimetría**, y todo el conjunto se puede desactivar en Ajustes.
+  altimetría**, y la búsqueda automática se desactiva en *Ajustes → Valores por defecto de los trayectos → Altimetría y temperatura del viaje*.
 - **En movimiento y detenido 🆕.** Bajo la duración, el detalle la divide entre el tiempo en
   movimiento y el tiempo parado durante el trayecto (semáforos, atascos), según las lecturas de Mate
   tomadas cada pocos segundos. Una parada entre trayectos unidos no cuenta para ninguno de los dos,

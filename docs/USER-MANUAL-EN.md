@@ -1,8 +1,23 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.23.0 · **Language:** English
+> **Mate version:** v4.24.0 · **Language:** English
 
-## New in 4.23.0
+## New in 4.24.0
+
+**Czech.** Mate speaks Czech: *Settings → Language → Čeština* (thanks to @petrw1).
+
+**A switch for the elevation lookup.** *Settings → Trip defaults → Elevation and trip temperature*: untick it
+and Mate no longer sends a finished trip's GPS track to Open-Meteo by itself. The **Calculate elevation**
+button on a trip's page still looks that trip up when you press it.
+
+**A parked car stays where it parked.** A parked car west of Greenwich or south of the equator no longer
+jumps to the mirror point when its GPS readings lose their minus sign. Home Assistant's *Location* keeps the
+last fix when the car has none, and a car that sends no tyre pressure shows them as unknown, not 0 bar.
+
+**Charging, read the right way round.** A plugged-in car running its climate from the battery is no longer
+shown as charging, and a charge the car pauses stays one charge.
+
+### New in 4.23.0
 
 **The Map shows where the car is.** On the Map, a marker now gives the car's last known position, as on
 the Overview, and follows the car while the page is open; the map's view stays where you put it. To hide
@@ -1127,7 +1142,7 @@ current month. **Battery health** does the same with the views picked on its two
 
 **Language, currency and units** are changed from *Settings → 🌍 Language & Currency*:
 
-- **Language:** English, Italiano, Français, Deutsch, Polski, Nederlands, Português, Español.
+- **Language:** English, Italiano, Français, Deutsch, Polski, Nederlands, Português, Español, Čeština.
   *(A written manual like this one exists in English, Italian, French, German and Spanish.)*
 - **Currency:** for costs (€, £, …).
 - **Units:** metric (km, °C) or imperial UK/US (miles, °F). The data is always stored in km/°C; only
@@ -1266,7 +1281,7 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   and the **highest and lowest** temperature of the drive — not an average, so a valley-to-pass
   climb shows the real drop. Between them they explain a good part of a drive's consumption: a climb
   costs energy, cold costs range. Trips recorded before this existed have a **Calculate elevation**
-  button, and the whole thing can be switched off in Settings.
+  button, and the automatic lookup can be switched off in *Settings → Trip defaults → Elevation and trip temperature*.
 - **Driving and stopped 🆕.** Under the duration, the detail splits it into the time driving and the
   time stopped — at a standstill inside the drive (lights, queues) — from Mate's readings several
   seconds apart. A stop between joined pieces counts as neither, and a hole in the readings shows as

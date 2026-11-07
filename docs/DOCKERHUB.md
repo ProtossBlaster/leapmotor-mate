@@ -16,7 +16,7 @@ Supported models: **B03X · B05 · B10 · C10 · T03**, European spec (the Leapm
 - 🎛️ **Remote control** — climate, locks, windows, seat heating, charge limit, schedules, one-touch "prepare car"
 - 🏠 **Home Assistant / MQTT** — full MQTT Discovery: sensors, switches and controls appear automatically
 - 🗺️ **Live map**, statistics, vampire-drain insight, ABRP and EVCC integration
-- 🌍 English · Italiano · Français · Deutsch · Polski · Nederlands · Português · Español — metric & imperial units
+- 🌍 English · Italiano · Français · Deutsch · Polski · Nederlands · Português · Español · Čeština — metric & imperial units
 - 🔒 **Self-hosted & private** — your data stays in a local SQLite database, no third-party cloud
 
 ## Quick start

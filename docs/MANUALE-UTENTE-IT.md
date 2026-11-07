@@ -1,8 +1,24 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.23.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.24.0 · **Lingua:** Italiano
 
-## Novità della 4.23.0
+## Novità della 4.24.0
+
+**Il ceco.** Mate parla ceco: *Impostazioni → Lingua → Čeština* (grazie a @petrw1).
+
+**Un interruttore per l'altimetria.** *Impostazioni → Valori predefiniti viaggio → Altimetria e temperatura del
+viaggio*: togli la spunta e Mate non manda più da solo la traccia GPS di un viaggio finito a Open-Meteo. Il
+pulsante **Calcola dislivello** nella pagina di un viaggio cerca comunque quel viaggio quando lo premi.
+
+**Un'auto ferma resta dove ha parcheggiato.** Un'auto ferma a ovest di Greenwich o a sud dell'equatore non
+salta più nel punto speculare quando le letture GPS perdono il meno. La *Location* di Home Assistant tiene
+l'ultima posizione buona quando l'auto non ne ha, e un'auto che non manda la pressione delle gomme la mostra
+come sconosciuta, non 0 bar.
+
+**La ricarica, letta nel verso giusto.** Un'auto col cavo attaccato che alimenta il clima dalla batteria non
+risulta più in ricarica, e una ricarica messa in pausa dall'auto resta una sola.
+
+### Novità della 4.23.0
 
 **La Mappa mostra dove si trova l'auto.** Nella Mappa un segnaposto dà ora l'ultima posizione nota
 dell'auto, come nella Panoramica, e segue l'auto finché la pagina è aperta; la vista della mappa resta dove
@@ -1168,7 +1184,7 @@ torna al mese corrente. **Salute batteria** fa lo stesso con le viste scelte nei
 
 **Lingua, valuta e unità** si cambiano da *Impostazioni → 🌍 Lingua e valuta*:
 
-- **Lingua:** Italiano, English, Français, Deutsch, Polski, Nederlands, Português, Español.
+- **Lingua:** Italiano, English, Français, Deutsch, Polski, Nederlands, Português, Español, Čeština.
   *(Un manuale scritto come questo esiste in italiano, inglese, francese, tedesco e spagnolo.)*
 - **Valuta:** per i costi (€, £, …).
 - **Unità:** metriche (km, °C) o imperiali UK/US (miglia, °F). I dati restano sempre salvati in
@@ -1317,8 +1333,8 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   (riga *Dislivello + / −*; la sua ⓘ dice come sono calcolati), e la temperatura **più alta e più
   bassa** del viaggio — non una media, così una salita da fondovalle a passo mostra il calo vero.
   Insieme spiegano buona parte del consumo di una guidata: la salita costa energia, il freddo costa
-  autonomia. I viaggi registrati prima che esistesse hanno un pulsante **Calcola altimetria**, e
-  tutto si può spegnere dalle Impostazioni.
+  autonomia. I viaggi registrati prima che esistesse hanno un pulsante **Calcola dislivello**, e
+  la ricerca automatica si spegne in *Impostazioni → Valori predefiniti viaggio → Altimetria e temperatura del viaggio*.
 - **In movimento e fermo 🆕.** Sotto la durata, il dettaglio la divide nel tempo in movimento e nel
   tempo da fermi durante il viaggio (semafori, code), dalle letture di Mate prese a pochi secondi
   l'una dall'altra. Una sosta tra viaggi uniti non conta per nessuno dei due, e un buco nelle

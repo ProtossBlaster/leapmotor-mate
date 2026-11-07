@@ -1,8 +1,24 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.23.0 · **Langue :** Français
+> **Version de Mate :** v4.24.0 · **Langue :** Français
 
-## Nouveautés de la version 4.23.0
+## Nouveautés de la version 4.24.0
+
+**Le tchèque.** Mate parle tchèque : *Paramètres → Langue → Čeština* (merci à @petrw1).
+
+**Un interrupteur pour le dénivelé.** *Paramètres → Valeurs par défaut des trajets → Dénivelé et température du
+trajet* : décochez-le et Mate n'envoie plus de lui-même la trace GPS d'un trajet terminé à Open-Meteo. Le
+bouton **Calculer le dénivelé** sur la page d'un trajet le recherche toujours quand vous l'utilisez.
+
+**Une voiture garée reste où elle est.** Une voiture garée à l'ouest de Greenwich ou au sud de l'équateur ne
+saute plus au point symétrique quand ses lectures GPS perdent leur signe moins. La *Location* de Home Assistant
+garde la dernière position quand la voiture n'en a pas, et une voiture qui n'envoie pas la pression des pneus
+l'affiche comme inconnue, pas 0 bar.
+
+**La recharge, lue dans le bon sens.** Une voiture branchée qui alimente sa climatisation depuis la batterie
+n'est plus affichée en charge, et une recharge que la voiture met en pause reste une seule recharge.
+
+### Nouveautés de la version 4.23.0
 
 **La Carte montre où se trouve la voiture.** Sur la Carte, un repère donne maintenant la dernière
 position connue de la voiture, comme dans l'Aperçu, et suit la voiture tant que la page est ouverte ; la
@@ -1225,7 +1241,7 @@ ses deux graphiques.
 
 **La langue, la devise et les unités** se changent depuis *Paramètres → 🌍 Langue et Devise* :
 
-- **Langue :** Italiano, English, Français, Deutsch, Polski, Nederlands, Português, Español.
+- **Langue :** Italiano, English, Français, Deutsch, Polski, Nederlands, Português, Español, Čeština.
   *(Un manuel écrit comme celui-ci existe en français, anglais, italien, allemand et espagnol.)*
 - **Devise :** pour les coûts (€, £, …).
 - **Unités :** métriques (km, °C) ou impériales UK/US (miles, °F). Les données restent toujours enregistrées
@@ -1383,7 +1399,7 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   haute et la plus basse** du trajet — pas une moyenne, si bien qu'une montée de la vallée au col
   montre la vraie chute. À eux deux, ils expliquent une bonne part de la consommation d'une conduite
   : monter coûte de l'énergie, le froid coûte de l'autonomie. Les trajets enregistrés avant que cela
-  existe ont un bouton **Calculer le dénivelé**, et l'ensemble se désactive dans les Réglages. Quand
+  existe ont un bouton **Calculer le dénivelé**, et la recherche automatique se désactive dans *Paramètres → Valeurs par défaut des trajets → Dénivelé et température du trajet*. Quand
   l'interrupteur de température extérieure est activé (voir *Aperçu*), les températures du trajet
   viennent des relevés pris **en route** ; cette recherche après coup reste le recours pour les
   trajets plus anciens 🆕.

@@ -3,6 +3,26 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.24.0] — 2026-11-07
+
+- **Czech is the ninth language** ([#461](https://github.com/ProtossBlaster/leapmotor-mate/pull/461), @petrw1).
+- **The elevation lookup has a switch** ([#464](https://github.com/ProtossBlaster/leapmotor-mate/pull/464), @petrw1):
+  *Settings → Trip defaults → Elevation and trip temperature*. Ticked by default; unticked, no trip is sent to
+  Open-Meteo by itself, and *Calculate elevation* still looks one trip up on request.
+- **A bad GPS reading does not move a parked car** ([#467](https://github.com/ProtossBlaster/leapmotor-mate/pull/467), @arekm).
+  Readings that lose their minus sign no longer move a parked car across the Greenwich meridian or the
+  equator; a repeated reading counts once; a reading with no usable coordinate is no position.
+- **Home Assistant and ABRP get no zeros the car did not send** ([#468](https://github.com/ProtossBlaster/leapmotor-mate/pull/468), @arekm):
+  no 0, 0 location without a GPS fix, and unknown instead of 0 bar for tyre pressures the car does not send.
+- **A parked car drawing from its battery is not charging** ([#469](https://github.com/ProtossBlaster/leapmotor-mate/pull/469), @arekm).
+- **A charge the car pauses stays one charge**, and the reading stored after a command judges a charge as the
+  poller does ([#470](https://github.com/ProtossBlaster/leapmotor-mate/pull/470), [#471](https://github.com/ProtossBlaster/leapmotor-mate/pull/471), @arekm).
+- **A new Docker install on a Mac starts** ([D#452](https://github.com/ProtossBlaster/leapmotor-mate/discussions/452)): on an empty
+  bind-mounted folder with Docker Desktop, 4.23.0 restarted for ever; the README now has a Compose file for
+  the published image.
+- **Error messages are shown as text, never run** ([#462](https://github.com/ProtossBlaster/leapmotor-mate/pull/462), @petrw1), and
+  **a database backup is restored a piece at a time, up to 4 GiB** ([#463](https://github.com/ProtossBlaster/leapmotor-mate/pull/463), @petrw1).
+
 ## [4.23.0] — 2026-11-06
 
 - **The Map shows where the car is** ([D#459](https://github.com/ProtossBlaster/leapmotor-mate/discussions/459), @Coooogz).
