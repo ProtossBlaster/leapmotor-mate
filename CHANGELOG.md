@@ -3,6 +3,23 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.25.0] — 2026-11-07
+
+A security release. See [the notes](docs/releases/v4.25.0.md), *Upgrade impact* above all.
+
+- **A page on another site cannot drive Mate.** Through DNS rebinding a page could drive a Mate with no
+  password, unlock included. With no password, Mate now answers only on the names a home network uses (an IP
+  address, `localhost`, a name without dots, `.local`, `.lan`, `.home`, `.home.arpa`, `.internal`) and on the
+  ones named in the new `MATE_ALLOWED_HOSTS`.
+- **The add-on's port 4000 has the standalone guards**: forms and frames from other sites are refused there.
+  The Home Assistant panel (ingress) is unchanged.
+- **The Home Assistant token goes only over a verified connection** to a public name; a private address, a
+  Tailscale address or a home-network name may keep a self-signed certificate.
+- **Web libraries moved off versions with published advisories**: FastAPI 0.162.2 (Starlette 1.10.0),
+  python-multipart 0.0.33, Pillow 13.0.0, Jinja2 3.1.6, cryptography 50.0.2. A 400 MB field on the login page
+  no longer fills the memory.
+- **Changing the password signs everyone else out**; the car's address is text, never markup.
+
 ## [4.24.0] — 2026-11-07
 
 - **Czech is the ninth language** ([#461](https://github.com/ProtossBlaster/leapmotor-mate/pull/461), @petrw1).

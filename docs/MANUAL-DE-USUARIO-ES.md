@@ -1,8 +1,22 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.24.0 · **Idioma:** Español
+> **Versión de Mate:** v4.25.0 · **Idioma:** Español
 
-## Novedades de la versión 4.24.0
+## Novedades de la versión 4.25.0
+
+**Una versión de seguridad: actualiza.** Una página web de otro sitio podía controlar un Mate sin contraseña,
+puertas incluidas. Sin contraseña, Mate ahora responde solo a los nombres de una red doméstica: una dirección
+IP, `localhost`, un nombre sin puntos, `.local`, `.lan`, `.home`, `.home.arpa`, `.internal`. Si lo abres con
+un nombre público (un nombre DuckDNS, un nombre Tailscale `*.ts.net`, un proxy inverso que pasa su nombre
+público), pon una contraseña en *Ajustes → Acceso*, abriendo Mate por su dirección en tu red, o escribe ese
+nombre en `MATE_ALLOWED_HOSTS` (ver `.env.example`).
+
+**También en esta versión.** Con contraseña, vuelve a iniciar sesión una vez tras la actualización, y cambiar
+la contraseña cierra la sesión de todos los demás. El token de Home Assistant va a un nombre público solo por
+una conexión verificada. Como complemento, el panel no cambia; el puerto 4000, si lo abriste, rechaza
+formularios y marcos de otros sitios.
+
+### Novedades de la versión 4.24.0
 
 **El checo.** Mate habla checo: *Ajustes → Idioma → Čeština* (gracias a @petrw1).
 
