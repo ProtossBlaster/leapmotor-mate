@@ -24,8 +24,8 @@
 
 {% if unconfirmed %}
 {# The banner takes you TO the charge. It used to only announce it, leaving the reader to guess
-   which day of the calendar to click — which is what #240 was actually about. #}
-<a href="charges{% if unconfirmed_id %}?highlight={{ unconfirmed_id }}{% endif %}"
+   which day of the calendar to click — which is what #240 was actually about. It keeps the page's "←". #}
+<a href="charges{% if unconfirmed_id %}?highlight={{ unconfirmed_id }}{% endif %}{% if events_back %}{{ '&' if unconfirmed_id else '?' }}back={{ events_back|urlencode }}{% endif %}"
    class="mb-6 flex items-center gap-2 rounded-xl px-4 py-3 text-sm hover:brightness-125 transition-all"
    style="background:#f59e0b14;border:1px solid #f59e0b44;color:#fbbf24">
   <span>❓</span>
