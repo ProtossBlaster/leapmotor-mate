@@ -166,6 +166,25 @@ The same image is also on [Docker Hub](https://hub.docker.com/r/protossblaster/l
 
 To update later: `docker pull ghcr.io/protossblaster/leapmotor-mate:latest` then recreate the container.
 
+**Or with Compose** (for example in Synology Container Manager, as a new project): the `docker-compose.yml`
+in this repository builds Mate from the source, so for the prebuilt image use this one instead:
+
+```yaml
+services:
+  leapmotor-mate:
+    image: ghcr.io/protossblaster/leapmotor-mate:latest
+    container_name: leapmotor-mate
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./data:/data
+    environment:
+      - TZ=Europe/Rome          # your time zone
+```
+
+To update later: pull the image again and recreate the container (`docker compose pull && docker compose up -d`).
+
 **Or build from source:**
 
 ```bash
@@ -503,6 +522,25 @@ docker run -d --name leapmotor-mate \
 La stessa immagine è anche su [Docker Hub](https://hub.docker.com/r/protossblaster/leapmotor-mate) — puoi usare `protossblaster/leapmotor-mate:latest` in modo equivalente.
 
 Per aggiornare in seguito: `docker pull ghcr.io/protossblaster/leapmotor-mate:latest` e ricrea il container.
+
+**Oppure con Compose** (per esempio in Container Manager di Synology, come nuovo progetto): il `docker-compose.yml`
+di questo repository costruisce Mate dai sorgenti, quindi per l'immagine già pronta usa questo:
+
+```yaml
+services:
+  leapmotor-mate:
+    image: ghcr.io/protossblaster/leapmotor-mate:latest
+    container_name: leapmotor-mate
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./data:/data
+    environment:
+      - TZ=Europe/Rome          # il tuo fuso orario
+```
+
+Per aggiornare in seguito: scarica di nuovo l'immagine e ricrea il container (`docker compose pull && docker compose up -d`).
 
 **Oppure build da sorgente:**
 
