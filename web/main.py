@@ -860,6 +860,9 @@ async def trips_page(request: Request, highlight: int = 0, month: str = ""):
         hl_date = db_reader.get_trip_local_date(highlight)
         if hl_date:
             cal_year, cal_month, cal_open_day = hl_date.year, hl_date.month, hl_date.day
+    # A search in the address (a reload, a result's "← Trips") opens on its results instead of the calendar.
+    search = {k: request.query_params.get(k, "") for k in _TRIPS_SEARCH_FIELDS}
+    search_ctx = _trips_search_ctx(search, cal_year, cal_month)
     return templates.TemplateResponse(request, "trips.html", _ctx(
         page="trips", vehicle=vehicle,
         total=total, highlight=highlight, summary=summary,
@@ -876,7 +879,9 @@ async def trips_page(request: Request, highlight: int = 0, month: str = ""):
         # swapped calendar area so the drawer's 🔗 preview still has somewhere to open.
         cal_year=cal_year, cal_month=cal_month, cal_open_day=cal_open_day,
         cal_years=db_reader.get_trip_years(),
-        calendar_html=_trips_calendar_html(cal_year, cal_month, cal_open_day),   # drawn, not fetched
+        calendar_html=(templates.get_template("partials/trips_search_results.html").render(search_ctx) if search_ctx
+                       else _trips_calendar_html(cal_year, cal_month, cal_open_day)),   # drawn, not fetched
+        search_qs=search_ctx and search_ctx["search_qs"], search_fields=_TRIPS_SEARCH_FIELDS,
     ))
 
 
@@ -1022,6 +1027,11 @@ async def trips_search(request: Request, q: str = "", drive_mode: str = "",
     return templates.TemplateResponse(request, "partials/trips_search_results.html", ctx)
 
 
+# The Trips search's filters, by the names the search endpoint and the page's address give them.
+_TRIPS_SEARCH_FIELDS = ("q", "drive_mode", "km_min", "km_max", "eff_min", "eff_max",
+                        "duration_min", "duration_max", "date_from", "date_to")
+
+
 def _trips_search_ctx(filters: dict[str, str], year: int, month: int) -> dict | None:
     """The Trips search results' template context for `filters`, by the search endpoint's parameter names,
     or None when no filter is set. km_min/km_max are typed in the user's own distance unit (the form label
@@ -1038,6 +1048,7 @@ def _trips_search_ctx(filters: dict[str, str], year: int, month: int) -> dict | 
                 n_eff_min is not None, n_eff_max is not None, n_duration_min is not None,
                 n_duration_max is not None, date_from.strip(), date_to.strip())):
         return None
+    search_qs = urlencode([(k, v.strip()) for k, v in filters.items() if v.strip()])
     lang = db_reader.get_language()
     trips = db_reader.search_trips(
         text=q, drive_mode=drive_mode,
@@ -1054,6 +1065,7 @@ def _trips_search_ctx(filters: dict[str, str], year: int, month: int) -> dict | 
         dt = db_reader._local_dt(t.get("started_at"))
         t["date_label"] = i18n.fmt_day_month_year(lang, dt) if dt else None
     today = db_reader.today_local()
+    y, m = year or today.year, month or today.month
     return {
         "t": i18n.get_t(lang), "fmt_dur": _fmt_dur,
         "is_reev": db_reader.is_reev_car(), "research": research.research_enabled(),
@@ -1062,6 +1074,10 @@ def _trips_search_ctx(filters: dict[str, str], year: int, month: int) -> dict | 
         # disc #263 — the period's own total (km, fuel, cost) for whatever the filters selected, so a
         # custom billing cycle reads off the results instead of being added up by hand.
         "search_total": db_reader.search_results_total_trips(trips),
+        # The search as the page's address has it, and the page's address a result's trip page leads back to:
+        # with the month Back to calendar opens, today's unsaid as on the calendar.
+        "search_qs": search_qs,
+        "back": "trips?" + ("" if (y, m) == (today.year, today.month) else f"month={y}-{m:02d}&") + search_qs,
     }
 
 
@@ -2594,6 +2610,7 @@ _BACK_PAGES = (
     (re.compile(r"trips/[0-9]+"), "back_to_trip"),
     (re.compile(r"trips/[0-9]+/similar"), "back_similar"),
     (re.compile(r"map"), "back_map"),
+    (re.compile(r"trips"), "back_trips"),
 )
 
 
