@@ -19,6 +19,8 @@ A security release. See [the notes](docs/releases/v4.25.0.md), *Upgrade impact* 
   python-multipart 0.0.33, Pillow 13.0.0, Jinja2 3.1.6, cryptography 50.0.2. A 400 MB field on the login page
   no longer fills the memory.
 - **Changing the password signs everyone else out**; the car's address is text, never markup.
+- **The desktop app needs MateDesktop 1.2.3**, which carries the new libraries; 1.2.2 does not take this update.
+- **The desktop app on a Mac starts Mate again**: 4.24.0's lock waited for itself on macOS, and the web never opened its port.
 
 ## [4.24.0] — 2026-11-07
 

@@ -14,7 +14,8 @@ oppure scrivi quel nome in `MATE_ALLOWED_HOSTS` (vedi `.env.example`).
 **Anche in questo rilascio.** Con una password, dopo l'aggiornamento rifai l'accesso una volta, e cambiare la
 password fa uscire tutti gli altri. Il token di Home Assistant va a un nome pubblico solo su una connessione
 verificata. Come add-on il pannello non cambia; la porta 4000, se l'hai aperta, rifiuta form e frame di altri
-siti.
+siti. L'app desktop ha bisogno di MateDesktop 1.2.3 per questo rilascio; la 1.2.2 chiede di scaricare
+un'app più recente.
 
 ### Novità della 4.24.0
 

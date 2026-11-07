@@ -14,7 +14,8 @@ nombre en `MATE_ALLOWED_HOSTS` (ver `.env.example`).
 **También en esta versión.** Con contraseña, vuelve a iniciar sesión una vez tras la actualización, y cambiar
 la contraseña cierra la sesión de todos los demás. El token de Home Assistant va a un nombre público solo por
 una conexión verificada. Como complemento, el panel no cambia; el puerto 4000, si lo abriste, rechaza
-formularios y marcos de otros sitios.
+formularios y marcos de otros sitios. La app de escritorio necesita MateDesktop 1.2.3 para esta versión;
+la 1.2.2 pide descargar una app más reciente.
 
 ### Novedades de la versión 4.24.0
 

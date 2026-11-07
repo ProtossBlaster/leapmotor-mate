@@ -13,7 +13,8 @@ host in `MATE_ALLOWED_HOSTS` (see `.env.example`).
 
 **Also in this release.** With a password, you sign in once more after the update, and changing the password
 signs everyone else out. The Home Assistant token is sent to a public name only over a verified connection. As
-an add-on, the panel is unchanged; port 4000, if you opened it, refuses forms and frames from other sites.
+an add-on, the panel is unchanged; port 4000, if you opened it, refuses forms and frames from other sites. The desktop app needs MateDesktop 1.2.3 for this release; 1.2.2
+asks you to download a newer app.
 
 ### New in 4.24.0
 

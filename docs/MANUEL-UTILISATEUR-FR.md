@@ -14,7 +14,8 @@ réseau, ou indiquez ce nom dans `MATE_ALLOWED_HOSTS` (voir `.env.example`).
 **Aussi dans cette version.** Avec un mot de passe, reconnectez-vous une fois après la mise à jour, et changer
 le mot de passe déconnecte tous les autres. Le jeton de Home Assistant ne part vers un nom public que par une
 connexion vérifiée. En module complémentaire, le panneau ne change pas ; le port 4000, si vous l'avez ouvert,
-refuse les formulaires et les cadres d'autres sites.
+refuse les formulaires et les cadres d'autres sites. L'application de bureau a besoin de MateDesktop 1.2.3
+pour cette version ; la 1.2.2 demande de télécharger une application plus récente.
 
 ### Nouveautés de la version 4.24.0
 

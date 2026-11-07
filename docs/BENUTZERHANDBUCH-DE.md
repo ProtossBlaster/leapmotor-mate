@@ -15,7 +15,8 @@ den Namen in `MATE_ALLOWED_HOSTS` ein (siehe `.env.example`).
 **Außerdem in dieser Version.** Mit Passwort melden Sie sich nach dem Update einmal neu an, und eine
 Passwortänderung meldet alle anderen ab. Das Home-Assistant-Token geht an einen öffentlichen Namen nur über
 eine geprüfte Verbindung. Als Add-on bleibt das Panel unverändert; Port 4000, falls Sie ihn geöffnet haben,
-lehnt Formulare und Frames anderer Websites ab.
+lehnt Formulare und Frames anderer Websites ab. Die Desktop-App braucht für diese Version MateDesktop 1.2.3;
+1.2.2 bittet darum, eine neuere App herunterzuladen.
 
 ### Neu in Version 4.24.0
 
