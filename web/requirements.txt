@@ -1,8 +1,9 @@
-fastapi==0.115.0
-anyio>=3.6.2,<4.15       # Starlette 0.38 uses an alias deprecated by AnyIO 4.15
+fastapi==0.162.2
+starlette>=1.3.1,<2          # 0.38.6 came with FastAPI 0.115: eight advisories, two reachable before login (CVE-2024-47874, CVE-2026-54283)
+anyio>=3.6.2,<5
 uvicorn[standard]==0.30.0
-jinja2==3.1.4
-python-multipart==0.0.9
-Pillow>=10.0.0,<13           # live composed Overview car picture (car_image.py)
+jinja2==3.1.6                # 3.1.4: CVE-2024-56201, CVE-2024-56326, CVE-2025-27516 (sandbox only, not used here)
+python-multipart==0.0.33     # 0.0.9: seven advisories, form-parsing denial of service among them
+Pillow>=13,<14               # live composed Overview car picture (car_image.py); 12.x: fixed in 13.0.0
 tzdata==2025.2
-cryptography>=43,<49
+cryptography>=50,<51
