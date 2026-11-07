@@ -2573,7 +2573,10 @@ async def map_page(request: Request):
 
 # The pages a "←" may lead back to, by the path of the address the page passed as `back`, and what the
 # link reads. Nothing else is taken, so the parameter cannot lead out of Mate.
-_BACK_PAGES = ((re.compile(r"events"), "back_events"),)
+_BACK_PAGES = (
+    (re.compile(r"events"), "back_events"),
+    (re.compile(r"\."), "back_overview"),
+)
 
 
 def _back_link(back: str) -> dict | None:

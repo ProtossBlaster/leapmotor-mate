@@ -789,6 +789,7 @@
     "map_arrow": "🗺 Map →",
     "back_trips": "← Trips",
     "back_events": "← Events",
+    "back_overview": "← Overview",
     "trip_prev": "Previous trip",
     "trip_next": "Next trip",
     "back_to_trip": "← Trip",
