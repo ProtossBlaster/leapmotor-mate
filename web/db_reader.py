@@ -21,6 +21,7 @@ import i18n
 import crypto  # hard import at module top: a missing crypto dep must fail web boot loudly,
               # never silently degrade a per-request secret read
 import capability_profile
+import gps_position
 
 # Timestamps are stored in UTC (poller uses datetime.now(timezone.utc)); the UI must show
 # LOCAL time. The zone is resolved with this precedence (see _local_tz):
@@ -4044,9 +4045,9 @@ def write_optimistic_status(overrides: dict) -> None:
 
 # ── GPS sign on the web write path (GitHub #158 — same root cause as #30/#43) ───────────
 # The cloud sends the coordinates twice: signals 2/3 are SIGNED, 3724/3725 (and 2190/2191) are
-# unsigned magnitudes. The poller resolves this properly (client._resolve_coord), but this
-# module keeps its own copy of the parse for the after-a-command / Refresh-button write — and
-# that copy read ONLY the unsigned pair. So a west-of-Greenwich car had its history stored
+# unsigned magnitudes. The poller resolves this properly, but this module kept its own copy of
+# the parse for the after-a-command / Refresh-button write — and that copy read ONLY the unsigned
+# pair. So a west-of-Greenwich car had its history stored
 # correctly by the poller and then, on the very next Refresh, the NEWEST row filed at the
 # mirrored longitude: Andreexylus' Lisbon B10 (-9.14) jumped to +9.14, i.e. the sea off
 # Sardinia, which is what the Overview map shows. Everything east of Greenwich was unaffected,
@@ -4055,12 +4056,8 @@ def write_optimistic_status(overrides: dict) -> None:
 # The signed pair arrives in the very same dict get_fresh_signals() already returns, so it costs
 # nothing to prefer it. When a poll omits it, re-apply the sign the poller persisted (#43) —
 # the web is a separate process and can't see the poller's in-memory sign, but it can read the
-# setting the poller writes. Unknown sign → magnitude as-is, i.e. exactly today's behaviour.
+# setting the poller writes. Unknown sign → magnitude as-is. Both now resolve through gps_position.
 _COORD_SIGNALS = {"lat": ("3", ("3725", "2190")), "lon": ("2", ("3724", "2191"))}
-
-# Twin of poller/client._MERIDIAN_NEAR_DEG (#232) — the two processes must not disagree about
-# where the car is, so test_gps_sign_survives_a_bad_poll.py asserts they stay equal.
-_MERIDIAN_NEAR_DEG = 1.0
 
 
 def _remembered_sign(axis: str, vin: Optional[str]) -> float:
@@ -4081,36 +4078,14 @@ def remembered_signs(vin: Optional[str]) -> dict:
 
 
 def _coord_from_signals(signals: dict, axis: str, vin: Optional[str] = None) -> float:
-    """One GPS axis from a raw signal dict: signed signal first, else magnitude × remembered sign."""
-    def _f(raw) -> float:
-        if raw in (None, ""):
-            return 0.0
-        try:
-            return float(raw)
-        except (TypeError, ValueError):
-            return 0.0
-
+    """One GPS axis from a raw signal dict, by the poller's rule with the sign it persisted. This
+    write runs once, on a button: it cannot count polls, so it never learns (#232) — the poller
+    stays the only process that does, and when it does the setting changes and this follows."""
     signed_id, unsigned_ids = _COORD_SIGNALS[axis]
     known = _remembered_sign(axis, vin)
-
-    s = _f(signals.get(signed_id))
-    if s != 0.0:
-        # Authoritative — it carries its own sign. But a frame that LOST that sign is
-        # indistinguishable from a genuine one (#232), and this copy runs once, on a button: it
-        # cannot count polls the way the poller does, so it never overrules a hemisphere it
-        # already knows unless the car is at the line. The poller stays the only process that
-        # learns; when it does, the setting changes and this follows.
-        # One-directional, like the poller: a dropped sign can only ever arrive POSITIVE, since the
-        # signals it gets confused with are magnitudes and have no minus to lose. So the only
-        # reading worth doubting is a positive one, far from the line, on a car we remember as
-        # west/south — every other combination proves itself and passes straight through.
-        if known == -1.0 and s > _MERIDIAN_NEAR_DEG:
-            return -s
-        return s
-    u = next((v for v in (_f(signals.get(i)) for i in unsigned_ids) if v != 0.0), 0.0)
-    if u == 0.0:
-        return 0.0
-    return abs(u) * (known or 1.0)
+    mem = gps_position.Memory(signs={axis: known} if known else {})
+    unsigned = next((v for v in (gps_position.number(signals.get(i)) for i in unsigned_ids) if v != 0.0), 0.0)
+    return gps_position.resolve_axis(mem, axis, signals.get(signed_id), unsigned, learn=False)
 
 
 def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:

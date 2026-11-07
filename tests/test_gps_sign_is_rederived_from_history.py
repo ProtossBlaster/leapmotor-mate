@@ -14,7 +14,7 @@ the update IS the repair.
 
 ⚠️ Two ideas were measured and thrown away before this one, both recorded so they don't come back:
 
-- **"forget the sign"** — with the memory cleared `known is None`, and `_resolve_coord` takes its
+- **"forget the sign"** — with the memory cleared `known is None`, and the resolver takes its
   first branch: it re-learns `+1` from the next positive frame and is back in the sea within one
   poll.
 - **"ask the owner which hemisphere"** — Silvio: *«l'utente potrebbe dirti qualsiasi cosa»*. And
@@ -157,8 +157,7 @@ def test_the_correction_reaches_the_sign_the_web_reads(tmp_path, monkeypatch):
     (db.set_gps_signs) and nothing else. Correcting the shared key alone would fix the poller's
     memory and leave the web filing the mirror on every Refresh, which is precisely the split
     rop12770 reported."""
-    for name in ("_coord_sign", "_sign_flip_pending"):
-        monkeypatch.setattr(client, name, {})
+    monkeypatch.setattr(client, "_gps", {})
     database = _db(tmp_path)
     _places(database, WEST)
     database.set_gps_signs("VIN232", "1.0", "1.0")       # the poll loop's own key, poisoned

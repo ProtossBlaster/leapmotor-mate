@@ -15,6 +15,7 @@ from typing import Optional
 from api_backend import LeapmotorApiClient
 
 import capability_profile
+import gps_position
 from events import cable_in_port
 
 log = logging.getLogger(__name__)
@@ -434,7 +435,7 @@ _SIGNAL_TO_NAMED = {
     "3725": "latitude", "3724": "longitude",
     # #282: the T03 has no separate signed pair — its `latitude`/`longitude` ARE signed, so they
     # fill the signed slots too. These used to read `latitudeSigned`/`longitudeSigned`, names no
-    # response carries: 2/3 stayed empty on every T03, _resolve_coord took abs() of the only value
+    # response carries: 2/3 stayed empty on every T03, the resolver took abs() of the only value
     # and re-applied a remembered +1, and a T03 west of Greenwich was plotted east. Twin of
     # web/command_client.py's copy — test_a_t03_west_of_greenwich_keeps_its_longitude.py.
     "3": "latitude", "2": "longitude",
@@ -671,98 +672,26 @@ def _is_charging(sig: dict) -> bool:
 # an absolute value — re-flipping west-of-Greenwich / southern-hemisphere cars into the sea
 # (the #30 symptom returns; smalley1992 is the second UK car to hit it). A car can't cross
 # the equator or prime meridian between polls, so we remember the last AUTHORITATIVE sign
-# per VIN and re-apply it to the unsigned magnitude. The memory is only ever written by a
-# signed read, never by the fallback, so it can't be polluted. seed_coord_signs() primes it
-# from a persisted setting on poller startup, so an add-on update / restart doesn't plot the
-# car in the sea until the next signed poll arrives.
-_coord_sign: dict[str, dict[str, float]] = {}
-
-# #232: "written only by a signed read" is not the same as "written only by a SIGNED read". Signal
-# 2 was believed whenever it was non-zero, with no sanity check, so one frame that arrived carrying
-# the bare magnitude taught the wrong hemisphere — and poller/main.py then persisted it, so the
-# mistake outlived the restart and both readers mirrored the car for good.
-#
-# The physics the guard was missing: a car cannot teleport across the line. Driving to the other
-# side means passing through zero, so a real crossing is always observed NEAR the line; a dropped
-# sign is observed at full magnitude (8.6° W becoming 8.6° E is 1720 km between two polls).
-_MERIDIAN_NEAR_DEG = 1.0          # within ~85 km of the line a crossing is ordinary — believe it
-_SIGN_FLIP_CONFIRMATIONS = 10     # far from it, the flip must be argued: 10 polls in a row
-# Consecutive signed polls, per VIN and axis, asking for the opposite hemisphere. Kept OUT of
-# _coord_sign so get_coord_signs() still returns only the two signs poller/main.py persists — a
-# counter leaking in there would rewrite the setting on every poll.
-_sign_flip_pending: dict[str, dict[str, int]] = {}
-
-
-def _coerce_float(raw) -> float:
-    if raw in (None, ""):
-        return 0.0
-    try:
-        return float(raw)
-    except (TypeError, ValueError):
-        return 0.0
+# per VIN and re-apply it to the unsigned magnitude; gps_position decides, for this process and
+# the web alike. seed_coord_signs() primes it from a persisted setting on poller startup, so an
+# add-on update / restart doesn't plot the car in the sea until the next signed poll arrives.
+_gps: dict[str, gps_position.Memory] = {}
 
 
 def seed_coord_signs(vin: str, lat_sign: float = 0.0, lon_sign: float = 0.0) -> None:
     """Prime the per-VIN GPS sign memory at poller startup. 0 = unknown (leaves it unset)."""
     if not vin:
         return
-    mem = _coord_sign.setdefault(vin, {})
+    signs = _gps.setdefault(vin, gps_position.Memory()).signs
     if lat_sign:
-        mem["lat"] = -1.0 if lat_sign < 0 else 1.0
+        signs["lat"] = -1.0 if lat_sign < 0 else 1.0
     if lon_sign:
-        mem["lon"] = -1.0 if lon_sign < 0 else 1.0
+        signs["lon"] = -1.0 if lon_sign < 0 else 1.0
 
 
 def get_coord_signs(vin: str) -> dict:
     """Current remembered signs for this VIN (only updated by authoritative signed reads)."""
-    return dict(_coord_sign.get(vin, {}))
-
-
-def _resolve_coord(vin: str, axis: str, signed_raw, unsigned_raw) -> float:
-    """Resolve one GPS axis. The signed signal (2/3) is authoritative and refreshes the
-    remembered sign; when only the unsigned signal is present, re-apply the remembered sign
-    to its magnitude (#43). Returns 0.0 when no usable value exists. With no memory yet (a
-    fresh install before any signed poll) the unsigned value is used as-is — unchanged from
-    the pre-#43 behaviour, so east-of-Greenwich cars are never affected.
-
-    A signed read that contradicts a hemisphere we already know is only believed near the line, or
-    after _SIGN_FLIP_CONFIRMATIONS polls in a row say the same thing (#232)."""
-    mem = _coord_sign.setdefault(vin, {})
-    s = _coerce_float(signed_raw)
-    if s != 0.0:
-        proposed = -1.0 if s < 0 else 1.0
-        known = mem.get(axis)
-        if known is None or known == proposed or s < 0.0 or abs(s) <= _MERIDIAN_NEAR_DEG:
-            # Nothing to protect (fresh install), nothing to argue about, a value that proves its
-            # own sign, or a car genuinely at the line. Any of the four also settles a pending flip.
-            #
-            # 🔑 `s < 0` is why the guard is one-directional: a LOST sign can only ever surface as
-            # a positive number, because the signals it would be confused with are magnitudes and
-            # have no minus to drop. A negative reading is therefore evidence, not noise — doubting
-            # it would strand a car that moved west or south for ten polls and buy nothing.
-            mem[axis] = proposed
-            _sign_flip_pending.get(vin, {}).pop(axis, None)
-            return s
-        seen = _sign_flip_pending.setdefault(vin, {}).get(axis, 0) + 1
-        _sign_flip_pending[vin][axis] = seen
-        if seen >= _SIGN_FLIP_CONFIRMATIONS:
-            # Argued for long enough to be real: a car shipped across the line with its SIM dark
-            # never gets to be seen near it, and refusing forever would strand that owner.
-            log.warning("GPS %s: the opposite hemisphere has now been reported %d polls running — "
-                        "accepting it and re-learning the sign", axis, seen)
-            mem[axis] = proposed
-            _sign_flip_pending[vin].pop(axis, None)
-            return s
-        # NO coordinate in this line: the poller log ships inside the diagnostics bundle, which
-        # strips the GPS signals precisely so it can be attached in public (#232 asked for it).
-        log.warning("GPS %s: cloud reported the opposite hemisphere far from the line (%d/%d) — "
-                    "a car cannot cross it in one poll, keeping the remembered sign",
-                    axis, seen, _SIGN_FLIP_CONFIRMATIONS)
-        return abs(s) * known
-    u = _coerce_float(unsigned_raw)
-    if u == 0.0:
-        return 0.0
-    return abs(u) * mem.get(axis, 1.0)
+    return dict(_gps[vin].signs) if vin in _gps else {}
 
 
 def _parse_signal(vin: str, sig: dict) -> VehicleData:
@@ -804,9 +733,11 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         # Signals 2/3 carry the SIGNED coordinates; 3724/3725 (and 2190/2191) are unsigned —
         # west-of-Greenwich cars lost the longitude sign there (GitHub #30: Lichfield B10
         # reports 2=-1.915912 but 3724=+1.915912; on east-of-Greenwich cars 2 == 3724). When
-        # a poll omits the signed pair, _resolve_coord re-applies the last known sign (#43).
-        latitude=_resolve_coord(vin, "lat", sig.get("3"), sig.get("3725") or sig.get("2190")),
-        longitude=_resolve_coord(vin, "lon", sig.get("2"), sig.get("3724") or sig.get("2191")),
+        # a poll omits the signed pair, gps_position re-applies the last known sign (#43).
+        latitude=gps_position.resolve_axis(_gps.setdefault(vin, gps_position.Memory()), "lat",
+                                           sig.get("3"), sig.get("3725") or sig.get("2190"), learn=True),
+        longitude=gps_position.resolve_axis(_gps.setdefault(vin, gps_position.Memory()), "lon",
+                                            sig.get("2"), sig.get("3724") or sig.get("2191"), learn=True),
         outside_temp=None,   # no ambient-temp signal exists (2101 = driverSeatVentilation)
         # 🔴 A temperature the car did not send is ABSENT, not zero. `or 0` turned silence into
         # 0.0 — a value that looks like a reading, and in August, at forty degrees outside, an

@@ -23,6 +23,13 @@ def test_crypto_copies_identical():
     assert a == b, "poller/crypto.py and web/crypto.py have drifted — keep them byte-identical"
 
 
+def test_gps_position_copies_identical():
+    a = (ROOT / "poller" / "gps_position.py").read_bytes()
+    b = (ROOT / "web" / "gps_position.py").read_bytes()
+    assert a == b, "poller/gps_position.py and web/gps_position.py have drifted — the poller and the web" \
+                   " would disagree about where the car is"
+
+
 def test_session_share_copies_identical():
     a = (ROOT / "poller" / "session_share.py").read_bytes()
     b = (ROOT / "web" / "session_share.py").read_bytes()

@@ -1400,7 +1400,7 @@ class Database:
             "WHERE (start_geohash IS NULL AND start_lat IS NOT NULL AND start_lon IS NOT NULL) "
             "OR (end_geohash IS NULL AND end_lat IS NOT NULL AND end_lon IS NOT NULL)").fetchall()
         for r in rows:
-            # Same falsy guard create_trip uses, and for the same reason: _resolve_coord
+            # Same falsy guard create_trip uses, and for the same reason: gps_position
             # returns 0.0 (never None) when a frame carries no usable fix, so trips with
             # start_lat/start_lon = 0.0 are already sitting in every existing database.
             # Testing `is not None` would geohash (0,0) into one bogus "Gulf of Guinea"
