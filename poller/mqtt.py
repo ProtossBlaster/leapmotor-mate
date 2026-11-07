@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 import paho.mqtt.client as mqtt
 
 import capability_profile
+from db import _coord_valid
 
 log = logging.getLogger(__name__)
 
@@ -457,9 +458,11 @@ class MqttService:
             pub("frame_ts", None)
             pub("data_age", None)
         self._publish_evcc(base, data)
-        self.client.publish(f"{base}/location",
-                            json.dumps({"latitude": data.latitude, "longitude": data.longitude}),
-                            retain=True)
+        # A frame without a fix reads (0, 0): the broker keeps the last fix, as for the odometer
+        if _coord_valid(data.latitude, data.longitude):
+            self.client.publish(f"{base}/location",
+                                json.dumps({"latitude": data.latitude, "longitude": data.longitude}),
+                                retain=True)
 
     def _publish_evcc(self, base, data):
         """EVCC-friendly boolean mirrors of plug/charging/climate.
