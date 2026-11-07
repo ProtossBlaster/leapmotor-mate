@@ -74,10 +74,10 @@ class VehicleData:
     window_fr_open: bool = False
     window_rl_open: bool = False
     window_rr_open: bool = False
-    tire_fl_bar: float = 0.0
-    tire_fr_bar: float = 0.0
-    tire_rl_bar: float = 0.0
-    tire_rr_bar: float = 0.0
+    tire_fl_bar: float | None = None   # None = the car did not send it
+    tire_fr_bar: float | None = None
+    tire_rl_bar: float | None = None
+    tire_rr_bar: float | None = None
     # Comfort STATE sensors (read-only). They reflect reality on the B10 even though the
     # matching remote COMMANDS don't actuate (see capability_profile). 0 = off, >0 = level/on.
     seat_heat_driver: int = 0       # signal 2100 driverSeatHeating
@@ -490,6 +490,12 @@ def _si(sig: dict, k: str):
     except (TypeError, ValueError): return None
 
 
+def _bar(sig: dict, k: str):
+    """A tyre pressure in bar from its kPa signal, or None when the car did not send one."""
+    kpa = _sf(sig, k)
+    return None if kpa is None else round(kpa / 100.0, 2)
+
+
 # Below this magnitude the charge current is just plugged-idle / sensor noise.
 # Default 2.0 A so low-power home charges (and the tail of a charge) are still
 # detected; user-tunable from Settings (the poller calls set_charge_current_min
@@ -869,10 +875,10 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         # 2646=FL, 2653=FR, 2660=RL, 2667=RR. (The alarm flags do not move with them: the old SDK,
         # leapmotor-ha and ioBroker all pair them as 2641=FL, 2648=FR, 2655=RL, 2662=RR — see the
         # web's _parse_vehicle_status.)
-        tire_fl_bar=round(float(sig.get("2646") or 0) / 100.0, 2),
-        tire_fr_bar=round(float(sig.get("2653") or 0) / 100.0, 2),
-        tire_rl_bar=round(float(sig.get("2660") or 0) / 100.0, 2),
-        tire_rr_bar=round(float(sig.get("2667") or 0) / 100.0, 2),
+        tire_fl_bar=_bar(sig, "2646"),
+        tire_fr_bar=_bar(sig, "2653"),
+        tire_rl_bar=_bar(sig, "2660"),
+        tire_rr_bar=_bar(sig, "2667"),
         ready=int(sig.get("1258") or 0) == 1,   # B10 faithful READY (ON3) sensor
         ready_reported=_sf(sig, "1258") is not None,
         # 3736 is no full-charge flag: the official app interprets it as isHaveFullCharge (a tip that a healthy-charging

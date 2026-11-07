@@ -24,7 +24,8 @@ SRC = pathlib.Path("poller/mqtt.py").read_text()
 # Entities that carry a NUMBER and whose signal the car legitimately stops sending.
 NUMERIC_OPTIONAL = ("climate_power", "fan_level", "data_age", "frame_ts",
                     "charge_voltage", "charge_current",   # absent 1177/1178 read as None
-                    "charge_power")                       # a power the car cannot vouch for is None
+                    "charge_power",                       # a power the car cannot vouch for is None
+                    "tire_fl", "tire_fr", "tire_rl", "tire_rr")   # absent 2646/2653/2660/2667 read as None
 
 
 def _discovery_of(key):
