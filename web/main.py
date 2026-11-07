@@ -14,7 +14,7 @@ from urllib.parse import urlencode
 
 from fastapi import FastAPI, Request, BackgroundTasks, Query
 from fastapi.responses import (HTMLResponse, RedirectResponse, JSONResponse, Response, FileResponse,
-                               StreamingResponse)
+                               StreamingResponse, PlainTextResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.concurrency import run_in_threadpool
@@ -454,6 +454,12 @@ templates.env.globals.update(
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
 
+def _script_json(value) -> str:
+    """JSON to put inside a <script> with |safe: json.dumps leaves "</script>" as it is, so a string
+    in the settings could close the script and open another. <, > and & are written as escapes."""
+    return json.dumps(value).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+
+
 # ── Setup check middleware ────────────────────────────────────────────────────
 
 @app.middleware("http")
@@ -461,10 +467,20 @@ async def setup_check(request: Request, call_next):
     # Security decisions must use the path supplied by ASGI routing. With affected Starlette
     # versions a malformed Host header can alter request.url.path without altering the route.
     path = request.scope.get("path", "")
+    # Through Home Assistant's ingress, HA has authenticated the request and frames the panel. Any
+    # other request to the add-on came through port 4000 opened by the owner: standalone rules.
+    ingress = security.via_ingress(request.client.host if request.client else None)
+    # A page on a name of its own, rebound to this Mate, sends that name as both Host and Origin and
+    # passes the origin check below. With no password, answer only to home-network names. With a
+    # password the session cookie belongs to the real name, and a rebound page never carries it.
+    if not ingress and not auth.enabled() and path != "/healthz" \
+            and not security.host_allowed(request.headers.get("host", "")):
+        return Response(security.HOST_REFUSED, status_code=403)
     # Cross-site write guard. Ahead of every other gate — including the always-public paths and
     # the auth check — because it protects the install that has NO password, which is the default
-    # one. See web/security.py for why an absent origin is allowed and why add-on mode is exempt.
-    if not security.origin_allowed(request.method, path, request.headers, str(request.base_url)):
+    # one. See web/security.py for why an absent origin is allowed and why ingress is exempt.
+    if not security.origin_allowed(request.method, path, request.headers, str(request.base_url),
+                                   ingress=ingress):
         return Response("cross-site request refused", status_code=403)
     # Always-public: static assets, the liveness probe, and the login page/handler.
     if path.startswith("/static/") or path == "/healthz" or path.startswith("/login"):
@@ -499,7 +515,7 @@ async def security_headers(request: Request, call_next):
     clickjacking half of the attack, which no origin check can see because that click really
     does happen inside Mate. Skipped as an add-on — HA frames the panel deliberately."""
     resp = await call_next(request)
-    if not security.is_addon():
+    if not security.via_ingress(request.client.host if request.client else None):
         for k, v in security.security_headers().items():
             resp.headers.setdefault(k, v)
     return resp
@@ -2874,7 +2890,7 @@ async def nav_geocode(address: str = "", city: str = ""):
     return JSONResponse(res)
 
 
-@app.get("/api/nav/current-address", response_class=HTMLResponse)
+@app.get("/api/nav/current-address", response_class=PlainTextResponse)
 async def nav_current_address():
     import asyncio
     status = db_reader.get_latest_status() or {}
@@ -2888,7 +2904,9 @@ async def nav_current_address():
             None, geocode.reverse_geocode, lat, lon, provider, key)
     except Exception:  # noqa: BLE001
         addr = None
-    return HTMLResponse(addr or "—")
+    # The address is OpenStreetMap's (or another geocoder's) text, which anyone can edit: plain
+    # text, so the page puts it in as text and a direct visit to this URL renders nothing.
+    return PlainTextResponse(addr or "—")
 
 
 @app.post("/api/nav/send", response_class=HTMLResponse)
@@ -3106,7 +3124,7 @@ async def costs_page(request: Request):
         settings={**settings, **prices},
         charge_types=db_reader.charge_types_localised(),
         cost_mode=cfg["mode"], cost_modes=cfg["modes"], tou_method=cfg["method"],
-        tou_bands_json=json.dumps(cfg["bands"]), cost_modes_json=json.dumps(cfg["modes"]),
+        tou_bands_json=_script_json(cfg["bands"]), cost_modes_json=_script_json(cfg["modes"]),
     ))
 
 

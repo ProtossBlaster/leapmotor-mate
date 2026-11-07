@@ -162,7 +162,70 @@ def _host_of(value: str) -> str:
     return parts.netloc.lower()
 
 
-def origin_allowed(method: str, path: str, headers, base_url: str) -> bool:
+# The Supervisor's ingress proxy. Home Assistant's developer docs: an add-on serving ingress must
+# accept connections from this address only. A request from anywhere else reached the add-on
+# through its port 4000, opened by the owner, and gets the standalone rules.
+INGRESS_PROXY = "172.30.32.2"
+
+
+def via_ingress(client_host: "str | None") -> bool:
+    """Under the add-on, whether this request came through Home Assistant's ingress."""
+    return is_addon() and client_host == INGRESS_PROXY
+
+
+# The names a home network uses, and the ones reserved for tests (RFC 2606/6761). A DNS-rebinding
+# page needs a name whose DNS its author controls, which is a public one; none of these can be, and
+# an IP address is no name at all.
+_HOME_SUFFIXES = (".local", ".lan", ".home", ".home.arpa", ".internal", ".localdomain", ".localhost",
+                  ".test", ".example", ".invalid")
+
+
+def _host_name(host_header: str) -> str:
+    """The name in a Host header, lower case, without port or trailing dot; IPv6 without brackets."""
+    host = (host_header or "").strip().lower()
+    if host.startswith("["):
+        return host[1:host.find("]")] if "]" in host else host[1:]
+    if host.count(":") == 1:
+        host = host.split(":", 1)[0]
+    return host.rstrip(".")
+
+
+def allowed_hosts() -> set[str]:
+    """Names the owner put in MATE_ALLOWED_HOSTS or MATE_TRUSTED_ORIGINS, port dropped."""
+    names = {_host_name(h) for h in os.environ.get("MATE_ALLOWED_HOSTS", "").split(",") if h.strip()}
+    names |= {_host_name(urlsplit(o).netloc or o) for o in _raw_trusted_origins()}
+    return names
+
+
+def host_allowed(host_header: str) -> bool:
+    """Whether a Mate with no password answers a request addressed to this name.
+
+    The origin guard compares the page's origin with the Host the request came to, and a page that
+    gets its own name to resolve to the owner's Mate (DNS rebinding) sends the same name in both:
+    the guard saw a same-origin request, and the API, unlock included, was the page's. Refusing the
+    names such a page can have closes it. A request with no Host is no browser's."""
+    name = _host_name(host_header)
+    return not name or is_home_name(name) or name in allowed_hosts()
+
+
+def is_home_name(host: str) -> bool:
+    """An IP address, localhost, a single-label name, or one under a suffix no public DNS serves."""
+    import ipaddress
+    name = _host_name(host)
+    if name == "localhost" or (name and "." not in name):
+        return True
+    try:
+        ipaddress.ip_address(name)
+        return True
+    except ValueError:
+        return bool(name) and name.endswith(_HOME_SUFFIXES)
+
+
+HOST_REFUSED = ("Mate answers on this name only with a password. Set one in Settings, or name this "
+                "host in MATE_ALLOWED_HOSTS.")
+
+
+def origin_allowed(method: str, path: str, headers, base_url: str, *, ingress: "bool | None" = None) -> bool:
     """May this request change something?
 
     A declared origin must match the host the request arrived on (or be explicitly trusted).
@@ -171,7 +234,9 @@ def origin_allowed(method: str, path: str, headers, base_url: str) -> bool:
     real automation without stopping anything. `Referer` is the fallback for the handful of
     browser cases that omit `Origin` on same-origin navigations.
     """
-    if is_addon() or method.upper() not in MUTATING:
+    if ingress is None:                 # a caller that does not know the peer keeps the old answer
+        ingress = is_addon()
+    if ingress or method.upper() not in MUTATING:
         return True
     if any(path.startswith(p) for p in EXEMPT_PREFIXES):
         return True

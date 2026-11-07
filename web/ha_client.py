@@ -71,6 +71,27 @@ def is_configured() -> bool:
     return bool(base and token)
 
 
+def _tls_context(base: str) -> ssl.SSLContext:
+    """A Home Assistant on the LAN often has a self-signed certificate, so on a private address or a
+    home-network name the certificate is not checked. On a public name it is: the request carries a
+    long-lived Home Assistant token, and an unchecked connection hands it to anyone on the path."""
+    import ipaddress
+    from urllib.parse import urlsplit
+
+    import security
+    ctx = ssl.create_default_context()
+    host = urlsplit(base).hostname or ""
+    try:
+        ip = ipaddress.ip_address(host)
+        tolerate = ip.is_private or ip.is_loopback or ip.is_link_local
+    except ValueError:
+        tolerate = security.is_home_name(host)
+    if tolerate:
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
+
 def _request(path: str, method: str = "GET", payload: object | None = None) -> tuple[int, object]:
     """base+path with bearer auth. Returns (status, parsed_json_or_text)."""
     base, token = _creds()
@@ -81,11 +102,7 @@ def _request(path: str, method: str = "GET", payload: object | None = None) -> t
         base + path, data=data, method=method,
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
     )
-    # Local HA over https often uses a self-signed cert → don't hard-fail on it.
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    with urllib.request.urlopen(req, timeout=_TIMEOUT, context=ctx) as resp:
+    with urllib.request.urlopen(req, timeout=_TIMEOUT, context=_tls_context(base)) as resp:
         raw = resp.read().decode("utf-8", "replace")
         try:
             return resp.status, json.loads(raw)

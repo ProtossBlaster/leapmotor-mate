@@ -161,14 +161,24 @@ def note_success(ip: str) -> None:
     _fails.pop(ip, None)
 
 
+def _session_mark() -> bytes:
+    """What a session token carries: the mark, and a fingerprint of the password it was issued
+    under. A token over the mark alone stayed valid for its 30 days whatever happened to the
+    password, so changing it did not log out whoever else had it. The fingerprint is of the
+    stored hash (salted) or of the environment password, never the password itself, and is
+    inside the encrypted token."""
+    source = ("env:" + password()) if password() else ("db:" + _stored())
+    return _MARK + b":" + hashlib.sha256(source.encode()).hexdigest()[:32].encode()
+
+
 def make_token() -> str:
-    return _f().encrypt(_MARK).decode()
+    return _f().encrypt(_session_mark()).decode()
 
 
 def valid(token: str) -> bool:
     if not token:
         return False
     try:
-        return _f().decrypt(token.encode(), ttl=TTL) == _MARK
+        return hmac.compare_digest(_f().decrypt(token.encode(), ttl=TTL), _session_mark())
     except (InvalidToken, Exception):  # noqa: BLE001
         return False
