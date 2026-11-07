@@ -790,9 +790,11 @@ class MqttService:
         # Assistant takes the zone from the latitude/longitude attributes; a 'home' sent here would
         # win over them wherever the car is (#453). Keeping the state topic lets an existing entity
         # follow on the next message: without it, it showed the raw payload until HA restarted.
+        # Only the pair of zeros is no fix: one zero is the equator or the prime meridian.
         cfg("device_tracker", "location", {"name": "Location",
                                            "json_attributes_topic": f"{prefix}/{vin}/location",
                                            "state_topic": f"{prefix}/{vin}/location",
-                                           "value_template": "{{ 'None' if value_json.latitude else 'not_home' }}",
+                                           "value_template": "{{ 'None' if value_json.latitude or value_json.longitude"
+                                                             " else 'not_home' }}",
                                            "source_type": "gps"})
         log.info("MQTT: Home Assistant discovery published for %s", device_id)
