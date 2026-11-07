@@ -24,7 +24,27 @@
     const allPts = [];
     segments.forEach(function (trip) { trip.forEach(function (run) { run.points.forEach(function (p) { allPts.push(p); }); }); });
 
-    const map = L.map('map', { preferCanvas: true }).fitBounds(L.latLngBounds(allPts).pad(0.05));
+    // A view kept in the address (a reload, "← Map" from a charge) opens again; without one the routes frame the map.
+    const view = (new URLSearchParams(location.search).get('view') || '').split(',');
+    function frame() {
+      if (view.length === 3 && view.every(function (v) { return /^-?\d+(\.\d+)?$/.test(v); })) map.setView([+view[0], +view[1]], +view[2]);
+      else map.fitBounds(L.latLngBounds(allPts).pad(0.05));
+    }
+    const map = L.map('map', { preferCanvas: true });
+    frame();
+    document.addEventListener('DOMContentLoaded', function () {     // the reader's moves, once base.html's helper is there
+      map.on('moveend', function () {
+        const c = map.getCenter();
+        lmKeepInAddress('view', c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ',' + map.getZoom());
+      });
+    });
+    // A charge opened from a popup leads back to the map as it is when the link is taken.
+    ['pointerdown', 'click'].forEach(function (type) {
+      document.getElementById('map').addEventListener(type, function (e) {
+        const a = e.target.closest && e.target.closest('a[href^="charges?"]');
+        if (a) a.setAttribute('href', a.getAttribute('href').replace(/&back=.*$/, '') + '&back=' + encodeURIComponent('map' + location.search));
+      }, true);
+    });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       // OSM blocks tiles that arrive without a Referer; some Firefox setups (strict tracking
@@ -231,7 +251,7 @@
       el.style.height = Math.max(400, Math.floor(main.clientHeight - top - below)) + 'px';
       map.invalidateSize();
       // Framed once more at the size it now has; after that a resize keeps the reader's pan and zoom.
-      if (!framed) { map.fitBounds(L.latLngBounds(allPts).pad(0.05)); framed = true; }
+      if (!framed) { frame(); framed = true; }
     }
     fit();
     window.addEventListener('resize', fit);

@@ -2579,6 +2579,7 @@ _BACK_PAGES = (
     (re.compile(r"\."), "back_overview"),
     (re.compile(r"trips/[0-9]+"), "back_to_trip"),
     (re.compile(r"trips/[0-9]+/similar"), "back_similar"),
+    (re.compile(r"map"), "back_map"),
 )
 
 

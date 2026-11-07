@@ -47,7 +47,7 @@
       {% endif %}
     </span>
   </div>
-  <a href="charges" class="text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2">
+  <a href="charges{% if back_link %}?back={{ back_link.href|urlencode }}{% endif %}" class="text-xs font-medium text-amber-300 hover:text-amber-200 underline underline-offset-2">
     ✕ {{ t('charges_station_clear') }}
   </a>
 </div>
