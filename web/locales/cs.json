@@ -577,6 +577,8 @@
     "retention_saved": "✓ Uloženo",
     "outside_temp_title": "Venkovní teplota (počasí)",
     "outside_temp_desc": "Teplota venkovního vzduchu v místě auta z Open-Meteo — v přehledu, jako senzor v Home Assistantu a u každé jízdy. Auto ji nehlásí (ani oficiální aplikace), proto se zjišťuje z počasí; poloha přitom opouští zařízení.",
+    "elevation_enable_title": "Převýšení a teplota jízdy",
+    "elevation_enable_desc": "Několik minut po skončení jízdy se její GPS trasa odešle do Open-Meteo kvůli výškovému profilu, metrům nastoupaným a sestoupaným a venkovní teplotě během jízdy. Po vypnutí se automaticky neodesílá nic; tlačítko Vypočítat převýšení na stránce jízdy ji na vyžádání dohledá i nadále.",
     "outside_temp_label": "Venku",
     "export_section": "Export / Záloha",
     "export_trips": "Jízdy (CSV)",
