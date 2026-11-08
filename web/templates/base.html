@@ -759,6 +759,9 @@
       shown = cal.dataset.calMonth;
       lmKeepInAddress('highlight', null);
       lmKeepInAddress('month', shown);     // today's month is none: a reload then follows the date into the next one
+      // The page's search, too, whose Back to calendar opens the month it was made on.
+      document.querySelectorAll('form input[type=hidden][name=year]').forEach(function (el) { el.value = cal.dataset.year; });
+      document.querySelectorAll('form input[type=hidden][name=month]').forEach(function (el) { el.value = cal.dataset.month; });
     }
     document.body.addEventListener('htmx:afterSettle', function () {
       var cal = document.querySelector('[data-cal-month]');
