@@ -286,7 +286,7 @@
     {% if recent_trips %}
     {# The rows of the Trips page, without their route. #}
     <div class="space-y-2" data-recent-trips>
-      {% for trip in recent_trips %}{% with route_thumb = false %}{% include "partials/trip_row.html" %}{% endwith %}{% endfor %}
+      {% for trip in recent_trips %}{% with route_thumb = false, back = "." %}{% include "partials/trip_row.html" %}{% endwith %}{% endfor %}
     </div>
     {% include "partials/_address_credit.html" %}
     {% else %}

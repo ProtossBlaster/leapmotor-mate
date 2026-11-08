@@ -2,10 +2,13 @@
 {% block title %}{{ t('trip_singular')|capitalize }} {{ trip.id }} — LeapMotor Mate{% endblock %}
 
 {% block content %}
+{# A link onwards carries this page's address as `back`, and the arrows its own way back, so each "←" leads back a step. #}
+{% set back_q = '?back=' ~ back_link.href|urlencode if back_link else '' %}
+{% set here = 'trips/' ~ trip.id ~ back_q %}
 {# flex-wrap + nowrap title: on phones the buttons drop to a second row instead of
    squeezing the date into a 3-line column #}
 <div class="mb-5 flex flex-wrap items-center gap-3">
-  {% if events_back %}<a href="{{ events_back }}" class="text-slate-400 hover:text-white text-sm">{{ t('back_events') }}</a>
+  {% if back_link %}<a href="{{ back_link.href }}" class="text-slate-400 hover:text-white text-sm">{{ t(back_link.label) }}</a>
   {% else %}<a href="trips?highlight={{ trip.id }}" class="text-slate-400 hover:text-white text-sm">{{ t('back_trips') }}</a>{% endif %}
   <span class="text-slate-600">/</span>
   <h1 class="text-xl font-bold text-white whitespace-nowrap">
@@ -16,11 +19,11 @@
      get_adjacent_trips); a missing side just hides its arrow rather than showing a dead one. #}
   <div class="flex items-center gap-1">
     {% if prev_trip_id %}
-    <a href="trips/{{ prev_trip_id }}" title="{{ t('trip_prev') }}"
+    <a href="trips/{{ prev_trip_id }}{{ back_q }}" title="{{ t('trip_prev') }}"
        class="border border-slate-600 text-slate-300 rounded-lg w-7 h-7 flex items-center justify-center hover:border-brand hover:text-white flex-shrink-0">‹</a>
     {% endif %}
     {% if next_trip_id %}
-    <a href="trips/{{ next_trip_id }}" title="{{ t('trip_next') }}"
+    <a href="trips/{{ next_trip_id }}{{ back_q }}" title="{{ t('trip_next') }}"
        class="border border-slate-600 text-slate-300 rounded-lg w-7 h-7 flex items-center justify-center hover:border-brand hover:text-white flex-shrink-0">›</a>
     {% endif %}
   </div>
@@ -30,7 +33,7 @@
   {% endif %}
   {% set has_route = trip.positions and trip.positions|length > 1 %}
   {% if has_route %}
-  <a href="trips/{{ trip.id }}/similar"
+  <a href="trips/{{ trip.id }}/similar?back={{ here|urlencode }}"
      class="ml-auto border border-slate-600 text-slate-300 text-xs font-medium rounded-lg px-3 py-1.5 hover:border-brand flex-shrink-0">🔎 {{ t('similar_trips_btn') }}</a>
   <a href="trips/{{ trip.id }}/route.gpx" download
      class="border border-slate-600 text-slate-300 text-xs font-medium rounded-lg px-3 py-1.5 hover:border-brand flex-shrink-0">↓ {{ t('export_gpx') }}</a>
@@ -528,7 +531,7 @@
         const popup = '<div style="min-width:160px">'
           + '<b>' + (c.location_name ? c.location_name.replace(/</g, '&lt;') : '{{ t('map_unnamed_station') }}') + '</b><br>'
           + c.kwh + ' kWh' + (c.cost_fmt != null ? ' · ' + c.cost_fmt : '') + '<hr style="margin:6px 0;border-color:#334155">'
-          + '<a href="charges?highlight=' + c.id + '" style="color:#f59e0b;font-weight:600;text-decoration:none">'
+          + '<a href="charges?highlight=' + c.id + '&amp;back=' + {{ here|urlencode|tojson }} + '" style="color:#f59e0b;font-weight:600;text-decoration:none">'
           + '{{ t('trip_charge_view') }}</a></div>';
         L.marker([c.latitude, c.longitude], {icon: chargeIcon}).addTo(map).bindPopup(popup);
       });

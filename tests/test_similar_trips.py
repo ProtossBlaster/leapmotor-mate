@@ -184,7 +184,7 @@ def test_endpoint_renders_matches(pdb, monkeypatch):
     resp = main.trip_similar(_Req(), 1)
 
     body = resp.body.decode()
-    assert 'href="trips/2"' in body
+    assert 'href="trips/2?back=trips/1/similar%23trip-row-2"' in body
     assert "similar trips found" in body   # en.json's similar_count_suffix
 
 

@@ -5,6 +5,7 @@ prepare_installation()
 import json
 import logging
 import os
+import re
 import sys
 import threading
 import time
@@ -1244,7 +1245,7 @@ async def trip_detail(request: Request, trip_id: int, back: str = ""):
     return templates.TemplateResponse(request, "trip_detail.html", _ctx(
         page="trips", vehicle=vehicle, trip=trip,
         prev_trip_id=adjacent["prev_id"], next_trip_id=adjacent["next_id"],
-        events_back=_events_back(back), **_trip_place_lines(trip),
+        back_link=_back_link(back), **_trip_place_lines(trip),
     ))
 
 
@@ -1274,7 +1275,7 @@ async def trip_look_up_places(request: Request, trip_id: int):
 
 
 @app.get("/trips/{trip_id}/similar", response_class=HTMLResponse)
-def trip_similar(request: Request, trip_id: int):
+def trip_similar(request: Request, trip_id: int, back: str = ""):
     """🔎 'Compare similar trips' — every OTHER trip on the same route (same start/end
     corner of the map AND a validated GPS-overlap of the actual path, not just nearby
     endpoints — see db_reader.get_similar_trips), so temperature/traffic/efficiency can be
@@ -1294,6 +1295,7 @@ def trip_similar(request: Request, trip_id: int):
     similar = db_reader.get_similar_trips(trip_id)
     return templates.TemplateResponse(request, "trip_similar.html", _ctx(
         page="trips", vehicle=vehicle, trip=trip, similar=similar, fmt_dur=_fmt_dur,
+        back_link=_back_link(back),
     ))
 
 
@@ -1523,7 +1525,7 @@ async def charges_page(request: Request, highlight: int = 0, station: str = "", 
             cal_year, cal_month, cal_open_day = hl_date.year, hl_date.month, hl_date.day
     return templates.TemplateResponse(request, "charges.html", _ctx(
         page="charges", vehicle=vehicle,
-        stats=stats, total=total, highlight=highlight, events_back=_events_back(back),
+        stats=stats, total=total, highlight=highlight, back_link=_back_link(back),
         charge_types=db_reader.charge_types_localised(), prices=prices,
         status=status, live=live, session=session, ac_dc=db_reader.get_ac_dc_stats(),
         unconfirmed=db_reader.unconfirmed_charges_count(),
@@ -2570,10 +2572,23 @@ async def map_page(request: Request):
     ))
 
 
-def _events_back(back: str) -> str:
-    """`back` if it is a URL of the Events list, else "": a trip or a charge opened from there links
-    back to it, and the parameter must not lead out of Mate."""
-    return back if back == "events" or back.startswith(("events?", "events#")) else ""
+# The pages a "←" may lead back to, by the path of the address the page passed as `back`, and what the
+# link reads. Nothing else is taken, so the parameter cannot lead out of Mate.
+_BACK_PAGES = (
+    (re.compile(r"events"), "back_events"),
+    (re.compile(r"\."), "back_overview"),
+    (re.compile(r"trips/[0-9]+"), "back_to_trip"),
+    (re.compile(r"trips/[0-9]+/similar"), "back_similar"),
+    (re.compile(r"map"), "back_map"),
+)
+
+
+def _back_link(back: str) -> dict | None:
+    """Where the page's "←" leads when the page it was opened from passed its own address as `back`: that
+    address, under the page's label. None for an address that is not one of the pages above."""
+    path = re.split(r"[?#]", back, maxsplit=1)[0]
+    label = next((label for page, label in _BACK_PAGES if page.fullmatch(path)), None)
+    return {"href": back, "label": label} if label else None
 
 
 def _events_ctx(flt, request: Request, part: int = 0, version: str | None = None) -> dict:

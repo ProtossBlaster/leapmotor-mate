@@ -52,8 +52,16 @@ def test_the_rows_links_carry_the_filtered_list_and_the_row(tmp_path, monkeypatc
     assert re.search(r'href="events\?[^"]*group=driving[^"]*"[^>]*>\s*← Events', charges)
 
 
+def test_the_banner_of_a_charge_to_confirm_keeps_the_way_back(tmp_path, monkeypatch):
+    car = Car(tmp_path)
+    client = web(car, monkeypatch)
+    _, charge = _trip_and_charge(car)       # ended, no type yet: Charges asks to confirm it
+    charges = client.get("/charges", params={"highlight": charge, "back": "events#charge-1"}).text
+    assert f'href="charges?highlight={charge}&amp;back=events%23charge-1"' in charges
+
+
 @pytest.mark.parametrize("back", ["https://example.com/", "//example.com/events", "javascript:alert(1)",
-                                  "eventsx", "trips/1", ""])
+                                  "eventsx", "charges", ""])
 def test_a_back_that_is_not_the_events_list_is_ignored(tmp_path, monkeypatch, back):
     car = Car(tmp_path)
     client = web(car, monkeypatch)
