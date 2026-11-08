@@ -1,8 +1,24 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.25.0 · **Language:** English
+> **Mate version:** v4.26.0 · **Language:** English
 
-## New in 4.25.0
+## New in 4.26.0
+
+**The "←" leads back where you came from.** In Home Assistant there is no Back button, so the "←" at the
+top of a page is the way back. A trip opened from the Overview's *Recent Trips*, from *Similar trips* or
+from a Trips search now has "← Overview", "← Similar trips" or "← Trips", and it leads back there with the
+trip's row in view. A charge opened from a trip (⚡ ▸ *View charge →*) leads back to the trip, and one
+opened from a charging place on the Map leads back to the Map at the same centre and zoom. The ‹ › arrows
+keep the way back, and the Map keeps its view on a reload. By @arekm (#473, #474).
+
+**A Trips search stays in the address.** A reload shows the same search, and on Trips and Charges *Back to
+calendar* opens the month the calendar showed, not the one the page was opened on.
+
+**Each car has its own SoH reference.** With two cars, battery health measured both against one
+reference, and setting it for one car changed the other's (#472). Open *Settings → Battery* with each car
+selected and check its *SoH reference*.
+
+### New in 4.25.0
 
 **A security release: update.** A web page on another site could drive a Mate with no password, the doors
 included. With no password, Mate now answers only on the names a home network uses: an IP address,
@@ -1090,6 +1106,7 @@ Depending on the model:
 > Mate captures it the first time you save the capacity and then leaves it alone, so that adopting
 > a measured (already-aged) figure can never reset your health to ~100 % and hide the ageing. If it
 > was captured from the wrong number, health can read above 100 %: correct it in the same place.
+> With several cars, each car has its own: the field shows the selected car's.
 
 > **If Mate's own default has since been disproved 🆕**, Settings → Battery says so on the spot and
 > offers the corrected figure with one button — it never rewrites the number behind you. Today this

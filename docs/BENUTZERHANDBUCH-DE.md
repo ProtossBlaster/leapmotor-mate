@@ -1,8 +1,26 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.25.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.26.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.25.0
+## Neu in Version 4.26.0
+
+**Der „←“ führt dorthin zurück, woher du kommst.** In Home Assistant gibt es keine Zurück-Taste, also ist
+der „←“ oben auf einer Seite der Rückweg. Eine Fahrt, die aus den *Letzten Fahrten* der Übersicht, aus
+*Ähnliche Fahrten* oder aus einer Suche in Fahrten geöffnet wird, hat jetzt „← Übersicht“, „← Ähnliche
+Fahrten“ oder „← Fahrten“ und führt dorthin zurück, mit der Zeile der Fahrt im Bild. Ein Ladevorgang, der
+aus einer Fahrt geöffnet wird (⚡ ▸ *Ladevorgang ansehen →*), führt zur Fahrt zurück, und einer, der von
+einem Ladeort auf der Karte geöffnet wird, zur Karte mit demselben Mittelpunkt und Zoom. Die Pfeile ‹ ›
+behalten den Rückweg, und die Karte behält ihre Ansicht beim Neuladen. Von @arekm (#473, #474).
+
+**Eine Suche in Fahrten bleibt in der Adresse.** Beim Neuladen erscheint dieselbe Suche, und in Fahrten und
+Ladevorgänge öffnet *Zurück zum Kalender* den Monat, den der Kalender zeigte, nicht den, mit dem die Seite
+geöffnet wurde.
+
+**Jedes Auto hat seine SoH-Referenz.** Mit zwei Autos wurde die Batteriegesundheit beider an einer einzigen
+Referenz gemessen, und sie für ein Auto zu setzen änderte auch die des anderen (#472). Öffne *Einstellungen
+→ Batterie* mit jedem Auto ausgewählt und prüfe seine *SoH-Referenz*.
+
+### Neu in Version 4.25.0
 
 **Eine Sicherheitsversion: bitte aktualisieren.** Eine Webseite einer anderen Website konnte ein Mate ohne
 Passwort steuern, die Türen eingeschlossen. Ohne Passwort antwortet Mate jetzt nur auf die Namen eines
@@ -1171,6 +1189,7 @@ Je nach Modell:
 > Mate erfasst sie beim ersten Speichern der Kapazität und rührt sie danach nicht mehr an — damit ein
 > gemessener (bereits gealterter) Wert die Gesundheit nicht auf ~100 % zurücksetzt und die Alterung
 > verbirgt. Wurde sie falsch erfasst, kann die Gesundheit über 100 % liegen: dort korrigierbar.
+> Mit mehreren Autos hat jedes seine eigene: das Feld zeigt die des ausgewählten Autos.
 
 > **Wenn ein Standardwert von Mate inzwischen widerlegt wurde 🆕**, sagt es Einstellungen → Akku
 > an Ort und Stelle und bietet den korrigierten Wert per Schaltfläche an — er wird nie hinter

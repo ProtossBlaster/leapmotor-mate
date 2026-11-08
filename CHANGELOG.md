@@ -3,6 +3,20 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.26.0] — 2026-11-08
+
+See [the notes](docs/releases/v4.26.0.md).
+
+- **The "←" of a page leads back to where it was opened** ([#473](https://github.com/ProtossBlaster/leapmotor-mate/pull/473), @arekm). A trip opened from the
+  Overview or from Similar trips leads back there with its row in view; a charge opened from a trip leads back
+  to the trip, and one opened from the Map leads back to the Map at the same centre and zoom. The ‹ › arrows
+  keep the way back, and the Map keeps its view on a reload.
+- **A trip opened from a search leads back to the results, at its row** ([#474](https://github.com/ProtossBlaster/leapmotor-mate/pull/474), @arekm). Trips keeps
+  its search in the address, so a reload shows the same search; on Trips and on Charges, *Back to calendar*
+  opens the month the calendar showed.
+- **Each car has its own SoH reference** ([#472](https://github.com/ProtossBlaster/leapmotor-mate/issues/472)). With two cars, battery health measured both against
+  one reference, and setting it for one car changed the other's.
+
 ## [4.25.0] — 2026-11-07
 
 A security release. See [the notes](docs/releases/v4.25.0.md), *Upgrade impact* above all.

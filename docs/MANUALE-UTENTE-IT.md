@@ -1,8 +1,26 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.25.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.26.0 · **Lingua:** Italiano
 
-## Novità della 4.25.0
+## Novità della 4.26.0
+
+**La «←» riporta da dove sei venuto.** In Home Assistant non c'è il pulsante Indietro, quindi la «←» in
+cima a una pagina è la strada del ritorno. Un viaggio aperto dai *Viaggi recenti* della Panoramica, dai
+*Percorsi simili* o da una ricerca in Viaggi ora ha «← Panoramica», «← Percorsi simili» o «← Viaggi», e
+riporta lì con la riga del viaggio a schermo. Una ricarica aperta da un viaggio (⚡ ▸ *Vedi ricarica →*)
+riporta al viaggio, e una aperta da un luogo di ricarica sulla Mappa riporta alla Mappa con lo stesso
+centro e lo stesso zoom. Le frecce ‹ › tengono la strada del ritorno, e la Mappa tiene la sua vista quando
+ricarichi. Di @arekm (#473, #474).
+
+**La ricerca in Viaggi resta nell'indirizzo.** Ricaricando ritrovi la stessa ricerca, e in Viaggi e in
+Ricariche *Torna al calendario* apre il mese che il calendario mostrava, non quello su cui avevi aperto la
+pagina.
+
+**Ogni auto ha il suo riferimento SoH.** Con due auto, la salute batteria le misurava entrambe su un solo
+riferimento, e impostarlo per un'auto cambiava anche quello dell'altra (#472). Apri *Impostazioni →
+Batteria* con ogni auto selezionata e controlla il suo *Riferimento SoH*.
+
+### Novità della 4.25.0
 
 **Un rilascio di sicurezza: aggiorna.** Una pagina web di un altro sito poteva comandare un Mate senza
 password, porte comprese. Senza password, ora Mate risponde solo ai nomi che usa una rete di casa: un
@@ -1135,6 +1153,7 @@ In base al modello:
 > Mate la fotografa la prima volta che salvi la capacità e poi non la tocca più, così adottare un
 > valore misurato (e già invecchiato) non può riportare la salute a ~100 % nascondendo
 > l'invecchiamento. Se è stata registrata sbagliata, la salute può superare il 100 %: si corregge lì.
+> Con più auto, ogni auto ha il suo: il campo mostra quello dell'auto selezionata.
 
 > **Se un valore predefinito di Mate è stato smentito 🆕**, Impostazioni → Batteria lo dice sul
 > posto e offre la cifra corretta con un pulsante — non riscrive mai il numero alle tue spalle.

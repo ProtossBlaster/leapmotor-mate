@@ -1,8 +1,26 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.25.0 · **Idioma:** Español
+> **Versión de Mate:** v4.26.0 · **Idioma:** Español
 
-## Novedades de la versión 4.25.0
+## Novedades de la versión 4.26.0
+
+**La «←» te lleva de vuelta a donde estabas.** En Home Assistant no hay botón Atrás, así que la «←» de
+arriba de una página es el camino de vuelta. Un trayecto abierto desde los *Trayectos recientes* del
+Resumen, desde *Trayectos parecidos* o desde una búsqueda en Trayectos tiene ahora «← Resumen», «←
+Trayectos parecidos» o «← Trayectos», y te lleva de vuelta allí con la fila del trayecto a la vista. Una
+carga abierta desde un trayecto (⚡ ▸ *Ver la carga →*) lleva de vuelta al trayecto, y una abierta desde un
+lugar de carga del Mapa lleva de vuelta al Mapa con el mismo centro y zoom. Las flechas ‹ › mantienen el
+camino de vuelta, y el Mapa mantiene su vista al recargar. Por @arekm (#473, #474).
+
+**Una búsqueda en Trayectos se queda en la dirección.** Al recargar vuelves a la misma búsqueda, y en
+Trayectos y Cargas *Volver al calendario* abre el mes que mostraba el calendario, no el de cuando se abrió
+la página.
+
+**Cada coche tiene su referencia de salud de la batería.** Con dos coches, la salud de la batería de ambos
+se medía con una sola referencia, y fijarla para uno cambiaba la del otro (#472). Abre *Ajustes → Batería*
+con cada coche seleccionado y comprueba su *Referencia del estado de salud*.
+
+### Novedades de la versión 4.25.0
 
 **Una versión de seguridad: actualiza.** Una página web de otro sitio podía controlar un Mate sin contraseña,
 puertas incluidas. Sin contraseña, Mate ahora responde solo a los nombres de una red doméstica: una dirección

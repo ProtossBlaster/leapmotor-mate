@@ -1,8 +1,26 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.25.0 · **Langue :** Français
+> **Version de Mate :** v4.26.0 · **Langue :** Français
 
-## Nouveautés de la version 4.25.0
+## Nouveautés de la version 4.26.0
+
+**La « ← » ramène d'où tu viens.** Dans Home Assistant il n'y a pas de bouton Retour : la « ← » en haut
+d'une page est le chemin du retour. Un trajet ouvert depuis les *Trajets récents* de l'Aperçu, depuis
+*Trajets similaires* ou depuis une recherche dans Trajets a maintenant « ← Aperçu », « ← Trajets
+similaires » ou « ← Trajets », et y ramène avec la ligne du trajet à l'écran. Une recharge ouverte depuis
+un trajet (⚡ ▸ *Voir la recharge →*) ramène au trajet, et une recharge ouverte depuis un lieu de recharge
+sur la Carte ramène à la Carte, au même centre et au même zoom. Les flèches ‹ › gardent le chemin du
+retour, et la Carte garde sa vue quand tu recharges la page. Par @arekm (#473, #474).
+
+**Une recherche dans Trajets reste dans l'adresse.** En rechargeant tu retrouves la même recherche, et dans
+Trajets et Recharges *Retour au calendrier* ouvre le mois que montrait le calendrier, pas celui sur lequel
+la page s'était ouverte.
+
+**Chaque voiture a sa Référence SoH.** Avec deux voitures, la santé batterie les mesurait toutes les deux
+sur une seule référence, et la régler pour l'une changeait celle de l'autre (#472). Ouvre *Paramètres →
+Batterie* avec chaque voiture sélectionnée et vérifie sa *Référence SoH*.
+
+### Nouveautés de la version 4.25.0
 
 **Une version de sécurité : mettez à jour.** Une page web d'un autre site pouvait piloter un Mate sans mot de
 passe, portes comprises. Sans mot de passe, Mate ne répond plus qu'aux noms d'un réseau domestique : une
@@ -1187,6 +1205,7 @@ Selon le modèle :
 > batterie. Mate l'enregistre la première fois que tu sauvegardes la capacité puis n'y touche plus,
 > afin qu'adopter une valeur mesurée (déjà vieillie) ne puisse pas ramener la santé à ~100 % et
 > masquer le vieillissement. Si elle a été mal enregistrée, la santé peut dépasser 100 % : corrige-la là.
+> Avec plusieurs voitures, chacune a la sienne : le champ montre celle de la voiture sélectionnée.
 
 > **Si une valeur par défaut de Mate a depuis été démentie 🆕**, Réglages → Batterie le dit sur
 > place et propose le chiffre corrigé en un bouton — il ne réécrit jamais la valeur dans ton dos.
