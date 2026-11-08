@@ -10511,6 +10511,44 @@ def get_battery_capacity_kwh() -> float:
         return 65.0
 
 
+def selected_is_first_vehicle() -> bool:
+    """Whether the car on screen is the install's first car, the one the install-wide settings that
+    predate the per-car columns belong to. True before any car is registered."""
+    vid = _current_vehicle_id()
+    if vid is None:
+        return True
+    try:
+        row = _get().execute("SELECT MIN(id) AS first FROM vehicles").fetchone()
+    except sqlite3.Error:
+        return True
+    return not row or row["first"] is None or row["first"] == vid
+
+
+def get_soh_reference_kwh() -> "float | None":
+    """The SELECTED car's SoH reference, the as-new capacity battery health is measured against, or
+    None when nobody has set one (the health page then uses the car's capacity).
+
+    🔴 #472 (@moon-phoenix4, a B10 and a B03X): the health page and the settings form read the one
+    install-wide `battery_capacity_nominal_kwh`, so setting the B03X's reference to its 53 kWh moved
+    the B10's too, while `vehicles.capacity_nominal_kwh` sat there per car. The install-wide value
+    predates that column and, like the install-wide capacity, belongs to the first car only."""
+    vid = _current_vehicle_id()
+    if vid is not None:
+        try:
+            row = _get().execute("SELECT capacity_nominal_kwh FROM vehicles WHERE id = ?", (vid,)).fetchone()
+            if row and row["capacity_nominal_kwh"]:
+                return float(row["capacity_nominal_kwh"])
+        except sqlite3.Error:
+            pass
+    if not selected_is_first_vehicle():
+        return None
+    try:
+        value = get_setting("battery_capacity_nominal_kwh", "")
+        return float(value) if value else None
+    except (TypeError, ValueError):
+        return None
+
+
 _SCAN_MAX_KW = 250.0  # implied charge rate above this → spurious-SoC glitch, not a real charge
 # The moving-endpoint exception needs much stronger evidence than a parked SoC rise. An hour
 # without a new frame plus >=10 points is well outside ordinary polling gaps / BMS jitter.
@@ -10872,11 +10910,8 @@ def _battery_health(min_soc_delta: float, temp_min_c, min_start_soc: float) -> d
     # SoH is measured-vs-as-new, so the denominator is the ORIGINAL spec capacity, not
     # the energy-calc capacity the user may have overridden — otherwise adopting a
     # measured (already-aged) value would reset SoH to ~100% and hide the ageing.
-    # battery_capacity_nominal_kwh is snapshotted the first time the user overrides.
-    try:
-        nominal = float(get_setting("battery_capacity_nominal_kwh", "") or get_battery_capacity_kwh())
-    except (TypeError, ValueError):
-        nominal = get_battery_capacity_kwh()
+    # The reference is snapshotted the first time the user overrides, and it is each car's own (#472).
+    nominal = get_soh_reference_kwh() or get_battery_capacity_kwh()
     if temp_min_c is None:
         try:
             temp_min_c = float(get_setting("soh_temp_min_c", "15") or 15)

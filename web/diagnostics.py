@@ -106,6 +106,15 @@ def _journal_line(mode) -> str:
             "(a network share usually cannot).")
 
 
+def _car_value(read, default):
+    """A per-car figure for the bundle, or `default` when it is unset or cannot be read."""
+    try:
+        value = read()
+    except Exception:  # noqa: BLE001 — a bundle is taken when things are broken
+        return default
+    return default if value is None else value
+
+
 def build_system_info(version: str) -> dict:
     """Cheap (no live cloud call) support snapshot for the card + the bundle header."""
     vehicle, settings = db_reader.get_vehicle()
@@ -158,12 +167,14 @@ def build_system_info(version: str) -> dict:
         "year": (vehicle or {}).get("year") or "—",
         "vin_masked": mask_vin((vehicle or {}).get("vin")),
         "journal_mode": db_reader.journal_mode(),
-        "battery_kwh": settings.get("battery_capacity_kwh", "—"),
+        # The selected car's own values, the ones its pages compute with (#472: the install-wide
+        # settings are only the first car's fallback).
+        "battery_kwh": _car_value(db_reader.get_battery_capacity_kwh, "—"),
         # The SoH denominator, snapshotted the first time the capacity is saved. Without it a
         # bundle cannot answer "why is my battery health above 100%" — the number that decides it
         # was simply not in the file (@danielvilhena, #221). Absent means never snapshotted, in
         # which case the health page falls back to the capacity above.
-        "battery_nominal_kwh": settings.get("battery_capacity_nominal_kwh", "— (not set)"),
+        "battery_nominal_kwh": _car_value(db_reader.get_soh_reference_kwh, "— (not set)"),
         "language": settings.get("language", "en"),
         "db_size_mb": round(db_reader.get_db_size_bytes() / 1048576, 1),
         "counts": {"trips": _count("trips"), "charges": _count("charges"),

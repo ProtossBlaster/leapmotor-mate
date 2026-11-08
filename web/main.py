@@ -3125,7 +3125,7 @@ async def settings_page(request: Request):
         # The charge-detection floor set above what the car draws — the detector switched
         # off by a slider, which shows up as half a charge rather than none (#250).
         charge_floor_peak=db_reader.charge_threshold_too_high(),
-        capacity_nominal=db_reader.get_setting("battery_capacity_nominal_kwh", ""),
+        capacity_nominal=db_reader.get_soh_reference_kwh() or "",
         # Written by the poller when it hears another Mate on our own topic prefix (BetaTester #13).
         # Shown beside the prefix field, which is where the fix lives.
         mqtt_collision=_mqtt_collision(),
@@ -5553,17 +5553,16 @@ async def capacity_settings(request: Request):
         nominal = max(10.0, min(float(_typed), 200.0)) if _typed else None
     except (ValueError, TypeError):
         return HTMLResponse('<span style="color:#ef4444">Invalid value</span>', status_code=400)
-    if nominal is not None:
+    if nominal is None:
+        # Sent empty: keep the car's reference, or snapshot the capacity being replaced, its own.
+        nominal = db_reader.get_soh_reference_kwh() or db_reader.get_battery_capacity_kwh()
+    # The install-wide values predate the per-car columns and are the first car's fallback. Written
+    # from another car they became every car's SoH reference (#472, a B10 and a B03X).
+    if db_reader.selected_is_first_vehicle():
         db_reader.set_setting("battery_capacity_nominal_kwh", str(nominal))
-    elif not db_reader.get_setting("battery_capacity_nominal_kwh", ""):
-        db_reader.set_setting("battery_capacity_nominal_kwh",
-                              db_reader.get_setting("battery_capacity_kwh", str(kwh)))
-    db_reader.set_setting("battery_capacity_kwh", str(kwh))
-    # Mirror onto the car's own row so the poller's per-vehicle energy math honours the override
-    # (it reads vehicles.capacity_kwh, not the global setting). No-op on single-car beyond keeping
-    # the two in sync; multi-car will target the selected vehicle.
-    _nom = db_reader.get_setting("battery_capacity_nominal_kwh", "")
-    db_reader.set_vehicle_capacity_current(kwh, float(_nom) if _nom else None)
+        db_reader.set_setting("battery_capacity_kwh", str(kwh))
+    # The car's own row is what the poller's energy math and the health page read.
+    db_reader.set_vehicle_capacity_current(kwh, nominal)
     # Somebody has now chosen this car's pack, which is the question the "never set up" strip asks.
     # Before v3.14.1 only the wizard could answer it, so a car corrected properly from here went on
     # being accused — @cookingeek, on the first install with two real cars.

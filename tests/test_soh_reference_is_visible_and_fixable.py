@@ -44,7 +44,8 @@ def test_there_is_still_exactly_one_default_in_the_code():
 # ── 2. reported in the diagnostics ───────────────────────────────────────────
 
 def test_the_diagnostics_carries_the_soh_reference():
-    assert '"battery_nominal_kwh": settings.get("battery_capacity_nominal_kwh"' in DIAG
+    # The selected car's own reference, the one its health page divides by (#472).
+    assert '"battery_nominal_kwh": _car_value(db_reader.get_soh_reference_kwh' in DIAG
     assert "SoH reference:" in DIAG, "it must be printed, not merely collected"
 
 
@@ -69,7 +70,8 @@ def test_leaving_it_empty_keeps_the_old_snapshot_behaviour():
     """The field is pre-filled, so most saves resend the same value — but an empty one must not
     wipe the reference, or a browser that omits the field would silently reset battery health."""
     body = _route_body()
-    assert "elif not db_reader.get_setting(\"battery_capacity_nominal_kwh\", \"\")" in body
+    # The car's own reference, or the capacity being replaced, its own (#472).
+    assert "nominal = db_reader.get_soh_reference_kwh() or db_reader.get_battery_capacity_kwh()" in body
 
 
 def test_a_typed_reference_is_clamped_like_the_capacity():

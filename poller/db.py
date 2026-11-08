@@ -1313,14 +1313,17 @@ class Database:
     def _backfill_vehicle_capacity(self) -> None:
         """Seed every vehicle that predates the per-vehicle columns with its own capacity, so the
         per-vehicle write paths reproduce today's single-car numbers EXACTLY (no-op on upgrade).
-        Idempotent — only fills NULLs. nominal (the SoH baseline) mirrors the legacy global nominal."""
+        Idempotent — only fills NULLs. nominal (the SoH baseline) takes the legacy global nominal on
+        the FIRST car only: it is that car's, and copying it to a second car measured the second
+        car's health against the first car's pack (#472)."""
         gn = self.get_setting("battery_capacity_nominal_kwh")
+        first = self._conn.execute("SELECT MIN(id) AS id FROM vehicles").fetchone()["id"]
         for v in self._conn.execute(
                 "SELECT id, car_type, capacity_kwh, capacity_nominal_kwh FROM vehicles").fetchall():
             if v["capacity_kwh"] is None:
                 self._conn.execute("UPDATE vehicles SET capacity_kwh = ? WHERE id = ?",
                                    (self._capacity_for_new_vehicle(v["car_type"]), v["id"]))
-            if v["capacity_nominal_kwh"] is None and gn:
+            if v["capacity_nominal_kwh"] is None and gn and v["id"] == first:
                 try:
                     self._conn.execute("UPDATE vehicles SET capacity_nominal_kwh = ? WHERE id = ?",
                                        (float(gn), v["id"]))
