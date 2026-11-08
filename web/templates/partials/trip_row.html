@@ -1,6 +1,7 @@
 {# Single trip row — reused by the day-drawer (plain and in 🔗 merge mode), search results and the
-   Overview's Recent Trips, which sets `route_thumb` false: its rows have no route, and `back` to the
-   Overview's address: the trip page leads back to it, to this row (scroll-mt: below the bars that stick).
+   Overview's Recent Trips, which sets `route_thumb` false: its rows have no route. `back`, set by the Overview
+   and by a search, is the list's address: the trip page leads back to it, to this row (scroll-mt: below the
+   bars that stick).
    Expects `trip` in scope, plus the page-level `t`/`fmt_dur`/`is_reev`/`research` already in
    context (Jinja includes share the parent scope). `eff_cls` and the `dist`/`eff`/`nice`
    filters are global (see main.py), no extra wiring needed.

@@ -1,7 +1,7 @@
 """A reload comes back to the month being looked at, with the day or the range picked there still open: the
 month on screen is kept in the address, and today's month as none, so a reload then follows the date. A pick
 replaces the ?highlight= link the page was opened by, whose day would otherwise win over it; a month that
-failed to load, or search results, leave the address as it was. A refuel added or deleted redraws the month
+failed to load leaves the address as it was, and search results leave the month in it. A refuel added or deleted redraws the month
 on screen. Wallbox shares the script but draws its calendar only with Home Assistant set up, so it is covered
 through its page render. Skips where it cannot run (no playwright, no Chromium), like the other browser tests.
 
@@ -154,7 +154,8 @@ def test_search_results_leave_the_month_in_the_address(browser, mate):
     shown = _month(page, "trips")
     q = page.locator("#trips-search-q")
     swapped(page, lambda: q.fill("abc") or q.dispatch_event("change"))
-    _reloaded(page)
+    _reloaded(page)     # on the search, which the address keeps too
+    swapped(page, lambda: page.locator("#trips-calendar-month-wrap button[hx-get*='calendar?']").click())
     assert _month(page, "trips") == shown
 
 

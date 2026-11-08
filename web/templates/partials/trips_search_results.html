@@ -3,7 +3,7 @@
    (see trips_search in main.py), so this template only ever renders actual search state.
    A visible header + "clear" button, same as Ricariche's search results (#175) — swapping
    the list in silently made it easy to miss that a filter had applied at all. #}
-<div class="mb-3 flex items-center justify-between flex-wrap gap-2">
+<div class="mb-3 flex items-center justify-between flex-wrap gap-2" data-search="{{ search_qs }}">
   <span class="text-white font-semibold">🔍 {{ trips|length }} {{ t('charges_search_results') }}</span>
   <button type="button"
           onclick="document.getElementById('trips-search-form').reset(); document.getElementById('trips-adv-filters').classList.add('hidden');"

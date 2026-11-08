@@ -115,7 +115,7 @@
 {% if total %}
 <!-- Search + advanced filters -->
 <div class="card mb-6">
-  <form id="trips-search-form"
+  <form id="trips-search-form" data-search-fields="{{ search_fields|join(' ') }}"
         hx-get="api/trips/search"
         hx-target="#trips-calendar-month-wrap" hx-swap="innerHTML"
         hx-trigger="keyup changed delay:400ms from:#trips-search-q, change"
@@ -153,6 +153,31 @@
     </div>
   </form>
 </div>
+<script>
+  // The search lives in the page's address: a reload and a result's "← Trips" bring it back. The fields take it
+  // as values, not as defaults, so Back to calendar's reset still empties them.
+  (function () {
+    const form = document.getElementById('trips-search-form');
+    const fields = Array.from(form.elements)
+      .filter(function (el) { return el.name && el.type !== 'hidden'; });
+    const address = new URLSearchParams(location.search);
+    fields.forEach(function (el) { if (address.has(el.name)) el.value = address.get(el.name); });
+    if (fields.some(function (el) { return el.name !== 'q' && el.value; }))
+      document.getElementById('trips-adv-filters').classList.remove('hidden');
+    // The row "← Trips" names, brought into view once the block loads: WebKit loses the first paint's jump in the swap.
+    let row = /^#trip-row-[0-9]+$/.test(location.hash) ? location.hash : null;
+    // The address says what the block shows: the search its results were found by, none with the calendar.
+    document.body.addEventListener('htmx:afterSettle', function (e) {
+      if (e.target.id !== 'trips-calendar-month-wrap') return;
+      const results = e.target.querySelector('[data-search]');
+      const shown = new URLSearchParams(results ? results.dataset.search : '');
+      form.dataset.searchFields.split(' ').forEach(function (k) { lmKeepInAddress(k, shown.get(k)); });
+      const landed = row && e.target.querySelector(row);
+      row = null;
+      if (landed) landed.scrollIntoView();
+    });
+  })();
+</script>
 
 {% if cal_years and cal_years|length > 1 %}
 <!-- Year jump — only years with actual trips, so it never lists empty years -->
@@ -173,7 +198,7 @@
      list whose rows carried no date at all — see trips_calendar_day_content.html. -->
 
 <div class="card mb-6" id="trips-calendar-month-wrap"
-     hx-get="api/trips/calendar?year={{ cal_year }}&month={{ cal_month }}{% if cal_open_day %}&open_day={{ cal_open_day }}{% endif %}"
+     hx-get="{% if search_qs %}api/trips/search?{{ search_qs }}&year={{ cal_year }}&month={{ cal_month }}{% else %}api/trips/calendar?year={{ cal_year }}&month={{ cal_month }}{% if cal_open_day %}&open_day={{ cal_open_day }}{% endif %}{% endif %}"
      hx-trigger="load" hx-swap="innerHTML">
   {# Server-rendered first paint — see charges.html and #240: htmx swaps nothing when its request
      fails, so a block that only had a placeholder stayed empty and silent for ever. #}
