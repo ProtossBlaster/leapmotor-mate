@@ -5063,13 +5063,19 @@ def _charging_chart() -> dict | None:
         home = ch["location_type"] == "HOME"
     else:
         home = bool(status.get("plug_connected")) and (ha_client.get_live().get("power_kw") or 0) > 0
+    return dict(ch, cid=ch["id"], soc_now=socs[-1] if socs else None, wb_power=_wallbox_overlay(curve, home),
+                **_live_age(status), **curve)
+
+
+def _live_age(status: dict) -> dict:
+    """What a card of a session in progress says in place of LIVE (partials/_live_badge.html): the age of the
+    last reading once the car is out of touch, and whether the frame lags the row, so the cloud can be named."""
     # Out of touch: the frame lags the row (the cloud re-serving an old frame), or the rows stopped.
     if status.get("data_age"):
         age_s = status["data_age_s"]
     else:
         age_s = status["last_seen_s"] if (status.get("last_seen_s") or 0) >= db_reader.DATA_AGE_STALE_S else None
-    return dict(ch, cid=ch["id"], soc_now=socs[-1] if socs else None, wb_power=_wallbox_overlay(curve, home),
-                data_age_s=age_s, frame_lags=bool(status.get("data_age")), **curve)
+    return {"data_age_s": age_s, "frame_lags": bool(status.get("data_age"))}
 
 
 @app.get("/api/charging-chart", response_class=HTMLResponse)
