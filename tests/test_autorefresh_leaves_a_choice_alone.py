@@ -23,8 +23,10 @@ TRIPS = (ROOT / "web" / "templates" / "trips.html").read_text()
 
 
 def _refresh_block() -> str:
-    """The body of the setInterval that reloads the page."""
-    return BASE.split("setInterval(() => {", 1)[1].split("}, secs * 1000);", 1)[0]
+    """The rule the reload asks before it goes (lmMayReload): the setInterval that reloads the page asks it."""
+    timer = BASE.split("setInterval(() => {", 1)[1].split("}, secs * 1000);", 1)[0]
+    assert "if (!lmMayReload()) return;" in timer, "the idle reload no longer asks whether it may"
+    return BASE.split("function lmMayReload()", 1)[1].split("</script>", 1)[0]
 
 
 def test_the_premise_changed_and_this_file_knows_it():
@@ -80,5 +82,5 @@ def test_the_old_guards_are_still_there():
     """These were doing real work — the new ones are additions, not replacements."""
     block = _refresh_block()
     assert "document.hidden" in block
-    assert "lastInteraction < 20000" in block
+    assert "lmLastInteraction < 20000" in block
     assert "'.htmx-request'" in block

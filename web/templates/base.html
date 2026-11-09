@@ -655,49 +655,61 @@
   </script>
 
   <script>
+  // Whether a reload now takes nothing from the reader: no form field focused, no interaction in the last 20s, no
+  // HTMX request in flight, the tab shown, no choice part-way through.
+  var lmLastInteraction = Date.now();
+  ['input', 'change', 'focusin', 'keydown', 'submit', 'pointerdown', 'touchstart', 'scroll']
+    .forEach(ev => document.addEventListener(ev, () => { lmLastInteraction = Date.now(); }, true));
+  function lmMayReload() {
+    const ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return false;
+    if (document.hidden) return false;
+    if (Date.now() - lmLastInteraction < 20000) return false;
+    if (document.querySelector('.htmx-request')) return false;
+    // Thinking is not idling. The guards above protect a field you are typing in, but not a
+    // choice you are part-way through: @pdifeo (beta #22) sat in merge mode weighing which
+    // trips to join, said nothing for twenty seconds, and the reload took the whole view with
+    // it — "se si pensa troppo la pagina fa refresh e bisogna ripensare di nuovo". A mode the
+    // user switched on, or an open dialog, means unfinished business: leave it alone.
+    if (document.querySelector('[data-holds-selection]')) return false;
+    const dlg = document.getElementById('merge-modal');
+    return !(dlg && getComputedStyle(dlg).display !== 'none');
+  }
+  // A reload that keeps the reader's place: the <main> scroll position it stores is put back as the page is drawn again.
+  function lmReload() {
+    const main = document.querySelector('main');
+    if (main) sessionStorage.setItem('lm_scroll_' + location.pathname, String(main.scrollTop));
+    location.reload();
+  }
+  (function () {
+    const main = document.querySelector('main');
+    const KEY = 'lm_scroll_' + location.pathname;
+    const saved = sessionStorage.getItem(KEY);
+    if (saved && main) {
+      sessionStorage.removeItem(KEY);
+      const put = () => { main.scrollTop = parseInt(saved, 10) || 0; };
+      put();
+      // Blocks loaded after the first paint make the page taller: back to the place as each arrives, until the reader moves.
+      const READER = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
+      const done = () => { document.body.removeEventListener('htmx:afterSettle', put); READER.forEach(ev => removeEventListener(ev, done, true)); };
+      document.body.addEventListener('htmx:afterSettle', put);
+      READER.forEach(ev => addEventListener(ev, done, true));
+    }
+  })();
+  </script>
+
+  <script>
     // Global idle-aware auto-refresh: keep display pages fresh without a manual reload. Reloads
-    // every N seconds (from <body data-autorefresh>, 0 = disabled) but ONLY when the page is idle —
-    // never while a form field is focused, an interaction happened in the last 20s, an HTMX request
-    // is in flight, or the tab is hidden — so it can never wipe unsaved form input. Form/editor pages
+    // every N seconds (from <body data-autorefresh>, 0 = disabled) but ONLY when the page is idle
+    // (lmMayReload above), so it can never wipe unsaved form input. Form/editor pages
     // (settings, costs, scheduling, prepare-car, navigation, map) and pages with their own live
-    // updates (overview, charges) set data-autorefresh="0". The <main> scroll position is preserved.
+    // updates (overview, charges) set data-autorefresh="0". The <main> scroll position is preserved (lmReload).
     (function () {
       const secs = parseInt(document.body.dataset.autorefresh || '0', 10);
       if (!secs) return;
-      const main = document.querySelector('main');
-      const KEY = 'lm_scroll_' + location.pathname;
-      const saved = sessionStorage.getItem(KEY);
-      if (saved && main) {
-        sessionStorage.removeItem(KEY);
-        const put = () => { main.scrollTop = parseInt(saved, 10) || 0; };
-        put();
-        // Blocks loaded after the first paint make the page taller: back to the place as each arrives, until the reader moves.
-        const READER = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
-        const done = () => { document.body.removeEventListener('htmx:afterSettle', put); READER.forEach(ev => removeEventListener(ev, done, true)); };
-        document.body.addEventListener('htmx:afterSettle', put);
-        READER.forEach(ev => addEventListener(ev, done, true));
-      }
-
-      let lastInteraction = Date.now();
-      ['input', 'change', 'focusin', 'keydown', 'submit', 'pointerdown', 'touchstart', 'scroll']
-        .forEach(ev => document.addEventListener(ev, () => { lastInteraction = Date.now(); }, true));
-
       setInterval(() => {
-        const ae = document.activeElement;
-        if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return;
-        if (document.hidden) return;
-        if (Date.now() - lastInteraction < 20000) return;
-        if (document.querySelector('.htmx-request')) return;
-        // Thinking is not idling. The guards above protect a field you are typing in, but not a
-        // choice you are part-way through: @pdifeo (beta #22) sat in merge mode weighing which
-        // trips to join, said nothing for twenty seconds, and the reload took the whole view with
-        // it — "se si pensa troppo la pagina fa refresh e bisogna ripensare di nuovo". A mode the
-        // user switched on, or an open dialog, means unfinished business: leave it alone.
-        if (document.querySelector('[data-holds-selection]')) return;
-        const dlg = document.getElementById('merge-modal');
-        if (dlg && getComputedStyle(dlg).display !== 'none') return;
-        if (main) sessionStorage.setItem(KEY, String(main.scrollTop));
-        location.reload();
+        if (!lmMayReload()) return;
+        lmReload();
       }, secs * 1000);
     })();
   </script>
