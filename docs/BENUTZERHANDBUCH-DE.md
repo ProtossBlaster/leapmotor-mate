@@ -1447,7 +1447,9 @@ Verbrauch (kWh/100 km), zurückgewonnene Energie** beim Bremsen und die geschät
   der Legende schaltet seine Linie ein und aus — ein leeres Quadrat steht für eine ausgeschaltete
   Linie —, und ein Streifen, dessen Linien alle aus sind, klappt zu. Anfangs sind alle Linien
   eingeschaltet; die Auswahl merkt sich der Browser für alle Fahrten. Das Hover-Fenster beginnt mit
-  der Uhrzeit auf die Sekunde und der Minute der Fahrt.
+  der Uhrzeit auf die Sekunde und der Minute der Fahrt. Während das Auto fährt, steht dasselbe Diagramm
+  live oben auf der Seite Fahrten, unter *🚗 Fahrt*: es nennt, wann die Fahrt begann und bei welchem
+  Ladestand, wie weit das Auto bisher gefahren ist, und wächst mit jeder Abfrage.
 
 - **Wo eine Fahrt begann und endete 🆕** — die Zeile einer Fahrt zeigt **„A → B“**, und die
   *Fahrtübersicht* auf ihrer Seite nennt beide Enden. Ein Ende in einem Ihrer **Ladeorte** zeigt dessen

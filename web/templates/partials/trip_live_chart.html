@@ -1,0 +1,29 @@
+{# The trip in progress, at the top of the Trips page: the chart its trip page draws, redrawn with every poll of the
+   panel, once it has two readings. `live` is None while no trip runs; the marker names the trip either way, so the
+   page sees it end. #}
+{% import 'partials/_soc.html' as soc %}
+<span id="trip-live-state" data-trip="{{ live.id if live else '' }}" hidden></span>
+{% if live and live.points|length > 1 %}
+<div class="card p-0 overflow-hidden mb-6">
+  <div class="px-4 pt-4 pb-3">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="text-xl">🚗</span>
+      <span class="font-semibold text-white">{{ t('state_driving') }}</span>
+      {% include "partials/_live_badge.html" %}
+    </div>
+    {# When it began, how far it has gone and the SoC so far, written as the card of a charge in progress writes them. #}
+    <div class="flex flex-wrap justify-between gap-x-3 text-xs">
+      <span class="text-slate-500">{{ t('sched_start') }} {{ live.started_at[11:16] }}{% if live.distance_km is not none %} · {{ live.distance_km|dist(0) }}{% endif %}</span>
+      {% if live.start_soc is not none and live.soc_now is not none %}
+      <span class="text-white font-medium">
+        {{ live.start_soc|dec(1) }}%
+        <span class="text-slate-600 mx-1">→</span>
+        {{ live.soc_now|dec(1) }}%
+        <span class="text-slate-400 ml-1 font-bold">{{ soc.signed(((live.soc_now|round(1)) - (live.start_soc|round(1)))|round(1)) }}</span>
+      </span>
+      {% endif %}
+    </div>
+  </div>
+  {% with points_js=live.points|tojson, pauses=[], map_cursor=false %}{% include "partials/trip_profile_chart.html" %}{% endwith %}
+</div>
+{% endif %}

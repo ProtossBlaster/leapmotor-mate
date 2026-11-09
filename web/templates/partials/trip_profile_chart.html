@@ -1,6 +1,7 @@
-{# The chart of a trip in bands (driving, battery, altitude), drawn by static/band-chart.js. `points_js` is the JS
-   expression holding the trip's points (the trip page's map already has them), `pauses` the stops inside a joined
-   journey, `map_cursor` marks the hovered point on the page's Leaflet `map`. -#}
+{# The chart of a trip in bands (driving, battery, altitude), drawn by static/band-chart.js: under the trip's map, and
+   for the trip in progress on the Trips page. `points_js` is the JS expression holding the trip's points (the trip
+   page's map already has them), `pauses` the stops inside a joined journey, `map_cursor` marks the hovered point on
+   the page's Leaflet `map`. -#}
     <!-- Trip data: one chart in bands — driving (speed, power), battery (SoC, temperature, range), altitude -->
     <div id="trip-profile-panel" style="padding:12px 16px 16px; background:#1e293b; border-top:1px solid #334155">
       <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-1">

@@ -851,6 +851,9 @@ def _page_month(month: str) -> tuple[int, int]:
 async def trips_page(request: Request, highlight: int = 0, month: str = ""):
     vehicle, _ = db_reader.get_vehicle()
     place_lookup.maybe_sweep()      # a trip that just ended gets its addresses without waiting for the timer
+    # Read before the history, as Charges reads its session: a trip that ends while the page is drawn is still
+    # named on it, and the next poll reloads the page; read after, the history would stay stale for good.
+    live    = _trip_live_chart()
     summary = db_reader.get_trips_summary()
     total   = summary.get("count") or 0
     # The calendar's Month view opens on ?month= or today — or, following a ?highlight=<id> link, on
@@ -882,6 +885,7 @@ async def trips_page(request: Request, highlight: int = 0, month: str = ""):
         calendar_html=(templates.get_template("partials/trips_search_results.html").render(search_ctx) if search_ctx
                        else _trips_calendar_html(cal_year, cal_month, cal_open_day)),   # drawn, not fetched
         search_qs=search_ctx and search_ctx["search_qs"], search_fields=_TRIPS_SEARCH_FIELDS,
+        live=live,
     ))
 
 
@@ -5083,6 +5087,25 @@ async def charging_chart(request: Request):
     """The Charges page polls this for the chart of the charge in progress; empty while none runs."""
     live = await run_in_threadpool(_charging_chart)   # it may read Home Assistant: not on the event loop
     return templates.TemplateResponse(request, "partials/charging_chart.html", _ctx(live=live))
+
+
+def _trip_live_chart() -> dict | None:
+    """The trip in progress and what its card says, or None while none runs; the card shows once it has two readings."""
+    trip = db_reader.open_trip()
+    if not trip:
+        return None
+    status = db_reader.get_latest_status() or {}
+    socs = [p["soc"] for p in trip["points"] if p["soc"] is not None]
+    # The odometer reads whole kilometres; a missing reading is stored as 0.
+    odo, start = status.get("odometer_km"), trip["start_odometer_km"]
+    km = odo - start if odo and start and odo >= start else None
+    return dict(trip, soc_now=socs[-1] if socs else None, distance_km=km, **_live_age(status))
+
+
+@app.get("/api/trip-live-chart", response_class=HTMLResponse)
+async def trip_live_chart(request: Request):
+    """The Trips page polls this for the chart of the trip in progress; empty while none runs."""
+    return templates.TemplateResponse(request, "partials/trip_live_chart.html", _ctx(live=_trip_live_chart()))
 
 
 @app.get("/api/status-card", response_class=HTMLResponse)

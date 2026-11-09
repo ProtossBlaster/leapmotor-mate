@@ -9138,6 +9138,22 @@ def open_charge() -> dict | None:
     return d
 
 
+def open_trip() -> dict | None:
+    """The trip in progress (ended_at IS NULL): its id, local start, start SoC and odometer, and the readings
+    so far as its trip page draws them (_trip_points), or None."""
+    db = _get()
+    row = db.execute(
+        "SELECT id, started_at, start_soc, start_odometer_km FROM trips WHERE ended_at IS NULL "
+        "AND merged_into_id IS NULL AND vehicle_id = COALESCE(?, vehicle_id) ORDER BY id DESC LIMIT 1",
+        (_current_vehicle_id(),)).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d["started_at"] = _local_iso(d["started_at"])
+    d["points"] = _trip_points(db, _segment_ids(db, d["id"]))
+    return d
+
+
 def open_charge_session_energy() -> Optional[float]:
     """The AC energy the wallbox has put into the charge IN PROGRESS — the reset-safe running sum the
     poller keeps on the open charge (ended_at IS NULL). This is what the live "Session energy" tile
