@@ -2050,10 +2050,11 @@ Elle est divisée en trois colonnes.
   dehors pour autant : le champ *Nouveau mot de passe* ne demande pas l'ancien, donc depuis
   n'importe quel appareil encore connecté vous en définissez un nouveau. S'il n'y a plus aucun
   appareil connecté, la variable d'environnement `MATE_AUTH_PASSWORD` prend le dessus sur celui qui
-  est enregistré. ⚠️ Elle prend le *dessus*, elle ne le remplace pas : l'empreinte oubliée reste
-  dessous dans la base. Une fois revenu, définissez donc un nouveau mot de passe (ou supprimez-le)
-  dans **Réglages → Accès** et retirez la variable seulement ensuite — sinon c'est de nouveau
-  l'ancien, oublié, qui commande.
+  est enregistré : ajoutez-la au conteneur avec un nouveau mot de passe, redémarrez-le et
+  connectez-vous avec. ⚠️ Elle prend le *dessus*, elle ne le remplace pas : l'empreinte oubliée
+  reste dessous dans la base, et tant que la variable est définie, **Réglages → Accès** ne peut ni la
+  modifier ni la supprimer. Gardez donc la variable : désormais c'est elle le mot de passe, et si
+  vous la retirez, c'est de nouveau l'ancien, oublié, qui commande.
 
 - **Base de données** — taille de la base et **conservation des positions** (rétention) : vous
   pouvez garder les points GPS « pour toujours » (par défaut) ou supprimer ceux de plus de
