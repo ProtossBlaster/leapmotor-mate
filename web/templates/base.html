@@ -698,7 +698,7 @@
     // it — "se si pensa troppo la pagina fa refresh e bisogna ripensare di nuovo". A mode the
     // user switched on, or an open dialog, means unfinished business: leave it alone.
     if (document.querySelector('[data-holds-selection]')) return false;
-    const dlg = document.getElementById('merge-modal');
+    const dlg = document.getElementById('merge-modal') || document.getElementById('charge-merge-modal');
     return !(dlg && getComputedStyle(dlg).display !== 'none');
   }
   // A reload that keeps the reader's place: the <main> scroll position it stores is put back as the page is drawn again.

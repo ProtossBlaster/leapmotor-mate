@@ -96,7 +96,7 @@
     <form hx-post="api/charge-limit"
           hx-target="#cl-result"
           hx-swap="innerHTML"
-          hx-on::after-request="if(event.detail.successful){document.getElementById('cl-badge').textContent=document.getElementById('cl-input').value+'%';window._clLimit=parseInt(document.getElementById('cl-input').value);placeBatLimitMarker();}"
+          hx-on::after-request="if(event.detail.successful){document.getElementById('cl-badge').textContent=document.getElementById('cl-input').value+'%';window._clLimit=parseInt(document.getElementById('cl-input').value);placeBatLimitMarker();if((event.detail.xhr.response||'').includes('✓'))lmSaved(this,event.detail.requestConfig.parameters);}"
           class="flex gap-2 items-center flex-wrap">
       <input id="cl-input" type="number" name="percent" min="50" max="100" step="5" value="80"
              class="w-20 px-2 py-1.5 rounded-lg text-sm text-white border border-slate-600 bg-slate-800 focus:outline-none focus:border-brand">
@@ -144,7 +144,7 @@ fetch('api/charge-plan').then(r => r.json()).then(d => {
   var p = d.charge_limit_percent;
   if (p) {
     document.getElementById('cl-badge').textContent = p + '%';
-    document.getElementById('cl-input').value = p;
+    document.getElementById('cl-input').value = document.getElementById('cl-input').defaultValue = p;   // the car's limit is the field's saved value
     window._clLimit = p; placeBatLimitMarker();
   }
 }).catch(() => {});
@@ -520,6 +520,7 @@ function chargeNoteSaved(form, id, ok) {
   setTimeout(function () { m.textContent = ''; }, 2500);
   line.hidden = !v;
   line.querySelector('span').textContent = v;
+  document.getElementById('cnote-' + id).defaultValue = v;
   b.textContent = v ? b.dataset.labelEdit : b.dataset.labelAdd;
   if (document.getElementById('cnote-' + id).value.trim() === v) form.classList.add('hidden');
 }
@@ -602,23 +603,14 @@ document.addEventListener('toggle', function (e) {     // a closing, by any hand
 }, true);
 
 // Auto-refresh the history when the car ends its charge session. The live panel (#charging-live-panel)
-// polls every 30s and carries the open session; once it is gone the charge is in the history, so reload
-// once to surface the new completed-charge card + updated totals. Not the charging flag: that goes off
-// once the battery is full, while the car still holds the session open and the charge is not filed yet.
-(function () {
-  const session = () => {
-    const m = document.getElementById('charging-state');
-    return m ? m.dataset.session : null;
-  };
-  let was = session();
-  document.body.addEventListener('htmx:afterSwap', (e) => {
-    if (e.target && e.target.id === 'charging-live-panel') {
-      const now = session();
-      if (was && now === '') location.reload();
-      was = now;
-    }
-  });
-})();
+// polls every 30s and carries the open session; once it is gone, or the next one took its place, the charge
+// is in the history, so reload once, when that takes nothing from the reader, to surface the new
+// completed-charge card + updated totals. Not the charging flag: that goes off once the battery is full,
+// while the car still holds the session open and the charge is not filed yet.
+document.addEventListener('DOMContentLoaded', () => lmReloadWhenOver('charging-live-panel', () => {   // base.html's scripts come after the page's
+  const m = document.getElementById('charging-state');
+  return m ? m.dataset.session : null;
+}));
 </script>
 
 <!-- Charge merge preview modal (filled by the 🔗 button on a card) -->
