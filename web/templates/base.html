@@ -707,6 +707,18 @@
     if (main) sessionStorage.setItem('lm_scroll_' + location.pathname, String(main.scrollTop));
     location.reload();
   }
+  // A page showing a session in progress (session() names it off a panel that polls) reloads once that session is no
+  // longer the one in progress: it ended, or the next one began between two polls. It waits until a reload may go.
+  function lmReloadWhenOver(panelId, session) {
+    let was = session(), waiting = null;
+    document.body.addEventListener('htmx:afterSwap', (e) => {
+      if (e.target && e.target.id === panelId) {
+        const now = session();
+        if (was && now !== was && !waiting) waiting = setInterval(() => { if (lmMayReload()) lmReload(); }, 1000);
+        was = now;
+      }
+    });
+  }
   (function () {
     const main = document.querySelector('main');
     const KEY = 'lm_scroll_' + location.pathname;
