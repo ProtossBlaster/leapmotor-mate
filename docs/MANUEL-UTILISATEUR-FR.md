@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.26.0 · **Langue :** Français
+> **Version de Mate :** v4.27.0 · **Langue :** Français
 
-## Nouveautés de la version 4.26.0
+## Nouveautés de la version 4.27.0
+
+**Le trajet en cours est sur la page Trajets, en direct.** Pendant que la voiture roule, le haut de
+*Trajets* affiche *🚗 En conduite* : LIVE ou l'âge du dernier relevé, l'heure de début du trajet, la
+distance parcourue jusque-là, le niveau de charge au départ et maintenant, et le graphique *Données du
+trajet*, mis à jour toutes les 30 secondes. Quand le trajet se termine, la page se recharge une fois pour
+l'afficher parmi les trajets, quand tu ne l'utilises pas, et garde ta position. Par @arekm (#477).
+
+**Une page qui se recharge seule garde ta position.** *Santé de la batterie*, un trajet et les autres pages
+qui se rechargent seules toutes les 30 secondes reviennent là où tu lisais, même quand un bloc de la page
+arrive un instant plus tard (#476).
+
+### Nouveautés de la version 4.26.0
 
 **La « ← » ramène d'où tu viens.** Dans Home Assistant il n'y a pas de bouton Retour : la « ← » en haut
 d'une page est le chemin du retour. Un trajet ouvert depuis les *Trajets récents* de l'Aperçu, depuis

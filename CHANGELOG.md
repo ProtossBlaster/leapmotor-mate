@@ -3,6 +3,18 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.27.0] — 2026-11-11
+
+See [the notes](docs/releases/v4.27.0.md).
+
+- **The trip in progress has its chart on the Trips page, live** ([#477](https://github.com/ProtossBlaster/leapmotor-mate/pull/477), @arekm). While the car
+  drives, a card at the top of Trips says when the trip began, the distance so far and the charge level, with
+  the Trip data chart, updated every 30 seconds. When the trip ends the page reloads once, when you are not
+  using it, and keeps your place.
+- **A page that reloads itself keeps your place once its blocks have loaded** ([#476](https://github.com/ProtossBlaster/leapmotor-mate/pull/476), @arekm). Battery
+  health, a trip and the other pages that reload themselves every 30 seconds no longer end up higher than
+  where you were reading.
+
 ## [4.26.0] — 2026-11-08
 
 See [the notes](docs/releases/v4.26.0.md).

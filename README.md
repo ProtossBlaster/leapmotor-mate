@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.26.0:** the "←" at the top of a trip or a charge leads back to where it was opened — the Overview, Similar trips, a Trips search, a trip, the Map — and with two cars each has its own SoH reference. **4.25.0** was a security release: if you skipped it, its *Upgrade impact* is linked from these notes.
-See [release notes and upgrade impact](docs/releases/v4.26.0.md).
+**v4.27.0:** while the car drives, the trip in progress sits at the top of Trips with its Trip data chart, live, and a page that reloads itself comes back to where you were reading. **4.25.0** was a security release: if you skipped it, its *Upgrade impact* is linked from these notes.
+See [release notes and upgrade impact](docs/releases/v4.27.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -379,8 +379,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.26.0:** la «←» in cima a un viaggio o a una ricarica riporta da dove l'hai aperto — la Panoramica, i Percorsi simili, una ricerca in Viaggi, un viaggio, la Mappa — e con due auto ognuna ha il suo riferimento SoH. La **4.25.0** era un rilascio di sicurezza: se l'hai saltata, il suo *Impatto dell'aggiornamento* è collegato da queste note.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.26.0.md#italiano).
+**v4.27.0:** mentre l'auto viaggia, il viaggio in corso sta in cima a Viaggi con il suo grafico Dati del viaggio, in diretta, e una pagina che si ricarica da sola torna dove stavi leggendo. La **4.25.0** era un rilascio di sicurezza: se l'hai saltata, il suo *Impatto dell'aggiornamento* è collegato da queste note.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.27.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
@@ -415,7 +415,7 @@ LeapMotor Mate è gratuito e open-source, sviluppato nel tempo libero. Se ti è 
 - **Aggiornamenti software dell'auto** — la Panoramica ti dice quando l'auto ha un **aggiornamento OTA** in attesa, senza aprire l'app ufficiale.
 
 **In strada**
-- **Viaggi** — rilevamento automatico con mappa del percorso, distanza, energia, efficienza e recupero; ogni viaggio porta i suoi kWh e il suo costo, e si apre con un **riepilogo a riquadri**: distanza e durata, l'elettricità usata col suo prezzo, e il totale.
+- **Viaggi** — rilevamento automatico con mappa del percorso, distanza, energia, efficienza e recupero; ogni viaggio porta i suoi kWh e il suo costo, e si apre con un **riepilogo a riquadri**: distanza e durata, l'elettricità usata col suo prezzo, e il totale. Mentre l'auto viaggia, il viaggio in corso sta in cima alla pagina con il suo grafico **Dati del viaggio**, in diretta, con l'ora di inizio, la strada fatta finora e il livello di carica.
 - **Consumo misurato dall'auto** — energia, efficienza e costo arrivano dal dato ufficiale Leapmotor (la ripartizione vera fra **guida / clima / altro**) quando il cloud ce l'ha, con la stima dal SoC come ripiego segnalato e reversibile, e una scheda **Totale cumulativo del veicolo** per i numeri di sempre.
 - **Altimetria e temperatura esterna** — il profilo dell'altitudine nel grafico Dati del viaggio, i metri saliti e scesi, e la temperatura più alta e più bassa del viaggio ([Open-Meteo](https://open-meteo.com) — senza chiave e senza account).
 - **Calendario, ricerca e unione** 🆕 — sfogli i viaggi per mese, apri un giorno — o più giorni insieme, con Maiusc-clic, trascinando sui giorni o, sul telefono, tenendo premuto un giorno: un'intestazione per l'intervallo, poi ogni giorno con la sua — o cerchi un intervallo di date. Ricaricando la pagina, o tornando indietro da un viaggio, resti sul mese che stavi guardando, e una ricerca resta nell'indirizzo: tornando da un viaggio che ha trovato ritrovi i risultati, alla sua riga. La riga di ogni viaggio dice da dove è partito e dove è arrivato — un luogo di ricarica col suo nome, altrove l'indirizzo — e la ricerca trova un viaggio da uno qualsiasi dei due estremi. Un giorno aperto dice quanta batteria hanno usato i suoi viaggi e quanto si è guidato, e la riga di ogni viaggio la sua variazione di batteria. I viaggi che una sosta breve ha spezzato si **uniscono** dall'elenco di quel giorno, con un cursore per la pausa e l'anteprima del percorso, e si separano quando vuoi.

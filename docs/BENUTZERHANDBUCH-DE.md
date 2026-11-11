@@ -1,8 +1,20 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.26.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.27.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.26.0
+## Neu in Version 4.27.0
+
+**Die laufende Fahrt steht live auf der Seite Fahrten.** Während das Auto fährt, zeigt *Fahrten* oben
+*🚗 Fahrt*: LIVE oder das Alter der letzten Messung, wann die Fahrt begann, die bisher gefahrene Strecke,
+den Ladestand am Start und jetzt sowie das Diagramm *Fahrtdaten*, alle 30 Sekunden aktualisiert. Endet die
+Fahrt, lädt die Seite einmal neu, um sie unter den Fahrten zu zeigen, wenn du sie gerade nicht benutzt, und
+behält deine Position. Von @arekm (#477).
+
+**Eine Seite, die sich selbst neu lädt, behält deine Position.** *Batteriezustand*, eine Fahrt und die
+anderen Seiten, die sich alle 30 Sekunden selbst neu laden, kehren dorthin zurück, wo du gelesen hast, auch
+wenn ein Block der Seite einen Moment später ankommt (#476).
+
+### Neu in Version 4.26.0
 
 **Der „←“ führt dorthin zurück, woher du kommst.** In Home Assistant gibt es keine Zurück-Taste, also ist
 der „←“ oben auf einer Seite der Rückweg. Eine Fahrt, die aus den *Letzten Fahrten* der Übersicht, aus

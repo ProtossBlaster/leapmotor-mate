@@ -1,8 +1,20 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.26.0 · **Language:** English
+> **Mate version:** v4.27.0 · **Language:** English
 
-## New in 4.26.0
+## New in 4.27.0
+
+**The trip in progress is on the Trips page, live.** While the car drives, the top of *Trips* shows
+*🚗 Driving*: LIVE or the age of the last reading, when the trip began, the distance so far, the charge
+level at the start and now, and the *Trip data* chart, updated every 30 seconds. When the trip ends, the
+page reloads once to show it among the trips, when you are not using it, and keeps your place. By @arekm
+(#477).
+
+**A page that reloads itself keeps your place.** *Battery health*, a trip and the other pages that reload
+themselves every 30 seconds come back to where you were reading, even when a block of the page loads a
+moment later (#476).
+
+### New in 4.26.0
 
 **The "←" leads back where you came from.** In Home Assistant there is no Back button, so the "←" at the
 top of a page is the way back. A trip opened from the Overview's *Recent Trips*, from *Similar trips* or

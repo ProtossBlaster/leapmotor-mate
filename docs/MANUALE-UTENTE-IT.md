@@ -1,8 +1,20 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.26.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.27.0 · **Lingua:** Italiano
 
-## Novità della 4.26.0
+## Novità della 4.27.0
+
+**Il viaggio in corso è nella pagina Viaggi, in diretta.** Mentre l'auto viaggia, in cima a *Viaggi* c'è
+*🚗 In guida*: LIVE o l'età dell'ultima lettura, quando è iniziato il viaggio, la strada fatta finora, la
+percentuale di carica all'inizio e adesso, e il grafico *Dati del viaggio*, aggiornati ogni 30 secondi.
+Quando il viaggio finisce, la pagina si ricarica una volta per mostrarlo fra i viaggi, quando non la stai
+usando, e tiene il tuo punto. Di @arekm (#477).
+
+**Una pagina che si ricarica da sola tiene il tuo punto.** *Salute batteria*, un viaggio e le altre pagine
+che si ricaricano da sole ogni 30 secondi tornano dove stavi leggendo, anche quando una parte della pagina
+arriva un momento dopo (#476).
+
+### Novità della 4.26.0
 
 **La «←» riporta da dove sei venuto.** In Home Assistant non c'è il pulsante Indietro, quindi la «←» in
 cima a una pagina è la strada del ritorno. Un viaggio aperto dai *Viaggi recenti* della Panoramica, dai
