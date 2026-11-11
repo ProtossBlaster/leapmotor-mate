@@ -667,7 +667,16 @@
       const main = document.querySelector('main');
       const KEY = 'lm_scroll_' + location.pathname;
       const saved = sessionStorage.getItem(KEY);
-      if (saved && main) { main.scrollTop = parseInt(saved, 10) || 0; sessionStorage.removeItem(KEY); }
+      if (saved && main) {
+        sessionStorage.removeItem(KEY);
+        const put = () => { main.scrollTop = parseInt(saved, 10) || 0; };
+        put();
+        // Blocks loaded after the first paint make the page taller: back to the place as each arrives, until the reader moves.
+        const READER = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
+        const done = () => { document.body.removeEventListener('htmx:afterSettle', put); READER.forEach(ev => removeEventListener(ev, done, true)); };
+        document.body.addEventListener('htmx:afterSettle', put);
+        READER.forEach(ev => addEventListener(ev, done, true));
+      }
 
       let lastInteraction = Date.now();
       ['input', 'change', 'focusin', 'keydown', 'submit', 'pointerdown', 'touchstart', 'scroll']
