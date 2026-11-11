@@ -1418,7 +1418,9 @@ temperatura **desconocida** no dispara la preparación, y lo dice en el registro
   color de su línea. Cada entrada de la leyenda muestra u oculta su línea — un cuadrado vacío señala
   una línea oculta — y una franja con todas sus líneas ocultas se pliega. Todas las líneas empiezan
   visibles; la elección se recuerda en el navegador para todos los trayectos. El recuadro empieza
-  con la hora del día, al segundo, y el minuto del trayecto.
+  con la hora del día, al segundo, y el minuto del trayecto. Mientras el coche circula, el mismo gráfico
+  aparece en directo arriba de la página Trayectos, bajo *🚗 En marcha*: indica cuándo empezó el trayecto
+  y desde qué nivel, cuánto ha recorrido el coche hasta ahora, y crece con cada consulta.
 - **Consumo oficial desde la nube 🆕** — cuando está disponible, el **consumo, el rendimiento y el
   coste** de un trayecto salen de la **cifra oficial** de Leapmotor (el reparto real entre **marcha /
   climatización / otros**) en vez de solo de la estimación por % de batería. Justo después de un

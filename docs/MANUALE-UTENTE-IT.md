@@ -1400,7 +1400,9 @@ soddisfatta **a ogni aggiornamento, tutto l'anno**.
   linea. Ogni voce della legenda accende e spegne la sua linea — un quadratino vuoto indica una
   linea spenta — e una fascia con tutte le linee spente si chiude. Tutte le linee partono accese; la
   scelta viene ricordata nel browser per tutti i viaggi. Il riquadro si apre con l'ora del giorno,
-  al secondo, e il minuto del viaggio.
+  al secondo, e il minuto del viaggio. Mentre l'auto viaggia, lo stesso grafico compare in diretta in
+  cima alla pagina Viaggi, sotto *🚗 In guida*: dice quando è iniziato il viaggio e da quale percentuale,
+  quanta strada ha fatto finora l'auto, e cresce a ogni interrogazione.
 - **Consumi ufficiali dal cloud 🆕** — quando disponibili, **consumo, efficienza e costo** del viaggio
   vengono dal **dato ufficiale Leapmotor** (la vera ripartizione **guida / A·C / altro**) invece della
   sola stima dal calo di batteria. Subito dopo il viaggio vedi la stima con l'avviso **⏳ provvisorio**;

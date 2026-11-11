@@ -1,0 +1,7 @@
+{# LIVE in the heading of a session in progress (main._live_age). No fresh reading of the car: the age of the last one,
+   as the Overview shows it; the hint names the cloud only when the frame lags the row, as there. #}
+{% if live.data_age_s is not none %}
+<span class="ml-auto text-xs font-medium text-amber-400"{% if live.frame_lags %} title="{{ t('data_age_hint') }}"{% endif %}>{{ ago(live.data_age_s) }}</span>
+{% else %}
+<span class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 animate-pulse">{{ t('live_badge') }}</span>
+{% endif %}

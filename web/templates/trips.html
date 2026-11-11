@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{# 0 = no idle reload (#236, @michapr). This page shows HISTORY: there is nothing live for a
-   reload to fetch, and the manual refresh button is in the header for the rare trip that has just
-   ended. The idle guards in base.html were never going to cover this: they protect a field you are
+{# 0 = no idle reload (#236, @michapr). This page shows HISTORY: the trip in progress polls its own
+   panel, and the page reloads once when that trip ends, so there is nothing for an idle reload to fetch.
+   The idle guards in base.html were never going to cover this: they protect a field you are
    typing in or a mode you switched on, not a choice you have already made and are now reading. #}
 {% block autorefresh %}0{% endblock %}
 {% block title %}{{ t('nav_trips') }} — LeapMotor Mate{% endblock %}
@@ -26,6 +26,16 @@
     </a>
   </div>
   {% endif %}
+</div>
+
+<!-- The trip in progress: its chart, redrawn in place (a settle would paint the card without it); the chart is
+     destroyed before a swap, as ApexCharts lets go of it only then -->
+<div id="trip-live-panel"
+     hx-get="api/trip-live-chart"
+     hx-trigger="every 30s"
+     hx-swap="innerHTML settle:0ms"
+     hx-on::before-swap="if (event.detail.shouldSwap) this.querySelectorAll('#trip-profile').forEach(function (e) { if (e._c) e._c.destroy(); })">
+  {% include "partials/trip_live_chart.html" %}
 </div>
 
 {% if summary and summary.count %}
@@ -242,4 +252,22 @@ if (HIGHLIGHT) {
   <div id="merge-modal-body" style="max-width:440px;width:100%"></div>
 </div>
 
+<script>
+// A trip that was in progress and no longer is (it ended, or the next one began between two polls) is among the trips:
+// the page reloads once to show it, as Charges does for a charge, when a reload takes nothing from the reader.
+(function () {
+  const trip = () => {
+    const m = document.getElementById('trip-live-state');
+    return m ? m.dataset.trip : null;
+  };
+  let was = trip(), waiting = null;
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    if (e.target && e.target.id === 'trip-live-panel') {
+      const now = trip();
+      if (was && now !== was && !waiting) waiting = setInterval(() => { if (lmMayReload()) lmReload(); }, 1000);
+      was = now;
+    }
+  });
+})();
+</script>
 {% endblock %}

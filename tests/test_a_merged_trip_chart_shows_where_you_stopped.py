@@ -74,9 +74,10 @@ def test_the_chart_draws_a_band_for_each_pause():
     """The wiring: the template must turn those pauses into an annotation on the axis, and label it
     with the duration — a shaded stretch with no explanation is just another mystery."""
     import pathlib
-    src = (pathlib.Path(__file__).resolve().parent.parent / "web" / "templates"
-           / "trip_detail.html").read_text()
-    assert "merge_pauses" in src, "the chart never receives the pauses"
+    templates = pathlib.Path(__file__).resolve().parent.parent / "web" / "templates"
+    page = (templates / "trip_detail.html").read_text()
+    src = (templates / "partials" / "trip_profile_chart.html").read_text()
+    assert "pauses=trip.merge_pauses" in page, "the chart never receives the pauses"
     assert "annotations" in src, "nothing is drawn on the axis"
-    block = src[src.index("merge_pauses"):][:1400]
+    block = src[src.index("mergePauses"):][:1400]
     assert "minutes" in block, "the band does not say how long the stop was"

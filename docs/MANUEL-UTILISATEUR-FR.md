@@ -1469,6 +1469,9 @@ journal. Avant, elle comptait pour 0 °C : sur une voiture sans capteur d'habita
   un carré vide signale une courbe masquée — et une bande dont toutes les courbes sont masquées se
   replie. Toutes les courbes sont affichées au départ ; le choix est mémorisé dans le navigateur
   pour tous les trajets. La bulle commence par l'heure, à la seconde près, et la minute du trajet.
+  Pendant que la voiture roule, le même graphique s'affiche en direct en haut de la page Trajets, sous
+  *🚗 En conduite* : il indique quand le trajet a commencé et à partir de quel niveau, la distance
+  parcourue jusque-là, et s'allonge à chaque relevé.
 
 - **D'où à où 🆕** — la ligne d'un trajet affiche **« A → B »**, et le *Résumé du trajet* de sa page nomme
   les deux extrémités. Une extrémité dans l'un de vos **lieux de recharge** affiche son nom suivi de «

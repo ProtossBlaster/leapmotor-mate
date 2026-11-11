@@ -1341,7 +1341,9 @@ duration, consumption (kWh/100 km), energy recovered** in braking and the estima
   and its numbers in its line's colour. Each entry of the legend switches its line on and off — an
   empty square marks a line switched off — and a band whose lines are all off folds away. All lines
   start switched on; the choice is remembered in the browser for every trip. The hover box opens
-  with the time of day, to the second, and the minute of the drive.
+  with the time of day, to the second, and the minute of the drive. While the car drives, the same chart
+  sits at the top of the Trips page, live, under *🚗 Driving*: it says when the trip began and from which
+  level, how far the car has gone so far, and grows with every poll.
 - **Official consumption from the cloud 🆕** — when available, a trip's **consumption, efficiency and
   cost** come from Leapmotor's **official figure** (the real **driving / A·C / other** split) instead of
   the battery‑% estimate alone. Right after a drive you see the estimate marked **⏳ provisional**; once
