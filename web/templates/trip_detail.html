@@ -424,7 +424,7 @@
         <h2 class="font-semibold text-white text-sm">📝 {{ t('user_note') }}</h2>
       </div>
       <form hx-post="api/trips/{{ trip.id }}/note" hx-target="#trip-note-msg" hx-swap="innerHTML"
-            hx-on::after-request="if(event.detail.successful){var m=document.getElementById('trip-note-msg');setTimeout(function(){if(m)m.textContent='';},2500);}">
+            hx-on::after-request="if(event.detail.successful){lmSaved(this,event.detail.requestConfig.parameters);var m=document.getElementById('trip-note-msg');setTimeout(function(){if(m)m.textContent='';},2500);}">
         {% include "partials/trip_note_textarea.html" %}
 
         {% if trip.additional_segment_notes %}
