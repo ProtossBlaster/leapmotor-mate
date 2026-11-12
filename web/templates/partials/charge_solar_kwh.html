@@ -42,7 +42,7 @@
       <button type="submit"
               style="background:#33415555;color:#cbd5e1;border:1px solid #47556955;border-radius:5px;padding:1px 7px;font-size:10px;cursor:pointer">OK</button>
       <button type="button"
-              onclick="document.getElementById('sk-form-{{ charge.id }}').classList.add('hidden')"
+              onclick="this.form.reset();document.getElementById('sk-form-{{ charge.id }}').classList.add('hidden')"
               style="background:transparent;color:#64748b;border:none;padding:1px 4px;font-size:10px;cursor:pointer">{{ t('cancel') }}</button>
       {% if _s > 0 %}
       {# Its own request, for the reason its twin gives: two fields of one name and the empty box wins. #}

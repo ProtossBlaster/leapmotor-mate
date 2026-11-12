@@ -255,19 +255,9 @@ if (HIGHLIGHT) {
 <script>
 // A trip that was in progress and no longer is (it ended, or the next one began between two polls) is among the trips:
 // the page reloads once to show it, as Charges does for a charge, when a reload takes nothing from the reader.
-(function () {
-  const trip = () => {
-    const m = document.getElementById('trip-live-state');
-    return m ? m.dataset.trip : null;
-  };
-  let was = trip(), waiting = null;
-  document.body.addEventListener('htmx:afterSwap', (e) => {
-    if (e.target && e.target.id === 'trip-live-panel') {
-      const now = trip();
-      if (was && now !== was && !waiting) waiting = setInterval(() => { if (lmMayReload()) lmReload(); }, 1000);
-      was = now;
-    }
-  });
-})();
+document.addEventListener('DOMContentLoaded', () => lmReloadWhenOver('trip-live-panel', () => {   // base.html's scripts come after the page's
+  const m = document.getElementById('trip-live-state');
+  return m ? m.dataset.trip : null;
+}));
 </script>
 {% endblock %}

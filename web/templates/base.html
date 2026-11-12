@@ -655,12 +655,38 @@
   </script>
 
   <script>
-  // Whether a reload now takes nothing from the reader: no form field focused, no interaction in the last 20s, no
-  // HTMX request in flight, the tab shown, no choice part-way through.
+  // Whether a reload now takes nothing from the reader: no edits left unsent, no form field focused, no interaction
+  // in the last 20s, no HTMX request in flight, the tab shown, no choice part-way through.
   var lmLastInteraction = Date.now();
   ['input', 'change', 'focusin', 'keydown', 'submit', 'pointerdown', 'touchstart', 'scroll']
     .forEach(ev => document.addEventListener(ev, () => { lmLastInteraction = Date.now(); }, true));
+  // Edits not sent yet: a field of a form that saves, holding something other than it was drawn with or last saved.
+  function lmUnsentEdits() {
+    const saves = f => ['hx-post', 'hx-put', 'hx-patch', 'hx-delete'].some(a => f.hasAttribute(a)) || f.method === 'post';
+    // A list with one choice and none marked as drawn shows its first option.
+    const drawn = el => { const d = [...el.options].map(o => o.defaultSelected); if (!el.multiple && d.length && !d.includes(true)) d[0] = true; return d; };
+    const edited = el => !el.name || el.disabled || ['hidden', 'submit', 'button'].includes(el.type) ? false
+      : el.type === 'file' ? !!el.value
+      : el.type === 'checkbox' || el.type === 'radio' ? el.checked !== el.defaultChecked
+      : el.tagName === 'SELECT' ? drawn(el).some((d, i) => el.options[i].selected !== d)
+      : (el.value || '').trim() !== (el.tagName === 'INPUT' ? Object.assign(el.cloneNode(), { value: el.defaultValue }).value : el.defaultValue || '').trim();   // drawn as the field holds it: a slider reads 10.0 as 10
+    return [...document.forms].some(f => saves(f) && [...f.elements].some(edited));
+  }
+  // The values a form sent (an htmx request's parameters) are stored: its fields were last saved with them, so only
+  // what the reader changed since then is still unsent. A box not ticked, or a list with nothing chosen, is not among them.
+  function lmSaved(form, sent) {
+    const nth = {};
+    [...form.elements].forEach(el => {
+      if (!el.name || el.disabled) return;
+      const all = el.name in sent ? [].concat(sent[el.name]) : [];
+      if (el.type === 'checkbox' || el.type === 'radio') el.defaultChecked = all.includes(el.value);
+      else if (el.tagName === 'SELECT' && (el.multiple || el.name in sent)) [...el.options].forEach(o => { o.defaultSelected = all.includes(o.value); });
+      else if (!(el.name in sent)) return;
+      else { const k = nth[el.name] = (nth[el.name] || 0); nth[el.name]++; el.defaultValue = all[Math.min(k, all.length - 1)]; }   // fields of one name are sent in their order
+    });
+  }
   function lmMayReload() {
+    if (lmUnsentEdits()) return false;
     const ae = document.activeElement;
     if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return false;
     if (document.hidden) return false;
@@ -672,7 +698,7 @@
     // it — "se si pensa troppo la pagina fa refresh e bisogna ripensare di nuovo". A mode the
     // user switched on, or an open dialog, means unfinished business: leave it alone.
     if (document.querySelector('[data-holds-selection]')) return false;
-    const dlg = document.getElementById('merge-modal');
+    const dlg = document.getElementById('merge-modal') || document.getElementById('charge-merge-modal');
     return !(dlg && getComputedStyle(dlg).display !== 'none');
   }
   // A reload that keeps the reader's place: the <main> scroll position it stores is put back as the page is drawn again.
@@ -680,6 +706,18 @@
     const main = document.querySelector('main');
     if (main) sessionStorage.setItem('lm_scroll_' + location.pathname, String(main.scrollTop));
     location.reload();
+  }
+  // A page showing a session in progress (session() names it off a panel that polls) reloads once that session is no
+  // longer the one in progress: it ended, or the next one began between two polls. It waits until a reload may go.
+  function lmReloadWhenOver(panelId, session) {
+    let was = session(), waiting = null;
+    document.body.addEventListener('htmx:afterSwap', (e) => {
+      if (e.target && e.target.id === panelId) {
+        const now = session();
+        if (was && now !== was && !waiting) waiting = setInterval(() => { if (lmMayReload()) lmReload(); }, 1000);
+        was = now;
+      }
+    });
   }
   (function () {
     const main = document.querySelector('main');
