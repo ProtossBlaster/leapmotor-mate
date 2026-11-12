@@ -9694,6 +9694,25 @@ def get_charges_grouped(station: str | None = None) -> list[dict]:
     return list(years.values())
 
 
+def _undated_charges(charges: list[dict]) -> list[dict]:
+    """The charges whose start cannot be read, made ready for charge_card.html (#451).
+
+    `_localized_charges` drops them, so the calendar and the search never showed one. Up to 4.27.0 the
+    form stored a date it could not read as typed — a browser's date box takes a year of five digits,
+    72026 — and that row sorted after every real date: the Overview's last charge, and nowhere else
+    to correct or delete it. Copies, not the rows given: the card is shown no time to draw, and the
+    date as it is stored, so the reader sees what to correct."""
+    out = []
+    for c in charges:
+        raw = c.get("started_at")
+        if raw and _local_dt(raw) is None:
+            c = dict(c)
+            c["date_label"] = str(raw).replace(" ", "T").split("T")[0]
+            c["started_at"] = c["ended_at"] = None
+            out.append(c)
+    return out
+
+
 def _localized_charges(charges: list[dict], with_window: bool = True) -> list[dict]:
     """Per-charge localization shared by the Charges calendar and search: local start/end
     times + the real-charging-window display, same convention get_charges_grouped applies
@@ -9775,13 +9794,17 @@ def get_charges_calendar_month(year: int, month: int, station: str | None = None
     clicked, so a month never ships more than ~31 small numbers to the template. Never reads
     `active_window` — with_window=False skips computing it for the whole history just to sum
     counts/kWh/cost per day."""
-    charges = _localized_charges(get_charges(limit=1_000_000), with_window=False)
+    every = get_charges(limit=1_000_000)
+    # A charge whose date cannot be read belongs to no month: carried beside the grid, whatever the month,
+    # so it can be corrected or deleted (#451). Not under a station: it has no place to be filtered by.
+    undated = [] if station else _undated_charges(every)
+    charges = _localized_charges(every, with_window=False)
     if station:
         charges = _filter_by_station(charges, station)
     charges = [c for c in charges if c["_dt"].year == year and c["_dt"].month == month]
     by_day = sorted(charges, key=lambda c: c["_dt"].day)     # stable: a day's charges keep their order
     days = {d: charges_totals(list(cs)) for d, cs in groupby(by_day, key=lambda c: c["_dt"].day)}
-    return {"year": year, "month": month, "days": days, "total": charges_totals(charges)}
+    return {"year": year, "month": month, "days": days, "total": charges_totals(charges), "undated": undated}
 
 
 def get_charges_calendar_day(year: int, month: int, day: int, station: str | None = None,
@@ -9827,7 +9850,9 @@ def search_charges(text: str = "", charge_type: str = "",
     `active_window`) and only re-localizes WITH it for whatever survives, same reasoning as
     get_charges_calendar_day: the alternative pays for every charge in the whole history on
     every search, most of which the filters are about to throw away."""
-    charges = _localized_charges(get_charges(limit=1_000_000), with_window=False)
+    every = get_charges(limit=1_000_000)
+    undated = [] if station else _undated_charges(every)       # #451: see get_charges_calendar_month
+    charges = _localized_charges(every, with_window=False)
     if station:
         charges = _filter_by_station(charges, station)
     q = (text or "").strip().lower()
@@ -9842,24 +9867,31 @@ def search_charges(text: str = "", charge_type: str = "",
         d_to = None
     if q:
         charge_places(charges)
-    out = []
-    for c in charges:
+        charge_places(undated)
+
+    def matches(c):
         if q and q not in c["search_text"].lower():
-            continue
+            return False
         # MANUAL is not a type any more but it is still a filter: the charges priced by hand with
         # no type, the ones the badge calls "✎ Manual" (add-on #2) — old placeholder and new alike.
         if ctype and not (is_manual_charge(c) if ctype == "MANUAL"
                           else (c.get("location_type") or "") == ctype):
-            continue
+            return False
         kwh = _billed_kwh(c)
         if kwh_min is not None and kwh < kwh_min:
-            continue
+            return False
         if kwh_max is not None and kwh > kwh_max:
-            continue
+            return False
         cost = c.get("cost")
         if cost_min is not None and (cost is None or cost < cost_min):
-            continue
+            return False
         if cost_max is not None and (cost is None or cost > cost_max):
+            return False
+        return True
+
+    out = []
+    for c in charges:
+        if not matches(c):
             continue
         day = c["_dt"].date()
         if d_from and day < d_from:
@@ -9867,14 +9899,18 @@ def search_charges(text: str = "", charge_type: str = "",
         if d_to and day > d_to:
             continue
         out.append(c)
+    # A charge whose date cannot be read answers every filter but a date: no window holds it.
+    lost = [c for c in undated if matches(c)] if not (d_from or d_to) else []
     ids = {c["id"] for c in out}
-    if not ids:
+    if not ids and not lost:
         return []
     raw = [c for c in get_charges(limit=1_000_000) if c["id"] in ids]
     out = _localized_charges(raw)
     out.sort(key=lambda c: c["started_at"], reverse=True)
     charge_places(out)
-    return out
+    if lost:
+        charge_places(lost)
+    return lost + out
 
 
 def get_stats_summary() -> dict:

@@ -1602,6 +1602,7 @@ def _charges_calendar_ctx(year: int, month: int, station: str, open_day: int = 0
     lang = db_reader.get_language()
     ctx = {
         "t": i18n.get_t(lang), "year": year, "month": month, "weeks": weeks, "total": cal["total"],
+        "undated": cal["undated"],      # #451: a charge whose date cannot be read, beside any month
         "month_label": i18n.fmt_month_year(lang, date(year, month, 1)),
         "weekday_abbrs": i18n.weekday_abbrs(lang),
         "prev_year": prev_year, "prev_month": prev_month,
@@ -1787,7 +1788,7 @@ async def charges_search(request: Request, q: str = "", type: str = "",
     # WHEN. Same day label the history tree uses, so the two views read alike.
     for c in charges:
         dt = db_reader._local_dt(c.get("started_at"))
-        c["date_label"] = i18n.fmt_day_month_year(lang, dt) if dt else None
+        c["date_label"] = i18n.fmt_day_month_year(lang, dt) if dt else c.get("date_label")   # #451: as stored
     today = db_reader.today_local()
     return templates.TemplateResponse(request, "partials/charges_search_results.html", {
         "t": i18n.get_t(lang), "charge_types": db_reader.charge_types_localised(), "fmt_dur": _fmt_dur,
@@ -4021,10 +4022,11 @@ def _wallbox_overlay(curve: dict, home: bool) -> list | None:
     return out if any(v is not None for v in out) else None
 
 
-def _typed_charge_payload(form) -> tuple[dict | None, bool]:
+def _typed_charge_payload(form) -> tuple[dict | None, str | None]:
     """The fields a TYPED-IN charge is made of, read once for both forms that write one — the "add a
-    past charge" form and the #188 edit form. Returns (payload, ok): two callers, one answer on what
-    a comma decimal, a blank cost or an out-of-range SoC mean, so the pair can't drift.
+    past charge" form and the #188 edit form. Returns (payload, None), or (None, the key of the message
+    that says why not): two callers, one answer on what a comma decimal, a blank cost or an
+    out-of-range SoC mean, so the pair can't drift.
 
     The wall clock is anchored here too: a time the user typed means nothing until it's tied to a
     zone, and everything the DB holds is UTC (#181)."""
@@ -4043,15 +4045,26 @@ def _typed_charge_payload(form) -> tuple[dict | None, bool]:
     time_ = (form.get("time") or "").strip() or "12:00"        # noon default → no day-shift on display
     energy = _num("energy") or 0.0
     if not date or energy <= 0:
-        return None, False
+        return None, "manual_charge_required"
 
     end_date = (form.get("end_date") or "").strip()
     end_time = (form.get("end_time") or "").strip()
-    ended_at = None
-    if end_date or end_time:
-        ended_at = db_reader.local_to_utc_iso(f"{end_date or date}T{end_time or time_}:00")
+    start_text = f"{date}T{time_}:00"
+    end_text = f"{end_date or date}T{end_time or time_}:00" if (end_date or end_time) else None
+    # #451 (@ebagnoli): a browser's date box takes a year of five digits, and 72026-03-20 was stored as
+    # typed — local_to_utc_iso hands back what it cannot read — and then sorted after every real date,
+    # the Overview's last charge for good. A date that cannot be read is refused, as the CSV import does.
+    from datetime import datetime
+    for text in (start_text, end_text):
+        if text is None:
+            continue
+        try:
+            datetime.fromisoformat(text)
+        except ValueError:
+            return None, "manual_charge_bad_date"
+    ended_at = db_reader.local_to_utc_iso(end_text) if end_text else None
 
-    started_at = db_reader.local_to_utc_iso(f"{date}T{time_}:00")
+    started_at = db_reader.local_to_utc_iso(start_text)
     # An end before the start is a typo, not a negative charge: drop it rather than store a span
     # that would come back as a negative duration everywhere it's summed.
     if ended_at and ended_at <= started_at:
@@ -4069,7 +4082,7 @@ def _typed_charge_payload(form) -> tuple[dict | None, bool]:
         "start_soc": _soc("start_soc"),
         "end_soc": _soc("end_soc"),
         "odometer_km": units.dist_to_km(odo) if odo and odo > 0 else None,
-    }, True
+    }, None
 
 
 @app.post("/api/charges/manual", response_class=HTMLResponse)
@@ -4080,9 +4093,9 @@ async def add_manual_charge_api(request: Request):
     through the CSV import or corrected afterwards on the charge itself (#188)."""
     form = await request.form()
     t = i18n.get_t(db_reader.get_language())
-    payload, ok = _typed_charge_payload(form)
-    if not ok:
-        return HTMLResponse(f'<span style="color:#ef4444">✗ {t("manual_charge_required")}</span>', status_code=400)
+    payload, error = _typed_charge_payload(form)
+    if error:
+        return HTMLResponse(f'<span style="color:#ef4444">✗ {t(error)}</span>', status_code=400)
     db_reader.add_manual_charge(**payload)
     return HTMLResponse(f'<span style="color:#22c55e">✓ {t("manual_charge_added")}</span>',
                         headers={"HX-Trigger": "chargeAdded"})
@@ -4099,9 +4112,9 @@ async def edit_manual_charge_api(request: Request, charge_id: int):
     reported. db_reader enforces that too — this route is not the only gate."""
     form = await request.form()
     t = i18n.get_t(db_reader.get_language())
-    payload, ok = _typed_charge_payload(form)
-    if not ok:
-        return HTMLResponse(f'<span style="color:#ef4444">✗ {t("manual_charge_required")}</span>', status_code=400)
+    payload, error = _typed_charge_payload(form)
+    if error:
+        return HTMLResponse(f'<span style="color:#ef4444">✗ {t(error)}</span>', status_code=400)
     if not db_reader.update_manual_charge(charge_id, **payload):
         return HTMLResponse(f'<span style="color:#ef4444">✗ {t("charge_edit_not_manual")}</span>', status_code=400)
     return HTMLResponse(f'<span style="color:#22c55e">✓ {t("charge_edit_saved")}</span>',

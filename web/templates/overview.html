@@ -101,7 +101,13 @@
       </div>
       <div class="flex justify-between text-sm">
         <span class="text-slate-400">{{ t('soc') }}</span>
-        <span class="text-white">{{ (last_charge.start_soc or 0)|dec(0) }}% → {{ (last_charge.end_soc or 0)|dec(0) }}%</span>
+        {# A charge typed in without a SoC carries none: an em dash, as on its charge card (#188), not a
+           measured-looking 0% → 0% (#451). A real 0 is still a reading. #}
+        {% if last_charge.start_soc is not none and last_charge.end_soc is not none %}
+        <span class="text-white">{{ last_charge.start_soc|dec(0) }}% → {{ last_charge.end_soc|dec(0) }}%</span>
+        {% else %}
+        <span class="text-white" data-tip="{{ t('soc_unknown_hint') }}" tabindex="0">—</span>
+        {% endif %}
       </div>
       <div class="flex justify-between text-sm">
         <span class="text-slate-400">{{ t('duration') }}</span>

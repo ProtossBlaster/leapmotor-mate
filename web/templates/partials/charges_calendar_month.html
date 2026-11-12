@@ -5,6 +5,21 @@
    #charges-day-drawer — clicking a day never re-fetches or re-renders the grid. #}
 <div id="charges-calendar-month" data-cal-month="{{ '' if (year == today.year and month == today.month) else '%d-%02d'|format(year, month) }}"
      data-year="{{ year }}" data-month="{{ month }}">
+  {# #451: a charge whose date cannot be read belongs to no month, so the grid cannot hold it — and the
+     Overview, which sorted it after every real date, showed it as the last charge with nowhere to correct
+     it. Listed here, above whatever month is open, with the date as stored, its edit form and its bin. #}
+  {% if undated %}
+  <section id="charges-undated" class="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+    <div class="text-sm font-semibold text-amber-300">⚠️ {{ t('charges_undated_title') }}</div>
+    <div class="text-xs text-slate-400 mt-1 mb-3">{{ t('charges_undated_help') }}</div>
+    {% set calendar_context = false %}
+    <div class="space-y-2">
+      {% for c in undated %}
+      {% include "partials/charge_card.html" %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
   <div class="flex items-center justify-between mb-4">
     <button type="button" title="{{ t('charges_calendar_prev') }}"
             hx-get="api/charges/calendar?year={{ prev_year }}&month={{ prev_month }}{% if station %}&station={{ station }}{% endif %}"
