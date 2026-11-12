@@ -1,8 +1,25 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.27.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.27.1 · **Lingua:** Italiano
 
-## Novità della 4.27.0
+## Novità della 4.27.1
+
+**Una pagina che si ricarica da sola lascia stare quello che hai scritto.** Una nota o una cifra scritta e
+non salvata ora trattiene la ricarica della pagina finché non la salvi o non la togli (*Annulla*, dove c'è): una nota del
+viaggio scritta e lasciata con un clic altrove spariva alla ricarica successiva. Di @arekm (#479).
+
+**La fine di una ricarica ricarica Ricariche quando non la stai usando.** Prima si ricaricava subito,
+qualunque cosa stessi facendo, e tornava in cima. Ora aspetta come Viaggi alla fine di un viaggio, tiene il
+tuo punto, ed elenca anche una ricarica seguita dalla successiva fra due aggiornamenti (#479).
+
+**Una ricarica inserita a mano vuole una data che Mate sappia leggere.** La casella della data di un browser
+accetta un anno di cinque cifre: una ricarica passata inserita con l'anno 72026 veniva salvata, restava
+l'*Ultima ricarica* della Panoramica per sempre, con SoC 0% → 0%, e nella pagina *Ricariche* non si trovava.
+Ora Mate rifiuta una data che non sa leggere, la Panoramica mostra «—» per una SoC che la ricarica non porta,
+e una ricarica già salvata con una data così è elencata sopra il calendario di *Ricariche*, per correggerne la
+data con ✏️ *Modifica* o cancellarla (@ebagnoli, #451).
+
+### Novità della 4.27.0
 
 **Il viaggio in corso è nella pagina Viaggi, in diretta.** Mentre l'auto viaggia, in cima a *Viaggi* c'è
 *🚗 In guida*: LIVE o l'età dell'ultima lettura, quando è iniziato il viaggio, la strada fatta finora, la

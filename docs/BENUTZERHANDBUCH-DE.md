@@ -1,8 +1,28 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.27.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.27.1 · **Sprache:** Deutsch
 
-## Neu in Version 4.27.0
+## Neu in Version 4.27.1
+
+**Eine Seite, die sich selbst neu lädt, lässt stehen, was du eingetippt hast.** Was eingetippt und nicht
+gespeichert ist, eine Notiz oder ein Wert, hält das Neuladen der Seite jetzt auf, bis du es speicherst oder
+zurücknimmst (*Abbrechen*, wo es das gibt): Eine Fahrtnotiz, eingetippt und mit einem Klick daneben
+verlassen, war beim nächsten Neuladen weg. Von @arekm (#479).
+
+**Das Ende eines Ladevorgangs lädt *Ladevorgänge* neu, wenn du die Seite nicht benutzt.** Bisher lud sie
+sofort neu, egal was du gerade tatst, und sprang nach oben. Jetzt wartet sie wie *Fahrten* am Ende einer
+Fahrt, behält deine Position und zeigt auch einen Ladevorgang, auf den zwischen zwei Aktualisierungen der
+nächste folgte (#479).
+
+**Ein von Hand eingegebener Ladevorgang braucht ein Datum, das Mate lesen kann.** Das Datumsfeld eines
+Browsers nimmt ein Jahr mit fünf Ziffern an: Ein vergangener Ladevorgang mit dem Jahr 72026 wurde
+gespeichert, blieb für immer der *Letzte Ladevorgang* der Übersicht, mit SoC 0% → 0%, und war auf der Seite
+*Ladevorgänge* nicht zu finden. Jetzt lehnt Mate ein Datum ab, das es nicht lesen kann, die Übersicht zeigt
+„—“ für einen SoC, den der Ladevorgang nicht trägt, und ein bereits so gespeicherter Ladevorgang steht über
+dem Kalender von *Ladevorgänge*, um sein Datum mit ✏️ *Bearbeiten* zu korrigieren oder ihn zu löschen
+(@ebagnoli, #451).
+
+### Neu in Version 4.27.0
 
 **Die laufende Fahrt steht live auf der Seite Fahrten.** Während das Auto fährt, zeigt *Fahrten* oben
 *🚗 Fahrt*: LIVE oder das Alter der letzten Messung, wann die Fahrt begann, die bisher gefahrene Strecke,

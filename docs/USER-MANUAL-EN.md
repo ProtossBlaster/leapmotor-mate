@@ -1,8 +1,24 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.27.0 · **Language:** English
+> **Mate version:** v4.27.1 · **Language:** English
 
-## New in 4.27.0
+## New in 4.27.1
+
+**A page that reloads itself leaves what you typed alone.** A note or a figure typed in and not saved now
+holds the page's own reload until you save it or take it back (*Cancel*, where there is one): a trip note typed and left with a click
+elsewhere was gone at the next reload. By @arekm (#479).
+
+**The end of a charge reloads Charges when you are not using it.** It used to reload at once, whatever you
+were doing, and go back to the top. Now it waits as Trips does at the end of a trip, keeps your place, and
+also lists a charge followed by the next one between two updates (#479).
+
+**A charge typed in needs a date Mate can read.** A browser's date box takes a year of five digits: a past
+charge typed in with the year 72026 was saved, stayed the Overview's *Last charge* for good, with SoC
+0% → 0%, and could not be found on the *Charges* page. Mate now refuses a date it cannot read, the Overview
+shows "—" for a SoC a charge does not carry, and a charge already saved with such a date is listed above the
+*Charges* calendar, to correct its date with ✏️ *Edit* or delete it (@ebagnoli, #451).
+
+### New in 4.27.0
 
 **The trip in progress is on the Trips page, live.** While the car drives, the top of *Trips* shows
 *🚗 Driving*: LIVE or the age of the last reading, when the trip began, the distance so far, the charge

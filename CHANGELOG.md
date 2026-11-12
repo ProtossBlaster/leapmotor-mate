@@ -3,6 +3,21 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.27.1] — 2026-11-12
+
+See [the notes](docs/releases/v4.27.1.md).
+
+- **What you typed and did not save holds the reload** ([#479](https://github.com/ProtossBlaster/leapmotor-mate/pull/479), @arekm). A page that
+  reloads itself waits while a form holds a note or a figure you changed and did not save: a trip note typed
+  and left was gone at the next reload. *Cancel* in a charge's ✎ editors puts back the figure it had.
+- **The end of a charge reloads Charges when you are not using it** ([#479](https://github.com/ProtossBlaster/leapmotor-mate/pull/479), @arekm). It reloaded at
+  once, whatever you were doing, and went back to the top. Now it waits as Trips does at the end of a trip,
+  keeps your place, and also lists a charge followed by the next one between two updates.
+- **A charge typed in needs a date Mate can read** ([#451](https://github.com/ProtossBlaster/leapmotor-mate/issues/451), @ebagnoli). A year of five
+  digits, 72026, was saved and made that charge the Overview's last for good, with nowhere to correct it.
+  The forms refuse a date Mate cannot read, the Overview shows "—" for a SoC a charge does not carry, and a
+  charge saved with such a date is listed above the Charges calendar, to correct or delete.
+
 ## [4.27.0] — 2026-11-11
 
 See [the notes](docs/releases/v4.27.0.md).

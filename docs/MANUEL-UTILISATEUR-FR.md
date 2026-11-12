@@ -1,8 +1,27 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.27.0 · **Langue :** Français
+> **Version de Mate :** v4.27.1 · **Langue :** Français
 
-## Nouveautés de la version 4.27.0
+## Nouveautés de la version 4.27.1
+
+**Une page qui se recharge seule laisse ce que tu as tapé.** Une note ou un chiffre tapé et non enregistré
+retient maintenant le rechargement de la page jusqu'à ce que tu l'enregistres ou l'annules (*Annuler*, là où il existe) : une
+note de trajet tapée puis laissée d'un clic ailleurs disparaissait au rechargement suivant. Par @arekm
+(#479).
+
+**La fin d'une recharge recharge la page Recharges quand tu ne l'utilises pas.** Elle se rechargeait aussitôt,
+quoi que tu fasses, et remontait en haut. Maintenant elle attend comme Trajets à la fin d'un trajet, garde ta
+position, et affiche aussi une recharge suivie de la suivante entre deux mises à jour (#479).
+
+**Une recharge saisie à la main demande une date que Mate sait lire.** Le champ de date d'un navigateur
+accepte une année à cinq chiffres : une recharge passée saisie avec l'année 72026 était enregistrée, restait
+pour toujours la *Dernière recharge* de l'*Aperçu*, avec SoC 0% → 0%, et restait introuvable sur la
+page *Recharges*. Mate refuse maintenant une date qu'il ne sait pas lire, l'*Aperçu* affiche « — »
+pour un SoC que la recharge ne porte pas, et une recharge déjà enregistrée avec une telle date est listée
+au-dessus du calendrier de *Recharges*, pour corriger sa date avec ✏️ *Modifier* ou la supprimer
+(@ebagnoli, #451).
+
+### Nouveautés de la version 4.27.0
 
 **Le trajet en cours est sur la page Trajets, en direct.** Pendant que la voiture roule, le haut de
 *Trajets* affiche *🚗 En conduite* : LIVE ou l'âge du dernier relevé, l'heure de début du trajet, la

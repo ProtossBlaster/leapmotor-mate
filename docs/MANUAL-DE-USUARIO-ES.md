@@ -1,8 +1,25 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.27.0 · **Idioma:** Español
+> **Versión de Mate:** v4.27.1 · **Idioma:** Español
 
-## Novedades de la versión 4.27.0
+## Novedades de la versión 4.27.1
+
+**Una página que se recarga sola deja en paz lo que escribiste.** Una nota o una cifra escrita y no guardada
+ahora retiene la recarga de la página hasta que la guardes o la deshagas (*Cancelar*, donde lo hay): una nota del trayecto escrita
+y dejada con un clic en otro sitio desaparecía en la recarga siguiente. Por @arekm (#479).
+
+**El final de una carga recarga Cargas cuando no la estás usando.** Antes se recargaba enseguida, hicieras
+lo que hicieras, y volvía arriba. Ahora espera como Trayectos al final de un trayecto, mantiene tu posición
+y muestra también una carga seguida de la siguiente entre dos actualizaciones (#479).
+
+**Una carga introducida a mano necesita una fecha que Mate sepa leer.** La casilla de fecha de un navegador
+acepta un año de cinco cifras: una carga pasada introducida con el año 72026 se guardaba, quedaba para
+siempre como la *Última carga* del Resumen, con SoC 0% → 0%, y no se encontraba en la página *Cargas*. Ahora
+Mate rechaza una fecha que no sabe leer, el Resumen muestra «—» para un SoC que la carga no lleva, y una carga
+ya guardada con una fecha así aparece encima del calendario de *Cargas*, para corregir su fecha con ✏️
+*Editar* o borrarla (@ebagnoli, #451).
+
+### Novedades de la versión 4.27.0
 
 **El trayecto en curso está en la página Trayectos, en directo.** Mientras el coche circula, arriba de
 *Trayectos* aparece *🚗 En marcha*: EN DIRECTO o la antigüedad de la última lectura, cuándo empezó el

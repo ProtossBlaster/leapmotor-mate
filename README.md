@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.27.0:** while the car drives, the trip in progress sits at the top of Trips with its Trip data chart, live, and a page that reloads itself comes back to where you were reading. **4.25.0** was a security release: if you skipped it, its *Upgrade impact* is linked from these notes.
-See [release notes and upgrade impact](docs/releases/v4.27.0.md).
+**v4.27.1:** a page that reloads itself leaves alone a note or a figure you typed and did not save, and the end of a charge reloads Charges only when you are not using it, keeping your place ([#479](https://github.com/ProtossBlaster/leapmotor-mate/pull/479), @arekm), and a charge typed in with a year Mate cannot read no longer stays the last charge ([#451](https://github.com/ProtossBlaster/leapmotor-mate/issues/451), @ebagnoli). In **4.27.0**: while the car drives, the trip in progress sits at the top of Trips with its Trip data chart, live. **4.25.0** was a security release: if you skipped it, its *Upgrade impact* is linked from these notes.
+See [release notes and upgrade impact](docs/releases/v4.27.1.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -379,8 +379,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.27.0:** mentre l'auto viaggia, il viaggio in corso sta in cima a Viaggi con il suo grafico Dati del viaggio, in diretta, e una pagina che si ricarica da sola torna dove stavi leggendo. La **4.25.0** era un rilascio di sicurezza: se l'hai saltata, il suo *Impatto dell'aggiornamento* è collegato da queste note.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.27.0.md#italiano).
+**v4.27.1:** una pagina che si ricarica da sola lascia stare una nota o una cifra che hai scritto e non salvato, e la fine di una ricarica ricarica Ricariche solo quando non la stai usando, tenendo il tuo punto ([#479](https://github.com/ProtossBlaster/leapmotor-mate/pull/479), @arekm), e una ricarica inserita a mano con un anno che Mate non sa leggere non resta più l'ultima ricarica ([#451](https://github.com/ProtossBlaster/leapmotor-mate/issues/451), @ebagnoli). Nella **4.27.0**: mentre l'auto viaggia, il viaggio in corso sta in cima a Viaggi con il suo grafico Dati del viaggio, in diretta. La **4.25.0** era un rilascio di sicurezza: se l'hai saltata, il suo *Impatto dell'aggiornamento* è collegato da queste note.
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.27.1.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
