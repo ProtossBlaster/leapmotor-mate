@@ -115,3 +115,14 @@ def test_a_day_with_only_the_outside_temperature_is_absent(tmp_path, monkeypatch
         ("2026-11-15T08:00:00+00:00", 2.5, 2.5, 2.5, 2.5, 6.0),
     ])
     assert [(d["day"], d["temp"]) for d in _days()] == [("2026-11-15", (6.0, 6.0))]
+
+
+def test_the_day_the_clocks_go_forward_ends_an_hour_early(tmp_path, monkeypatch):
+    """29/03/2026 in Rome is 23 hours long: it ends at 22:00 UTC, not 23:00. 22:30 UTC is already
+    00:30 on the 30th; an offset taken from `now` (November, +1) would keep it on the 29th."""
+    _db(tmp_path, monkeypatch, [
+        ("2026-03-29T21:30:00+00:00", 2.40, 2.5, 2.5, 2.5, None),   # 23:30 on the 29th, local
+        ("2026-03-29T22:30:00+00:00", 2.60, 2.5, 2.5, 2.5, None),   # 00:30 on the 30th, local
+    ])
+    assert [(d["day"], d["fl"]) for d in _days(240)] == [
+        ("2026-03-29", (2.40, 2.40)), ("2026-03-30", (2.60, 2.60))]

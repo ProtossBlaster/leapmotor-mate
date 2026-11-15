@@ -35,14 +35,18 @@
   // `dec` steps that print exactly at that many decimals — a tyre at 2.40–2.55 bar has no whole step
   // that is not the whole chart (D#483). The line's `axisDec` must then say the same `dec`.
   function niceScale(lo, hi, minSpan, dec) {
+    // Worked in units of the last decimal, snapped: 2.3 - 2.1 is 0.1999… in floating point, and a
+    // span a hair short of the least one, or a top a hair over a tick, doubled the scale.
     var unit = Math.pow(10, dec || 0);
-    if (hi - lo < minSpan) { var mid = (lo + hi) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
-    var mag = Math.pow(10, Math.floor(Math.log10((hi - lo) / 4)));
-    var steps = [1, 2, 2.5, 3, 4, 5, 10, 20].map(function (m) { return Math.round(m * mag * unit * 1e6) / 1e6; })
+    function snap(v) { return Math.round(v * unit * 1e6) / 1e6; }
+    var L = snap(lo), H = snap(hi), M = snap(minSpan);
+    if (H - L < M - 1e-6) { var mid = (L + H) / 2; L = mid - M / 2; H = mid + M / 2; }
+    var mag = Math.pow(10, Math.floor(Math.log10((H - L) / 4)));
+    var steps = [1, 2, 2.5, 3, 4, 5, 10, 20].map(function (m) { return Math.round(m * mag * 1e6) / 1e6; })
                                              .filter(function (s) { return s % 1 === 0 && s > 0; });
     for (var s = 0; s < steps.length; s++) {
-      var a = Math.floor(lo * unit / steps[s]) * steps[s];
-      if (a + 4 * steps[s] >= hi * unit) return [a / unit, (a + 4 * steps[s]) / unit];
+      var a = Math.floor(L / steps[s] + 1e-9) * steps[s];
+      if (a + 4 * steps[s] >= H - 1e-6) return [a / unit, (a + 4 * steps[s]) / unit];
     }
     return [lo, hi];
   }

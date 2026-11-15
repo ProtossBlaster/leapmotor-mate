@@ -3042,7 +3042,14 @@ async def tyre_history_api(request: Request, days: str = "30"):
     mode shows no history: there is none to show, and none is invented."""
     from datetime import date, datetime, timedelta, timezone
     period = 90 if days == "90" else 30
-    found = [] if _IS_DEMO else db_reader.get_tyre_pressure_days(period)
+    # Past the positions retention only charging rows are kept (prune_positions): a day built from
+    # them is the hours plugged in, not the day. The chart stops where the retention cuts.
+    try:
+        retention = int(db_reader.get_setting("positions_retention_days", "0") or 0)
+    except ValueError:
+        retention = 0
+    shown_days = min(period, retention) if retention > 0 else period
+    found = [] if _IS_DEMO else db_reader.get_tyre_pressure_days(shown_days)
     chart = None
     if found:
         by_day = {d["day"]: d for d in found}
@@ -3055,7 +3062,7 @@ async def tyre_history_api(request: Request, days: str = "30"):
             chart[f"{key}_min"] = [p[0] if p else None for p in pairs]
             chart[f"{key}_max"] = [p[1] if p else None for p in pairs]
     return templates.TemplateResponse(request, "partials/tyre_history_chart.html",
-                                      _ctx(chart=chart, period=period))
+                                      _ctx(chart=chart, period=period, shown_days=shown_days))
 
 
 @app.get("/settings", response_class=HTMLResponse)

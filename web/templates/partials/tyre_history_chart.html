@@ -36,7 +36,10 @@
   (function () {
     var el = document.getElementById('tyre-history-chart');
     if (!el || typeof ApexCharts === 'undefined' || typeof mateBandChart === 'undefined') return;
-    if (el._c) { try { el._c.destroy(); } catch (e) {} }
+    // htmx swaps the whole card on a change of period: the chart before it is held by the card's
+    // container, which stays, and is destroyed here — its element is already gone, its listeners not.
+    var holder = document.getElementById('tyre-history');
+    if (holder && holder._tyreChart) { try { holder._tyreChart.destroy(); } catch (e) {} holder._tyreChart = null; }
     var D = JSON.parse(document.getElementById('tyre-history-data').textContent);
     // The axis is the day; each is noon UTC of its date, so no zone moves it to the next or last one.
     function at(day) { return new Date(day + 'T12:00:00Z'); }
@@ -83,9 +86,10 @@
       decimalComma: {{ (lang != 'en')|tojson }},   // the rule of units.decimal_point, as the tyre card above
       hoverTitle: function (i) { return hoverFmt.format(at(D.days[i])); },
     });
+    if (holder) holder._tyreChart = el._c;
   })();
   </script>
 {% else %}
-  <div class="text-xs text-slate-500 py-2">{{ t('tyre_history_empty') }}</div>
+  <div class="text-xs text-slate-500 py-2">{{ t('tyre_history_empty').format(n=shown_days) }}</div>
 {% endif %}
 </div>

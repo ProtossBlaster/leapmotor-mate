@@ -628,7 +628,7 @@
     "tyre_rl": "Linksachter",
     "tyre_rr": "Rechtsachter",
     "tyre_history_title": "Bandenspanning per dag",
-    "tyre_history_empty": "Nog geen bandenspanning vastgelegd.",
+    "tyre_history_empty": "Geen bandenspanning in de afgelopen {n} dagen.",
     "tyre_history_min": "laagste",
     "tyre_history_max": "hoogste",
     "tyre_history_90d": "90 dagen",

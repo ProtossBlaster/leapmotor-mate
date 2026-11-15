@@ -69,7 +69,7 @@ def test_no_history_says_so(tmp_path, monkeypatch):
     r = c.get("/api/tyre-history")
     assert r.status_code == 200
     assert "tyre-history-data" not in r.text
-    assert "No tyre pressures recorded yet" in r.text
+    assert "No tyre pressures in the last 30 days" in r.text
 
 
 def test_no_temperature_no_temperature_line(tmp_path, monkeypatch):
@@ -104,4 +104,21 @@ def test_every_new_key_is_in_every_locale():
 def test_temperature_alone_is_no_history(tmp_path, monkeypatch):
     c = _client(tmp_path, monkeypatch, [(3, None, None, None, None, 5.0), (1, None, None, None, None, 7.0)])
     r = c.get("/api/tyre-history")
-    assert "tyre-history-data" not in r.text and "No tyre pressures recorded yet" in r.text
+    assert "tyre-history-data" not in r.text and "No tyre pressures in the last 30 days" in r.text
+
+
+def test_thirty_empty_days_say_thirty_days_not_never(tmp_path, monkeypatch):
+    """Readings 60 days ago and none since: nothing in the last 30 days, which is not «never»."""
+    c = _client(tmp_path, monkeypatch, [(60, 2.5, 2.5, 2.5, 2.5, None)])
+    assert "No tyre pressures in the last 30 days" in c.get("/api/tyre-history?days=30").text
+    assert "tyre-history-data" in c.get("/api/tyre-history?days=90").text
+
+
+def test_the_chart_stops_where_the_positions_retention_cuts(tmp_path, monkeypatch):
+    """Past the retention only charging rows are kept (prune_positions): a day built from them is the
+    hours plugged in, not the day. With a 20-day retention the 90 days chart shows 20 days."""
+    c = _client(tmp_path, monkeypatch, [(40, 2.3, 2.5, 2.5, 2.5, None), (5, 2.5, 2.5, 2.5, 2.5, None)])
+    import db_reader
+    db_reader.set_setting("positions_retention_days", "20")
+    d = _data(c.get("/api/tyre-history?days=90").text)
+    assert 2.3 not in d["fl_min"] and len(d["days"]) <= 21

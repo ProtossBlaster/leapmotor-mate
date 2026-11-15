@@ -628,7 +628,7 @@
     "tyre_rl": "Zadní levá",
     "tyre_rr": "Zadní pravá",
     "tyre_history_title": "Tlak v pneumatikách po dnech",
-    "tyre_history_empty": "Zatím nebyl zaznamenán žádný tlak v pneumatikách.",
+    "tyre_history_empty": "Žádný tlak v pneumatikách za posledních {n} dní.",
     "tyre_history_min": "nejnižší",
     "tyre_history_max": "nejvyšší",
     "tyre_history_90d": "90 dní",
