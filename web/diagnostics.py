@@ -628,6 +628,57 @@ def _charges_section() -> str:
     return "\n".join(out)
 
 
+_CURVES_PER_KIND = 10    # the charges list's floor: each charge it always shows has its readings here
+
+
+def _charge_curves_section() -> str:
+    """The readings behind the charge chart, for the last charges of each kind, newest first.
+
+    The same reader as the chart (`get_charge_power_curve`), so the bundle shows what the page
+    draws: the gaps, the power, the battery warming. AC and DC are counted apart, or the nightly
+    home charges would push the one road-trip charge out. No place beyond its kind (HOME/FAST…).
+    """
+    try:
+        db = db_reader._get()
+        merged = db_reader._charges_have_merge(db)
+        rows = db.execute(
+            "SELECT * FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id)"
+            + (" AND merged_into_id IS NULL" if merged else "") + " ORDER BY started_at DESC",
+            (db_reader._current_vehicle_id(),)).fetchall()
+        kids = db_reader._charge_children_by_parent(db)
+    except sqlite3.Error as e:
+        return f"(charge readings unavailable: {e})"
+    picked: dict = {"AC": [], "DC": []}
+    for r in rows:
+        # the kind the Charges page gives the whole session, not its first piece's recorded type
+        session = db_reader._charge_group_stats(dict(r), kids.get(r["id"], []))
+        dc = (db_reader.open_charge_is_dc(session["max_power_kw"]) if r["ended_at"] is None
+              else db_reader.charge_is_dc(session))
+        kind = "DC" if dc else "AC"
+        if len(picked[kind]) < _CURVES_PER_KIND:
+            picked[kind].append(r)
+        if all(len(v) == _CURVES_PER_KIND for v in picked.values()):
+            break
+    out = [f"the last {_CURVES_PER_KIND} AC and {_CURVES_PER_KIND} DC charges, newest first, "
+           "as their charts draw them · time UTC · SoC % · kW · battery °C (coldest cell) · "
+           "outside °C · minutes left · a merged charge is its whole session"]
+    for kind, rows in picked.items():
+        for r in rows:
+            c = db_reader.get_charge_power_curve(r["id"])
+            start, end, _ = db_reader._charge_group_span(db, r["id"], r["started_at"], r["ended_at"])
+            out.append(f"  #{r['id']} {kind}/{r['location_type'] or '-'} {(start or '')[:16]} → "
+                       f"{(end or 'in progress')[:16]} · {len(c['times'])} readings")
+            day = None
+            for t, soc, kw, bat, air, left in zip(c["times"], c["soc"], c["power"], c["battery_temp"],
+                                                  c["outside_temp"], c["remaining_min"]):
+                if t[:10] != day:
+                    day = t[:10]
+                    out.append(f"    {day}")
+                out.append(f"    {t[11:19]} {_n(soc, 1)} {_n(kw)} {_n(bat, 0)} {_n(air, 1)} "
+                           f"{'—' if left is None else left}")
+    return "\n".join(out) if len(out) > 1 else "(no charges)"
+
+
 def _trips_section() -> str:
     """Every trip Mate recorded in the window, as it sits in the table.
 
@@ -1066,6 +1117,7 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
         # The rows themselves, so a "this charge/trip is wrong" report is answered from the table
         # instead of inferred from 30 000 log lines (#230, 06/08/26).
         out += ["", "----- charges (from the database) -----", _charges_section()]
+        out += ["", "----- charge readings (the latest charge charts) -----", _charge_curves_section()]
         out += ["", "----- trips (from the database) -----", _trips_section()]
         out += ["", "----- charges the car took, and what Mate had in hand -----",
                 _missed_charges_section()]

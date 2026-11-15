@@ -5351,6 +5351,12 @@ def charge_is_dc(c: dict) -> bool:
     return charge_kind.is_dc(c.get("charge_type"), c.get("max_power_kw"), charge_kind.DC_MIN_KW_DEFAULT)
 
 
+def open_charge_is_dc(peak_kw) -> bool:
+    """Whether an open charge will be typed DC when it ends: its peak so far against the poller's
+    threshold. Until then its row holds the schema's default type, not a recorded one."""
+    return charge_kind.is_dc(None, peak_kw, charge_kind.dc_min_kw(get_setting("charge_dc_min_kw", "11")))
+
+
 def _charge_group_stats(parent: dict, children: list) -> dict:
     """Parent dict enriched with the combined figures of [parent + children] — one plug-in the car
     reported as several rows, read back as the single session it was.
