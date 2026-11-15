@@ -1552,8 +1552,9 @@ class Database:
                 window_fl_open, window_rl_open, ac_port_mode,
                 fan_level, recirculation, climate_mode,
                 fuel_level_pct, fuel_range_km, combined_range_km,
-                frame_ts, fuel_liters)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                frame_ts, fuel_liters,
+                tire_fl_bar, tire_fr_bar, tire_rl_bar, tire_rr_bar)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 vehicle_id, _now_iso(),
                 data.latitude, data.longitude,
@@ -1592,6 +1593,9 @@ class Database:
                 data.fuel_level_pct, data.fuel_range_km, data.combined_range_km,  # REEV dual-energy (NULL on BEV)
                 data.timestamp_ms or None,   # the CAR's own clock on this frame (#178) — 0/absent → NULL
                 getattr(data, "fuel_liters", None),   # litres the car counts itself (3263) — NULL on a BEV
+                # tyre pressures in bar, as the car sent them; NULL where it did not (D#483)
+                getattr(data, "tire_fl_bar", None), getattr(data, "tire_fr_bar", None),
+                getattr(data, "tire_rl_bar", None), getattr(data, "tire_rr_bar", None),
             ),
         )
         self._conn.commit()

@@ -494,6 +494,12 @@ def ensure_schema(conn) -> None:
     # report it (and on every row written before this column existed).
     if "frame_ts" not in cols:
         _add_column(conn, "ALTER TABLE positions ADD COLUMN frame_ts INTEGER DEFAULT NULL")
+    # migration: the four tyre pressures, in bar (signals 2646 FL, 2653 FR, 2660 RL, 2667 RR, kPa
+    # / 100) — D#483. They were shown live and thrown away, so there was no history to draw. NULL
+    # where the car did not send one: a silent sensor is not a tyre at 0 bar.
+    for _c in ("tire_fl_bar", "tire_fr_bar", "tire_rl_bar", "tire_rr_bar"):
+        if _c not in cols:
+            _add_column(conn, f"ALTER TABLE positions ADD COLUMN {_c} REAL DEFAULT NULL")
     # migration: the car's DECLARED ability codes (VehicleAbility ints, stored as a JSON list) —
     # lets the diagnostic + future capability-gating show ONLY what a model actually supports,
     # instead of assuming every car has the same commands (#67; also covers models we don't own
