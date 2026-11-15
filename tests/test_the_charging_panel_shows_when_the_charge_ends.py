@@ -1,4 +1,5 @@
-"""The Charges page's "Charging status" says when the car expects the charge to end (D#444, @banolka).
+"""The Charges page's "Charging status" says when the car expects the charge to end (D#444, @banolka),
+and the charging chip over the car on Overview says it on hover or tap.
 
 The car sends the minutes left; the panel showed only those. The time is the moment the car
 measured them plus the minutes: the car's own clock (`frame_ts`) when it is not after our reading,
@@ -50,6 +51,13 @@ def _panel():
     return TestClient(main.app).get("/api/charging-live").text
 
 
+def _hero():
+    pytest.importorskip("httpx", reason="Starlette's TestClient is built on httpx")
+    import main
+    from starlette.testclient import TestClient
+    return TestClient(main.app).get("/api/overview-hero").text
+
+
 def _finish():
     import main
     return main._charge_finish(db_reader.get_latest_status())
@@ -59,6 +67,7 @@ def test_the_end_is_the_reading_plus_the_minutes_in_local_time(car):
     _reading(car, T0, 135)                                   # 10:00 + 2h15 → 12:15 in Rome
     assert _finish() == "12:15"
     assert "Est. end 12:15" in _panel()
+    assert 'tabindex="0" data-tip="Est. end 12:15"' in _hero()
 
 
 def test_an_older_frame_counts_from_when_the_car_measured(car):
@@ -76,12 +85,14 @@ def test_a_car_clock_ahead_of_ours_is_not_taken(car):
 def test_an_end_on_another_day_carries_its_day(car):
     _reading(car, T0.replace(hour=22, minute=30), 100)       # 23:30 Rome + 1h40 → 01:10 on the 29th
     assert _finish() == "29 Oct 01:10"
+    assert 'data-tip="Est. end 29 Oct 01:10"' in _hero()
 
 
 def test_no_minutes_no_end(car):
     _reading(car, T0, None)
     assert _finish() is None
     assert "Est. end" not in _panel()
+    assert "Est. end" not in _hero()
 
 
 def test_not_charging_no_end(car):
