@@ -104,6 +104,9 @@ class MqttService:
         # absent", or the first discovery for that car is skipped.
         self.absent_temps: dict = {}        # vin → set of absent topic keys
         self._temps_published: dict = {}    # vin → what HA was last told
+        # The cars seen as range-extenders on this connection (#481). Seen once is enough: a frame without
+        # the fuel signal says the signal is missing, not that the tank went, and never deletes a sensor.
+        self._reev_vins: set = set()
         self._climate_on: dict = {}     # vin → latest polled A/C state, for the "A/C Off" guard
         # V2L live state PER CAR: the idle baseline current (I0) frozen at session start, the running
         # session energy, and the previous-poll idle current that seeds I0. Mirrors the net-power
@@ -267,6 +270,9 @@ class MqttService:
         # Discovery per CAR: each one is its own Home Assistant device, and the second car's
         # entities never appear if one flag says "already sent" for the whole bridge.
         access = self._access_signature(data.vin)
+        # A range-extender whose discovery ran on a frame without the fuel signal: its first frame
+        # with it announces the fuel sensors, not the next reconnect.
+        newly_reev = getattr(data, "is_reev", False) and data.vin not in self._reev_vins
         if self.discovery_enabled and (data.vin not in self._discovery_sent
                 or self._access_published.get(data.vin) != access):
             self.publish_discovery(data)
@@ -281,6 +287,8 @@ class MqttService:
             # would never come back. Compared PER CAR, so one car's answer cannot re-publish the
             # other's entities on every poll.
             self._publish_temp_entities(data)
+        if self.discovery_enabled and newly_reev and data.vin not in self._reev_vins:
+            self._publish_fuel_entities(data)
         self._publish_sensors(data)
 
     # The three temperature entities and their HA config, shared by discovery and the re-check above
@@ -306,6 +314,29 @@ class MqttService:
                  "unit_of_measurement": "°C", "device_class": "temperature",
                  "unique_id": f"{device_id}_{key}", "device": self._device(vin)}), retain=True)
         self._temps_published[vin] = set(absent)
+
+    # A range-extender's fuel (#481): tank level (3235), the litres the car counts (3263), range on fuel
+    # alone (3259). No template: a value the car sent is published as it is, and `_EMPTY_NONE` would
+    # make an empty tank (0 %, 0 L, 0 km) unknown.
+    _FUEL_ENTITIES = (
+        ("fuel_level", "Fuel Level", {"unit": "%", "icon": "mdi:gas-station"}),
+        ("fuel_liters", "Fuel Volume", {"dc": "volume_storage", "unit": "L", "icon": "mdi:gas-station"}),
+        ("fuel_range", "Fuel Range", {"dc": "distance", "unit": "km", "icon": "mdi:map-marker-distance"}),
+    )
+
+    def _publish_fuel_entities(self, data):
+        """Announce the fuel sensors for a car seen as a range-extender, and only for one: a plain
+        electric car is not given three sensors that would stay unknown for ever. Never cleared."""
+        vin = data.vin
+        if getattr(data, "is_reev", False):
+            self._reev_vins.add(vin)
+        if vin not in self._reev_vins:
+            return
+        device_id = f"{self.topic_prefix}_mate_{vin.lower()}"
+        for key, name, extra in self._FUEL_ENTITIES:
+            conf = _sensor_conf(self.topic_prefix, vin, key, name, extra)
+            conf.update({"unique_id": f"{device_id}_{key}", "device": self._device(vin)})
+            self.client.publish(f"{_DISC}/sensor/{device_id}/{key}/config", json.dumps(conf), retain=True)
 
     def _v2l_live(self, data):
         """Live V2L numbers for MQTT: NET discharge power (gross minus the idle baseline I0 frozen at
@@ -386,6 +417,13 @@ class MqttService:
         # `unknown` at every sleep of the car (#365).
         if data.range_km is not None:
             pub("range", data.range_km)
+        # A range-extender's fuel (#481), as the car sent it: 0 is an empty tank. A frame without one
+        # of them keeps the retained last value, like the range above.
+        if getattr(data, "is_reev", False):
+            for sub, val in (("fuel_level", data.fuel_level_pct), ("fuel_liters", data.fuel_liters),
+                             ("fuel_range", data.fuel_range_km)):
+                if val is not None:
+                    pub(sub, val)
         # The same for a frame with no odometer: in memory it is 0 for the state machine, and a
         # retained 0 would drop the sensor to 0 km and back (PR #358). An empty retained payload
         # would delete the broker's value instead, so nothing is published.
@@ -585,6 +623,7 @@ class MqttService:
         # MEASUREMENT that keeps changing (#144): a car that has never once sent one does not get the
         # entity, and publish_status re-runs this the moment that answer moves.
         self._publish_temp_entities(data)
+        self._publish_fuel_entities(data)
 
         # Comfort STATE sensors — read-only, shown only where they work on THIS car (the B10
         # reports these even though the matching remote commands are broken). A confirmed-broken

@@ -2124,7 +2124,7 @@ escribible, más un sensor **Modo de climatización** (AUTO / Frío / Calor / Ve
 publicadas incluyen además tres de V2L de solo lectura: **`V2L Active`** (sensor binario), **`V2L
 Power`** (W) y **`V2L Session Energy`** (Wh), y un sensor binario **`Ready`** que se enciende en cuanto
 el coche se pone en marcha — antes de que se mueva, que es cuando a una automatización todavía le da
-tiempo a actuar. Un sensor **`Sunshade Position`** indica cuánto está abierto el parasol, en % (0 = cerrado); el sensor binario **`Sunshade`** sigue como estaba, encendido con cualquier apertura.
+tiempo a actuar. Un sensor **`Sunshade Position`** indica cuánto está abierto el parasol, en % (0 = cerrado); el sensor binario **`Sunshade`** sigue como estaba, encendido con cualquier apertura. En un coche con extensor de autonomía hay tres sensores de combustible: **`Fuel Level`** (%), **`Fuel Volume`** (L, los litros que cuenta el coche) y **`Fuel Range`** (km solo con combustible); un depósito vacío vale 0, y un coche solo eléctrico no los recibe.
 
 Las entidades que **tu** coche no soporta no se te quedan en las manos: las que el modelo no tiene
 (asientos calefactados, volante…) no se crean nunca, y una **entidad de temperatura** cuyo sensor el
