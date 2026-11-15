@@ -27,7 +27,7 @@
    totals use for that sum ('delivered'), so the €/kWh beside it divides by the number above it. #}
 {% set e = charge_energy(c) %}
 {% set show_wb = e.headline == 'wallbox' %}
-{% set is_dc = c.charge_type == 'DC' or (c.charge_type is none and (c.max_power_kw or 0) > 11) %}
+{% set is_dc = charge_is_dc(c) %}
 
 <details data-charge-id="{{ c.id }}" id="charge-card-{{ c.id }}" class="charge-card">
 <summary class="charge-row trip-row flex-wrap sm:flex-nowrap">

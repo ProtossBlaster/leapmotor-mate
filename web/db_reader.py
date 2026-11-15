@@ -23,10 +23,12 @@ import crypto  # hard import at module top: a missing crypto dep must fail web b
 import capability_profile
 import gps_position
 
-# The poller's reading of a frame, on the path for one import: the two directories share module names.
+# The poller's reading of a frame and of a charge's kind, on the path for one import: the two
+# directories share module names.
 _POLLER_DIR = str(Path(__file__).resolve().parent.parent / "poller")
 sys.path.insert(0, _POLLER_DIR)
 try:
+    import charge_kind
     from charge_signals import _sf, _si, is_charging, is_plugged_in
 finally:
     sys.path.remove(_POLLER_DIR)
@@ -5343,6 +5345,12 @@ def _charges_as_shown(rows) -> list:
     return list(groups.values())
 
 
+def charge_is_dc(c: dict) -> bool:
+    """Whether a charge, or a merged session, reads as DC, by the poller's rule: the charge card's tag
+    and the AC/DC totals."""
+    return charge_kind.is_dc(c.get("charge_type"), c.get("max_power_kw"), charge_kind.DC_MIN_KW_DEFAULT)
+
+
 def _charge_group_stats(parent: dict, children: list) -> dict:
     """Parent dict enriched with the combined figures of [parent + children] — one plug-in the car
     reported as several rows, read back as the single session it was.
@@ -10286,8 +10294,7 @@ def get_ac_dc_stats() -> dict:
     manual_count, manual_kwh = 0, 0.0
     unconfirmed_count, unconfirmed_kwh = 0, 0.0
     for r in rows:
-        ct = r["charge_type"]
-        is_dc = ct == "DC" or (ct is None and (r["max_power_kw"] or 0) > 11)
+        is_dc = charge_is_dc(r)
         b = dc if is_dc else ac
         b["count"] += 1
         # _billed_kwh, like everything else on this page. It used to sum the battery energy while
