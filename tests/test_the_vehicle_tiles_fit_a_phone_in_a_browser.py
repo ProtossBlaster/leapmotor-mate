@@ -26,7 +26,11 @@ _PAST = """() => [...document.querySelectorAll('#vehicle-status .rounded-xl')].m
 def test_every_tile_label_ends_inside_its_tile(tmp_path, monkeypatch, lang):
     pw = pytest.importorskip("playwright.sync_api")
     import main
+    import db_reader
     car = Car(tmp_path)
+    # The language the web read is remembered for the process: put back what was there, or the next
+    # test in this worker formats numbers in the last language tried here (test_units read «2,31»).
+    monkeypatch.setattr(db_reader, "_lang_memo", [None])
     client = web(car, monkeypatch, lang=lang)
     monkeypatch.setattr(main.command_client, "get_fresh_signals", lambda: {"1724": 40})
     with pw.sync_playwright() as p:
