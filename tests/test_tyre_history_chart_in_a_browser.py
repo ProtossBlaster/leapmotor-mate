@@ -16,7 +16,7 @@ from events_fixture import Car, serve, web
 DAYS = ((2, 2.40), (2, 2.55), (1, 2.45), (1, 2.50))
 
 
-def _open(tmp_path, monkeypatch, p, days=DAYS):
+def _open(tmp_path, monkeypatch, p, days=DAYS, lang="en"):
     import main
     car = Car(tmp_path)
     noon = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0)
@@ -25,7 +25,11 @@ def _open(tmp_path, monkeypatch, p, days=DAYS):
             "INSERT INTO positions (vehicle_id, recorded_at, tire_fl_bar, tire_fr_bar, tire_rl_bar, tire_rr_bar)"
             " VALUES (1,?,?,2.5,2.5,2.5)", ((noon - timedelta(days=ago)).isoformat(), fl))
     car.db._conn.commit()
-    client = web(car, monkeypatch, zone="UTC")
+    import db_reader
+    # The language the web read is remembered for the process: put back what was there, or the next
+    # test in this worker (test_units) formats numbers in Italian.
+    monkeypatch.setattr(db_reader, "_lang_memo", [None])
+    client = web(car, monkeypatch, zone="UTC", lang=lang)
     monkeypatch.setattr(main.command_client, "get_fresh_signals", lambda: None)
     browser = p.chromium.launch()
     page = browser.new_page(viewport={"width": 1000, "height": 900})
@@ -71,4 +75,21 @@ def test_a_day_alone_between_two_holes_is_seen(tmp_path, monkeypatch):
         dots = page.evaluate("""() => [...document.querySelectorAll('#tyre-history-chart circle')]
             .filter(c => parseFloat(c.getAttribute('r')) >= 2 && c.getAttribute('fill') === '#fbbf24').length""")
         assert dots >= 3, dots          # front left's three days, each a visible dot
+        browser.close()
+
+
+def test_the_numbers_take_the_languages_decimal_mark(tmp_path, monkeypatch):
+    """The live tyre card above the chart writes «2,5 bar» in Italian (units.decimal_point): the
+    chart under it writes its scale and its hover box the same way, not «2.40»."""
+    pw = pytest.importorskip("playwright.sync_api")
+    with pw.sync_playwright() as p:
+        browser, page = _open(tmp_path, monkeypatch, p, lang="it")
+        labels = page.eval_on_selector_all("#tyre-history-chart .apexcharts-yaxis-label",
+                                           "els => els.map(e => (e.querySelector('tspan') || e).textContent.trim()).filter(Boolean)")
+        assert "2,40" in labels and not any("." in l for l in labels), labels
+        box = page.locator("#tyre-history-chart").bounding_box()
+        page.mouse.move(box["x"] + 60, box["y"] + box["height"] / 2)
+        tip = page.locator("#tyre-history-chart .apexcharts-tooltip")
+        tip.filter(has_text="–").wait_for()
+        assert "2,40 – 2,55 bar" in tip.inner_text()
         browser.close()

@@ -22,6 +22,8 @@
      storageKey,        // where the browser remembers which lines show
      shownByDefault,    // id -> bool for a line never switched (every line, when absent)
      hoverTitle(i),     // the heading of the hover box at category i
+     decimalComma,      // numbers written with a comma, as units.decimal_point does for the language
+                        // (opt-in: the charts that do not ask keep the dot they always had)
      annotations,       // ApexCharts xaxis annotations, if any
      onHover(i), onLeave()
    })
@@ -75,6 +77,7 @@
   function mateBandChart(el, opts) {
     var C = opts.lines, BANDS = opts.bands, labels = opts.labels;
     var onHover = opts.onHover || function () {}, onLeave = opts.onLeave || function () {};
+    function fix(v, dec) { var s = v.toFixed(dec); return opts.decimalComma ? s.replace('.', ',') : s; }
     Object.keys(C).forEach(function (id) { C[id].present = present(C[id].data); });
 
     // Which lines show is remembered in this browser; one never switched keeps its default.
@@ -91,11 +94,11 @@
       bands.forEach(function (b, n) {
         var rows = b.ids.filter(isShown).map(function (id) {
           var c = C[id], v = c.data[i];
-          var value = v == null ? '—' : v.toFixed(c.dec) + (c.unit === '%' ? '' : ' ') + c.unit;   // "76.0%", like the rest of Mate
+          var value = v == null ? '—' : fix(v, c.dec) + (c.unit === '%' ? '' : ' ') + c.unit;   // "76.0%", like the rest of Mate
           // A line drawn as a range (its lowest solid, its highest dashed) gives both: "2.40 – 2.55 bar".
           var w = c.rangeHover && c.dashed ? c.dashed[i] : null;
-          if (v != null && w != null && w.toFixed(c.dec) !== v.toFixed(c.dec)) {
-            value = v.toFixed(c.dec) + ' – ' + w.toFixed(c.dec) + (c.unit === '%' ? '' : ' ') + c.unit;
+          if (v != null && w != null && fix(w, c.dec) !== fix(v, c.dec)) {
+            value = fix(v, c.dec) + ' – ' + fix(w, c.dec) + (c.unit === '%' ? '' : ' ') + c.unit;
           }
           return '<div style="display:flex;align-items:center;gap:6px;padding:2px 10px;font-size:12px">'
             + '<span style="width:9px;height:9px;border-radius:50%;background:' + c.color + '"></span>'
@@ -138,7 +141,7 @@
           var q = Math.round(t * 5), id = lineAt(side, q);
           if (!id) return '';
           var c = C[id], k = q % 5;
-          return k < 4 ? (c.scale[0] + k / 4 * (c.scale[1] - c.scale[0])).toFixed(c.axisDec || 0) : c.unit;
+          return k < 4 ? (c.scale[0] + k / 4 * (c.scale[1] - c.scale[0])).toFixed(c.axisDec || 0).replace('.', opts.decimalComma ? ',' : '.') : c.unit;
         };
       }
       // Two carrier series hold the labelled axes, so switching a line off never moves the plot.

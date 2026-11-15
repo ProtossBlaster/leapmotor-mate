@@ -80,6 +80,7 @@
       labels: labels, lines: C, bands: BANDS,
       legend: document.getElementById('tyre-history-legend'),
       storageKey: 'mate.tyreHistory.shown',
+      decimalComma: {{ (lang != 'en')|tojson }},   // the rule of units.decimal_point, as the tyre card above
       hoverTitle: function (i) { return hoverFmt.format(at(D.days[i])); },
     });
   })();
