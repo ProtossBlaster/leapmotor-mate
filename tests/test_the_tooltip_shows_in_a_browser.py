@@ -1,7 +1,8 @@
 """The app's one tooltip: any element with `data-tip` shows it on hover and on keyboard focus,
 in the one box base.html carries. The browser's own `title` never shows on touch and not at
 all inside the Home Assistant app, and that is a thing only a real browser can demonstrate —
-rendered HTML says the attribute is there, not that anyone gets to read it.
+rendered HTML says the attribute is there, not that anyone gets to read it. The box closes when
+a refresh replaces the element it speaks for, so it never shows a value the page no longer has.
 """
 import pytest
 
@@ -47,6 +48,29 @@ def test_a_data_tip_shows_on_hover_and_on_focus_and_goes_with_the_focus(mate):
         assert page.evaluate(_TIP)["shown"] is True, "keyboard focus shows it too"
         page.evaluate("document.getElementById('probe').blur()")
         assert page.evaluate(_TIP)["shown"] is False
+    finally:
+        browser.close()
+        pw.stop()
+
+
+def test_a_tooltip_closes_when_a_refresh_replaces_its_element(mate):
+    pw, browser = chromium(sync_api)
+    try:
+        page = browser.new_page(viewport={"width": 1280, "height": 900})
+        assert page.goto(mate + "/").status == 200
+        node = page.locator("#link-pill [tabindex][data-tip]").first
+        node.hover()
+        assert page.evaluate(_TIP)["shown"] is True
+        # the pill's own 30-second refresh, with the pointer standing still over it
+        page.evaluate("""() => new Promise(done => {
+          document.body.addEventListener('htmx:afterSettle', () => done(), {once: true});
+          htmx.ajax('GET', 'api/link-pill', {target: '#link-pill', swap: 'innerHTML'});
+        })""")
+        assert page.evaluate(_TIP)["shown"] is False, "its text was the replaced element's"
+        box = node.bounding_box()
+        page.mouse.move(box["x"] + box["width"] / 2 + 1, box["y"] + box["height"] / 2)
+        assert page.evaluate(_TIP) == {"shown": True, "text": node.get_attribute("data-tip")}, \
+            "the next move opens the new element's"
     finally:
         browser.close()
         pw.stop()

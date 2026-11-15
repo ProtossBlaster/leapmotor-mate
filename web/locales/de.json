@@ -1068,7 +1068,7 @@
     "security_off": "Inaktiv",
     "power": "Leistung",
     "time_remaining": "Restzeit",
-    "charge_ends_at": "Ende um {time}",
+    "charge_ends_at": "Ende ca. {time}",
     "current_a": "Strom",
     "voltage": "Spannung",
     "no_charges_yet": "Noch keine Ladevorgänge erfasst",

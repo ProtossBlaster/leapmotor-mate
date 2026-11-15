@@ -149,7 +149,7 @@ ein Befehl nach dem Update wegen einer falschen PIN abgelehnt, geben Sie die PIN
 ### Neu in Version 4.17.0
 
 **Das Ladefeld zeigt, wann der Ladevorgang endet.** Auf der Seite *Ladevorgänge* zeigt *Ladestatus*
-unter der Restzeit die Uhrzeit, zu der der Ladevorgang endet, z. B. „Ende um 14:30", mit dem Tag, wenn
+unter der Restzeit die Uhrzeit, zu der der Ladevorgang endet, z. B. „Ende ca. 14:30", mit dem Tag, wenn
 er an einem anderen endet. Gezählt wird ab dem Zeitpunkt, an dem das Auto die Restminuten gemessen hat,
 daher verschiebt ein einige Minuten alter Messwert sie nicht.
 

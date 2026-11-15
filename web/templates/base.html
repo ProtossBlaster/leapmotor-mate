@@ -1255,6 +1255,8 @@
     });
     document.addEventListener('focusout', hide);
     document.addEventListener('scroll', hide, true);
+    // a refresh that replaced the element leaves its text stale, and no pointer event says so
+    document.addEventListener('htmx:afterSwap', function () { if (cur && !cur.isConnected) hide(); });
   })();
 </script>
 </body>

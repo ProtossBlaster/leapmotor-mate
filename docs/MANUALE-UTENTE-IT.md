@@ -144,7 +144,7 @@ riscrivi il PIN lì una volta.
 ### Novità della 4.17.0
 
 **Il pannello della ricarica dice quando finisce.** Nella pagina *Ricariche*, *Stato di carica* mostra
-sotto il tempo rimanente l'ora in cui la ricarica finisce, es. «Fine alle 14:30», con il giorno quando
+sotto il tempo rimanente l'ora in cui la ricarica finisce, es. «Fine ca. 14:30», con il giorno quando
 finisce in un altro. Conta da quando l'auto ha misurato i minuti rimanenti, quindi una lettura di qualche
 minuto fa non la sposta.
 
