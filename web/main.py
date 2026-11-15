@@ -3034,6 +3034,30 @@ async def vehicle_status_api(request: Request):
     return templates.TemplateResponse(request, "partials/vehicle_status.html", _ctx(vs=vs))
 
 
+@app.get("/api/tyre-history", response_class=HTMLResponse)
+async def tyre_history_api(request: Request, days: str = "30"):
+    """Each tyre's lowest and highest pressure per day, and the outside temperature's, for the chart
+    under the tyres on the Vehicle page (D#483). 30 or 90 days, anything else is 30. The axis runs
+    from the first day with a reading to today, a day without one a hole (None), never a 0. Demo
+    mode shows no history: there is none to show, and none is invented."""
+    from datetime import date, datetime, timedelta, timezone
+    period = 90 if days == "90" else 30
+    found = [] if _IS_DEMO else db_reader.get_tyre_pressure_days(period)
+    chart = None
+    if found:
+        by_day = {d["day"]: d for d in found}
+        today = db_reader._local_dt(datetime.now(timezone.utc).isoformat()).date()
+        first = date.fromisoformat(found[0]["day"])
+        axis = [(first + timedelta(days=i)).isoformat() for i in range((today - first).days + 1)]
+        chart = {"period": period, "days": axis}
+        for key in ("fl", "fr", "rl", "rr", "temp"):
+            pairs = [by_day.get(d, {}).get(key) for d in axis]
+            chart[f"{key}_min"] = [p[0] if p else None for p in pairs]
+            chart[f"{key}_max"] = [p[1] if p else None for p in pairs]
+    return templates.TemplateResponse(request, "partials/tyre_history_chart.html",
+                                      _ctx(chart=chart, period=period))
+
+
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
     vehicle, settings = db_reader.get_vehicle()
