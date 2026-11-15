@@ -3,6 +3,19 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.28.0] — 2026-11-15
+
+See [the notes](docs/releases/v4.28.0.md).
+
+- **Each tyre's pressure by day, on the Vehicle page** ([D#483](https://github.com/ProtossBlaster/leapmotor-mate/discussions/483), @michapr). The pressures are kept with every
+  reading, and a chart under the tyres draws each tyre's lowest and highest of the day, over 30 or 90 days,
+  beside the outside temperature where it is on. A day with no reading is a gap, never a 0.
+- **A range-extender's fuel in Home Assistant** ([#481](https://github.com/ProtossBlaster/leapmotor-mate/issues/481), @michapr). `Fuel Level` (%), `Fuel Volume` (L) and
+  `Fuel Range` (km) over MQTT. An empty tank reads 0; a plain electric car does not get them.
+- **When the charge is expected to end, on the Overview** ([#484](https://github.com/ProtossBlaster/leapmotor-mate/pull/484), @arekm). The charging chip shows
+  *Est. end 14:40* on hover or tap, and *Ends at* reads *Est. end* on Charges too. A tooltip closes when a
+  refresh replaces what it points at.
+
 ## [4.27.1] — 2026-11-12
 
 See [the notes](docs/releases/v4.27.1.md).

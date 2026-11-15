@@ -1,8 +1,24 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.27.1 · **Lingua:** Italiano
+> **Versione di Mate:** v4.28.0 · **Lingua:** Italiano
 
-## Novità della 4.27.1
+## Novità della 4.28.0
+
+**La pressione di ogni gomma giorno per giorno.** Sotto le gomme di *Veicolo*, il grafico *Pressione gomme
+per giorno* disegna la pressione minima (continua) e massima (tratteggiata) di ogni gomma per ogni giorno,
+su 30 o 90 giorni, con sotto la temperatura esterna degli stessi giorni se l'hai attivata. Puntando un
+giorno compare per ogni gomma la minima – massima. Un giorno senza letture è un buco. Lo storico parte con
+questo aggiornamento (D#483, @michapr).
+
+**Il carburante di un'auto con range extender in Home Assistant.** Tre sensori MQTT: `Fuel Level` (%),
+`Fuel Volume` (L) e `Fuel Range` (km). Un serbatoio vuoto vale 0; un'auto solo elettrica non li riceve
+(#481, @michapr).
+
+**Quando si prevede che finisca la ricarica.** In Panoramica, puntando o toccando la carta della ricarica
+compare *Fine ca. 14:40*, l'ora che *Ricariche* mostra sotto *Tempo rimanente*, dove ora c'è scritto anche
+lì *Fine ca.*. Di @arekm (#484).
+
+### Novità della 4.27.1
 
 **Una pagina che si ricarica da sola lascia stare quello che hai scritto.** Una nota o una cifra scritta e
 non salvata ora trattiene la ricarica della pagina finché non la salvi o non la togli (*Annulla*, dove c'è): una nota del

@@ -1,8 +1,24 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.27.1 · **Idioma:** Español
+> **Versión de Mate:** v4.28.0 · **Idioma:** Español
 
-## Novedades de la versión 4.27.1
+## Novedades de la versión 4.28.0
+
+**La presión de cada neumático día a día.** Bajo los neumáticos de *Vehículo*, el gráfico *Presión de
+neumáticos por día* dibuja la presión mínima (línea continua) y máxima (discontinua) de cada neumático en
+cada día, en 30 o 90 días, con debajo la temperatura exterior de los mismos días si la tienes activada. Al
+señalar un día, cada neumático da su mínima – máxima. Un día sin lecturas es un hueco. El historial empieza
+con esta actualización (D#483, @michapr).
+
+**El combustible de un coche con extensor de autonomía en Home Assistant.** Tres sensores MQTT:
+`Fuel Level` (%), `Fuel Volume` (L) y `Fuel Range` (km). Un depósito vacío vale 0; un coche solo eléctrico
+no los recibe (#481, @michapr).
+
+**Cuándo se prevé que termine la carga.** En la Vista general, al señalar o tocar la etiqueta de carga
+aparece *Fin aprox. 14:40*, la hora que *Cargas* muestra bajo *Tiempo restante*, donde ahora también pone
+*Fin aprox.*. Por @arekm (#484).
+
+### Novedades de la versión 4.27.1
 
 **Una página que se recarga sola deja en paz lo que escribiste.** Una nota o una cifra escrita y no guardada
 ahora retiene la recarga de la página hasta que la guardes o la deshagas (*Cancelar*, donde lo hay): una nota del trayecto escrita

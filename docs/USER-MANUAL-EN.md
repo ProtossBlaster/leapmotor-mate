@@ -1,8 +1,22 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.27.1 · **Language:** English
+> **Mate version:** v4.28.0 · **Language:** English
 
-## New in 4.27.1
+## New in 4.28.0
+
+**Each tyre's pressure by day.** Under the tyres on *Vehicle*, the chart *Tyre pressure by day* draws each
+tyre's lowest (solid) and highest (dashed) pressure of every day, over 30 or 90 days, with the outside
+temperature of the same days below where you have it on. Pointing at a day gives each tyre's lowest –
+highest. A day with no reading is a gap. The history starts with this update (D#483, @michapr).
+
+**A range-extender's fuel in Home Assistant.** Three MQTT sensors: `Fuel Level` (%), `Fuel Volume` (L) and
+`Fuel Range` (km). An empty tank reads 0; a plain electric car does not get them (#481, @michapr).
+
+**When the charge is expected to end.** On the Overview, pointing at the charging chip or tapping it shows
+*Est. end 14:40*, the time *Charges* shows under *Time remaining*, which now reads *Est. end* too. By @arekm
+(#484).
+
+### New in 4.27.1
 
 **A page that reloads itself leaves what you typed alone.** A note or a figure typed in and not saved now
 holds the page's own reload until you save it or take it back (*Cancel*, where there is one): a trip note typed and left with a click

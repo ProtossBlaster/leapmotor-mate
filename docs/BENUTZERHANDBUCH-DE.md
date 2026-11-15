@@ -1,8 +1,24 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.27.1 · **Sprache:** Deutsch
+> **Mate-Version:** v4.28.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.27.1
+## Neu in Version 4.28.0
+
+**Der Druck jedes Reifens Tag für Tag.** Unter den Reifen auf *Fahrzeug* zeichnet das Diagramm
+*Reifendruck pro Tag* den niedrigsten (durchgezogen) und höchsten (gestrichelt) Druck jedes Reifens an
+jedem Tag, über 30 oder 90 Tage, darunter die Außentemperatur derselben Tage, wenn du sie eingeschaltet
+hast. Zeigt man auf einen Tag, nennt jeder Reifen seinen niedrigsten – höchsten Wert. Ein Tag ohne Messung
+ist eine Lücke. Die Historie beginnt mit diesem Update (D#483, @michapr).
+
+**Der Kraftstoff eines Autos mit Range Extender in Home Assistant.** Drei MQTT-Sensoren: `Fuel Level` (%),
+`Fuel Volume` (L) und `Fuel Range` (km). Ein leerer Tank zeigt 0; ein reines Elektroauto bekommt sie nicht
+(#481, @michapr).
+
+**Wann der Ladevorgang voraussichtlich endet.** In der Übersicht zeigt der Lade-Chip beim Zeigen oder
+Antippen *Ende ca. 14:40*, die Uhrzeit, die *Ladevorgänge* unter *Restzeit* zeigt, wo jetzt ebenfalls
+*Ende ca.* steht. Von @arekm (#484).
+
+### Neu in Version 4.27.1
 
 **Eine Seite, die sich selbst neu lädt, lässt stehen, was du eingetippt hast.** Was eingetippt und nicht
 gespeichert ist, eine Notiz oder ein Wert, hält das Neuladen der Seite jetzt auf, bis du es speicherst oder
