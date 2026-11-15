@@ -8662,6 +8662,46 @@ def flag_short_cloud_total(eb: dict, tot: dict, dist_km: float) -> dict:
     return eb
 
 
+_TYRE_CORNERS = ("fl", "fr", "rl", "rr")
+
+
+def get_tyre_pressure_days(days: int, now: Optional[datetime] = None) -> list:
+    """Each tyre's lowest and highest pressure per day, and the outside temperature's, for the chart
+    on the Vehicle page (D#483). One dict per day that has any of them, oldest first:
+    {"day": "YYYY-MM-DD", "fl": (min, max) | None, "fr": …, "rl": …, "rr": …, "temp": (min, max) | None}.
+
+    The day is the user's local day: its two midnights are worked out here, in the zone (so a DST
+    day is 23 or 25 hours), and SQLite does MIN/MAX inside each on the (vehicle_id, recorded_at)
+    index. Grouping 275k rows in Python instead cost 0.7 s for 90 days on a real database; this,
+    0.12 s. MIN/MAX skip NULLs, so a reading the car did not send does not pull a minimum to 0, a
+    tyre with none that day is None, and a day with nothing at all is left out. Values as stored
+    (bar, °C), not rounded. `now` is for tests; the window is the last `days` local days."""
+    tz = _local_tz()                                   # once, not per day
+    now = (now or datetime.now(timezone.utc)).astimezone(tz)
+
+    def midnight(d):
+        return datetime(d.year, d.month, d.day, tzinfo=tz).astimezone(timezone.utc).isoformat()
+
+    today = now.date()
+    spans = [(d.isoformat(), midnight(d), midnight(d + timedelta(days=1)))
+             for d in (today - timedelta(days=i) for i in range(days, -1, -1))]
+    pairs = ", ".join(f"MIN({c}), MAX({c})" for c in (
+        "tire_fl_bar", "tire_fr_bar", "tire_rl_bar", "tire_rr_bar", "outside_temp"))
+    rows = _get().execute(
+        f"WITH d(day, lo, hi) AS (VALUES {', '.join('(?,?,?)' for _ in spans)})"
+        f" SELECT d.day, {pairs} FROM d JOIN positions p"
+        " ON p.vehicle_id = COALESCE(?, p.vehicle_id) AND p.recorded_at >= d.lo AND p.recorded_at < d.hi"
+        " GROUP BY d.day ORDER BY d.day",
+        (*(x for span in spans for x in span), _current_vehicle_id())).fetchall()
+    out = []
+    for r in rows:
+        vals = {k: (None if r[1 + 2 * i] is None else (r[1 + 2 * i], r[2 + 2 * i]))
+                for i, k in enumerate((*_TYRE_CORNERS, "temp"))}
+        if any(v is not None for v in vals.values()):
+            out.append({"day": r[0], **vals})
+    return out
+
+
 def get_charge_power_curve(charge_id: int) -> dict:
     """Per-sample readings of one session, for the chart under the charge: the charging power and
     the SoC, and beside them what the car said at each poll — the coldest cell's temperature, the
