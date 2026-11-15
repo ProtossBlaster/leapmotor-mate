@@ -13,11 +13,14 @@ pytest.importorskip("fastapi", reason="web.main needs fastapi")
 from events_fixture import Car, serve, web
 
 
-def _open(tmp_path, monkeypatch, p):
+DAYS = ((2, 2.40), (2, 2.55), (1, 2.45), (1, 2.50))
+
+
+def _open(tmp_path, monkeypatch, p, days=DAYS):
     import main
     car = Car(tmp_path)
     noon = datetime.now(timezone.utc).replace(hour=12, minute=0, second=0, microsecond=0)
-    for ago, fl in ((2, 2.40), (2, 2.55), (1, 2.45), (1, 2.50)):
+    for ago, fl in days:
         car.db._conn.execute(
             "INSERT INTO positions (vehicle_id, recorded_at, tire_fl_bar, tire_fr_bar, tire_rl_bar, tire_rr_bar)"
             " VALUES (1,?,?,2.5,2.5,2.5)", ((noon - timedelta(days=ago)).isoformat(), fl))
@@ -56,4 +59,16 @@ def test_the_hover_box_gives_the_days_lowest_and_highest(tmp_path, monkeypatch):
         tip = page.locator("#tyre-history-chart .apexcharts-tooltip")
         tip.filter(has_text="–").wait_for()
         assert "2.40 – 2.55 bar" in tip.inner_text()
+        browser.close()
+
+
+def test_a_day_alone_between_two_holes_is_seen(tmp_path, monkeypatch):
+    """A car not polled for days leaves single days between holes: a line needs two points, so each
+    such day is drawn as a dot of its own — today's too, the last on the axis (final review, #2)."""
+    pw = pytest.importorskip("playwright.sync_api")
+    with pw.sync_playwright() as p:
+        browser, page = _open(tmp_path, monkeypatch, p, days=((4, 2.40), (2, 2.45), (0, 2.50)))
+        dots = page.evaluate("""() => [...document.querySelectorAll('#tyre-history-chart circle')]
+            .filter(c => parseFloat(c.getAttribute('r')) >= 2 && c.getAttribute('fill') === '#fbbf24').length""")
+        assert dots >= 3, dots          # front left's three days, each a visible dot
         browser.close()

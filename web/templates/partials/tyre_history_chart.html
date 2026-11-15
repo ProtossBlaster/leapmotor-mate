@@ -53,7 +53,7 @@
 
     function tyre(id, name, color) {
       return { name: name, color: color, data: scaled(D[id + '_min'], pA), dashed: scaled(D[id + '_max'], pA),
-               rangeHover: true, unit: pUnit, dec: pDec, axisDec: pDec };
+               rangeHover: true, dots: true, unit: pUnit, dec: pDec, axisDec: pDec };
     }
     var C = {
       fl: tyre('fl', {{ t('tyre_fl')|tojson }}, '#fbbf24'),
@@ -61,7 +61,7 @@
       rl: tyre('rl', {{ t('tyre_rl')|tojson }}, '#f472b6'),
       rr: tyre('rr', {{ t('tyre_rr')|tojson }}, '#a78bfa'),
       temp: { name: {{ t('outside_temp_label')|tojson }}, color: '#38bdf8', data: scaled(D.temp_min, tempA, tempB),
-              dashed: scaled(D.temp_max, tempA, tempB), rangeHover: true, unit: tempUnit, dec: 1 },
+              dashed: scaled(D.temp_max, tempA, tempB), rangeHover: true, dots: true, unit: tempUnit, dec: 1 },
     };
     // The four tyres share one scale, so they compare by eye; its least span is 0.2 bar (3 psi).
     var all = [];

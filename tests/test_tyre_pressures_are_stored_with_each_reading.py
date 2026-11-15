@@ -39,3 +39,13 @@ def test_a_database_from_before_gets_the_columns(tmp_path):
     D.Database(path)._conn.close()
     cols = {r[1] for r in sqlite3.connect(path).execute("PRAGMA table_info(positions)")}
     assert set(_NAMES) <= cols
+
+
+def test_the_row_the_web_writes_after_a_command_keeps_them_too(tmp_path, monkeypatch):
+    """The second writer of `positions` (a command, a Refresh) reads a frame as the poller does."""
+    import db_reader
+    db = _seed(tmp_path, monkeypatch)
+    sig = {"100003": 60.0, "1318": 1000.0, "2646": 250, "2653": 252, "2660": 248}
+    db.save_position(1, client._parse_signal("VIN1", sig))
+    db_reader.save_fresh_signals(sig)
+    assert [tuple(r) for r in db._conn.execute(_TYRES + " ORDER BY id")] == [(2.50, 2.52, 2.48, None)] * 2

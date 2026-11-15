@@ -12,6 +12,7 @@
      lines,             // id -> { name, color, data, unit, dec, scale: [lo, hi], axisDec: decimals the
                         //         scale prints with (0 when absent; niceScale's `dec` must match),
                         //         rangeHover: the hover box gives "data – dashed" (lowest – highest),
+                        //         dots: a reading with no neighbour drawn as a dot,
                         //         dashed: data drawn dashed on the same scale and kept out of the
                         //         hover box, zeroLine: a dashed rule at the line's zero }
                         // lines of a band that share a scale are given the same array
@@ -157,16 +158,28 @@
         Object.assign({ seriesName: '_left', labels: { minWidth: 28, maxWidth: 28, style: { colors: labelColors('left'), fontSize: '10px' }, formatter: label('left') } }, axisRange),
         Object.assign({ seriesName: '_right', opposite: true, labels: { minWidth: 28, maxWidth: 28, style: { colors: labelColors('right'), fontSize: '10px' }, formatter: label('right') } }, axisRange),
       ];
-      var tipSeries = [], lines = [];
+      var tipSeries = [], lines = [], dots = [];
+      // A line asking for `dots` gets one on each reading with no neighbour: a line needs two points,
+      // and a day alone between two holes would otherwise not be drawn at all (D#483).
+      function dotsFor(c, arr, at) {
+        if (!c.dots || !arr) return;
+        arr.forEach(function (v, i) {
+          if (v != null && (i === 0 || arr[i - 1] == null) && (i === arr.length - 1 || arr[i + 1] == null)) {
+            dots.push({ seriesIndex: at, dataPointIndex: i, fillColor: c.color, strokeColor: c.color, size: 3 });
+          }
+        });
+      }
       bands.forEach(function (b) {
         b.ids.forEach(function (id) {
           if (!isShown(id)) return;
           var c = C[id], f = toBand(c, b.base);
           tipSeries.push(series.length);
+          dotsFor(c, c.data, series.length);
           series.push({ name: c.name, type: 'line', data: c.data.map(f) });
           colors.push(c.color); widths.push(2); dashes.push(0);
           yaxis.push(Object.assign({ seriesName: c.name, show: false }, axisRange));
           if (c.dashed) {   // same scale, dashed, kept out of the hover box
+            dotsFor(c, c.dashed, series.length);
             series.push({ name: c.name + '__dash', type: 'line', data: c.dashed.map(f) });
             colors.push(c.color); widths.push(2); dashes.push(4);
             yaxis.push(Object.assign({ seriesName: c.name + '__dash', show: false }, axisRange));
@@ -190,7 +203,7 @@
         stroke: { curve: 'smooth', width: widths, dashArray: dashes },
         fill: { type: 'solid', opacity: 1 },
         dataLabels: { enabled: false },
-        markers: { size: 0 },
+        markers: { size: 0, discrete: dots },
         annotations: { xaxis: opts.annotations || [], yaxis: lines },
         xaxis: { categories: labels, tickAmount: xTicks, tooltip: { enabled: false },
                  labels: { style: { colors: '#64748b', fontSize: '10px' }, rotate: 0, hideOverlappingLabels: true },

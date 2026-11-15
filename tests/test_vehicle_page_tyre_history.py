@@ -99,3 +99,9 @@ def test_every_new_key_is_in_every_locale():
         keys = json.loads(f.read_text(encoding="utf-8"))["translations"]
         missing = [k for k in NEW_KEYS if not keys.get(k)]
         assert not missing, f"{f.name} misses {missing}"
+
+
+def test_temperature_alone_is_no_history(tmp_path, monkeypatch):
+    c = _client(tmp_path, monkeypatch, [(3, None, None, None, None, 5.0), (1, None, None, None, None, 7.0)])
+    r = c.get("/api/tyre-history")
+    assert "tyre-history-data" not in r.text and "No tyre pressures recorded yet" in r.text

@@ -4187,8 +4187,9 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
             door_driver_open, door_passenger_open, door_rear_left_open, door_rear_right_open,
             window_fl_open, window_rl_open, ac_port_mode,
             fan_level, recirculation, climate_mode,
-            fuel_level_pct, fuel_range_km, combined_range_km, frame_ts
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            fuel_level_pct, fuel_range_km, combined_range_km, frame_ts,
+            tire_fl_bar, tire_fr_bar, tire_rl_bar, tire_rr_bar
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             vehicle_id,
             datetime.now(timezone.utc).isoformat(),
@@ -4229,6 +4230,9 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
             sigf("3259") or None, sigf("3261") or None,   # fuel range (3259) + combined range (3261)
             # The frame's own clock, read as the poller reads it: 0 or absent is no clock → NULL.
             int(signals.get("sts") or signals.get("1") or 0) or None,
+            # Tyre pressures in bar, as the poller's client._bar reads them: kPa / 100, absent → NULL (D#483).
+            *(None if (kpa := _sf(signals, k)) is None else round(kpa / 100.0, 2)
+              for k in ("2646", "2653", "2660", "2667")),
         ),
     )
     db.commit()
@@ -8674,7 +8678,8 @@ def get_tyre_pressure_days(days: int, now: Optional[datetime] = None) -> list:
     day is 23 or 25 hours), and SQLite does MIN/MAX inside each on the (vehicle_id, recorded_at)
     index. Grouping 275k rows in Python instead cost 0.7 s for 90 days on a real database; this,
     0.12 s. MIN/MAX skip NULLs, so a reading the car did not send does not pull a minimum to 0, a
-    tyre with none that day is None, and a day with nothing at all is left out. Values as stored
+    tyre with none that day is None, and a day with no pressure at all is left out (its temperature
+    with it). Values as stored
     (bar, °C), not rounded. `now` is for tests; the window is the last `days` local days."""
     tz = _local_tz()                                   # once, not per day
     now = (now or datetime.now(timezone.utc)).astimezone(tz)
@@ -8697,7 +8702,10 @@ def get_tyre_pressure_days(days: int, now: Optional[datetime] = None) -> list:
     for r in rows:
         vals = {k: (None if r[1 + 2 * i] is None else (r[1 + 2 * i], r[2 + 2 * i]))
                 for i, k in enumerate((*_TYRE_CORNERS, "temp"))}
-        if any(v is not None for v in vals.values()):
+        # The chart is the tyres': a day the car sent no pressure is not a day of their history, even
+        # with the outside temperature on — or an install that has it would draw a month of
+        # temperature and no tyre on release day, and never say there is no history yet.
+        if any(vals[k] is not None for k in _TYRE_CORNERS):
             out.append({"day": r[0], **vals})
     return out
 

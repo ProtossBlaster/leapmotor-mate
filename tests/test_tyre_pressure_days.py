@@ -104,3 +104,14 @@ def test_the_day_the_clocks_go_back_has_its_own_midnights(tmp_path, monkeypatch)
         ("2026-10-25T22:30:00+00:00", 2.60, 2.5, 2.5, 2.5, None),   # 23:30 on the 25th, local
     ])
     assert [(d["day"], d["fl"]) for d in _days(90)] == [("2026-10-25", (2.40, 2.60))]
+
+
+def test_a_day_with_only_the_outside_temperature_is_absent(tmp_path, monkeypatch):
+    """The chart is the tyres'. A day the car sent no pressure is not a day of their history, or an
+    install with the outside temperature on would draw a month of it on release day, no tyre line,
+    and never say there is no history yet (final review, #1)."""
+    _db(tmp_path, monkeypatch, [
+        ("2026-11-14T08:00:00+00:00", None, None, None, None, 4.0),
+        ("2026-11-15T08:00:00+00:00", 2.5, 2.5, 2.5, 2.5, 6.0),
+    ])
+    assert [(d["day"], d["temp"]) for d in _days()] == [("2026-11-15", (6.0, 6.0))]
