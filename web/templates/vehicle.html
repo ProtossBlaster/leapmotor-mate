@@ -14,4 +14,10 @@
   <div class="card text-slate-500 text-sm">…</div>
 </div>
 
+{# Each tyre's daily pressure (D#483): asked once — it changes once a day, not every 30 s. #}
+<div id="tyre-history" class="mt-5"
+     hx-get="api/tyre-history"
+     hx-trigger="load"
+     hx-swap="innerHTML"></div>
+
 {% endblock %}

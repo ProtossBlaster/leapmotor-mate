@@ -9,7 +9,10 @@
 
    mateBandChart(el, {
      labels,            // the x categories
-     lines,             // id -> { name, color, data, unit, dec, scale: [lo, hi],
+     lines,             // id -> { name, color, data, unit, dec, scale: [lo, hi], axisDec: decimals the
+                        //         scale prints with (0 when absent; niceScale's `dec` must match),
+                        //         rangeHover: the hover box gives "data – dashed" (lowest – highest),
+                        //         dots: a reading with no neighbour drawn as a dot,
                         //         dashed: data drawn dashed on the same scale and kept out of the
                         //         hover box, zeroLine: a dashed rule at the line's zero }
                         // lines of a band that share a scale are given the same array
@@ -19,22 +22,31 @@
      storageKey,        // where the browser remembers which lines show
      shownByDefault,    // id -> bool for a line never switched (every line, when absent)
      hoverTitle(i),     // the heading of the hover box at category i
+     decimalComma,      // numbers written with a comma, as units.decimal_point does for the language
+                        // (opt-in: the charts that do not ask keep the dot they always had)
      annotations,       // ApexCharts xaxis annotations, if any
      onHover(i), onLeave()
    })
    Helpers for the page: mateBandChart.spread (the slots of a time axis, blanks for a hole in the
    recording), and for the scales it computes, .niceScale, .extent and .present. */
 (function () {
-  // Four equal steps of a round, whole size covering [lo, hi], so a band's inner ticks read as round
-  // numbers and print exactly (a step of 2.5 would print its line at 62.5 as 63).
-  function niceScale(lo, hi, minSpan) {
-    if (hi - lo < minSpan) { var mid = (lo + hi) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
-    var mag = Math.pow(10, Math.floor(Math.log10((hi - lo) / 4)));
-    var steps = [1, 2, 2.5, 3, 4, 5, 10, 20].map(function (m) { return m * mag; })
-                                             .filter(function (s) { return s % 1 === 0; });
+  // Four equal steps of a round size covering [lo, hi], so a band's inner ticks read as round
+  // numbers and print exactly (a step of 2.5 would print its line at 62.5 as 63). Whole steps, or with
+  // `dec` steps that print exactly at that many decimals — a tyre at 2.40–2.55 bar has no whole step
+  // that is not the whole chart (D#483). The line's `axisDec` must then say the same `dec`.
+  function niceScale(lo, hi, minSpan, dec) {
+    // Worked in units of the last decimal, snapped: 2.3 - 2.1 is 0.1999… in floating point, and a
+    // span a hair short of the least one, or a top a hair over a tick, doubled the scale.
+    var unit = Math.pow(10, dec || 0);
+    function snap(v) { return Math.round(v * unit * 1e6) / 1e6; }
+    var L = snap(lo), H = snap(hi), M = snap(minSpan);
+    if (H - L < M - 1e-6) { var mid = (L + H) / 2; L = mid - M / 2; H = mid + M / 2; }
+    var mag = Math.pow(10, Math.floor(Math.log10((H - L) / 4)));
+    var steps = [1, 2, 2.5, 3, 4, 5, 10, 20].map(function (m) { return Math.round(m * mag * 1e6) / 1e6; })
+                                             .filter(function (s) { return s % 1 === 0 && s > 0; });
     for (var s = 0; s < steps.length; s++) {
-      var a = Math.floor(lo / steps[s]) * steps[s];
-      if (a + 4 * steps[s] >= hi) return [a, a + 4 * steps[s]];
+      var a = Math.floor(L / steps[s] + 1e-9) * steps[s];
+      if (a + 4 * steps[s] >= H - 1e-6) return [a / unit, (a + 4 * steps[s]) / unit];
     }
     return [lo, hi];
   }
@@ -69,6 +81,7 @@
   function mateBandChart(el, opts) {
     var C = opts.lines, BANDS = opts.bands, labels = opts.labels;
     var onHover = opts.onHover || function () {}, onLeave = opts.onLeave || function () {};
+    function fix(v, dec) { var s = v.toFixed(dec); return opts.decimalComma ? s.replace('.', ',') : s; }
     Object.keys(C).forEach(function (id) { C[id].present = present(C[id].data); });
 
     // Which lines show is remembered in this browser; one never switched keeps its default.
@@ -85,7 +98,12 @@
       bands.forEach(function (b, n) {
         var rows = b.ids.filter(isShown).map(function (id) {
           var c = C[id], v = c.data[i];
-          var value = v == null ? '—' : v.toFixed(c.dec) + (c.unit === '%' ? '' : ' ') + c.unit;   // "76.0%", like the rest of Mate
+          var value = v == null ? '—' : fix(v, c.dec) + (c.unit === '%' ? '' : ' ') + c.unit;   // "76.0%", like the rest of Mate
+          // A line drawn as a range (its lowest solid, its highest dashed) gives both: "2.40 – 2.55 bar".
+          var w = c.rangeHover && c.dashed ? c.dashed[i] : null;
+          if (v != null && w != null && fix(w, c.dec) !== fix(v, c.dec)) {
+            value = fix(v, c.dec) + ' – ' + fix(w, c.dec) + (c.unit === '%' ? '' : ' ') + c.unit;
+          }
           return '<div style="display:flex;align-items:center;gap:6px;padding:2px 10px;font-size:12px">'
             + '<span style="width:9px;height:9px;border-radius:50%;background:' + c.color + '"></span>'
             + '<span>' + esc(c.name) + ':</span><b style="margin-left:auto;padding-left:10px">' + esc(value) + '</b></div>';
@@ -127,7 +145,7 @@
           var q = Math.round(t * 5), id = lineAt(side, q);
           if (!id) return '';
           var c = C[id], k = q % 5;
-          return k < 4 ? (c.scale[0] + k / 4 * (c.scale[1] - c.scale[0])).toFixed(0) : c.unit;
+          return k < 4 ? (c.scale[0] + k / 4 * (c.scale[1] - c.scale[0])).toFixed(c.axisDec || 0).replace('.', opts.decimalComma ? ',' : '.') : c.unit;
         };
       }
       // Two carrier series hold the labelled axes, so switching a line off never moves the plot.
@@ -147,16 +165,28 @@
         Object.assign({ seriesName: '_left', labels: { minWidth: 28, maxWidth: 28, style: { colors: labelColors('left'), fontSize: '10px' }, formatter: label('left') } }, axisRange),
         Object.assign({ seriesName: '_right', opposite: true, labels: { minWidth: 28, maxWidth: 28, style: { colors: labelColors('right'), fontSize: '10px' }, formatter: label('right') } }, axisRange),
       ];
-      var tipSeries = [], lines = [];
+      var tipSeries = [], lines = [], dots = [];
+      // A line asking for `dots` gets one on each reading with no neighbour: a line needs two points,
+      // and a day alone between two holes would otherwise not be drawn at all (D#483).
+      function dotsFor(c, arr, at) {
+        if (!c.dots || !arr) return;
+        arr.forEach(function (v, i) {
+          if (v != null && (i === 0 || arr[i - 1] == null) && (i === arr.length - 1 || arr[i + 1] == null)) {
+            dots.push({ seriesIndex: at, dataPointIndex: i, fillColor: c.color, strokeColor: c.color, size: 3 });
+          }
+        });
+      }
       bands.forEach(function (b) {
         b.ids.forEach(function (id) {
           if (!isShown(id)) return;
           var c = C[id], f = toBand(c, b.base);
           tipSeries.push(series.length);
+          dotsFor(c, c.data, series.length);
           series.push({ name: c.name, type: 'line', data: c.data.map(f) });
           colors.push(c.color); widths.push(2); dashes.push(0);
           yaxis.push(Object.assign({ seriesName: c.name, show: false }, axisRange));
           if (c.dashed) {   // same scale, dashed, kept out of the hover box
+            dotsFor(c, c.dashed, series.length);
             series.push({ name: c.name + '__dash', type: 'line', data: c.dashed.map(f) });
             colors.push(c.color); widths.push(2); dashes.push(4);
             yaxis.push(Object.assign({ seriesName: c.name + '__dash', show: false }, axisRange));
@@ -180,7 +210,7 @@
         stroke: { curve: 'smooth', width: widths, dashArray: dashes },
         fill: { type: 'solid', opacity: 1 },
         dataLabels: { enabled: false },
-        markers: { size: 0 },
+        markers: { size: 0, discrete: dots },
         annotations: { xaxis: opts.annotations || [], yaxis: lines },
         xaxis: { categories: labels, tickAmount: xTicks, tooltip: { enabled: false },
                  labels: { style: { colors: '#64748b', fontSize: '10px' }, rotate: 0, hideOverlappingLabels: true },

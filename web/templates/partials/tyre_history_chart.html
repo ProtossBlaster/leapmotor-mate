@@ -1,0 +1,95 @@
+{# Each tyre's daily pressure under the live tyres on the Vehicle page (D#483): one line a tyre, its
+   day's lowest solid and its highest dashed, and the outside temperature's below where the user has
+   it on. Drawn by static/band-chart.js; the hover box gives each line's lowest – highest. A day with
+   no reading is a hole, never a 0. Data stays metric; the units are the reader's. #}
+{# The tyre icon, as the live tyre card draws it (partials/vehicle_status.html). #}
+{% set IC_TIRE = "m19.66 9.64l-.36-.94l1.86-.7c-.92-2.12-2.56-3.82-4.62-4.86l-.8 1.78l-.92-.42l.8-1.8C14.5 2.26 13.28 2 12 2c-1.06 0-2.08.22-3.04.5l.68 1.84l-.94.36L8 2.84c-2.12.92-3.82 2.56-4.86 4.62l1.78.8l-.42.92l-1.8-.8C2.26 9.5 2 10.72 2 12c0 1.06.22 2.08.5 3.04l1.84-.68l.36.94l-1.86.7c.92 2.12 2.56 3.82 4.62 4.86l.8-1.78l.92.42l-.8 1.8c1.12.44 2.34.7 3.62.7c1.06 0 2.08-.22 3.04-.5l-.68-1.84l.94-.36l.7 1.86c2.12-.92 3.82-2.56 4.86-4.62l-1.78-.8l.42-.92l1.8.8c.44-1.12.7-2.34.7-3.62c0-1.06-.22-2.08-.5-3.04zm-5.36 7.9c-3.06 1.26-6.58-.18-7.84-3.24s.18-6.58 3.24-7.84s6.58.18 7.84 3.24a5.986 5.986 0 0 1-3.24 7.84" %}
+<div class="card">
+  <div class="flex items-center justify-between gap-2 mb-3 flex-wrap">
+    <h2 class="font-semibold text-white flex items-center gap-2"><svg class="w-6 h-6 inline-block align-middle" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{{ IC_TIRE }}"/></svg> {{ t('tyre_history_title') }}</h2>
+    <div class="flex gap-1 text-xs" role="group">
+      {% for d, label in [(30, t('events_range_30d')), (90, t('tyre_history_90d'))] %}
+      <button type="button" hx-get="api/tyre-history?days={{ d }}" hx-target="#tyre-history" hx-swap="innerHTML"
+              aria-pressed="{{ 'true' if d == period else 'false' }}"
+              class="px-2 py-1 rounded {{ 'bg-slate-700 text-white' if d == period else 'text-slate-400 hover:text-white' }}">{{ label }}</button>
+      {% endfor %}
+    </div>
+  </div>
+{% if chart %}
+  {% set has_temp = (chart.temp_min + chart.temp_max)|reject('none')|list %}
+  <script type="application/json" id="tyre-history-data">{{ chart|tojson }}</script>
+  <div class="flex justify-between items-center mb-1 gap-2 flex-wrap">
+    <span class="text-[11px] text-slate-500">― {{ t('tyre_history_min') }} &nbsp; ┄ {{ t('tyre_history_max') }}</span>
+    <span id="tyre-history-legend" class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[11px] text-slate-500">
+      <button type="button" class="whitespace-nowrap" data-series="fl" aria-pressed="true" style="display:none"><span data-swatch style="color:#fbbf24">■</span> {{ t('tyre_fl') }}</button>
+      <button type="button" class="whitespace-nowrap" data-series="fr" aria-pressed="true" style="display:none"><span data-swatch style="color:#34d399">■</span> {{ t('tyre_fr') }}</button>
+      <button type="button" class="whitespace-nowrap" data-series="rl" aria-pressed="true" style="display:none"><span data-swatch style="color:#f472b6">■</span> {{ t('tyre_rl') }}</button>
+      <button type="button" class="whitespace-nowrap" data-series="rr" aria-pressed="true" style="display:none"><span data-swatch style="color:#a78bfa">■</span> {{ t('tyre_rr') }}</button>
+      {% if has_temp %}
+      <span class="text-slate-700" aria-hidden="true">|</span>
+      <button type="button" class="whitespace-nowrap" data-series="temp" aria-pressed="true" style="display:none"><span data-swatch style="color:#38bdf8">■</span> {{ t('outside_temp_label') }}</button>
+      {% endif %}
+    </span>
+  </div>
+  <div id="tyre-history-chart" class="-mx-1"></div>
+  <script>
+  (function () {
+    var el = document.getElementById('tyre-history-chart');
+    if (!el || typeof ApexCharts === 'undefined' || typeof mateBandChart === 'undefined') return;
+    // htmx swaps the whole card on a change of period: the chart before it is held by the card's
+    // container, which stays, and is destroyed here — its element is already gone, its listeners not.
+    var holder = document.getElementById('tyre-history');
+    if (holder && holder._tyreChart) { try { holder._tyreChart.destroy(); } catch (e) {} holder._tyreChart = null; }
+    var D = JSON.parse(document.getElementById('tyre-history-data').textContent);
+    // The axis is the day; each is noon UTC of its date, so no zone moves it to the next or last one.
+    function at(day) { return new Date(day + 'T12:00:00Z'); }
+    var axisFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+    var hoverFmt = new Intl.DateTimeFormat({{ lang|tojson }}, { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' });
+    var labels = D.days.map(function (d) { return axisFmt.format(at(d)); });
+
+    // Display units: bar, or psi; °C, or °F (both maps linear, data stays metric).
+    var psi = {{ (pressure_unit() == 'psi')|tojson }};
+    var pA = psi ? 14.5037738 : 1, pDec = psi ? 0 : 2, pUnit = {{ pressure_unit()|tojson }};
+    var tempA = {{ temp_val(1, 6) - temp_val(0, 6) }}, tempB = {{ temp_val(0, 6) }}, tempUnit = {{ temp_unit()|tojson }};
+    function scaled(arr, a, b) { return arr.map(function (v) { return v != null ? v * a + (b || 0) : v; }); }
+    var niceScale = mateBandChart.niceScale, extent = mateBandChart.extent, present = mateBandChart.present;
+
+    function tyre(id, name, color) {
+      return { name: name, color: color, data: scaled(D[id + '_min'], pA), dashed: scaled(D[id + '_max'], pA),
+               rangeHover: true, dots: true, unit: pUnit, dec: pDec, axisDec: pDec };
+    }
+    var C = {
+      fl: tyre('fl', {{ t('tyre_fl')|tojson }}, '#fbbf24'),
+      fr: tyre('fr', {{ t('tyre_fr')|tojson }}, '#34d399'),
+      rl: tyre('rl', {{ t('tyre_rl')|tojson }}, '#f472b6'),
+      rr: tyre('rr', {{ t('tyre_rr')|tojson }}, '#a78bfa'),
+      temp: { name: {{ t('outside_temp_label')|tojson }}, color: '#38bdf8', data: scaled(D.temp_min, tempA, tempB),
+              dashed: scaled(D.temp_max, tempA, tempB), rangeHover: true, dots: true, unit: tempUnit, dec: 1 },
+    };
+    // The four tyres share one scale, so they compare by eye; its least span is 0.2 bar (3 psi).
+    var all = [];
+    ['fl', 'fr', 'rl', 'rr'].forEach(function (id) { all = all.concat(C[id].data, C[id].dashed); });
+    var pe = extent(all), pScale = niceScale(pe[0], pe[1], psi ? 3 : 0.2, pDec);
+    ['fl', 'fr', 'rl', 'rr'].forEach(function (id) { C[id].scale = pScale; });
+    var BANDS = [{ ids: ['fl', 'fr', 'rl', 'rr'], left: 'fl', right: null }];
+    if (present(C.temp.data.concat(C.temp.dashed))) {
+      var te = extent(C.temp.data.concat(C.temp.dashed));
+      C.temp.scale = niceScale(te[0], te[1], 4);
+      BANDS.push({ ids: ['temp'], left: 'temp', right: null });
+    } else {
+      delete C.temp;
+    }
+    mateBandChart(el, {
+      labels: labels, lines: C, bands: BANDS,
+      legend: document.getElementById('tyre-history-legend'),
+      storageKey: 'mate.tyreHistory.shown',
+      decimalComma: {{ (lang != 'en')|tojson }},   // the rule of units.decimal_point, as the tyre card above
+      hoverTitle: function (i) { return hoverFmt.format(at(D.days[i])); },
+    });
+    if (holder) holder._tyreChart = el._c;
+  })();
+  </script>
+{% else %}
+  <div class="text-xs text-slate-500 py-2">{{ t('tyre_history_empty').format(n=shown_days) }}</div>
+{% endif %}
+</div>
