@@ -312,6 +312,29 @@ def _signals_section(signals: dict | None, vin: str | None) -> str:
     return _redact(json.dumps(clean, indent=2, sort_keys=True), vin)
 
 
+def _offset(seconds: float) -> str:
+    sign, s = ("-" if seconds < 0 else "+"), int(abs(seconds))
+    return f"UTC{sign}{s // 3600:02d}:{s % 3600 // 60:02d}"
+
+
+def _timezone_line() -> str:
+    """Which clock each time in the bundle is on: the tables are UTC, the logs the process's local
+    clock, and the pages the zone in Settings. Two of the three can differ (#181)."""
+    now = time.localtime()
+    # the clock the log lines are stamped with, not $TZ: a default TZ set later need not move it
+    log_name, log_off = time.strftime("%Z", now), _offset(now.tm_gmtoff)
+    try:
+        tz = db_reader._local_tz()
+        setting = db_reader.get_setting("timezone", "").strip() or "Automatic"
+    except Exception:  # noqa: BLE001
+        return f"Timezone     : shown in ? · log clock {log_name} ({log_off} now) · database UTC"
+    # no zone resolved: the pages show the process's local clock, the one the logs use
+    name, off = ((getattr(tz, "key", str(tz)), _offset(datetime.now(tz).utcoffset().total_seconds()))
+                 if tz else (log_name, log_off))
+    return (f"Timezone     : shown in {name} ({off} now, Settings: {setting}) · "
+            f"log clock {log_name} ({log_off} now) · database UTC")
+
+
 def _temperature_line() -> str:
     """How often each temperature actually arrives, and its last value (#144).
 
@@ -995,6 +1018,7 @@ def build_bundle(version: str, parts=_BUNDLE_PARTS, lines: int = 300, signals: d
             f"VIN          : {info['vin_masked']}",
             f"Battery kWh  : {info['battery_kwh']}  (SoH reference: {info['battery_nominal_kwh']})",
             f"Language     : {info['language']}",
+            _timezone_line(),
             # Mate's own client, the only one since 01/10/2026 (#327 and #338 lived on the other).
             "Cloud client : independent (mate-api)",
             # The last sign-in the cloud did not grant, as the bridge recorded it: the stage it failed
