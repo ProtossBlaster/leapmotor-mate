@@ -2108,7 +2108,7 @@ clima letti dall'auto: il **Livello ventola** (`number` scrivibile, 1–7, o di 
 Ventilazione). Puoi anche **comandare** l'auto dalle entità di HA — incluso un **limite di carica**
 (`number` scrivibile) per impostare il SoC target e una **Programmazione ricarica** (`text`
 scrivibile) che accetta un piano in JSON pensato per le automazioni (`{"start":"23:00","soc":90}` —
-ogni campo è opzionale, e quello che ometti resta com'è). Un sensore **`Sunshade Position`** dice quanto è aperto il parasole, in % (0 = chiuso); il binary sensor **`Sunshade`** resta com'era, acceso a qualsiasi apertura.
+ogni campo è opzionale, e quello che ometti resta com'è). Un sensore **`Sunshade Position`** dice quanto è aperto il parasole, in % (0 = chiuso); il binary sensor **`Sunshade`** resta com'era, acceso a qualsiasi apertura. Su un'auto con range extender ci sono tre sensori del carburante: **`Fuel Level`** (%), **`Fuel Volume`** (L, i litri contati dall'auto) e **`Fuel Range`** (km con il solo carburante); un serbatoio vuoto vale 0, e un'auto solo elettrica non li riceve.
 
 Le entità che la **tua** auto non supporta non ti vengono lasciate addosso: quelle che il modello non
 ha (sedili riscaldati, volante…) non vengono create, e un'**entità di temperatura** il cui sensore
