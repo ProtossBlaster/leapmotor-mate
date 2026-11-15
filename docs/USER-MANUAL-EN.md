@@ -136,7 +136,7 @@ If a command is refused for a wrong PIN after the update, type the PIN once more
 ### New in 4.17.0
 
 **The charging panel says when the charge ends.** On the *Charges* page, *Charging status* shows under
-the time remaining the time the charge ends, e.g. "Ends at 14:30", with its day when it ends on another
+the time remaining the time the charge ends, e.g. "Est. end 14:30", with its day when it ends on another
 one. It counts from when the car measured the minutes left, so a reading a few minutes old does not move
 it.
 

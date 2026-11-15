@@ -1,4 +1,4 @@
-"""The Charges page's "Charging status" says at what time the charge ends (D#444, @banolka).
+"""The Charges page's "Charging status" says when the car expects the charge to end (D#444, @banolka).
 
 The car sends the minutes left; the panel showed only those. The time is the moment the car
 measured them plus the minutes: the car's own clock (`frame_ts`) when it is not after our reading,
@@ -58,7 +58,7 @@ def _finish():
 def test_the_end_is_the_reading_plus_the_minutes_in_local_time(car):
     _reading(car, T0, 135)                                   # 10:00 + 2h15 → 12:15 in Rome
     assert _finish() == "12:15"
-    assert "Ends at 12:15" in _panel()
+    assert "Est. end 12:15" in _panel()
 
 
 def test_an_older_frame_counts_from_when_the_car_measured(car):
@@ -81,7 +81,7 @@ def test_an_end_on_another_day_carries_its_day(car):
 def test_no_minutes_no_end(car):
     _reading(car, T0, None)
     assert _finish() is None
-    assert "Ends at" not in _panel()
+    assert "Est. end" not in _panel()
 
 
 def test_not_charging_no_end(car):
@@ -91,4 +91,4 @@ def test_not_charging_no_end(car):
     con.execute("UPDATE positions SET plug_connected = 0, charge_current_a = 0")
     con.commit()
     con.close()
-    assert "Ends at" not in _panel()
+    assert "Est. end" not in _panel()

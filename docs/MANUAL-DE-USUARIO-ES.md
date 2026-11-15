@@ -145,7 +145,7 @@ PIN ahí una vez más.
 ### Novedades de la versión 4.17.0
 
 **El panel de carga dice cuándo termina la carga.** En la página *Cargas*, *Estado de la carga* muestra
-bajo el tiempo restante la hora a la que termina la carga, p. ej. «Termina a las 14:30», con el día
+bajo el tiempo restante la hora a la que termina la carga, p. ej. «Fin aprox. 14:30», con el día
 cuando termina en otro. Cuenta desde que el coche midió los minutos restantes, así que una lectura de
 hace unos minutos no la mueve.
 
