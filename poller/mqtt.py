@@ -386,6 +386,20 @@ class MqttService:
         # `unknown` at every sleep of the car (#365).
         if data.range_km is not None:
             pub("range", data.range_km)
+
+        # REEV: petrol tank level, actual fuel quantity and fuel-only range.
+        # These values are only available on range-extender vehicles (B10 REEV).
+        # None means the vehicle did not report a value: keep the last retained value.
+        if data.is_reev:
+            if data.fuel_level_pct is not None:
+                pub("fuel_level", data.fuel_level_pct)
+
+            if data.fuel_liters is not None:
+                pub("fuel_liters", data.fuel_liters)
+
+            if data.fuel_range_km is not None:
+                pub("fuel_range", data.fuel_range_km)
+
         # The same for a frame with no odometer: in memory it is 0 for the state machine, and a
         # retained 0 would drop the sensor to 0 km and back (PR #358). An empty retained payload
         # would delete the broker's value instead, so nothing is published.
@@ -542,6 +556,10 @@ class MqttService:
         sensors = [
             ("soc", "Battery", {"dc": "battery", "unit": "%"}),
             ("range", "Range", {"unit": "km", "icon": "mdi:map-marker-distance"}),
+            # REEV petrol tank sensors
+            ("fuel_level", "Fuel Level", {"unit": "%", "icon": "mdi:gas-station", "tpl": _EMPTY_NONE}),
+            ("fuel_liters", "Fuel Volume", {"unit": "L", "icon": "mdi:gas-station", "tpl": _EMPTY_NONE}),
+            ("fuel_range", "Fuel Range", {"unit": "km", "icon": "mdi:map-marker-distance", "tpl": _EMPTY_NONE}),
             ("odometer", "Odometer", {"dc": "distance", "unit": "km", "icon": "mdi:counter"}),
             ("speed", "Speed", {"dc": "speed", "unit": "km/h"}),
             # Empty-to-none like the current and voltage below: a power the car cannot vouch for is ""
