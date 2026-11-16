@@ -1554,8 +1554,9 @@ class Database:
                 fan_level, recirculation, climate_mode,
                 fuel_level_pct, fuel_range_km, combined_range_km,
                 frame_ts, fuel_liters,
-                tire_fl_bar, tire_fr_bar, tire_rl_bar, tire_rr_bar)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                tire_fl_bar, tire_fr_bar, tire_rl_bar, tire_rr_bar,
+                tire_fl_alarm, tire_fr_alarm, tire_rl_alarm, tire_rr_alarm)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 vehicle_id, _now_iso(),
                 data.latitude, data.longitude,
@@ -1597,6 +1598,9 @@ class Database:
                 # tyre pressures in bar, as the car sent them; NULL where it did not (D#483)
                 getattr(data, "tire_fl_bar", None), getattr(data, "tire_fr_bar", None),
                 getattr(data, "tire_rl_bar", None), getattr(data, "tire_rr_bar", None),
+                # the car's own low-pressure alarm per wheel, NULL where it did not send one
+                getattr(data, "tire_fl_alarm", None), getattr(data, "tire_fr_alarm", None),
+                getattr(data, "tire_rl_alarm", None), getattr(data, "tire_rr_alarm", None),
             ),
         )
         self._conn.commit()

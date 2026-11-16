@@ -81,6 +81,12 @@ class VehicleData:
     tire_fr_bar: float | None = None
     tire_rl_bar: float | None = None
     tire_rr_bar: float | None = None
+    # The car's own low-pressure alarm per wheel (2641 FL, 2648 FR, 2655 RL, 2662 RR): 1 on, 0 off,
+    # None when it did not send one. Stored beside the pressures for the Overview's warning (D#483).
+    tire_fl_alarm: int | None = None
+    tire_fr_alarm: int | None = None
+    tire_rl_alarm: int | None = None
+    tire_rr_alarm: int | None = None
     # Comfort STATE sensors (read-only). They reflect reality on the B10 even though the
     # matching remote COMMANDS don't actuate (see capability_profile). 0 = off, >0 = level/on.
     seat_heat_driver: int = 0       # signal 2100 driverSeatHeating
@@ -697,6 +703,8 @@ def _parse_signal(vin: str, sig: dict) -> VehicleData:
         tire_fr_bar=_bar(sig, "2653"),
         tire_rl_bar=_bar(sig, "2660"),
         tire_rr_bar=_bar(sig, "2667"),
+        tire_fl_alarm=_si(sig, "2641"), tire_fr_alarm=_si(sig, "2648"),
+        tire_rl_alarm=_si(sig, "2655"), tire_rr_alarm=_si(sig, "2662"),
         ready=int(sig.get("1258") or 0) == 1,   # B10 faithful READY (ON3) sensor
         ready_reported=_sf(sig, "1258") is not None,
         # 3736 is no full-charge flag: the official app interprets it as isHaveFullCharge (a tip that a healthy-charging

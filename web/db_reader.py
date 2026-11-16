@@ -4190,8 +4190,9 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
             window_fl_open, window_rl_open, ac_port_mode,
             fan_level, recirculation, climate_mode,
             fuel_level_pct, fuel_range_km, combined_range_km, frame_ts,
-            tire_fl_bar, tire_fr_bar, tire_rl_bar, tire_rr_bar
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            tire_fl_bar, tire_fr_bar, tire_rl_bar, tire_rr_bar,
+            tire_fl_alarm, tire_fr_alarm, tire_rl_alarm, tire_rr_alarm
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             vehicle_id,
             datetime.now(timezone.utc).isoformat(),
@@ -4235,6 +4236,8 @@ def save_fresh_signals(signals: dict, vin: Optional[str] = None) -> None:
             # Tyre pressures in bar, as the poller's client._bar reads them: kPa / 100, absent → NULL (D#483).
             *(None if (kpa := _sf(signals, k)) is None else round(kpa / 100.0, 2)
               for k in ("2646", "2653", "2660", "2667")),
+            # …and the car's own low-pressure alarm per wheel, as the poller reads it (absent → NULL).
+            *(_si(signals, k) for k in ("2641", "2648", "2655", "2662")),
         ),
     )
     db.commit()
@@ -8691,6 +8694,51 @@ def flag_short_cloud_total(eb: dict, tot: dict, dist_km: float) -> dict:
 
 
 _TYRE_CORNERS = ("fl", "fr", "rl", "rr")
+
+# A tyre's word, by the bands the Vehicle page has always coloured it with: the car's own
+# low-pressure alarm or under 2.0 bar is too low, under 2.3 low, up to 3.0 normal, up to 3.3 high,
+# above too high. Too low and too high are red, low and high amber. One rule for both pages.
+_TYRE_RED = ("too_low", "too_high")
+
+
+def tyre_status(bar, alarm=None):
+    """'too_low' | 'low' | 'normal' | 'high' | 'too_high', or None with no pressure to judge."""
+    if bar is None:
+        return None
+    if alarm == 1 or bar < 2.0:
+        return "too_low"
+    if bar < 2.3:
+        return "low"
+    if bar <= 3.0:
+        return "normal"
+    return "high" if bar <= 3.3 else "too_high"
+
+
+def tyre_warning() -> Optional[dict]:
+    """The Overview's one word for the four tyres (D#483): {status, tyres} with the worst status and
+    the wheels that carry it ([] when every tyre is normal), or None when the car never sent a
+    pressure. Read from the last stored reading that has one, so a poll that missed the tyres does
+    not empty the row; the Overview refreshes every 30 s and cannot ask the cloud as the Vehicle
+    page does. The newest 2,000 readings bound the search on a car that sends none."""
+    cols = ", ".join(f"tire_{c}_bar, tire_{c}_alarm" for c in _TYRE_CORNERS)
+    try:
+        row = _get().execute(
+            f"SELECT {cols} FROM (SELECT * FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
+            "ORDER BY id DESC LIMIT 2000) WHERE " + " OR ".join(
+                f"tire_{c}_bar IS NOT NULL" for c in _TYRE_CORNERS) + " LIMIT 1",
+            (_current_vehicle_id(),)).fetchone()
+    except sqlite3.OperationalError:
+        return None                  # a database from before the columns, read before the migration
+    if not row:
+        return None
+    found = {c: tyre_status(row[f"tire_{c}_bar"], row[f"tire_{c}_alarm"]) for c in _TYRE_CORNERS}
+    found = {c: s for c, s in found.items() if s is not None}
+    bad = {c: s for c, s in found.items() if s != "normal"}
+    if not bad:
+        return {"status": "normal", "tyres": []}
+    worst = next((s for s in _TYRE_RED if s in bad.values()), None) or (
+        "low" if "low" in bad.values() else "high")
+    return {"status": worst, "tyres": [c for c in _TYRE_CORNERS if bad.get(c) == worst]}
 
 
 def get_tyre_pressure_days(days: int, now: Optional[datetime] = None) -> list:

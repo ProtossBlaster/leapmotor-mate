@@ -128,6 +128,9 @@
    Called ONCE and held: it is a query over the recent polls, the three gates below would each run
    it, and this card re-renders on every htmx tick. #}
 {% set absent = absent_temps() %}
+{# The four tyres in one word, the worst (D#483), from the last stored pressures: None on a car that
+   never sent one, and then there is no row. #}
+{% set tyres = tyre_warning() %}
 <div class="grid grid-cols-2 gap-3 text-sm">
   {# These are half-width cells, so an ODD number of them leaves a hole in the last row — and the
      odometer alone in a 130px column wraps its own value onto a second line. Odd total ⟺ an even
@@ -167,6 +170,16 @@
       {% if status.battery_min_temp is not none %}{{ status.battery_min_temp | temp(0) }}{% else %}—{% endif %}
     </span>
   </div>
+  {% endif %}
+  {% if tyres %}
+  {# The worst tyre's word, in the Vehicle page's colour for it, and the way to the four of them. #}
+  {# Full width, as the rows under it: "Presión de los neumáticos" and "Demasiado baja" do not share
+     a half-width cell. The wheels the word names are in its tip. #}
+  <a href="vehicle" class="flex justify-between gap-2 text-slate-400 hover:text-white col-span-2"
+     {% if tyres.tyres %}data-tip="{% for w in tyres.tyres %}{{ ', ' if not loop.first }}{{ t('tyre_' ~ w) }}{% endfor %}"{% endif %}>
+    <span class="min-w-0 break-words">{{ t('tyre_pressure') }}</span>
+    <span id="tyre-warning" class="font-semibold whitespace-nowrap {{ {'too_low': 'text-red-400', 'low': 'text-amber-400', 'normal': 'text-emerald-400', 'high': 'text-amber-400', 'too_high': 'text-red-400'}[tyres.status] }}">{{ t('tyre_' ~ tyres.status) }} ›</span>
+  </a>
   {% endif %}
   {# The car has to have SAID something. A C10 never sends 1255 (#256), and printing "Inactive"
      for a signal that does not exist reads as "your car is not protected" — the one direction a

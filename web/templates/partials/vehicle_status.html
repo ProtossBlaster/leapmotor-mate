@@ -62,24 +62,20 @@
   <!-- Tyre pressure — per-wheel tile with a status word -->
   {# Bands: red = TPMS low warning OR <2.0 (too low) / >3.3 (too high); amber = 2.0–2.29 (low)
      / 3.0–3.3 (high); green = 2.3–3.0 (normal). Low uses the car's own TPMS flag; high has no
-     signal so it's threshold-based. #}
+     signal so it's threshold-based. The rule is db_reader.tyre_status, shared with the Overview. #}
+  {% set TYRE_CLASS = {'too_low': 'text-red-400', 'low': 'text-amber-400', 'normal': 'text-emerald-400',
+                       'high': 'text-amber-400', 'too_high': 'text-red-400'} %}
   <div class="card">
     <h2 class="font-semibold text-white mb-4 flex items-center gap-2">{{ mdi(IC_TIRE) }} {{ t('tyre_pressure') }}</h2>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {% for tp, label in [(vs.tyres.fl, t('tyre_fl')), (vs.tyres.fr, t('tyre_fr')), (vs.tyres.rl, t('tyre_rl')), (vs.tyres.rr, t('tyre_rr'))] %}
         {% set val = (tp.bar | pressure) if tp.bar is not none else '—' %}
-        {% if tp.bar is none %}
+        {% set st = tyre_status(tp.bar, 1 if tp.low else 0) %}
+        {% if st is none %}
           {{ tyre_tile(mdi(IC_TIRE), label, val, '', 'text-slate-400') }}
-        {% elif tp.low or tp.bar < 2.0 %}
-          {{ tyre_tile(mdi(IC_TIRE_LOW), label, val, t('tyre_too_low'), 'text-red-400') }}
-        {% elif tp.bar < 2.3 %}
-          {{ tyre_tile(mdi(IC_TIRE_LOW), label, val, t('tyre_low'), 'text-amber-400') }}
-        {% elif tp.bar <= 3.0 %}
-          {{ tyre_tile(mdi(IC_TIRE), label, val, t('tyre_normal'), 'text-emerald-400') }}
-        {% elif tp.bar <= 3.3 %}
-          {{ tyre_tile(mdi(IC_TIRE), label, val, t('tyre_high'), 'text-amber-400') }}
         {% else %}
-          {{ tyre_tile(mdi(IC_TIRE), label, val, t('tyre_too_high'), 'text-red-400') }}
+          {{ tyre_tile(mdi(IC_TIRE_LOW if st in ('too_low', 'low') else IC_TIRE), label, val,
+                       t('tyre_' ~ st), TYRE_CLASS[st]) }}
         {% endif %}
       {% endfor %}
     </div>

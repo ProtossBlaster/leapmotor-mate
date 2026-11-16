@@ -438,6 +438,8 @@ templates.env.globals.update(
     # neighbours are: the charge card is rendered from three hand-built contexts, and the Overview
     # tile reads the same rule.
     charge_energy=db_reader.charge_energy_view, charge_is_dc=db_reader.charge_is_dc,
+    # One rule for a tyre's word (the Vehicle page's tiles), and the Overview's word for all four (D#483).
+    tyre_status=db_reader.tyre_status, tyre_warning=db_reader.tyre_warning,
     # …and the figure the €/kWh on the cost cell divides by, the same one the totals sum.
     billed_kwh=db_reader._billed_kwh,
     billed_basis=db_reader.billed_basis,

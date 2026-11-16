@@ -500,6 +500,11 @@ def ensure_schema(conn) -> None:
     for _c in ("tire_fl_bar", "tire_fr_bar", "tire_rl_bar", "tire_rr_bar"):
         if _c not in cols:
             _add_column(conn, f"ALTER TABLE positions ADD COLUMN {_c} REAL DEFAULT NULL")
+    # migration: the car's own low-pressure alarm per wheel (2641 FL, 2648 FR, 2655 RL, 2662 RR),
+    # 1/0, NULL where it did not send one — the Overview's tyre warning reads it with the pressures.
+    for _c in ("tire_fl_alarm", "tire_fr_alarm", "tire_rl_alarm", "tire_rr_alarm"):
+        if _c not in cols:
+            _add_column(conn, f"ALTER TABLE positions ADD COLUMN {_c} INTEGER DEFAULT NULL")
     # migration: the car's DECLARED ability codes (VehicleAbility ints, stored as a JSON list) —
     # lets the diagnostic + future capability-gating show ONLY what a model actually supports,
     # instead of assuming every car has the same commands (#67; also covers models we don't own
