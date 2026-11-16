@@ -4876,11 +4876,21 @@ def ready_session(trip: dict):
     lo = datetime.fromtimestamp(t0 - _READY_LOOKBACK_S, timezone.utc).isoformat()
     hi = datetime.fromtimestamp(t1 + _READY_LOOKBACK_S, timezone.utc).isoformat()
     rows = db.execute(
-        "SELECT recorded_at, ready, gear FROM positions WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "SELECT recorded_at, ready, gear, frame_ts FROM positions "
+        "WHERE vehicle_id = COALESCE(?, vehicle_id) "
         "AND recorded_at >= ? AND recorded_at <= ? "
         "ORDER BY recorded_at", (_current_vehicle_id(), lo, hi)).fetchall()
-    samples = [(e, r["ready"], r["gear"]) for r in rows
-               if (e := _trip_epoch(r["recorded_at"])) is not None]
+    # A poll that got back a frame already read is no new reading of READY (#487): parked out of
+    # signal, the cloud served one frame, in D with READY=1, for 2 h 40 min, and the two drives
+    # around it came back as one power-on. It counts as a poll that didn't report READY.
+    samples, seen = [], None
+    for r in rows:
+        e = _trip_epoch(r["recorded_at"])
+        if e is None:
+            continue
+        repeat = r["frame_ts"] is not None and r["frame_ts"] == seen
+        seen = r["frame_ts"]
+        samples.append((e, None if repeat else r["ready"], r["gear"]))
     if not any(rd == 1 for _, rd, _ in samples):
         return None                          # no ready=1 anywhere → no session info
     # Build ready=1 runs, and join two runs when what lies between them doesn't break the power-on.
