@@ -138,15 +138,7 @@ def _climate_ctx_from_db(db, vin: str = "", *, fan_top):
     → [[feedback-leapmotor-discovery-method]] · [[t03-climate-operate-manual-only]]"""
     mode, circle, fan, temp = "wind", "out", 3, 26
     try:
-        import sqlite3
-        c = sqlite3.connect(db._path, timeout=5.0)
-        try:
-            row = c.execute(
-                "SELECT p.climate_mode, p.recirculation, p.fan_level, p.climate_target_temp "
-                "FROM positions p JOIN vehicles v ON v.id = p.vehicle_id "
-                "WHERE v.vin = ? ORDER BY p.id DESC LIMIT 1", (vin,)).fetchone()
-        finally:
-            c.close()
+        row = _climate_row_from_db(db, vin)
         if row:
             mode = _CLIM_MODE_TOKEN.get(row[0], "wind")
             circle = "in" if row[1] else "out"
@@ -157,6 +149,43 @@ def _climate_ctx_from_db(db, vin: str = "", *, fan_top):
     except Exception:  # noqa: BLE001 — fall back to safe defaults
         pass
     return mode, circle, fan, temp
+
+
+def _climate_row_from_db(db, vin: str):
+    """(climate_mode, recirculation, fan_level, climate_target_temp) of THIS car's latest stored
+    position, or None. Short-lived connection: it runs on paho's network thread."""
+    import sqlite3
+    c = sqlite3.connect(db._path, timeout=5.0)
+    try:
+        return c.execute(
+            "SELECT p.climate_mode, p.recirculation, p.fan_level, p.climate_target_temp "
+            "FROM positions p JOIN vehicles v ON v.id = p.vehicle_id "
+            "WHERE v.vin = ? ORDER BY p.id DESC LIMIT 1", (vin,)).fetchone()
+    finally:
+        c.close()
+
+
+def _climate_temp_body(db, vin: str, temp: int, *, car_type: str, fan_top: int) -> str:
+    """The body web/command_client.set_climate_temp sends, for THIS car's panel (#489): the target
+    changes, mode, recirculation and fan stay. AUTO (3713=0) or an unknown mode stays AUTO
+    (operate=auto + nohotcold, confirmed on-car 2026-06-21); the T03 ignores an AUTO write (#67) and
+    gets manual cold, as on the page. A test holds this equal to the page's body."""
+    try:
+        row = _climate_row_from_db(db, vin)
+    except Exception:  # noqa: BLE001 — no panel read: the page's own defaults
+        row = None
+    mode_raw, recirc, fan_raw, _t = row or (None, None, None, None)
+    token = _CLIM_MODE_TOKEN.get(mode_raw)
+    operate, mode = ("manual", token) if token else ("auto", "nohotcold")
+    if operate == "auto" and car_type == "T03":
+        operate, mode = "manual", "cold"
+    try:
+        fan = max(1, min(int(fan_raw or 5), fan_top))
+    except (TypeError, ValueError):
+        fan = 5
+    return json.dumps({"circle": "in" if recirc else "out", "mode": mode, "operate": operate,
+                       "position": "all", "temperature": str(temp), "windlevel": str(fan),
+                       "wshld": "0"}, separators=(",", ":"))
 
 
 # Windows open %→native scale (mirrors web/command_client._windows_native): the B10/C10/B05
@@ -412,6 +441,14 @@ def _handle_mqtt_command(client, service, db, vin: str, cmd: str, value):
                 api._remote_control(vin=vin, action="ac_on", cmd_content=json.dumps(
                     {"circle": circ, "mode": m, "operate": "manual", "position": "all",
                      "temperature": str(tmp), "windlevel": str(lvl), "wshld": "0"}, separators=(",", ":")))
+                optimistic = ("climate_on", True)
+            elif cmd == "climate_temp":   # writable HA number (#489): value = target °C, 18–32
+                try:
+                    t = max(18, min(int(round(float(value))), 32))
+                except (TypeError, ValueError, OverflowError):
+                    log.warning("MQTT: climate_temp value %r not a temperature — ignored", value); return
+                api._remote_control(vin=vin, action="ac_on", cmd_content=_climate_temp_body(
+                    db, vin, t, car_type=_mqtt_car_type(client, vin), fan_top=service.fan_top_for(vin)))
                 optimistic = ("climate_on", True)
             elif cmd == "recirculation":  # writable HA switch: ON = recirc / OFF = fresh (signal 1943)
                 on = str(value).upper() == "ON"

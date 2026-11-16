@@ -235,6 +235,7 @@ class MqttService:
         key = {'climate_auto': 'ac_on', 'climate_cool': 'quick_cool',
                'climate_heat': 'quick_heat', 'climate_vent': 'quick_vent',
                'fan_level': 'set_fan_level', 'recirculation': 'set_recirc',
+               'climate_temp': 'set_climate_temp',
                'door_lock': 'lock', 'lock_toggle': 'lock',
                'trunk': 'open_trunk', 'charge_limit': 'set_charge_limit',
                'charge_schedule': 'save_charge_schedule'}.get(key, key)
@@ -703,6 +704,16 @@ class MqttService:
             "state_topic": f"{prefix}/{vin}/recirculation",
             "command_topic": f"{prefix}/{vin}/recirculation/set",
             "payload_on": "ON", "payload_off": "OFF", "icon": "mdi:autorenew",
+        })
+        # A/C target temperature as a writable HA NUMBER (#489). It reads the AC Target sensor's own
+        # topic, so the two always agree; the sensor stays for those who already use it. `/set` routes
+        # to the page's set_climate_temp body (poller dispatch): only the target changes.
+        cfg("number", "climate_temp", {
+            "name": "AC Target Temperature",
+            "state_topic": f"{prefix}/{vin}/ac_target_temp",
+            "command_topic": f"{prefix}/{vin}/climate_temp/set",
+            "min": 18, "max": 32, "step": 1, "unit_of_measurement": "°C",
+            "icon": "mdi:thermometer", "value_template": _EMPTY_NONE,
         })
 
         # Single "Door Lock" TOGGLE (HA `lock` platform): one control that shows the
