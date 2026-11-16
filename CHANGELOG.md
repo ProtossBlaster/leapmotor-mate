@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.30.0] — 2026-11-16
+
+See [the notes](docs/releases/v4.30.0.md).
+
+- **Home Assistant sets the A/C target temperature** ([#489](https://github.com/ProtossBlaster/leapmotor-mate/issues/489), @michapr). A writable number,
+  *AC Target Temperature* (18–32 °C), sends the Commands page's own command: only the target changes. The
+  *AC Target* sensor stays.
+
 ## [4.29.0] — 2026-11-16
 
 See [the notes](docs/releases/v4.29.0.md).

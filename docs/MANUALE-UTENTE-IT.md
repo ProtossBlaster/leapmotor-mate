@@ -1,8 +1,14 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.29.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.30.0 · **Lingua:** Italiano
 
-## Novità della 4.29.0
+## Novità della 4.30.0
+
+**Home Assistant imposta la temperatura del clima.** Un nuovo numero scrivibile, *AC Target Temperature*
+(18–32 °C), imposta la temperatura come la pagina *Comandi*: il clima tiene modo, ventola e ricircolo. Il
+sensore *AC Target* resta com'era (#489, @michapr).
+
+### Novità della 4.29.0
 
 **La Panoramica avvisa di una gomma.** Sotto le temperature della *Panoramica*, la riga *Pressione gomme*
 dà la parola della gomma peggiore: *Troppo bassa* o *Troppo alta* in rosso, *Bassa* o *Alta* in arancione,

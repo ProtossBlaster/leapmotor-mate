@@ -1,8 +1,14 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.29.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.30.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.29.0
+## Neu in Version 4.30.0
+
+**Home Assistant stellt die Klima-Zieltemperatur ein.** Eine neue beschreibbare Zahl, *AC Target
+Temperature* (18–32 °C), stellt die Zieltemperatur wie die Seite *Befehle* ein: Modus, Gebläse und
+Umluft der Klimaanlage bleiben. Der Sensor *AC Target* bleibt, wie er war (#489, @michapr).
+
+### Neu in Version 4.29.0
 
 **Die Übersicht warnt bei einem Reifen.** Unter den Temperaturen auf der *Übersicht* nennt die Zeile
 *Reifendruck* das Wort des schlechtesten Reifens: *Zu niedrig* oder *Zu hoch* in Rot, *Niedrig* oder *Hoch*

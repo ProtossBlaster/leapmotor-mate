@@ -1,8 +1,14 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.29.0 · **Langue :** Français
+> **Version de Mate :** v4.30.0 · **Langue :** Français
 
-## Nouveautés de la version 4.29.0
+## Nouveautés de la version 4.30.0
+
+**Home Assistant règle la température de la climatisation.** Un nouveau nombre modifiable, *AC Target
+Temperature* (18–32 °C), règle la consigne comme la page *Commandes* : la climatisation garde son mode, sa
+ventilation et son recyclage. Le capteur *AC Target* reste tel quel (#489, @michapr).
+
+### Nouveautés de la version 4.29.0
 
 **L'Aperçu avertit pour un pneu.** Sous les températures de l'*Aperçu*, la ligne *Pression des pneus*
 donne le mot du pire pneu : *Trop basse* ou *Trop élevée* en rouge, *Basse* ou *Élevée* en orange, *Normale*

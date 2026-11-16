@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.29.0:** the Overview says when a tyre needs a look, in one word by the Vehicle page's rule, and leads to the Vehicle page ([D#483](https://github.com/ProtossBlaster/leapmotor-mate/discussions/483), @michapr), two drives with the car out of signal between them are no longer read as one power-on ([#487](https://github.com/ProtossBlaster/leapmotor-mate/issues/487), @michapr), and the diagnostics bundle carries the readings of the latest charges ([#485](https://github.com/ProtossBlaster/leapmotor-mate/pull/485), @arekm). In **4.28.0**: each tyre's pressure by day on the Vehicle page. **4.25.0** was a security release: if you skipped it, its *Upgrade impact* is linked from these notes.
-See [release notes and upgrade impact](docs/releases/v4.29.0.md).
+**v4.30.0:** Home Assistant sets the A/C target temperature with a new writable number, as the Commands page does: only the target changes ([#489](https://github.com/ProtossBlaster/leapmotor-mate/issues/489), @michapr).
+See [release notes and upgrade impact](docs/releases/v4.30.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -381,8 +381,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.29.0:** la Panoramica dice quando una gomma va guardata, in una parola con la regola della pagina Veicolo, e porta alla pagina Veicolo ([D#483](https://github.com/ProtossBlaster/leapmotor-mate/discussions/483), @michapr), due viaggi con l'auto senza segnale in mezzo non sono più letti come una sola accensione ([#487](https://github.com/ProtossBlaster/leapmotor-mate/issues/487), @michapr), e il pacchetto di diagnostica porta le letture delle ultime ricariche ([#485](https://github.com/ProtossBlaster/leapmotor-mate/pull/485), @arekm). Nella **4.28.0**: la pressione di ogni gomma giorno per giorno nella pagina Veicolo. La **4.25.0** era un rilascio di sicurezza: se l'hai saltata, il suo *Impatto dell'aggiornamento* è collegato da queste note.
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.29.0.md#italiano).
+**v4.30.0:** Home Assistant imposta la temperatura del clima con un nuovo numero scrivibile, come la pagina Comandi: cambia solo la temperatura ([#489](https://github.com/ProtossBlaster/leapmotor-mate/issues/489), @michapr).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.30.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

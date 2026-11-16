@@ -1,8 +1,14 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.29.0 · **Language:** English
+> **Mate version:** v4.30.0 · **Language:** English
 
-## New in 4.29.0
+## New in 4.30.0
+
+**Home Assistant sets the A/C target temperature.** A new writable number, *AC Target Temperature*
+(18–32 °C), sets the target as the *Commands* page does: the climate keeps its mode, fan and
+recirculation. The *AC Target* sensor stays as it was (#489, @michapr).
+
+### New in 4.29.0
 
 **The Overview warns about a tyre.** Under the temperatures on the *Overview*, the row *Tyre pressure*
 gives the worst tyre's word: *Too low* or *Too high* in red, *Low* or *High* in amber, *Normal* in green,
