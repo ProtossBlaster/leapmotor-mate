@@ -14,6 +14,7 @@ from typing import NamedTuple, Optional
 import crypto
 import events
 import geohash
+import charge_kind
 import charging_places
 
 log = logging.getLogger(__name__)
@@ -2519,11 +2520,8 @@ class Database:
         # Above this power the session is DC fast-charging. Default 11 kW (3-phase AC ceiling
         # for most home wallboxes); a 22 kW AC owner can raise it in Advanced settings so their
         # AC sessions aren't misread as DC.
-        try:
-            dc_min_kw = float(self.get_setting("charge_dc_min_kw", "11") or 11)
-        except (TypeError, ValueError):
-            dc_min_kw = 11.0
-        charge_type  = "DC" if max_power_kw > dc_min_kw else "AC"
+        dc_min_kw    = charge_kind.dc_min_kw(self.get_setting("charge_dc_min_kw", "11"))
+        charge_type  = "DC" if charge_kind.is_dc(None, max_power_kw, dc_min_kw) else "AC"
         cost         = round(energy_added * price_per_kwh, 2) if price_per_kwh else None
 
         # ac_energy_kwh is NOT touched here — it's the running wallbox-counter sum built up over the
