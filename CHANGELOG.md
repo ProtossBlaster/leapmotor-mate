@@ -3,6 +3,19 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.29.0] — 2026-11-16
+
+See [the notes](docs/releases/v4.29.0.md).
+
+- **The Overview warns about a tyre** ([D#483](https://github.com/ProtossBlaster/leapmotor-mate/discussions/483), @michapr). A row gives the worst tyre's word,
+  by the Vehicle page's rule (the car's own alarm or under 2.0 bar is too low), and links to the Vehicle
+  page. The car's alarm is now stored beside the pressures.
+- **Two drives with the car out of signal between them are no longer one power-on** ([#487](https://github.com/ProtossBlaster/leapmotor-mate/issues/487), @michapr).
+  A reading the cloud repeats no longer counts as the car still on, so the trip no longer asks to be merged
+  before its official consumption.
+- **The diagnostics bundle carries the charge readings** ([#485](https://github.com/ProtossBlaster/leapmotor-mate/pull/485), @arekm) of the last 10 AC and 10 DC
+  charges, and says which clock each of its times is on.
+
 ## [4.28.0] — 2026-11-15
 
 See [the notes](docs/releases/v4.28.0.md).

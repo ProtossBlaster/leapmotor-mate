@@ -1,8 +1,22 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.28.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.29.0 · **Lingua:** Italiano
 
-## Novità della 4.28.0
+## Novità della 4.29.0
+
+**La Panoramica avvisa di una gomma.** Sotto le temperature della *Panoramica*, la riga *Pressione gomme*
+dà la parola della gomma peggiore: *Troppo bassa* o *Troppo alta* in rosso, *Bassa* o *Alta* in arancione,
+*Normale* in verde, con la stessa regola delle gomme di *Veicolo* (l'allarme dell'auto o meno di 2,0 bar è
+troppo bassa). È un collegamento a *Veicolo*; puntando un avviso compaiono le gomme (D#483, @michapr).
+
+**Due viaggi con l'auto senza segnale in mezzo restano due accensioni.** Un'auto parcheggiata dove non
+raggiunge il cloud non unisce più il viaggio prima e quello dopo in uno, quindi il viaggio non chiede più
+di essere unito prima di *Converti con dati ufficiali* (#487, @michapr).
+
+**Il pacchetto di diagnostica porta le letture delle ricariche** delle ultime 10 AC e 10 DC, e dice su
+quale orologio è ogni suo orario (#485, @arekm).
+
+### Novità della 4.28.0
 
 **La pressione di ogni gomma giorno per giorno.** Sotto le gomme di *Veicolo*, il grafico *Pressione gomme
 per giorno* disegna la pressione minima (continua) e massima (tratteggiata) di ogni gomma per ogni giorno,

@@ -1,8 +1,22 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.28.0 · **Language:** English
+> **Mate version:** v4.29.0 · **Language:** English
 
-## New in 4.28.0
+## New in 4.29.0
+
+**The Overview warns about a tyre.** Under the temperatures on the *Overview*, the row *Tyre pressure*
+gives the worst tyre's word: *Too low* or *Too high* in red, *Low* or *High* in amber, *Normal* in green,
+by the same rule as the tyres on *Vehicle* (the car's own alarm or under 2.0 bar is too low). It is a link
+to *Vehicle*; pointing at a warning names the tyres (D#483, @michapr).
+
+**Two drives with the car out of signal between them stay two power-ons.** A car parked where it cannot
+reach the cloud no longer joins the drive before and the drive after into one, so the trip no longer asks
+to be merged before *Convert with official data* (#487, @michapr).
+
+**The diagnostics bundle carries the charge readings** of the last 10 AC and 10 DC charges, and says which
+clock each of its times is on (#485, @arekm).
+
+### New in 4.28.0
 
 **Each tyre's pressure by day.** Under the tyres on *Vehicle*, the chart *Tyre pressure by day* draws each
 tyre's lowest (solid) and highest (dashed) pressure of every day, over 30 or 90 days, with the outside

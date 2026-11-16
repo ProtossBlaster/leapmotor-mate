@@ -1,8 +1,23 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.28.0 · **Sprache:** Deutsch
+> **Mate-Version:** v4.29.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.28.0
+## Neu in Version 4.29.0
+
+**Die Übersicht warnt bei einem Reifen.** Unter den Temperaturen auf der *Übersicht* nennt die Zeile
+*Reifendruck* das Wort des schlechtesten Reifens: *Zu niedrig* oder *Zu hoch* in Rot, *Niedrig* oder *Hoch*
+in Orange, *Normal* in Grün, nach derselben Regel wie die Reifen auf *Fahrzeug* (der eigene Alarm des Autos
+oder unter 2,0 bar ist zu niedrig). Sie verlinkt auf *Fahrzeug*; beim Zeigen auf eine Warnung erscheinen
+die Reifen (D#483, @michapr).
+
+**Zwei Fahrten mit dem Auto ohne Empfang dazwischen bleiben zwei Einschaltvorgänge.** Ein Auto, das dort
+parkt, wo es die Cloud nicht erreicht, verbindet die Fahrt davor und danach nicht mehr zu einer, sodass die
+Fahrt vor *Mit offiziellen Daten umwandeln* nicht mehr zusammengeführt werden will (#487, @michapr).
+
+**Das Diagnosepaket enthält die Ladewerte** der letzten 10 AC- und 10 DC-Ladungen und nennt die Uhr, auf
+der jede seiner Zeiten steht (#485, @arekm).
+
+### Neu in Version 4.28.0
 
 **Der Druck jedes Reifens Tag für Tag.** Unter den Reifen auf *Fahrzeug* zeichnet das Diagramm
 *Reifendruck pro Tag* den niedrigsten (durchgezogen) und höchsten (gestrichelt) Druck jedes Reifens an

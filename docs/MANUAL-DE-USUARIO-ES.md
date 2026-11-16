@@ -1,8 +1,23 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.28.0 · **Idioma:** Español
+> **Versión de Mate:** v4.29.0 · **Idioma:** Español
 
-## Novedades de la versión 4.28.0
+## Novedades de la versión 4.29.0
+
+**El Resumen avisa de un neumático.** Bajo las temperaturas del *Resumen*, la fila *Presión de los
+neumáticos* da la palabra del peor neumático: *Demasiado baja* o *Demasiado alta* en rojo, *Baja* o *Alta*
+en ámbar, *Normal* en verde, con la misma regla que los neumáticos de *Vehículo* (la alarma del propio coche
+o menos de 2,0 bar es demasiado baja). Es un enlace a *Vehículo*; al señalar un aviso aparecen los
+neumáticos (D#483, @michapr).
+
+**Dos viajes con el coche sin señal entre ellos siguen siendo dos encendidos.** Un coche aparcado donde no
+alcanza la nube ya no une el viaje de antes y el de después en uno, así que el viaje ya no pide unirse antes
+de *Convertir con los datos oficiales* (#487, @michapr).
+
+**El paquete de diagnóstico lleva las lecturas de las cargas** de las últimas 10 AC y 10 DC, y dice en qué
+reloj está cada una de sus horas (#485, @arekm).
+
+### Novedades de la versión 4.28.0
 
 **La presión de cada neumático día a día.** Bajo los neumáticos de *Vehículo*, el gráfico *Presión de
 neumáticos por día* dibuja la presión mínima (línea continua) y máxima (discontinua) de cada neumático en

@@ -1,8 +1,23 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.28.0 · **Langue :** Français
+> **Version de Mate :** v4.29.0 · **Langue :** Français
 
-## Nouveautés de la version 4.28.0
+## Nouveautés de la version 4.29.0
+
+**L'Aperçu avertit pour un pneu.** Sous les températures de l'*Aperçu*, la ligne *Pression des pneus*
+donne le mot du pire pneu : *Trop basse* ou *Trop élevée* en rouge, *Basse* ou *Élevée* en orange, *Normale*
+en vert, selon la même règle que les pneus de *Véhicule* (l'alarme de la voiture elle-même ou moins de
+2,0 bar, c'est trop bas). C'est un lien vers *Véhicule* ; en pointant un avertissement, les pneus
+apparaissent (D#483, @michapr).
+
+**Deux trajets avec la voiture sans signal entre eux restent deux mises sous tension.** Une voiture garée
+là où elle n'atteint pas le cloud ne réunit plus le trajet d'avant et celui d'après en un seul, et le trajet
+ne demande plus d'être fusionné avant *Convertir avec les données officielles* (#487, @michapr).
+
+**Le paquet de diagnostic contient les relevés des recharges** des 10 dernières AC et 10 DC, et indique
+l'horloge de chacune de ses heures (#485, @arekm).
+
+### Nouveautés de la version 4.28.0
 
 **La pression de chaque pneu jour par jour.** Sous les pneus de *Véhicule*, le graphique *Pression des
 pneus par jour* trace la pression la plus basse (trait plein) et la plus haute (pointillés) de chaque pneu
