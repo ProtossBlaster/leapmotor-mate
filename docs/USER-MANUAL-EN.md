@@ -2106,8 +2106,7 @@ See [requirements](#2-before-you-start-the-requirements).
 **Mate says "incorrect account or password", but the app signs in.**
 The Leapmotor app can keep only the first 16 characters of a password and drop the rest without a
 warning. If yours is longer and you typed or pasted it into the app, try only its first 16 characters
-in Mate. Otherwise, type the email by hand instead of letting the browser fill it in, and check it is
-the account's.
+in Mate. Otherwise, check that the email is the account's, with no extra characters.
 
 **A command gives a "timeout" / amber notice.**
 It's (usually) not a Mate problem. The commands are *real-time* and depend on the **car's
