@@ -1531,7 +1531,23 @@
     "place_none": "Kein Ortstarif",
     "place_invalid": "Name, Koordinaten, Radius (25–500 m) und Preis (0–100) prüfen.",
     "place_closed_only": "Den Ort nach Ladeende zuweisen.",
-    "place_unmerge_first": "Zusammengeführte Ladungen vor dem Ortswechsel trennen."
+    "place_unmerge_first": "Zusammengeführte Ladungen vor dem Ortswechsel trennen.",
+    "tyre_seasons_section": "Sommer- und Winterreifen",
+    "tyre_seasons_desc": "Zählt die Kilometer jedes Reifensatzes getrennt, ab den zwei Tagen, an denen Sie wechseln. Die Tage wiederholen sich jedes Jahr, und die Zählung umfasst die bereits aufgezeichneten vergangenen Saisons.",
+    "tyre_seasons_enable": "Sommer- und Winterreifen getrennt zählen",
+    "tyre_winter_on": "Winterreifen drauf",
+    "tyre_summer_on": "Sommerreifen drauf",
+    "tyre_day": "Tag",
+    "tyre_month": "Monat",
+    "tyre_seasons_need_days": "Wählen Sie beide Tage, um es einzuschalten. Der 29. Februar ist nicht wählbar: Der Tag muss jedes Jahr existieren.",
+    "tyre_seasons_same_day": "Die beiden Tage müssen verschieden sein.",
+    "tyre_set_winter": "Winterreifen",
+    "tyre_set_summer": "Sommerreifen",
+    "tyre_on_now": "Montiert seit {d}",
+    "tyre_this_season": "Diese Saison",
+    "tyre_total": "Insgesamt",
+    "tyre_count_from": "Aus dem Kilometerzähler gezählt seit {d}. Tage ohne Messwert werden nicht geschätzt.",
+    "tyre_no_odometer": "Noch kein Kilometerstand: Die Kilometer erscheinen mit dem ersten."
   },
   "months": {
     "full": [

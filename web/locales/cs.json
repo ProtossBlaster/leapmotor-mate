@@ -1531,7 +1531,23 @@
     "place_none": "Bez tarifu místa",
     "place_invalid": "Zkontrolujte název, souřadnice, poloměr (25–500 m) a cenu (0–100).",
     "place_closed_only": "Místo přiřaďte až po skončení nabíjení.",
-    "place_unmerge_first": "Před změnou místa nejprve zrušte sloučení nabíjení."
+    "place_unmerge_first": "Před změnou místa nejprve zrušte sloučení nabíjení.",
+    "tyre_seasons_section": "Letní a zimní pneumatiky",
+    "tyre_seasons_desc": "Počítá kilometry každé sady pneumatik zvlášť, od dvou dnů, kdy je měníte. Dny se opakují každý rok a počet zahrnuje i již zaznamenané minulé sezóny.",
+    "tyre_seasons_enable": "Počítat letní a zimní pneumatiky zvlášť",
+    "tyre_winter_on": "Nasazení zimních",
+    "tyre_summer_on": "Nasazení letních",
+    "tyre_day": "Den",
+    "tyre_month": "Měsíc",
+    "tyre_seasons_need_days": "Pro zapnutí vyberte oba dny. 29. února vybrat nelze: den musí existovat každý rok.",
+    "tyre_seasons_same_day": "Oba dny se musí lišit.",
+    "tyre_set_winter": "Zimní pneumatiky",
+    "tyre_set_summer": "Letní pneumatiky",
+    "tyre_on_now": "Nasazené od {d}",
+    "tyre_this_season": "Tato sezóna",
+    "tyre_total": "Celkem",
+    "tyre_count_from": "Počítáno z tachometru od {d}. Dny bez záznamu se neodhadují.",
+    "tyre_no_odometer": "Zatím žádný stav tachometru: kilometry se objeví s prvním."
   },
   "months": {
     "full": [

@@ -1531,7 +1531,23 @@
     "place_none": "Bez taryfy miejsca",
     "place_invalid": "Sprawdź nazwę, współrzędne, promień (25–500 m) i cenę (0–100).",
     "place_closed_only": "Przypisz miejsce po zakończeniu ładowania.",
-    "place_unmerge_first": "Rozdziel połączone sesje przed zmianą miejsca."
+    "place_unmerge_first": "Rozdziel połączone sesje przed zmianą miejsca.",
+    "tyre_seasons_section": "Opony letnie i zimowe",
+    "tyre_seasons_desc": "Liczy osobno kilometry każdego kompletu opon, od dwóch dni, w których je zmieniasz. Dni powtarzają się co roku, a licznik obejmuje już zapisane minione sezony.",
+    "tyre_seasons_enable": "Licz osobno opony letnie i zimowe",
+    "tyre_winter_on": "Zakładanie zimowych",
+    "tyre_summer_on": "Zakładanie letnich",
+    "tyre_day": "Dzień",
+    "tyre_month": "Miesiąc",
+    "tyre_seasons_need_days": "Wybierz oba dni, aby to włączyć. 29 lutego nie można wybrać: dzień musi istnieć co roku.",
+    "tyre_seasons_same_day": "Oba dni muszą być różne.",
+    "tyre_set_winter": "Opony zimowe",
+    "tyre_set_summer": "Opony letnie",
+    "tyre_on_now": "Założone od {d}",
+    "tyre_this_season": "Ten sezon",
+    "tyre_total": "Łącznie",
+    "tyre_count_from": "Liczone z licznika od {d}. Dni bez odczytu nie są szacowane.",
+    "tyre_no_odometer": "Brak jeszcze odczytu licznika: kilometry pojawią się z pierwszym."
   },
   "months": {
     "full": [

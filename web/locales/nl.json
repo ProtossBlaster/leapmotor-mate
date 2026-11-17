@@ -1531,7 +1531,23 @@
     "place_none": "Geen locatietarief",
     "place_invalid": "Controleer naam, coördinaten, straal (25–500 m) en prijs (0–100).",
     "place_closed_only": "Wijs de locatie toe nadat het laden is voltooid.",
-    "place_unmerge_first": "Splits samengevoegde sessies voordat u hun locatie wijzigt."
+    "place_unmerge_first": "Splits samengevoegde sessies voordat u hun locatie wijzigt.",
+    "tyre_seasons_section": "Zomer- en winterbanden",
+    "tyre_seasons_desc": "Telt de kilometers van elke set banden apart, vanaf de twee dagen waarop je wisselt. De dagen herhalen zich elk jaar en de telling omvat de al vastgelegde voorbije seizoenen.",
+    "tyre_seasons_enable": "Zomer- en winterbanden apart tellen",
+    "tyre_winter_on": "Winterbanden erop",
+    "tyre_summer_on": "Zomerbanden erop",
+    "tyre_day": "Dag",
+    "tyre_month": "Maand",
+    "tyre_seasons_need_days": "Kies beide dagen om het aan te zetten. 29 februari kan niet: de dag moet elk jaar bestaan.",
+    "tyre_seasons_same_day": "De twee dagen moeten verschillen.",
+    "tyre_set_winter": "Winterbanden",
+    "tyre_set_summer": "Zomerbanden",
+    "tyre_on_now": "Op de auto sinds {d}",
+    "tyre_this_season": "Dit seizoen",
+    "tyre_total": "In totaal",
+    "tyre_count_from": "Geteld uit de kilometerteller sinds {d}. Dagen zonder meting worden niet geschat.",
+    "tyre_no_odometer": "Nog geen kilometerstand: de kilometers verschijnen bij de eerste."
   },
   "months": {
     "full": [

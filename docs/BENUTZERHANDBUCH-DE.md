@@ -1940,6 +1940,13 @@ zuerst eintritt.
 - Das **Zulassungs-/Übergabedatum** ist jetzt editierbar: Klicken Sie auf das **✏️** neben dem gespeicherten
   Datum, um einen Fehler zu korrigieren (der neue Wert überschreibt den alten).
 - Die Strecken berücksichtigen die gewählte Einheit (km oder Meilen).
+- **Sommer- und Winterreifen** (aus, bis Sie es unter *Einstellungen → 🛞 Sommer- und Winterreifen*
+  einschalten): Wählen Sie den Tag, an dem die Winterreifen, und den, an dem die Sommerreifen montiert
+  werden; die Tage wiederholen sich jedes Jahr und gehören zum ausgewählten Auto. Die Seite zeigt dann
+  eine 🛞-Karte mit dem heute montierten Satz, den Kilometern dieser Saison und der Summe jedes Satzes,
+  gezählt aus dem von Mate gespeicherten Kilometerstand, vergangene Saisons eingeschlossen. Tage ohne
+  Messwert werden nicht geschätzt: Die Strecke zählt für den Tag, an dem der nächste Messwert kommt. Der
+  29. Februar ist nicht wählbar (D#493, @DanielBrol).
 
 ### Befehle
 **(Menü: Befehle)** — Die **Fernbefehle**. Von hier aus können Sie:

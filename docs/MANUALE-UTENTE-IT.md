@@ -1898,6 +1898,13 @@ il **tempo**, perché scade ciò che arriva prima.
 - La **data di immatricolazione/consegna è modificabile**: clicca la **✏️** accanto alla data
   impostata per correggere un errore (il nuovo valore sovrascrive il precedente).
 - Le distanze rispettano l'unità scelta (km o miglia).
+- **Gomme estive e invernali** (spento finché non lo accendi in *Impostazioni → 🛞 Gomme estive e
+  invernali*): scegli il giorno di montaggio delle invernali e quello delle estive; i giorni si
+  ripetono ogni anno e sono dell'auto selezionata. La pagina mostra allora una carta 🛞 con il treno
+  montato oggi, i chilometri di questa stagione e il totale di ciascun treno, contati dal
+  contachilometri che Mate ha registrato, stagioni passate comprese. I giorni senza lettura non
+  vengono stimati: la distanza va al giorno in cui arriva la lettura successiva. Il 29 febbraio non si
+  può scegliere (D#493, @DanielBrol).
 
 ### Comandi
 **(menu: Comandi)** — I **comandi a distanza**. Da qui puoi:
