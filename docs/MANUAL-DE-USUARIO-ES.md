@@ -1915,6 +1915,13 @@ toca es lo que llegue primero.
 - La **fecha de matriculación o entrega ahora se puede editar**: haz clic en el **✏️** que hay junto a
   la fecha guardada para corregir un error (el valor nuevo sustituye al anterior).
 - Las distancias respetan la unidad elegida (km o millas).
+- **Neumáticos de verano e invierno** (desactivado hasta que lo actives en *Ajustes → 🛞 Neumáticos
+  de verano e invierno*): elige el día en que se montan los de invierno y el día en que se montan los
+  de verano; los días se repiten cada año y son del coche seleccionado. La página muestra entonces una
+  tarjeta 🛞 con el juego montado hoy, los kilómetros de esta temporada y el total de cada juego,
+  contados desde el cuentakilómetros que Mate ha guardado, temporadas pasadas incluidas. Los días sin
+  lectura no se estiman: la distancia va al día en que llega la lectura siguiente. El 29 de febrero no
+  se puede elegir (D#493, @DanielBrol).
 
 ### Comandos
 **(menú: Comandos)** — Los **comandos a distancia**. Desde aquí puedes:

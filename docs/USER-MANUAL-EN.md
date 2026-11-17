@@ -1804,6 +1804,12 @@ because whatever comes first is what's due.
 - The **registration / delivery date is now editable**: click the **✏️** next to the saved date to
   correct a mistake (the new value overwrites the old one).
 - The distances respect the chosen unit (km or miles).
+- **Summer and winter tyres** (off unless switched on in *Settings → 🛞 Summer and winter tyres*):
+  choose the day the winter tyres go on and the day the summer ones go on; the days repeat every
+  year and belong to the selected car. The page then shows a 🛞 card with the set on the car today,
+  the kilometres of this season and the total of each set, counted from the odometer Mate has stored,
+  past seasons included. Days without a reading are not estimated: the distance across them goes to
+  the day the next reading arrives. 29 February cannot be chosen (D#493, @DanielBrol).
 
 ### Commands
 **(menu: Commands)** — The **remote commands**. From here you can:

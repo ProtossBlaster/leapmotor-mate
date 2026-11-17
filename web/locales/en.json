@@ -1531,7 +1531,23 @@
     "place_none": "No place tariff",
     "place_invalid": "Check the name, coordinates, radius (25–500 m) and price (0–100).",
     "place_closed_only": "Assign a place after the session has ended.",
-    "place_unmerge_first": "Unmerge the charging sessions before changing their place."
+    "place_unmerge_first": "Unmerge the charging sessions before changing their place.",
+    "tyre_seasons_section": "Summer and winter tyres",
+    "tyre_seasons_desc": "Counts the kilometres of each set of tyres apart, from the two days you swap them. The days repeat every year and the count includes the past seasons already recorded.",
+    "tyre_seasons_enable": "Count summer and winter tyres apart",
+    "tyre_winter_on": "Winter tyres on",
+    "tyre_summer_on": "Summer tyres on",
+    "tyre_day": "Day",
+    "tyre_month": "Month",
+    "tyre_seasons_need_days": "Choose both days to switch it on. 29 February cannot be chosen: the day must exist every year.",
+    "tyre_seasons_same_day": "The two days must be different.",
+    "tyre_set_winter": "Winter tyres",
+    "tyre_set_summer": "Summer tyres",
+    "tyre_on_now": "On the car since {d}",
+    "tyre_this_season": "This season",
+    "tyre_total": "In total",
+    "tyre_count_from": "Counted from the odometer since {d}. Days without a reading are not estimated.",
+    "tyre_no_odometer": "No odometer reading yet: the kilometres appear with the first one."
   },
   "months": {
     "full": [

@@ -1531,7 +1531,23 @@
     "place_none": "Sin tarifa del lugar",
     "place_invalid": "Comprueba nombre, coordenadas, radio (25–500 m) y precio (0–100).",
     "place_closed_only": "Asigna el lugar cuando termine la carga.",
-    "place_unmerge_first": "Separa las cargas unidas antes de cambiar su lugar."
+    "place_unmerge_first": "Separa las cargas unidas antes de cambiar su lugar.",
+    "tyre_seasons_section": "Neumáticos de verano e invierno",
+    "tyre_seasons_desc": "Cuenta por separado los kilómetros de cada juego de neumáticos, desde los dos días en que los cambias. Los días se repiten cada año y la cuenta incluye las temporadas pasadas ya registradas.",
+    "tyre_seasons_enable": "Contar por separado neumáticos de verano e invierno",
+    "tyre_winter_on": "Montaje de los de invierno",
+    "tyre_summer_on": "Montaje de los de verano",
+    "tyre_day": "Día",
+    "tyre_month": "Mes",
+    "tyre_seasons_need_days": "Elige los dos días para activarlo. El 29 de febrero no se puede elegir: el día debe existir todos los años.",
+    "tyre_seasons_same_day": "Los dos días deben ser distintos.",
+    "tyre_set_winter": "Neumáticos de invierno",
+    "tyre_set_summer": "Neumáticos de verano",
+    "tyre_on_now": "Montados desde el {d}",
+    "tyre_this_season": "Esta temporada",
+    "tyre_total": "En total",
+    "tyre_count_from": "Contados desde el cuentakilómetros desde el {d}. Los días sin lectura no se estiman.",
+    "tyre_no_odometer": "Todavía no hay lectura del cuentakilómetros: los kilómetros aparecen con la primera."
   },
   "months": {
     "full": [

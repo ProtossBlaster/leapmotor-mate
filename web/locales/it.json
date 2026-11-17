@@ -1531,7 +1531,23 @@
     "place_none": "Senza tariffa del luogo",
     "place_invalid": "Controlla nome, coordinate, raggio (25–500 m) e prezzo (0–100).",
     "place_closed_only": "Assegna il luogo dopo la fine della ricarica.",
-    "place_unmerge_first": "Separa le ricariche unite prima di cambiarne il luogo."
+    "place_unmerge_first": "Separa le ricariche unite prima di cambiarne il luogo.",
+    "tyre_seasons_section": "Gomme estive e invernali",
+    "tyre_seasons_desc": "Conta a parte i chilometri di ogni treno di gomme, dai due giorni in cui le cambi. I giorni si ripetono ogni anno e il conto comprende le stagioni passate già registrate.",
+    "tyre_seasons_enable": "Conta a parte gomme estive e invernali",
+    "tyre_winter_on": "Montaggio invernali",
+    "tyre_summer_on": "Montaggio estive",
+    "tyre_day": "Giorno",
+    "tyre_month": "Mese",
+    "tyre_seasons_need_days": "Scegli entrambi i giorni per accenderlo. Il 29 febbraio non si può scegliere: il giorno deve esistere ogni anno.",
+    "tyre_seasons_same_day": "I due giorni devono essere diversi.",
+    "tyre_set_winter": "Gomme invernali",
+    "tyre_set_summer": "Gomme estive",
+    "tyre_on_now": "Montate dal {d}",
+    "tyre_this_season": "Questa stagione",
+    "tyre_total": "In totale",
+    "tyre_count_from": "Contati dal contachilometri dal {d}. I giorni senza lettura non vengono stimati.",
+    "tyre_no_odometer": "Ancora nessuna lettura del contachilometri: i chilometri compaiono con la prima."
   },
   "months": {
     "full": [

@@ -1965,6 +1965,13 @@ car c'est la première échéance atteinte qui compte.
 - La **date d'immatriculation / de livraison est désormais modifiable** : cliquez sur le **✏️** à côté de la
   date enregistrée pour corriger une erreur (la nouvelle valeur écrase l'ancienne).
 - Les distances respectent l'unité choisie (km ou miles).
+- **Pneus été et hiver** (désactivé tant que vous ne l'activez pas dans *Paramètres → 🛞 Pneus été et
+  hiver*) : choisissez le jour de pose des pneus hiver et celui des pneus été ; les jours se répètent
+  chaque année et appartiennent à la voiture sélectionnée. La page affiche alors une carte 🛞 avec le
+  train monté aujourd'hui, les kilomètres de cette saison et le total de chaque train, comptés depuis
+  le compteur kilométrique enregistré par Mate, saisons passées comprises. Les jours sans relevé ne sont
+  pas estimés : la distance va au jour où arrive le relevé suivant. Le 29 février ne peut pas être
+  choisi (D#493, @DanielBrol).
 
 ### Commandes
 **(menu : Commandes)** — Les **commandes à distance**. D'ici, vous pouvez :

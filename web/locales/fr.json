@@ -1531,7 +1531,23 @@
     "place_none": "Sans tarif du lieu",
     "place_invalid": "Vérifiez le nom, les coordonnées, le rayon (25–500 m) et le prix (0–100).",
     "place_closed_only": "Attribuez le lieu après la fin de la recharge.",
-    "place_unmerge_first": "Séparez les recharges fusionnées avant de changer leur lieu."
+    "place_unmerge_first": "Séparez les recharges fusionnées avant de changer leur lieu.",
+    "tyre_seasons_section": "Pneus été et hiver",
+    "tyre_seasons_desc": "Compte séparément les kilomètres de chaque train de pneus, à partir des deux jours où vous les changez. Les jours se répètent chaque année et le compte inclut les saisons passées déjà enregistrées.",
+    "tyre_seasons_enable": "Compter séparément pneus été et hiver",
+    "tyre_winter_on": "Pose des pneus hiver",
+    "tyre_summer_on": "Pose des pneus été",
+    "tyre_day": "Jour",
+    "tyre_month": "Mois",
+    "tyre_seasons_need_days": "Choisissez les deux jours pour l'activer. Le 29 février ne peut pas être choisi : le jour doit exister chaque année.",
+    "tyre_seasons_same_day": "Les deux jours doivent être différents.",
+    "tyre_set_winter": "Pneus hiver",
+    "tyre_set_summer": "Pneus été",
+    "tyre_on_now": "Sur la voiture depuis le {d}",
+    "tyre_this_season": "Cette saison",
+    "tyre_total": "Au total",
+    "tyre_count_from": "Comptés depuis le compteur kilométrique depuis le {d}. Les jours sans relevé ne sont pas estimés.",
+    "tyre_no_odometer": "Pas encore de relevé du compteur : les kilomètres apparaissent avec le premier."
   },
   "months": {
     "full": [

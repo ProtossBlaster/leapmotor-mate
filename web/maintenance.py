@@ -219,6 +219,116 @@ def set_baseline(date_iso: str, km: Optional[float]) -> None:
         db_reader.set_setting(_key("maint_baseline_km"), str(km))
 
 
+# ── Summer and winter tyres (D#493) ───────────────────────────────────────────
+# Two days the user chooses, "MM-DD", repeated every year: winter tyres go on, summer tyres go on.
+# Off unless switched on, and per car, like the start of service above.
+def _month_day(s: str) -> Optional[tuple]:
+    """'MM-DD' → (month, day) when that day exists in EVERY year (no 29 February), else None."""
+    try:
+        m, d = (int(x) for x in str(s).split("-"))
+        date(2001, m, d)          # 2001 is not a leap year
+        return m, d
+    except (ValueError, TypeError):
+        return None
+
+
+def get_tyre_seasons() -> tuple:
+    """(enabled, winter 'MM-DD', summer 'MM-DD') of the selected car."""
+    return (db_reader.get_setting(_key("tyre_seasons_enabled"), "") == "1",
+            db_reader.get_setting(_key("tyre_winter_on"), ""),
+            db_reader.get_setting(_key("tyre_summer_on"), ""))
+
+
+def set_tyre_seasons(enabled: bool, winter: str, summer: str) -> Optional[str]:
+    """Save the switch and the two days. Returns None, or the reason nothing was saved:
+    switched on, both days must exist every year and differ."""
+    winter, summer = (winter or "").strip(), (summer or "").strip()
+    w, s = _month_day(winter), _month_day(summer)
+    if enabled and (w is None or s is None):
+        return "tyre_seasons_need_days"
+    if enabled and w == s:
+        return "tyre_seasons_same_day"
+    if w is not None:
+        db_reader.set_setting(_key("tyre_winter_on"), f"{w[0]:02d}-{w[1]:02d}")
+    if s is not None:
+        db_reader.set_setting(_key("tyre_summer_on"), f"{s[0]:02d}-{s[1]:02d}")
+    db_reader.set_setting(_key("tyre_seasons_enabled"), "1" if enabled else "0")
+    return None
+
+
+def _season_on(day: date, w: tuple, s: tuple) -> tuple:
+    """The set on the car on `day` and the day it went on: the later of the last winter day and the
+    last summer day not after `day`."""
+    def last(md):
+        d = date(day.year, *md)
+        return d if d <= day else date(day.year - 1, *md)
+    lw, ls = last(w), last(s)
+    return ("winter", lw) if lw >= ls else ("summer", ls)
+
+
+def tyre_seasons(vehicle_id: Optional[int], today: date) -> Optional[dict]:
+    """The tyre card of the Maintenance page, or None when the switch is off or a day is missing.
+
+    The odometer's last reading of each local day; the distance from one day with a reading to the
+    next goes to the set on the car on the later day — a gap is not estimated, it lands on the day
+    the next reading arrives. An odometer that goes back adds nothing. No reading at all → None
+    kilometres, not 0."""
+    enabled, winter, summer = get_tyre_seasons()
+    w, s = _month_day(winter), _month_day(summer)
+    if not enabled or w is None or s is None or w == s:
+        return None
+    current, since = _season_on(today, w, s)
+    out = {"current": current, "since": since.isoformat(), "data_from": None,
+           "season_km": None, "winter_km": None, "summer_km": None}
+    if vehicle_id is None:
+        return out
+    rows = db_reader._get().execute(
+        "SELECT substr(recorded_at, 1, 13) AS h, MAX(recorded_at) AS t, MAX(odometer_km) AS o "
+        "FROM positions WHERE vehicle_id = ? AND odometer_km IS NOT NULL AND odometer_km > 0 "
+        "GROUP BY h ORDER BY h", (vehicle_id,)).fetchall()
+    tz = db_reader._local_tz()
+    daily: dict = {}
+    for r in rows:
+        dt = db_reader._local_dt(r["t"], tz)
+        if dt is None:
+            continue
+        d = dt.date()
+        daily[d] = max(daily.get(d, 0.0), float(r["o"]))
+    if not daily:
+        return out
+    km = {"winter": 0.0, "summer": 0.0}
+    season_km = 0.0
+    top = None
+    for d in sorted(daily):
+        o = daily[d]
+        if top is not None and o > top:
+            km[_season_on(d, w, s)[0]] += o - top
+            if since <= d <= today:
+                season_km += o - top
+        top = o if top is None else max(top, o)
+    out.update(data_from=min(daily).isoformat(), season_km=round(season_km),
+               winter_km=round(km["winter"]), summer_km=round(km["summer"]))
+    return out
+
+
+def tyre_view(vehicle_id: Optional[int], lang: str) -> Optional[dict]:
+    """tyre_seasons() of today, with the dates and distances as the page shows them."""
+    import i18n
+    s = tyre_seasons(vehicle_id, datetime.now().date())
+    if s is None:
+        return None
+    system = units.get_unit_system()
+
+    def day(iso):
+        return i18n.fmt_day_month_year(lang, date.fromisoformat(iso)) if iso else None
+
+    def dist(km):
+        return _dist(km, lang, system) if km is not None else None
+    return {**s, "since_disp": day(s["since"]), "data_from_disp": day(s["data_from"]),
+            "season_disp": dist(s["season_km"]), "winter_disp": dist(s["winter_km"]),
+            "summer_disp": dist(s["summer_km"])}
+
+
 # ── Formatting helpers (distance respects the user's unit system) ─────────────
 def _grp(n, lang: str) -> str:
     s = f"{int(round(n)):,}"
