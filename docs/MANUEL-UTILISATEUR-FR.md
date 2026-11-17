@@ -2267,6 +2267,12 @@ autre intégration, une seconde instance de Mate). Utilisez un **compte dédié 
 son mot de passe** en ne l'utilisant qu'ici (ainsi l'autre client est expulsé et ne revient pas). Voir
 [prérequis](#2-avant-de-commencer--les-prérequis).
 
+**Mate indique « incorrect account or password », mais l'application se connecte.**
+L'application Leapmotor peut ne garder que les 16 premiers caractères d'un mot de passe et ignorer le
+reste sans avertir. Si le vôtre est plus long et que vous l'avez saisi ou collé dans l'application,
+essayez dans Mate uniquement ses 16 premiers caractères. Sinon, saisissez l'e-mail à la main au lieu
+de laisser le navigateur le remplir, et vérifiez que c'est bien celui du compte.
+
 **Une commande donne « timeout » / un avis ambre.**
 Ce n'est (généralement) pas un problème de Mate. Les commandes sont en *temps réel* et dépendent de la
 **joignabilité de la voiture** (couverture, veille). Mate réessaie et souvent la commande aboutit quand même.

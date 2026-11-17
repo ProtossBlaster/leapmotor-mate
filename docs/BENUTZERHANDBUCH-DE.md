@@ -2242,6 +2242,12 @@ Integration, eine zweite Mate-Instanz). Verwenden Sie ein **nur für Mate bestim
 dessen Passwort**, indem Sie es nur hier benutzen (so wird der andere Client hinausgeworfen und kehrt nicht
 zurück). Siehe [Voraussetzungen](#2-bevor-sie-beginnen-die-voraussetzungen).
 
+**Mate meldet „incorrect account or password", die App meldet sich aber an.**
+Die Leapmotor-App kann nur die ersten 16 Zeichen eines Passworts übernehmen und den Rest ohne Hinweis
+verwerfen. Ist Ihr Passwort länger und haben Sie es in der App eingegeben oder eingefügt, versuchen Sie
+es in Mate nur mit seinen ersten 16 Zeichen. Andernfalls tippen Sie die E-Mail-Adresse von Hand ein,
+statt sie vom Browser ausfüllen zu lassen, und prüfen Sie, ob sie die des Kontos ist.
+
 **Ein Befehl meldet „Timeout" / bernsteinfarbener Hinweis.**
 Das ist (in der Regel) kein Problem von Mate. Die Befehle erfolgen in *Echtzeit* und hängen von der
 **Erreichbarkeit des Autos** ab (Empfang, Standby). Mate versucht es erneut, und oft geht der Befehl trotzdem

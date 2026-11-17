@@ -2,6 +2,7 @@
 // to check. "posts": after one detection and another, only the last attempt's cars are submitted,
 // the email is locked while a detection runs, and editing it later forgets the cars found.
 // "note": a failed detection says the PIN is not saved, before setup can be finished by hand.
+// "cut": a refused password longer than the Leapmotor app keeps says to try the part the app kept.
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
@@ -30,9 +31,9 @@ const REFUSED = async () => ({ok: false, json: async () => ({error: 'Login faile
 const OFFLINE = async () => { throw new TypeError('Failed to fetch'); };
 const FAILURES = [[REFUSED, 'the cloud refuses'], [OFFLINE, 'no connection']];
 
-async function detect(fetch) {
+async function detect(fetch, password = 'pw') {
   el('inp-email').value = 'owner@example.com';
-  el('inp-password').value = 'pw';
+  el('inp-password').value = password;
   el('inp-pin').value = '1234';
   ctx.fetch = fetch;
   await run('detectCar()');
@@ -86,6 +87,20 @@ const parts = {
       assert.equal(el('btn-submit').style.display, 'block', `${why}: setup can still be finished by hand`);
     }
     assert.ok(!(await detect(ONE)).html.includes(note), 'a detected car stores its PIN, so the note would be false');
+  },
+  async cut() {
+    const hint = run('strings.en.pwdCutShort');
+    assert.ok(hint && hint.includes('16'), 'the English hint must name the 16 characters');
+    assert.deepEqual([...run('Object.keys(strings).filter(l => !strings[l].pwdCutShort)')], [],
+                     'every language says it');
+    const refused = async () => ({ok: false, json: async () => ({
+      error: 'API=302010108 (incorrect account or password)', password_refused: true})});
+    const LONG = 'Abcdefgh_1234567xyz', KEPT = LONG.slice(0, 16);
+    assert.ok((await detect(refused, LONG)).html.includes(hint), 'a long refused password gets no hint');
+    assert.ok(!(await detect(refused, KEPT)).html.includes(hint), 'a password the app keeps whole gets the hint');
+    assert.ok(!(await detect(refused, `  ${KEPT}  `)).html.includes(hint), 'spaces Mate trims count as characters');
+    assert.ok(!(await detect(REFUSED, LONG)).html.includes(hint), 'a refusal of another kind gets the hint');
+    assert.ok(!(await detect(ONE, LONG)).html.includes(hint), 'a detected car gets the hint');
   },
 };
 
