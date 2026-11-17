@@ -214,6 +214,8 @@
 // detect-vehicle answers. The page draws all of it: it used to take the range-extender packs out
 // again on every build but the BetaTester, and a REEV could not pick its pack (BetaTester #13).
 const BATTERY_OPTIONS = {{ battery_options|tojson }};
+// The Leapmotor app's password field can keep only this many characters, silently dropping the rest.
+const APP_PASSWORD_KEEPS = 16;
 
 // ── i18n strings ─────────────────────────────────────────────────────────────
 const strings = {
@@ -238,6 +240,7 @@ const strings = {
     batteryAutoSet:"Battery detected (EU spec)",
     detectFail:    "Could not detect vehicle",
     pinNotSaved:   "With no car detected, the PIN is not saved. Once Mate has found the car, set it in Settings → Vehicle.",
+    pwdCutShort:   "The Leapmotor app can keep only the first 16 characters of a password, without a warning. If you typed or pasted this one into the app, try only its first 16 characters here.",
     manualEntry:   "Enter battery capacity manually (kWh)",
     manualHint:    "B10 Pro: 55.0 · B10 Pro Max: 65.0 · B05 Pro: 55.0 · B05 Pro Max: 65.0 · T03: 36.0 · C10 RWD: 67.0 · C10 AWD: 81.9 · B03X 292 km: 39.0 · B03X 382 km: 52.0",
     submit:        "Connect & Start",
@@ -270,6 +273,7 @@ const strings = {
     batteryAutoSet:"Batteria rilevata (spec. europea)",
     detectFail:    "Impossibile rilevare il veicolo",
     pinNotSaved:   "Senza un'auto rilevata il PIN non viene salvato. Quando Mate avrà trovato l'auto, inseriscilo in Impostazioni → Veicolo.",
+    pwdCutShort:   "L'app Leapmotor può tenere solo i primi 16 caratteri di una password, senza avvisare. Se hai digitato o incollato questa password nell'app, prova qui solo i suoi primi 16 caratteri.",
     manualEntry:   "Inserisci la capacità batteria manualmente (kWh)",
     manualHint:    "B10 Pro: 55.0 · B10 Pro Max: 65.0 · B05 Pro: 55.0 · B05 Pro Max: 65.0 · T03: 36.0 · C10 RWD: 67.0 · C10 AWD: 81.9 · B03X 292 km: 39.0 · B03X 382 km: 52.0",
     submit:        "Connetti e avvia",
@@ -302,6 +306,7 @@ const strings = {
     batteryAutoSet:"Batterie détectée (spéc. UE)",
     detectFail:    "Impossible de détecter le véhicule",
     pinNotSaved:   "Sans voiture détectée, le code PIN n'est pas enregistré. Quand Mate aura trouvé la voiture, saisissez-le dans Paramètres → Véhicule.",
+    pwdCutShort:   "L'application Leapmotor peut ne garder que les 16 premiers caractères d'un mot de passe, sans avertir. Si vous avez saisi ou collé ce mot de passe dans l'application, essayez ici uniquement ses 16 premiers caractères.",
     manualEntry:   "Saisir la capacité batterie manuellement (kWh)",
     manualHint:    "B10 Pro: 55.0 · B10 Pro Max: 65.0 · B05 Pro: 55.0 · B05 Pro Max: 65.0 · T03: 36.0 · C10 RWD: 67.0 · C10 AWD: 81.9 · B03X 292 km: 39.0 · B03X 382 km: 52.0",
     submit:        "Connecter et démarrer",
@@ -334,6 +339,7 @@ const strings = {
     batteryAutoSet:"Batterie erkannt (EU-Spezifikation)",
     detectFail:    "Fahrzeug konnte nicht erkannt werden",
     pinNotSaved:   "Ohne erkanntes Auto wird die PIN nicht gespeichert. Sobald Mate das Auto gefunden hat, geben Sie sie unter Einstellungen → Fahrzeug ein.",
+    pwdCutShort:   "Die Leapmotor-App kann nur die ersten 16 Zeichen eines Passworts übernehmen, ohne Hinweis. Wenn Sie dieses Passwort in der App eingegeben oder eingefügt haben, versuchen Sie es hier nur mit seinen ersten 16 Zeichen.",
     manualEntry:   "Batteriekapazität manuell eingeben (kWh)",
     manualHint:    "B10 Pro: 55.0 · B10 Pro Max: 65.0 · B05 Pro: 55.0 · B05 Pro Max: 65.0 · T03: 36.0 · C10 RWD: 67.0 · C10 AWD: 81.9 · B03X 292 km: 39.0 · B03X 382 km: 52.0",
     submit:        "Verbinden & starten",
@@ -366,6 +372,7 @@ const strings = {
     batteryAutoSet:"Bateria wykryta (specyfikacja UE)",
     detectFail:    "Nie udało się wykryć pojazdu",
     pinNotSaved:   "Bez wykrytego auta PIN nie zostanie zapisany. Gdy Mate znajdzie auto, wpisz go w Ustawieniach, w sekcji Pojazd.",
+    pwdCutShort:   "Aplikacja Leapmotor może zachować tylko pierwsze 16 znaków hasła i nie ostrzega o tym. Jeśli to hasło wpisano lub wklejono w aplikacji, wpisz tu na próbę tylko jego pierwsze 16 znaków.",
     manualEntry:   "Wprowadź pojemność baterii ręcznie (kWh)",
     manualHint:    "B10 Pro: 55.0 · B10 Pro Max: 65.0 · B05 Pro: 55.0 · B05 Pro Max: 65.0 · T03: 36.0 · C10 RWD: 67.0 · C10 AWD: 81.9 · B03X 292 km: 39.0 · B03X 382 km: 52.0",
     submit:        "Połącz i uruchom",
@@ -398,6 +405,7 @@ const strings = {
     batteryAutoSet:"Bateria detetada (especificação europeia)",
     detectFail:    "Não foi possível detetar o veículo",
     pinNotSaved:   "Sem um carro detetado, o PIN não é guardado. Quando o Mate encontrar o carro, defina-o em Definições → Veículo.",
+    pwdCutShort:   "A aplicação Leapmotor pode guardar apenas os primeiros 16 caracteres de uma palavra-passe, sem avisar. Se escreveu ou colou esta palavra-passe na aplicação, experimente aqui apenas os seus primeiros 16 caracteres.",
     manualEntry:   "Introduza manualmente a capacidade da bateria (kWh)",
     manualHint:    "B10 Pro: 55.0 · B10 Pro Max: 65.0 · B05 Pro: 55.0 · B05 Pro Max: 65.0 · T03: 36.0 · C10 RWD: 67.0 · C10 AWD: 81.9 · B03X 292 km: 39.0 · B03X 382 km: 52.0",
     submit:        "Ligar e iniciar",
@@ -430,6 +438,7 @@ const strings = {
     batteryAutoSet:"Batterij herkend (EU-uitvoering)",
     detectFail:    "Kon het voertuig niet vinden",
     pinNotSaved:   "Zonder gevonden auto wordt de pincode niet opgeslagen. Zodra Mate de auto heeft gevonden, vul je die in bij Instellingen → Voertuig.",
+    pwdCutShort:   "De Leapmotor-app kan alleen de eerste 16 tekens van een wachtwoord bewaren, zonder waarschuwing. Heb je dit wachtwoord in de app getypt of geplakt, probeer hier dan alleen de eerste 16 tekens.",
     manualEntry:   "Batterijcapaciteit met de hand invoeren (kWh)",
     manualHint:    "B10 Pro: 55,0 · B10 Pro Max: 65,0 · B05 Pro: 55,0 · B05 Pro Max: 65,0 · T03: 36,0 · C10 RWD: 67,0 · C10 AWD: 81,9 · B03X 292 km: 39,0 · B03X 382 km: 52,0",
     submit:        "Verbinden en starten",
@@ -462,6 +471,7 @@ const strings = {
     batteryAutoSet:"Batería detectada (versión europea)",
     detectFail:    "No se ha podido detectar el vehículo",
     pinNotSaved:   "Sin un coche detectado, el PIN no se guarda. Cuando Mate encuentre el coche, introdúcelo en Ajustes → Vehículo.",
+    pwdCutShort:   "La app de Leapmotor puede guardar solo los primeros 16 caracteres de una contraseña, sin avisar. Si escribiste o pegaste esta contraseña en la app, prueba aquí solo con sus primeros 16 caracteres.",
     manualEntry:   "Introducir la capacidad de la batería a mano (kWh)",
     manualHint:    "B10 Pro: 55,0 · B10 Pro Max: 65,0 · B05 Pro: 55,0 · B05 Pro Max: 65,0 · T03: 36,0 · C10 RWD: 67,0 · C10 AWD: 81,9 · B03X 292 km: 39,0 · B03X 382 km: 52,0",
     submit:        "Conectar y empezar",
@@ -494,6 +504,7 @@ const strings = {
     batteryAutoSet:"Baterie zjištěna (evropská specifikace)",
     detectFail:    "Vozidlo se nepodařilo najít",
     pinNotSaved:   "Bez nalezeného auta se PIN neuloží. Jakmile Mate auto najde, zadejte ho v Nastavení → Vozidlo.",
+    pwdCutShort:   "Aplikace Leapmotor si může ponechat jen prvních 16 znaků hesla a neupozorní na to. Pokud jste toto heslo do aplikace napsali nebo vložili, zkuste sem zadat jen jeho prvních 16 znaků.",
     manualEntry:   "Zadat kapacitu baterie ručně (kWh)",
     manualHint:    "B10 Pro: 55,0 · B10 Pro Max: 65,0 · B05 Pro: 55,0 · B05 Pro Max: 65,0 · T03: 36,0 · C10 RWD: 67,0 · C10 AWD: 81,9 · B03X 292 km: 39,0 · B03X 382 km: 52,0",
     submit:        "Připojit a spustit",
@@ -792,6 +803,8 @@ async function detectCar() {
         <div style="background:#ef444422;border:1px solid #ef444455;border-radius:12px;padding:14px 16px">
           <div style="color:#fca5a5;font-size:13px;font-weight:600;margin-bottom:6px">✗ ${s.detectFail}</div>
           <div style="color:#fca5a5;font-size:12px;opacity:.8;margin-bottom:14px">${data.error || ''}</div>
+          ${data.password_refused && pwd.length > APP_PASSWORD_KEEPS
+            ? `<div style="color:#fbbf24;font-size:12px;margin-bottom:14px">${s.pwdCutShort}</div>` : ''}
           <div style="color:#fbbf24;font-size:12px;margin-bottom:14px">${s.pinNotSaved}</div>
           ${buildManualInput()}
         </div>`);

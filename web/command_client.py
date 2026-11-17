@@ -8,6 +8,7 @@ import logging
 import threading
 
 from api_backend import LeapmotorApiClient
+from api_v2_bridge import is_refused_password
 from leapmotor_cloud import mate_compat
 
 log = logging.getLogger(__name__)
@@ -978,7 +979,7 @@ def detect_vehicle(user: str, pwd: str, pin: str) -> dict:
                 for v in vehicles]
         return {"vin": cars[0]["vin"], "car_type": cars[0]["car_type"], "vehicles": cars}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "password_refused": is_refused_password(e)}
 
 
 def get_fresh_signals(vin: str | None = None) -> dict | None:

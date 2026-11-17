@@ -197,6 +197,11 @@ def _rejection(status, codes):
 REFUSED_PASSWORD='incorrect account or password'
 
 
+def is_refused_password(error) -> bool:
+    """Whether a sign-in failed because the cloud refused the account's email or password."""
+    return REFUSED_PASSWORD in str(error)
+
+
 class NewAPIClient(MateClientCompatibility):
     _mate_new_api = True
 

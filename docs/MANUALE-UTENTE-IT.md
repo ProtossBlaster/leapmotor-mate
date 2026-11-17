@@ -2207,6 +2207,12 @@ integrazione, una seconda istanza di Mate). Usa un **account dedicato solo a Mat
 sua password** usandola solo qui (così l'altro client viene buttato fuori e non rientra). Vedi
 [requisiti](#2-prima-di-iniziare-i-requisiti).
 
+**Mate dice "incorrect account or password", ma l'app accede.**
+L'app Leapmotor può tenere solo i primi 16 caratteri di una password e scartare il resto senza
+avvisare. Se la tua è più lunga e l'hai digitata o incollata nell'app, prova in Mate solo i suoi primi
+16 caratteri. Altrimenti digita l'email a mano invece di lasciarla compilare al browser, e controlla
+che sia quella dell'account.
+
 **Un comando dà "timeout" / avviso ambra.**
 Non è (di solito) un problema di Mate. I comandi sono in *tempo reale* e dipendono dalla
 **raggiungibilità dell'auto** (copertura, standby). Mate riprova e spesso il comando va comunque a
