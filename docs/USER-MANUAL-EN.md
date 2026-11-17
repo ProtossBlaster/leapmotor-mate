@@ -1,8 +1,17 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.30.0 · **Language:** English
+> **Mate version:** v4.31.0 · **Language:** English
 
-## New in 4.30.0
+## New in 4.31.0
+
+**A password the Leapmotor app cut short is named.** The app can keep only the first 16 characters of a
+password, without a warning. When the cloud refuses a longer one, the setup wizard says to try its first 16
+characters (#492, @arekm; #482).
+
+**The Overview's rows close flush.** On a car that does not send some temperatures, a row was left half
+empty: a T03 showed *A/C Target* alone in the left half (#491, @matttiaromano).
+
+### New in 4.30.0
 
 **Home Assistant sets the A/C target temperature.** A new writable number, *AC Target Temperature*
 (18–32 °C), sets the target as the *Commands* page does: the climate keeps its mode, fan and

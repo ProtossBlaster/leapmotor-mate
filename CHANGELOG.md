@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.31.0] — 2026-11-17
+
+See [the notes](docs/releases/v4.31.0.md).
+
+- **A refused password longer than the Leapmotor app keeps is named in the setup wizard** ([#492](https://github.com/ProtossBlaster/leapmotor-mate/pull/492), @arekm;
+  [#482](https://github.com/ProtossBlaster/leapmotor-mate/issues/482)). The app can keep only the first 16 characters of a
+  password without a warning; when the cloud refuses a longer one, the wizard says to try its first 16 characters.
+- **The Overview's rows close flush whichever temperatures a car does not send** ([#491](https://github.com/ProtossBlaster/leapmotor-mate/issues/491), @matttiaromano). A T03
+  showed *A/C Target* alone in the left half of its row.
+
 ## [4.30.0] — 2026-11-16
 
 See [the notes](docs/releases/v4.30.0.md).

@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.30.0 · **Lingua:** Italiano
+> **Versione di Mate:** v4.31.0 · **Lingua:** Italiano
 
-## Novità della 4.30.0
+## Novità della 4.31.0
+
+**Una password tagliata dall'app Leapmotor viene nominata.** L'app può tenere solo i primi 16 caratteri di
+una password, senza avvisare. Quando il cloud ne rifiuta una più lunga, la configurazione guidata dice di
+provare i suoi primi 16 caratteri (#492, @arekm; #482).
+
+**Le righe della Panoramica si chiudono pari.** Su un'auto che non manda alcune temperature, una riga
+restava mezza vuota: una T03 mostrava *Target A/C* da solo nella metà sinistra (#491, @matttiaromano).
+
+### Novità della 4.30.0
 
 **Home Assistant imposta la temperatura del clima.** Un nuovo numero scrivibile, *AC Target Temperature*
 (18–32 °C), imposta la temperatura come la pagina *Comandi*: il clima tiene modo, ventola e ricircolo. Il

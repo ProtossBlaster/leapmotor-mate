@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.30.0 · **Idioma:** Español
+> **Versión de Mate:** v4.31.0 · **Idioma:** Español
 
-## Novedades de la versión 4.30.0
+## Novedades de la versión 4.31.0
+
+**Se nombra una contraseña que la app de Leapmotor recortó.** La app puede guardar solo los primeros 16
+caracteres de una contraseña, sin avisar. Cuando la nube rechaza una más larga, el asistente de
+configuración dice que se prueben sus primeros 16 caracteres (#492, @arekm; #482).
+
+**Las filas de la vista general cierran parejas.** En un coche que no envía algunas temperaturas, una fila
+quedaba medio vacía: un T03 mostraba *Temperatura de consigna* sola en la mitad izquierda (#491, @matttiaromano).
+
+### Novedades de la versión 4.30.0
 
 **Home Assistant fija la temperatura del climatizador.** Un nuevo número editable, *AC Target Temperature*
 (18–32 °C), fija la temperatura como la página *Comandos*: el climatizador mantiene modo, ventilador y

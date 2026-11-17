@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v4.30.0:** Home Assistant sets the A/C target temperature with a new writable number, as the Commands page does: only the target changes ([#489](https://github.com/ProtossBlaster/leapmotor-mate/issues/489), @michapr).
-See [release notes and upgrade impact](docs/releases/v4.30.0.md).
+**v4.31.0:** the setup wizard says when a refused password may be one the Leapmotor app cut to 16 characters ([#492](https://github.com/ProtossBlaster/leapmotor-mate/pull/492), @arekm), and the Overview's rows close flush whichever temperatures a car does not send ([#491](https://github.com/ProtossBlaster/leapmotor-mate/issues/491), @matttiaromano).
+See [release notes and upgrade impact](docs/releases/v4.31.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -381,8 +381,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v4.30.0:** Home Assistant imposta la temperatura del clima con un nuovo numero scrivibile, come la pagina Comandi: cambia solo la temperatura ([#489](https://github.com/ProtossBlaster/leapmotor-mate/issues/489), @michapr).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.30.0.md#italiano).
+**v4.31.0:** la configurazione guidata dice quando una password rifiutata può essere una che l'app Leapmotor ha tagliato a 16 caratteri ([#492](https://github.com/ProtossBlaster/leapmotor-mate/pull/492), @arekm), e le righe della Panoramica si chiudono pari qualunque temperatura l'auto non mandi ([#491](https://github.com/ProtossBlaster/leapmotor-mate/issues/491), @matttiaromano).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v4.31.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
