@@ -2280,8 +2280,8 @@ son mot de passe** en ne l'utilisant qu'ici (ainsi l'autre client est expulsé e
 **Mate indique « incorrect account or password », mais l'application se connecte.**
 L'application Leapmotor peut ne garder que les 16 premiers caractères d'un mot de passe et ignorer le
 reste sans avertir. Si le vôtre est plus long et que vous l'avez saisi ou collé dans l'application,
-essayez dans Mate uniquement ses 16 premiers caractères. Sinon, saisissez l'e-mail à la main au lieu
-de laisser le navigateur le remplir, et vérifiez que c'est bien celui du compte.
+essayez dans Mate uniquement ses 16 premiers caractères. Sinon, vérifiez que l'e-mail est bien celui
+du compte, sans caractère en trop.
 
 **Une commande donne « timeout » / un avis ambre.**
 Ce n'est (généralement) pas un problème de Mate. Les commandes sont en *temps réel* et dépendent de la

@@ -2254,8 +2254,8 @@ zurück). Siehe [Voraussetzungen](#2-bevor-sie-beginnen-die-voraussetzungen).
 **Mate meldet „incorrect account or password", die App meldet sich aber an.**
 Die Leapmotor-App kann nur die ersten 16 Zeichen eines Passworts übernehmen und den Rest ohne Hinweis
 verwerfen. Ist Ihr Passwort länger und haben Sie es in der App eingegeben oder eingefügt, versuchen Sie
-es in Mate nur mit seinen ersten 16 Zeichen. Andernfalls tippen Sie die E-Mail-Adresse von Hand ein,
-statt sie vom Browser ausfüllen zu lassen, und prüfen Sie, ob sie die des Kontos ist.
+es in Mate nur mit seinen ersten 16 Zeichen. Andernfalls prüfen Sie, ob die E-Mail-Adresse die des
+Kontos ist, ohne zusätzliche Zeichen.
 
 **Ein Befehl meldet „Timeout" / bernsteinfarbener Hinweis.**
 Das ist (in der Regel) kein Problem von Mate. Die Befehle erfolgen in *Echtzeit* und hängen von der
