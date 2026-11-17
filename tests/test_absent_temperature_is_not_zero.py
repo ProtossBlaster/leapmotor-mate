@@ -241,16 +241,22 @@ def test_a_real_zero_is_printed_on_the_page_too():
     assert row and "0.0 °C" in row
 
 
-@pytest.mark.parametrize("absent,wide", [((), False),
-                                         (("inside_temp",), True),
-                                         (("inside_temp", "ac_target"), False),
-                                         (("inside_temp", "ac_target", "battery_temp"), True)])
-def test_the_odometer_takes_the_whole_width_when_the_grid_would_be_left_open(absent, wide):
-    """These are half-width cells: an odd number of them leaves a hole in the last row, and the
-    odometer alone in a 130px column wraps its value onto a second line. Silvio saw exactly that on
-    the T03 screenshot. Odd total ⟺ an even number of temperatures survive."""
-    row = _render_card(absent=absent).split("odometer", 1)[0].rsplit("<div", 1)[1]
-    assert ("col-span-2" in row) is wide
+_TEMPS = ("inside_temp", "outside_temp", "ac_target", "battery_temp")
+
+
+@pytest.mark.parametrize("absent", [tuple(t for i, t in enumerate(_TEMPS) if mask >> i & 1)
+                                    for mask in range(2 ** len(_TEMPS))])
+def test_the_grid_of_half_width_cells_closes_flush(absent):
+    """These are half-width cells: an odd number of them leaves a hole in the last row (#491: a T03
+    with three temperatures hidden showed *Target A/C* alone in the left half), and the odometer
+    alone in a 130px column wraps its value onto a second line. The odometer takes the whole width
+    exactly when the temperatures left are an even number, for every set of hidden sensors."""
+    out = _render_card(absent=absent)
+    grid = out.split('grid grid-cols-2', 1)[1].split("READY", 1)[0]
+    halves = grid.count('<div class="flex justify-between gap-2 text-slate-400">')
+    assert halves % 2 == 0, f"{halves} half-width cells with {absent or 'nothing'} hidden"
+    odometer = out.split("odometer", 1)[0].rsplit("<div", 1)[1]
+    assert ("col-span-2" in odometer) is ((len(_TEMPS) - len(absent)) % 2 == 0)
 
 
 def test_the_flag_is_a_template_global_not_a_context_key():

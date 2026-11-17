@@ -133,10 +133,13 @@
 {% set tyres = tyre_warning() %}
 <div class="grid grid-cols-2 gap-3 text-sm">
   {# These are half-width cells, so an ODD number of them leaves a hole in the last row — and the
-     odometer alone in a 130px column wraps its own value onto a second line. Odd total ⟺ an even
-     number of temperatures survive, so the odometer takes the full width exactly then, and the
-     grid closes flush whether three rows are hidden or none. #}
-  <div class="flex justify-between gap-2 text-slate-400{{ ' col-span-2' if absent|length is odd else '' }}">
+     odometer alone in a 130px column wraps its own value onto a second line. The odometer takes the
+     full width exactly when the temperatures left are an even number, so the grid closes flush
+     whichever rows are hidden. Counted from the four rows below, not from `absent`'s parity: that
+     was written for three temperatures, and when the outside one came it left a hole in every case
+     (#491: a T03 with three hidden showed *Target A/C* alone in the left half). #}
+  {% set temps_shown = ['inside_temp', 'outside_temp', 'ac_target', 'battery_temp']|reject('in', absent)|list|length %}
+  <div class="flex justify-between gap-2 text-slate-400{{ ' col-span-2' if temps_shown is even else '' }}">
     <span class="min-w-0 break-words">{{ t('odometer') }}</span>
     <span class="text-white font-medium whitespace-nowrap">{{ (status.odometer_km or 0) | dist(0) }}</span>
   </div>
