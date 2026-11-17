@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v4.31.0 · **Idioma:** Español
+> **Versión de Mate:** v5.0.0 · **Idioma:** Español
 
-## Novedades de la versión 4.31.0
+## Novedades de la versión 5.0.0
+
+**Neumáticos de verano e invierno, cada juego con sus kilómetros.** Desactivado hasta que lo actives en
+*Ajustes → 🛞 Neumáticos de verano e invierno*. Elige el día en que se montan los de invierno y el día en
+que se montan los de verano; los días se repiten cada año. La página *Mantenimiento* muestra entonces el
+juego montado, los kilómetros de esta temporada y el total de cada juego, contados desde el
+cuentakilómetros que Mate ya tiene, temporadas pasadas incluidas (D#493, @DanielBrol).
+
+### Novedades de la versión 4.31.0
 
 **Se nombra una contraseña que la app de Leapmotor recortó.** La app puede guardar solo los primeros 16
 caracteres de una contraseña, sin avisar. Cuando la nube rechaza una más larga, el asistente de

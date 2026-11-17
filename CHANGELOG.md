@@ -3,6 +3,15 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.0.0] — 2026-11-17
+
+See [the notes](docs/releases/v5.0.0.md).
+
+- **Summer and winter tyres, each set with its own kilometres** ([D#493](https://github.com/ProtossBlaster/leapmotor-mate/discussions/493), @DanielBrol).
+  Off unless switched on in *Settings → 🛞 Summer and winter tyres*: choose the day each set goes on, and the
+  Maintenance page shows the set on the car, this season's kilometres and each set's total, past seasons included.
+- **The FAQ on a refused sign-in** asks for the account's email with no extra characters, however it is entered.
+
 ## [4.31.0] — 2026-11-17
 
 See [the notes](docs/releases/v4.31.0.md).

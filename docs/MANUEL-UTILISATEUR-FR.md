@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v4.31.0 · **Langue :** Français
+> **Version de Mate :** v5.0.0 · **Langue :** Français
 
-## Nouveautés de la version 4.31.0
+## Nouveautés de la version 5.0.0
+
+**Pneus été et hiver, chaque train avec ses kilomètres.** Désactivé tant que vous ne l'activez pas dans
+*Paramètres → 🛞 Pneus été et hiver*. Choisissez le jour de pose des pneus hiver et celui des pneus été ;
+les jours se répètent chaque année. La page *Entretien* affiche alors le train monté, les kilomètres de
+cette saison et le total de chaque train, comptés depuis le compteur kilométrique dont Mate dispose déjà,
+saisons passées comprises (D#493, @DanielBrol).
+
+### Nouveautés de la version 4.31.0
 
 **Un mot de passe coupé par l'application Leapmotor est signalé.** L'application peut ne garder que les 16
 premiers caractères d'un mot de passe, sans avertir. Quand le cloud en refuse un plus long, l'assistant de

@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v4.31.0 · **Language:** English
+> **Mate version:** v5.0.0 · **Language:** English
 
-## New in 4.31.0
+## New in 5.0.0
+
+**Summer and winter tyres, each set with its own kilometres.** Off unless you switch it on in *Settings →
+🛞 Summer and winter tyres*. Choose the day the winter tyres go on and the day the summer ones go on; the
+days repeat every year. The *Maintenance* page then shows the set on the car, this season's kilometres and
+each set's total, counted from the odometer Mate already has, past seasons included (D#493, @DanielBrol).
+
+### New in 4.31.0
 
 **A password the Leapmotor app cut short is named.** The app can keep only the first 16 characters of a
 password, without a warning. When the cloud refuses a longer one, the setup wizard says to try its first 16

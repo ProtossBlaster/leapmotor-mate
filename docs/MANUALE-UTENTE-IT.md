@@ -1,8 +1,16 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v4.31.0 · **Lingua:** Italiano
+> **Versione di Mate:** v5.0.0 · **Lingua:** Italiano
 
-## Novità della 4.31.0
+## Novità della 5.0.0
+
+**Gomme estive e invernali, ogni treno con i suoi chilometri.** Spenta finché non la accendi in
+*Impostazioni → 🛞 Gomme estive e invernali*. Scegli il giorno di montaggio delle invernali e quello delle
+estive; i giorni si ripetono ogni anno. La pagina *Manutenzione* mostra allora il treno montato, i
+chilometri di questa stagione e il totale di ciascun treno, contati dal contachilometri che Mate ha già,
+stagioni passate comprese (D#493, @DanielBrol).
+
+### Novità della 4.31.0
 
 **Una password tagliata dall'app Leapmotor viene nominata.** L'app può tenere solo i primi 16 caratteri di
 una password, senza avvisare. Quando il cloud ne rifiuta una più lunga, la configurazione guidata dice di

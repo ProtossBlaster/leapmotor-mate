@@ -1,8 +1,16 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v4.31.0 · **Sprache:** Deutsch
+> **Mate-Version:** v5.0.0 · **Sprache:** Deutsch
 
-## Neu in Version 4.31.0
+## Neu in Version 5.0.0
+
+**Sommer- und Winterreifen, jeder Satz mit seinen eigenen Kilometern.** Aus, bis Sie es unter
+*Einstellungen → 🛞 Sommer- und Winterreifen* einschalten. Wählen Sie den Tag, an dem die Winterreifen,
+und den, an dem die Sommerreifen montiert werden; die Tage wiederholen sich jedes Jahr. Die Seite
+*Wartung* zeigt dann den montierten Satz, die Kilometer dieser Saison und die Summe jedes Satzes, gezählt
+aus dem Kilometerstand, den Mate bereits hat, vergangene Saisons eingeschlossen (D#493, @DanielBrol).
+
+### Neu in Version 4.31.0
 
 **Ein von der Leapmotor-App gekürztes Passwort wird benannt.** Die App kann nur die ersten 16 Zeichen eines
 Passworts übernehmen, ohne Hinweis. Lehnt die Cloud ein längeres ab, sagt der Einrichtungsassistent, es mit
