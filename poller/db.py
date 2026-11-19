@@ -1,9 +1,12 @@
 """SQLite database layer. Switch DATABASE_URL to postgresql://... for production."""
+import functools
+import inspect
 import json
 import logging
 import math
 import os
 import sqlite3
+import threading
 import time
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
@@ -371,6 +374,10 @@ class Database:
                 time.sleep(0.05)
 
     def __init__(self, path: str = "leapmotor_mate.db"):
+        # One connection, two threads: the poll loop and paho's network thread, which runs a Home
+        # Assistant command and reads the car's PIN for it. Every method holds this lock (see
+        # `_one_thread_at_a_time` below the class) — re-entrant, because methods call methods.
+        self._lock = threading.RLock()
         self._path = path
         self._conn = sqlite3.connect(path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
@@ -2840,3 +2847,28 @@ class Database:
 
     def close(self):
         self._conn.close()
+
+
+def _one_thread_at_a_time(cls):
+    """Every method of `cls` runs holding `self._lock` (#495, @chengler).
+
+    The connection is opened with `check_same_thread=False`, and SQLite does not serialise one
+    connection shared by two threads: a statement from paho's thread in the middle of the poll
+    loop's answers `bad parameter or other API misuse` to both. The command lost its PIN ("Vehicle
+    PIN is missing") and the poll loop its frame. Every method fetches before it returns — none
+    hands out a cursor or a generator — so holding the lock for the call covers the whole use.
+    → tests/test_the_database_serves_one_thread_at_a_time.py"""
+    def serialised(method):
+        @functools.wraps(method)
+        def call(self, *args, **kwargs):
+            with self._lock:
+                return method(self, *args, **kwargs)
+        return call
+
+    for name, member in list(vars(cls).items()):
+        if inspect.isfunction(member) and not name.startswith("__"):
+            setattr(cls, name, serialised(member))
+    return cls
+
+
+Database = _one_thread_at_a_time(Database)
