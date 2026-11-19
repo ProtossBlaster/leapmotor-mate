@@ -1,6 +1,6 @@
 """SQLite database layer. Switch DATABASE_URL to postgresql://... for production."""
 import functools
-import inspect
+import types
 import json
 import logging
 import math
@@ -2866,7 +2866,7 @@ def _one_thread_at_a_time(cls):
         return call
 
     for name, member in list(vars(cls).items()):
-        if inspect.isfunction(member) and not name.startswith("__"):
+        if isinstance(member, types.FunctionType) and not name.startswith("__"):
             setattr(cls, name, serialised(member))
     return cls
 
