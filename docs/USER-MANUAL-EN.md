@@ -1,6 +1,6 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v5.0.1 · **Language:** English
+> **Mate version:** v5.0.2 · **Language:** English
 
 ## New in 5.0.1
 

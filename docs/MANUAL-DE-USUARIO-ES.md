@@ -1,6 +1,6 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v5.0.1 · **Idioma:** Español
+> **Versión de Mate:** v5.0.2 · **Idioma:** Español
 
 ## Novedades de la versión 5.0.1
 

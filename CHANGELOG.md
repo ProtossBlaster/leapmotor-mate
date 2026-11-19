@@ -3,6 +3,13 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.0.2] — 2026-11-19
+
+See [the notes](docs/releases/v5.0.2.md).
+
+- **5.0.1's fix uses a module the desktop app declares.** The #495 fix used Python's `inspect`, which is not
+  in the list of modules MateDesktop is built with; it now uses `types`. Same behaviour as 5.0.1.
+
 ## [5.0.1] — 2026-11-19
 
 See [the notes](docs/releases/v5.0.1.md).

@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v5.0.1:** a command from Home Assistant no longer goes out without the car's PIN when it arrives while Mate is saving a reading ([#495](https://github.com/ProtossBlaster/leapmotor-mate/issues/495), @chengler).
-See [release notes and upgrade impact](docs/releases/v5.0.1.md).
+**v5.0.2:** a command from Home Assistant no longer goes out without the car's PIN when it arrives while Mate is saving a reading ([#495](https://github.com/ProtossBlaster/leapmotor-mate/issues/495), @chengler).
+See [release notes and upgrade impact](docs/releases/v5.0.2.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -381,8 +381,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v5.0.1:** un comando da Home Assistant non parte più senza il PIN dell'auto quando arriva mentre Mate salva una lettura ([#495](https://github.com/ProtossBlaster/leapmotor-mate/issues/495), @chengler).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v5.0.1.md#italiano).
+**v5.0.2:** un comando da Home Assistant non parte più senza il PIN dell'auto quando arriva mentre Mate salva una lettura ([#495](https://github.com/ProtossBlaster/leapmotor-mate/issues/495), @chengler).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v5.0.2.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
