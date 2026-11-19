@@ -1,8 +1,15 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v5.0.0 · **Sprache:** Deutsch
+> **Mate-Version:** v5.0.1 · **Sprache:** Deutsch
 
-## Neu in Version 5.0.0
+## Neu in Version 5.0.1
+
+**Ein Befehl aus Home Assistant verliert die PIN des Autos nicht mehr.** Ein über MQTT gesendeter Befehl
+konnte, während Mate gerade einen Messwert speicherte, ohne PIN abgehen und mit „Vehicle PIN is missing“
+abgelehnt werden, und der Messwert dieses Moments ging verloren („Frame processing failed“). Der Poller
+von Mate nutzt seine Datenbank jetzt aus nur einem Thread zur gleichen Zeit (@chengler, #495).
+
+### Neu in Version 5.0.0
 
 **Sommer- und Winterreifen, jeder Satz mit seinen eigenen Kilometern.** Aus, bis Sie es unter
 *Einstellungen → 🛞 Sommer- und Winterreifen* einschalten. Wählen Sie den Tag, an dem die Winterreifen,

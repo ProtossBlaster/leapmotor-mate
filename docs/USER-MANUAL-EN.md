@@ -1,8 +1,15 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v5.0.0 · **Language:** English
+> **Mate version:** v5.0.1 · **Language:** English
 
-## New in 5.0.0
+## New in 5.0.1
+
+**A Home Assistant command no longer loses the car's PIN.** A command sent over MQTT while Mate was
+saving a reading could go out without the PIN and be refused with "Vehicle PIN is missing", and the
+reading of that moment was lost ("Frame processing failed"). Mate's poller now uses its database from one
+thread at a time (@chengler, #495).
+
+### New in 5.0.0
 
 **Summer and winter tyres, each set with its own kilometres.** Off unless you switch it on in *Settings →
 🛞 Summer and winter tyres*. Choose the day the winter tyres go on and the day the summer ones go on; the

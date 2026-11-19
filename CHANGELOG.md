@@ -3,6 +3,14 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.0.1] — 2026-11-19
+
+See [the notes](docs/releases/v5.0.1.md).
+
+- **A Home Assistant command no longer loses the car's PIN** ([#495](https://github.com/ProtossBlaster/leapmotor-mate/issues/495), @chengler).
+  A command sent over MQTT while Mate was saving a reading could go out with no PIN ("Vehicle PIN is missing"), and
+  that reading was lost ("Frame processing failed"). The poller now uses its database from one thread at a time.
+
 ## [5.0.0] — 2026-11-17
 
 See [the notes](docs/releases/v5.0.0.md).

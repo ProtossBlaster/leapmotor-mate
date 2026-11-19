@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v5.0.0 · **Idioma:** Español
+> **Versión de Mate:** v5.0.1 · **Idioma:** Español
 
-## Novedades de la versión 5.0.0
+## Novedades de la versión 5.0.1
+
+**Un comando desde Home Assistant ya no pierde el PIN del coche.** Un comando enviado por MQTT mientras
+Mate guardaba una lectura podía salir sin PIN y ser rechazado con «Vehicle PIN is missing», y la lectura
+de ese momento se perdía («Frame processing failed»). Ahora el poller de Mate usa su base de datos desde
+un solo hilo a la vez (@chengler, #495).
+
+### Novedades de la versión 5.0.0
 
 **Neumáticos de verano e invierno, cada juego con sus kilómetros.** Desactivado hasta que lo actives en
 *Ajustes → 🛞 Neumáticos de verano e invierno*. Elige el día en que se montan los de invierno y el día en
