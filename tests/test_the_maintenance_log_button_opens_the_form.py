@@ -14,6 +14,7 @@ import re
 import jinja2
 import pytest
 
+import i18n
 import maintenance
 import units
 
@@ -26,7 +27,9 @@ def page(monkeypatch):
     maint = maintenance.compute({"car_type": "B10", "id": 1}, 11563, "en")
     env = jinja2.Environment(loader=jinja2.FileSystemLoader("web/templates"))
     out = env.get_template("partials/maintenance_content.html").render(
-        maint=maint, m=maintenance.chrome("en"), today="2026-09-11")
+        maint=maint, m=maintenance.chrome("en"), today="2026-09-11",
+        # the log book (D#493) is on the page whatever the pack, and speaks through t()
+        t=i18n.get_t("en"), registry=[], event_kinds=maintenance.EVENT_KINDS, dist_unit="km")
     return out, maint
 
 

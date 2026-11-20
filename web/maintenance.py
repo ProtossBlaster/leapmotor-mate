@@ -130,15 +130,21 @@ def load_pack(car_type: Optional[str]) -> Optional[dict]:
 def _ensure_table(conn) -> None:
     conn.execute("""CREATE TABLE IF NOT EXISTS maintenance_logs (
         id INTEGER PRIMARY KEY, vehicle_id INTEGER, service_type TEXT NOT NULL,
-        done_date TEXT NOT NULL, done_odometer_km REAL, note TEXT,
+        done_date TEXT NOT NULL, done_odometer_km REAL, note TEXT, cost REAL,
         created_at TEXT DEFAULT (datetime('now')))""")
+    if "cost" not in {r[1] for r in conn.execute("PRAGMA table_info(maintenance_logs)")}:
+        try:
+            conn.execute("ALTER TABLE maintenance_logs ADD COLUMN cost REAL")
+        except sqlite3.OperationalError as exc:      # the poller added it in between
+            if "duplicate column name" not in str(exc).lower():
+                raise
 
 
 def latest_logs(vehicle_id: int) -> dict:
     """Most-recent log per service_type → {service_type: {done_date, done_odometer_km, note}}."""
     try:
         rows = db_reader._get().execute(
-            "SELECT service_type, done_date, done_odometer_km, note FROM maintenance_logs "
+            "SELECT service_type, done_date, done_odometer_km, note, cost FROM maintenance_logs "
             "WHERE vehicle_id=? ORDER BY done_date DESC, id DESC", (vehicle_id,)).fetchall()
     except sqlite3.OperationalError:
         return {}
@@ -149,12 +155,12 @@ def latest_logs(vehicle_id: int) -> dict:
 
 
 def add_log(vehicle_id: int, service_type: str, done_date: str,
-            done_km: Optional[float], note: str = "") -> None:
+            done_km: Optional[float], note: str = "", cost: Optional[float] = None) -> None:
     conn = db_reader._conn_rw()
     _ensure_table(conn)
     conn.execute(
-        "INSERT INTO maintenance_logs (vehicle_id, service_type, done_date, done_odometer_km, note) "
-        "VALUES (?,?,?,?,?)", (vehicle_id, service_type, done_date, done_km, note or None))
+        "INSERT INTO maintenance_logs (vehicle_id, service_type, done_date, done_odometer_km, note, cost) "
+        "VALUES (?,?,?,?,?,?)", (vehicle_id, service_type, done_date, done_km, note or None, cost))
     conn.commit()
 
 
@@ -219,69 +225,25 @@ def set_baseline(date_iso: str, km: Optional[float]) -> None:
         db_reader.set_setting(_key("maint_baseline_km"), str(km))
 
 
-# ── Summer and winter tyres (D#493) ───────────────────────────────────────────
-# Two days the user chooses, "MM-DD", repeated every year: winter tyres go on, summer tyres go on.
-# Off unless switched on, and per car, like the start of service above.
-def _month_day(s: str) -> Optional[tuple]:
-    """'MM-DD' → (month, day) when that day exists in EVERY year (no 29 February), else None."""
+# ── The log book and the tyre sets (D#493) ────────────────────────────────────
+# A dated record of what happens to the car, beside the services of the programme: tyre changes,
+# modifications, breakdowns, damage. Rows of maintenance_logs whose service_type is "event_<kind>",
+# which no pack item uses, so compute() never reads them as a service. The tyre sets are counted
+# from the tyre entries: each set from the day its entry says it went on.
+EVENT_KINDS = ("tyres_winter", "tyres_summer", "modification", "breakdown", "damage", "other")
+_EVENT = "event_"
+_TYRES = {"tyres_winter": "winter", "tyres_summer": "summer"}
+
+
+def _iso_day(s: str) -> Optional[date]:
     try:
-        m, d = (int(x) for x in str(s).split("-"))
-        date(2001, m, d)          # 2001 is not a leap year
-        return m, d
-    except (ValueError, TypeError):
+        return date.fromisoformat(str(s).strip()) if len(str(s).strip()) == 10 else None
+    except ValueError:
         return None
 
 
-def get_tyre_seasons() -> tuple:
-    """(enabled, winter 'MM-DD', summer 'MM-DD') of the selected car."""
-    return (db_reader.get_setting(_key("tyre_seasons_enabled"), "") == "1",
-            db_reader.get_setting(_key("tyre_winter_on"), ""),
-            db_reader.get_setting(_key("tyre_summer_on"), ""))
-
-
-def set_tyre_seasons(enabled: bool, winter: str, summer: str) -> Optional[str]:
-    """Save the switch and the two days. Returns None, or the reason nothing was saved:
-    switched on, both days must exist every year and differ."""
-    winter, summer = (winter or "").strip(), (summer or "").strip()
-    w, s = _month_day(winter), _month_day(summer)
-    if enabled and (w is None or s is None):
-        return "tyre_seasons_need_days"
-    if enabled and w == s:
-        return "tyre_seasons_same_day"
-    if w is not None:
-        db_reader.set_setting(_key("tyre_winter_on"), f"{w[0]:02d}-{w[1]:02d}")
-    if s is not None:
-        db_reader.set_setting(_key("tyre_summer_on"), f"{s[0]:02d}-{s[1]:02d}")
-    db_reader.set_setting(_key("tyre_seasons_enabled"), "1" if enabled else "0")
-    return None
-
-
-def _season_on(day: date, w: tuple, s: tuple) -> tuple:
-    """The set on the car on `day` and the day it went on: the later of the last winter day and the
-    last summer day not after `day`."""
-    def last(md):
-        d = date(day.year, *md)
-        return d if d <= day else date(day.year - 1, *md)
-    lw, ls = last(w), last(s)
-    return ("winter", lw) if lw >= ls else ("summer", ls)
-
-
-def tyre_seasons(vehicle_id: Optional[int], today: date) -> Optional[dict]:
-    """The tyre card of the Maintenance page, or None when the switch is off or a day is missing.
-
-    The odometer's last reading of each local day; the distance from one day with a reading to the
-    next goes to the set on the car on the later day — a gap is not estimated, it lands on the day
-    the next reading arrives. An odometer that goes back adds nothing. No reading at all → None
-    kilometres, not 0."""
-    enabled, winter, summer = get_tyre_seasons()
-    w, s = _month_day(winter), _month_day(summer)
-    if not enabled or w is None or s is None or w == s:
-        return None
-    current, since = _season_on(today, w, s)
-    out = {"current": current, "since": since.isoformat(), "data_from": None,
-           "season_km": None, "winter_km": None, "summer_km": None}
-    if vehicle_id is None:
-        return out
+def _daily_odometer(vehicle_id: int) -> dict:
+    """{local day: highest odometer read that day} of one car, from the positions it recorded."""
     rows = db_reader._get().execute(
         "SELECT substr(recorded_at, 1, 13) AS h, MAX(recorded_at) AS t, MAX(odometer_km) AS o "
         "FROM positions WHERE vehicle_id = ? AND odometer_km IS NOT NULL AND odometer_km > 0 "
@@ -294,6 +256,154 @@ def tyre_seasons(vehicle_id: Optional[int], today: date) -> Optional[dict]:
             continue
         d = dt.date()
         daily[d] = max(daily.get(d, 0.0), float(r["o"]))
+    return daily
+
+
+def _odometer_on(daily: dict, day: date) -> Optional[float]:
+    """The last reading of that local day, else of the last day before it with one; None if none."""
+    known = [d for d in daily if d <= day]
+    return daily[max(known)] if known else None
+
+
+def add_event(vehicle_id: int, kind: str, day: str, km: Optional[float], note: str,
+              cost: Optional[float]) -> Optional[str]:
+    """Write one log-book entry. Returns None, or why nothing was written. A blank odometer is the
+    one Mate read that day; a cost is never negative and stays NULL when not given."""
+    d = _iso_day(day)
+    if kind not in EVENT_KINDS:
+        return "registry_bad_kind"
+    if d is None:
+        return "registry_bad_date"
+    if cost is not None and cost < 0:
+        return "registry_bad_cost"
+    if km is None:
+        km = _odometer_on(_daily_odometer(vehicle_id), d)
+    add_log(vehicle_id, _EVENT + kind, d.isoformat(), km, note, cost)
+    return None
+
+
+def events(vehicle_id: int) -> list:
+    """The car's log-book entries, newest first: {id, kind, date, km, note, cost}."""
+    try:
+        rows = db_reader._get().execute(
+            "SELECT id, service_type, done_date, done_odometer_km, note, cost FROM maintenance_logs "
+            "WHERE vehicle_id = ? AND service_type LIKE 'event\\_%' ESCAPE '\\' "
+            "ORDER BY done_date DESC, id DESC", (vehicle_id,)).fetchall()
+    except sqlite3.OperationalError:
+        return []
+    return [{"id": r["id"], "kind": r["service_type"][len(_EVENT):], "date": r["done_date"],
+             "km": r["done_odometer_km"], "note": r["note"] or "", "cost": r["cost"]} for r in rows
+            if r["service_type"][len(_EVENT):] in EVENT_KINDS]
+
+
+def delete_event(vehicle_id: int, event_id: int) -> None:
+    """Remove one entry of this car's log book; an id of another car or of a service does nothing."""
+    conn = db_reader._conn_rw()
+    _ensure_table(conn)
+    conn.execute("DELETE FROM maintenance_logs WHERE id = ? AND vehicle_id = ? AND service_type LIKE 'event\\_%' "
+                 "ESCAPE '\\'", (event_id, vehicle_id))
+    conn.commit()
+
+
+def get_tyre_prior_km() -> tuple:
+    """(winter, summer) kilometres each set did before Mate's first reading, of the selected car."""
+    def km(name):
+        try:
+            return float(_setting(name)) if _setting(name) != "" else 0.0
+        except ValueError:
+            return 0.0
+    w, s = km("tyre_prior_km_winter"), km("tyre_prior_km_summer")
+    return (int(w) if w == int(w) else w, int(s) if s == int(s) else s)
+
+
+def set_tyre_prior_km(winter: Optional[float], summer: Optional[float]) -> Optional[str]:
+    """Save both; None, or why nothing was saved (a negative number)."""
+    if any(v is not None and v < 0 for v in (winter, summer)):
+        return "registry_bad_km"
+    db_reader.set_setting(_key("tyre_prior_km_winter"), str(winter or 0))
+    db_reader.set_setting(_key("tyre_prior_km_summer"), str(summer or 0))
+    return None
+
+
+# ── The two fixed days of 5.0.0 → entries, once ───────────────────────────────
+def _month_day(s: str) -> Optional[tuple]:
+    """'MM-DD' → (month, day) when that day exists in EVERY year (no 29 February), else None."""
+    try:
+        m, d = (int(x) for x in str(s).split("-"))
+        date(2001, m, d)          # 2001 is not a leap year
+        return m, d
+    except (ValueError, TypeError):
+        return None
+
+
+def _season_on(day: date, w: tuple, s: tuple) -> tuple:
+    """Under the fixed days: the set on the car on `day` and the day it went on."""
+    def last(md):
+        d = date(day.year, *md)
+        return d if d <= day else date(day.year - 1, *md)
+    lw, ls = last(w), last(s)
+    return ("winter", lw) if lw >= ls else ("summer", ls)
+
+
+def convert_tyre_days(vehicle_id: int, today: date) -> None:
+    """5.0.0 counted the sets from two days repeated every year, kept per car. Where they were
+    switched on, write one tyre entry per change they stood for — from the change that put on the
+    set of the first odometer day (or of today, without one) up to today — and switch them off, so
+    this runs once and the totals stay the ones 5.0.0 showed. The days themselves are kept."""
+    row = db_reader._get().execute("SELECT vin FROM vehicles WHERE id = ?", (vehicle_id,)).fetchone()
+    vin = ((row and row["vin"]) or "").strip().lower()
+    if not vin:
+        return
+    key = f"tyre_seasons_enabled_{vin}"
+    if db_reader.get_setting(key, "") != "1":
+        return
+    w = _month_day(db_reader.get_setting(f"tyre_winter_on_{vin}", ""))
+    s = _month_day(db_reader.get_setting(f"tyre_summer_on_{vin}", ""))
+    already = any(e["kind"] in _TYRES for e in events(vehicle_id))   # the book wins: never a second set
+    if w is not None and s is not None and w != s and not already:
+        daily = _daily_odometer(vehicle_id)
+        first = min(daily) if daily else today
+        kind, d = _season_on(min(first, today), w, s)
+        changes = [(kind, d)]
+        while True:
+            later = [date(y, *md) for y in (d.year, d.year + 1) for md in (w, s) if date(y, *md) > d]
+            nxt = min(later)
+            if nxt > today:
+                break
+            d = nxt
+            changes.append(("winter" if (d.month, d.day) == w else "summer", d))
+        for kind, d in changes:
+            add_log(vehicle_id, _EVENT + "tyres_" + kind, d.isoformat(), _odometer_on(daily, d), "", None)
+    db_reader.set_setting(key, "0")
+
+
+def tyre_seasons(vehicle_id: Optional[int], today: date) -> Optional[dict]:
+    """The tyre card of the Maintenance page, or None when the log book has no tyre entry.
+
+    The set on the car on a day is the one of the latest tyre entry not after it; before the first
+    entry no set is known and nothing is counted. The distance from one local day with a reading to
+    the next goes to the set on the later day — a gap is not estimated. An odometer that goes back
+    adds nothing. The kilometres before Mate are added to each set's total. No reading and nothing
+    before Mate → None kilometres, not 0."""
+    if vehicle_id is None:
+        return None
+    changes = sorted(((date.fromisoformat(e["date"]), e["id"], _TYRES[e["kind"]])
+                      for e in events(vehicle_id) if e["kind"] in _TYRES))
+    if not changes:
+        return None
+
+    def set_on(d):
+        on = [c for c in changes if c[0] <= d]
+        return on[-1][2] if on else None
+
+    current = [c for c in changes if c[0] <= today]
+    current = current[-1] if current else changes[0]
+    since = current[0]
+    prior_w, prior_s = get_tyre_prior_km()
+    out = {"current": current[2], "since": since.isoformat(), "data_from": None,
+           "season_km": None, "winter_km": (prior_w or None), "summer_km": (prior_s or None),
+           "prior_winter_km": prior_w, "prior_summer_km": prior_s}
+    daily = _daily_odometer(vehicle_id)
     if not daily:
         return out
     km = {"winter": 0.0, "summer": 0.0}
@@ -302,12 +412,14 @@ def tyre_seasons(vehicle_id: Optional[int], today: date) -> Optional[dict]:
     for d in sorted(daily):
         o = daily[d]
         if top is not None and o > top:
-            km[_season_on(d, w, s)[0]] += o - top
+            which = set_on(d)
+            if which is not None:
+                km[which] += o - top
             if since <= d <= today:
                 season_km += o - top
         top = o if top is None else max(top, o)
     out.update(data_from=min(daily).isoformat(), season_km=round(season_km),
-               winter_km=round(km["winter"]), summer_km=round(km["summer"]))
+               winter_km=round(km["winter"] + prior_w), summer_km=round(km["summer"] + prior_s))
     return out
 
 
@@ -326,7 +438,20 @@ def tyre_view(vehicle_id: Optional[int], lang: str) -> Optional[dict]:
         return _dist(km, lang, system) if km is not None else None
     return {**s, "since_disp": day(s["since"]), "data_from_disp": day(s["data_from"]),
             "season_disp": dist(s["season_km"]), "winter_disp": dist(s["winter_km"]),
-            "summer_disp": dist(s["summer_km"])}
+            "summer_disp": dist(s["summer_km"]),
+            "prior_winter_input": round(units.dist_val(s["prior_winter_km"], 0, system)),
+            "prior_summer_input": round(units.dist_val(s["prior_summer_km"], 0, system))}
+
+
+def events_view(vehicle_id: Optional[int], lang: str) -> list:
+    """events() with the date and the distance as the page shows them."""
+    import i18n
+    if vehicle_id is None:
+        return []
+    system = units.get_unit_system()
+    return [{**e, "date_disp": i18n.fmt_day_month_year(lang, date.fromisoformat(e["date"])),
+             "km_disp": _dist(e["km"], lang, system) if e["km"] is not None else None}
+            for e in events(vehicle_id)]
 
 
 # ── Formatting helpers (distance respects the user's unit system) ─────────────
@@ -512,6 +637,7 @@ def compute(vehicle: Optional[dict], current_km: Optional[float], lang: str) -> 
             "interval_text": _interval_text(it, lang, system),
             "last_text": last_text,
             "from_log": from_log,
+            "last_cost": log.get("cost") if from_log else None,
             "km_pct": km_pct,
             "time_pct": time_pct,
         })

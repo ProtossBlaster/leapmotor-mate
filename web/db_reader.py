@@ -6009,6 +6009,24 @@ def trip_places(trips: list[dict]) -> bool:
     return places_credit(trips)
 
 
+def get_last_full_charge() -> dict | None:
+    """The selected car's latest closed charge that ended at 100% (D#490), named by where it
+    happened like the Charges page names it, with how many local days ago it ended; None if none.
+    100 means 100: a charge that stopped at 99.9 is not one."""
+    row = _get().execute(
+        "SELECT * FROM charges WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL "
+        "AND end_soc >= 100 ORDER BY ended_at DESC LIMIT 1", (_current_vehicle_id(),)).fetchone()
+    if row is None:
+        return None
+    charge = dict(row)
+    charge_places([charge])
+    tz = _local_tz()
+    ended = _local_dt(charge["ended_at"], tz)
+    charge["days_ago"] = (datetime.now(tz).date() - ended.date()).days if ended else None
+    charge["ended_day"] = ended.date() if ended else None
+    return charge
+
+
 def charge_places(charges: list[dict]) -> None:
     """Name each charge by where it happened, `place`: the charging place assigned to it, else the
     station found or typed ('' is a lookup that found none), else the car's charging place whose radius

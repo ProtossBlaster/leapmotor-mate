@@ -1870,7 +1870,7 @@ async def battery_page(request: Request):
     fetches its own — see partials/battery_health.html and partials/battery_vampire.html."""
     vehicle, _ = db_reader.get_vehicle()
     return templates.TemplateResponse(request, "battery.html", _ctx(
-        page="battery", vehicle=vehicle,
+        page="battery", vehicle=vehicle, last_full=db_reader.get_last_full_charge(),
     ))
 
 
@@ -2502,15 +2502,20 @@ async def fuel_edit(request: Request):
                                       headers={"HX-Trigger": "fuelChanged"})
 
 
-def _maint_ctx(request: Request):
+def _maint_ctx(request: Request, error: str = ""):
     """Shared context for the maintenance page + its HTMX partial responses."""
     from datetime import date
     vehicle, _ = db_reader.get_vehicle()
     lang = db_reader.get_language()
     status = db_reader.get_latest_status() or {}
+    vid = (vehicle or {}).get("id")
+    if vid is not None:
+        maintenance.convert_tyre_days(vid, date.today())   # 5.0.0's two fixed days → entries, once
     data = maintenance.compute(vehicle, status.get("odometer_km"), lang)
     return _ctx(page="maintenance", vehicle=vehicle, maint=data,
-                tyres=maintenance.tyre_view((vehicle or {}).get("id"), lang),
+                tyres=maintenance.tyre_view(vid, lang), registry=maintenance.events_view(vid, lang),
+                event_kinds=maintenance.EVENT_KINDS, registry_error=error,
+                dist_unit=units.dist_unit(units.get_unit_system()),
                 m=maintenance.chrome(lang), today=date.today().isoformat())
 
 
@@ -2531,8 +2536,64 @@ async def maintenance_log(request: Request):
             km = units.dist_to_km(float(form.get("km"))) if (form.get("km") or "") != "" else None
         except (TypeError, ValueError):
             km = None
-        maintenance.add_log(vehicle["id"], st, dt, km, (form.get("note") or "").strip())
+        cost = _form_number(form.get("cost"))
+        if cost is None or cost >= 0:
+            maintenance.add_log(vehicle["id"], st, dt, km, (form.get("note") or "").strip(), cost)
     return templates.TemplateResponse(request, "partials/maintenance_content.html", _maint_ctx(request))
+
+
+def _form_number(raw) -> "float | None":
+    """A number typed in a form, comma or dot as the decimal mark; blank or not a number → None."""
+    raw = (raw or "").strip().replace(",", ".")
+    try:
+        return float(raw) if raw else None
+    except ValueError:
+        return None
+
+
+@app.post("/api/maintenance/event", response_class=HTMLResponse)
+async def maintenance_event(request: Request):
+    """One log-book entry (D#493). A blank odometer is the one Mate read that day; a cost or an
+    odometer that is not a number is refused, not dropped."""
+    form = await request.form()
+    vehicle, _ = db_reader.get_vehicle()
+    err = ""
+    if vehicle:
+        km_raw, cost_raw = (form.get("km") or "").strip(), (form.get("cost") or "").strip()
+        km, cost = _form_number(km_raw), _form_number(cost_raw)
+        if (km_raw and km is None) or (km is not None and km < 0):
+            err = "registry_bad_km"
+        elif cost_raw and cost is None:
+            err = "registry_bad_cost"
+        else:
+            err = maintenance.add_event(vehicle["id"], (form.get("kind") or "").strip(),
+                                        (form.get("date") or "").strip(),
+                                        units.dist_to_km(km) if km is not None else None,
+                                        (form.get("note") or "").strip()[:200], cost) or ""
+    return templates.TemplateResponse(request, "partials/maintenance_content.html", _maint_ctx(request, err))
+
+
+@app.post("/api/maintenance/event/delete", response_class=HTMLResponse)
+async def maintenance_event_delete(request: Request):
+    form = await request.form()
+    vehicle, _ = db_reader.get_vehicle()
+    try:
+        event_id = int(form.get("id") or "")
+    except ValueError:
+        event_id = None
+    if vehicle and event_id is not None:
+        maintenance.delete_event(vehicle["id"], event_id)
+    return templates.TemplateResponse(request, "partials/maintenance_content.html", _maint_ctx(request))
+
+
+@app.post("/api/maintenance/tyre-prior", response_class=HTMLResponse)
+async def maintenance_tyre_prior(request: Request):
+    """The kilometres each tyre set did before Mate, typed in the user's unit."""
+    form = await request.form()
+    w, s = _form_number(form.get("winter")), _form_number(form.get("summer"))
+    err = maintenance.set_tyre_prior_km(units.dist_to_km(w) if w is not None else None,
+                                        units.dist_to_km(s) if s is not None else None) or ""
+    return templates.TemplateResponse(request, "partials/maintenance_content.html", _maint_ctx(request, err))
 
 
 @app.post("/api/maintenance/unlog", response_class=HTMLResponse)
@@ -3137,8 +3198,6 @@ async def settings_page(request: Request):
     return templates.TemplateResponse(request, "settings.html", _ctx(
         page="settings", vehicle=vehicle, settings=settings, card_open=card_open,
         new_sections=new_sections,
-        tyre_seasons=maintenance.get_tyre_seasons(),
-        tyre_months=i18n._MONTHS.get(db_reader.get_language(), i18n._MONTHS["en"])["full"],
         charge_types=db_reader.charge_types_localised(),
         ha_url=db_reader.get_setting("ha_url", ""),
         ha_has_token=bool(db_reader.get_setting("ha_token", "")),
@@ -3465,24 +3524,6 @@ async def save_elevation(request: Request):
     val = "1" if form.get("elevation_enabled") in ("1", "on", "true") else "0"
     db_reader.set_setting("elevation_enabled", val)
     t = i18n.get_t(db_reader.get_language())
-    return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("retention_saved")}</span>')
-
-
-@app.post("/api/settings/tyre-seasons", response_class=HTMLResponse)
-async def save_tyre_seasons(request: Request):
-    """Summer and winter tyres counted apart (D#493): the switch and the two days, of the selected
-    car. Switched on, both days must exist every year and differ, or nothing is saved."""
-    form = await request.form()
-
-    def md(prefix):
-        m, d = (form.get(f"{prefix}_month") or "").strip(), (form.get(f"{prefix}_day") or "").strip()
-        return f"{m}-{d}" if m and d else ""
-    enabled = form.get("tyre_seasons_enabled") in ("1", "on", "true")
-    err = maintenance.set_tyre_seasons(enabled, md("winter"), md("summer"))
-    from html import escape
-    t = i18n.get_t(db_reader.get_language())
-    if err:
-        return HTMLResponse(f'<span style="color:#f87171;font-size:13px">{escape(t(err))}</span>')
     return HTMLResponse(f'<span style="color:#22c55e;font-size:13px">{t("retention_saved")}</span>')
 
 
@@ -4757,7 +4798,7 @@ async def test_mqtt(request: Request):
 # Every collapsible card on the Settings accordion. Used both to build the initial
 # open/collapsed map and as the allowlist for the ui-state save endpoint.
 _UI_CARD_KEYS = {"cloud_import", "locale", "vehicle", "battery", "polling", "charge_detect", "trips", "advanced",
-                 "abrp", "geocoder", "charger_locator", "wallbox", "mqtt", "tyres",
+                 "abrp", "geocoder", "charger_locator", "wallbox", "mqtt",
                  "database", "export", "diagnostics"}
 
 # Settings sections flagged "new in a recent release": the section shows a NEW badge on its header
