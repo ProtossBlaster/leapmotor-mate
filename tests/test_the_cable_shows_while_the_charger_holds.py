@@ -97,6 +97,10 @@ def test_the_car_picture_is_redrawn_when_the_port_reports_the_cable(car, monkeyp
     monkeypatch.setattr(main.car_image, "compose", lambda pkg, status: (drawn.append(status.get("cable_connected")) or b"IMG", "image/png"))
     main._car_image_memo.clear()
     main._car_pic_boot_refresh = False
+    # A download that failed in an earlier test of the same process leaves a 10-minute back-off, and
+    # with no package on disk the route then answers 404 without drawing: [] == [False, True], seen
+    # once in a parallel run of the suite (20/11/2026).
+    monkeypatch.setattr(main, "_car_pic_retry_after", 0.0)
     car.frame(plug_connected=0, ac_port_mode=0)
     asyncio.run(main.car_picture())
     car.frame(plug_connected=0, ac_port_mode=1)
