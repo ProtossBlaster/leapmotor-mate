@@ -26,7 +26,7 @@ import pytest
 import battery_packs
 
 SETUP = pathlib.Path(__file__).resolve().parent.parent / "web" / "templates" / "setup.html"
-LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs")
+LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs", "hr")
 
 
 def _hints():

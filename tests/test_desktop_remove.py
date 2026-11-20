@@ -93,7 +93,7 @@ def test_the_confirmation_says_it_cannot_be_undone(locale):
     assert len(msg) > 80, f"{locale}: the warning is too short to warn"
     # Every language mentions the backup route out, in its own words; checking for the section
     # name is the one token they all share.
-    assert "ackup" in msg or "opia" in msg or "auvegarde" in msg or "xport" in msg, \
+    assert "ackup" in msg or "opia" in msg or "opija" in msg or "auvegarde" in msg or "xport" in msg, \
         f"{locale}: does not point at the backup before destroying anything"
 
 
