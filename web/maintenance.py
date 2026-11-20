@@ -359,7 +359,8 @@ def convert_tyre_days(vehicle_id: int, today: date) -> None:
         return
     w = _month_day(db_reader.get_setting(f"tyre_winter_on_{vin}", ""))
     s = _month_day(db_reader.get_setting(f"tyre_summer_on_{vin}", ""))
-    if w is not None and s is not None and w != s:
+    already = any(e["kind"] in _TYRES for e in events(vehicle_id))   # the book wins: never a second set
+    if w is not None and s is not None and w != s and not already:
         daily = _daily_odometer(vehicle_id)
         first = min(daily) if daily else today
         kind, d = _season_on(min(first, today), w, s)

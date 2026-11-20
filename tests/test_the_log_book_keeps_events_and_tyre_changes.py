@@ -295,3 +295,16 @@ def test_a_tyre_entry_brings_the_tyre_card(app):
 def test_the_settings_page_no_longer_asks_for_two_days(app):
     page = app.get("/settings").text
     assert 'name="tyre_seasons_enabled"' not in page
+
+
+def test_the_conversion_writes_nothing_where_tyre_entries_already_are(car):
+    """A database where the days are still switched on AND the book already has tyre entries (a
+    restored backup, a second process): the entries are the truth, the days are only switched off."""
+    import db_reader
+    maintenance, odo = car
+    odo("2026-05-01", 5000)
+    maintenance.add_event(1, "tyres_summer", "2026-04-03", None, "", None)
+    _fixed_days()
+    maintenance.convert_tyre_days(1, date(2026, 11, 17))
+    assert [(e["kind"], e["date"]) for e in maintenance.events(1)] == [("tyres_summer", "2026-04-03")]
+    assert db_reader.get_setting(f"tyre_seasons_enabled_{VIN.lower()}") == "0"
