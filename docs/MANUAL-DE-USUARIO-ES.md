@@ -1,8 +1,24 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v5.0.2 · **Idioma:** Español
+> **Versión de Mate:** v5.1.0 · **Idioma:** Español
 
-## Novedades de la versión 5.0.1
+## Novedades de la versión 5.1.0
+
+**Un registro en la página Mantenimiento.** Anota con su fecha lo que le pasa al coche: cambios de
+neumáticos, modificaciones, averías, daños, cada uno con una nota y, si quieres, lo que costó. Si dejas el
+cuentakilómetros vacío, Mate usa el que leyó ese día. Una operación del plan oficial también admite un
+coste (D#493, @DanielBrol).
+
+**Neumáticos de verano e invierno desde el registro.** Los kilómetros de cada juego empiezan el día en que
+su entrada dice que se montó, así que el cambio puede caer en un día distinto cada año, y puedes añadir los
+kilómetros que cada juego hizo antes de Mate. Los dos días fijos de la 5.0.0 se convierten una sola vez en
+una entrada por cambio, con los mismos totales, y su tarjeta en *Ajustes* desaparece (D#493).
+
+**La última carga al 100 %.** La página *Salud de la batería* muestra la última carga que terminó al
+100 %, su día, hace cuánto y dónde. Una batería LFP necesita de vez en cuando una carga al 100 % para que
+sus celdas se equilibren y su nivel se mida bien; la página no fija un límite propio (D#490, @Tommy73LMB05).
+
+### Novedades de la versión 5.0.1
 
 **Un comando desde Home Assistant ya no pierde el PIN del coche.** Un comando enviado por MQTT mientras
 Mate guardaba una lectura podía salir sin PIN y ser rechazado con «Vehicle PIN is missing», y la lectura
@@ -1916,6 +1932,11 @@ porque una única medición no tiene dispersión que declarar.
 Es una **estimación**, entonces — no un diagnóstico de laboratorio — y se va asentando a medida que se
 acumulan cargas.
 
+**Última carga al 100 %.** Arriba en la página: la última carga cerrada que terminó al 100 %, con su
+día, hace cuántos días y dónde, nombrada como en *Cargas*. Una carga detenida al 99,9 % no cuenta. Una
+batería LFP se carga al 100 % de vez en cuando para que sus celdas se equilibren y su nivel se mida bien;
+con qué frecuencia lo decides tú, y la página no fija ningún umbral (D#490, @Tommy73LMB05).
+
 ### Mantenimiento
 **(menú: Mantenimiento)** — Los **plazos de mantenimiento** de tu coche, según el **plan oficial de tu
 modelo** (T03, B05, B10, C10). De cada operación (revisión, líquido de frenos, filtro de habitáculo,
@@ -1930,13 +1951,18 @@ toca es lo que llegue primero.
 - La **fecha de matriculación o entrega ahora se puede editar**: haz clic en el **✏️** que hay junto a
   la fecha guardada para corregir un error (el valor nuevo sustituye al anterior).
 - Las distancias respetan la unidad elegida (km o millas).
-- **Neumáticos de verano e invierno** (desactivado hasta que lo actives en *Ajustes → 🛞 Neumáticos
-  de verano e invierno*): elige el día en que se montan los de invierno y el día en que se montan los
-  de verano; los días se repiten cada año y son del coche seleccionado. La página muestra entonces una
-  tarjeta 🛞 con el juego montado hoy, los kilómetros de esta temporada y el total de cada juego,
-  contados desde el cuentakilómetros que Mate ha guardado, temporadas pasadas incluidas. Los días sin
-  lectura no se estiman: la distancia va al día en que llega la lectura siguiente. El 29 de febrero no
-  se puede elegir (D#493, @DanielBrol).
+- **Registro** (D#493, @DanielBrol): **+ Añadir** guarda una entrada con su tipo (neumáticos de
+  invierno montados, neumáticos de verano montados, modificación, avería, daño, otro), fecha,
+  cuentakilómetros, coste y nota. Un cuentakilómetros vacío es el que Mate leyó ese día, o el último día
+  anterior con una lectura. 🗑 borra una entrada. Una operación del plan también admite un coste. Los
+  costes se quedan en esta página: no se suman a los costes de las cargas.
+- **Neumáticos de verano e invierno**: la tarjeta 🛞 aparece con la primera entrada de neumáticos del
+  registro. Muestra el juego montado, los kilómetros de esta temporada y el total de cada juego. Cada
+  juego cuenta desde el día en que su entrada dice que se montó; antes de la primera entrada no se conoce
+  ningún juego y no se cuenta nada. Los días sin lectura no se estiman: la distancia va al día de la
+  lectura siguiente. *Kilómetros de cada juego antes de Mate* suma lo que cada juego había hecho antes de
+  la primera lectura de Mate. Si usabas los dos días fijos de la 5.0.0, Mate los convirtió una vez en
+  entradas, con los mismos totales.
 
 ### Comandos
 **(menú: Comandos)** — Los **comandos a distancia**. Desde aquí puedes:

@@ -1,8 +1,24 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v5.0.2 · **Lingua:** Italiano
+> **Versione di Mate:** v5.1.0 · **Lingua:** Italiano
 
-## Novità della 5.0.1
+## Novità della 5.1.0
+
+**Un registro nella pagina Manutenzione.** Annota con la sua data quello che succede all'auto: cambi
+gomme, modifiche, guasti, danni, ognuno con una nota e, se vuoi, quanto è costato. Se lasci vuoto il
+contachilometri, Mate usa quello che ha letto quel giorno. Anche un intervento del programma ufficiale
+prende un costo (D#493, @DanielBrol).
+
+**Gomme estive e invernali dal registro.** I chilometri di ogni treno partono dal giorno in cui la sua voce
+dice che è stato montato, quindi il cambio può cadere in un giorno diverso ogni anno, e puoi aggiungere i
+chilometri che ogni treno aveva fatto prima di Mate. I due giorni fissi della 5.0.0 diventano una volta
+sola una voce per ogni cambio, con gli stessi totali, e la loro carta in *Impostazioni* non c'è più (D#493).
+
+**L'ultima ricarica al 100%.** La pagina *Salute batteria* mostra l'ultima ricarica arrivata al 100%, il
+giorno, quanto tempo fa e dove. Una batteria LFP va caricata al 100% ogni tanto, perché le celle si
+bilancino e il livello di carica sia misurato bene; la pagina non fissa un limite suo (D#490, @Tommy73LMB05).
+
+### Novità della 5.0.1
 
 **Un comando da Home Assistant non perde più il PIN dell'auto.** Un comando mandato via MQTT mentre Mate
 salvava una lettura poteva partire senza PIN ed essere rifiutato con «Vehicle PIN is missing», e la
@@ -1899,6 +1915,11 @@ compare affatto, perché una misura non ha dispersione da riportare.
 È una **stima**, quindi — non una diagnosi di laboratorio — e si assesta man mano che le ricariche si
 accumulano.
 
+**Ultima ricarica al 100%.** In cima alla pagina: l'ultima ricarica chiusa arrivata al 100%, con il
+giorno, quanti giorni fa e dove, nominata come in *Ricariche*. Una ricarica fermata al 99,9% non conta.
+Una batteria LFP va caricata al 100% ogni tanto, perché le celle si bilancino e il livello di carica sia
+misurato bene; quanto spesso lo decidi tu, e la pagina non fissa una soglia (D#490, @Tommy73LMB05).
+
 ### Manutenzione
 **(menu: Manutenzione)** — Le **scadenze di manutenzione** della tua auto, basate sul **programma
 ufficiale del tuo modello** (T03, B05, B10, C10). Per ogni intervento (es. tagliando, liquido freni,
@@ -1913,13 +1934,18 @@ il **tempo**, perché scade ciò che arriva prima.
 - La **data di immatricolazione/consegna è modificabile**: clicca la **✏️** accanto alla data
   impostata per correggere un errore (il nuovo valore sovrascrive il precedente).
 - Le distanze rispettano l'unità scelta (km o miglia).
-- **Gomme estive e invernali** (spento finché non lo accendi in *Impostazioni → 🛞 Gomme estive e
-  invernali*): scegli il giorno di montaggio delle invernali e quello delle estive; i giorni si
-  ripetono ogni anno e sono dell'auto selezionata. La pagina mostra allora una carta 🛞 con il treno
-  montato oggi, i chilometri di questa stagione e il totale di ciascun treno, contati dal
-  contachilometri che Mate ha registrato, stagioni passate comprese. I giorni senza lettura non
-  vengono stimati: la distanza va al giorno in cui arriva la lettura successiva. Il 29 febbraio non si
-  può scegliere (D#493, @DanielBrol).
+- **Registro** (D#493, @DanielBrol): **+ Aggiungi** registra una voce con tipo (gomme invernali montate,
+  gomme estive montate, modifica, guasto, danno, altro), data, contachilometri, costo e nota. Un
+  contachilometri lasciato vuoto è quello che Mate ha letto quel giorno, o l'ultimo giorno prima con una
+  lettura. 🗑 cancella una voce. Anche un intervento del programma prende un costo. I costi restano in
+  questa pagina: non vengono sommati ai costi delle ricariche.
+- **Gomme estive e invernali**: la carta 🛞 compare con la prima voce gomme del registro. Mostra il treno
+  montato, i chilometri di questa stagione e il totale di ogni treno. Ogni treno conta dal giorno in cui
+  la sua voce dice che è stato montato; prima della prima voce nessun treno è noto e non si conta niente.
+  I giorni senza lettura non vengono stimati: la distanza passa al giorno della lettura successiva.
+  *Km fatti da ogni treno prima di Mate* aggiunge quello che ogni treno aveva fatto prima della prima
+  lettura di Mate. Se usavi i due giorni fissi della 5.0.0, Mate li ha trasformati una volta in voci, con
+  gli stessi totali.
 
 ### Comandi
 **(menu: Comandi)** — I **comandi a distanza**. Da qui puoi:

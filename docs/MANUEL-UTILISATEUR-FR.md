@@ -1,8 +1,25 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v5.0.2 · **Langue :** Français
+> **Version de Mate :** v5.1.0 · **Langue :** Français
 
-## Nouveautés de la version 5.0.1
+## Nouveautés de la version 5.1.0
+
+**Un carnet sur la page Entretien.** Notez avec sa date ce qui arrive à la voiture : changements de
+pneus, modifications, pannes, dommages, chacun avec une note et, si vous voulez, son coût. Laissez le
+compteur vide et Mate prend celui qu'il a lu ce jour-là. Un entretien du programme officiel prend aussi
+un coût (D#493, @DanielBrol).
+
+**Pneus été et hiver depuis le carnet.** Les kilomètres de chaque train partent du jour où son entrée dit
+qu'il a été monté : le changement peut tomber un jour différent chaque année, et vous pouvez ajouter les
+kilomètres que chaque train avait faits avant Mate. Les deux jours fixes de la 5.0.0 deviennent une seule
+fois une entrée par changement, avec les mêmes totaux, et leur carte dans *Paramètres* disparaît (D#493).
+
+**La dernière charge à 100 %.** La page *Santé de la batterie* montre la dernière charge terminée à
+100 %, son jour, il y a combien de temps et où. Une batterie LFP a besoin d'une charge à 100 % de temps en
+temps pour que ses cellules s'équilibrent et que son niveau soit bien mesuré ; la page ne fixe pas de
+limite à elle (D#490, @Tommy73LMB05).
+
+### Nouveautés de la version 5.0.1
 
 **Une commande depuis Home Assistant ne perd plus le PIN de la voiture.** Une commande envoyée via MQTT
 pendant que Mate enregistrait une lecture pouvait partir sans PIN et être refusée avec « Vehicle PIN is
@@ -1966,6 +1983,11 @@ tout : une mesure n'a pas de dispersion à rapporter.
 C'est donc une **estimation** — pas un diagnostic de laboratoire — et elle se stabilise à mesure que les
 recharges s'accumulent.
 
+**Dernière charge à 100 %.** En haut de la page : la dernière charge terminée à 100 %, avec son jour,
+il y a combien de jours et où, nommée comme sur *Recharges*. Une charge arrêtée à 99,9 % n'en est pas
+une. Une batterie LFP est chargée à 100 % de temps en temps pour que ses cellules s'équilibrent et que
+son niveau soit bien mesuré ; la fréquence vous revient, la page ne fixe pas de seuil (D#490, @Tommy73LMB05).
+
 ### Entretien
 **(menu : Entretien)** — Les **échéances d'entretien** de votre voiture, basées sur le **programme officiel de
 votre modèle** (T03, B05, B10, C10). Pour chaque intervention (ex. révision, liquide de frein, filtre
@@ -1980,13 +2002,18 @@ car c'est la première échéance atteinte qui compte.
 - La **date d'immatriculation / de livraison est désormais modifiable** : cliquez sur le **✏️** à côté de la
   date enregistrée pour corriger une erreur (la nouvelle valeur écrase l'ancienne).
 - Les distances respectent l'unité choisie (km ou miles).
-- **Pneus été et hiver** (désactivé tant que vous ne l'activez pas dans *Paramètres → 🛞 Pneus été et
-  hiver*) : choisissez le jour de pose des pneus hiver et celui des pneus été ; les jours se répètent
-  chaque année et appartiennent à la voiture sélectionnée. La page affiche alors une carte 🛞 avec le
-  train monté aujourd'hui, les kilomètres de cette saison et le total de chaque train, comptés depuis
-  le compteur kilométrique enregistré par Mate, saisons passées comprises. Les jours sans relevé ne sont
-  pas estimés : la distance va au jour où arrive le relevé suivant. Le 29 février ne peut pas être
-  choisi (D#493, @DanielBrol).
+- **Carnet** (D#493, @DanielBrol) : **+ Ajouter** enregistre une entrée avec son type (pneus hiver
+  montés, pneus été montés, modification, panne, dommage, autre), sa date, le compteur, le coût et une
+  note. Un compteur laissé vide est celui que Mate a lu ce jour-là, ou le dernier jour avant avec un
+  relevé. 🗑 supprime une entrée. Un entretien du programme prend aussi un coût. Les coûts restent sur
+  cette page : ils ne s'ajoutent pas aux coûts des recharges.
+- **Pneus été et hiver** : la carte 🛞 apparaît avec la première entrée de pneus du carnet. Elle montre
+  le train monté, les kilomètres de cette saison et le total de chaque train. Chaque train compte depuis
+  le jour où son entrée dit qu'il a été monté ; avant la première entrée aucun train n'est connu et rien
+  n'est compté. Les jours sans relevé ne sont pas estimés : la distance va au jour du relevé suivant.
+  *Kilomètres de chaque train avant Mate* ajoute ce que chaque train avait fait avant le premier relevé
+  de Mate. Si vous utilisiez les deux jours fixes de la 5.0.0, Mate les a changés une fois en entrées,
+  avec les mêmes totaux.
 
 ### Commandes
 **(menu : Commandes)** — Les **commandes à distance**. D'ici, vous pouvez :

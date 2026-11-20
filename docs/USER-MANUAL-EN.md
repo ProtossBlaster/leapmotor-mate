@@ -1,8 +1,24 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v5.0.2 · **Language:** English
+> **Mate version:** v5.1.0 · **Language:** English
 
-## New in 5.0.1
+## New in 5.1.0
+
+**A log book on the Maintenance page.** Record what happens to the car with its date: tyre changes,
+modifications, breakdowns, damage, each with a note and, if you want, what it cost. Leave the odometer
+blank and Mate uses the one it read that day. A service of the official schedule takes a cost too
+(D#493, @DanielBrol).
+
+**Summer and winter tyres from the log book.** Each set's kilometres now start on the day its entry says
+it went on, so the change can fall on a different day every year, and you can add the kilometres each
+set did before Mate. The two fixed days of 5.0.0 are turned once into one entry per change, with the
+same totals, and their card in *Settings* is gone (D#493).
+
+**The last charge to 100%.** The *Battery health* page shows the last charge that ended at 100%, its
+day, how long ago and where. An LFP battery needs one now and then so its cells balance and its charge
+level is measured right; the page sets no limit of its own (D#490, @Tommy73LMB05).
+
+### New in 5.0.1
 
 **A Home Assistant command no longer loses the car's PIN.** A command sent over MQTT while Mate was
 saving a reading could go out without the PIN and be refused with "Vehicle PIN is missing", and the
@@ -1805,6 +1821,11 @@ measurement has no spread to report.
 
 It is an **estimate**, then — not a laboratory diagnosis — and it settles as charges accumulate.
 
+**Last charge to 100%.** At the top of the page: the last closed charge that ended at 100%, with its
+day, how many days ago and where, named as on *Charges*. A charge that stopped at 99.9% is not one.
+An LFP battery is charged to 100% now and then so its cells balance and the charge level is measured
+right; how often is your call, and the page sets no threshold (D#490, @Tommy73LMB05).
+
 ### Maintenance
 **(menu: Maintenance)** — The **maintenance due dates** for your car, based on the **official schedule
 for your model** (T03, B05, B10, C10). For each service item (e.g. service, brake fluid, cabin
@@ -1818,12 +1839,16 @@ because whatever comes first is what's due.
 - The **registration / delivery date is now editable**: click the **✏️** next to the saved date to
   correct a mistake (the new value overwrites the old one).
 - The distances respect the chosen unit (km or miles).
-- **Summer and winter tyres** (off unless switched on in *Settings → 🛞 Summer and winter tyres*):
-  choose the day the winter tyres go on and the day the summer ones go on; the days repeat every
-  year and belong to the selected car. The page then shows a 🛞 card with the set on the car today,
-  the kilometres of this season and the total of each set, counted from the odometer Mate has stored,
-  past seasons included. Days without a reading are not estimated: the distance across them goes to
-  the day the next reading arrives. 29 February cannot be chosen (D#493, @DanielBrol).
+- **Log book** (D#493, @DanielBrol): **+ Add** records an entry with its type (winter tyres fitted,
+  summer tyres fitted, modification, breakdown, damage, other), date, odometer, cost and note. A blank
+  odometer is the one Mate read that day, or the last day before it with a reading. 🗑 deletes an entry.
+  A service of the schedule takes a cost too. Costs stay on this page: they are not added to the charging costs.
+- **Summer and winter tyres**: the 🛞 card appears with the first tyre entry of the log book. It shows
+  the set on the car, this season's kilometres and each set's total. Each set counts from the day its
+  entry says it went on; before the first entry no set is known and nothing is counted. Days without a
+  reading are not estimated: the distance across them goes to the day the next reading arrives.
+  *Kilometres each set did before Mate* adds what each set had done before Mate's first reading. If you
+  used the two fixed days of 5.0.0, Mate turned them into entries once, with the same totals.
 
 ### Commands
 **(menu: Commands)** — The **remote commands**. From here you can:

@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.1.0] — 2026-11-20
+
+See [the notes](docs/releases/v5.1.0.md).
+
+- **A log book on the Maintenance page** ([D#493](https://github.com/ProtossBlaster/leapmotor-mate/discussions/493), @DanielBrol).
+  Tyre changes, modifications, breakdowns and damage, each with date, odometer, note and cost; a service of the
+  schedule takes a cost too. New column `maintenance_logs.cost`.
+- **Summer and winter tyres are counted from the log book**, so the change can fall on a different day every year, plus
+  the kilometres each set did before Mate. 5.0.0's two fixed days become entries once, same totals; their Settings card is gone.
+- **The Battery health page shows the last charge that ended at 100%** ([D#490](https://github.com/ProtossBlaster/leapmotor-mate/discussions/490), @Tommy73LMB05).
+
 ## [5.0.2] — 2026-11-19
 
 See [the notes](docs/releases/v5.0.2.md).

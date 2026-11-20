@@ -1,8 +1,26 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v5.0.2 · **Sprache:** Deutsch
+> **Mate-Version:** v5.1.0 · **Sprache:** Deutsch
 
-## Neu in Version 5.0.1
+## Neu in Version 5.1.0
+
+**Ein Fahrtenbuch auf der Wartungsseite.** Halten Sie mit Datum fest, was mit dem Auto passiert:
+Reifenwechsel, Umbauten, Pannen, Schäden, jeweils mit einer Notiz und, wenn Sie wollen, den Kosten.
+Lassen Sie den Kilometerstand leer, nimmt Mate den, den es an dem Tag gelesen hat. Auch ein Service des
+offiziellen Plans bekommt Kosten (D#493, @DanielBrol).
+
+**Sommer- und Winterreifen aus dem Fahrtenbuch.** Die Kilometer jedes Satzes beginnen an dem Tag, an dem
+er laut seinem Eintrag montiert wurde: Der Wechsel kann jedes Jahr auf einen anderen Tag fallen, und Sie
+können die Kilometer hinzufügen, die jeder Satz vor Mate gefahren ist. Die zwei festen Tage der 5.0.0
+werden einmal zu einem Eintrag pro Wechsel, mit denselben Summen, und ihre Karte in den *Einstellungen*
+entfällt (D#493).
+
+**Die letzte Ladung auf 100 %.** Die Seite *Batteriezustand* zeigt die letzte Ladung, die bei 100 %
+endete, ihren Tag, wie lange her und wo. Eine LFP-Batterie braucht ab und zu eine Ladung auf 100 %, damit
+sich die Zellen ausgleichen und der Ladestand richtig gemessen wird; die Seite setzt keine eigene Grenze
+(D#490, @Tommy73LMB05).
+
+### Neu in Version 5.0.1
 
 **Ein Befehl aus Home Assistant verliert die PIN des Autos nicht mehr.** Ein über MQTT gesendeter Befehl
 konnte, während Mate gerade einen Messwert speicherte, ohne PIN abgehen und mit „Vehicle PIN is missing“
@@ -1942,6 +1960,12 @@ Eine Messung hat keine Streuung zu berichten.
 Es ist also eine **Schätzung** — keine Labordiagnose — und sie stabilisiert sich, je mehr Ladevorgänge sich
 ansammeln.
 
+**Letzte Ladung auf 100 %.** Oben auf der Seite: die letzte abgeschlossene Ladung, die bei 100 %
+endete, mit Tag, vor wie vielen Tagen und wo, benannt wie unter *Ladevorgänge*. Eine bei 99,9 % gestoppte
+Ladung zählt nicht. Eine LFP-Batterie wird ab und zu auf 100 % geladen, damit sich die Zellen ausgleichen
+und der Ladestand richtig gemessen wird; wie oft, entscheiden Sie, und die Seite setzt keine Schwelle
+(D#490, @Tommy73LMB05).
+
 ### Wartung
 **(Menü: Wartung)** — Die **Wartungsfälligkeiten** Ihres Autos, basierend auf dem **offiziellen Programm Ihres
 Modells** (T03, B05, B10, C10). Für jeden Service (z. B. Inspektion, Bremsflüssigkeit, Innenraumfilter, Reifen…)
@@ -1955,13 +1979,18 @@ zuerst eintritt.
 - Das **Zulassungs-/Übergabedatum** ist jetzt editierbar: Klicken Sie auf das **✏️** neben dem gespeicherten
   Datum, um einen Fehler zu korrigieren (der neue Wert überschreibt den alten).
 - Die Strecken berücksichtigen die gewählte Einheit (km oder Meilen).
-- **Sommer- und Winterreifen** (aus, bis Sie es unter *Einstellungen → 🛞 Sommer- und Winterreifen*
-  einschalten): Wählen Sie den Tag, an dem die Winterreifen, und den, an dem die Sommerreifen montiert
-  werden; die Tage wiederholen sich jedes Jahr und gehören zum ausgewählten Auto. Die Seite zeigt dann
-  eine 🛞-Karte mit dem heute montierten Satz, den Kilometern dieser Saison und der Summe jedes Satzes,
-  gezählt aus dem von Mate gespeicherten Kilometerstand, vergangene Saisons eingeschlossen. Tage ohne
-  Messwert werden nicht geschätzt: Die Strecke zählt für den Tag, an dem der nächste Messwert kommt. Der
-  29. Februar ist nicht wählbar (D#493, @DanielBrol).
+- **Fahrtenbuch** (D#493, @DanielBrol): **+ Hinzufügen** speichert einen Eintrag mit Art
+  (Winterreifen montiert, Sommerreifen montiert, Umbau, Panne, Schaden, Sonstiges), Datum,
+  Kilometerstand, Kosten und Notiz. Ein leer gelassener Kilometerstand ist der, den Mate an dem Tag
+  gelesen hat, oder am letzten Tag davor mit einem Messwert. 🗑 löscht einen Eintrag. Auch ein Service
+  des Plans bekommt Kosten. Die Kosten bleiben auf dieser Seite: Sie werden nicht zu den Ladekosten addiert.
+- **Sommer- und Winterreifen**: Die 🛞-Karte erscheint mit dem ersten Reifeneintrag des Fahrtenbuchs.
+  Sie zeigt den montierten Satz, die Kilometer dieser Saison und die Summe jedes Satzes. Jeder Satz
+  zählt ab dem Tag, an dem er laut seinem Eintrag montiert wurde; vor dem ersten Eintrag ist kein Satz
+  bekannt und nichts wird gezählt. Tage ohne Messwert werden nicht geschätzt: Die Strecke geht an den Tag
+  des nächsten Messwerts. *Kilometer jedes Satzes vor Mate* addiert, was jeder Satz vor dem ersten
+  Messwert von Mate gefahren ist. Wenn Sie die zwei festen Tage der 5.0.0 benutzt haben, hat Mate sie
+  einmal in Einträge umgewandelt, mit denselben Summen.
 
 ### Befehle
 **(Menü: Befehle)** — Die **Fernbefehle**. Von hier aus können Sie:

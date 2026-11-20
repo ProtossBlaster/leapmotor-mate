@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v5.0.2:** a command from Home Assistant no longer goes out without the car's PIN when it arrives while Mate is saving a reading ([#495](https://github.com/ProtossBlaster/leapmotor-mate/issues/495), @chengler).
-See [release notes and upgrade impact](docs/releases/v5.0.2.md).
+**v5.1.0:** a log book on the Maintenance page — tyre changes, modifications, breakdowns, damage, with costs — and the summer and winter tyres counted from it ([D#493](https://github.com/ProtossBlaster/leapmotor-mate/discussions/493), @DanielBrol); the Battery health page shows the last charge to 100% ([D#490](https://github.com/ProtossBlaster/leapmotor-mate/discussions/490), @Tommy73LMB05).
+See [release notes and upgrade impact](docs/releases/v5.1.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -381,8 +381,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v5.0.2:** un comando da Home Assistant non parte più senza il PIN dell'auto quando arriva mentre Mate salva una lettura ([#495](https://github.com/ProtossBlaster/leapmotor-mate/issues/495), @chengler).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v5.0.2.md#italiano).
+**v5.1.0:** un registro nella pagina Manutenzione — cambi gomme, modifiche, guasti, danni, con i costi — e le gomme estive e invernali contate da lì ([D#493](https://github.com/ProtossBlaster/leapmotor-mate/discussions/493), @DanielBrol); la pagina Salute batteria mostra l'ultima ricarica al 100% ([D#490](https://github.com/ProtossBlaster/leapmotor-mate/discussions/490), @Tommy73LMB05).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v5.1.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
