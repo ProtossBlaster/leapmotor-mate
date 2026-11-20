@@ -174,6 +174,7 @@ CREATE TABLE IF NOT EXISTS maintenance_logs (
     done_date        TEXT NOT NULL,             -- ISO date the service was performed
     done_odometer_km REAL,                       -- odometer at the service (prefilled with current)
     note             TEXT,
+    cost             REAL,                       -- what it cost, in the install's currency (D#493)
     created_at       TEXT DEFAULT (datetime('now'))
 );
 
@@ -509,6 +510,9 @@ def ensure_schema(conn) -> None:
     # lets the diagnostic + future capability-gating show ONLY what a model actually supports,
     # instead of assuming every car has the same commands (#67; also covers models we don't own
     # yet, e.g. the B05). Refreshed by ensure_vehicle on every poller start.
+    # migration: D#493 — what a service or a log-book entry cost (NULL: not given, never 0)
+    if "cost" not in {r[1] for r in conn.execute("PRAGMA table_info(maintenance_logs)").fetchall()}:
+        _add_column(conn, "ALTER TABLE maintenance_logs ADD COLUMN cost REAL")
     vcols = {r[1] for r in conn.execute("PRAGMA table_info(vehicles)").fetchall()}
     if "abilities" not in vcols:
         _add_column(conn, "ALTER TABLE vehicles ADD COLUMN abilities TEXT DEFAULT NULL")
