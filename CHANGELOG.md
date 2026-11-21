@@ -3,6 +3,16 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.1.1] — 2026-11-21
+
+See [the notes](docs/releases/v5.1.1.md).
+
+- **Trips recorded before 3.10.6 give back the kilometres of a silence** ([#497](https://github.com/ProtossBlaster/leapmotor-mate/issues/497), @adoewa).
+  A trip that opened after the cloud had been quiet took its start from the last reading before the silence, so it
+  carried the kilometres driven during it (a 1 km trip stored as 59 km). 3.10.6 stopped this for new trips (#244);
+  on the first start, 5.1.1 rewrites the older ones the same way and moves those kilometres to the ones
+  measured while out of contact.
+
 ## [5.1.0] — 2026-11-20
 
 See [the notes](docs/releases/v5.1.0.md).

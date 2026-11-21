@@ -1,8 +1,17 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v5.1.0 · **Sprache:** Deutsch
+> **Mate-Version:** v5.1.1 · **Sprache:** Deutsch
 
-## Neu in Version 5.1.0
+## Neu in Version 5.1.1
+
+**Vor 3.10.6 aufgezeichnete Fahrten geben die Kilometer einer Funkstille zurück.** Bis 3.10.6 nahm eine
+Fahrt, die nach einer Funkstille der Cloud begann, ihren Start aus dem letzten Messwert vor der Stille und
+trug so die währenddessen gefahrenen Kilometer: Eine Fahrt von 1 km konnte 59 km zeigen. Beim ersten Start
+schreibt 5.1.1 diese Fahrten ab dem Messwert neu, der sie eröffnet hat, und verschiebt die Kilometer nach
+*Kilometer ohne Verbindung gemessen*, unter *Statistik* und über dem Kalender der *Fahrten*. Mit 3.10.6
+oder später aufgezeichnete Fahrten ändern sich nicht (@adoewa, #497).
+
+### Neu in Version 5.1.0
 
 **Ein Fahrtenbuch auf der Wartungsseite.** Halten Sie mit Datum fest, was mit dem Auto passiert:
 Reifenwechsel, Umbauten, Pannen, Schäden, jeweils mit einer Notiz und, wenn Sie wollen, den Kosten.

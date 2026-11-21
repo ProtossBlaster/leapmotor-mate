@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v5.1.0 · **Idioma:** Español
+> **Versión de Mate:** v5.1.1 · **Idioma:** Español
 
-## Novedades de la versión 5.1.0
+## Novedades de la versión 5.1.1
+
+**Los trayectos registrados antes de la 3.10.6 devuelven los kilómetros de un silencio.** Hasta la
+3.10.6, un trayecto que se abría tras un silencio de la nube tomaba su salida de la última lectura antes
+del silencio, y así arrastraba los kilómetros recorridos durante él: un trayecto de 1 km podía marcar 59.
+En su primer arranque, la 5.1.1 reescribe esos trayectos desde la lectura que los abrió, y lleva los
+kilómetros a *Kilómetros medidos sin contacto*, en *Estadísticas* y encima del calendario de *Trayectos*.
+Los trayectos registrados con la 3.10.6 o después no cambian (@adoewa, #497).
+
+### Novedades de la versión 5.1.0
 
 **Un registro en la página Mantenimiento.** Anota con su fecha lo que le pasa al coche: cambios de
 neumáticos, modificaciones, averías, daños, cada uno con una nota y, si quieres, lo que costó. Si dejas el
