@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Translation Reviewer · EN → HR</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Luminous Light-Mode Ambient Backdrop for Liquid Glass Refraction -->
+  <div class="ambient-canvas" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+  </div>
+
+  <div id="app" class="app-shell">
+    <!-- Top Floating Glass Toolbar -->
+    <header class="topbar glass-panel">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 8l6 6" />
+            <path d="M4 14l6-6 2-3" />
+            <path d="M2 5h12" />
+            <path d="M7 2h1" />
+            <path d="M22 22l-5-10-5 10" />
+            <path d="M14 18h6" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Translation Reviewer</h1>
+          <p id="filePairLabel" class="brand-subtitle">EN → HR · Upload locale files to begin</p>
+        </div>
+      </div>
+
+      <div id="topbarProgress" class="topbar-progress hidden">
+        <div class="progress-stats-row">
+          <span id="progressSummaryText" class="progress-summary">0 / 0 approved</span>
+          <span id="progressPercentText" class="progress-percent">0%</span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="progress-meta-row">
+          <span id="editedCountBadge" class="meta-chip">0 edited</span>
+          <span id="autosaveBadge" class="autosave-chip" title="Autosaved in browser IndexedDB">
+            <span class="status-dot"></span>
+            <span id="autosaveText">IndexedDB ready</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="openUploadBtn" type="button" class="glass-btn hidden" title="Upload or replace en.json and hr.json">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span>Upload JSON</span>
+        </button>
+
+        <button id="importProgressBtn" type="button" class="glass-btn" title="Import saved review progress (.json)">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <path d="M12 18v-6" />
+            <path d="M9 15l3 3 3-3" />
+          </svg>
+          <span>Import Progress</span>
+        </button>
+
+        <button id="exportProgressBtn" type="button" class="glass-btn hidden" title="Export review progress snapshot (.json)">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+          <span>Export Progress</span>
+        </button>
+
+        <button id="exportHrBtn" type="button" class="glass-btn glass-btn-primary hidden" title="Export final hr.json preserving master key order">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span>Export hr.json</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hidden file inputs -->
+    <input id="enFileInput" type="file" accept=".json,application/json" class="sr-only" />
+    <input id="hrFileInput" type="file" accept=".json,application/json" class="sr-only" />
+    <input id="progressFileInput" type="file" accept=".json,application/json" class="sr-only" />
+
+    <!-- Onboarding / Upload View -->
+    <main id="onboardingView" class="onboarding-view">
+      <section class="onboarding-card glass-panel" id="onboardingDropArea">
+        <div class="onboarding-header">
+          <span class="eyebrow-pill">Master Key Order · IndexedDB Autosave</span>
+          <h2>Review Translations One by One</h2>
+          <p>Upload your master <code>en.json</code> and translated <code>hr.json</code> files. Your progress autosaves locally in IndexedDB and preserves the exact key order of <code>en.json</code>.</p>
+        </div>
+
+        <div class="upload-grid">
+          <div id="enDropzone" class="dropzone glass-subpanel" role="button" tabindex="0" aria-label="Upload master en.json file">
+            <div class="dropzone-icon">EN</div>
+            <div class="dropzone-body">
+              <div class="dropzone-title">English Master (<code>en.json</code>)</div>
+              <div id="enDropStatus" class="dropzone-status">Drop or click to browse</div>
+            </div>
+            <span id="enDropBadge" class="dropzone-badge">Required</span>
+          </div>
+
+          <div id="hrDropzone" class="dropzone glass-subpanel" role="button" tabindex="0" aria-label="Upload Croatian hr.json file">
+            <div class="dropzone-icon dropzone-icon-hr">HR</div>
+            <div class="dropzone-body">
+              <div class="dropzone-title">Croatian (<code>hr.json</code>)</div>
+              <div id="hrDropStatus" class="dropzone-status">Drop or click to browse</div>
+            </div>
+            <span id="hrDropBadge" class="dropzone-badge">Required</span>
+          </div>
+        </div>
+
+        <div id="uploadValidationBanner" class="validation-banner hidden"></div>
+
+        <div class="onboarding-footer">
+          <button id="onboardingImportBtn" type="button" class="glass-btn">
+            Restore from Progress File (.json)
+          </button>
+          <button id="startReviewBtn" type="button" class="glass-btn glass-btn-primary" disabled>
+            Start Reviewing →
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Main Split Review Workspace -->
+    <main id="workspaceView" class="workspace-view hidden">
+      <!-- Left Sidebar: Full String List & Progress -->
+      <aside class="sidebar glass-panel" aria-label="String list">
+        <div class="sidebar-header">
+          <div class="sidebar-title-row">
+            <h2>All Strings</h2>
+            <span id="sidebarVisibleCount" class="count-pill">0</span>
+          </div>
+
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input id="searchInput" type="search" placeholder="Search key, EN, or HR…" autocomplete="off" spellcheck="false" />
+            <button id="clearSearchBtn" type="button" class="icon-clear-btn hidden" title="Clear search">×</button>
+          </div>
+
+          <div class="filter-pills" role="tablist" aria-label="Filter strings">
+            <button type="button" class="filter-pill active" data-filter="all">All</button>
+            <button type="button" class="filter-pill" data-filter="pending">Pending</button>
+            <button type="button" class="filter-pill" data-filter="approved">Approved</button>
+            <button type="button" class="filter-pill" data-filter="edited">Edited</button>
+          </div>
+
+          <div class="sidebar-quick-bar">
+            <button id="jumpNextPendingBtn" type="button" class="mini-glass-btn">
+              Jump to next pending
+            </button>
+            <span id="sidebarOrderNote" class="order-note" title="Sorted in exact master key order">Master order</span>
+          </div>
+        </div>
+
+        <div id="stringList" class="string-list" role="listbox" aria-label="Translation strings"></div>
+        <div id="stringListEmpty" class="string-list-empty hidden">
+          No strings match the current filter.
+        </div>
+      </aside>
+
+      <!-- Right Review Stage -->
+      <section class="stage glass-panel" aria-label="String review editor">
+        <div class="stage-header">
+          <div class="stage-key-meta">
+            <div class="stage-badges">
+              <span id="itemPositionBadge" class="position-pill">#1 of 1</span>
+              <span id="itemGroupBadge" class="group-pill">translations</span>
+              <span id="itemStatusBadge" class="status-pill status-pending">Pending</span>
+              <span id="itemMissingBadge" class="status-pill status-warning hidden">Missing in hr.json</span>
+            </div>
+            <div class="key-line">
+              <code id="itemKeyPath" class="key-code">key</code>
+              <button id="copyKeyBtn" type="button" class="mini-glass-btn" title="Copy key path">Copy key</button>
+            </div>
+          </div>
+
+          <div class="stage-nav">
+            <button id="prevBtn" type="button" class="glass-btn icon-only-btn" title="Previous string (↑)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <button id="nextBtn" type="button" class="glass-btn icon-only-btn" title="Next string without approving (↓)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Side-by-Side Comparison Boxes -->
+        <div class="editors-grid">
+          <!-- Left: Read-Only English Source -->
+          <div class="editor-card glass-subpanel">
+            <div class="editor-card-header">
+              <div class="editor-label-group">
+                <span class="lang-tag">EN</span>
+                <span class="editor-title">English</span>
+                <span class="readonly-pill">Read-only</span>
+              </div>
+              <span id="enMetaCount" class="char-count">0 chars</span>
+            </div>
+
+            <textarea
+              id="enSource"
+              class="editor-textarea source-textarea"
+              readonly
+              aria-label="English source string (read-only)"
+              spellcheck="false"
+            ></textarea>
+
+            <div class="editor-card-footer">
+              <div id="enPlaceholders" class="placeholders-row">
+                <span class="muted-hint">No template placeholders</span>
+              </div>
+              <button id="copyEnBtn" type="button" class="mini-glass-btn" title="Copy English text">Copy EN</button>
+            </div>
+          </div>
+
+          <!-- Right: Editable Croatian Translation -->
+          <div id="hrEditorCard" class="editor-card glass-subpanel editor-card-editable">
+            <div class="editor-card-header">
+              <div class="editor-label-group">
+                <span class="lang-tag lang-tag-hr">HR</span>
+                <span class="editor-title">Croatian</span>
+                <span id="editorFocusPill" class="focus-pill">Press <kbd>E</kbd> to edit</span>
+              </div>
+              <span id="hrMetaCount" class="char-count">0 chars</span>
+            </div>
+
+            <textarea
+              id="hrEditor"
+              class="editor-textarea target-textarea"
+              placeholder="Enter Croatian translation…"
+              aria-label="Croatian translation (editable)"
+              spellcheck="true"
+              lang="hr"
+            ></textarea>
+
+            <div class="editor-card-footer">
+              <div id="placeholderValidation" class="placeholders-row">
+                <span class="muted-hint">Ready</span>
+              </div>
+              <div class="editor-footer-actions">
+                <button id="revertEditBtn" type="button" class="mini-glass-btn hidden" title="Revert to original hr.json text">
+                  Revert edit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Action & Keyboard Shortcut Bar -->
+        <div class="stage-footer">
+          <div class="shortcuts-strip" aria-label="Keyboard shortcuts">
+            <span class="shortcut-chip"><kbd>Enter</kbd> Approve &amp; Next</span>
+            <span class="shortcut-chip"><kbd>E</kbd> Edit</span>
+            <span class="shortcut-chip"><kbd>Shift</kbd>+<kbd>Enter</kbd> New line</span>
+            <span class="shortcut-chip"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+            <span class="shortcut-chip"><kbd>Esc</kbd> Blur editor</span>
+          </div>
+
+          <div class="stage-actions">
+            <button id="unapproveBtn" type="button" class="glass-btn hidden" title="Mark string back to pending">
+              Mark Pending
+            </button>
+            <button id="approveNextBtn" type="button" class="glass-btn glass-btn-approve">
+              <span>Approve &amp; Next</span>
+              <kbd class="btn-kbd">↵</kbd>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Upload / Replace Files Modal -->
+  <div id="uploadModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="uploadModalTitle">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h3 id="uploadModalTitle">Upload or Replace JSON Files</h3>
+        <button id="closeUploadModalBtn" type="button" class="icon-clear-btn" aria-label="Close">×</button>
+      </div>
+      <p class="modal-desc">
+        Load a new <code>en.json</code> (master order) and <code>hr.json</code>. You can optionally carry over approved statuses and edits for matching keys.
+      </p>
+
+      <div class="upload-grid compact-upload-grid">
+        <div id="modalEnDropzone" class="dropzone glass-subpanel" role="button" tabindex="0">
+          <div class="dropzone-icon">EN</div>
+          <div class="dropzone-body">
+            <div class="dropzone-title">Master Source (<code>en.json</code>)</div>
+            <div id="modalEnStatus" class="dropzone-status">Choose or drop en.json</div>
+          </div>
+          <span id="modalEnBadge" class="dropzone-badge">Pending</span>
+        </div>
+
+        <div id="modalHrDropzone" class="dropzone glass-subpanel" role="button" tabindex="0">
+          <div class="dropzone-icon dropzone-icon-hr">HR</div>
+          <div class="dropzone-body">
+            <div class="dropzone-title">Croatian Translation (<code>hr.json</code>)</div>
+            <div id="modalHrStatus" class="dropzone-status">Choose or drop hr.json</div>
+          </div>
+          <span id="modalHrBadge" class="dropzone-badge">Pending</span>
+        </div>
+      </div>
+
+      <label class="checkbox-row glass-subpanel">
+        <input id="preserveMatchesCheckbox" type="checkbox" checked />
+        <span>Carry over existing approved statuses &amp; edits for matching key paths</span>
+      </label>
+
+      <div class="modal-footer">
+        <button id="resetSessionBtn" type="button" class="glass-btn glass-btn-danger">Clear Saved Session</button>
+        <div class="modal-footer-right">
+          <button id="cancelUploadModalBtn" type="button" class="glass-btn">Cancel</button>
+          <button id="applyModalUploadBtn" type="button" class="glass-btn glass-btn-primary" disabled>Apply Files</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Pre-flight Modal (shown when unreviewed items remain) -->
+  <div id="exportModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="exportModalTitle">
+    <div class="modal-card glass-panel modal-card-sm">
+      <div class="modal-header">
+        <h3 id="exportModalTitle">Export hr.json</h3>
+        <button id="closeExportModalBtn" type="button" class="icon-clear-btn" aria-label="Close">×</button>
+      </div>
+      <p id="exportModalBody" class="modal-desc"></p>
+      <div id="exportModalStats" class="export-stats-grid"></div>
+      <div class="modal-footer">
+        <button id="cancelExportModalBtn" type="button" class="glass-btn">Keep Reviewing</button>
+        <button id="confirmExportHrBtn" type="button" class="glass-btn glass-btn-primary">Download hr.json</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <script defer src="ordered-json.js"></script>
+  <script defer src="storage.js"></script>
+  <script defer src="app.js"></script>
+</body>
+</html>
