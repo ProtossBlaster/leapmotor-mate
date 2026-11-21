@@ -1,8 +1,17 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v5.1.0 · **Language:** English
+> **Mate version:** v5.1.1 · **Language:** English
 
-## New in 5.1.0
+## New in 5.1.1
+
+**Trips recorded before 3.10.6 give back the kilometres of a silence.** Until 3.10.6, a trip that opened
+after the cloud had been silent took its start from the last reading before the silence, so it carried
+the kilometres driven during it: a 1 km trip could read 59 km. On its first start 5.1.1 rewrites those
+trips from the reading that opened them, and moves the kilometres to *Kilometres measured while out of
+contact*, on *Statistics* and above the *Trips* calendar. Trips recorded with 3.10.6 or later do not
+change (@adoewa, #497).
+
+### New in 5.1.0
 
 **A log book on the Maintenance page.** Record what happens to the car with its date: tyre changes,
 modifications, breakdowns, damage, each with a note and, if you want, what it cost. Leave the odometer
