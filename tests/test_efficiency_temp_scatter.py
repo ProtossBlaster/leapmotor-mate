@@ -74,13 +74,16 @@ def test_a_merged_child_is_its_parents_business_only(tmp_path, monkeypatch):
 
 
 def test_the_trend_recovers_a_known_line(tmp_path, monkeypatch):
-    """eff = 15 + 0.5 × (20 − T): exactly −5 kWh/100km per +10 °C. Eight points minimum."""
+    """eff = 15 + 0.5 × (20 − T): a straight line is a cubic with no bend (D#498) — a and b come
+    back as nothing, c as −0.5 per °C. Eight points minimum."""
     db = _setup(tmp_path, monkeypatch)
     for i, T in enumerate(range(-4, 36, 5)):          # 8 temperatures, -4…31 °C
         _trip(db, i + 1, 50.0, round(15 + 0.5 * (20 - T), 2), t_start=T, t_end=T, day=i + 1)
     trend = db_reader.get_efficiency_vs_temp()["trend"]
     assert trend is not None
-    assert trend["per_10c"] == pytest_approx(-5.0)
+    assert trend["a"] == pytest_approx(0.0) and trend["b"] == pytest_approx(0.0)
+    assert trend["c"] == pytest_approx(-0.5)
+    assert trend["d"] == pytest_approx(25.0)
     assert trend["r2"] > 0.99
 
 
@@ -151,7 +154,7 @@ import pathlib
 LOCALES = sorted((pathlib.Path(__file__).resolve().parent.parent / "web" / "locales").glob("*.json"))
 _KEYS = ("stats_efftemp_title", "stats_efftemp_hint", "stats_efftemp_electric",
          "stats_efftemp_petrol", "stats_efftemp_y", "stats_efftemp_fuel_y",
-         "stats_efftemp_trend_elec", "stats_efftemp_trend_fuel")
+         "stats_efftemp_trend_elec", "stats_efftemp_trend_fuel", "stats_efftemp_trend_formula")
 
 
 def test_every_language_carries_the_card_strings():

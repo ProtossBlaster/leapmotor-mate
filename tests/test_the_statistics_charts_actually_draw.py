@@ -165,3 +165,24 @@ def test_the_temperature_chart_puts_its_points_on_the_canvas(mate_url):
                           "blank and nothing is reported (beta #38)")
     assert drawn.get("chart"), "Chart.js was there, but no chart was built on #chart-efftemp"
     assert drawn["points"] == 12, f"the card drew {drawn['points']} of the 12 seeded trips"
+
+
+def test_the_trend_is_drawn_as_the_cubic_over_the_trips_temperatures(mate_url):
+    """D#498: the dashed line is the cubic, sampled across the range the trips were at and not past
+    it, and the coefficients under the chart are the ones it was drawn from."""
+    with sync_api.sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1100, "height": 900})
+        page.goto(f"{mate_url.url}/statistics", wait_until="networkidle")
+        page.wait_for_timeout(1200)
+        line = page.evaluate(
+            """() => {
+                 const c = Chart.getChart('chart-efftemp');
+                 const d = c.data.datasets[1].data;
+                 return {n: d.length, x0: d[0].x, x1: d[d.length - 1].x};
+               }""")
+        caption = page.inner_text("[data-efftemp-trend]")
+        browser.close()
+    assert line == {"n": 49, "x0": -2.5, "x1": 30.5}
+    assert "a·T³ + b·T² + c·T + d" in caption
+    assert "a=" in caption and "d=" in caption and "r²=" in caption
