@@ -1485,6 +1485,7 @@
     "stats_efftemp_trend_elec": "Electric (kWh/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_fuel": "Petrol (L/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_formula": "Trend a·T³ + b·T² + c·T + d, with T in °C",
+    "stats_efftemp_band": "Shaded band: how sure the curve is. With 95 % confidence the true trend lies inside it (the ± in the box). It is narrow at temperatures with many trips and wide where there were few. Single trips scatter further, as the dots show.",
     "trip_area_electric": "Electricity",
     "trip_area_fuel": "Fuel",
     "trip_summary_title": "Trip summary",

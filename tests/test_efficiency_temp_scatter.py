@@ -16,6 +16,8 @@ Three invariants the tests hold onto, because each one was a way to quietly lie:
     that isn't one.
 """
 import json
+
+import pytest
 from datetime import datetime, timedelta, timezone
 
 import db as D
@@ -158,6 +160,27 @@ def test_the_trend_is_consumption_per_kilometre_driven(tmp_path, monkeypatch):
     assert round(tr["d"], 6) == 15.9
 
 
+
+@pytest.mark.parametrize("temps,km", [((0, 5, 10, 20), 50.0), ((30.0, 30.1, 30.2, 30.3), 50.0),
+                                      ((0, 5, 10, 20), 5000.0)],
+                         ids=["spread", "close-and-far-from-zero", "weights-a-hundred-times"])
+def test_the_band_is_how_well_the_curve_is_known(tmp_path, monkeypatch, temps, km):
+    """Two trips at each of four temperatures, 16 ± 1 kWh/100km: the cubic passes through the four
+    means, and the 95 % interval there is that of a mean of two, k·1 with k = t(97.5 %, 4 dof) —
+    however close the temperatures, however far from 0 °C, whatever unit the weights are in."""
+    db = _setup(tmp_path, monkeypatch)
+    for i, T in enumerate(temps):
+        _trip(db, 2 * i + 1, km, 15.0, t_start=float(T), day=i + 1)
+        _trip(db, 2 * i + 2, km, 17.0, t_start=float(T), day=i + 1)
+    tr = db_reader.get_efficiency_vs_temp()["trend"]
+    assert tr["k"] == 2.776
+    for T in temps:
+        z = (T - tr["mid"]) / tr["half"]
+        g = [1, z, z ** 2, z ** 3]
+        var = sum(g[r] * tr["cov"][r][c] * g[c] for r in range(4) for c in range(4))
+        assert var == pytest.approx(1.0, abs=1e-9)
+
+
 def test_fewer_than_eight_points_refuse_a_trend(tmp_path, monkeypatch):
     db = _setup(tmp_path, monkeypatch)
     for i in range(3):
@@ -224,7 +247,8 @@ import pathlib
 LOCALES = sorted((pathlib.Path(__file__).resolve().parent.parent / "web" / "locales").glob("*.json"))
 _KEYS = ("stats_efftemp_title", "stats_efftemp_hint", "stats_efftemp_electric",
          "stats_efftemp_petrol", "stats_efftemp_y", "stats_efftemp_fuel_y",
-         "stats_efftemp_trend_elec", "stats_efftemp_trend_fuel", "stats_efftemp_trend_formula")
+         "stats_efftemp_trend_elec", "stats_efftemp_trend_fuel", "stats_efftemp_trend_formula",
+         "stats_efftemp_band")
 
 
 def test_every_language_carries_the_card_strings():

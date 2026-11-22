@@ -175,6 +175,7 @@
     <p>📈 {{ t('stats_efftemp_trend_formula') }}</p>
     {% if efftemp.trend %}<p>{{ t('stats_efftemp_trend_elec').format(lo=efftemp.trend.t_min, hi=efftemp.trend.t_max, coeffs=_coeffs(efftemp.trend)) }}</p>{% endif %}
     {% if efftemp.fuel_trend %}<p>{{ t('stats_efftemp_trend_fuel').format(lo=efftemp.fuel_trend.t_min, hi=efftemp.fuel_trend.t_max, coeffs=_coeffs(efftemp.fuel_trend)) }}</p>{% endif %}
+    <p>{{ t('stats_efftemp_band') }}</p>
   </div>
   {% endif %}
   <script>
@@ -193,17 +194,43 @@
       backgroundColor: 'rgba(56,189,248,0.65)', pointRadius: 4, pointHoverRadius: 6, unit: 'kWh/100km'
     }];
     // The cubic drawn only over the temperatures the trips were at (D#498): beyond them it is a guess.
-    // Sampled every 0.1 °C (48 steps at least), the step the hover cursor moves along it by.
+    // Sampled every 0.1 °C (48 steps at least), the step the hover cursor moves along it by. `u` is
+    // the curve's 95 % interval there, k·√(gᵀ·cov·g) in z = (T − mid)/half (db_reader._cubic_trend).
     function curve(tr) {
       var out = [], steps = Math.max(48, Math.round((tr.t_max - tr.t_min) * 10));
       for (var i = 0; i <= steps; i++) {
-        var x = tr.t_min + (tr.t_max - tr.t_min) * i / steps;
-        out.push({x: x, y: ((tr.a * x + tr.b) * x + tr.c) * x + tr.d});
+        var x = tr.t_min + (tr.t_max - tr.t_min) * i / steps, v = (x - tr.mid) / tr.half, g = [1, v, v * v, v * v * v], q = 0;
+        for (var r = 0; r < 4; r++) for (var c = 0; c < 4; c++) q += g[r] * tr.cov[r][c] * g[c];
+        out.push({x: x, y: ((tr.a * x + tr.b) * x + tr.c) * x + tr.d, u: tr.k * Math.sqrt(Math.max(q, 0))});
       }
       return out;
     }
+    // The interval as a shaded band around each visible curve, drawn from the curve's own points, so
+    // hiding the curve in the legend hides its band; its axis is stretched to hold it.
+    var bandPlugin = { id: 'efftempBand', afterDataLimits: function (chart, args) {
+      var sc = args.scale;
+      chart.data.datasets.forEach(function (ds, i) {
+        if (!ds.isCurve || !chart.isDatasetVisible(i) || (ds.yAxisID || 'y') !== sc.id) return;
+        ds.data.forEach(function (p) { sc.min = Math.min(sc.min, p.y - p.u); sc.max = Math.max(sc.max, p.y + p.u); });
+      });
+    }, beforeDatasetsDraw: function (chart) {
+      var ctx = chart.ctx, a = chart.chartArea;
+      chart.data.datasets.forEach(function (ds, i) {
+        if (!ds.isCurve || !chart.isDatasetVisible(i)) return;
+        var sx = chart.scales.x, sy = chart.scales[ds.yAxisID || 'y'], pts = ds.data;
+        ctx.save();
+        ctx.beginPath(); ctx.rect(a.left, a.top, a.right - a.left, a.bottom - a.top); ctx.clip();
+        ctx.beginPath();
+        pts.forEach(function (p) { ctx.lineTo(sx.getPixelForValue(p.x), sy.getPixelForValue(p.y + p.u)); });
+        for (var j = pts.length - 1; j >= 0; j--)
+          ctx.lineTo(sx.getPixelForValue(pts[j].x), sy.getPixelForValue(pts[j].y - pts[j].u));
+        ctx.closePath(); ctx.fillStyle = ds.bandColor; ctx.fill();
+        ctx.restore();
+      });
+    } };
     if (data.trend) {
       datasets.push({ type: 'line', label: '', data: curve(data.trend), isCurve: true, unit: 'kWh/100km',
+        bandColor: 'rgba(56,189,248,0.15)',
         borderColor: '#38bdf8', borderWidth: 1.5, borderDash: [6, 4],
         pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: '#38bdf8', fill: false, tension: 0 });
     }
@@ -214,6 +241,7 @@
         yAxisID: 'y1', unit: 'L/100km' });
       if (data.fuel_trend) {
         datasets.push({ type: 'line', label: '', data: curve(data.fuel_trend), isCurve: true, unit: 'L/100km',
+          bandColor: 'rgba(251,146,60,0.15)',
           borderColor: '#fb923c', borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, pointHoverRadius: 4,
           pointHoverBackgroundColor: '#fb923c', fill: false, tension: 0, yAxisID: 'y1' });
       }
@@ -255,7 +283,7 @@
     new Chart(el, {
       type: 'scatter',
       data: { datasets: datasets },
-      plugins: [cursorLine],
+      plugins: [bandPlugin, cursorLine],
       options: { responsive: true, maintainAspectRatio: true,
         interaction: { mode: 'efftempCursor', intersect: false },
         plugins: { legend: { labels: { color: '#94a3b8', boxWidth: 12 } },
@@ -264,7 +292,7 @@
             label: function (c) {
               var p = c.raw;
               return c.dataset.isCurve
-                ? one(p.y) + ' ' + c.dataset.unit
+                ? one(p.y) + ' ± ' + one(p.u) + ' ' + c.dataset.unit
                 : one(p.y) + ' ' + c.dataset.unit + ' · ' + one(p.km) + ' km · ' + p.d; },
             labelPointStyle: function (c) {
               return { pointStyle: c.dataset.isCurve ? dash(c.dataset.borderColor) : 'circle', rotation: 0 }; },

@@ -1485,6 +1485,7 @@
     "stats_efftemp_trend_elec": "Elektryczne (kWh/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_fuel": "Benzyna (L/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_formula": "Trend a·T³ + b·T² + c·T + d, T w °C",
+    "stats_efftemp_band": "Zacieniowany pas pokazuje, na ile pewna jest krzywa: z 95-procentową pewnością prawdziwy trend leży w jego obrębie (± w dymku). Jest wąski w temperaturach, w których tras było dużo, i szeroki tam, gdzie było ich mało. Pojedyncze trasy rozrzucone są szerzej, co widać po kropkach.",
     "trip_area_electric": "Energia elektryczna",
     "trip_area_fuel": "Paliwo",
     "trip_summary_title": "Podsumowanie podróży",

@@ -1485,6 +1485,7 @@
     "stats_efftemp_trend_elec": "Elektřina (kWh/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_fuel": "Benzín (L/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_formula": "Trend a·T³ + b·T² + c·T + d, T v °C",
+    "stats_efftemp_band": "Stínovaný pás ukazuje, jak jistá je křivka: s 95% jistotou v něm leží skutečný trend (± v bublině). Je úzký při teplotách s mnoha jízdami a široký tam, kde jich bylo málo. Jednotlivé jízdy jsou rozptýlené víc, jak ukazují body.",
     "trip_area_electric": "Elektřina",
     "trip_area_fuel": "Palivo",
     "trip_summary_title": "Souhrn jízdy",

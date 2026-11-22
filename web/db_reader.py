@@ -6150,6 +6150,17 @@ def get_trips(limit: int = 500, since: str | None = None, until: str | None = No
     return _select_ev_energy(out)
 
 
+def _t975(dof: int) -> float:
+    """Student's t at 97.5 % (Abramowitz & Stegun 26.7.5; within 0.05 % of the table from 4 dof):
+    the coverage factor of a 95 % interval, which k = 2 gives only from about 60 dof."""
+    z = statistics.NormalDist().inv_cdf(0.975)
+    g = ((z ** 3 + z) / 4,
+         (5 * z ** 5 + 16 * z ** 3 + 3 * z) / 96,
+         (3 * z ** 7 + 19 * z ** 5 + 17 * z ** 3 - 15 * z) / 384,
+         (79 * z ** 9 + 776 * z ** 7 + 1482 * z ** 5 - 1920 * z ** 3 - 945 * z) / 92160)
+    return z + sum(gi / dof ** (i + 1) for i, gi in enumerate(g))
+
+
 def _cubic_trend(ts: list, ys: list, ws: Optional[list] = None) -> Optional[dict]:
     """`y = a·T³ + b·T² + c·T + d` by least squares (D#498): consumption climbs in the cold, drops
     towards a mild day and climbs again when the car cools its cabin, and a straight line can only
@@ -6165,7 +6176,11 @@ def _cubic_trend(ts: list, ys: list, ws: Optional[list] = None) -> Optional[dict
     `t_min`/`t_max` travel with it: outside them the cubic is an extrapolation.
 
     `ws` weighs each point (r² too): with a trip's kilometres, the curve is the kWh per 100 km
-    DRIVEN at a temperature — the ratio of the sums, which a mean of per-trip ratios is not."""
+    DRIVEN at a temperature — the ratio of the sums, which a mean of per-trip ratios is not.
+
+    `cov` (the covariance of the coefficients in z) and `k` give the curve's 95 % interval at any
+    T: ± k·√(gᵀ·cov·g), g = [1, z, z², z³], z = (T − mid)/half. It is how well the CURVE is known
+    there, narrow where many trips were, not the spread of single trips."""
     n = len(ts)
     if n < 8 or len(set(ts)) < 4:
         return None
@@ -6173,7 +6188,8 @@ def _cubic_trend(ts: list, ys: list, ws: Optional[list] = None) -> Optional[dict
     mid, half = (max(ts) + min(ts)) / 2.0, (max(ts) - min(ts)) / 2.0
     zs = [(t - mid) / half for t in ts]
     m = [[sum(w * z ** (i + j) for z, w in zip(zs, ws)) for j in range(4)]
-         + [sum(w * y * z ** i for z, y, w in zip(zs, ys, ws))] for i in range(4)]
+         + [sum(w * y * z ** i for z, y, w in zip(zs, ys, ws))]
+         + [1.0 if j == i else 0.0 for j in range(4)] for i in range(4)]   # …and the inverse
     tiny = 1e-12 * m[0][0]                       # relative: the sums scale with the weights
     for col in range(4):                         # Gauss–Jordan, partial pivoting
         piv = max(range(col, 4), key=lambda r: abs(m[r][col]))
@@ -6191,9 +6207,12 @@ def _cubic_trend(ts: list, ys: list, ws: Optional[list] = None) -> Optional[dict
     my = sum(w * y for y, w in zip(ys, ws)) / sum(ws)
     ss_tot = sum(w * (y - my) ** 2 for y, w in zip(ys, ws))
     ss_res = sum(w * (y - sum(k[i] * z ** i for i in range(4))) ** 2 for z, y, w in zip(zs, ys, ws))
+    s2 = ss_res / (n - 4)
     return {"a": a, "b": b, "c": c, "d": d,
             "r2": round(1 - ss_res / ss_tot, 2) if ss_tot else 0.0,
-            "n": n, "t_min": min(ts), "t_max": max(ts)}
+            "n": n, "t_min": min(ts), "t_max": max(ts), "mid": mid, "half": half,
+            "cov": [[s2 * m[i][5 + j] / m[i][i] for j in range(4)] for i in range(4)],
+            "k": round(_t975(n - 4), 3)}
 
 
 def efftemp_trend_key(vin: str) -> str:

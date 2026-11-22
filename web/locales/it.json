@@ -1485,6 +1485,7 @@
     "stats_efftemp_trend_elec": "Elettrico (kWh/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_fuel": "Benzina (L/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_formula": "Tendenza a·T³ + b·T² + c·T + d, con T in °C",
+    "stats_efftemp_band": "Fascia ombreggiata: quanto è sicura la curva. Con il 95 % di confidenza la tendenza reale è al suo interno (il ± nel riquadro). È stretta alle temperature con molti viaggi e larga dove ce ne sono stati pochi. I singoli viaggi si disperdono di più, come mostrano i punti.",
     "trip_area_electric": "Elettricità",
     "trip_area_fuel": "Carburante",
     "trip_summary_title": "Riepilogo del viaggio",

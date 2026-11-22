@@ -57,7 +57,8 @@ def _seed(db_path: pathlib.Path) -> None:
     preconditioning spread over three kilometres reads as a cold penalty that isn't one), a
     non-NULL `efficiency_kwh_100km` (NULL is how finalize_trip marks a generator trip, which
     belongs to the petrol series), and at least one outside temperature. The temperatures are
-    spread from -3 °C to 30 °C so the fit has something to fit.
+    spread from -3 °C to 30 °C so the fit has something to fit, and the consumption steps 0.5 off a
+    line either way, so the curve has an interval to shade.
     """
     import schema  # poller/ is on sys.path via tests/conftest.py
 
@@ -76,7 +77,7 @@ def _seed(db_path: pathlib.Path) -> None:
                 "efficiency_kwh_100km, outside_temp_start_c, outside_temp_end_c) "
                 "VALUES (1, ?, ?, ?, ?, ?, ?)",
                 (start.isoformat(), end.isoformat(), 25.0 + i,
-                 22.0 - i * 0.4, temp, temp + 1.0))
+                 22.0 - i * 0.4 + (0.5 if i % 2 else -0.5), temp, temp + 1.0))
         conn.execute("INSERT INTO settings (key, value) VALUES ('setup_complete', '1')")
         conn.commit()
     finally:
@@ -275,15 +276,65 @@ def _hover(mate_url, temperature, on_dot):
 
 def test_off_the_dots_the_cursor_rides_the_curve(mate_url):
     """As on the trip charts, the box opens wherever the cursor is over the chart: off the dots it holds
-    the cursor's temperature and what the curve gives there, and no trip."""
+    the cursor's temperature and what the curve gives there, ± its 95 % interval, and no trip."""
     box = _hover(mate_url, 1.4, on_dot=False)
     assert box["shown"], "no box off the dots: it opens only on a dot, unlike the trip charts"
     assert box["title"] == ["1.4 °C"]
-    assert box["body"] == ["21.5 kWh/100km"]
+    assert box["body"] == ["21.4 ± 0.7 kWh/100km"]
 
 
 def test_on_a_dot_the_box_adds_its_trip(mate_url):
     box = _hover(mate_url, 0.5, on_dot=True)
     assert box["title"] == ["0.5 °C"]
-    assert box["body"][0] == "21.6 kWh/100km"
-    assert len(box["body"]) == 2 and box["body"][1].startswith("21.6 kWh/100km · 26.0 km · ")
+    assert box["body"][0] == "21.5 ± 0.8 kWh/100km"
+    assert len(box["body"]) == 2 and box["body"][1].startswith("22.1 kWh/100km · 26.0 km · ")
+
+
+def test_the_band_hides_with_its_curve(mate_url):
+    """The band belongs to its curve: a click on the curve's legend entry hides both, a second click
+    brings both back. Read off the canvas, inside the band halfway between the curve and its edge."""
+    with sync_api.sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1100, "height": 900})
+        page.goto(f"{mate_url.url}/statistics", wait_until="networkidle")
+        page.wait_for_timeout(1200)
+        shade = """() => {
+            const c = Chart.getChart('chart-efftemp'), r = window.devicePixelRatio;
+            const i = c.data.datasets.findIndex(d => d.isCurve), p = c.data.datasets[i].data[39];
+            const x = c.scales.x.getPixelForValue(p.x), y = c.scales.y.getPixelForValue(p.y + p.u / 2);
+            const px = c.ctx.getImageData(Math.round(x * r), Math.round((y - 2) * r), 1, Math.round(4 * r)).data;
+            let min = 255;
+            for (let k = 3; k < px.length; k += 4) min = Math.min(min, px[k]);
+            return min;
+        }"""
+        legend = """() => {
+            const c = Chart.getChart('chart-efftemp'), r = c.canvas.getBoundingClientRect();
+            const i = c.legend.legendItems.findIndex(it => c.data.datasets[it.datasetIndex].isCurve);
+            const b = c.legend.legendHitBoxes[i];
+            return [r.left + b.left + b.width / 2, r.top + b.top + b.height / 2];
+        }"""
+        seen = [page.evaluate(shade)]
+        for _ in range(2):
+            page.mouse.click(*page.evaluate(legend))
+            page.wait_for_timeout(1200)
+            seen.append(page.evaluate(shade))
+        browser.close()
+    assert seen[0] > 0 and seen[1] == 0 and seen[2] == seen[0], seen
+
+
+def test_the_axis_holds_the_whole_band(mate_url):
+    """The band widens past the dots at the ends of the curve; the axis takes it in, so it is not cut."""
+    with sync_api.sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1100, "height": 900})
+        page.goto(f"{mate_url.url}/statistics", wait_until="networkidle")
+        page.wait_for_timeout(1200)
+        fit = page.evaluate("""() => {
+            const c = Chart.getChart('chart-efftemp'), d = c.data.datasets.find(d => d.isCurve).data;
+            const dots = c.data.datasets[0].data.map(p => p.y);
+            return {lo: Math.min(...d.map(p => p.y - p.u)), hi: Math.max(...d.map(p => p.y + p.u)),
+                    dots: [Math.min(...dots), Math.max(...dots)], axis: [c.scales.y.min, c.scales.y.max]};
+        }""")
+        browser.close()
+    assert fit["lo"] < fit["dots"][0] or fit["hi"] > fit["dots"][1], f"the band stays within the dots: {fit}"
+    assert fit["axis"][0] <= fit["lo"] and fit["axis"][1] >= fit["hi"], fit

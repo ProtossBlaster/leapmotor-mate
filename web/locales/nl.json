@@ -1485,6 +1485,7 @@
     "stats_efftemp_trend_elec": "Elektrisch (kWh/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_fuel": "Benzine (L/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_formula": "Trend a·T³ + b·T² + c·T + d, met T in °C",
+    "stats_efftemp_band": "Gearceerde band: hoe zeker de curve is. Met 95 % zekerheid ligt de echte trend erbinnen (de ± in het venster). Hij is smal bij temperaturen met veel ritten en breed waar er weinig waren. Losse ritten liggen verder uiteen, zoals de punten tonen.",
     "trip_area_electric": "Elektriciteit",
     "trip_area_fuel": "Brandstof",
     "trip_summary_title": "Ritoverzicht",

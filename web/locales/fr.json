@@ -1485,6 +1485,7 @@
     "stats_efftemp_trend_elec": "Électrique (kWh/100 km, {lo}–{hi} °C) : {coeffs}",
     "stats_efftemp_trend_fuel": "Essence (L/100 km, {lo}–{hi} °C) : {coeffs}",
     "stats_efftemp_trend_formula": "Tendance a·T³ + b·T² + c·T + d, T en °C",
+    "stats_efftemp_band": "Zone ombrée : la précision de la courbe. Avec 95 % de confiance, la vraie tendance s’y trouve (le ± de l’info-bulle). Elle est étroite aux températures où les trajets sont nombreux et large là où ils sont rares. Les trajets isolés s’écartent davantage, comme le montrent les points.",
     "trip_area_electric": "Électricité",
     "trip_area_fuel": "Carburant",
     "trip_summary_title": "Résumé du trajet",

@@ -1485,6 +1485,7 @@
     "stats_efftemp_trend_elec": "Elétrico (kWh/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_fuel": "Gasolina (L/100 km, {lo}–{hi} °C): {coeffs}",
     "stats_efftemp_trend_formula": "Tendência a·T³ + b·T² + c·T + d, com T em °C",
+    "stats_efftemp_band": "Faixa sombreada: a certeza da curva. Com 95 % de confiança, a tendência real está dentro dela (o ± na caixa). É estreita nas temperaturas com muitas viagens e larga onde houve poucas. As viagens isoladas dispersam-se mais, como mostram os pontos.",
     "trip_area_electric": "Eletricidade",
     "trip_area_fuel": "Combustível",
     "trip_summary_title": "Resumo da viagem",
