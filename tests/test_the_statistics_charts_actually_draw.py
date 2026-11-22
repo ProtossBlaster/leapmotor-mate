@@ -241,6 +241,49 @@ def test_the_trend_is_drawn_as_the_cubic_over_the_trips_temperatures(mate_url):
                }""")
         caption = page.inner_text("[data-efftemp-trend]")
         browser.close()
-    assert line == {"n": 49, "x0": -2.5, "x1": 30.5}
+    assert line == {"n": 331, "x0": -2.5, "x1": 30.5}      # every 0.1 °C, the hover cursor's step
     assert "a·T³ + b·T² + c·T + d" in caption
     assert "a=" in caption and "d=" in caption and "r²=" in caption
+
+
+
+def _hover(mate_url, temperature, on_dot):
+    with sync_api.sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1100, "height": 900})
+        page.goto(f"{mate_url.url}/statistics", wait_until="networkidle")
+        page.wait_for_timeout(1200)
+        x, y = page.evaluate(
+            """([t, onDot]) => {
+                 const c = Chart.getChart('chart-efftemp');
+                 const r = c.canvas.getBoundingClientRect();
+                 const dot = c.getDatasetMeta(0).data.find(p => Math.abs(c.scales.x.getValueForPixel(p.x) - t) < 0.05);
+                 return [r.left + c.scales.x.getPixelForValue(t),
+                         r.top + (onDot ? dot.y : c.chartArea.top + 4)];
+               }""", [temperature, on_dot])
+        page.mouse.move(x, y)
+        page.wait_for_timeout(300)
+        box = page.evaluate(
+            """() => {
+                 const t = Chart.getChart('chart-efftemp').tooltip;
+                 return {shown: t.opacity > 0, title: t.title,
+                         body: (t.body || []).map(b => b.lines.join(' '))};
+               }""")
+        browser.close()
+    return box
+
+
+def test_off_the_dots_the_cursor_rides_the_curve(mate_url):
+    """As on the trip charts, the box opens wherever the cursor is over the chart: off the dots it holds
+    the cursor's temperature and what the curve gives there, and no trip."""
+    box = _hover(mate_url, 1.4, on_dot=False)
+    assert box["shown"], "no box off the dots: it opens only on a dot, unlike the trip charts"
+    assert box["title"] == ["1.4 °C"]
+    assert box["body"] == ["21.5 kWh/100km"]
+
+
+def test_on_a_dot_the_box_adds_its_trip(mate_url):
+    box = _hover(mate_url, 0.5, on_dot=True)
+    assert box["title"] == ["0.5 °C"]
+    assert box["body"][0] == "21.6 kWh/100km"
+    assert len(box["body"]) == 2 and box["body"][1].startswith("21.6 kWh/100km · 26.0 km · ")
