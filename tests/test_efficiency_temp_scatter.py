@@ -145,6 +145,19 @@ def pytest_approx(v):
     return _A()
 
 
+
+def test_the_trend_is_consumption_per_kilometre_driven(tmp_path, monkeypatch):
+    """At every temperature a 3 km hop at 30 and a 47 km drive at 15 kWh/100km: 0.9 + 7.05 kWh over
+    50 km is 15.9 kWh/100km driven, and the curve says that, not the trips' mean of 22.5."""
+    db = _setup(tmp_path, monkeypatch)
+    for i, T in enumerate(range(-4, 36, 5)):
+        _trip(db, 2 * i + 1, 3.0, 30.0, t_start=float(T), day=i + 1)
+        _trip(db, 2 * i + 2, 47.0, 15.0, t_start=float(T), day=i + 1)
+    tr = db_reader.get_efficiency_vs_temp()["trend"]
+    assert [round(tr[k], 6) for k in ("a", "b", "c")] == [0, 0, 0]
+    assert round(tr["d"], 6) == 15.9
+
+
 def test_fewer_than_eight_points_refuse_a_trend(tmp_path, monkeypatch):
     db = _setup(tmp_path, monkeypatch)
     for i in range(3):

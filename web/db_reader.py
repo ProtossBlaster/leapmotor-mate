@@ -6150,7 +6150,7 @@ def get_trips(limit: int = 500, since: str | None = None, until: str | None = No
     return _select_ev_energy(out)
 
 
-def _cubic_trend(ts: list, ys: list) -> Optional[dict]:
+def _cubic_trend(ts: list, ys: list, ws: Optional[list] = None) -> Optional[dict]:
     """`y = a·T³ + b·T² + c·T + d` by least squares (D#498): consumption climbs in the cold, drops
     towards a mild day and climbs again when the car cools its cabin, and a straight line can only
     say one of those. On one install's 412 trips the line explained 4 % of the spread, the cubic
@@ -6162,15 +6162,19 @@ def _cubic_trend(ts: list, ys: list) -> Optional[dict]:
     digits the curve is drawn with. Unrounded — the same numbers
     draw the curve and go to Home Assistant, which multiplies them. None below eight trips or four
     distinct temperatures: fewer pin no unique cubic, and a curve drawn from one would be invented.
-    `t_min`/`t_max` travel with it: outside them the cubic is an extrapolation."""
+    `t_min`/`t_max` travel with it: outside them the cubic is an extrapolation.
+
+    `ws` weighs each point (r² too): with a trip's kilometres, the curve is the kWh per 100 km
+    DRIVEN at a temperature — the ratio of the sums, which a mean of per-trip ratios is not."""
     n = len(ts)
     if n < 8 or len(set(ts)) < 4:
         return None
+    ws = ws or [1.0] * n
     mid, half = (max(ts) + min(ts)) / 2.0, (max(ts) - min(ts)) / 2.0
     zs = [(t - mid) / half for t in ts]
-    m = [[sum(z ** (i + j) for z in zs) for j in range(4)] + [sum(y * z ** i for z, y in zip(zs, ys))]
-         for i in range(4)]
-    tiny = 1e-12 * m[0][0]                       # relative: the sums scale with the trips' count
+    m = [[sum(w * z ** (i + j) for z, w in zip(zs, ws)) for j in range(4)]
+         + [sum(w * y * z ** i for z, y, w in zip(zs, ys, ws))] for i in range(4)]
+    tiny = 1e-12 * m[0][0]                       # relative: the sums scale with the weights
     for col in range(4):                         # Gauss–Jordan, partial pivoting
         piv = max(range(col, 4), key=lambda r: abs(m[r][col]))
         if abs(m[piv][col]) < tiny:
@@ -6184,9 +6188,9 @@ def _cubic_trend(ts: list, ys: list) -> Optional[dict]:
     # (T − mid)ⁱ/halfⁱ expanded: the coefficient of Tʲ gathers k_i·C(i, j)·(−mid)^(i−j)/halfⁱ.
     raw = [sum(k[i] * math.comb(i, j) * (-mid) ** (i - j) / half ** i for i in range(j, 4)) for j in range(4)]
     d, c, b, a = raw
-    my = sum(ys) / n
-    ss_tot = sum((y - my) ** 2 for y in ys)
-    ss_res = sum((y - sum(k[i] * z ** i for i in range(4))) ** 2 for z, y in zip(zs, ys))
+    my = sum(w * y for y, w in zip(ys, ws)) / sum(ws)
+    ss_tot = sum(w * (y - my) ** 2 for y, w in zip(ys, ws))
+    ss_res = sum(w * (y - sum(k[i] * z ** i for i in range(4))) ** 2 for z, y, w in zip(zs, ys, ws))
     return {"a": a, "b": b, "c": c, "d": d,
             "r2": round(1 - ss_res / ss_tot, 2) if ss_tot else 0.0,
             "n": n, "t_min": min(ts), "t_max": max(ts)}
@@ -6262,7 +6266,10 @@ def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> d
             acc.setdefault(int(math.floor(p["t"] / 5.0)) * 5, []).append(p[ykey])
         bins = [{"lo": lo, "hi": lo + 5, "mean": round(sum(v) / len(v), 2), "n": len(v)}
                 for lo, v in sorted(acc.items())]
-        return {"bins": bins, "trend": _cubic_trend([p["t"] for p in pts], [p[ykey] for p in pts])}
+        # Each trip weighs its kilometres: a 3 km hop says less about consumption per 100 km than a
+        # 60 km drive, and short trips run high in the cold (warm-up, heating).
+        return {"bins": bins, "trend": _cubic_trend([p["t"] for p in pts], [p[ykey] for p in pts],
+                                                    [p["km"] for p in pts])}
 
 
     groups = [_trip_group_stats(dict(r), kids.get(r["id"], [])) for r in rows]
