@@ -73,6 +73,27 @@ def test_a_merged_child_is_its_parents_business_only(tmp_path, monkeypatch):
     assert [p["id"] for p in out["points"]] == [1]
 
 
+
+def test_a_merged_trip_is_its_whole_group(tmp_path, monkeypatch):
+    """A 2 km first segment merged with the 20 km that followed is one 22 km trip: its distance,
+    its consumption and its temperatures are the group's, as on the Trips page."""
+    db = _setup(tmp_path, monkeypatch)
+    for tid, start, end, km, odo, soc, eff, temps, parent in (
+            (1, "08:00", "08:10", 2.0, (1000, 1002), (80, 79), 30.0, (4.0, 4.0), None),
+            (2, "08:15", "09:00", 20.0, (1002, 1022), (79, 75), 15.0, (5.0, 6.0), 1)):
+        db._conn.execute(
+            "INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, start_odometer_km,"
+            " end_odometer_km, start_soc, end_soc, efficiency_kwh_100km, outside_temp_start_c,"
+            " outside_temp_end_c, merged_into_id) VALUES (?,1,?,?,?,?,?,?,?,?,?,?,?)",
+            (tid, f"2026-07-01T{start}:00+00:00", f"2026-07-01T{end}:00+00:00", km, *odo, *soc, eff,
+             *temps, parent))
+    db._conn.commit()
+    out = db_reader.get_efficiency_vs_temp()
+    energy = 5 / 100 * db_reader.get_battery_capacity_kwh()
+    assert [(p["id"], p["km"], p["t"]) for p in out["points"]] == [(1, 22.0, 5.0)]
+    assert out["points"][0]["e"] == round(energy / 22 * 100, 1)
+
+
 def test_the_trend_recovers_a_known_line(tmp_path, monkeypatch):
     """eff = 15 + 0.5 × (20 − T): a straight line is a cubic with no bend (D#498) — a and b come
     back as nothing, c as −0.5 per °C. Eight points minimum."""

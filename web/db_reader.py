@@ -6242,14 +6242,14 @@ def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> d
     # trips carry a NULL there (finalize blanks it), and they are the petrol series' whole point.
     # The electric points filter the column themselves below.
     rows = db.execute(
-        """SELECT id, vehicle_id, started_at, distance_km, efficiency_kwh_100km,
-                  outside_temp_start_c, outside_temp_end_c, fuel_start_pct, fuel_end_pct,
-                  fuel_start_l, fuel_end_l
-           FROM trips
+        """SELECT * FROM trips
            WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
-             AND merged_into_id IS NULL AND distance_km >= ? AND started_at >= ?
+             AND merged_into_id IS NULL AND started_at >= ?
            ORDER BY started_at DESC""",
-        (_current_vehicle_id(), float(min_km), since)).fetchall()
+        (_current_vehicle_id(), since)).fetchall()
+    # A merged trip is its whole group — distance, consumption, first start to last end — as on the
+    # Trips page; its first segment alone is neither the trip nor a measure of it.
+    kids = _children_by_parent(db, rows)
 
     def _temp(r) -> Optional[float]:
         vals = [v for v in (r["outside_temp_start_c"], r["outside_temp_end_c"]) if v is not None]
@@ -6266,25 +6266,31 @@ def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> d
 
     pts = []
     for r in rows:
-        if r["efficiency_kwh_100km"] is None:
+        td = _trip_group_stats(dict(r), kids.get(r["id"], []))
+        if (td.get("distance_km") or 0) < min_km:
+            continue
+        if td["efficiency_kwh_100km"] is None:
             continue                            # a generator trip (or unmeasured) — petrol series' business
-        t = _temp(r)
+        t = _temp(td)
         if t is None:
             continue
         pts.append({"id": r["id"], "t": round(t, 1),
-                    "e": round(r["efficiency_kwh_100km"], 2),
-                    "km": round(r["distance_km"], 1),
+                    "e": round(td["efficiency_kwh_100km"], 2),
+                    "km": round(td["distance_km"], 1),
                     "ts": (r["started_at"] or "")[:10]})
     pts.reverse()                                   # oldest first
     out = {"points": pts, "min_km": min_km, **_series(pts, "e")}
 
     fuel_pts = []
     if include_fuel:
-        kids = _children_by_parent(db, rows)
         _cloud_fuel = _cloud_fuel_index()
         for r in rows:
-            _fs, _fe = r["fuel_start_pct"], r["fuel_end_pct"]
-            _fsl, _fel = r["fuel_start_l"], r["fuel_end_l"]
+            kids_r = kids.get(r["id"], [])
+            td = _trip_group_stats(dict(r), kids_r)
+            if (td.get("distance_km") or 0) < min_km:
+                continue
+            _fs, _fe = td.get("fuel_start_pct"), td.get("fuel_end_pct")
+            _fsl, _fel = td.get("fuel_start_l"), td.get("fuel_end_l")
             # 🔑 A pre-filter on the tank, widened for the third source. This is the trap named on
             # `_REEV_FUEL_ANY_DROP_SQL`: v3.6.6 fixed the litres in the reader and left filters like
             # this one in front of it, so a row was dropped before the better signal could be read.
@@ -6294,8 +6300,6 @@ def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> d
                     and not (_fsl is not None and _fel is not None and _fsl > _fel)
                     and (_fs is None or _fe is None or (_fs - _fe) <= _REEV_FUEL_MIN_DROP)):
                 continue
-            kids_r = kids.get(r["id"], [])
-            td = _trip_group_stats(dict(r), kids_r)
             seg = [r["id"]] + [k["id"] for k in kids_r]
             b = db.execute(
                 f"SELECT MIN(started_at) s, MAX(ended_at) e FROM trips WHERE id IN ({','.join('?' * len(seg))})",
@@ -6306,7 +6310,7 @@ def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> d
                                 td.get("fuel_start_l"), td.get("fuel_end_l"),
                                 cloud_l=_cloud_fuel.get(r["id"]))
             l100 = f.get("fuel_l_100km")
-            t = _temp(r)
+            t = _temp(td)
             if not l100 or t is None:
                 continue                            # includes mid-trip refuels: litres unknown
             fuel_pts.append({"id": r["id"], "t": round(t, 1), "l": round(l100, 2),

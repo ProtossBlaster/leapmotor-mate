@@ -2,8 +2,8 @@
 
 Each case counts the segments of OTHER groups that SQLite hands back while one page is composed:
 the archived trip's page, its group, a merge preview and its day's totals (later groups exist), and
-Overview's newest trip (only older groups exist). The count is zero however long the history; the
-trips shown still have every segment, also one past their day.
+Overview's newest trip and the temperature chart (only older groups exist). The count is zero
+however long the history; the trips shown still have every segment, also one past their day.
 """
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -70,6 +70,8 @@ def _day(start):
     ("a merge preview", lambda: reader.preview_merge(1, 5), lambda r: r["distance_km"] - 4),
     ("its day's totals", lambda: reader.get_trip_totals_between(*_day("2020-03-01")), lambda r: r["distance_km"]),
     ("Overview's newest trip", lambda: reader.get_trips(1), lambda r: r[0]["distance_km"] + 5),
+    ("the temperature chart", lambda: reader.get_efficiency_vs_temp(),
+     lambda r: [p["km"] for p in r["points"]][-1] + 5),
 ])
 def test_a_page_reads_no_other_trips_segments(con, page, read, km):
     seen = _others_read(con)
