@@ -1,17 +1,17 @@
 {
   "format": "translation-review-progress",
   "version": 1,
-  "exportedAt": "2026-11-22T14:33:38.389Z",
+  "exportedAt": "2026-11-22T17:35:54.919Z",
   "enFileName": "en.json",
   "hrFileName": "hr.json",
-  "currentIndex": 1303,
+  "currentIndex": 1592,
   "stats": {
     "total": 1593,
-    "approved": 1303,
-    "pending": 290,
-    "edited": 37,
+    "approved": 1593,
+    "pending": 0,
+    "edited": 57,
     "missing": 0,
-    "percent": 81.8
+    "percent": 100
   },
   "masterAst": {
     "__type": "object",
@@ -27206,9 +27206,9 @@
       "enValue": "How often Mate reads the cloud. Faster = trips & charges caught sooner (polling does NOT drain the car). Slower = fewer API calls.",
       "originalHr": "Koliko često Mate čita oblak. Brže = vožnje i punjenja hvataju se ranije (očitavanje NE prazni vozilo). Sporije = manje API poziva.",
       "currentHr": "Koliko često Mate čita oblak. Brže = vožnje i punjenja hvataju se ranije (očitavanje NE prazni vozilo). Sporije = manje API poziva.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:45:18.752Z"
     },
     {
       "path": [
@@ -27222,9 +27222,9 @@
       "enValue": "Parked",
       "originalHr": "Parkirano",
       "currentHr": "Parkirano",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:45:22.114Z"
     },
     {
       "path": [
@@ -27238,9 +27238,9 @@
       "enValue": "Driving",
       "originalHr": "U vožnji",
       "currentHr": "U vožnji",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:45:22.897Z"
     },
     {
       "path": [
@@ -27254,9 +27254,9 @@
       "enValue": "Capacity",
       "originalHr": "Kapacitet",
       "currentHr": "Kapacitet",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:45:23.549Z"
     },
     {
       "path": [
@@ -27270,9 +27270,9 @@
       "enValue": "Usable battery capacity, used for energy calculations. Pre-filled per model; edit it if yours differs or to match a measured value. The official app counts the whole pack, buffer included, so the kWh it shows for a charge reads a little higher than Mate's: the same energy, measured against a different 100%.",
       "originalHr": "Iskoristivi kapacitet baterije, koristi se za izračun energije. Unaprijed popunjeno prema modelu; uredite ga ako se vaš razlikuje ili kako bi odgovarao izmjerenoj vrijednosti. Službena aplikacija računa cijeli paket s međuspremnikom (bufferom), pa kWh koje prikazuje za punjenje izgledaju nešto više od Mateovih: ista energija, mjerena prema drugačijih 100%.",
       "currentHr": "Iskoristivi kapacitet baterije, koristi se za izračun energije. Unaprijed popunjeno prema modelu; uredite ga ako se vaš razlikuje ili kako bi odgovarao izmjerenoj vrijednosti. Službena aplikacija računa cijeli paket s međuspremnikom (bufferom), pa kWh koje prikazuje za punjenje izgledaju nešto više od Mateovih: ista energija, mjerena prema drugačijih 100%.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:45:32.899Z"
     },
     {
       "path": [
@@ -27286,9 +27286,9 @@
       "enValue": "SoH reference",
       "originalHr": "Referenca za SoH",
       "currentHr": "Referenca za SoH",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:45:56.543Z"
     },
     {
       "path": [
@@ -27302,9 +27302,9 @@
       "enValue": "The as-new capacity battery health is measured against. Change it only if it was captured wrong.",
       "originalHr": "Tvornički kapacitet prema kojem se mjeri zdravlje baterije. Mijenjajte samo ako je krivo zabilježen.",
       "currentHr": "Tvornički kapacitet prema kojem se mjeri zdravlje baterije. Mijenjajte samo ako je krivo zabilježen.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:46:36.420Z"
     },
     {
       "path": [
@@ -27318,9 +27318,9 @@
       "enValue": "Measured from your charges: ~{kwh} kWh",
       "originalHr": "Izmjereno iz vaših punjenja: ~{kwh} kWh",
       "currentHr": "Izmjereno iz vaših punjenja: ~{kwh} kWh",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:46:42.116Z"
     },
     {
       "path": [
@@ -27334,9 +27334,9 @@
       "enValue": "Measured charges put this pack at {kwh} kWh usable — the figure here is the nameplate one, ~4% high.",
       "originalHr": "Izmjerena punjenja stavljaju ovaj paket na {kwh} kWh iskoristivo — ovdje navedena brojka je nazivna, ~4% viša.",
       "currentHr": "Izmjerena punjenja stavljaju ovaj paket na {kwh} kWh iskoristivo — ovdje navedena brojka je nazivna, ~4% viša.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:46:59.020Z"
     },
     {
       "path": [
@@ -27350,9 +27350,9 @@
       "enValue": "Use {kwh}",
       "originalHr": "Koristi {kwh}",
       "currentHr": "Koristi {kwh}",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:47:08.278Z"
     },
     {
       "path": [
@@ -27366,9 +27366,9 @@
       "enValue": "Use measured",
       "originalHr": "Koristi izmjereno",
       "currentHr": "Koristi izmjereno",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:47:08.480Z"
     },
     {
       "path": [
@@ -27382,9 +27382,9 @@
       "enValue": "Charge Prices",
       "originalHr": "Cijene punjenja",
       "currentHr": "Cijene punjenja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:47:23.002Z"
     },
     {
       "path": [
@@ -27398,9 +27398,9 @@
       "enValue": "Cost per kWh for each charge type — used to calculate session costs automatically.",
       "originalHr": "Cijena po kWh za svaku vrstu punjenja — koristi se za automatski izračun troška sesija.",
       "currentHr": "Cijena po kWh za svaku vrstu punjenja — koristi se za automatski izračun troška sesija.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T15:47:42.406Z"
     },
     {
       "path": [
@@ -27414,9 +27414,9 @@
       "enValue": "Save prices",
       "originalHr": "Spremi cijene",
       "currentHr": "Spremi cijene",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:02:51.167Z"
     },
     {
       "path": [
@@ -27430,9 +27430,9 @@
       "enValue": "Wallbox or domestic socket",
       "originalHr": "Wallbox ili kućna utičnica",
       "currentHr": "Wallbox ili kućna utičnica",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:02:52.551Z"
     },
     {
       "path": [
@@ -27446,9 +27446,9 @@
       "enValue": "Public AC stations up to 22 kW",
       "originalHr": "Javne AC punionice do 22 kW",
       "currentHr": "Javne AC punionice do 22 kW",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:02:53.968Z"
     },
     {
       "path": [
@@ -27462,9 +27462,9 @@
       "enValue": "DC fast chargers up to 100 kW",
       "originalHr": "Brzi DC punjači do 100 kW",
       "currentHr": "Brzi DC punjači do 100 kW",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:02:55.362Z"
     },
     {
       "path": [
@@ -27478,9 +27478,9 @@
       "enValue": "High Power Charging 150 kW+",
       "originalHr": "Ultra-brzo punjenje (HPC) 150 kW+",
       "currentHr": "Ultra-brzo punjenje (HPC) 150 kW+",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:02:56.889Z"
     },
     {
       "path": [
@@ -27494,9 +27494,9 @@
       "enValue": "Charge Prices",
       "originalHr": "Cijene punjenja",
       "currentHr": "Cijene punjenja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:02:58.340Z"
     },
     {
       "path": [
@@ -27510,9 +27510,9 @@
       "enValue": "Charge Prices",
       "originalHr": "Cijene punjenja",
       "currentHr": "Cijene punjenja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:02:58.836Z"
     },
     {
       "path": [
@@ -27525,10 +27525,10 @@
       "shortKey": "costs_desc",
       "enValue": "Set how much each kWh costs, so Mate can price your charging sessions.",
       "originalHr": "Postavite koliko košta svaki kWh kako bi Mate mogao izračunati cijenu vaših sesija punjenja.",
-      "currentHr": "Postavite koliko košta svaki kWh kako bi Mate mogao izračunati cijenu vaših sesija punjenja.",
-      "status": "pending",
+      "currentHr": "Postavite koliko košta svaki kWh kako bi Mate mogao izračunati cijenu vaših punjenja.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:03:08.416Z"
     },
     {
       "path": [
@@ -27542,9 +27542,9 @@
       "enValue": "Pricing mode",
       "originalHr": "Način obračuna",
       "currentHr": "Način obračuna",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:03:09.521Z"
     },
     {
       "path": [
@@ -27558,9 +27558,9 @@
       "enValue": "Pick a mode for each charge type — e.g. home on your dynamic tariff sensor, public AC/DC/HPC on their operators' fixed prices.",
       "originalHr": "Odaberite način za svaku vrstu punjenja — npr. kućno prema dinamičkom senzoru tarife, javne AC/DC/HPC prema fiksnim cijenama njihovih operatera.",
       "currentHr": "Odaberite način za svaku vrstu punjenja — npr. kućno prema dinamičkom senzoru tarife, javne AC/DC/HPC prema fiksnim cijenama njihovih operatera.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:03:14.967Z"
     },
     {
       "path": [
@@ -27574,9 +27574,9 @@
       "enValue": "Fixed (24h)",
       "originalHr": "Fiksno (24 h)",
       "currentHr": "Fiksno (24 h)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:03:16.770Z"
     },
     {
       "path": [
@@ -27590,9 +27590,9 @@
       "enValue": "One price per charge type, all day long.",
       "originalHr": "Jedna cijena po vrsti punjenja, cijeli dan.",
       "currentHr": "Jedna cijena po vrsti punjenja, cijeli dan.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:03:53.903Z"
     },
     {
       "path": [
@@ -27606,9 +27606,9 @@
       "enValue": "Time-of-use bands",
       "originalHr": "Vremenske tarife",
       "currentHr": "Vremenske tarife",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:03:59.034Z"
     },
     {
       "path": [
@@ -27622,9 +27622,9 @@
       "enValue": "Different prices depending on the time of day.",
       "originalHr": "Različite cijene ovisno o dobu dana.",
       "currentHr": "Različite cijene ovisno o dobu dana.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:04:08.795Z"
     },
     {
       "path": [
@@ -27638,9 +27638,9 @@
       "enValue": "Dynamic (HA sensor)",
       "originalHr": "Dinamički (HA senzor)",
       "currentHr": "Dinamički (HA senzor)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:04:14.090Z"
     },
     {
       "path": [
@@ -27654,9 +27654,9 @@
       "enValue": "Custom kWh (HA)",
       "originalHr": "Prilagođeni kWh (HA)",
       "currentHr": "Prilagođeni kWh (HA)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:04:15.041Z"
     },
     {
       "path": [
@@ -27670,9 +27670,9 @@
       "enValue": "Price from a Home Assistant sensor that changes over time (e.g. Nordpool, Tibber).",
       "originalHr": "Cijena iz Home Assistant senzora koja se mijenja kroz vrijeme (npr. Nordpool, Tibber).",
       "currentHr": "Cijena iz Home Assistant senzora koja se mijenja kroz vrijeme (npr. Nordpool, Tibber).",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:04:25.041Z"
     },
     {
       "path": [
@@ -27686,9 +27686,9 @@
       "enValue": "Also used whenever the sensor is unreachable or has no data for a session.",
       "originalHr": "Također se koristi kad god je senzor nedostupan ili nema podataka za sesiju.",
       "currentHr": "Također se koristi kad god je senzor nedostupan ili nema podataka za sesiju.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:04:31.209Z"
     },
     {
       "path": [
@@ -27702,9 +27702,9 @@
       "enValue": "Fallback price — used only if the sensor is unreachable or has no data, or while a charge is still in progress.",
       "originalHr": "Zamjenska cijena — koristi se samo ako je senzor nedostupan ili nema podataka, ili dok je punjenje još u tijeku.",
       "currentHr": "Zamjenska cijena — koristi se samo ako je senzor nedostupan ili nema podataka, ili dok je punjenje još u tijeku.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:04:34.133Z"
     },
     {
       "path": [
@@ -27718,9 +27718,9 @@
       "enValue": "Cost = the price above × the kWh your Home Assistant sensor reports at the end of the charge. Use it when only part of a charge is bought — the rest coming from your own solar. The energy Mate shows stays the measured one; only the cost uses your figure.",
       "originalHr": "Trošak = gornja cijena × kWh koje vaš Home Assistant senzor prijavi na kraju punjenja. Koristite kada se plaća samo dio punjenja — a ostatak dolazi iz vlastite solarne elektrane. Energija koju Mate prikazuje ostaje izmjerena; samo trošak koristi vašu brojku.",
       "currentHr": "Trošak = gornja cijena × kWh koje vaš Home Assistant senzor prijavi na kraju punjenja. Koristite kada se plaća samo dio punjenja — a ostatak dolazi iz vlastite solarne elektrane. Energija koju Mate prikazuje ostaje izmjerena; samo trošak koristi vašu brojku.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:04:53.244Z"
     },
     {
       "path": [
@@ -27734,9 +27734,9 @@
       "enValue": "Pick the entity that holds the kWh this charge should be billed for. Mate reads its value when the charge ends and multiplies it by your fixed price. If it is unavailable, the charge is priced on its measured energy instead.",
       "originalHr": "Odaberite entitet koji sadrži kWh po kojima se ovo punjenje treba naplatiti. Mate čita njegovu vrijednost na kraju punjenja i množi je vašom fiksnom cijenom. Ako nije dostupan, punjenje se obračunava prema izmjerenoj energiji.",
       "currentHr": "Odaberite entitet koji sadrži kWh po kojima se ovo punjenje treba naplatiti. Mate čita njegovu vrijednost na kraju punjenja i množi je vašom fiksnom cijenom. Ako nije dostupan, punjenje se obračunava prema izmjerenoj energiji.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:05:34.729Z"
     },
     {
       "path": [
@@ -27750,9 +27750,9 @@
       "enValue": "No energy entity found in Home Assistant (kWh).",
       "originalHr": "U Home Assistantu nije pronađen nijedan entitet energije (kWh).",
       "currentHr": "U Home Assistantu nije pronađen nijedan entitet energije (kWh).",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:05:45.702Z"
     },
     {
       "path": [
@@ -27766,9 +27766,9 @@
       "enValue": "Not used — {type} is on {mode}.",
       "originalHr": "Ne koristi se — {type} je na načinu {mode}.",
       "currentHr": "Ne koristi se — {type} je na načinu {mode}.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:05:49.660Z"
     },
     {
       "path": [
@@ -27782,9 +27782,9 @@
       "enValue": "Price sensor",
       "originalHr": "Senzor cijene",
       "currentHr": "Senzor cijene",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:05:54.167Z"
     },
     {
       "path": [
@@ -27798,9 +27798,9 @@
       "enValue": "Pick the Home Assistant sensor with your electricity price (e.g. Nordpool, Tibber, or your utility's own integration). Mate reads its history for each session and prices every interval by the value in effect at that moment.",
       "originalHr": "Odaberite Home Assistant senzor s cijenom električne energije (npr. Nordpool, Tibber ili integracija vašeg opskrbljivača). Mate čita njegovu povijest za svaku sesiju i obračunava svaki interval po cijeni koja je tada vrijedila.",
       "currentHr": "Odaberite Home Assistant senzor s cijenom električne energije (npr. Nordpool, Tibber ili integracija vašeg opskrbljivača). Mate čita njegovu povijest za svaku sesiju i obračunava svaki interval po cijeni koja je tada vrijedila.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:06:01.500Z"
     },
     {
       "path": [
@@ -27814,9 +27814,9 @@
       "enValue": "Only entities that look like a price (by name or a per-kWh currency unit) are listed. If yours is missing, check its unit_of_measurement in Home Assistant.",
       "originalHr": "Prikazani su samo entiteti koji izgledaju kao cijena (po nazivu ili valuti po kWh). Ako vaš nedostaje, provjerite njegov unit_of_measurement u Home Assistantu.",
       "currentHr": "Prikazani su samo entiteti koji izgledaju kao cijena (po nazivu ili valuti po kWh). Ako vaš nedostaje, provjerite njegov unit_of_measurement u Home Assistantu.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:06:04.786Z"
     },
     {
       "path": [
@@ -27830,9 +27830,9 @@
       "enValue": "No price-like entity found in Home Assistant.",
       "originalHr": "U Home Assistantu nije pronađen nijedan entitet nalik cijeni.",
       "currentHr": "U Home Assistantu nije pronađen nijedan entitet nalik cijeni.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:06:41.091Z"
     },
     {
       "path": [
@@ -27846,9 +27846,9 @@
       "enValue": "Base prices",
       "originalHr": "Osnovne cijene",
       "currentHr": "Osnovne cijene",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:06:42.109Z"
     },
     {
       "path": [
@@ -27862,9 +27862,9 @@
       "enValue": "Also used for hours not covered by any band.",
       "originalHr": "Koristi se i za sate koji nisu pokriveni nijednim tarifnim pojasom.",
       "currentHr": "Koristi se i za sate koji nisu pokriveni nijednim tarifnim pojasom.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:06:46.524Z"
     },
     {
       "path": [
@@ -27878,9 +27878,9 @@
       "enValue": "Calculation method",
       "originalHr": "Metoda izračuna",
       "currentHr": "Metoda izračuna",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:06:47.699Z"
     },
     {
       "path": [
@@ -27894,9 +27894,9 @@
       "enValue": "Accurate split",
       "originalHr": "Precizna podjela",
       "currentHr": "Precizna podjela",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:06:53.259Z"
     },
     {
       "path": [
@@ -27910,9 +27910,9 @@
       "enValue": "Splits each session's energy across bands using the real power curve.",
       "originalHr": "Dijeli energiju svake sesije po tarifnim pojasevima koristeći stvarnu krivulju snage.",
       "currentHr": "Dijeli energiju svake sesije po tarifnim pojasevima koristeći stvarnu krivulju snage.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:06:58.545Z"
     },
     {
       "path": [
@@ -27926,9 +27926,9 @@
       "enValue": "By start time",
       "originalHr": "Prema vremenu početka",
       "currentHr": "Prema vremenu početka",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:06.980Z"
     },
     {
       "path": [
@@ -27942,9 +27942,9 @@
       "enValue": "Prices the whole session by the band it started in.",
       "originalHr": "Obračunava cijelu sesiju prema tarifnom pojasu u kojem je započela.",
       "currentHr": "Obračunava cijelu sesiju prema tarifnom pojasu u kojem je započela.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:07.296Z"
     },
     {
       "path": [
@@ -27958,9 +27958,9 @@
       "enValue": "Time bands",
       "originalHr": "Tarifni pojasevi",
       "currentHr": "Tarifni pojasevi",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:09.595Z"
     },
     {
       "path": [
@@ -27974,9 +27974,9 @@
       "enValue": "Add one or more bands across the day; set a price per charge type for each. Bands may cross midnight (e.g. 23:30 → 06:30).",
       "originalHr": "Dodajte jedan ili više pojaseva tijekom dana; postavite cijenu po vrsti punjenja za svaki. Pojasevi mogu prelaziti ponoć (npr. 23:30 → 06:30).",
       "currentHr": "Dodajte jedan ili više pojaseva tijekom dana; postavite cijenu po vrsti punjenja za svaki. Pojasevi mogu prelaziti ponoć (npr. 23:30 → 06:30).",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:15.988Z"
     },
     {
       "path": [
@@ -27990,9 +27990,9 @@
       "enValue": "From",
       "originalHr": "Od",
       "currentHr": "Od",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:18.783Z"
     },
     {
       "path": [
@@ -28006,9 +28006,9 @@
       "enValue": "To",
       "originalHr": "Do",
       "currentHr": "Do",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:19.354Z"
     },
     {
       "path": [
@@ -28022,9 +28022,9 @@
       "enValue": "Add band",
       "originalHr": "Dodaj pojas",
       "currentHr": "Dodaj pojas",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:20.296Z"
     },
     {
       "path": [
@@ -28038,9 +28038,9 @@
       "enValue": "Remove",
       "originalHr": "Ukloni",
       "currentHr": "Ukloni",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:21.931Z"
     },
     {
       "path": [
@@ -28054,9 +28054,9 @@
       "enValue": "Off-band (rest of day)",
       "originalHr": "Izvan pojasa (ostatak dana)",
       "currentHr": "Izvan pojasa (ostatak dana)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:23.852Z"
     },
     {
       "path": [
@@ -28070,9 +28070,9 @@
       "enValue": "No bands yet — add one to get started.",
       "originalHr": "Još nema pojaseva — dodajte jedan za početak.",
       "currentHr": "Još nema pojaseva — dodajte jedan za početak.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:29.170Z"
     },
     {
       "path": [
@@ -28086,9 +28086,9 @@
       "enValue": "Save",
       "originalHr": "Spremi",
       "currentHr": "Spremi",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:32.203Z"
     },
     {
       "path": [
@@ -28102,9 +28102,9 @@
       "enValue": "✓ Saved",
       "originalHr": "✓ Spremljeno",
       "currentHr": "✓ Spremljeno",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:34.428Z"
     },
     {
       "path": [
@@ -28118,9 +28118,9 @@
       "enValue": "Cost changes apply to future charges only — costs already calculated are not modified.",
       "originalHr": "Promjene cijena primjenjuju se samo na buduća punjenja — već izračunati troškovi ne mijenjaju se.",
       "currentHr": "Promjene cijena primjenjuju se samo na buduća punjenja — već izračunati troškovi ne mijenjaju se.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:07:43.643Z"
     },
     {
       "path": [
@@ -28134,9 +28134,9 @@
       "enValue": "The greyed-out price is the base price and applies automatically. Type a value only to change it for that band, or 0 if it's free.",
       "originalHr": "Posivljena cijena je osnovna cijena i primjenjuje se automatski. Upišite vrijednost samo ako je želite promijeniti za taj pojas, ili 0 ako je besplatno.",
       "currentHr": "Posivljena cijena je osnovna cijena i primjenjuje se automatski. Upišite vrijednost samo ako je želite promijeniti za taj pojas, ili 0 ako je besplatno.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:09.216Z"
     },
     {
       "path": [
@@ -28150,9 +28150,9 @@
       "enValue": "Mo",
       "originalHr": "Po",
       "currentHr": "Po",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:14.269Z"
     },
     {
       "path": [
@@ -28166,9 +28166,9 @@
       "enValue": "Tu",
       "originalHr": "Ut",
       "currentHr": "Ut",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:14.841Z"
     },
     {
       "path": [
@@ -28182,9 +28182,9 @@
       "enValue": "We",
       "originalHr": "Sr",
       "currentHr": "Sr",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:29.948Z"
     },
     {
       "path": [
@@ -28198,9 +28198,9 @@
       "enValue": "Th",
       "originalHr": "Če",
       "currentHr": "Če",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:30.112Z"
     },
     {
       "path": [
@@ -28214,9 +28214,9 @@
       "enValue": "Fr",
       "originalHr": "Pe",
       "currentHr": "Pe",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:30.291Z"
     },
     {
       "path": [
@@ -28230,9 +28230,9 @@
       "enValue": "Sa",
       "originalHr": "Su",
       "currentHr": "Su",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:30.458Z"
     },
     {
       "path": [
@@ -28246,9 +28246,9 @@
       "enValue": "Su",
       "originalHr": "Ne",
       "currentHr": "Ne",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:30.661Z"
     },
     {
       "path": [
@@ -28262,9 +28262,9 @@
       "enValue": "All",
       "originalHr": "Svi",
       "currentHr": "Svi",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:31.582Z"
     },
     {
       "path": [
@@ -28278,9 +28278,9 @@
       "enValue": "Weekdays",
       "originalHr": "Radni dani",
       "currentHr": "Radni dani",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:32.828Z"
     },
     {
       "path": [
@@ -28294,9 +28294,9 @@
       "enValue": "Weekend",
       "originalHr": "Vikend",
       "currentHr": "Vikend",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:33.557Z"
     },
     {
       "path": [
@@ -28310,9 +28310,9 @@
       "enValue": "Welcome to LeapMotor Mate",
       "originalHr": "Dobrodošli u LeapMotor Mate",
       "currentHr": "Dobrodošli u LeapMotor Mate",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:34.848Z"
     },
     {
       "path": [
@@ -28326,9 +28326,9 @@
       "enValue": "Configure your vehicle connection to get started",
       "originalHr": "Konfigurirajte vezu s vozilom za početak",
       "currentHr": "Konfigurirajte vezu s vozilom za početak",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:37.388Z"
     },
     {
       "path": [
@@ -28342,9 +28342,9 @@
       "enValue": "Leapmotor account email",
       "originalHr": "E-pošta Leapmotor računa",
       "currentHr": "E-pošta Leapmotor računa",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:40.184Z"
     },
     {
       "path": [
@@ -28358,9 +28358,9 @@
       "enValue": "you@example.com",
       "originalHr": "vi@primjer.com",
       "currentHr": "vi@primjer.com",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:42.003Z"
     },
     {
       "path": [
@@ -28374,9 +28374,9 @@
       "enValue": "Password",
       "originalHr": "Lozinka",
       "currentHr": "Lozinka",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:42.680Z"
     },
     {
       "path": [
@@ -28389,10 +28389,10 @@
       "shortKey": "setup_pin",
       "enValue": "Operation PIN",
       "originalHr": "PIN za radnje",
-      "currentHr": "PIN za radnje",
-      "status": "pending",
+      "currentHr": "Operativni PIN",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:47.529Z"
     },
     {
       "path": [
@@ -28406,9 +28406,9 @@
       "enValue": "4-digit PIN",
       "originalHr": "4-znamenkasti PIN",
       "currentHr": "4-znamenkasti PIN",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:49.102Z"
     },
     {
       "path": [
@@ -28422,9 +28422,9 @@
       "enValue": "Battery capacity (kWh)",
       "originalHr": "Kapacitet baterije (kWh)",
       "currentHr": "Kapacitet baterije (kWh)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:50.539Z"
     },
     {
       "path": [
@@ -28438,9 +28438,9 @@
       "enValue": "Language",
       "originalHr": "Jezik",
       "currentHr": "Jezik",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:51.277Z"
     },
     {
       "path": [
@@ -28454,9 +28454,9 @@
       "enValue": "Language & Currency",
       "originalHr": "Jezik i valuta",
       "currentHr": "Jezik i valuta",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:52.532Z"
     },
     {
       "path": [
@@ -28470,9 +28470,9 @@
       "enValue": "Currency",
       "originalHr": "Valuta",
       "currentHr": "Valuta",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:08:54.349Z"
     },
     {
       "path": [
@@ -28486,9 +28486,9 @@
       "enValue": "Units",
       "originalHr": "Mjerne jedinice",
       "currentHr": "Mjerne jedinice",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:09:03.419Z"
     },
     {
       "path": [
@@ -28502,9 +28502,9 @@
       "enValue": "Metric — km, °C, bar",
       "originalHr": "Metričke — km, °C, bar",
       "currentHr": "Metričke — km, °C, bar",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:09:09.644Z"
     },
     {
       "path": [
@@ -28518,9 +28518,9 @@
       "enValue": "Imperial UK — miles, °C, psi",
       "originalHr": "Imperijalne UK — milje, °C, psi",
       "currentHr": "Imperijalne UK — milje, °C, psi",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:09:09.816Z"
     },
     {
       "path": [
@@ -28534,9 +28534,9 @@
       "enValue": "Imperial US — miles, °F, psi",
       "originalHr": "Imperijalne US — milje, °F, psi",
       "currentHr": "Imperijalne US — milje, °F, psi",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:09:09.994Z"
     },
     {
       "path": [
@@ -28550,9 +28550,9 @@
       "enValue": "Display only — your stored data stays metric.",
       "originalHr": "Samo za prikaz — pohranjeni podaci ostaju metrički.",
       "currentHr": "Samo za prikaz — pohranjeni podaci ostaju metrički.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:10:07.343Z"
     },
     {
       "path": [
@@ -28566,9 +28566,9 @@
       "enValue": "Time zone",
       "originalHr": "Vremenska zona",
       "currentHr": "Vremenska zona",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:10:13.257Z"
     },
     {
       "path": [
@@ -28582,9 +28582,9 @@
       "enValue": "Automatic (system)",
       "originalHr": "Automatski (sustav)",
       "currentHr": "Automatski (sustav)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:10:13.407Z"
     },
     {
       "path": [
@@ -28598,9 +28598,9 @@
       "enValue": "Display only — your stored data stays UTC. New charges are priced in this zone from now on.",
       "originalHr": "Samo za prikaz — pohranjeni podaci ostaju u UTC-u. Nova punjenja od sada se obračunavaju u ovoj zoni.",
       "currentHr": "Samo za prikaz — pohranjeni podaci ostaju u UTC-u. Nova punjenja od sada se obračunavaju u ovoj zoni.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:10:18.507Z"
     },
     {
       "path": [
@@ -28614,9 +28614,9 @@
       "enValue": "Connect & Start",
       "originalHr": "Poveži i pokreni",
       "currentHr": "Poveži i pokreni",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:10:20.039Z"
     },
     {
       "path": [
@@ -28630,9 +28630,9 @@
       "enValue": "English",
       "originalHr": "English",
       "currentHr": "English",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:06.686Z"
     },
     {
       "path": [
@@ -28646,9 +28646,9 @@
       "enValue": "Italiano",
       "originalHr": "Italiano",
       "currentHr": "Italiano",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:06.927Z"
     },
     {
       "path": [
@@ -28662,9 +28662,9 @@
       "enValue": "Français",
       "originalHr": "Français",
       "currentHr": "Français",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:07.191Z"
     },
     {
       "path": [
@@ -28678,9 +28678,9 @@
       "enValue": "Deutsch",
       "originalHr": "Deutsch",
       "currentHr": "Deutsch",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:07.571Z"
     },
     {
       "path": [
@@ -28694,9 +28694,9 @@
       "enValue": "Polski",
       "originalHr": "Polski",
       "currentHr": "Polski",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:07.926Z"
     },
     {
       "path": [
@@ -28709,10 +28709,10 @@
       "shortKey": "lang_pt-PT",
       "enValue": "Portuguese (Portugal)",
       "originalHr": "Portugalski (Portugal)",
-      "currentHr": "Portugalski (Portugal)",
-      "status": "pending",
+      "currentHr": "Português (Portugal)",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:08.553Z"
     },
     {
       "path": [
@@ -28726,9 +28726,9 @@
       "enValue": "Nederlands",
       "originalHr": "Nederlands",
       "currentHr": "Nederlands",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:08.845Z"
     },
     {
       "path": [
@@ -28742,9 +28742,9 @@
       "enValue": "Español",
       "originalHr": "Español",
       "currentHr": "Español",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:09.883Z"
     },
     {
       "path": [
@@ -28758,9 +28758,9 @@
       "enValue": "Čeština",
       "originalHr": "Čeština",
       "currentHr": "Čeština",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:12.307Z"
     },
     {
       "path": [
@@ -28774,9 +28774,9 @@
       "enValue": "Hrvatski",
       "originalHr": "Hrvatski",
       "currentHr": "Hrvatski",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:13.032Z"
     },
     {
       "path": [
@@ -28790,9 +28790,9 @@
       "enValue": "Refuels",
       "originalHr": "Točenja goriva",
       "currentHr": "Točenja goriva",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:15.191Z"
     },
     {
       "path": [
@@ -28806,9 +28806,9 @@
       "enValue": "Fuel & refuels",
       "originalHr": "Gorivo i točenja",
       "currentHr": "Gorivo i točenja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:16.759Z"
     },
     {
       "path": [
@@ -28822,9 +28822,9 @@
       "enValue": "Log each refuel to price your engine-on trips. The tank's price per litre is a weighted average of what you actually paid.",
       "originalHr": "Bilježite svako točenje goriva kako biste obračunali vožnje s uključenim motorom. Cijena po litri u spremniku ponderirani je prosjek onoga što ste stvarno platili.",
       "currentHr": "Bilježite svako točenje goriva kako biste obračunali vožnje s uključenim motorom. Cijena po litri u spremniku ponderirani je prosjek onoga što ste stvarno platili.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:23.133Z"
     },
     {
       "path": [
@@ -28838,9 +28838,9 @@
       "enValue": "refuel",
       "originalHr": "točenje",
       "currentHr": "točenje",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:26.284Z"
     },
     {
       "path": [
@@ -28854,9 +28854,9 @@
       "enValue": "refuels",
       "originalHr": "točenja",
       "currentHr": "točenja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:27.008Z"
     },
     {
       "path": [
@@ -28870,9 +28870,9 @@
       "enValue": "Pick a day with refuels to see it in detail",
       "originalHr": "Odaberite dan s točenjem goriva za prikaz detalja",
       "currentHr": "Odaberite dan s točenjem goriva za prikaz detalja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:34.719Z"
     },
     {
       "path": [
@@ -28886,9 +28886,9 @@
       "enValue": "tank before",
       "originalHr": "spremnik prije",
       "currentHr": "spremnik prije",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:11:35.532Z"
     },
     {
       "path": [
@@ -28902,9 +28902,9 @@
       "enValue": "Add a refuel",
       "originalHr": "Dodaj točenje goriva",
       "currentHr": "Dodaj točenje goriva",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:12:24.773Z"
     },
     {
       "path": [
@@ -28918,9 +28918,9 @@
       "enValue": "Enter the litres, then the price per litre or the total you paid — the other is computed.",
       "originalHr": "Unesite litre, zatim cijenu po litri ili ukupno plaćeni iznos — drugo se izračunava automatski.",
       "currentHr": "Unesite litre, zatim cijenu po litri ili ukupno plaćeni iznos — drugo se izračunava automatski.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:12:30.082Z"
     },
     {
       "path": [
@@ -28934,9 +28934,9 @@
       "enValue": "Add refuel",
       "originalHr": "Dodaj točenje",
       "currentHr": "Dodaj točenje",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:12:32.734Z"
     },
     {
       "path": [
@@ -28950,9 +28950,9 @@
       "enValue": "When",
       "originalHr": "Kada",
       "currentHr": "Kada",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:12:33.709Z"
     },
     {
       "path": [
@@ -28966,9 +28966,9 @@
       "enValue": "Litres",
       "originalHr": "Litre",
       "currentHr": "Litre",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:12:35.504Z"
     },
     {
       "path": [
@@ -28982,9 +28982,9 @@
       "enValue": "Gauge estimate — replace it with the litres on your receipt.",
       "originalHr": "Procjena pokazivača — zamijenite je litrama s računa.",
       "currentHr": "Procjena pokazivača — zamijenite je litrama s računa.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:12:42.271Z"
     },
     {
       "path": [
@@ -28998,9 +28998,9 @@
       "enValue": "Price per litre",
       "originalHr": "Cijena po litri",
       "currentHr": "Cijena po litri",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:12:52.978Z"
     },
     {
       "path": [
@@ -29014,9 +29014,9 @@
       "enValue": "Total",
       "originalHr": "Ukupno",
       "currentHr": "Ukupno",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:12:53.515Z"
     },
     {
       "path": [
@@ -29030,9 +29030,9 @@
       "enValue": "Note",
       "originalHr": "Bilješka",
       "currentHr": "Bilješka",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:12:55.984Z"
     },
     {
       "path": [
@@ -29046,9 +29046,9 @@
       "enValue": "e.g. motorway station",
       "originalHr": "npr. benzinska na autocesti",
       "currentHr": "npr. benzinska na autocesti",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:12:58.220Z"
     },
     {
       "path": [
@@ -29062,9 +29062,9 @@
       "enValue": "Fill in the price per litre OR the total — whichever you have.",
       "originalHr": "Ispunite cijenu po litri ILI ukupni iznos — što god imate.",
       "currentHr": "Ispunite cijenu po litri ILI ukupni iznos — što god imate.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:03.954Z"
     },
     {
       "path": [
@@ -29078,9 +29078,9 @@
       "enValue": "Tank",
       "originalHr": "Spremnik",
       "currentHr": "Spremnik",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:05.080Z"
     },
     {
       "path": [
@@ -29094,9 +29094,9 @@
       "enValue": "Level",
       "originalHr": "Razina",
       "currentHr": "Razina",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:06.897Z"
     },
     {
       "path": [
@@ -29110,9 +29110,9 @@
       "enValue": "Average price",
       "originalHr": "Prosječna cijena",
       "currentHr": "Prosječna cijena",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:12.701Z"
     },
     {
       "path": [
@@ -29126,9 +29126,9 @@
       "enValue": "weighted average",
       "originalHr": "ponderirani prosjek",
       "currentHr": "ponderirani prosjek",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:13.792Z"
     },
     {
       "path": [
@@ -29142,9 +29142,9 @@
       "enValue": "Fuel value",
       "originalHr": "Vrijednost goriva",
       "currentHr": "Vrijednost goriva",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:23.829Z"
     },
     {
       "path": [
@@ -29158,9 +29158,9 @@
       "enValue": "litres in tank × average price",
       "originalHr": "litara u spremniku × prosječna cijena",
       "currentHr": "litara u spremniku × prosječna cijena",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:26.067Z"
     },
     {
       "path": [
@@ -29174,9 +29174,9 @@
       "enValue": "Refuels logged",
       "originalHr": "Zabilježenih točenja",
       "currentHr": "Zabilježenih točenja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:27.467Z"
     },
     {
       "path": [
@@ -29190,9 +29190,9 @@
       "enValue": "Refuel history",
       "originalHr": "Povijest točenja",
       "currentHr": "Povijest točenja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:28.160Z"
     },
     {
       "path": [
@@ -29206,9 +29206,9 @@
       "enValue": "No refuels logged yet. Add your first one above to start pricing engine-on trips.",
       "originalHr": "Još nema zabilježenih točenja goriva. Dodajte prvo iznad za početak obračuna vožnji s uključenim motorom.",
       "currentHr": "Još nema zabilježenih točenja goriva. Dodajte prvo iznad za početak obračuna vožnji s uključenim motorom.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:32.790Z"
     },
     {
       "path": [
@@ -29222,9 +29222,9 @@
       "enValue": "Delete this refuel?",
       "originalHr": "Izbrisati ovo točenje goriva?",
       "currentHr": "Izbrisati ovo točenje goriva?",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:34.151Z"
     },
     {
       "path": [
@@ -29238,9 +29238,9 @@
       "enValue": "Delete",
       "originalHr": "Izbriši",
       "currentHr": "Izbriši",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:34.771Z"
     },
     {
       "path": [
@@ -29254,9 +29254,9 @@
       "enValue": "Refuels detected",
       "originalHr": "Otkrivena točenja goriva",
       "currentHr": "Otkrivena točenja goriva",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:36.077Z"
     },
     {
       "path": [
@@ -29270,9 +29270,9 @@
       "enValue": "The tank level went up, and fuel gets into a tank one way only. Mate fills in when and how much; what you paid is the one thing only you know.",
       "originalHr": "Razina spremnika je porasla, a gorivo u spremnik ulazi samo na jedan način. Mate popunjava kada i koliko; ono što ste platili znate samo vi.",
       "currentHr": "Razina spremnika je porasla, a gorivo u spremnik ulazi samo na jedan način. Mate popunjava kada i koliko; ono što ste platili znate samo vi.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:13:55.112Z"
     },
     {
       "path": [
@@ -29286,9 +29286,9 @@
       "enValue": "to confirm",
       "originalHr": "za potvrdu",
       "currentHr": "za potvrdu",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:14:23.665Z"
     },
     {
       "path": [
@@ -29302,9 +29302,9 @@
       "enValue": "The tank ended up full. The car stops counting at 100 %, so whatever went in above that is missing here — take the litres from your receipt.",
       "originalHr": "Spremnik je napunjen do vrha. Vozilo prestaje brojati na 100 %, pa sve što je stalo iznad toga ovdje nedostaje — uzmite litre s računa.",
       "currentHr": "Spremnik je napunjen do vrha. Vozilo prestaje brojati na 100 %, pa sve što je stalo iznad toga ovdje nedostaje — uzmite litre s računa.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:14:23.775Z"
     },
     {
       "path": [
@@ -29318,9 +29318,9 @@
       "enValue": "between {a} and {b}",
       "originalHr": "između {a} i {b}",
       "currentHr": "između {a} i {b}",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:14:23.868Z"
     },
     {
       "path": [
@@ -29334,9 +29334,9 @@
       "enValue": "tank {a}% → {b}%",
       "originalHr": "spremnik {a}% → {b}%",
       "currentHr": "spremnik {a}% → {b}%",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:14:24.014Z"
     },
     {
       "path": [
@@ -29350,9 +29350,9 @@
       "enValue": "Confirm",
       "originalHr": "Potvrdi",
       "currentHr": "Potvrdi",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:14:25.062Z"
     },
     {
       "path": [
@@ -29366,9 +29366,9 @@
       "enValue": "Not a refuel",
       "originalHr": "Nije točenje",
       "currentHr": "Nije točenje",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:14:26.085Z"
     },
     {
       "path": [
@@ -29382,9 +29382,9 @@
       "enValue": "Discard this detection? It won't be offered again.",
       "originalHr": "Odbaciti ovo otkrivanje? Neće se ponovno nuditi.",
       "currentHr": "Odbaciti ovo otkrivanje? Neće se ponovno nuditi.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:14:42.698Z"
     },
     {
       "path": [
@@ -29398,9 +29398,9 @@
       "enValue": "Access",
       "originalHr": "Pristup",
       "currentHr": "Pristup",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:14:45.120Z"
     },
     {
       "path": [
@@ -29414,9 +29414,9 @@
       "enValue": "Password required to open Mate.",
       "originalHr": "Za otvaranje Matea potrebna je lozinka.",
       "currentHr": "Za otvaranje Matea potrebna je lozinka.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:15:15.010Z"
     },
     {
       "path": [
@@ -29430,9 +29430,9 @@
       "enValue": "No password: anything on your network can open Mate — and Mate can unlock your car.",
       "originalHr": "Bez lozinke: svatko na vašoj mreži može otvoriti Mate — a Mate može otključati vaše vozilo.",
       "currentHr": "Bez lozinke: svatko na vašoj mreži može otvoriti Mate — a Mate može otključati vaše vozilo.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:15:15.503Z"
     },
     {
       "path": [
@@ -29446,9 +29446,9 @@
       "enValue": "Choose a password",
       "originalHr": "Odaberite lozinku",
       "currentHr": "Odaberite lozinku",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:15:18.514Z"
     },
     {
       "path": [
@@ -29462,9 +29462,9 @@
       "enValue": "New password",
       "originalHr": "Nova lozinka",
       "currentHr": "Nova lozinka",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:15:19.762Z"
     },
     {
       "path": [
@@ -29478,9 +29478,9 @@
       "enValue": "Protect Mate",
       "originalHr": "Zaštiti Mate",
       "currentHr": "Zaštiti Mate",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:15:43.433Z"
     },
     {
       "path": [
@@ -29493,10 +29493,10 @@
       "shortKey": "auth_hint",
       "enValue": "At least 8 characters. Stored as a salted hash, never in clear text.",
       "originalHr": "Najmanje 8 znakova. Pohranjuje se kao soljeni hash, nikada u čistom tekstu.",
-      "currentHr": "Najmanje 8 znakova. Pohranjuje se kao soljeni hash, nikada u čistom tekstu.",
-      "status": "pending",
+      "currentHr": "Najmanje 8 znakova. Pohranjuje se kao usoljeni hash, nikada u čistom tekstu.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:15:43.618Z"
     },
     {
       "path": [
@@ -29509,10 +29509,10 @@
       "shortKey": "auth_confirm",
       "enValue": "Repeat it",
       "originalHr": "Ponovite je",
-      "currentHr": "Ponovite je",
-      "status": "pending",
+      "currentHr": "Ponovite lozinku",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:15:52.903Z"
     },
     {
       "path": [
@@ -29526,9 +29526,9 @@
       "enValue": "The two don't match",
       "originalHr": "Lozinke se ne podudaraju",
       "currentHr": "Lozinke se ne podudaraju",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:15:54.183Z"
     },
     {
       "path": [
@@ -29541,10 +29541,10 @@
       "shortKey": "auth_reveal",
       "enValue": "Show it",
       "originalHr": "Prikaži je",
-      "currentHr": "Prikaži je",
-      "status": "pending",
+      "currentHr": "Prikaži",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:15:56.654Z"
     },
     {
       "path": [
@@ -29558,9 +29558,9 @@
       "enValue": "Nowhere to read it back later: if it's lost, set a new one from a device still signed in, or through the MATE_AUTH_PASSWORD variable.",
       "originalHr": "Ne može se naknadno pročitati: ako je izgubite, postavite novu s uređaja koji je još prijavljen ili putem varijable MATE_AUTH_PASSWORD.",
       "currentHr": "Ne može se naknadno pročitati: ako je izgubite, postavite novu s uređaja koji je još prijavljen ili putem varijable MATE_AUTH_PASSWORD.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:16:05.054Z"
     },
     {
       "path": [
@@ -29574,9 +29574,9 @@
       "enValue": "Turn the password off",
       "originalHr": "Isključi lozinku",
       "currentHr": "Isključi lozinku",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:16:06.231Z"
     },
     {
       "path": [
@@ -29590,9 +29590,9 @@
       "enValue": "Turn the password off? Mate will be open to anything on your network.",
       "originalHr": "Isključiti lozinku? Mate će biti dostupan svemu na vašoj mreži.",
       "currentHr": "Isključiti lozinku? Mate će biti dostupan svemu na vašoj mreži.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:16:21.153Z"
     },
     {
       "path": [
@@ -29606,9 +29606,9 @@
       "enValue": "The password is set in the environment, so it's managed there — not here.",
       "originalHr": "Lozinka je postavljena u okruženju, pa se tamo i uređuje — ne ovdje.",
       "currentHr": "Lozinka je postavljena u okruženju, pa se tamo i uređuje — ne ovdje.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:16:25.928Z"
     },
     {
       "path": [
@@ -29622,9 +29622,9 @@
       "enValue": "Mate has no password: anything on your network can open your car.",
       "originalHr": "Mate nema lozinku: bilo tko na vašoj mreži može otvoriti vaše vozilo.",
       "currentHr": "Mate nema lozinku: bilo tko na vašoj mreži može otvoriti vaše vozilo.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:16:30.306Z"
     },
     {
       "path": [
@@ -29637,10 +29637,10 @@
       "shortKey": "auth_warning_cta",
       "enValue": "Set one",
       "originalHr": "Postavi je",
-      "currentHr": "Postavi je",
-      "status": "pending",
+      "currentHr": "Postavi lozinku",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:16:47.200Z"
     },
     {
       "path": [
@@ -29654,9 +29654,9 @@
       "enValue": "Hide",
       "originalHr": "Sakrij",
       "currentHr": "Sakrij",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:16:47.790Z"
     },
     {
       "path": [
@@ -29670,9 +29670,9 @@
       "enValue": "Save",
       "originalHr": "Spremi",
       "currentHr": "Spremi",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:16:52.463Z"
     },
     {
       "path": [
@@ -29686,9 +29686,9 @@
       "enValue": "Updates when you restart Mate",
       "originalHr": "Ažurira se kada ponovno pokrenete Mate",
       "currentHr": "Ažurira se kada ponovno pokrenete Mate",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:16:53.064Z"
     },
     {
       "path": [
@@ -29702,9 +29702,9 @@
       "enValue": "A newer version of the app is required — download it",
       "originalHr": "Potrebna je novija verzija aplikacije — preuzmite je",
       "currentHr": "Potrebna je novija verzija aplikacije — preuzmite je",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:19:48.006Z"
     },
     {
       "path": [
@@ -29718,9 +29718,9 @@
       "enValue": "A newer version of the app is available — click to download it",
       "originalHr": "Dostupna je novija verzija aplikacije — kliknite za preuzimanje",
       "currentHr": "Dostupna je novija verzija aplikacije — kliknite za preuzimanje",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:19:49.109Z"
     },
     {
       "path": [
@@ -29734,9 +29734,9 @@
       "enValue": "Mate records only while this app is open — anything after you close it is not saved, and cannot be recovered later.",
       "originalHr": "Mate bilježi samo dok je ova aplikacija otvorena — sve nakon što je zatvorite ne sprema se i ne može se kasnije vratiti.",
       "currentHr": "Mate bilježi samo dok je ova aplikacija otvorena — sve nakon što je zatvorite ne sprema se i ne može se kasnije vratiti.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:19:55.952Z"
     },
     {
       "path": [
@@ -29750,9 +29750,9 @@
       "enValue": "Got it",
       "originalHr": "Razumijem",
       "currentHr": "Razumijem",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:11.743Z"
     },
     {
       "path": [
@@ -29766,9 +29766,9 @@
       "enValue": "App",
       "originalHr": "Aplikacija",
       "currentHr": "Aplikacija",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:12.367Z"
     },
     {
       "path": [
@@ -29782,9 +29782,9 @@
       "enValue": "Start at login",
       "originalHr": "Pokreni pri prijavi",
       "currentHr": "Pokreni pri prijavi",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:15.016Z"
     },
     {
       "path": [
@@ -29798,9 +29798,9 @@
       "enValue": "Opens Mate on its own when you turn the computer on, so it also records the trips and charges you don't think about.",
       "originalHr": "Automatski otvara Mate kada uključite računalo, tako da bilježi i vožnje i punjenja o kojima ne razmišljate.",
       "currentHr": "Automatski otvara Mate kada uključite računalo, tako da bilježi i vožnje i punjenja o kojima ne razmišljate.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:22.655Z"
     },
     {
       "path": [
@@ -29814,9 +29814,9 @@
       "enValue": "On — Mate will open at your next login",
       "originalHr": "Uključeno — Mate će se otvoriti pri sljedećoj prijavi",
       "currentHr": "Uključeno — Mate će se otvoriti pri sljedećoj prijavi",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:25.886Z"
     },
     {
       "path": [
@@ -29830,9 +29830,9 @@
       "enValue": "Off",
       "originalHr": "Isključeno",
       "currentHr": "Isključeno",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:26.518Z"
     },
     {
       "path": [
@@ -29846,9 +29846,9 @@
       "enValue": "App version",
       "originalHr": "Verzija aplikacije",
       "currentHr": "Verzija aplikacije",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:27.440Z"
     },
     {
       "path": [
@@ -29862,9 +29862,9 @@
       "enValue": "Remove Mate from this Mac",
       "originalHr": "Ukloni Mate s ovog Maca",
       "currentHr": "Ukloni Mate s ovog Maca",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:30.669Z"
     },
     {
       "path": [
@@ -29878,9 +29878,9 @@
       "enValue": "macOS has no uninstaller: dragging the app to the Bin leaves your data in the Library. This takes everything.",
       "originalHr": "macOS nema deinstalacijski program: povlačenje aplikacije u Smeće ostavlja vaše podatke u mapi Library. Ovo briše sve.",
       "currentHr": "macOS nema deinstalacijski program: povlačenje aplikacije u Smeće ostavlja vaše podatke u mapi Library. Ovo briše sve.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:40.168Z"
     },
     {
       "path": [
@@ -29894,9 +29894,9 @@
       "enValue": "Remove Mate and its data",
       "originalHr": "Ukloni Mate i njegove podatke",
       "currentHr": "Ukloni Mate i njegove podatke",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:41.833Z"
     },
     {
       "path": [
@@ -29910,9 +29910,9 @@
       "enValue": "Remove Mate and ALL of its data? Trips, charges, settings and the certificate will be deleted for good. The app goes to the Bin. This cannot be undone — if you want the data, back it up first from Export / Backup.",
       "originalHr": "Ukloniti Mate i SVE njegove podatke? Vožnje, punjenja, postavke i certifikat bit će trajno izbrisani. Aplikacija ide u Smeće. Ovo se ne može poništiti — ako želite sačuvati podatke, prvo napravite sigurnosnu kopiju pod Izvoz / Sigurnosna kopija.",
       "currentHr": "Ukloniti Mate i SVE njegove podatke? Vožnje, punjenja, postavke i certifikat bit će trajno izbrisani. Aplikacija ide u Smeće. Ovo se ne može poništiti — ako želite sačuvati podatke, prvo napravite sigurnosnu kopiju pod Izvoz / Sigurnosna kopija.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:46.376Z"
     },
     {
       "path": [
@@ -29926,9 +29926,9 @@
       "enValue": "Removing — the app will close in a moment.",
       "originalHr": "Uklanjanje — aplikacija će se zatvoriti za trenutak.",
       "currentHr": "Uklanjanje — aplikacija će se zatvoriti za trenutak.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:51.615Z"
     },
     {
       "path": [
@@ -29942,9 +29942,9 @@
       "enValue": "Edit refuel",
       "originalHr": "Uredi točenje",
       "currentHr": "Uredi točenje",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:20:52.917Z"
     },
     {
       "path": [
@@ -29958,9 +29958,9 @@
       "enValue": "Save changes",
       "originalHr": "Spremi promjene",
       "currentHr": "Spremi promjene",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:25:03.219Z"
     },
     {
       "path": [
@@ -29974,9 +29974,9 @@
       "enValue": "Cancel",
       "originalHr": "Odustani",
       "currentHr": "Odustani",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:25:05.150Z"
     },
     {
       "path": [
@@ -29990,9 +29990,9 @@
       "enValue": "Consumption vs outside temperature",
       "originalHr": "Potrošnja vs vanjska temperatura",
       "currentHr": "Potrošnja vs vanjska temperatura",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:25:07.525Z"
     },
     {
       "path": [
@@ -30006,9 +30006,9 @@
       "enValue": "One point per trip (≥ {km} km), against the outside air temperature at departure and arrival. The trend line is Mate reading your own winter and summer.",
       "originalHr": "Jedna točka po vožnji (≥ {km} km), u odnosu na vanjsku temperaturu zraka pri polasku i dolasku. Linija trenda pokazuje kako Mate očitava vašu zimu i ljeto.",
       "currentHr": "Jedna točka po vožnji (≥ {km} km), u odnosu na vanjsku temperaturu zraka pri polasku i dolasku. Linija trenda pokazuje kako Mate očitava vašu zimu i ljeto.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:25:37.416Z"
     },
     {
       "path": [
@@ -30022,9 +30022,9 @@
       "enValue": "Electric (kWh/100 km)",
       "originalHr": "Struja (kWh/100 km)",
       "currentHr": "Struja (kWh/100 km)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:25:45.272Z"
     },
     {
       "path": [
@@ -30038,9 +30038,9 @@
       "enValue": "Petrol (L/100 km)",
       "originalHr": "Benzin (L/100 km)",
       "currentHr": "Benzin (L/100 km)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:25:51.006Z"
     },
     {
       "path": [
@@ -30054,9 +30054,9 @@
       "enValue": "kWh/100 km",
       "originalHr": "kWh/100 km",
       "currentHr": "kWh/100 km",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:25:51.872Z"
     },
     {
       "path": [
@@ -30070,9 +30070,9 @@
       "enValue": "L/100 km",
       "originalHr": "L/100 km",
       "currentHr": "L/100 km",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:25:52.467Z"
     },
     {
       "path": [
@@ -30086,9 +30086,9 @@
       "enValue": "≈{val} kWh/100 km every 10 °C (electric)",
       "originalHr": "≈{val} kWh/100 km svakih 10 °C (struja)",
       "currentHr": "≈{val} kWh/100 km svakih 10 °C (struja)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:25:55.997Z"
     },
     {
       "path": [
@@ -30102,9 +30102,9 @@
       "enValue": "≈{val} L/100 km every 10 °C (petrol)",
       "originalHr": "≈{val} L/100 km svakih 10 °C (benzin)",
       "currentHr": "≈{val} L/100 km svakih 10 °C (benzin)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:08.394Z"
     },
     {
       "path": [
@@ -30118,9 +30118,9 @@
       "enValue": "Electricity",
       "originalHr": "Struja",
       "currentHr": "Struja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:10.055Z"
     },
     {
       "path": [
@@ -30134,9 +30134,9 @@
       "enValue": "Fuel",
       "originalHr": "Gorivo",
       "currentHr": "Gorivo",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:10.627Z"
     },
     {
       "path": [
@@ -30150,9 +30150,9 @@
       "enValue": "Trip summary",
       "originalHr": "Sažetak vožnje",
       "currentHr": "Sažetak vožnje",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:33.727Z"
     },
     {
       "path": [
@@ -30166,9 +30166,9 @@
       "enValue": "Trip details",
       "originalHr": "Detalji vožnje",
       "currentHr": "Detalji vožnje",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:34.491Z"
     },
     {
       "path": [
@@ -30182,9 +30182,9 @@
       "enValue": "Fuel used",
       "originalHr": "Potrošeno goriva",
       "currentHr": "Potrošeno goriva",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:35.253Z"
     },
     {
       "path": [
@@ -30198,9 +30198,9 @@
       "enValue": "With the generator",
       "originalHr": "S generatorom",
       "currentHr": "S generatorom",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:36.699Z"
     },
     {
       "path": [
@@ -30214,9 +30214,9 @@
       "enValue": "Leapmotor history",
       "originalHr": "Leapmotor povijest",
       "currentHr": "Leapmotor povijest",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:42.668Z"
     },
     {
       "path": [
@@ -30230,9 +30230,9 @@
       "enValue": "Measured by the car",
       "originalHr": "Izmjerilo vozilo",
       "currentHr": "Izmjerilo vozilo",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:44.467Z"
     },
     {
       "path": [
@@ -30246,9 +30246,9 @@
       "enValue": "Mate estimate",
       "originalHr": "Mate procjena",
       "currentHr": "Mate procjena",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:45.320Z"
     },
     {
       "path": [
@@ -30262,9 +30262,9 @@
       "enValue": "Leapmotor history",
       "originalHr": "Leapmotor povijest",
       "currentHr": "Leapmotor povijest",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:46.250Z"
     },
     {
       "path": [
@@ -30278,9 +30278,9 @@
       "enValue": "From the tank",
       "originalHr": "Iz spremnika",
       "currentHr": "Iz spremnika",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:49.521Z"
     },
     {
       "path": [
@@ -30294,9 +30294,9 @@
       "enValue": "all electric",
       "originalHr": "potpuno električno",
       "currentHr": "potpuno električno",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:50.630Z"
     },
     {
       "path": [
@@ -30310,9 +30310,9 @@
       "enValue": "0 km cloud segments",
       "originalHr": "segmenti od 0 km iz oblaka",
       "currentHr": "segmenti od 0 km iz oblaka",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:26:57.968Z"
     },
     {
       "path": [
@@ -30326,9 +30326,9 @@
       "enValue": "Original records are kept separately. Open the day's merge options to propose a join: every merge requires confirmation and can be undone.",
       "originalHr": "Izvorni zapisi čuvaju se odvojeno. Otvorite mogućnosti spajanja za taj dan kako biste predložili spajanje: svako spajanje zahtijeva potvrdu i može se poništiti.",
       "currentHr": "Izvorni zapisi čuvaju se odvojeno. Otvorite mogućnosti spajanja za taj dan kako biste predložili spajanje: svako spajanje zahtijeva potvrdu i može se poništiti.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:27:07.618Z"
     },
     {
       "path": [
@@ -30342,9 +30342,9 @@
       "enValue": "Leapmotor cloud history",
       "originalHr": "Leapmotor povijest iz oblaka",
       "currentHr": "Leapmotor povijest iz oblaka",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:42:11.585Z"
     },
     {
       "path": [
@@ -30358,9 +30358,9 @@
       "enValue": "GPS unavailable",
       "originalHr": "GPS nedostupan",
       "currentHr": "GPS nedostupan",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:42:12.474Z"
     },
     {
       "path": [
@@ -30374,9 +30374,9 @@
       "enValue": "SoC unavailable",
       "originalHr": "SoC nedostupan",
       "currentHr": "SoC nedostupan",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:42:13.230Z"
     },
     {
       "path": [
@@ -30390,9 +30390,9 @@
       "enValue": "Unavailable",
       "originalHr": "Nedostupno",
       "currentHr": "Nedostupno",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T16:42:14.091Z"
     },
     {
       "path": [
@@ -30406,9 +30406,9 @@
       "enValue": "Cloud trip history",
       "originalHr": "Povijest vožnji iz oblaka",
       "currentHr": "Povijest vožnji iz oblaka",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:01:29.632Z"
     },
     {
       "path": [
@@ -30422,9 +30422,9 @@
       "enValue": "Import trips from Leapmotor cloud",
       "originalHr": "Uvezi vožnje iz Leapmotor oblaka",
       "currentHr": "Uvezi vožnje iz Leapmotor oblaka",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:01:48.125Z"
     },
     {
       "path": [
@@ -30438,9 +30438,9 @@
       "enValue": "Adds trips that do not overlap local recordings. Disabling keeps previously imported trips. Cloud energy lookup remains available. Changes apply at the next history synchronization.",
       "originalHr": "Dodaje vožnje koje se ne preklapaju s lokalnim zapisima. Isključivanje zadržava prethodno uvezene vožnje. Dohvat energije iz oblaka ostaje dostupan. Promjene vrijede od sljedeće sinkronizacije povijesti.",
       "currentHr": "Dodaje vožnje koje se ne preklapaju s lokalnim zapisima. Isključivanje zadržava prethodno uvezene vožnje. Dohvat energije iz oblaka ostaje dostupan. Promjene vrijede od sljedeće sinkronizacije povijesti.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:05:09.715Z"
     },
     {
       "path": [
@@ -30454,9 +30454,9 @@
       "enValue": "Save",
       "originalHr": "Spremi",
       "currentHr": "Spremi",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:06:37.891Z"
     },
     {
       "path": [
@@ -30470,9 +30470,9 @@
       "enValue": "Preference saved",
       "originalHr": "Postavka spremljena",
       "currentHr": "Postavka spremljena",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:06:48.890Z"
     },
     {
       "path": [
@@ -30486,9 +30486,9 @@
       "enValue": "Also import earlier months, starting from",
       "originalHr": "Također uvezi starije mjesece, počevši od",
       "currentHr": "Također uvezi starije mjesece, počevši od",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:06:55.742Z"
     },
     {
       "path": [
@@ -30502,9 +30502,9 @@
       "enValue": "Current month only",
       "originalHr": "Samo tekući mjesec",
       "currentHr": "Samo tekući mjesec",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:07:06.550Z"
     },
     {
       "path": [
@@ -30518,9 +30518,9 @@
       "enValue": "Mate downloads that month and every one after it, once each; months that end are added on their own.",
       "originalHr": "Mate preuzima taj mjesec i svaki sljedeći, po jednom; mjeseci koji završe dodaju se sami.",
       "currentHr": "Mate preuzima taj mjesec i svaki sljedeći, po jednom; mjeseci koji završe dodaju se sami.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:18:52.764Z"
     },
     {
       "path": [
@@ -30534,9 +30534,9 @@
       "enValue": "No earlier month.",
       "originalHr": "Nema ranijeg mjeseca.",
       "currentHr": "Nema ranijeg mjeseca.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:19:30.885Z"
     },
     {
       "path": [
@@ -30550,9 +30550,9 @@
       "enValue": "Plus 1 month: {first}",
       "originalHr": "Plus 1 mjesec: {first}",
       "currentHr": "Plus 1 mjesec: {first}",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:19:37.894Z"
     },
     {
       "path": [
@@ -30566,9 +30566,9 @@
       "enValue": "Plus {n} months: {first} – {last}",
       "originalHr": "Plus {n} mjeseci: {first} – {last}",
       "currentHr": "Plus {n} mjeseci: {first} – {last}",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:19:43.345Z"
     },
     {
       "path": [
@@ -30582,9 +30582,9 @@
       "enValue": "Charging places",
       "originalHr": "Mjesta punjenja",
       "currentHr": "Mjesta punjenja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:19:44.848Z"
     },
     {
       "path": [
@@ -30598,9 +30598,9 @@
       "enValue": "Your own places, each with its own type and a fixed tariff per vehicle. Automatic matching applies only to new AC sessions with a recent GPS position and one matching zone. Editing a place does not change previous sessions.",
       "originalHr": "Vaša vlastita mjesta, svako sa svojom vrstom i fiksnom tarifom po vozilu. Automatsko podudaranje primjenjuje se samo na nove AC sesije s nedavnim GPS položajem i jednom odgovarajućom zonom. Uređivanje mjesta ne mijenja prethodne sesije.",
       "currentHr": "Vaša vlastita mjesta, svako sa svojom vrstom i fiksnom tarifom po vozilu. Automatsko podudaranje primjenjuje se samo na nove AC sesije s nedavnim GPS položajem i jednom odgovarajućom zonom. Uređivanje mjesta ne mijenja prethodne sesije.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:19:55.020Z"
     },
     {
       "path": [
@@ -30614,9 +30614,9 @@
       "enValue": "Without a measured charger energy total, cost is estimated from battery energy; charging losses are not measured.",
       "originalHr": "Bez izmjerene ukupne energije punionice, trošak se procjenjuje iz energije baterije; gubici punjenja nisu izmjereni.",
       "currentHr": "Bez izmjerene ukupne energije punionice, trošak se procjenjuje iz energije baterije; gubici punjenja nisu izmjereni.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:21:10.168Z"
     },
     {
       "path": [
@@ -30630,9 +30630,9 @@
       "enValue": "Add place",
       "originalHr": "Dodaj mjesto",
       "currentHr": "Dodaj mjesto",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:21:14.788Z"
     },
     {
       "path": [
@@ -30646,9 +30646,9 @@
       "enValue": "Name",
       "originalHr": "Naziv",
       "currentHr": "Naziv",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:21:15.495Z"
     },
     {
       "path": [
@@ -30662,9 +30662,9 @@
       "enValue": "Latitude",
       "originalHr": "Geografska širina",
       "currentHr": "Geografska širina",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:21:25.572Z"
     },
     {
       "path": [
@@ -30678,9 +30678,9 @@
       "enValue": "Longitude",
       "originalHr": "Geografska dužina",
       "currentHr": "Geografska dužina",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:21:26.060Z"
     },
     {
       "path": [
@@ -30694,9 +30694,9 @@
       "enValue": "Radius (m)",
       "originalHr": "Radijus (m)",
       "currentHr": "Radijus (m)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:21:36.227Z"
     },
     {
       "path": [
@@ -30710,9 +30710,9 @@
       "enValue": "Price / kWh",
       "originalHr": "Cijena / kWh",
       "currentHr": "Cijena / kWh",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:22:06.972Z"
     },
     {
       "path": [
@@ -30726,9 +30726,9 @@
       "enValue": "Type",
       "originalHr": "Vrsta",
       "currentHr": "Vrsta",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:22:07.611Z"
     },
     {
       "path": [
@@ -30742,9 +30742,9 @@
       "enValue": "Automatic",
       "originalHr": "Automatski",
       "currentHr": "Automatski",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:22:08.326Z"
     },
     {
       "path": [
@@ -30758,9 +30758,9 @@
       "enValue": "Click the map or enter coordinates. Disable Automatic to keep a place available for manual assignment only.",
       "originalHr": "Kliknite na kartu ili unesite koordinate. Onemogućite Automatski da biste mjesto zadržali samo za ručno dodjeljivanje.",
       "currentHr": "Kliknite na kartu ili unesite koordinate. Onemogućite Automatski da biste mjesto zadržali samo za ručno dodjeljivanje.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:23:58.758Z"
     },
     {
       "path": [
@@ -30774,9 +30774,9 @@
       "enValue": "Recorded spending by place (all time)",
       "originalHr": "Zabilježena potrošnja po mjestu (svo vrijeme)",
       "currentHr": "Zabilježena potrošnja po mjestu (svo vrijeme)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:24:19.405Z"
     },
     {
       "path": [
@@ -30790,9 +30790,9 @@
       "enValue": "without cost",
       "originalHr": "bez cijene",
       "currentHr": "bez cijene",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:24:28.162Z"
     },
     {
       "path": [
@@ -30806,9 +30806,9 @@
       "enValue": "Charging place",
       "originalHr": "Mjesto punjenja",
       "currentHr": "Mjesto punjenja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:24:31.144Z"
     },
     {
       "path": [
@@ -30822,9 +30822,9 @@
       "enValue": "No place tariff",
       "originalHr": "Bez tarife mjesta",
       "currentHr": "Bez tarife mjesta",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:24:33.728Z"
     },
     {
       "path": [
@@ -30838,9 +30838,9 @@
       "enValue": "Check the name, coordinates, radius (25–500 m) and price (0–100).",
       "originalHr": "Provjerite naziv, koordinate, radijus (25–500 m) i cijenu (0–100).",
       "currentHr": "Provjerite naziv, koordinate, radijus (25–500 m) i cijenu (0–100).",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:24:37.260Z"
     },
     {
       "path": [
@@ -30854,9 +30854,9 @@
       "enValue": "Assign a place after the session has ended.",
       "originalHr": "Dodijelite mjesto nakon završetka sesije.",
       "currentHr": "Dodijelite mjesto nakon završetka sesije.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:26:02.393Z"
     },
     {
       "path": [
@@ -30870,9 +30870,9 @@
       "enValue": "Unmerge the charging sessions before changing their place.",
       "originalHr": "Razdvojite sesije punjenja prije promjene njihovog mjesta.",
       "currentHr": "Razdvojite sesije punjenja prije promjene njihovog mjesta.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:26:44.389Z"
     },
     {
       "path": [
@@ -30886,9 +30886,9 @@
       "enValue": "Winter tyres",
       "originalHr": "Zimske gume",
       "currentHr": "Zimske gume",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:26:45.652Z"
     },
     {
       "path": [
@@ -30902,9 +30902,9 @@
       "enValue": "Summer tyres",
       "originalHr": "Ljetne gume",
       "currentHr": "Ljetne gume",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:26:46.162Z"
     },
     {
       "path": [
@@ -30918,9 +30918,9 @@
       "enValue": "On the car since {d}",
       "originalHr": "Na vozilu od {d}",
       "currentHr": "Na vozilu od {d}",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:26:49.233Z"
     },
     {
       "path": [
@@ -30934,9 +30934,9 @@
       "enValue": "This season",
       "originalHr": "Ova sezona",
       "currentHr": "Ova sezona",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:26:50.069Z"
     },
     {
       "path": [
@@ -30950,9 +30950,9 @@
       "enValue": "In total",
       "originalHr": "Ukupno",
       "currentHr": "Ukupno",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:26:51.088Z"
     },
     {
       "path": [
@@ -30966,9 +30966,9 @@
       "enValue": "Counted from the odometer since {d}. Days without a reading are not estimated.",
       "originalHr": "Brojeno s brojača kilometara od {d}. Dani bez očitanja se ne procjenjuju.",
       "currentHr": "Brojeno s brojača kilometara od {d}. Dani bez očitanja se ne procjenjuju.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:26:57.566Z"
     },
     {
       "path": [
@@ -30982,9 +30982,9 @@
       "enValue": "No odometer reading yet: the kilometres appear with the first one.",
       "originalHr": "Još nema očitanja brojača kilometara: kilometri se pojavljuju s prvim očitanjem.",
       "currentHr": "Još nema očitanja brojača kilometara: kilometri se pojavljuju s prvim očitanjem.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:27:04.649Z"
     },
     {
       "path": [
@@ -30998,9 +30998,9 @@
       "enValue": "Log book",
       "originalHr": "Dnevnik održavanja",
       "currentHr": "Dnevnik održavanja",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:27:09.129Z"
     },
     {
       "path": [
@@ -31014,9 +31014,9 @@
       "enValue": "Add",
       "originalHr": "Dodaj",
       "currentHr": "Dodaj",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:27:09.816Z"
     },
     {
       "path": [
@@ -31030,9 +31030,9 @@
       "enValue": "No entries yet.",
       "originalHr": "Još nema unosa.",
       "currentHr": "Još nema unosa.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:27:11.786Z"
     },
     {
       "path": [
@@ -31046,9 +31046,9 @@
       "enValue": "Type",
       "originalHr": "Vrsta",
       "currentHr": "Vrsta",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:27:16.483Z"
     },
     {
       "path": [
@@ -31062,9 +31062,9 @@
       "enValue": "Cost (optional)",
       "originalHr": "Trošak (neobavezno)",
       "currentHr": "Trošak (neobavezno)",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:27:17.582Z"
     },
     {
       "path": [
@@ -31078,9 +31078,9 @@
       "enValue": "blank: from Mate",
       "originalHr": "prazno: iz Matea",
       "currentHr": "prazno: iz Matea",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:27:18.986Z"
     },
     {
       "path": [
@@ -31094,9 +31094,9 @@
       "enValue": "Delete",
       "originalHr": "Izbriši",
       "currentHr": "Izbriši",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:27:19.651Z"
     },
     {
       "path": [
@@ -31110,9 +31110,9 @@
       "enValue": "Choose a type.",
       "originalHr": "Odaberite vrstu.",
       "currentHr": "Odaberite vrstu.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:27:20.551Z"
     },
     {
       "path": [
@@ -31126,9 +31126,9 @@
       "enValue": "The date is not valid.",
       "originalHr": "Datum nije valjan.",
       "currentHr": "Datum nije valjan.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:27:37.708Z"
     },
     {
       "path": [
@@ -31142,9 +31142,9 @@
       "enValue": "The cost must be a number, 0 or more.",
       "originalHr": "Trošak mora biti broj, 0 ili veći.",
       "currentHr": "Trošak mora biti broj, 0 ili veći.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:29:10.889Z"
     },
     {
       "path": [
@@ -31158,9 +31158,9 @@
       "enValue": "The kilometres must be a number, 0 or more.",
       "originalHr": "Kilometri moraju biti broj, 0 ili veći.",
       "currentHr": "Kilometri moraju biti broj, 0 ili veći.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:29:32.538Z"
     },
     {
       "path": [
@@ -31174,9 +31174,9 @@
       "enValue": "Winter tyres fitted",
       "originalHr": "Postavljene zimske gume",
       "currentHr": "Postavljene zimske gume",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:29:34.606Z"
     },
     {
       "path": [
@@ -31190,9 +31190,9 @@
       "enValue": "Summer tyres fitted",
       "originalHr": "Postavljene ljetne gume",
       "currentHr": "Postavljene ljetne gume",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:29:35.557Z"
     },
     {
       "path": [
@@ -31206,9 +31206,9 @@
       "enValue": "Modification",
       "originalHr": "Preinaka",
       "currentHr": "Preinaka",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:29:36.400Z"
     },
     {
       "path": [
@@ -31222,9 +31222,9 @@
       "enValue": "Breakdown",
       "originalHr": "Kvar",
       "currentHr": "Kvar",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:29:39.569Z"
     },
     {
       "path": [
@@ -31238,9 +31238,9 @@
       "enValue": "Damage",
       "originalHr": "Oštećenje",
       "currentHr": "Oštećenje",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:29:40.523Z"
     },
     {
       "path": [
@@ -31254,9 +31254,9 @@
       "enValue": "Other",
       "originalHr": "Ostalo",
       "currentHr": "Ostalo",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:29:41.556Z"
     },
     {
       "path": [
@@ -31269,10 +31269,10 @@
       "shortKey": "tyre_prior_title",
       "enValue": "Kilometres each set did before Mate",
       "originalHr": "Kilometri koje je svaki komplet prešao prije Matea",
-      "currentHr": "Kilometri koje je svaki komplet prešao prije Matea",
-      "status": "pending",
+      "currentHr": "Kilometri koje je svaki set prešao prije Matea",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:19.064Z"
     },
     {
       "path": [
@@ -31286,9 +31286,9 @@
       "enValue": "The changes come from the Log book.",
       "originalHr": "Promjene dolaze iz Dnevnika održavanja.",
       "currentHr": "Promjene dolaze iz Dnevnika održavanja.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:20.656Z"
     },
     {
       "path": [
@@ -31302,9 +31302,9 @@
       "enValue": "Last charge to 100%",
       "originalHr": "Zadnje punjenje do 100%",
       "currentHr": "Zadnje punjenje do 100%",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:22.090Z"
     },
     {
       "path": [
@@ -31318,9 +31318,9 @@
       "enValue": "No charge to 100% recorded yet.",
       "originalHr": "Još nije zabilježeno nijedno punjenje do 100%.",
       "currentHr": "Još nije zabilježeno nijedno punjenje do 100%.",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:23.801Z"
     },
     {
       "path": [
@@ -31334,9 +31334,9 @@
       "enValue": "today",
       "originalHr": "danas",
       "currentHr": "danas",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:24.494Z"
     },
     {
       "path": [
@@ -31351,9 +31351,9 @@
       "enValue": "January",
       "originalHr": "Siječanj",
       "currentHr": "Siječanj",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:25.984Z"
     },
     {
       "path": [
@@ -31368,9 +31368,9 @@
       "enValue": "February",
       "originalHr": "Veljača",
       "currentHr": "Veljača",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:26.607Z"
     },
     {
       "path": [
@@ -31385,9 +31385,9 @@
       "enValue": "March",
       "originalHr": "Ožujak",
       "currentHr": "Ožujak",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:27.184Z"
     },
     {
       "path": [
@@ -31402,9 +31402,9 @@
       "enValue": "April",
       "originalHr": "Travanj",
       "currentHr": "Travanj",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:27.780Z"
     },
     {
       "path": [
@@ -31419,9 +31419,9 @@
       "enValue": "May",
       "originalHr": "Svibanj",
       "currentHr": "Svibanj",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:28.401Z"
     },
     {
       "path": [
@@ -31436,9 +31436,9 @@
       "enValue": "June",
       "originalHr": "Lipanj",
       "currentHr": "Lipanj",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:29.011Z"
     },
     {
       "path": [
@@ -31453,9 +31453,9 @@
       "enValue": "July",
       "originalHr": "Srpanj",
       "currentHr": "Srpanj",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:29.617Z"
     },
     {
       "path": [
@@ -31470,9 +31470,9 @@
       "enValue": "August",
       "originalHr": "Kolovoz",
       "currentHr": "Kolovoz",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:30.235Z"
     },
     {
       "path": [
@@ -31487,9 +31487,9 @@
       "enValue": "September",
       "originalHr": "Rujan",
       "currentHr": "Rujan",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:30.868Z"
     },
     {
       "path": [
@@ -31504,9 +31504,9 @@
       "enValue": "October",
       "originalHr": "Listopad",
       "currentHr": "Listopad",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:35.189Z"
     },
     {
       "path": [
@@ -31521,9 +31521,9 @@
       "enValue": "November",
       "originalHr": "Studeni",
       "currentHr": "Studeni",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:35.626Z"
     },
     {
       "path": [
@@ -31538,9 +31538,9 @@
       "enValue": "December",
       "originalHr": "Prosinac",
       "currentHr": "Prosinac",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:36.031Z"
     },
     {
       "path": [
@@ -31554,10 +31554,10 @@
       "shortKey": "abbr[0]",
       "enValue": "Jan",
       "originalHr": "sij",
-      "currentHr": "sij",
-      "status": "pending",
+      "currentHr": "sij.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:42.038Z"
     },
     {
       "path": [
@@ -31571,10 +31571,10 @@
       "shortKey": "abbr[1]",
       "enValue": "Feb",
       "originalHr": "velj",
-      "currentHr": "velj",
-      "status": "pending",
+      "currentHr": "velj.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:42.664Z"
     },
     {
       "path": [
@@ -31588,10 +31588,10 @@
       "shortKey": "abbr[2]",
       "enValue": "Mar",
       "originalHr": "ožu",
-      "currentHr": "ožu",
-      "status": "pending",
+      "currentHr": "ožu.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:43.336Z"
     },
     {
       "path": [
@@ -31605,10 +31605,10 @@
       "shortKey": "abbr[3]",
       "enValue": "Apr",
       "originalHr": "tra",
-      "currentHr": "tra",
-      "status": "pending",
+      "currentHr": "tra.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:44.003Z"
     },
     {
       "path": [
@@ -31622,10 +31622,10 @@
       "shortKey": "abbr[4]",
       "enValue": "May",
       "originalHr": "svi",
-      "currentHr": "svi",
-      "status": "pending",
+      "currentHr": "svi.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:44.648Z"
     },
     {
       "path": [
@@ -31639,10 +31639,10 @@
       "shortKey": "abbr[5]",
       "enValue": "Jun",
       "originalHr": "lip",
-      "currentHr": "lip",
-      "status": "pending",
+      "currentHr": "lip.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:45.261Z"
     },
     {
       "path": [
@@ -31656,10 +31656,10 @@
       "shortKey": "abbr[6]",
       "enValue": "Jul",
       "originalHr": "srp",
-      "currentHr": "srp",
-      "status": "pending",
+      "currentHr": "srp.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:45.894Z"
     },
     {
       "path": [
@@ -31673,10 +31673,10 @@
       "shortKey": "abbr[7]",
       "enValue": "Aug",
       "originalHr": "kol",
-      "currentHr": "kol",
-      "status": "pending",
+      "currentHr": "kol.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:46.489Z"
     },
     {
       "path": [
@@ -31690,10 +31690,10 @@
       "shortKey": "abbr[8]",
       "enValue": "Sep",
       "originalHr": "ruj",
-      "currentHr": "ruj",
-      "status": "pending",
+      "currentHr": "ruj.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:47.050Z"
     },
     {
       "path": [
@@ -31707,10 +31707,10 @@
       "shortKey": "abbr[9]",
       "enValue": "Oct",
       "originalHr": "lis",
-      "currentHr": "lis",
-      "status": "pending",
+      "currentHr": "lis.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:47.542Z"
     },
     {
       "path": [
@@ -31724,10 +31724,10 @@
       "shortKey": "abbr[10]",
       "enValue": "Nov",
       "originalHr": "stu",
-      "currentHr": "stu",
-      "status": "pending",
+      "currentHr": "stu.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:48.073Z"
     },
     {
       "path": [
@@ -31741,10 +31741,10 @@
       "shortKey": "abbr[11]",
       "enValue": "Dec",
       "originalHr": "pro",
-      "currentHr": "pro",
-      "status": "pending",
+      "currentHr": "pro.",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:48.733Z"
     },
     {
       "path": [
@@ -31759,9 +31759,9 @@
       "enValue": "Mon",
       "originalHr": "Pon",
       "currentHr": "Pon",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:50.126Z"
     },
     {
       "path": [
@@ -31776,9 +31776,9 @@
       "enValue": "Tue",
       "originalHr": "Uto",
       "currentHr": "Uto",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:50.487Z"
     },
     {
       "path": [
@@ -31793,9 +31793,9 @@
       "enValue": "Wed",
       "originalHr": "Sri",
       "currentHr": "Sri",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:50.883Z"
     },
     {
       "path": [
@@ -31810,9 +31810,9 @@
       "enValue": "Thu",
       "originalHr": "Čet",
       "currentHr": "Čet",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:51.204Z"
     },
     {
       "path": [
@@ -31827,9 +31827,9 @@
       "enValue": "Fri",
       "originalHr": "Pet",
       "currentHr": "Pet",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:51.523Z"
     },
     {
       "path": [
@@ -31844,9 +31844,9 @@
       "enValue": "Sat",
       "originalHr": "Sub",
       "currentHr": "Sub",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:51.896Z"
     },
     {
       "path": [
@@ -31861,9 +31861,9 @@
       "enValue": "Sun",
       "originalHr": "Ned",
       "currentHr": "Ned",
-      "status": "pending",
+      "status": "approved",
       "missingInHr": false,
-      "updatedAt": null
+      "updatedAt": "2026-11-22T17:35:52.400Z"
     }
   ]
 }
