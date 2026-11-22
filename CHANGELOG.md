@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.2.0] — 2026-11-22
+
+See [the notes](docs/releases/v5.2.0.md).
+
+- **The consumption-vs-temperature trend is a curve** ([D#498](https://github.com/ProtossBlaster/leapmotor-mate/discussions/498), @hristouzunovaz).
+  On Statistics the straight line becomes a cubic, a·T³ + b·T² + c·T + d with T in °C, drawn between the coldest
+  and the warmest trip, with its four numbers and r² under the chart. It needs 8 trips on 4 different temperatures.
+- **Its numbers go to Home Assistant**: MQTT sensors `Consumption Trend a`…`d` (kWh/100 km) and, on a range
+  extender, `Fuel Trend a`…`d` (L/100 km), unrounded, with `t_min`, `t_max`, `n` and `r2` as attributes; unknown,
+  never 0, while there is no curve. The web computes them every 5 minutes, the poller publishes them.
+
 ## [5.1.1] — 2026-11-21
 
 See [the notes](docs/releases/v5.1.1.md).

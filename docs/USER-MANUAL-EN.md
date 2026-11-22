@@ -1,8 +1,17 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v5.1.1 · **Language:** English
+> **Mate version:** v5.2.0 · **Language:** English
 
-## New in 5.1.1
+## New in 5.2.0
+
+**The consumption-vs-temperature trend is a curve, and its numbers reach Home Assistant.** On
+*Statistics*, the trend through *Consumption against outside temperature* was a straight line; it is
+now a curve, a·T³ + b·T² + c·T + d, drawn only between the coldest and the warmest trip. Under the
+chart, the formula with its four numbers and its r². With MQTT on, the same numbers become the sensors
+`Consumption Trend a`…`d`, and on a range extender `Fuel Trend a`…`d`, so an automation can turn a
+forecast temperature into a consumption (@hristouzunovaz, D#498).
+
+### New in 5.1.1
 
 **Trips recorded before 3.10.6 give back the kilometres of a silence.** Until 3.10.6, a trip that opened
 after the cloud had been silent took its start from the last reading before the silence, so it carried
@@ -1679,7 +1688,10 @@ with the related **trends** (efficiency and regen over time). The totals also in
 card showing the cumulative energy drawn via V2L over all time.
 
 **Consumption against outside temperature 🆕** — one dot per finished trip: its consumption against
-the air temperature it was driven in, with a dashed trend line through them. It answers the question
+the air temperature it was driven in, with a dashed trend curve through them,
+a·T³ + b·T² + c·T + d with T in °C, drawn between the coldest and the warmest trip. Under the chart
+are its four numbers and its r² (how much of the spread the curve explains, from 0 to 1); it appears
+with at least 8 trips on at least 4 different temperatures. On a range extender petrol has its own. It answers the question
 every owner asks when the cold arrives — *how much does my car really drink at 5 °C?* — out of your
 own driving rather than a table. It needs the trips to carry an outside temperature (see *Overview*),
 and on realistic data the pattern is legible after about a month of driving.
@@ -2097,7 +2109,7 @@ Sends the car's telemetry to ABRP for real-time trip planning.
 
 ### MQTT → Home Assistant
 Publishes the car's status (charge, range, position, doors, charge status…) as **entities in Home
-Assistant**, with **auto-discovery**. You can also **command** the car from the HA entities — including a writable **Charge Limit** number to set the target SoC, a writable **Charge Schedule** text entity that takes a JSON plan for automations (`{"start":"23:00","soc":90}` — every key optional, and anything you omit keeps its current value), a writable **Fan Level** number (1–7, or more on a car that has more, such as 1–9), a writable **AC Target Temperature** number (18–32 °C: only the target changes, the climate keeps its mode, fan and recirculation) and a writable **Recirculation** switch, plus a **Climate Mode** sensor (AUTO / Cool / Heat / Vent). The published entities also include three read-only V2L ones: **`V2L Active`** (binary sensor), **`V2L Power`** (W) and **`V2L Session Energy`** (Wh), and a **`Ready`** binary sensor that turns on the moment the car is powered up — before it moves, which is when an automation still has time to act. A **`Sunshade Position`** sensor says how far the sunshade is open, in % (0 = closed); the binary **`Sunshade`** stays as it was, on for any opening. On a range-extender, three fuel sensors: **`Fuel Level`** (%), **`Fuel Volume`** (L, the litres the car counts) and **`Fuel Range`** (km on fuel alone); an empty tank reads 0, and a plain electric car does not get them.
+Assistant**, with **auto-discovery**. You can also **command** the car from the HA entities — including a writable **Charge Limit** number to set the target SoC, a writable **Charge Schedule** text entity that takes a JSON plan for automations (`{"start":"23:00","soc":90}` — every key optional, and anything you omit keeps its current value), a writable **Fan Level** number (1–7, or more on a car that has more, such as 1–9), a writable **AC Target Temperature** number (18–32 °C: only the target changes, the climate keeps its mode, fan and recirculation) and a writable **Recirculation** switch, plus a **Climate Mode** sensor (AUTO / Cool / Heat / Vent). The published entities also include three read-only V2L ones: **`V2L Active`** (binary sensor), **`V2L Power`** (W) and **`V2L Session Energy`** (Wh), and a **`Ready`** binary sensor that turns on the moment the car is powered up — before it moves, which is when an automation still has time to act. A **`Sunshade Position`** sensor says how far the sunshade is open, in % (0 = closed); the binary **`Sunshade`** stays as it was, on for any opening. On a range-extender, three fuel sensors: **`Fuel Level`** (%), **`Fuel Volume`** (L, the litres the car counts) and **`Fuel Range`** (km on fuel alone); an empty tank reads 0, and a plain electric car does not get them. The four numbers of the consumption-vs-temperature trend (see *Statistics*) are the sensors **`Consumption Trend a`**, **`b`**, **`c`**, **`d`** (kWh/100 km, with T in °C), and on a range extender **`Fuel Trend a`**…**`d`** (L/100 km); they are not rounded, and their attributes give `t_min` and `t_max`, the temperatures the curve was fitted on (outside them it is a guess), `n` trips and `r2`. They are recomputed every 5 minutes, and read unknown, never 0, while there is no curve.
 
 Entities **your** car doesn't support aren't left on your hands: the ones the model lacks (heated seats,
 steering wheel…) are never created, and a **temperature entity** whose sensor the car has never reported

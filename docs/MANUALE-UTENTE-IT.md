@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v5.1.1 · **Lingua:** Italiano
+> **Versione di Mate:** v5.2.0 · **Lingua:** Italiano
 
-## Novità della 5.1.1
+## Novità della 5.2.0
+
+**La tendenza del consumo con la temperatura è una curva, e i suoi numeri arrivano a Home Assistant.**
+In *Statistiche*, la tendenza di *Consumo contro temperatura esterna* era una retta; ora è una curva,
+a·T³ + b·T² + c·T + d, disegnata solo fra il viaggio più freddo e il più caldo. Sotto il grafico, la
+formula con i suoi quattro numeri e il suo r². Con MQTT acceso, gli stessi numeri diventano i sensori
+`Consumption Trend a`…`d`, e su un'auto con range extender `Fuel Trend a`…`d`, così un'automazione può
+trasformare una temperatura prevista in un consumo (@hristouzunovaz, D#498).
+
+### Novità della 5.1.1
 
 **I viaggi registrati prima della 3.10.6 restituiscono i km di un silenzio.** Fino alla 3.10.6, un
 viaggio che si apriva dopo un silenzio del cloud prendeva la partenza dall'ultima lettura prima del
@@ -1762,8 +1771,11 @@ dell'auto, quindi non intaccata dai rari viaggi che il cloud non registra), con 
 **Guida / A·C / Altro / Da-fermo**.
 
 **Consumo contro temperatura esterna 🆕** — un punto per ogni viaggio concluso: il suo consumo contro
-la temperatura dell'aria in cui è stato guidato, con una linea di tendenza tratteggiata a
-attraversarli. Risponde alla domanda che si fa ogni proprietario quando arriva il freddo — *quanto
+la temperatura dell'aria in cui è stato guidato, con una curva di tendenza tratteggiata a
+attraversarli, a·T³ + b·T² + c·T + d con T in °C, disegnata fra il viaggio più freddo e il più caldo.
+Sotto il grafico ci sono i suoi quattro numeri e il suo r² (quanto della dispersione la curva spiega,
+da 0 a 1); compare con almeno 8 viaggi su almeno 4 temperature diverse. Su un'auto con range
+extender la benzina ha la sua. Risponde alla domanda che si fa ogni proprietario quando arriva il freddo — *quanto
 beve davvero la MIA auto a 5 °C?* — partendo dalla tua guida invece che da una tabella. Serve che i
 viaggi portino una temperatura esterna (vedi *Panoramica*); su dati realistici il disegno si legge
 dopo circa un mese di guida.
@@ -2210,7 +2222,7 @@ clima letti dall'auto: il **Livello ventola** (`number` scrivibile, 1–7, o di 
 Ventilazione). Puoi anche **comandare** l'auto dalle entità di HA — incluso un **limite di carica**
 (`number` scrivibile) per impostare il SoC target e una **Programmazione ricarica** (`text`
 scrivibile) che accetta un piano in JSON pensato per le automazioni (`{"start":"23:00","soc":90}` —
-ogni campo è opzionale, e quello che ometti resta com'è). Un sensore **`Sunshade Position`** dice quanto è aperto il parasole, in % (0 = chiuso); il binary sensor **`Sunshade`** resta com'era, acceso a qualsiasi apertura. Su un'auto con range extender ci sono tre sensori del carburante: **`Fuel Level`** (%), **`Fuel Volume`** (L, i litri contati dall'auto) e **`Fuel Range`** (km con il solo carburante); un serbatoio vuoto vale 0, e un'auto solo elettrica non li riceve.
+ogni campo è opzionale, e quello che ometti resta com'è). Un sensore **`Sunshade Position`** dice quanto è aperto il parasole, in % (0 = chiuso); il binary sensor **`Sunshade`** resta com'era, acceso a qualsiasi apertura. Su un'auto con range extender ci sono tre sensori del carburante: **`Fuel Level`** (%), **`Fuel Volume`** (L, i litri contati dall'auto) e **`Fuel Range`** (km con il solo carburante); un serbatoio vuoto vale 0, e un'auto solo elettrica non li riceve. I quattro numeri della tendenza del consumo con la temperatura (vedi *Statistiche*) sono i sensori **`Consumption Trend a`**, **`b`**, **`c`**, **`d`** (kWh/100 km, con T in °C), e su un'auto con range extender **`Fuel Trend a`**…**`d`** (L/100 km); non sono arrotondati, e i loro attributi danno `t_min` e `t_max`, le temperature su cui la curva è calcolata (fuori da lì è un'ipotesi), `n` viaggi e `r2`. Si ricalcolano ogni 5 minuti, e finché non c'è una curva valgono sconosciuto, mai 0.
 
 Le entità che la **tua** auto non supporta non ti vengono lasciate addosso: quelle che il modello non
 ha (sedili riscaldati, volante…) non vengono create, e un'**entità di temperatura** il cui sensore

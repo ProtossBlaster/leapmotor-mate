@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v5.1.1:** trips recorded before 3.10.6 give back the kilometres driven while the cloud was silent ([#497](https://github.com/ProtossBlaster/leapmotor-mate/issues/497), @adoewa).
-See [release notes and upgrade impact](docs/releases/v5.1.1.md).
+**v5.2.0:** the consumption-vs-temperature trend on Statistics is a curve, a·T³ + b·T² + c·T + d, and its four numbers go to Home Assistant over MQTT ([D#498](https://github.com/ProtossBlaster/leapmotor-mate/discussions/498), @hristouzunovaz).
+See [release notes and upgrade impact](docs/releases/v5.2.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -381,8 +381,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v5.1.1:** i viaggi registrati prima della 3.10.6 restituiscono i km guidati mentre il cloud taceva ([#497](https://github.com/ProtossBlaster/leapmotor-mate/issues/497), @adoewa).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v5.1.1.md#italiano).
+**v5.2.0:** la tendenza del consumo con la temperatura in Statistiche è una curva, a·T³ + b·T² + c·T + d, e i suoi quattro numeri vanno a Home Assistant via MQTT ([D#498](https://github.com/ProtossBlaster/leapmotor-mate/discussions/498), @hristouzunovaz).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v5.2.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 
