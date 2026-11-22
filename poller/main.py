@@ -648,6 +648,12 @@ def _mqtt_connect(db, client, service):
     return service
 
 
+def efftemp_trend_key(vin: str) -> str:
+    """Where the web leaves one car's consumption-vs-temperature trend for MQTT (D#498). 🔴 The
+    same key is spelled in web/db_reader.py; the trees cannot import each other, a test holds them."""
+    return f"efftemp_trend_{str(vin).lower()}"
+
+
 def _mqtt_tick(db, client, data, service, vehicle=None, vehicle_id=None):
     """Manage the MQTT bridge each poll cycle: (dis)connect on the enable flag,
     then publish the current state. Returns the (possibly new/None) service."""
@@ -671,6 +677,9 @@ def _mqtt_tick(db, client, data, service, vehicle=None, vehicle_id=None):
             car_type=getattr(vehicle, "car_type", None) if vehicle is not None else None,
             absent_temps=db.never_reported_temps(vehicle_id),
         )
+        # The consumption-vs-temperature trend (D#498): computed by the web, where the trip
+        # temperatures are written, and only relayed here. Unchanged, it costs a string compare.
+        service.publish_trend(data.vin, db.get_setting(efftemp_trend_key(data.vin), ""))
     except Exception as exc:  # noqa: BLE001
         log.error("MQTT: publish failed: %s", exc)
     return service

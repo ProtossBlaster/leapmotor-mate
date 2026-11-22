@@ -6133,6 +6133,65 @@ def get_trips(limit: int = 500, since: str | None = None, until: str | None = No
     return _select_ev_energy(out)
 
 
+def _cubic_trend(ts: list, ys: list) -> Optional[dict]:
+    """`y = a·T³ + b·T² + c·T + d` by least squares (D#498): consumption climbs in the cold, drops
+    towards a mild day and climbs again when the car cools its cabin, and a straight line can only
+    say one of those. On one install's 412 trips the line explained 4 % of the spread, the cubic
+    29.7 %.
+
+    Solved by hand (no numpy in the image): the normal equations on T/10, so the sums stay near 1
+    instead of reaching 37⁶, then the coefficients scaled back to °C. Unrounded — the same numbers
+    draw the curve and go to Home Assistant, which multiplies them. None below eight trips or four
+    distinct temperatures: fewer pin no unique cubic, and a curve drawn from one would be invented.
+    `t_min`/`t_max` travel with it: outside them the cubic is an extrapolation."""
+    n = len(ts)
+    if n < 8 or len(set(ts)) < 4:
+        return None
+    us = [t / 10.0 for t in ts]
+    m = [[sum(u ** (i + j) for u in us) for j in range(4)] + [sum(y * u ** i for u, y in zip(us, ys))]
+         for i in range(4)]
+    for col in range(4):                         # Gauss–Jordan, partial pivoting
+        piv = max(range(col, 4), key=lambda r: abs(m[r][col]))
+        if abs(m[piv][col]) < 1e-12:
+            return None
+        m[col], m[piv] = m[piv], m[col]
+        for r in range(4):
+            if r != col:
+                f = m[r][col] / m[col][col]
+                m[r] = [x - f * y for x, y in zip(m[r], m[col])]
+    k = [m[i][4] / m[i][i] for i in range(4)]    # in T/10: k0 + k1·u + k2·u² + k3·u³
+    a, b, c, d = k[3] / 1000.0, k[2] / 100.0, k[1] / 10.0, k[0]
+    my = sum(ys) / n
+    ss_tot = sum((y - my) ** 2 for y in ys)
+    ss_res = sum((y - (a * t ** 3 + b * t ** 2 + c * t + d)) ** 2 for t, y in zip(ts, ys))
+    return {"a": a, "b": b, "c": c, "d": d,
+            "r2": round(1 - ss_res / ss_tot, 2) if ss_tot else 0.0,
+            "n": n, "t_min": min(ts), "t_max": max(ts)}
+
+
+def efftemp_trend_key(vin: str) -> str:
+    """Where one car's trend waits for the poller to publish it. 🔴 The poller spells the same key
+    (poller/main.py): the trees cannot import each other, a test holds the two together."""
+    return f"efftemp_trend_{str(vin).lower()}"
+
+
+def store_efftemp_trends() -> int:
+    """Each car's trend, as its Statistics page draws it, stored for the poller's MQTT bridge
+    (D#498). Computed here because the temperatures are written here. Only a change is written; a
+    car with no trend stores that it has none — never zeros, which Home Assistant would multiply.
+    Returns how many cars changed."""
+    changed = 0
+    for v in get_vehicles():
+        with vehicle_scope(v["id"]):
+            out = get_efficiency_vs_temp(include_fuel=is_reev_car())
+        raw = json.dumps({"elec": out["trend"], "fuel": out["fuel_trend"]}, sort_keys=True)
+        key = efftemp_trend_key(v["vin"])
+        if get_setting(key, "") != raw:
+            set_setting(key, raw)
+            changed += 1
+    return changed
+
+
 def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
                            min_km: float = 3.0) -> dict:
     """Consumption against OUTSIDE temperature, one point per finished trip — the data behind the
@@ -6173,21 +6232,8 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
             acc.setdefault(int(math.floor(p["t"] / 5.0)) * 5, []).append(p[ykey])
         bins = [{"lo": lo, "hi": lo + 5, "mean": round(sum(v) / len(v), 2), "n": len(v)}
                 for lo, v in sorted(acc.items())]
-        n = len(pts)
-        trend = None
-        if n >= 8:
-            mx = sum(p["t"] for p in pts) / n
-            my = sum(p[ykey] for p in pts) / n
-            sxx = sum((p["t"] - mx) ** 2 for p in pts)
-            syy = sum((p[ykey] - my) ** 2 for p in pts)
-            sxy = sum((p["t"] - mx) * (p[ykey] - my) for p in pts)
-            if sxx > 0:
-                slope = sxy / sxx
-                trend = {"per_10c": round(slope * 10, 2),
-                         "at20c": round(my + slope * (20 - mx), 2),
-                         "r2": round((sxy * sxy) / (sxx * syy), 2) if syy else 0.0,
-                         "n": n}
-        return {"bins": bins, "trend": trend}
+        return {"bins": bins, "trend": _cubic_trend([p["t"] for p in pts], [p[ykey] for p in pts])}
+
 
     pts = []
     for r in rows:
