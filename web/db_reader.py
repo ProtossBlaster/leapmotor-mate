@@ -6215,8 +6215,7 @@ def store_efftemp_trends() -> int:
     return changed
 
 
-def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
-                           min_km: float = 3.0) -> dict:
+def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> dict:
     """Consumption against OUTSIDE temperature, one point per finished trip — the data behind the
     Statistics scatter (the question every owner asks: *how much does MY car really drink at 5°C?*).
     The temperatures are the trip's own outside_temp_start_c/end_c, collected by the elevation
@@ -6230,9 +6229,15 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
     refuels, whose litres are unknowable.
 
     Short trips (< min_km) stay out: preconditioning spread over three kilometres reads as a cold
-    penalty that isn't one. Points come back oldest-first so a time tooltip reads forward; the chart
-    sees at most the newest 500."""
+    penalty that isn't one. Points come back oldest-first so a time tooltip reads forward. The
+    trips are those of the two years up to the newest one: every season twice, at a cost a small
+    box can carry (a van driving fifteen trips a day stays near 11,000 points)."""
     db = _get()
+    # Back from the newest trip, not from today: a car left standing keeps its curve.
+    newest = db.execute(
+        "SELECT MAX(started_at) FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "AND ended_at IS NOT NULL AND merged_into_id IS NULL", (_current_vehicle_id(),)).fetchone()[0]
+    since = (datetime.fromisoformat(newest) - timedelta(days=730)).isoformat() if newest else ""
     # No `efficiency_kwh_100km IS NOT NULL` here ON PURPOSE: on a REEV exactly the generator-on
     # trips carry a NULL there (finalize blanks it), and they are the petrol series' whole point.
     # The electric points filter the column themselves below.
@@ -6242,9 +6247,9 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
                   fuel_start_l, fuel_end_l
            FROM trips
            WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
-             AND merged_into_id IS NULL AND distance_km >= ?
-           ORDER BY started_at DESC LIMIT ?""",
-        (_current_vehicle_id(), float(min_km), int(limit))).fetchall()
+             AND merged_into_id IS NULL AND distance_km >= ? AND started_at >= ?
+           ORDER BY started_at DESC""",
+        (_current_vehicle_id(), float(min_km), since)).fetchall()
 
     def _temp(r) -> Optional[float]:
         vals = [v for v in (r["outside_temp_start_c"], r["outside_temp_end_c"]) if v is not None]
@@ -6271,7 +6276,6 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
                     "km": round(r["distance_km"], 1),
                     "ts": (r["started_at"] or "")[:10]})
     pts.reverse()                                   # oldest first
-    pts = pts[-500:]                                # the chart's cap
     out = {"points": pts, "min_km": min_km, **_series(pts, "e")}
 
     fuel_pts = []
@@ -6309,7 +6313,6 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
                              "km": round(td.get("distance_km") or 0.0, 1),
                              "ts": (r["started_at"] or "")[:10]})
         fuel_pts.reverse()
-        fuel_pts = fuel_pts[-500:]
     out["fuel_points"] = fuel_pts
     out.update({f"fuel_{k}": v for k, v in _series(fuel_pts, "l").items()})
     return out

@@ -101,13 +101,20 @@ def test_fewer_than_eight_points_refuse_a_trend(tmp_path, monkeypatch):
     assert db_reader.get_efficiency_vs_temp()["trend"] is None
 
 
-def test_the_cap_keeps_the_newest_500(tmp_path, monkeypatch):
+def test_the_chart_reads_the_two_years_up_to_the_newest_trip(tmp_path, monkeypatch):
+    """Not the newest 500, which lose whole seasons: last winter stays however many trips were
+    driven since, and a trip more than two years before the newest one is out."""
     db = _setup(tmp_path, monkeypatch)
-    for i in range(12):
-        _trip(db, i + 1, 50.0, 15.0 + i, t_start=float(i), t_end=None, day=(i % 28) + 1)
-    out = db_reader.get_efficiency_vs_temp(limit=5)
-    assert len(out["points"]) == 5
-    assert [p["id"] for p in out["points"]] == [8, 9, 10, 11, 12]   # newest kept
+    for tid, when, temp in ((1, "2024-01-10", -9.0), (2, "2025-01-10", -8.0)):
+        db._conn.execute(
+            "INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, efficiency_kwh_100km,"
+            " outside_temp_start_c) VALUES (?,1,?,?,50,24,?)",
+            (tid, f"{when}T08:00:00+00:00", f"{when}T09:00:00+00:00", temp))
+    db._conn.commit()
+    for i in range(600):
+        _trip(db, i + 3, 50.0, 15.0, t_start=18.0, day=2)               # 2026-07-02
+    out = db_reader.get_efficiency_vs_temp()
+    assert len(out["points"]) == 601 and out["points"][0]["id"] == 2
 
 
 # ── REEV: two series, two gates ──────────────────────────────────────────────
