@@ -158,6 +158,14 @@ _RECONSTRUCT_MAX_TRIP_KM = 1500.0
 # The odometer reads in whole kilometres: below one, a jump cannot be told from its own
 # quantisation. Same floor the trip reconstruction uses, and the reason is the same.
 _OFFLINE_GAP_MIN_KM = 1.0
+
+# The anchored-trip repair (#497). The poll that opened a trip is saved to `positions` just before the
+# trip row, a fraction of a second earlier; two minutes is room for a slow write, not for a second
+# poll at the 10-30 s cadence the poller runs at.
+_ANCHOR_POLL_WINDOW_S = 120
+# A SoC that rose by more than this across the silence holds a charge — the threshold the recorder
+# uses for the same question when it rebuilds a drive it never saw (_maybe_reconstruct_trip).
+_ANCHOR_SOC_RISE = 0.5
 _RECONSTRUCT_TRIP_MIN_KMH = 8.0
 _RECONSTRUCT_TRIP_MAX_KMH = 160.0
 
@@ -403,6 +411,7 @@ class Database:
         self._backfill_trip_readings()
         self._repair_odometer_trips()
         self._repair_quantized_trip_distance()
+        self._repair_trips_anchored_over_a_silence()
         self._repair_snap_to_full_charges()
         self._repair_charges_anchored_below_the_detection_floor()
         self._drop_phantom_charges()
@@ -479,6 +488,110 @@ class Database:
         self.set_setting("trips_odo_quantize_repair_v1", "1")
         if fixed:
             log.info("Quantized-trip repair: %d trip(s) corrected", fixed)
+
+    def _repair_trips_anchored_over_a_silence(self) -> None:
+        """One-time repair for trips that carry the kilometres of a silence (#497, @adoewa).
+
+        Until v3.10.6 a trip that opened after the cloud had been quiet took its start odometer, SoC
+        and position from the last reading BEFORE the silence (`_offline_head`, #130/#233), so a
+        1 km run to the supermarket was stored as 59 km at 0.7 kWh/100km. v3.10.6 sent those
+        kilometres to `offline_gaps` instead (#244) — for what it recorded from then on. This gives
+        the trips recorded before it the same treatment.
+
+        The signature: a trip opens on the poll saved to `positions` just before its row, and
+        without the anchor it starts on that poll's odometer. A start BELOW it is the anchor. The
+        poll is looked for at or before `started_at` only — since v3.10.6 the trip carries the
+        poll's own start time, so what lies before it is the previous poll, never above the start.
+        A trip whose opening poll is gone (positions retention) is left as it is.
+
+        The trip is rewritten as v3.10.6 would have written it; the kilometres go to
+        `offline_gaps` with the SoC that went with them, so Mate's total does not silently fall
+        below the car's odometer. A trip on the cloud's energy keeps it: the cloud measured the
+        drive, not the silence. → tests/test_a_trip_anchored_before_3_10_6_is_repaired.py"""
+        if self.get_setting("trips_offline_anchor_repair_v1") == "1":
+            return
+        rows = self._conn.execute(
+            """SELECT id, vehicle_id, started_at, start_odometer_km, start_soc, end_soc,
+                      end_odometer_km, ec_kwh, ec_stable, efficiency_soc,
+                      fuel_start_pct, fuel_end_pct
+                 FROM trips
+                WHERE ended_at IS NOT NULL AND start_odometer_km > 0""").fetchall()
+        fixed = 0
+        for t in rows:
+            try:
+                since = (datetime.fromisoformat(t["started_at"])
+                         - timedelta(seconds=_ANCHOR_POLL_WINDOW_S)).isoformat()
+            except (TypeError, ValueError):
+                continue
+            poll = self._conn.execute(
+                "SELECT recorded_at, odometer_km, soc, latitude, longitude FROM positions"
+                " WHERE vehicle_id = ? AND recorded_at <= ? AND recorded_at >= ?"
+                " AND odometer_km > 0 ORDER BY recorded_at DESC LIMIT 1",
+                (t["vehicle_id"], t["started_at"], since)).fetchone()
+            if poll is None or poll["odometer_km"] <= t["start_odometer_km"]:
+                continue
+            # Where the news stopped: the first poll of the last frame that still read the old
+            # odometer — the same moment the live path records (the baseline's own time).
+            last_old = self._conn.execute(
+                "SELECT recorded_at, frame_ts FROM positions WHERE vehicle_id = ? AND recorded_at < ?"
+                " AND odometer_km = ? ORDER BY recorded_at DESC LIMIT 1",
+                (t["vehicle_id"], poll["recorded_at"], t["start_odometer_km"])).fetchone()
+            gap_from = poll["recorded_at"]
+            if last_old is not None:
+                gap_from = last_old["recorded_at"]
+                if last_old["frame_ts"] is not None:
+                    gap_from = self._conn.execute(
+                        "SELECT MIN(recorded_at) FROM positions WHERE vehicle_id = ? AND frame_ts = ?"
+                        " AND recorded_at <= ?",
+                        (t["vehicle_id"], last_old["frame_ts"], last_old["recorded_at"])
+                    ).fetchone()[0] or gap_from
+            new_soc = poll["soc"] if poll["soc"] is not None else t["start_soc"]
+            charged = (t["start_soc"] is None or new_soc is None
+                       or new_soc - t["start_soc"] > _ANCHOR_SOC_RISE)
+            self.record_offline_gap(
+                t["vehicle_id"], started_at=gap_from, ended_at=poll["recorded_at"],
+                odo_start=t["start_odometer_km"], odo_end=poll["odometer_km"],
+                soc_start=None if charged else t["start_soc"],
+                soc_end=None if charged else new_soc)
+
+            track = self._conn.execute(
+                "SELECT latitude, longitude FROM trip_positions WHERE trip_id = ? ORDER BY id",
+                (t["id"],)).fetchall()
+            distance_km = trip_distance_km(_gps_track_km(track), len(track) >= 2,
+                                           poll["odometer_km"], t["end_odometer_km"] or 0)
+            if _coord_valid(poll["latitude"], poll["longitude"]):
+                lat, lon = poll["latitude"], poll["longitude"]
+            else:
+                first = next((p for p in track if _coord_valid(p["latitude"], p["longitude"])), None)
+                lat, lon = (first["latitude"], first["longitude"]) if first else (None, None)
+            energy = ((new_soc or 0) - (t["end_soc"] or 0)) / 100.0 \
+                * self.get_battery_capacity(t["vehicle_id"])
+            soc_eff = (energy / distance_km * 100) \
+                if (distance_km and distance_km > 0.5 and energy > 0) else None
+            if _reev_extender_ran(t["fuel_start_pct"], t["fuel_end_pct"]):
+                soc_eff = None
+            if t["efficiency_soc"] is not None and t["ec_kwh"] is not None and distance_km:
+                # On the cloud's energy: that stays, its per-100 km follows the real distance, and
+                # the backup the conversion keeps is the SoC estimate of the trip as rewritten.
+                efficiency, backup = round(t["ec_kwh"] / distance_km * 100, 1), soc_eff
+            else:
+                efficiency, backup = soc_eff, t["efficiency_soc"]
+            self._conn.execute(
+                """UPDATE trips SET start_odometer_km = ?, start_soc = ?, start_lat = ?,
+                       start_lon = ?, start_geohash = ?, distance_km = ?,
+                       efficiency_kwh_100km = ?, efficiency_soc = ? WHERE id = ?""",
+                (poll["odometer_km"], new_soc, lat, lon,
+                 geohash.encode(lat, lon) if lat and lon else None,
+                 round(distance_km, 2) if distance_km is not None else None,
+                 round(efficiency, 2) if efficiency else None, backup, t["id"]))
+            log.info("Trip #%d: started over a silence — %.0f → %.0f km moved to the offline "
+                     "stretches, %s km left to the trip", t["id"], t["start_odometer_km"],
+                     poll["odometer_km"], distance_km)
+            fixed += 1
+        self._conn.commit()
+        self.set_setting("trips_offline_anchor_repair_v1", "1")
+        if fixed:
+            log.info("Anchored-trip repair: %d trip(s) given back their silence", fixed)
 
     def _repair_odometer_trips(self) -> None:
         """One-time repair for trips logged before the odometer-zero guard. When the

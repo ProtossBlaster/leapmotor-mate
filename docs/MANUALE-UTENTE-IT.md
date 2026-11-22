@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v5.1.0 · **Lingua:** Italiano
+> **Versione di Mate:** v5.1.1 · **Lingua:** Italiano
 
-## Novità della 5.1.0
+## Novità della 5.1.1
+
+**I viaggi registrati prima della 3.10.6 restituiscono i km di un silenzio.** Fino alla 3.10.6, un
+viaggio che si apriva dopo un silenzio del cloud prendeva la partenza dall'ultima lettura prima del
+silenzio, e così si portava dietro i km guidati durante il silenzio: un viaggio di 1 km poteva segnarne
+59. Al primo avvio la 5.1.1 riscrive quei viaggi dalla lettura che li ha aperti, e sposta i km in
+*Chilometri misurati fuori collegamento*, in *Statistiche* e sopra il calendario dei *Viaggi*. I viaggi
+registrati con la 3.10.6 o dopo non cambiano (@adoewa, #497).
+
+### Novità della 5.1.0
 
 **Un registro nella pagina Manutenzione.** Annota con la sua data quello che succede all'auto: cambi
 gomme, modifiche, guasti, danni, ognuno con una nota e, se vuoi, quanto è costato. Se lasci vuoto il

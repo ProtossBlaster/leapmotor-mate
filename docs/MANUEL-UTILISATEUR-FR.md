@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v5.1.0 · **Langue :** Français
+> **Version de Mate :** v5.1.1 · **Langue :** Français
 
-## Nouveautés de la version 5.1.0
+## Nouveautés de la version 5.1.1
+
+**Les trajets enregistrés avant la 3.10.6 rendent les kilomètres d'un silence.** Jusqu'à la 3.10.6, un
+trajet qui s'ouvrait après un silence du cloud prenait son départ dans la dernière lecture avant le
+silence, et emportait donc les kilomètres parcourus pendant celui-ci : un trajet de 1 km pouvait en
+afficher 59. Au premier démarrage, la 5.1.1 réécrit ces trajets à partir de la lecture qui les a ouverts,
+et déplace les kilomètres dans *Kilomètres mesurés hors contact*, sur *Statistiques* et au-dessus du
+calendrier des *Trajets*. Les trajets enregistrés avec la 3.10.6 ou après ne changent pas (@adoewa, #497).
+
+### Nouveautés de la version 5.1.0
 
 **Un carnet sur la page Entretien.** Notez avec sa date ce qui arrive à la voiture : changements de
 pneus, modifications, pannes, dommages, chacun avec une note et, si vous voulez, son coût. Laissez le
