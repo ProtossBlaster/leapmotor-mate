@@ -6156,31 +6156,37 @@ def _cubic_trend(ts: list, ys: list) -> Optional[dict]:
     say one of those. On one install's 412 trips the line explained 4 % of the spread, the cubic
     29.7 %.
 
-    Solved by hand (no numpy in the image): the normal equations on T/10, so the sums stay near 1
-    instead of reaching 37⁶, then the coefficients scaled back to °C. Unrounded — the same numbers
+    Solved by hand (no numpy in the image): the normal equations on z = (T − mid)/half, the trips'
+    temperatures centred and scaled to [−1, 1], then the coefficients expanded back to °C: on T itself
+    a few degrees far from 0 °C make 1, T, T², T³ nearly the same column, and the solver loses the
+    digits the curve is drawn with. Unrounded — the same numbers
     draw the curve and go to Home Assistant, which multiplies them. None below eight trips or four
     distinct temperatures: fewer pin no unique cubic, and a curve drawn from one would be invented.
     `t_min`/`t_max` travel with it: outside them the cubic is an extrapolation."""
     n = len(ts)
     if n < 8 or len(set(ts)) < 4:
         return None
-    us = [t / 10.0 for t in ts]
-    m = [[sum(u ** (i + j) for u in us) for j in range(4)] + [sum(y * u ** i for u, y in zip(us, ys))]
+    mid, half = (max(ts) + min(ts)) / 2.0, (max(ts) - min(ts)) / 2.0
+    zs = [(t - mid) / half for t in ts]
+    m = [[sum(z ** (i + j) for z in zs) for j in range(4)] + [sum(y * z ** i for z, y in zip(zs, ys))]
          for i in range(4)]
+    tiny = 1e-12 * m[0][0]                       # relative: the sums scale with the trips' count
     for col in range(4):                         # Gauss–Jordan, partial pivoting
         piv = max(range(col, 4), key=lambda r: abs(m[r][col]))
-        if abs(m[piv][col]) < 1e-12:
+        if abs(m[piv][col]) < tiny:
             return None
         m[col], m[piv] = m[piv], m[col]
         for r in range(4):
             if r != col:
                 f = m[r][col] / m[col][col]
                 m[r] = [x - f * y for x, y in zip(m[r], m[col])]
-    k = [m[i][4] / m[i][i] for i in range(4)]    # in T/10: k0 + k1·u + k2·u² + k3·u³
-    a, b, c, d = k[3] / 1000.0, k[2] / 100.0, k[1] / 10.0, k[0]
+    k = [m[i][4] / m[i][i] for i in range(4)]    # in z: k0 + k1·z + k2·z² + k3·z³
+    # (T − mid)ⁱ/halfⁱ expanded: the coefficient of Tʲ gathers k_i·C(i, j)·(−mid)^(i−j)/halfⁱ.
+    raw = [sum(k[i] * math.comb(i, j) * (-mid) ** (i - j) / half ** i for i in range(j, 4)) for j in range(4)]
+    d, c, b, a = raw
     my = sum(ys) / n
     ss_tot = sum((y - my) ** 2 for y in ys)
-    ss_res = sum((y - (a * t ** 3 + b * t ** 2 + c * t + d)) ** 2 for t, y in zip(ts, ys))
+    ss_res = sum((y - sum(k[i] * z ** i for i in range(4))) ** 2 for z, y in zip(zs, ys))
     return {"a": a, "b": b, "c": c, "d": d,
             "r2": round(1 - ss_res / ss_tot, 2) if ss_tot else 0.0,
             "n": n, "t_min": min(ts), "t_max": max(ts)}
