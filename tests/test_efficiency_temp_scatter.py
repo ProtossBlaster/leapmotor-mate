@@ -15,6 +15,9 @@ Three invariants the tests hold onto, because each one was a way to quietly lie:
   • short trips stay out: preconditioning spread over three kilometres reads as a cold penalty
     that isn't one.
 """
+import json
+from datetime import datetime, timedelta, timezone
+
 import db as D
 import db_reader
 
@@ -92,6 +95,33 @@ def test_a_merged_trip_is_its_whole_group(tmp_path, monkeypatch):
     energy = 5 / 100 * db_reader.get_battery_capacity_kwh()
     assert [(p["id"], p["km"], p["t"]) for p in out["points"]] == [(1, 22.0, 5.0)]
     assert out["points"][0]["e"] == round(energy / 22 * 100, 1)
+
+
+def test_a_dot_reads_the_consumption_the_trips_list_shows(tmp_path, monkeypatch):
+    """Each dot takes its energy where the Trips list does: the cloud's record of the drive, else
+    getEC, else the battery's SoC; a merged trip sums its segments' records."""
+    db = _setup(tmp_path, monkeypatch)
+    db.set_setting("is_reev", "0")
+    _trip(db, 1, 50.0, 20.0, t_start=5.0, t_end=5.0, day=1)    # the cloud: 9 kWh → 18.0
+    _trip(db, 2, 50.0, 17.0, t_start=6.0, t_end=6.0, day=2)    # getEC: 7.5 kWh → 15.0
+    _trip(db, 3, 50.0, 16.0, t_start=7.0, t_end=7.0, day=3)    # SoC alone
+    _trip(db, 4, 30.0, 19.0, t_start=8.0, t_end=8.0, day=4)    # merged, the cloud: 4 + 3 kWh over 50 km
+    _trip(db, 5, 20.0, 19.0, t_start=8.0, t_end=8.0, day=5, merged_into=4)
+    db._conn.execute("UPDATE trips SET ec_kwh = 7.5, ec_stable = 1 WHERE id = 2")
+    db._conn.execute("CREATE TABLE IF NOT EXISTS api_lab_cloud_history_records"
+                     " (id INTEGER PRIMARY KEY, kind TEXT, payload_json TEXT)")
+    for day, kwh, km in ((1, 9.0, 50.0), (4, 4.0, 30.0), (5, 3.0, 20.0)):
+        a = datetime(2026, 7, day, 8, tzinfo=timezone.utc)
+        rec = {"vin": "VINX", "routeStartTs": int(a.timestamp() * 1000),
+               "routeEndTs": int((a + timedelta(hours=1)).timestamp() * 1000),
+               "totalEnergy": kwh, "totalMileage": km}
+        db._conn.execute("INSERT INTO api_lab_cloud_history_records (kind, payload_json)"
+                         " VALUES ('mileage', ?)", (json.dumps(rec),))
+    db._conn.commit()
+    dots = {p["id"]: p["e"] for p in db_reader.get_efficiency_vs_temp()["points"]}
+    assert dots == {1: 18.0, 2: 15.0, 3: 16.0, 4: 14.0}
+    listed = {t["id"]: round(t["efficiency_kwh_100km"], 2) for t in db_reader.get_trips()}
+    assert dots == listed
 
 
 def test_the_trend_recovers_a_known_line(tmp_path, monkeypatch):
@@ -176,7 +206,6 @@ def test_a_mid_trip_refuel_is_never_a_point(tmp_path, monkeypatch):
 
 # ── the card speaks every language the page does ─────────────────────────────
 
-import json
 import pathlib
 
 LOCALES = sorted((pathlib.Path(__file__).resolve().parent.parent / "web" / "locales").glob("*.json"))

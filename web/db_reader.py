@@ -6221,9 +6221,10 @@ def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> d
     The temperatures are the trip's own outside_temp_start_c/end_c, collected by the elevation
     enrichment (Open-Meteo) — no new cloud calls here.
 
-    The electric series reads the stored efficiency_kwh_100km, which finalize_trip blanks on every
-    generator-on trip of a range-extender — so on a REEV it is battery-only by construction, the same
-    basis as the average-efficiency card above it (beta #24). The petrol series (L/100 km vs °C) is
+    The electric series reads each trip's consumption as the Trips list does (`_select_ev_energy`). On
+    a range-extender that is the stored efficiency_kwh_100km, which finalize_trip blanks on every
+    generator-on trip — so there it is battery-only by construction, the same basis as the
+    average-efficiency card above it (beta #24). The petrol series (L/100 km vs °C) is
     REEV-only and follows the usual is_reev+research gate via `include_fuel`; it walks the engine
     detection exactly like get_trips does, group-aware for merged families and skipping mid-trip
     refuels, whose litres are unknowable.
@@ -6264,9 +6265,10 @@ def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> d
         return {"bins": bins, "trend": _cubic_trend([p["t"] for p in pts], [p[ykey] for p in pts])}
 
 
+    groups = [_trip_group_stats(dict(r), kids.get(r["id"], [])) for r in rows]
+    _select_ev_energy(groups)                   # each trip's energy as the Trips list reads it
     pts = []
-    for r in rows:
-        td = _trip_group_stats(dict(r), kids.get(r["id"], []))
+    for td in groups:
         if (td.get("distance_km") or 0) < min_km:
             continue
         if td["efficiency_kwh_100km"] is None:
@@ -6274,10 +6276,10 @@ def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> d
         t = _temp(td)
         if t is None:
             continue
-        pts.append({"id": r["id"], "t": round(t, 1),
+        pts.append({"id": td["id"], "t": round(t, 1),
                     "e": round(td["efficiency_kwh_100km"], 2),
                     "km": round(td["distance_km"], 1),
-                    "ts": (r["started_at"] or "")[:10]})
+                    "ts": (td["started_at"] or "")[:10]})
     pts.reverse()                                   # oldest first
     out = {"points": pts, "min_km": min_km, **_series(pts, "e")}
 
