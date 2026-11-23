@@ -83,12 +83,47 @@ def _seed(db_path: pathlib.Path) -> None:
         conn.close()
 
 
+def _seed_petrol_only(db_path: pathlib.Path) -> None:
+    """A range-extender whose every trip ran its generator: twelve petrol points, no electric one."""
+    import schema
+
+    now = datetime.now(timezone.utc)
+    conn = sqlite3.connect(db_path)
+    try:
+        schema.ensure_schema(conn)
+        conn.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (1, ?, ?)",
+                     ("TESTVIN0000000001", "C10"))
+        for i in range(12):
+            start = now - timedelta(days=12 - i, hours=2)
+            temp = -3.0 + i * 3.0
+            conn.execute(
+                "INSERT INTO trips (vehicle_id, started_at, ended_at, distance_km, efficiency_kwh_100km,"
+                " outside_temp_start_c, outside_temp_end_c, fuel_start_pct, fuel_end_pct)"
+                " VALUES (1, ?, ?, 60, NULL, ?, ?, 60, ?)",
+                (start.isoformat(), (start + timedelta(minutes=50)).isoformat(), temp, temp + 1.0,
+                 55.0 - (i % 3) * 0.5))
+        conn.executemany("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                         [("setup_complete", "1"), ("is_reev", "1")])
+        conn.commit()
+    finally:
+        conn.close()
+
+
 @pytest.fixture(scope="module")
 def mate_url(tmp_path_factory):
+    yield from _serve(tmp_path_factory, _seed)
+
+
+@pytest.fixture(scope="module")
+def petrol_only_url(tmp_path_factory):
+    yield from _serve(tmp_path_factory, _seed_petrol_only)
+
+
+def _serve(tmp_path_factory, seed):
     """A real Mate, serving a database of our own, on a port of its own."""
     data = tmp_path_factory.mktemp("mate-stats-browser")
     db = data / "leapmotor_mate.db"
-    _seed(db)
+    seed(db)
 
     port = _free_port()
     env = {**os.environ,
@@ -165,6 +200,29 @@ def test_the_temperature_chart_puts_its_points_on_the_canvas(mate_url):
                           "blank and nothing is reported (beta #38)")
     assert drawn.get("chart"), "Chart.js was there, but no chart was built on #chart-efftemp"
     assert drawn["points"] == 12, f"the card drew {drawn['points']} of the 12 seeded trips"
+
+
+def test_a_car_with_petrol_points_only_has_its_chart(petrol_only_url):
+    """A range-extender that always ran its generator has no electric point; its petrol series is
+    still the chart, and the page loads the library for it."""
+    errors = []
+    with sync_api.sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1100, "height": 900})
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(f"{petrol_only_url.url}/statistics", wait_until="networkidle")
+        page.wait_for_timeout(1200)
+        drawn = page.evaluate(
+            """() => {
+                 if (typeof Chart === 'undefined') return {lib: false};
+                 const c = Chart.getChart('chart-efftemp');
+                 return {lib: true, chart: !!c,
+                         series: c ? c.data.datasets.map(d => d.data.length) : []};
+               }""")
+        browser.close()
+    assert errors == [], "Statistics threw in the browser:\n  " + "\n  ".join(errors)
+    assert drawn["lib"] and drawn["chart"], f"no temperature chart for a petrol-only car: {drawn}"
+    assert 12 in drawn["series"] and drawn["series"][0] == 0, drawn
 
 
 def test_the_trend_is_drawn_as_the_cubic_over_the_trips_temperatures(mate_url):

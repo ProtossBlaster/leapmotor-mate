@@ -25,7 +25,7 @@
    `typeof Chart === 'undefined'` guard returned in silence — no drawing, no error (beta #38,
    @michapr). Loaded first, any card can be placed anywhere on the page.
    → tests/test_charts_load_their_library_first.py #}
-{% if grouped or (efftemp and efftemp.points) %}
+{% if grouped or (efftemp and (efftemp.points or efftemp.fuel_points)) %}
 <script src="static/vendor/chart.umd.min.js"></script>
 {% endif %}
 
@@ -160,7 +160,7 @@
    enrichment — this card costs one query and no cloud calls. The electric series is battery-only
    by construction on a REEV (finalize blanks generator-on trips); the petrol series carries its
    usual is_reev+research gate server-side. #}
-{% if efftemp and efftemp.points %}
+{% if efftemp and (efftemp.points or efftemp.fuel_points) %}
 <div class="card mb-6">
   <h2 class="font-semibold text-white mb-1">🌡️ {{ t('stats_efftemp_title') }}</h2>
   <p class="text-xs text-slate-400 mb-3">{{ t('stats_efftemp_hint').format(km=efftemp.min_km|int) }}</p>
