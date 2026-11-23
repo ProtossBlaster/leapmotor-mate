@@ -2,7 +2,7 @@
 
 import json
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def _number(value):
@@ -271,6 +271,18 @@ def _manoeuvres_inside_a_drive(records, conflicts):
     return out
 
 
+def _span(rows):
+    """(first start, last end) of the rows in epoch seconds, a day wider on each side, or None when
+    a row has no time to place it. A record decides a trip's match only if it lies within that trip
+    ±90 s, and so do the other trips it could belong to; the day also absorbs any offset a stored
+    time carries, so the trips and records outside the span cannot change these rows' answer."""
+    starts = [_time(row.get("started_at")) for row in rows]
+    ends = [_time(row.get("ended_at")) for row in rows]
+    if None in starts or None in ends:
+        return None
+    return min(starts) - 86400, max(ends) + 86400
+
+
 def select_energy(db, displayed):
     """Annotate EV rows only, with conservative full-trip cloud matching.
 
@@ -290,8 +302,15 @@ def select_energy(db, displayed):
     vehicles, ev_ids = _cars_of_kind(db, reev=False)
     if not ev_ids:
         return displayed
+    # Only the trips and records around the rows shown: three trips on Overview read three trips'
+    # worth, not the car's whole history. Each row is a whole trip, a merged one spanning its segments.
+    span = _span(displayed)
+    window, args = "", ()
+    if span is not None:
+        iso = [datetime.fromtimestamp(t, timezone.utc).isoformat() for t in span]
+        window, args = " AND started_at <= ? AND ended_at >= ?", (iso[1], iso[0])
     raw = {
-        r["id"]: dict(r) for r in db.execute("SELECT * FROM trips WHERE ended_at IS NOT NULL")
+        r["id"]: dict(r) for r in db.execute("SELECT * FROM trips WHERE ended_at IS NOT NULL" + window, args)
         if r["vehicle_id"] in ev_ids
     }
     bounds = {key: (_time(r["started_at"]), _time(r["ended_at"])) for key, r in raw.items()}
@@ -312,6 +331,8 @@ def select_energy(db, displayed):
                 energy = _number(record.get("totalEnergy"))
                 distance = _number(record.get("totalMileage"))
                 if start is None or end is None or end <= start:
+                    continue
+                if span is not None and (end < span[0] or start > span[1]):
                     continue
                 key = (vin, start, end)
                 value = (energy, distance)
