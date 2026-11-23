@@ -5311,12 +5311,21 @@ def _interpolate_elevation(positions: list[dict]) -> list[dict]:
     return positions
 
 
-def _children_by_parent(db) -> dict:
-    """All merged child trips grouped by parent id (one query)."""
+def _children_by_parent(db, parents=None) -> dict:
+    """Merged child trips grouped by parent id: of every group when `parents` is None, else of those
+    parents only (an empty list reads nothing). A group keeps all its segments, whatever their dates."""
+    if parents is None:
+        batches = [None]
+    else:
+        ids = sorted({p["id"] for p in parents})
+        # 500 stays under the 999 variables older SQLite builds allow in one statement.
+        batches = [ids[i:i + 500] for i in range(0, len(ids), 500)]
     out: dict = {}
-    for r in db.execute("SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND merged_into_id IS NOT NULL",
-                        (_current_vehicle_id(),)).fetchall():
-        out.setdefault(r["merged_into_id"], []).append(dict(r))
+    for batch in batches:
+        cond = "IS NOT NULL" if batch is None else f"IN ({','.join('?' * len(batch))})"
+        for r in db.execute(f"SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND merged_into_id {cond}",
+                            [_current_vehicle_id(), *(batch or [])]):
+            out.setdefault(r["merged_into_id"], []).append(dict(r))
     return out
 
 
@@ -5450,7 +5459,7 @@ def trip_group(trip_id: int):
         parent = db.execute("SELECT * FROM trips WHERE id=?", (t["merged_into_id"],)).fetchone()
         if parent:
             t = dict(parent)
-    children = _children_by_parent(db).get(t["id"], [])
+    children = _children_by_parent(db, [t]).get(t["id"], [])
     grp = _trip_group_stats(t, children) if children else t
     return grp, {t["id"]} | {c["id"] for c in children}
 
@@ -5700,7 +5709,7 @@ def merge_trips(parent_id: int, child_id: int, gap_min: int = TRIP_MERGE_GAP_DEF
     a, b = dict(a), dict(b)
     if (a.get("started_at") or "") > (b.get("started_at") or ""):
         a, b = b, a                                   # parent = earlier trip
-    kids = _children_by_parent(db)
+    kids = _children_by_parent(db, [a, b])
     a_grp = _trip_group_stats(a, kids.get(a["id"], []))
     gap = _gap_minutes(a_grp.get("ended_at"), b.get("started_at"))
     if gap is None or gap < 0:
@@ -5913,7 +5922,7 @@ def preview_merge(parent_id: int, child_id: int) -> Optional[dict]:
     a, b = dict(a), dict(b)
     if (a.get("started_at") or "") > (b.get("started_at") or ""):
         a, b = b, a
-    kids = _children_by_parent(db)
+    kids = _children_by_parent(db, [a, b])
     children = kids.get(a["id"], []) + [b] + kids.get(b["id"], [])
     g = _trip_group_stats(a, children)
     drive = g.get("duration_min") or 0
@@ -6086,7 +6095,6 @@ def get_trips(limit: int = 500, since: str | None = None, until: str | None = No
     compose the whole history and throw most of it away: that is what the Events page did, and its
     cost followed the length of the history instead of the days asked for."""
     db = _get()
-    kids = _children_by_parent(db)
     within, args = _groups_within("trips", True, since, until)
     rows = db.execute(
         f"""SELECT * FROM trips
@@ -6095,6 +6103,7 @@ def get_trips(limit: int = 500, since: str | None = None, until: str | None = No
            LIMIT ?""",
         (_current_vehicle_id(), *args, limit),
     ).fetchall()
+    kids = _children_by_parent(db, rows)
     # Built ONCE for the whole list — the fuel twin of the electric rate timeline. Per trip it would
     # replay every refuel from the beginning, which is quadratic down a long list.
     _fuel_rate_at = _trip_fuel_rate_fn()
@@ -6261,7 +6270,7 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
 
     fuel_pts = []
     if include_fuel:
-        kids = _children_by_parent(db)
+        kids = _children_by_parent(db, rows)
         _cloud_fuel = _cloud_fuel_index()
         for r in rows:
             _fs, _fe = r["fuel_start_pct"], r["fuel_end_pct"]
@@ -7860,7 +7869,7 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     parent_id = row["merged_into_id"] or row["id"]
     trip = db.execute("SELECT * FROM trips WHERE id = ? AND vehicle_id = COALESCE(?, vehicle_id)",
                       (parent_id, _current_vehicle_id())).fetchone()
-    children = _children_by_parent(db).get(parent_id, [])
+    children = _children_by_parent(db, [trip]).get(parent_id, [])
     seg_ids = _segment_ids(db, parent_id)
     ph = ",".join("?" * len(seg_ids))
     # Frozen stretches are dropped (see _trip_points) BEFORE anything else reads `positions` — so the
@@ -8567,15 +8576,15 @@ def _merged_trip_statistics(db, begin=None, end=None):
 
     None keeps the existing SQL path for old schemas and REEV without merges.
     EV totals apply the same read-only source selection as the trip list. Groups
-    belong to the parent's start date, like the Trips list; children are loaded BEFORE
-    applying the window so a midnight boundary cannot split a group's energy/distance.
+    belong to the parent's start date, like the Trips list; children come with their parent
+    whatever their own date, so a midnight boundary cannot split a group's energy/distance.
     This is read-only: conversion and unmerge still own the original rows.
     """
     if not any(r[1] == "merged_into_id" for r in db.execute("PRAGMA table_info(trips)")):
         return None
-    kids = _children_by_parent(db)
     ev = not is_reev_car()
-    if not kids and not ev:
+    if not ev and not db.execute("SELECT 1 FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+                                 "AND merged_into_id IS NOT NULL LIMIT 1", (_current_vehicle_id(),)).fetchone():
         return None
     sql = ("SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
            "AND ended_at IS NOT NULL AND merged_into_id IS NULL")
@@ -8583,8 +8592,9 @@ def _merged_trip_statistics(db, begin=None, end=None):
     if begin is not None:
         sql += " AND started_at >= ? AND started_at <= ?"
         args.extend((begin, end))
-    groups = [_trip_group_stats(dict(r), kids.get(r["id"], []))
-              for r in db.execute(sql, args).fetchall()]
+    rows = db.execute(sql, args).fetchall()
+    kids = _children_by_parent(db, rows)
+    groups = [_trip_group_stats(dict(r), kids.get(r["id"], [])) for r in rows]
 
     if ev:
         _select_ev_energy(groups)
