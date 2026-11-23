@@ -147,3 +147,28 @@ def test_a_merged_trip_keeps_its_litres_without_a_percentage_pair(reev):
     assert db_reader.get_trip_detail(1)["fuel_used_l"] == pytest.approx(0.04)
     assert [p["id"] for p in db_reader.get_efficiency_vs_temp(include_fuel=True)["fuel_points"]] == [1]
 
+
+@pytest.mark.parametrize("second", [
+    dict(fuel_from_l=None, fuel_to_l=None, fuel_from_pct=None, fuel_to_pct=None),
+    dict(fuel_from_l=42.8, fuel_to_l=42.3, fuel_from_pct=90.0, fuel_to_pct=89.0),
+], ids=["no-reading-after", "refuelled-between"])
+def test_a_group_whose_generator_ran_has_no_electric_consumption(reev, second):
+    """The generator ran in the group if it ran in any segment, or across them by the group's tank.
+    Read off the bare first and last segment, a later piece without a reading hid it, and so did a
+    refuel between two generator segments (60 → 59 %, then 90 → 89 %); either way the group got a
+    kWh/100km from the battery's net SoC, which the generator had topped up."""
+    _seg(reev, 1, hour=13, km=30.0, fuel_from_l=28.5, fuel_to_l=28.0,
+         fuel_from_pct=60.0, fuel_to_pct=59.0)
+    _seg(reev, 2, hour=14, km=30.0, parent=1, **second)
+    row = next(r for r in db_reader.get_trips() if r["id"] == 1)
+    assert row["efficiency_kwh_100km"] is None
+
+
+def test_a_refuel_between_segments_that_burned_nothing_keeps_the_electric_figure(reev):
+    """60 % at the end of the first segment, 70 % at the start of the second: a refuel, not petrol
+    burned — the group's tank has no forward pair, no segment dropped, so the battery figure stands."""
+    _seg(reev, 1, hour=13, km=30.0, fuel_from_l=None, fuel_to_l=None, fuel_from_pct=None, fuel_to_pct=60.0)
+    _seg(reev, 2, hour=14, km=30.0, fuel_from_l=None, fuel_to_l=None, fuel_from_pct=70.0, fuel_to_pct=None,
+         parent=1)
+    row = next(r for r in db_reader.get_trips() if r["id"] == 1)
+    assert row["efficiency_kwh_100km"] is not None

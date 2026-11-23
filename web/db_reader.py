@@ -5519,11 +5519,14 @@ def _trip_group_stats(parent: dict, children: list) -> dict:
     d["outside_temp_start_c"] = first.get("outside_temp_start_c")
     d["outside_temp_end_c"] = last.get("outside_temp_end_c")
     ssoc, esoc, dist = d["start_soc"], d["end_soc"], d.get("distance_km") or 0
-    # REEV: if the range-extender ran anywhere in the group (fuel dropped from first-start to last-end),
-    # net SoC ≠ traction energy, so a combined electric kWh/100km is meaningless — leave it blank (beta
-    # #10); the fuel figure is shown instead. Self-gates to REEV engine-on groups (BEV fuel is NULL).
-    _fs, _fe = first.get("fuel_start_pct"), last.get("fuel_end_pct")
-    _reev_engine = (_fs is not None and _fe is not None and (_fs - _fe) > _REEV_FUEL_MIN_DROP)
+    # REEV: if the range-extender ran anywhere in the group (fuel dropped in a segment, or across them
+    # by the group's tank — a refuel between segments hides it there), net SoC ≠ traction energy, so a
+    # combined electric kWh/100km is meaningless — leave it blank (beta #10); the fuel figure is shown
+    # instead. Self-gates to REEV engine-on groups (BEV fuel is NULL).
+    def _burned(fs, fe):
+        return fs is not None and fe is not None and (fs - fe) > _REEV_FUEL_MIN_DROP
+    _reev_engine = (_burned(d["fuel_start_pct"], d["fuel_end_pct"])
+                    or any(_burned(s.get("fuel_start_pct"), s.get("fuel_end_pct")) for s in segs))
     if _reev_engine:
         d["efficiency_kwh_100km"] = None
     elif ssoc is not None and esoc is not None and dist > 0:
