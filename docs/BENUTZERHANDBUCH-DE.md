@@ -1,8 +1,18 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v5.1.1 · **Sprache:** Deutsch
+> **Mate-Version:** v5.2.0 · **Sprache:** Deutsch
 
-## Neu in Version 5.1.1
+## Neu in Version 5.2.0
+
+**Der Trend des Verbrauchs über der Temperatur ist eine Kurve, und seine Zahlen kommen in Home
+Assistant an.** Unter *Statistiken* war der Trend von *Verbrauch über der Außentemperatur* eine Gerade;
+jetzt ist er eine Kurve, a·T³ + b·T² + c·T + d, nur zwischen der kältesten und der wärmsten Fahrt
+gezeichnet. Unter dem Diagramm steht die Formel mit ihren vier Zahlen und ihrem r². Mit MQTT werden
+dieselben Zahlen zu den Sensoren `Consumption Trend a`…`d`, bei einem Range Extender zusätzlich
+`Fuel Trend a`…`d`, sodass eine Automatisierung aus einer vorhergesagten Temperatur einen Verbrauch
+machen kann (@hristouzunovaz, D#498).
+
+### Neu in Version 5.1.1
 
 **Vor 3.10.6 aufgezeichnete Fahrten geben die Kilometer einer Funkstille zurück.** Bis 3.10.6 nahm eine
 Fahrt, die nach einer Funkstille der Cloud begann, ihren Start aus dem letzten Messwert vor der Stille und
@@ -1803,7 +1813,11 @@ Summen enthalten jetzt auch eine Karte **V2L gesamt** mit der über die gesamte 
 kumulierten Energie.
 
 **Verbrauch über der Außentemperatur 🆕** — ein Punkt je abgeschlossener Fahrt: ihr Verbrauch über
-der Lufttemperatur, in der sie gefahren wurde, mit einer gestrichelten Trendlinie hindurch. Das ist
+der Lufttemperatur, in der sie gefahren wurde, mit einer gestrichelten Trendkurve hindurch,
+a·T³ + b·T² + c·T + d mit T in °C, gezeichnet zwischen der kältesten und der wärmsten Fahrt. Unter dem
+Diagramm stehen ihre vier Zahlen und ihr r² (wie viel der Streuung die Kurve erklärt, von 0 bis 1); sie
+erscheint ab 8 Fahrten bei mindestens 4 verschiedenen Temperaturen. Bei einem Range Extender hat Benzin
+seine eigene. Das ist
 die Antwort auf die Frage, die sich jeder Besitzer stellt, wenn es kalt wird — *wie viel schluckt
 MEIN Auto wirklich bei 5 °C?* — aus Ihrem eigenen Fahren statt aus einer Tabelle. Die Fahrten müssen
 dafür eine Außentemperatur tragen (siehe *Übersicht*); bei realistischen Daten ist das Muster nach
@@ -2248,7 +2262,7 @@ Sendet die Telemetrie des Autos an ABRP für die Routenplanung in Echtzeit.
 
 ### MQTT → Home Assistant
 Veröffentlicht den Zustand des Autos (Ladung, Reichweite, Position, Türen, Ladezustand…) als **Entitäten in Home
-Assistant**, mit **Auto-Discovery**. Sie können das Auto auch über die Entitäten von HA **steuern** — einschließlich eines beschreibbaren **Ladelimits** (`number`) zum Einstellen des Ziel-SoC und einer beschreibbaren **Ladeplan**-`text`-Entität, die einen JSON-Plan für Automationen entgegennimmt (`{"start":"23:00","soc":90}` — jedes Feld ist optional, und was Sie weglassen, bleibt unverändert). Zum Klima kommen die **beschreibbare Lüfterstufe** (`number`, 1–7, bei Autos mit mehr Stufen mehr, z. B. 1–9), der **beschreibbare Umluft-Schalter** (Frischluft ↔ Umluft) und ein **Klimamodus**-Sensor (AUTO / Kühlen / Heizen / Lüften) hinzu. Außerdem gibt es drei **schreibgeschützte** V2L-Entitäten: **`V2L Active`** (Binärsensor), **`V2L Power`** (W) und **`V2L Session Energy`** (Wh) sowie einen Binärsensor **`Ready`**, der angeht, sobald das Auto eingeschaltet ist — noch bevor es losfährt, also solange eine Automatisierung überhaupt noch handeln kann. Ein Sensor **`Sunshade Position`** zeigt, wie weit die Sonnenblende offen ist, in % (0 = geschlossen); der Binärsensor **`Sunshade`** bleibt, wie er war, und ist bei jeder Öffnung an. Bei einem Auto mit Range Extender gibt es drei Kraftstoff-Sensoren: **`Fuel Level`** (%), **`Fuel Volume`** (L, die Liter, die das Auto zählt) und **`Fuel Range`** (km allein mit Kraftstoff); ein leerer Tank zeigt 0, und ein reines Elektroauto bekommt sie nicht.
+Assistant**, mit **Auto-Discovery**. Sie können das Auto auch über die Entitäten von HA **steuern** — einschließlich eines beschreibbaren **Ladelimits** (`number`) zum Einstellen des Ziel-SoC und einer beschreibbaren **Ladeplan**-`text`-Entität, die einen JSON-Plan für Automationen entgegennimmt (`{"start":"23:00","soc":90}` — jedes Feld ist optional, und was Sie weglassen, bleibt unverändert). Zum Klima kommen die **beschreibbare Lüfterstufe** (`number`, 1–7, bei Autos mit mehr Stufen mehr, z. B. 1–9), der **beschreibbare Umluft-Schalter** (Frischluft ↔ Umluft) und ein **Klimamodus**-Sensor (AUTO / Kühlen / Heizen / Lüften) hinzu. Außerdem gibt es drei **schreibgeschützte** V2L-Entitäten: **`V2L Active`** (Binärsensor), **`V2L Power`** (W) und **`V2L Session Energy`** (Wh) sowie einen Binärsensor **`Ready`**, der angeht, sobald das Auto eingeschaltet ist — noch bevor es losfährt, also solange eine Automatisierung überhaupt noch handeln kann. Ein Sensor **`Sunshade Position`** zeigt, wie weit die Sonnenblende offen ist, in % (0 = geschlossen); der Binärsensor **`Sunshade`** bleibt, wie er war, und ist bei jeder Öffnung an. Bei einem Auto mit Range Extender gibt es drei Kraftstoff-Sensoren: **`Fuel Level`** (%), **`Fuel Volume`** (L, die Liter, die das Auto zählt) und **`Fuel Range`** (km allein mit Kraftstoff); ein leerer Tank zeigt 0, und ein reines Elektroauto bekommt sie nicht. Die vier Zahlen des Trends des Verbrauchs über der Temperatur (siehe *Statistiken*) sind die Sensoren **`Consumption Trend a`**, **`b`**, **`c`**, **`d`** (kWh/100 km, mit T in °C), bei einem Range Extender zusätzlich **`Fuel Trend a`**…**`d`** (L/100 km); sie sind nicht gerundet, und ihre Attribute nennen `t_min` und `t_max`, die Temperaturen, auf denen die Kurve berechnet ist (außerhalb davon ist sie eine Vermutung), `n` Fahrten und `r2`. Sie werden alle 5 Minuten neu berechnet und sind unbekannt, nie 0, solange es keine Kurve gibt.
 
 Entitäten, die **Ihr** Auto nicht unterstützt, bleiben Ihnen nicht: Was das Modell nicht hat (Sitzheizung,
 Lenkrad…), wird gar nicht erst erzeugt, und eine **Temperatur-Entität**, deren Sensor das Auto nie gemeldet

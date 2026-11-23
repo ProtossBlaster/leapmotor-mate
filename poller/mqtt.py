@@ -108,6 +108,10 @@ class MqttService:
         # the fuel signal says the signal is missing, not that the tank went, and never deletes a sensor.
         self._reev_vins: set = set()
         self._climate_on: dict = {}     # vin → latest polled A/C state, for the "A/C Off" guard
+        # D#498 — the consumption-vs-temperature trend as last published per car (the raw stored
+        # string), and the series whose entities have been announced on this connection.
+        self._trend_sent: dict = {}     # vin → raw JSON last published
+        self._trend_announced: set = set()   # (vin, series key)
         # V2L live state PER CAR: the idle baseline current (I0) frozen at session start, the running
         # session energy, and the previous-poll idle current that seeds I0. Mirrors the net-power
         # math that db_reader.get_v2l_sessions rebuilds from the positions log for history.
@@ -168,6 +172,8 @@ class MqttService:
             self.client.subscribe(f"{self.topic_prefix}/+/{_BEACON}")
             self._discovery_sent.clear()   # resend discovery for every car after a reconnect
             self._link_discovery_sent.clear()
+            self._trend_sent.clear()       # …and the trend, which a broker restart may have lost
+            self._trend_announced.clear()
         else:
             log.error("MQTT: connect refused (code %d)", rc)
 
@@ -338,6 +344,49 @@ class MqttService:
             conf = _sensor_conf(self.topic_prefix, vin, key, name, extra)
             conf.update({"unique_id": f"{device_id}_{key}", "device": self._device(vin)})
             self.client.publish(f"{_DISC}/sensor/{device_id}/{key}/config", json.dumps(conf), retain=True)
+
+    # The two series of the Statistics trend (D#498), as `a·T³ + b·T² + c·T + d` with T in °C.
+    _TREND_SERIES = (("elec", "consumption_trend", "Consumption Trend", "kWh/100km"),
+                     ("fuel", "fuel_trend", "Fuel Trend", "L/100km"))
+
+    def publish_trend(self, vin, raw):
+        """Publish one car's trend coefficients, as the web stored them. Unrounded: Home Assistant
+        multiplies them. The temperatures they were fitted on ride along as attributes — outside
+        them the cubic is a guess. A series announced once stays; a trend that went away reads
+        unknown, never 0. Nothing before the web has computed one, and nothing when unchanged."""
+        if not raw or self._trend_sent.get(vin) == raw:
+            return
+        if not self.client or not self.client.is_connected():
+            return
+        try:
+            stored = json.loads(raw)
+        except ValueError:
+            return
+        device_id = f"{self.topic_prefix}_mate_{vin.lower()}"
+        base = f"{self.topic_prefix}/{vin}"
+        for skey, key, name, unit in self._TREND_SERIES:
+            trend = stored.get(skey)
+            announced = (vin, skey) in self._trend_announced
+            if trend is None and not announced:
+                continue
+            if self.discovery_enabled and not announced:
+                for k in "abcd":
+                    conf = _sensor_conf(self.topic_prefix, vin, f"{key}_{k}", f"{name} {k}",
+                                        {"icon": "mdi:chart-bell-curve", "tpl": _EMPTY_NONE})
+                    conf["json_attributes_topic"] = f"{base}/{key}/attributes"
+                    conf.update({"unique_id": f"{device_id}_{key}_{k}", "device": self._device(vin)})
+                    self.client.publish(f"{_DISC}/sensor/{device_id}/{key}_{k}/config",
+                                        json.dumps(conf), retain=True)
+            self._trend_announced.add((vin, skey))
+            for k in "abcd":
+                self.client.publish(f"{base}/{key}_{k}",
+                                    "" if trend is None else repr(float(trend[k])), retain=True)
+            self.client.publish(f"{base}/{key}/attributes", json.dumps(
+                {} if trend is None else
+                {"formula": "a*T^3 + b*T^2 + c*T + d", "temperature_unit": "°C", "unit": unit,
+                 "r2": trend["r2"], "n": trend["n"],
+                 "t_min": trend["t_min"], "t_max": trend["t_max"]}), retain=True)
+        self._trend_sent[vin] = raw
 
     def _v2l_live(self, data):
         """Live V2L numbers for MQTT: NET discharge power (gross minus the idle baseline I0 frozen at

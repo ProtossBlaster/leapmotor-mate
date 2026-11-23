@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v5.1.1 · **Idioma:** Español
+> **Versión de Mate:** v5.2.0 · **Idioma:** Español
 
-## Novedades de la versión 5.1.1
+## Novedades de la versión 5.2.0
+
+**La tendencia del consumo con la temperatura es una curva, y sus números llegan a Home Assistant.**
+En *Estadísticas*, la tendencia de *Consumo frente a temperatura exterior* era una recta; ahora es una
+curva, a·T³ + b·T² + c·T + d, dibujada solo entre el trayecto más frío y el más cálido. Bajo el
+gráfico, la fórmula con sus cuatro números y su r². Con MQTT activado, los mismos números son los
+sensores `Consumption Trend a`…`d`, y en un coche con extensor de autonomía `Fuel Trend a`…`d`, para
+que una automatización convierta una temperatura prevista en un consumo (@hristouzunovaz, D#498).
+
+### Novedades de la versión 5.1.1
 
 **Los trayectos registrados antes de la 3.10.6 devuelven los kilómetros de un silencio.** Hasta la
 3.10.6, un trayecto que se abría tras un silencio de la nube tomaba su salida de la última lectura antes
@@ -1778,8 +1787,11 @@ incluyen además una tarjeta **Total V2L** con la energía acumulada consumida p
 histórico.
 
 **Consumo frente a temperatura exterior 🆕** — un punto por cada trayecto terminado: su consumo
-frente a la temperatura del aire en la que se condujo, con una línea de tendencia discontinua que los
-atraviesa. Responde a la pregunta que se hace todo propietario cuando llega el frío — *¿cuánto bebe
+frente a la temperatura del aire en la que se condujo, con una curva de tendencia discontinua que los
+atraviesa, a·T³ + b·T² + c·T + d con T en °C, dibujada entre el trayecto más frío y el más cálido.
+Bajo el gráfico están sus cuatro números y su r² (cuánto de la dispersión explica la curva, de 0 a 1);
+aparece con al menos 8 trayectos en al menos 4 temperaturas distintas. En un coche con extensor de
+autonomía la gasolina tiene la suya. Responde a la pregunta que se hace todo propietario cuando llega el frío — *¿cuánto bebe
 de verdad MI coche a 5 °C?* — a partir de tu propia conducción y no de una tabla. Hace falta que los
 trayectos lleven una temperatura exterior (ver *Resumen*); con datos realistas el dibujo se lee al
 cabo de un mes de conducción aproximadamente.
@@ -2227,7 +2239,7 @@ escribible, más un sensor **Modo de climatización** (AUTO / Frío / Calor / Ve
 publicadas incluyen además tres de V2L de solo lectura: **`V2L Active`** (sensor binario), **`V2L
 Power`** (W) y **`V2L Session Energy`** (Wh), y un sensor binario **`Ready`** que se enciende en cuanto
 el coche se pone en marcha — antes de que se mueva, que es cuando a una automatización todavía le da
-tiempo a actuar. Un sensor **`Sunshade Position`** indica cuánto está abierto el parasol, en % (0 = cerrado); el sensor binario **`Sunshade`** sigue como estaba, encendido con cualquier apertura. En un coche con extensor de autonomía hay tres sensores de combustible: **`Fuel Level`** (%), **`Fuel Volume`** (L, los litros que cuenta el coche) y **`Fuel Range`** (km solo con combustible); un depósito vacío vale 0, y un coche solo eléctrico no los recibe.
+tiempo a actuar. Un sensor **`Sunshade Position`** indica cuánto está abierto el parasol, en % (0 = cerrado); el sensor binario **`Sunshade`** sigue como estaba, encendido con cualquier apertura. En un coche con extensor de autonomía hay tres sensores de combustible: **`Fuel Level`** (%), **`Fuel Volume`** (L, los litros que cuenta el coche) y **`Fuel Range`** (km solo con combustible); un depósito vacío vale 0, y un coche solo eléctrico no los recibe. Los cuatro números de la tendencia del consumo con la temperatura (ver *Estadísticas*) son los sensores **`Consumption Trend a`**, **`b`**, **`c`**, **`d`** (kWh/100 km, con T en °C), y en un coche con extensor de autonomía **`Fuel Trend a`**…**`d`** (L/100 km); no se redondean, y sus atributos dan `t_min` y `t_max`, las temperaturas sobre las que se calculó la curva (fuera de ellas es una suposición), `n` trayectos y `r2`. Se recalculan cada 5 minutos, y mientras no hay curva valen desconocido, nunca 0.
 
 Las entidades que **tu** coche no soporta no se te quedan en las manos: las que el modelo no tiene
 (asientos calefactados, volante…) no se crean nunca, y una **entidad de temperatura** cuyo sensor el

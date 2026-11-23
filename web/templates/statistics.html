@@ -165,12 +165,17 @@
   <h2 class="font-semibold text-white mb-1">🌡️ {{ t('stats_efftemp_title') }}</h2>
   <p class="text-xs text-slate-400 mb-3">{{ t('stats_efftemp_hint').format(km=efftemp.min_km|int) }}</p>
   <canvas id="chart-efftemp" height="230"></canvas>
-  {% if efftemp.trend %}
-  <p class="text-[11px] text-slate-500 mt-2">📈
-    {{ t('stats_efftemp_trend_elec').format(val=efftemp.trend.per_10c|abs) }}
-    {% if efftemp.fuel_trend %} · {{ t('stats_efftemp_trend_fuel').format(val=efftemp.fuel_trend.per_10c|abs) }}{% endif %}
-    · r²={{ efftemp.trend.r2 }}
-  </p>
+  {# D#498: the trend is a cubic, and its coefficients are what is shown — the same unrounded
+     numbers go to Home Assistant over MQTT. Four significant digits here: `a` is ~0.0007, and two
+     decimals would print the whole bend as 0. The range is where the trips were: outside it the
+     cubic is a guess. #}
+  {% macro _coeffs(tr) %}a={{ '%.4g'|format(tr.a) }} · b={{ '%.4g'|format(tr.b) }} · c={{ '%.4g'|format(tr.c) }} · d={{ '%.4g'|format(tr.d) }} · r²={{ tr.r2 }}{% endmacro %}
+  {% if efftemp.trend or efftemp.fuel_trend %}
+  <div class="text-[11px] text-slate-500 mt-2 space-y-0.5" data-efftemp-trend>
+    <p>📈 {{ t('stats_efftemp_trend_formula') }}</p>
+    {% if efftemp.trend %}<p>{{ t('stats_efftemp_trend_elec').format(lo=efftemp.trend.t_min, hi=efftemp.trend.t_max, coeffs=_coeffs(efftemp.trend)) }}</p>{% endif %}
+    {% if efftemp.fuel_trend %}<p>{{ t('stats_efftemp_trend_fuel').format(lo=efftemp.fuel_trend.t_min, hi=efftemp.fuel_trend.t_max, coeffs=_coeffs(efftemp.fuel_trend)) }}</p>{% endif %}
+  </div>
   {% endif %}
   <script>
   (function () {
@@ -182,28 +187,29 @@
       data: data.points.map(function (p) { return { x: p.t, y: p.e, id: p.id, km: p.km, d: p.ts }; }),
       backgroundColor: 'rgba(56,189,248,0.65)', pointRadius: 4, pointHoverRadius: 6
     }];
-    if (data.trend && data.points.length >= 8) {
-      var ts = data.points.map(function (p) { return p.t; });
-      var lo = Math.min.apply(null, ts), hi = Math.max.apply(null, ts);
-      datasets.push({ type: 'line', label: '',
-        data: [{x: lo, y: data.trend.at20c + data.trend.per_10c/10*(lo-20)},
-               {x: hi, y: data.trend.at20c + data.trend.per_10c/10*(hi-20)}],
+    // The cubic drawn only over the temperatures the trips were at (D#498): beyond them it is a guess.
+    function curve(tr) {
+      var out = [], steps = 48;
+      for (var i = 0; i <= steps; i++) {
+        var x = tr.t_min + (tr.t_max - tr.t_min) * i / steps;
+        out.push({x: x, y: ((tr.a * x + tr.b) * x + tr.c) * x + tr.d});
+      }
+      return out;
+    }
+    if (data.trend) {
+      datasets.push({ type: 'line', label: '', data: curve(data.trend),
         borderColor: '#38bdf8', borderWidth: 1.5, borderDash: [6, 4],
-        pointRadius: 0, fill: false });
+        pointRadius: 0, fill: false, tension: 0 });
     }
     if (data.fuel_points && data.fuel_points.length) {
       datasets.push({ label: '{{ t('stats_efftemp_petrol') }}',
         data: data.fuel_points.map(function (p) { return { x: p.t, y: p.l, id: p.id, km: p.km, d: p.ts }; }),
         backgroundColor: 'rgba(251,146,60,0.65)', pointRadius: 4, pointHoverRadius: 6,
         yAxisID: 'y1' });
-      if (data.fuel_trend && data.fuel_points.length >= 8) {
-        var ft = data.fuel_points.map(function (p) { return p.t; });
-        var flo = Math.min.apply(null, ft), fhi = Math.max.apply(null, ft);
-        datasets.push({ type: 'line', label: '',
-          data: [{x: flo, y: data.fuel_trend.at20c + data.fuel_trend.per_10c/10*(flo-20)},
-                 {x: fhi, y: data.fuel_trend.at20c + data.fuel_trend.per_10c/10*(fhi-20)}],
+      if (data.fuel_trend) {
+        datasets.push({ type: 'line', label: '', data: curve(data.fuel_trend),
           borderColor: '#fb923c', borderWidth: 1.5, borderDash: [6, 4],
-          pointRadius: 0, fill: false, yAxisID: 'y1' });
+          pointRadius: 0, fill: false, tension: 0, yAxisID: 'y1' });
       }
     }
     new Chart(el, {

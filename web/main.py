@@ -35,13 +35,14 @@ import auth
 import security
 import update_check
 
-MATE_VERSION = "5.1.1"  # bump together with the git tag + add-on config.yaml at release
+MATE_VERSION = "5.2.0"  # bump together with the git tag + add-on config.yaml at release
 
 import diagnostics
 import demo
 import maintenance
 import research
 import ec_enrich
+import efftemp_trend
 import elevation_enrich
 import place_lookup
 
@@ -241,6 +242,8 @@ ec_enrich.start_background()
 elevation_enrich.start_background()
 # …and for the addresses of the places recent trips started and ended at (place_lookup).
 place_lookup.start_background()
+# …and the consumption-vs-temperature trend each car's MQTT bridge publishes (D#498).
+efftemp_trend.start_background()
 
 
 def _nice(x) -> str:

@@ -1,8 +1,18 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v5.1.1 · **Langue :** Français
+> **Version de Mate :** v5.2.0 · **Langue :** Français
 
-## Nouveautés de la version 5.1.1
+## Nouveautés de la version 5.2.0
+
+**La tendance de la consommation avec la température est une courbe, et ses nombres arrivent dans Home
+Assistant.** Dans *Statistiques*, la tendance de *Consommation en fonction de la température
+extérieure* était une droite ; c'est maintenant une courbe, a·T³ + b·T² + c·T + d, tracée seulement
+entre le trajet le plus froid et le plus chaud. Sous le graphique, la formule avec ses quatre nombres et
+son r². Avec MQTT activé, les mêmes nombres deviennent les capteurs `Consumption Trend a`…`d`, et sur
+une voiture à prolongateur d'autonomie `Fuel Trend a`…`d`, pour qu'une automatisation transforme une
+température prévue en consommation (@hristouzunovaz, D#498).
+
+### Nouveautés de la version 5.1.1
 
 **Les trajets enregistrés avant la 3.10.6 rendent les kilomètres d'un silence.** Jusqu'à la 3.10.6, un
 trajet qui s'ouvrait après un silence du cloud prenait son départ dans la dernière lecture avant le
@@ -1823,8 +1833,11 @@ recharge**, avec les **tendances** correspondantes (efficacité et récupératio
 incluent désormais une carte **Total V2L** avec l'énergie cumulée soutirée via V2L sur tout l'historique.
 
 **Consommation en fonction de la température extérieure 🆕** — un point par trajet terminé : sa
-consommation face à la température de l'air dans laquelle il a été parcouru, avec une ligne de
-tendance en pointillés qui les traverse. C'est la réponse à la question que se pose tout propriétaire
+consommation face à la température de l'air dans laquelle il a été parcouru, avec une courbe de
+tendance en pointillés qui les traverse, a·T³ + b·T² + c·T + d avec T en °C, tracée entre le trajet le
+plus froid et le plus chaud. Sous le graphique figurent ses quatre nombres et son r² (la part de la
+dispersion que la courbe explique, de 0 à 1) ; elle apparaît à partir de 8 trajets sur au moins 4
+températures différentes. Sur une voiture à prolongateur d'autonomie, l'essence a la sienne. C'est la réponse à la question que se pose tout propriétaire
 quand le froid arrive — *combien MA voiture consomme-t-elle vraiment à 5 °C ?* — à partir de votre
 conduite et non d'un tableau. Il faut que les trajets portent une température extérieure (voir
 *Aperçu*) ; sur des données réalistes, la tendance se lit après un mois de conduite environ.
@@ -2272,7 +2285,7 @@ Envoie la télémétrie de la voiture à ABRP pour la planification d'itinérair
 
 ### MQTT → Home Assistant
 Publie l'état de la voiture (charge, autonomie, position, portes, état de charge…) sous forme d'**entités dans
-Home Assistant**, avec **auto-discovery**. Vous pouvez aussi **commander** la voiture depuis les entités de HA — y compris une **limite de charge** (`number` modifiable) pour régler le SoC cible et une entité **Programmation de charge** (`text` modifiable) qui accepte un plan JSON pensé pour les automatisations (`{"start":"23:00","soc":90}` — chaque champ est optionnel, et ce que vous omettez reste inchangé). Les réglages de climatisation sont également exposés : **Vitesse de ventilation** (`number` modifiable, 1–7, ou plus si la voiture en a plus, p. ex. 1–9), **Recyclage** (`switch` modifiable) et **Mode climatisation** (capteur : AUTO / Refroidissement / Chauffage / Ventilation). Trois entités V2L en lecture seule sont aussi publiées : **`V2L Active`** (binary sensor), **`V2L Power`** (W) et **`V2L Session Energy`** (Wh), ainsi qu'un binary sensor **`Ready`** qui s'allume dès que la voiture est sous tension — avant qu'elle ne roule, c'est-à-dire tant qu'une automatisation a encore le temps d'agir. Un capteur **`Sunshade Position`** indique de combien le pare-soleil est ouvert, en % (0 = fermé) ; le binary sensor **`Sunshade`** reste tel quel, allumé dès la moindre ouverture. Sur une voiture à prolongateur d'autonomie, trois capteurs de carburant : **`Fuel Level`** (%), **`Fuel Volume`** (L, les litres comptés par la voiture) et **`Fuel Range`** (km sur le seul carburant) ; un réservoir vide vaut 0, et une voiture 100 % électrique ne les reçoit pas.
+Home Assistant**, avec **auto-discovery**. Vous pouvez aussi **commander** la voiture depuis les entités de HA — y compris une **limite de charge** (`number` modifiable) pour régler le SoC cible et une entité **Programmation de charge** (`text` modifiable) qui accepte un plan JSON pensé pour les automatisations (`{"start":"23:00","soc":90}` — chaque champ est optionnel, et ce que vous omettez reste inchangé). Les réglages de climatisation sont également exposés : **Vitesse de ventilation** (`number` modifiable, 1–7, ou plus si la voiture en a plus, p. ex. 1–9), **Recyclage** (`switch` modifiable) et **Mode climatisation** (capteur : AUTO / Refroidissement / Chauffage / Ventilation). Trois entités V2L en lecture seule sont aussi publiées : **`V2L Active`** (binary sensor), **`V2L Power`** (W) et **`V2L Session Energy`** (Wh), ainsi qu'un binary sensor **`Ready`** qui s'allume dès que la voiture est sous tension — avant qu'elle ne roule, c'est-à-dire tant qu'une automatisation a encore le temps d'agir. Un capteur **`Sunshade Position`** indique de combien le pare-soleil est ouvert, en % (0 = fermé) ; le binary sensor **`Sunshade`** reste tel quel, allumé dès la moindre ouverture. Sur une voiture à prolongateur d'autonomie, trois capteurs de carburant : **`Fuel Level`** (%), **`Fuel Volume`** (L, les litres comptés par la voiture) et **`Fuel Range`** (km sur le seul carburant) ; un réservoir vide vaut 0, et une voiture 100 % électrique ne les reçoit pas. Les quatre nombres de la tendance de la consommation avec la température (voir *Statistiques*) sont les capteurs **`Consumption Trend a`**, **`b`**, **`c`**, **`d`** (kWh/100 km, avec T en °C), et sur une voiture à prolongateur d'autonomie **`Fuel Trend a`**…**`d`** (L/100 km) ; ils ne sont pas arrondis, et leurs attributs donnent `t_min` et `t_max`, les températures sur lesquelles la courbe est calculée (en dehors, c'est une supposition), `n` trajets et `r2`. Ils sont recalculés toutes les 5 minutes, et valent inconnu, jamais 0, tant qu'il n'y a pas de courbe.
 
 Les entités que **votre** voiture ne prend pas en charge ne vous restent pas sur les bras : celles que le
 modèle n'a pas (sièges chauffants, volant…) ne sont jamais créées, et une **entité de température** dont le
