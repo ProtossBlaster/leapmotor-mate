@@ -555,9 +555,11 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
         return out
 
     _engine_km = (engine["engine_km"] if engine and engine.get("engine_km", 0) > 0.5 else None)
-    if fuel_start_pct is None or fuel_end_pct is None:
+    measured = (fuel_start_l - fuel_end_l) if (fuel_start_l is not None and fuel_end_l is not None) else None
+    # The litres stand on their own: a merged trip can hold a litre pair and no percentage one.
+    if (fuel_start_pct is None or fuel_end_pct is None) and measured is None:
         return _from_cloud(None, _engine_km) if cloud_l is not None else out
-    drop = fuel_start_pct - fuel_end_pct
+    drop = fuel_start_pct - fuel_end_pct if fuel_start_pct is not None and fuel_end_pct is not None else None
     # The tank ended FULLER than it started: he filled up during the drive. The litres are then
     # start − end = a negative number, which fell straight into the "nothing burned" branch below
     # and published the trip as pure electric — generator off, zero litres, zero petrol kilometres.
@@ -568,14 +570,13 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
     # There is no independent "engine on" signal to fall back on (see the docstring), so what we
     # know is: something may well have been burned, and we cannot say how much. That is unknown,
     # not zero — and a zero is what quietly disappears into every fuel total.
-    if drop < -_REEV_FUEL_MIN_DROP:
+    if drop is not None and drop < -_REEV_FUEL_MIN_DROP:
         # 🔑 The tank ended fuller, so IT cannot say what was burned — but the cloud can, and on this
         # one case it turns an "unknown" into a figure. `fuel_refuelled` stays true either way: the
         # tank really did move up, and a page that shows the litres should still be able to say so.
         out["fuel_refuelled"] = True
         return _from_cloud(None, _engine_km) if cloud_l is not None else out
     cap = tank_l if tank_l else reev_tank_l()
-    measured = (fuel_start_l - fuel_end_l) if (fuel_start_l is not None and fuel_end_l is not None) else None
     # The noise floor belongs to whichever signal is actually being read. 3235 (%) moves in steps of
     # 0.1 — 50 mL of a 50 L tank — so 0.2 % is the right guard for it. 3263 counts in MILLILITRES,
     # fifty times finer, and gating IT on the percentage threw away every trip that burned under
@@ -5495,10 +5496,14 @@ def _trip_group_stats(parent: dict, children: list) -> dict:
     # took the hop's flat tank as the whole group's, so the litres vanished and the trip's cost fell
     # from 7.53 € to 0.50 € — the petrol simply stopped being counted. Taken from the first and last
     # segment that actually HAS a reading rather than blindly first/last, since a segment can carry
-    # none (a BEV, or a trip recorded before the signal was read).
-    for _key, _pick in (("fuel_start_pct", segs), ("fuel_start_l", segs),
-                        ("fuel_end_pct", segs[::-1]), ("fuel_end_l", segs[::-1])):
-        d[_key] = next((s[_key] for s in _pick if s.get(_key) is not None), None)
+    # none (a BEV, or a trip recorded before the signal was read). A start read in a LATER segment
+    # than the end is no pair: it runs time backwards, and a refuel between them reads as petrol burned.
+    for _s, _e in (("fuel_start_pct", "fuel_end_pct"), ("fuel_start_l", "fuel_end_l")):
+        i = next((k for k, s in enumerate(segs) if s.get(_s) is not None), None)
+        j = next((k for k in reversed(range(len(segs))) if segs[k].get(_e) is not None), None)
+        backwards = i is not None and j is not None and i > j
+        d[_s] = None if i is None or backwards else segs[i][_s]
+        d[_e] = None if j is None or backwards else segs[j][_e]
     # Elevation is per-segment like regen_kwh, but None here means "not enriched yet" (not "zero") —
     # summing None-as-0 would show a misleading "+0 m" while some segments still await the Open-Meteo
     # sweep. Only aggregate once EVERY segment has a value; the outside temperature is the mean of the
@@ -6215,7 +6220,8 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
     # The electric points filter the column themselves below.
     rows = db.execute(
         """SELECT id, vehicle_id, started_at, distance_km, efficiency_kwh_100km,
-                  outside_temp_start_c, outside_temp_end_c, fuel_start_pct, fuel_end_pct
+                  outside_temp_start_c, outside_temp_end_c, fuel_start_pct, fuel_end_pct,
+                  fuel_start_l, fuel_end_l
            FROM trips
            WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
              AND merged_into_id IS NULL AND distance_km >= ?
@@ -6256,12 +6262,15 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
         _cloud_fuel = _cloud_fuel_index()
         for r in rows:
             _fs, _fe = r["fuel_start_pct"], r["fuel_end_pct"]
+            _fsl, _fel = r["fuel_start_l"], r["fuel_end_l"]
             # 🔑 A pre-filter on the tank, widened for the third source. This is the trap named on
             # `_REEV_FUEL_ANY_DROP_SQL`: v3.6.6 fixed the litres in the reader and left filters like
             # this one in front of it, so a row was dropped before the better signal could be read.
-            # A drive the cloud has litres for qualifies whatever the tank did.
-            if r["id"] not in _cloud_fuel and (
-                    _fs is None or _fe is None or (_fs - _fe) <= _REEV_FUEL_MIN_DROP):
+            # A drive the cloud has litres for, or whose litre counter fell, qualifies whatever the
+            # percentage did; the floors are the reader's.
+            if (r["id"] not in _cloud_fuel
+                    and not (_fsl is not None and _fel is not None and _fsl > _fel)
+                    and (_fs is None or _fe is None or (_fs - _fe) <= _REEV_FUEL_MIN_DROP)):
                 continue
             kids_r = kids.get(r["id"], [])
             td = _trip_group_stats(dict(r), kids_r)
