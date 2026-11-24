@@ -57,7 +57,8 @@ def _seed(db_path: pathlib.Path) -> None:
     preconditioning spread over three kilometres reads as a cold penalty that isn't one), a
     non-NULL `efficiency_kwh_100km` (NULL is how finalize_trip marks a generator trip, which
     belongs to the petrol series), and at least one outside temperature. The temperatures are
-    spread from -3 °C to 30 °C so the fit has something to fit.
+    spread from -3 °C to 30 °C so the fit has something to fit, and the consumption steps 0.5 off a
+    line either way, so the curve has an interval to shade.
     """
     import schema  # poller/ is on sys.path via tests/conftest.py
 
@@ -76,8 +77,34 @@ def _seed(db_path: pathlib.Path) -> None:
                 "efficiency_kwh_100km, outside_temp_start_c, outside_temp_end_c) "
                 "VALUES (1, ?, ?, ?, ?, ?, ?)",
                 (start.isoformat(), end.isoformat(), 25.0 + i,
-                 22.0 - i * 0.4, temp, temp + 1.0))
+                 22.0 - i * 0.4 + (0.5 if i % 2 else -0.5), temp, temp + 1.0))
         conn.execute("INSERT INTO settings (key, value) VALUES ('setup_complete', '1')")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _seed_petrol_only(db_path: pathlib.Path) -> None:
+    """A range-extender whose every trip ran its generator: twelve petrol points, no electric one."""
+    import schema
+
+    now = datetime.now(timezone.utc)
+    conn = sqlite3.connect(db_path)
+    try:
+        schema.ensure_schema(conn)
+        conn.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (1, ?, ?)",
+                     ("TESTVIN0000000001", "C10"))
+        for i in range(12):
+            start = now - timedelta(days=12 - i, hours=2)
+            temp = -3.0 + i * 3.0
+            conn.execute(
+                "INSERT INTO trips (vehicle_id, started_at, ended_at, distance_km, efficiency_kwh_100km,"
+                " outside_temp_start_c, outside_temp_end_c, fuel_start_pct, fuel_end_pct)"
+                " VALUES (1, ?, ?, 60, NULL, ?, ?, 60, ?)",
+                (start.isoformat(), (start + timedelta(minutes=50)).isoformat(), temp, temp + 1.0,
+                 55.0 - (i % 3) * 0.5))
+        conn.executemany("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                         [("setup_complete", "1"), ("is_reev", "1")])
         conn.commit()
     finally:
         conn.close()
@@ -85,10 +112,19 @@ def _seed(db_path: pathlib.Path) -> None:
 
 @pytest.fixture(scope="module")
 def mate_url(tmp_path_factory):
+    yield from _serve(tmp_path_factory, _seed)
+
+
+@pytest.fixture(scope="module")
+def petrol_only_url(tmp_path_factory):
+    yield from _serve(tmp_path_factory, _seed_petrol_only)
+
+
+def _serve(tmp_path_factory, seed):
     """A real Mate, serving a database of our own, on a port of its own."""
     data = tmp_path_factory.mktemp("mate-stats-browser")
     db = data / "leapmotor_mate.db"
-    _seed(db)
+    seed(db)
 
     port = _free_port()
     env = {**os.environ,
@@ -167,6 +203,29 @@ def test_the_temperature_chart_puts_its_points_on_the_canvas(mate_url):
     assert drawn["points"] == 12, f"the card drew {drawn['points']} of the 12 seeded trips"
 
 
+def test_a_car_with_petrol_points_only_has_its_chart(petrol_only_url):
+    """A range-extender that always ran its generator has no electric point; its petrol series is
+    still the chart, and the page loads the library for it."""
+    errors = []
+    with sync_api.sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1100, "height": 900})
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto(f"{petrol_only_url.url}/statistics", wait_until="networkidle")
+        page.wait_for_timeout(1200)
+        drawn = page.evaluate(
+            """() => {
+                 if (typeof Chart === 'undefined') return {lib: false};
+                 const c = Chart.getChart('chart-efftemp');
+                 return {lib: true, chart: !!c,
+                         series: c ? c.data.datasets.map(d => d.data.length) : []};
+               }""")
+        browser.close()
+    assert errors == [], "Statistics threw in the browser:\n  " + "\n  ".join(errors)
+    assert drawn["lib"] and drawn["chart"], f"no temperature chart for a petrol-only car: {drawn}"
+    assert 12 in drawn["series"] and drawn["series"][0] == 0, drawn
+
+
 def test_the_trend_is_drawn_as_the_cubic_over_the_trips_temperatures(mate_url):
     """D#498: the dashed line is the cubic, sampled across the range the trips were at and not past
     it, and the coefficients under the chart are the ones it was drawn from."""
@@ -183,6 +242,99 @@ def test_the_trend_is_drawn_as_the_cubic_over_the_trips_temperatures(mate_url):
                }""")
         caption = page.inner_text("[data-efftemp-trend]")
         browser.close()
-    assert line == {"n": 49, "x0": -2.5, "x1": 30.5}
+    assert line == {"n": 331, "x0": -2.5, "x1": 30.5}      # every 0.1 °C, the hover cursor's step
     assert "a·T³ + b·T² + c·T + d" in caption
     assert "a=" in caption and "d=" in caption and "r²=" in caption
+
+
+
+def _hover(mate_url, temperature, on_dot):
+    with sync_api.sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1100, "height": 900})
+        page.goto(f"{mate_url.url}/statistics", wait_until="networkidle")
+        page.wait_for_timeout(1200)
+        x, y = page.evaluate(
+            """([t, onDot]) => {
+                 const c = Chart.getChart('chart-efftemp');
+                 const r = c.canvas.getBoundingClientRect();
+                 const dot = c.getDatasetMeta(0).data.find(p => Math.abs(c.scales.x.getValueForPixel(p.x) - t) < 0.05);
+                 return [r.left + c.scales.x.getPixelForValue(t),
+                         r.top + (onDot ? dot.y : c.chartArea.top + 4)];
+               }""", [temperature, on_dot])
+        page.mouse.move(x, y)
+        page.wait_for_timeout(300)
+        box = page.evaluate(
+            """() => {
+                 const t = Chart.getChart('chart-efftemp').tooltip;
+                 return {shown: t.opacity > 0, title: t.title,
+                         body: (t.body || []).map(b => b.lines.join(' '))};
+               }""")
+        browser.close()
+    return box
+
+
+def test_off_the_dots_the_cursor_rides_the_curve(mate_url):
+    """As on the trip charts, the box opens wherever the cursor is over the chart: off the dots it holds
+    the cursor's temperature and what the curve gives there, ± its 95 % interval, and no trip."""
+    box = _hover(mate_url, 1.4, on_dot=False)
+    assert box["shown"], "no box off the dots: it opens only on a dot, unlike the trip charts"
+    assert box["title"] == ["1.4 °C"]
+    assert box["body"] == ["21.4 ± 0.7 kWh/100km"]
+
+
+def test_on_a_dot_the_box_adds_its_trip(mate_url):
+    box = _hover(mate_url, 0.5, on_dot=True)
+    assert box["title"] == ["0.5 °C"]
+    assert box["body"][0] == "21.5 ± 0.8 kWh/100km"
+    assert len(box["body"]) == 2 and box["body"][1].startswith("22.1 kWh/100km · 26.0 km · ")
+
+
+def test_the_band_hides_with_its_curve(mate_url):
+    """The band belongs to its curve: a click on the curve's legend entry hides both, a second click
+    brings both back. Read off the canvas, inside the band halfway between the curve and its edge."""
+    with sync_api.sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1100, "height": 900})
+        page.goto(f"{mate_url.url}/statistics", wait_until="networkidle")
+        page.wait_for_timeout(1200)
+        shade = """() => {
+            const c = Chart.getChart('chart-efftemp'), r = window.devicePixelRatio;
+            const i = c.data.datasets.findIndex(d => d.isCurve), p = c.data.datasets[i].data[39];
+            const x = c.scales.x.getPixelForValue(p.x), y = c.scales.y.getPixelForValue(p.y + p.u / 2);
+            const px = c.ctx.getImageData(Math.round(x * r), Math.round((y - 2) * r), 1, Math.round(4 * r)).data;
+            let min = 255;
+            for (let k = 3; k < px.length; k += 4) min = Math.min(min, px[k]);
+            return min;
+        }"""
+        legend = """() => {
+            const c = Chart.getChart('chart-efftemp'), r = c.canvas.getBoundingClientRect();
+            const i = c.legend.legendItems.findIndex(it => c.data.datasets[it.datasetIndex].isCurve);
+            const b = c.legend.legendHitBoxes[i];
+            return [r.left + b.left + b.width / 2, r.top + b.top + b.height / 2];
+        }"""
+        seen = [page.evaluate(shade)]
+        for _ in range(2):
+            page.mouse.click(*page.evaluate(legend))
+            page.wait_for_timeout(1200)
+            seen.append(page.evaluate(shade))
+        browser.close()
+    assert seen[0] > 0 and seen[1] == 0 and seen[2] == seen[0], seen
+
+
+def test_the_axis_holds_the_whole_band(mate_url):
+    """The band widens past the dots at the ends of the curve; the axis takes it in, so it is not cut."""
+    with sync_api.sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1100, "height": 900})
+        page.goto(f"{mate_url.url}/statistics", wait_until="networkidle")
+        page.wait_for_timeout(1200)
+        fit = page.evaluate("""() => {
+            const c = Chart.getChart('chart-efftemp'), d = c.data.datasets.find(d => d.isCurve).data;
+            const dots = c.data.datasets[0].data.map(p => p.y);
+            return {lo: Math.min(...d.map(p => p.y - p.u)), hi: Math.max(...d.map(p => p.y + p.u)),
+                    dots: [Math.min(...dots), Math.max(...dots)], axis: [c.scales.y.min, c.scales.y.max]};
+        }""")
+        browser.close()
+    assert fit["lo"] < fit["dots"][0] or fit["hi"] > fit["dots"][1], f"the band stays within the dots: {fit}"
+    assert fit["axis"][0] <= fit["lo"] and fit["axis"][1] >= fit["hi"], fit

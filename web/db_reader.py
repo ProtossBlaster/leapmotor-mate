@@ -6150,40 +6150,69 @@ def get_trips(limit: int = 500, since: str | None = None, until: str | None = No
     return _select_ev_energy(out)
 
 
-def _cubic_trend(ts: list, ys: list) -> Optional[dict]:
+def _t975(dof: int) -> float:
+    """Student's t at 97.5 % (Abramowitz & Stegun 26.7.5; within 0.05 % of the table from 4 dof):
+    the coverage factor of a 95 % interval, which k = 2 gives only from about 60 dof."""
+    z = statistics.NormalDist().inv_cdf(0.975)
+    g = ((z ** 3 + z) / 4,
+         (5 * z ** 5 + 16 * z ** 3 + 3 * z) / 96,
+         (3 * z ** 7 + 19 * z ** 5 + 17 * z ** 3 - 15 * z) / 384,
+         (79 * z ** 9 + 776 * z ** 7 + 1482 * z ** 5 - 1920 * z ** 3 - 945 * z) / 92160)
+    return z + sum(gi / dof ** (i + 1) for i, gi in enumerate(g))
+
+
+def _cubic_trend(ts: list, ys: list, ws: Optional[list] = None) -> Optional[dict]:
     """`y = a·T³ + b·T² + c·T + d` by least squares (D#498): consumption climbs in the cold, drops
     towards a mild day and climbs again when the car cools its cabin, and a straight line can only
     say one of those. On one install's 412 trips the line explained 4 % of the spread, the cubic
     29.7 %.
 
-    Solved by hand (no numpy in the image): the normal equations on T/10, so the sums stay near 1
-    instead of reaching 37⁶, then the coefficients scaled back to °C. Unrounded — the same numbers
+    Solved by hand (no numpy in the image): the normal equations on z = (T − mid)/half, the trips'
+    temperatures centred and scaled to [−1, 1], then the coefficients expanded back to °C: on T itself
+    a few degrees far from 0 °C make 1, T, T², T³ nearly the same column, and the solver loses the
+    digits the curve is drawn with. Unrounded — the same numbers
     draw the curve and go to Home Assistant, which multiplies them. None below eight trips or four
     distinct temperatures: fewer pin no unique cubic, and a curve drawn from one would be invented.
-    `t_min`/`t_max` travel with it: outside them the cubic is an extrapolation."""
+    `t_min`/`t_max` travel with it: outside them the cubic is an extrapolation.
+
+    `ws` weighs each point (r² too): with a trip's kilometres, the curve is the kWh per 100 km
+    DRIVEN at a temperature — the ratio of the sums, which a mean of per-trip ratios is not.
+
+    `cov` (the covariance of the coefficients in z) and `k` give the curve's 95 % interval at any
+    T: ± k·√(gᵀ·cov·g), g = [1, z, z², z³], z = (T − mid)/half. It is how well the CURVE is known
+    there, narrow where many trips were, not the spread of single trips."""
     n = len(ts)
     if n < 8 or len(set(ts)) < 4:
         return None
-    us = [t / 10.0 for t in ts]
-    m = [[sum(u ** (i + j) for u in us) for j in range(4)] + [sum(y * u ** i for u, y in zip(us, ys))]
-         for i in range(4)]
+    ws = ws or [1.0] * n
+    mid, half = (max(ts) + min(ts)) / 2.0, (max(ts) - min(ts)) / 2.0
+    zs = [(t - mid) / half for t in ts]
+    m = [[sum(w * z ** (i + j) for z, w in zip(zs, ws)) for j in range(4)]
+         + [sum(w * y * z ** i for z, y, w in zip(zs, ys, ws))]
+         + [1.0 if j == i else 0.0 for j in range(4)] for i in range(4)]   # …and the inverse
+    tiny = 1e-12 * m[0][0]                       # relative: the sums scale with the weights
     for col in range(4):                         # Gauss–Jordan, partial pivoting
         piv = max(range(col, 4), key=lambda r: abs(m[r][col]))
-        if abs(m[piv][col]) < 1e-12:
+        if abs(m[piv][col]) < tiny:
             return None
         m[col], m[piv] = m[piv], m[col]
         for r in range(4):
             if r != col:
                 f = m[r][col] / m[col][col]
                 m[r] = [x - f * y for x, y in zip(m[r], m[col])]
-    k = [m[i][4] / m[i][i] for i in range(4)]    # in T/10: k0 + k1·u + k2·u² + k3·u³
-    a, b, c, d = k[3] / 1000.0, k[2] / 100.0, k[1] / 10.0, k[0]
-    my = sum(ys) / n
-    ss_tot = sum((y - my) ** 2 for y in ys)
-    ss_res = sum((y - (a * t ** 3 + b * t ** 2 + c * t + d)) ** 2 for t, y in zip(ts, ys))
+    k = [m[i][4] / m[i][i] for i in range(4)]    # in z: k0 + k1·z + k2·z² + k3·z³
+    # (T − mid)ⁱ/halfⁱ expanded: the coefficient of Tʲ gathers k_i·C(i, j)·(−mid)^(i−j)/halfⁱ.
+    raw = [sum(k[i] * math.comb(i, j) * (-mid) ** (i - j) / half ** i for i in range(j, 4)) for j in range(4)]
+    d, c, b, a = raw
+    my = sum(w * y for y, w in zip(ys, ws)) / sum(ws)
+    ss_tot = sum(w * (y - my) ** 2 for y, w in zip(ys, ws))
+    ss_res = sum(w * (y - sum(k[i] * z ** i for i in range(4))) ** 2 for z, y, w in zip(zs, ys, ws))
+    s2 = ss_res / (n - 4)
     return {"a": a, "b": b, "c": c, "d": d,
             "r2": round(1 - ss_res / ss_tot, 2) if ss_tot else 0.0,
-            "n": n, "t_min": min(ts), "t_max": max(ts)}
+            "n": n, "t_min": min(ts), "t_max": max(ts), "mid": mid, "half": half,
+            "cov": [[s2 * m[i][5 + j] / m[i][i] for j in range(4)] for i in range(4)],
+            "k": round(_t975(n - 4), 3)}
 
 
 def efftemp_trend_key(vin: str) -> str:
@@ -6209,36 +6238,42 @@ def store_efftemp_trends() -> int:
     return changed
 
 
-def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
-                           min_km: float = 3.0) -> dict:
+def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> dict:
     """Consumption against OUTSIDE temperature, one point per finished trip — the data behind the
     Statistics scatter (the question every owner asks: *how much does MY car really drink at 5°C?*).
     The temperatures are the trip's own outside_temp_start_c/end_c, collected by the elevation
     enrichment (Open-Meteo) — no new cloud calls here.
 
-    The electric series reads the stored efficiency_kwh_100km, which finalize_trip blanks on every
-    generator-on trip of a range-extender — so on a REEV it is battery-only by construction, the same
-    basis as the average-efficiency card above it (beta #24). The petrol series (L/100 km vs °C) is
+    The electric series reads each trip's consumption as the Trips list does (`_select_ev_energy`). On
+    a range-extender that is the stored efficiency_kwh_100km, which finalize_trip blanks on every
+    generator-on trip — so there it is battery-only by construction, the same basis as the
+    average-efficiency card above it (beta #24). The petrol series (L/100 km vs °C) is
     REEV-only and follows the usual is_reev+research gate via `include_fuel`; it walks the engine
     detection exactly like get_trips does, group-aware for merged families and skipping mid-trip
     refuels, whose litres are unknowable.
 
     Short trips (< min_km) stay out: preconditioning spread over three kilometres reads as a cold
-    penalty that isn't one. Points come back oldest-first so a time tooltip reads forward; the chart
-    sees at most the newest 500."""
+    penalty that isn't one. Points come back oldest-first so a time tooltip reads forward. The
+    trips are those of the two years up to the newest one: every season twice, at a cost a small
+    box can carry (a van driving fifteen trips a day stays near 11,000 points)."""
     db = _get()
+    # Back from the newest trip, not from today: a car left standing keeps its curve.
+    newest = db.execute(
+        "SELECT MAX(started_at) FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+        "AND ended_at IS NOT NULL AND merged_into_id IS NULL", (_current_vehicle_id(),)).fetchone()[0]
+    since = (datetime.fromisoformat(newest) - timedelta(days=730)).isoformat() if newest else ""
     # No `efficiency_kwh_100km IS NOT NULL` here ON PURPOSE: on a REEV exactly the generator-on
     # trips carry a NULL there (finalize blanks it), and they are the petrol series' whole point.
     # The electric points filter the column themselves below.
     rows = db.execute(
-        """SELECT id, vehicle_id, started_at, distance_km, efficiency_kwh_100km,
-                  outside_temp_start_c, outside_temp_end_c, fuel_start_pct, fuel_end_pct,
-                  fuel_start_l, fuel_end_l
-           FROM trips
+        """SELECT * FROM trips
            WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
-             AND merged_into_id IS NULL AND distance_km >= ?
-           ORDER BY started_at DESC LIMIT ?""",
-        (_current_vehicle_id(), float(min_km), int(limit))).fetchall()
+             AND merged_into_id IS NULL AND started_at >= ?
+           ORDER BY started_at DESC""",
+        (_current_vehicle_id(), since)).fetchall()
+    # A merged trip is its whole group — distance, consumption, first start to last end — as on the
+    # Trips page; its first segment alone is neither the trip nor a measure of it.
+    kids = _children_by_parent(db, rows)
 
     def _temp(r) -> Optional[float]:
         vals = [v for v in (r["outside_temp_start_c"], r["outside_temp_end_c"]) if v is not None]
@@ -6250,31 +6285,40 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
             acc.setdefault(int(math.floor(p["t"] / 5.0)) * 5, []).append(p[ykey])
         bins = [{"lo": lo, "hi": lo + 5, "mean": round(sum(v) / len(v), 2), "n": len(v)}
                 for lo, v in sorted(acc.items())]
-        return {"bins": bins, "trend": _cubic_trend([p["t"] for p in pts], [p[ykey] for p in pts])}
+        # Each trip weighs its kilometres: a 3 km hop says less about consumption per 100 km than a
+        # 60 km drive, and short trips run high in the cold (warm-up, heating).
+        return {"bins": bins, "trend": _cubic_trend([p["t"] for p in pts], [p[ykey] for p in pts],
+                                                    [p["km"] for p in pts])}
 
 
+    groups = [_trip_group_stats(dict(r), kids.get(r["id"], [])) for r in rows]
+    _select_ev_energy(groups)                   # each trip's energy as the Trips list reads it
     pts = []
-    for r in rows:
-        if r["efficiency_kwh_100km"] is None:
+    for td in groups:
+        if (td.get("distance_km") or 0) < min_km:
+            continue
+        if td["efficiency_kwh_100km"] is None:
             continue                            # a generator trip (or unmeasured) — petrol series' business
-        t = _temp(r)
+        t = _temp(td)
         if t is None:
             continue
-        pts.append({"id": r["id"], "t": round(t, 1),
-                    "e": round(r["efficiency_kwh_100km"], 2),
-                    "km": round(r["distance_km"], 1),
-                    "ts": (r["started_at"] or "")[:10]})
+        pts.append({"id": td["id"], "t": round(t, 1),
+                    "e": round(td["efficiency_kwh_100km"], 2),
+                    "km": round(td["distance_km"], 1),
+                    "ts": (td["started_at"] or "")[:10]})
     pts.reverse()                                   # oldest first
-    pts = pts[-500:]                                # the chart's cap
     out = {"points": pts, "min_km": min_km, **_series(pts, "e")}
 
     fuel_pts = []
     if include_fuel:
-        kids = _children_by_parent(db, rows)
         _cloud_fuel = _cloud_fuel_index()
         for r in rows:
-            _fs, _fe = r["fuel_start_pct"], r["fuel_end_pct"]
-            _fsl, _fel = r["fuel_start_l"], r["fuel_end_l"]
+            kids_r = kids.get(r["id"], [])
+            td = _trip_group_stats(dict(r), kids_r)
+            if (td.get("distance_km") or 0) < min_km:
+                continue
+            _fs, _fe = td.get("fuel_start_pct"), td.get("fuel_end_pct")
+            _fsl, _fel = td.get("fuel_start_l"), td.get("fuel_end_l")
             # 🔑 A pre-filter on the tank, widened for the third source. This is the trap named on
             # `_REEV_FUEL_ANY_DROP_SQL`: v3.6.6 fixed the litres in the reader and left filters like
             # this one in front of it, so a row was dropped before the better signal could be read.
@@ -6284,8 +6328,6 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
                     and not (_fsl is not None and _fel is not None and _fsl > _fel)
                     and (_fs is None or _fe is None or (_fs - _fe) <= _REEV_FUEL_MIN_DROP)):
                 continue
-            kids_r = kids.get(r["id"], [])
-            td = _trip_group_stats(dict(r), kids_r)
             seg = [r["id"]] + [k["id"] for k in kids_r]
             b = db.execute(
                 f"SELECT MIN(started_at) s, MAX(ended_at) e FROM trips WHERE id IN ({','.join('?' * len(seg))})",
@@ -6296,14 +6338,13 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
                                 td.get("fuel_start_l"), td.get("fuel_end_l"),
                                 cloud_l=_cloud_fuel.get(r["id"]))
             l100 = f.get("fuel_l_100km")
-            t = _temp(r)
+            t = _temp(td)
             if not l100 or t is None:
                 continue                            # includes mid-trip refuels: litres unknown
             fuel_pts.append({"id": r["id"], "t": round(t, 1), "l": round(l100, 2),
                              "km": round(td.get("distance_km") or 0.0, 1),
                              "ts": (r["started_at"] or "")[:10]})
         fuel_pts.reverse()
-        fuel_pts = fuel_pts[-500:]
     out["fuel_points"] = fuel_pts
     out.update({f"fuel_{k}": v for k, v in _series(fuel_pts, "l").items()})
     return out
