@@ -70,6 +70,9 @@ class Recorder:
         # SoC-jump charge reconstruction (GitHub #29): baseline SoC + when we last saw it.
         self._last_soc: Optional[float] = None
         self._last_soc_ts: Optional[str] = None
+        # The frame the SoC baseline was last read from (None without the car's clock): a repeat of it is
+        # no news, so it does not move the baseline's time (#501).
+        self._last_soc_frame: Optional[int] = None
         # Set by the close in _handle_event, read and cleared by _maybe_reconstruct_charge in the
         # SAME poll: the two run in that order inside process(), so without it the reconstruction
         # sees the state the close just produced. See the guard there.
@@ -173,6 +176,7 @@ class Recorder:
             # so without this the FIRST poll after any restart can never be a repeat — and a frame the
             # cloud is only re-serving gets recorded as if it were fresh. See get_last_frame_ts.
             self._last_frame_ts = self._db.get_last_frame_ts(self._vehicle_id)
+            self._last_soc_frame = self._last_frame_ts
 
         # When the car is unreachable (4G dead zone, or the eSIM re-registering on a foreign network
         # at a border) the cloud does not say so — it re-serves the LAST frame it received: identical
@@ -421,12 +425,23 @@ class Recorder:
         reports #27/#28). The one trace left is a SoC that JUMPED up while parked. Detect that jump
         and reconstruct the charge from the SoC delta.
 
-        Runs every poll. The baseline advances each poll, so a live charge (whose SoC rises gradually
-        while state == CHARGING) is skipped here — the live path records those, with real power and
-        wallbox cost. We only reconstruct when parked, with no charge open, and the rise clears the
-        threshold (so vampire-drain drops and BMS recalibration jitter never invent a phantom charge)."""
+        Runs every poll, so a live charge (whose SoC rises gradually while state == CHARGING) is
+        skipped here — the live path records those, with real power and wallbox cost. We only
+        reconstruct when parked, with no charge open, and the rise clears the threshold (so
+        vampire-drain drops and BMS recalibration jitter never invent a phantom charge).
+
+        The baseline's time is where the news stopped: the first reading of its SoC, or of its frame
+        when the car sends a clock — not the last poll. Behind a frozen frame the two are days apart,
+        and measuring from the last poll put a whole charge into 30 seconds: 12.6 kWh at an implied
+        1512 kW, thrown away as impossible (#501, a T03, which sends no frame clock — so there a
+        repeat cannot be told from a fresh frame, and only a change of SoC is news). The trip
+        reconstruction does the same (#244)."""
         prev_soc, prev_ts = self._last_soc, self._last_soc_ts
-        self._last_soc, self._last_soc_ts = data.soc, _now_iso()   # advance baseline every poll
+        frame = data.timestamp_ms or None
+        if data.soc != prev_soc or (frame is not None and frame != self._last_soc_frame):
+            self._last_soc, self._last_soc_ts = data.soc, _now_iso()
+        if frame is not None:
+            self._last_soc_frame = frame
         if prev_soc is None or prev_ts is None:
             return
         # A charge closed on THIS poll owns that SoC rise — it has just been written as a live row.
