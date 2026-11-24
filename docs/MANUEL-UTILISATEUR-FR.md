@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v5.2.0 · **Langue :** Français
+> **Version de Mate :** v5.2.1 · **Langue :** Français
 
-## Nouveautés de la version 5.2.0
+## Nouveautés de la version 5.2.1
+
+**Une charge derrière des données figées n'est plus écartée.** Quand le cloud continue de servir les
+mêmes données pendant des jours et que la voiture est chargée entre-temps, la seule trace est un niveau de
+batterie qui saute en une lecture. Mate mesurait cette charge depuis la lecture précédente, 30 secondes, et
+l'écartait comme impossible. Elle commence maintenant à la première lecture du niveau dont elle est partie ;
+son début et sa durée sont une borne, pas les vrais. *Paramètres → Récupérer les charges manquées* la trouve
+aussi, même une charge perdue avant la 5.2.1 (@matttiaromano, #501).
+
+### Nouveautés de la version 5.2.0
 
 **La tendance de la consommation avec la température est une courbe, et ses nombres arrivent dans Home
 Assistant.** Dans *Statistiques*, la tendance de *Consommation en fonction de la température

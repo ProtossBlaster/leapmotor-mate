@@ -1,8 +1,17 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v5.2.0 · **Sprache:** Deutsch
+> **Mate-Version:** v5.2.1 · **Sprache:** Deutsch
 
-## Neu in Version 5.2.0
+## Neu in Version 5.2.1
+
+**Ein Ladevorgang hinter eingefrorenen Daten wird nicht mehr verworfen.** Liefert die Cloud tagelang
+dieselben Daten und wird das Auto in der Zeit geladen, bleibt als einzige Spur ein Ladestand, der in einer
+Abfrage springt. Mate maß diesen Ladevorgang ab der Abfrage davor, 30 Sekunden, und verwarf ihn als
+unmöglich. Jetzt beginnt er bei der ersten Lesung des Ladestands, von dem er ausging; Beginn und Dauer sind
+eine Grenze, nicht die echten. Auch *Einstellungen → Verpasste Ladevorgänge wiederherstellen* findet ihn,
+auch einen vor 5.2.1 verlorenen (@matttiaromano, #501).
+
+### Neu in Version 5.2.0
 
 **Der Trend des Verbrauchs über der Temperatur ist eine Kurve, und seine Zahlen kommen in Home
 Assistant an.** Unter *Statistiken* war der Trend von *Verbrauch über der Außentemperatur* eine Gerade;

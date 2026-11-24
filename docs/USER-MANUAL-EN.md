@@ -1,8 +1,16 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v5.2.0 · **Language:** English
+> **Mate version:** v5.2.1 · **Language:** English
 
-## New in 5.2.0
+## New in 5.2.1
+
+**A charge behind a frozen frame is no longer thrown away.** When the cloud keeps serving the same data for
+days and the car is charged in the meantime, the only trace is a battery level that jumps in one poll. Mate
+measured that charge from the poll before, 30 seconds, and threw it away as impossible. It now starts at the
+first reading of the level it started from; its start and length are a bound, not the real ones. *Settings →
+Recover missed charges* finds it too, also for a charge lost before 5.2.1 (@matttiaromano, #501).
+
+### New in 5.2.0
 
 **The consumption-vs-temperature trend is a curve, and its numbers reach Home Assistant.** On
 *Statistics*, the trend through *Consumption against outside temperature* was a straight line; it is

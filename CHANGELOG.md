@@ -3,6 +3,15 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.2.1] — 2026-11-24
+
+See [the notes](docs/releases/v5.2.1.md).
+
+- **A charge behind a frozen frame is no longer thrown away** ([#501](https://github.com/ProtossBlaster/leapmotor-mate/issues/501), @matttiaromano).
+  A charge rebuilt from a jump in the battery level was measured from the poll before it, 30 s, and thrown away as
+  1512 kW; it now starts at the first reading of the level it started from. *Recover missed charges* finds it too
+  on a car without a frame clock (T03).
+
 ## [5.2.0] — 2026-11-22
 
 See [the notes](docs/releases/v5.2.0.md).

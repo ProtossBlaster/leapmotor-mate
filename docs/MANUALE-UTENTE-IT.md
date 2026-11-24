@@ -1,8 +1,17 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v5.2.0 · **Lingua:** Italiano
+> **Versione di Mate:** v5.2.1 · **Lingua:** Italiano
 
-## Novità della 5.2.0
+## Novità della 5.2.1
+
+**Una ricarica dietro un dato fermo non viene più scartata.** Quando il cloud continua a servire lo stesso
+dato per giorni e intanto l'auto viene ricaricata, l'unica traccia è un livello della batteria che salta in
+una lettura. Mate misurava quella ricarica dalla lettura precedente, 30 secondi, e la scartava come
+impossibile. Ora parte dalla prima lettura del livello da cui è partita; inizio e durata sono un limite, non
+quelli veri. Anche *Impostazioni → Recupera ricariche perse* la trova, anche per una ricarica persa prima
+della 5.2.1 (@matttiaromano, #501).
+
+### Novità della 5.2.0
 
 **La tendenza del consumo con la temperatura è una curva, e i suoi numeri arrivano a Home Assistant.**
 In *Statistiche*, la tendenza di *Consumo contro temperatura esterna* era una retta; ora è una curva,
