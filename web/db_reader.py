@@ -555,9 +555,11 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
         return out
 
     _engine_km = (engine["engine_km"] if engine and engine.get("engine_km", 0) > 0.5 else None)
-    if fuel_start_pct is None or fuel_end_pct is None:
+    measured = (fuel_start_l - fuel_end_l) if (fuel_start_l is not None and fuel_end_l is not None) else None
+    # The litres stand on their own: a merged trip can hold a litre pair and no percentage one.
+    if (fuel_start_pct is None or fuel_end_pct is None) and measured is None:
         return _from_cloud(None, _engine_km) if cloud_l is not None else out
-    drop = fuel_start_pct - fuel_end_pct
+    drop = fuel_start_pct - fuel_end_pct if fuel_start_pct is not None and fuel_end_pct is not None else None
     # The tank ended FULLER than it started: he filled up during the drive. The litres are then
     # start − end = a negative number, which fell straight into the "nothing burned" branch below
     # and published the trip as pure electric — generator off, zero litres, zero petrol kilometres.
@@ -568,14 +570,13 @@ def _reev_trip_fuel(fuel_start_pct, fuel_end_pct, distance_km, engine=None,
     # There is no independent "engine on" signal to fall back on (see the docstring), so what we
     # know is: something may well have been burned, and we cannot say how much. That is unknown,
     # not zero — and a zero is what quietly disappears into every fuel total.
-    if drop < -_REEV_FUEL_MIN_DROP:
+    if drop is not None and drop < -_REEV_FUEL_MIN_DROP:
         # 🔑 The tank ended fuller, so IT cannot say what was burned — but the cloud can, and on this
         # one case it turns an "unknown" into a figure. `fuel_refuelled` stays true either way: the
         # tank really did move up, and a page that shows the litres should still be able to say so.
         out["fuel_refuelled"] = True
         return _from_cloud(None, _engine_km) if cloud_l is not None else out
     cap = tank_l if tank_l else reev_tank_l()
-    measured = (fuel_start_l - fuel_end_l) if (fuel_start_l is not None and fuel_end_l is not None) else None
     # The noise floor belongs to whichever signal is actually being read. 3235 (%) moves in steps of
     # 0.1 — 50 mL of a 50 L tank — so 0.2 % is the right guard for it. 3263 counts in MILLILITRES,
     # fifty times finer, and gating IT on the percentage threw away every trip that burned under
@@ -5310,12 +5311,21 @@ def _interpolate_elevation(positions: list[dict]) -> list[dict]:
     return positions
 
 
-def _children_by_parent(db) -> dict:
-    """All merged child trips grouped by parent id (one query)."""
+def _children_by_parent(db, parents=None) -> dict:
+    """Merged child trips grouped by parent id: of every group when `parents` is None, else of those
+    parents only (an empty list reads nothing). A group keeps all its segments, whatever their dates."""
+    if parents is None:
+        batches = [None]
+    else:
+        ids = sorted({p["id"] for p in parents})
+        # 500 stays under the 999 variables older SQLite builds allow in one statement.
+        batches = [ids[i:i + 500] for i in range(0, len(ids), 500)]
     out: dict = {}
-    for r in db.execute("SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND merged_into_id IS NOT NULL",
-                        (_current_vehicle_id(),)).fetchall():
-        out.setdefault(r["merged_into_id"], []).append(dict(r))
+    for batch in batches:
+        cond = "IS NOT NULL" if batch is None else f"IN ({','.join('?' * len(batch))})"
+        for r in db.execute(f"SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) AND merged_into_id {cond}",
+                            [_current_vehicle_id(), *(batch or [])]):
+            out.setdefault(r["merged_into_id"], []).append(dict(r))
     return out
 
 
@@ -5449,7 +5459,7 @@ def trip_group(trip_id: int):
         parent = db.execute("SELECT * FROM trips WHERE id=?", (t["merged_into_id"],)).fetchone()
         if parent:
             t = dict(parent)
-    children = _children_by_parent(db).get(t["id"], [])
+    children = _children_by_parent(db, [t]).get(t["id"], [])
     grp = _trip_group_stats(t, children) if children else t
     return grp, {t["id"]} | {c["id"] for c in children}
 
@@ -5495,10 +5505,14 @@ def _trip_group_stats(parent: dict, children: list) -> dict:
     # took the hop's flat tank as the whole group's, so the litres vanished and the trip's cost fell
     # from 7.53 € to 0.50 € — the petrol simply stopped being counted. Taken from the first and last
     # segment that actually HAS a reading rather than blindly first/last, since a segment can carry
-    # none (a BEV, or a trip recorded before the signal was read).
-    for _key, _pick in (("fuel_start_pct", segs), ("fuel_start_l", segs),
-                        ("fuel_end_pct", segs[::-1]), ("fuel_end_l", segs[::-1])):
-        d[_key] = next((s[_key] for s in _pick if s.get(_key) is not None), None)
+    # none (a BEV, or a trip recorded before the signal was read). A start read in a LATER segment
+    # than the end is no pair: it runs time backwards, and a refuel between them reads as petrol burned.
+    for _s, _e in (("fuel_start_pct", "fuel_end_pct"), ("fuel_start_l", "fuel_end_l")):
+        i = next((k for k, s in enumerate(segs) if s.get(_s) is not None), None)
+        j = next((k for k in reversed(range(len(segs))) if segs[k].get(_e) is not None), None)
+        backwards = i is not None and j is not None and i > j
+        d[_s] = None if i is None or backwards else segs[i][_s]
+        d[_e] = None if j is None or backwards else segs[j][_e]
     # Elevation is per-segment like regen_kwh, but None here means "not enriched yet" (not "zero") —
     # summing None-as-0 would show a misleading "+0 m" while some segments still await the Open-Meteo
     # sweep. Only aggregate once EVERY segment has a value; the outside temperature is the mean of the
@@ -5514,11 +5528,14 @@ def _trip_group_stats(parent: dict, children: list) -> dict:
     d["outside_temp_start_c"] = first.get("outside_temp_start_c")
     d["outside_temp_end_c"] = last.get("outside_temp_end_c")
     ssoc, esoc, dist = d["start_soc"], d["end_soc"], d.get("distance_km") or 0
-    # REEV: if the range-extender ran anywhere in the group (fuel dropped from first-start to last-end),
-    # net SoC ≠ traction energy, so a combined electric kWh/100km is meaningless — leave it blank (beta
-    # #10); the fuel figure is shown instead. Self-gates to REEV engine-on groups (BEV fuel is NULL).
-    _fs, _fe = first.get("fuel_start_pct"), last.get("fuel_end_pct")
-    _reev_engine = (_fs is not None and _fe is not None and (_fs - _fe) > _REEV_FUEL_MIN_DROP)
+    # REEV: if the range-extender ran anywhere in the group (fuel dropped in a segment, or across them
+    # by the group's tank — a refuel between segments hides it there), net SoC ≠ traction energy, so a
+    # combined electric kWh/100km is meaningless — leave it blank (beta #10); the fuel figure is shown
+    # instead. Self-gates to REEV engine-on groups (BEV fuel is NULL).
+    def _burned(fs, fe):
+        return fs is not None and fe is not None and (fs - fe) > _REEV_FUEL_MIN_DROP
+    _reev_engine = (_burned(d["fuel_start_pct"], d["fuel_end_pct"])
+                    or any(_burned(s.get("fuel_start_pct"), s.get("fuel_end_pct")) for s in segs))
     if _reev_engine:
         d["efficiency_kwh_100km"] = None
     elif ssoc is not None and esoc is not None and dist > 0:
@@ -5692,7 +5709,7 @@ def merge_trips(parent_id: int, child_id: int, gap_min: int = TRIP_MERGE_GAP_DEF
     a, b = dict(a), dict(b)
     if (a.get("started_at") or "") > (b.get("started_at") or ""):
         a, b = b, a                                   # parent = earlier trip
-    kids = _children_by_parent(db)
+    kids = _children_by_parent(db, [a, b])
     a_grp = _trip_group_stats(a, kids.get(a["id"], []))
     gap = _gap_minutes(a_grp.get("ended_at"), b.get("started_at"))
     if gap is None or gap < 0:
@@ -5905,7 +5922,7 @@ def preview_merge(parent_id: int, child_id: int) -> Optional[dict]:
     a, b = dict(a), dict(b)
     if (a.get("started_at") or "") > (b.get("started_at") or ""):
         a, b = b, a
-    kids = _children_by_parent(db)
+    kids = _children_by_parent(db, [a, b])
     children = kids.get(a["id"], []) + [b] + kids.get(b["id"], [])
     g = _trip_group_stats(a, children)
     drive = g.get("duration_min") or 0
@@ -6078,7 +6095,6 @@ def get_trips(limit: int = 500, since: str | None = None, until: str | None = No
     compose the whole history and throw most of it away: that is what the Events page did, and its
     cost followed the length of the history instead of the days asked for."""
     db = _get()
-    kids = _children_by_parent(db)
     within, args = _groups_within("trips", True, since, until)
     rows = db.execute(
         f"""SELECT * FROM trips
@@ -6087,6 +6103,7 @@ def get_trips(limit: int = 500, since: str | None = None, until: str | None = No
            LIMIT ?""",
         (_current_vehicle_id(), *args, limit),
     ).fetchall()
+    kids = _children_by_parent(db, rows)
     # Built ONCE for the whole list — the fuel twin of the electric rate timeline. Per trip it would
     # replay every refuel from the beginning, which is quadratic down a long list.
     _fuel_rate_at = _trip_fuel_rate_fn()
@@ -6215,7 +6232,8 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
     # The electric points filter the column themselves below.
     rows = db.execute(
         """SELECT id, vehicle_id, started_at, distance_km, efficiency_kwh_100km,
-                  outside_temp_start_c, outside_temp_end_c, fuel_start_pct, fuel_end_pct
+                  outside_temp_start_c, outside_temp_end_c, fuel_start_pct, fuel_end_pct,
+                  fuel_start_l, fuel_end_l
            FROM trips
            WHERE vehicle_id = COALESCE(?, vehicle_id) AND ended_at IS NOT NULL
              AND merged_into_id IS NULL AND distance_km >= ?
@@ -6252,16 +6270,19 @@ def get_efficiency_vs_temp(include_fuel: bool = False, limit: int = 500,
 
     fuel_pts = []
     if include_fuel:
-        kids = _children_by_parent(db)
+        kids = _children_by_parent(db, rows)
         _cloud_fuel = _cloud_fuel_index()
         for r in rows:
             _fs, _fe = r["fuel_start_pct"], r["fuel_end_pct"]
+            _fsl, _fel = r["fuel_start_l"], r["fuel_end_l"]
             # 🔑 A pre-filter on the tank, widened for the third source. This is the trap named on
             # `_REEV_FUEL_ANY_DROP_SQL`: v3.6.6 fixed the litres in the reader and left filters like
             # this one in front of it, so a row was dropped before the better signal could be read.
-            # A drive the cloud has litres for qualifies whatever the tank did.
-            if r["id"] not in _cloud_fuel and (
-                    _fs is None or _fe is None or (_fs - _fe) <= _REEV_FUEL_MIN_DROP):
+            # A drive the cloud has litres for, or whose litre counter fell, qualifies whatever the
+            # percentage did; the floors are the reader's.
+            if (r["id"] not in _cloud_fuel
+                    and not (_fsl is not None and _fel is not None and _fsl > _fel)
+                    and (_fs is None or _fe is None or (_fs - _fe) <= _REEV_FUEL_MIN_DROP)):
                 continue
             kids_r = kids.get(r["id"], [])
             td = _trip_group_stats(dict(r), kids_r)
@@ -7848,7 +7869,7 @@ def get_trip_detail(trip_id: int) -> Optional[dict]:
     parent_id = row["merged_into_id"] or row["id"]
     trip = db.execute("SELECT * FROM trips WHERE id = ? AND vehicle_id = COALESCE(?, vehicle_id)",
                       (parent_id, _current_vehicle_id())).fetchone()
-    children = _children_by_parent(db).get(parent_id, [])
+    children = _children_by_parent(db, [trip]).get(parent_id, [])
     seg_ids = _segment_ids(db, parent_id)
     ph = ",".join("?" * len(seg_ids))
     # Frozen stretches are dropped (see _trip_points) BEFORE anything else reads `positions` — so the
@@ -8555,15 +8576,15 @@ def _merged_trip_statistics(db, begin=None, end=None):
 
     None keeps the existing SQL path for old schemas and REEV without merges.
     EV totals apply the same read-only source selection as the trip list. Groups
-    belong to the parent's start date, like the Trips list; children are loaded BEFORE
-    applying the window so a midnight boundary cannot split a group's energy/distance.
+    belong to the parent's start date, like the Trips list; children come with their parent
+    whatever their own date, so a midnight boundary cannot split a group's energy/distance.
     This is read-only: conversion and unmerge still own the original rows.
     """
     if not any(r[1] == "merged_into_id" for r in db.execute("PRAGMA table_info(trips)")):
         return None
-    kids = _children_by_parent(db)
     ev = not is_reev_car()
-    if not kids and not ev:
+    if not ev and not db.execute("SELECT 1 FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
+                                 "AND merged_into_id IS NOT NULL LIMIT 1", (_current_vehicle_id(),)).fetchone():
         return None
     sql = ("SELECT * FROM trips WHERE vehicle_id = COALESCE(?, vehicle_id) "
            "AND ended_at IS NOT NULL AND merged_into_id IS NULL")
@@ -8571,8 +8592,9 @@ def _merged_trip_statistics(db, begin=None, end=None):
     if begin is not None:
         sql += " AND started_at >= ? AND started_at <= ?"
         args.extend((begin, end))
-    groups = [_trip_group_stats(dict(r), kids.get(r["id"], []))
-              for r in db.execute(sql, args).fetchall()]
+    rows = db.execute(sql, args).fetchall()
+    kids = _children_by_parent(db, rows)
+    groups = [_trip_group_stats(dict(r), kids.get(r["id"], [])) for r in rows]
 
     if ev:
         _select_ev_energy(groups)

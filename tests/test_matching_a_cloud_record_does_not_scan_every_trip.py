@@ -91,6 +91,28 @@ def test_a_record_that_fits_two_trips_is_given_to_neither(db):
         [(t["id"], t.get("energy_source")) for t in displayed]
 
 
+@pytest.mark.parametrize("shown", [[1], [2]], ids=["first", "second"])
+def test_a_trip_shown_alone_still_sees_the_other_trip_its_record_fits(db, shown):
+    """Overview shows a few trips, and only the history around them is read; the trip next to a shown
+    one is part of that. A record fitting both (one minute apart) is given to neither, shown or not."""
+    db.execute("INSERT INTO vehicles (id, vin, car_type) VALUES (1,?,'B10')", (VIN,))
+    db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('is_reev','0')")
+    db.execute("CREATE TABLE IF NOT EXISTS api_lab_cloud_history_records"
+               " (id INTEGER PRIMARY KEY, kind TEXT, payload_json TEXT)")
+    for tid, offset in ((1, 0), (2, 1)):
+        a = START + timedelta(minutes=offset)
+        db.execute("INSERT INTO trips (id, vehicle_id, started_at, ended_at, distance_km, start_soc, end_soc)"
+                   " VALUES (?, 1, ?, ?, 20.0, 80, 70)", (tid, a.isoformat(), (a + timedelta(minutes=30)).isoformat()))
+    a, b = START + timedelta(minutes=1), START + timedelta(minutes=30)
+    db.execute("INSERT INTO api_lab_cloud_history_records (kind, payload_json) VALUES ('mileage', ?)",
+               ('{"vin": "%s", "routeStartTs": %d, "routeEndTs": %d, "totalEnergy": 4.0, "totalMileage": 20.0}'
+                % (VIN, int(a.timestamp() * 1000), int(b.timestamp() * 1000)),))
+    db.commit()
+    displayed = _displayed(db, shown)
+    trip_energy.select_energy(db, displayed)
+    assert displayed[0].get("energy_source") != "cloud"
+
+
 def _time_a_match(tmp_path, n: int) -> float:
     """Seconds to show three trips out of a history of `n`, on a database of its own. The SAME code
     at two sizes is the only sound yardstick here: a budget in seconds measures the machine, and a
