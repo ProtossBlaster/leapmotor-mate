@@ -10867,10 +10867,13 @@ def scan_missed_charges(threshold: float = 2.0, apply: bool = False) -> list[dic
     # A re-served frame is not a new observation. Keep when it FIRST arrived, like the recorder's
     # last-fresh baseline for offline kilometres. Never bridge a fresh intermediate frame (even
     # one lacking SoC), or collapse inconsistent payloads merely because their clock is stuck.
+    # Without the car's clock (a T03) a repeat cannot be told from a fresh frame: identical rows
+    # are one observation, kept where it was first read — or a charge behind a frozen frame is
+    # measured from the poll before, 30 s, and skipped as 1512 kW (#501).
     observations = []
     frame_fields = ("frame_ts", "soc", "odometer_km", "speed_kmh", "gear", "charging")
     for row in rows:
-        if (observations and row["frame_ts"]
+        if (observations
                 and all(row[k] == observations[-1][k] for k in frame_fields)):
             continue
         observations.append(row)

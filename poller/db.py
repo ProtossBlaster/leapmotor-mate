@@ -1727,15 +1727,27 @@ class Database:
         return cur.lastrowid
 
     def get_last_soc(self, vehicle_id: int):
-        """The most recent recorded (soc, recorded_at) for this vehicle, or (None, None).
-        Used to seed the recorder's SoC baseline across a poller restart so a charge that
-        happened while the poller was down is still caught (SoC-jump reconstruction)."""
+        """The most recent recorded SoC for this vehicle, with the time it was first read, or
+        (None, None). Used to seed the recorder's SoC baseline across a poller restart so a charge
+        that happened while the poller was down is still caught (SoC-jump reconstruction).
+
+        The time is where the news stopped, as in the recorder: the first row of the last run at
+        that SoC — of its last frame, when the rows carry the car's clock. A row without SoC is no
+        news and does not end the run (#501)."""
         row = self._conn.execute(
-            "SELECT soc, recorded_at FROM positions WHERE vehicle_id = ? "
+            "SELECT id, soc, frame_ts FROM positions WHERE vehicle_id = ? "
             "ORDER BY id DESC LIMIT 1", (vehicle_id,)).fetchone()
         if row is None or row["soc"] is None:
             return None, None
-        return float(row["soc"]), row["recorded_at"]
+        soc, frame = row["soc"], row["frame_ts"] or None
+        news = self._conn.execute(
+            "SELECT id FROM positions WHERE vehicle_id = ? AND id < ? AND soc IS NOT NULL "
+            "AND (soc != ? OR (? IS NOT NULL AND frame_ts IS NOT NULL AND frame_ts != ?)) "
+            "ORDER BY id DESC LIMIT 1", (vehicle_id, row["id"], soc, frame, frame)).fetchone()
+        first = self._conn.execute(
+            "SELECT recorded_at FROM positions WHERE vehicle_id = ? AND id > ? AND soc = ? "
+            "ORDER BY id LIMIT 1", (vehicle_id, news["id"] if news else 0, soc)).fetchone()
+        return float(soc), first["recorded_at"]
 
     def get_last_odometer_reading(self, vehicle_id: int):
         """The most recent reading with an odometer for this vehicle, as (odometer km, soc,
