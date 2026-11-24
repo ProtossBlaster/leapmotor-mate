@@ -3,6 +3,19 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.3.0] — 2026-11-25
+
+See [the notes](docs/releases/v5.3.0.md).
+
+- **The temperature chart reads the right trips, and shows how sure its curve is** ([#503](https://github.com/ProtossBlaster/leapmotor-mate/pull/503), @arekm).
+  Two years of trips, a merged trip as one dot, each dot with the consumption *Trips* shows, the curve weighted by
+  distance, a 95 % band around it and a box with the curve's value under the cursor.
+- **Merged range-extender trips and lighter pages** ([#502](https://github.com/ProtossBlaster/leapmotor-mate/pull/502), @arekm).
+  A refuel between segments is no longer petrol burned; a generator in any segment leaves no electric figure; pages
+  read only the history around the trips they show.
+- **Background sweeps restart after a failed write** ([#504](https://github.com/ProtossBlaster/leapmotor-mate/pull/504), @arekm).
+  A busy database no longer stops getEC and elevation for new trips until a restart.
+
 ## [5.2.1] — 2026-11-24
 
 See [the notes](docs/releases/v5.2.1.md).

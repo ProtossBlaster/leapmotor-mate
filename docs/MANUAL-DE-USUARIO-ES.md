@@ -1,8 +1,26 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v5.2.1 · **Idioma:** Español
+> **Versión de Mate:** v5.3.0 · **Idioma:** Español
 
-## Novedades de la versión 5.2.1
+## Novedades de la versión 5.3.0
+
+**El gráfico de temperatura lee los trayectos correctos y dice lo segura que es su curva.** En
+*Estadísticas → Consumo frente a temperatura exterior* cada punto es un trayecto de los dos últimos años
+con el consumo que muestra *Trayectos*, un trayecto unido es un solo punto y los trayectos largos pesan más
+en la curva. Una banda sombreada indica lo segura que es la curva, y al señalar el gráfico se lee el valor
+de la curva a esa temperatura con su ±. Los cuatro números que van a Home Assistant se calculan igual
+(@arekm, #503).
+
+**Trayectos unidos de un coche con extensor de autonomía, y páginas más ligeras.** Un trayecto unido con
+un repostaje entre sus tramos ya no cuenta el repostaje como gasolina quemada, y uno cuyo generador
+funcionó en cualquier tramo no tiene consumo eléctrico. *Resumen*, *Trayectos* y la página de un trayecto
+leen solo el historial alrededor de los trayectos que muestran (@arekm, #502).
+
+**Los trayectos nuevos vuelven a completarse tras una noche intensa.** Cuando la base de datos estaba
+ocupada en el momento equivocado, la temperatura exterior, el desnivel y el getEC de los trayectos nuevos
+se detenían hasta reiniciar Mate; ahora los completa la pasada siguiente (@arekm, #504).
+
+### Novedades de la versión 5.2.1
 
 **Una carga detrás de datos congelados ya no se descarta.** Cuando la nube sigue sirviendo los mismos
 datos durante días y mientras tanto se carga el coche, la única huella es un nivel de batería que salta en
@@ -1795,11 +1813,15 @@ sus **evoluciones** correspondientes (consumo y regeneración a lo largo del tie
 incluyen además una tarjeta **Total V2L** con la energía acumulada consumida por V2L en todo el
 histórico.
 
-**Consumo frente a temperatura exterior 🆕** — un punto por cada trayecto terminado: su consumo
-frente a la temperatura del aire en la que se condujo, con una curva de tendencia discontinua que los
+**Consumo frente a temperatura exterior 🆕** — un punto por cada trayecto de al menos 3 km de los dos últimos años (un trayecto unido es un solo
+punto): su consumo, el que muestra *Trayectos*, frente a la temperatura del aire en la que se condujo, con una curva de tendencia discontinua que los
 atraviesa, a·T³ + b·T² + c·T + d con T en °C, dibujada entre el trayecto más frío y el más cálido.
 Bajo el gráfico están sus cuatro números y su r² (cuánto de la dispersión explica la curva, de 0 a 1);
-aparece con al menos 8 trayectos en al menos 4 temperaturas distintas. En un coche con extensor de
+aparece con al menos 8 trayectos en al menos 4 temperaturas distintas. Los trayectos largos pesan más,
+así que la curva se lee como la energía por kilómetro realmente recorrido. La banda sombreada a su
+alrededor indica lo segura que es la curva: con un 95 % de confianza la tendencia real está dentro,
+estrecha donde hubo muchos trayectos. Al señalar el gráfico, un recuadro da la temperatura bajo el
+cursor y el valor de la curva allí, con su ±; sobre un punto también lista sus trayectos. En un coche con extensor de
 autonomía la gasolina tiene la suya. Responde a la pregunta que se hace todo propietario cuando llega el frío — *¿cuánto bebe
 de verdad MI coche a 5 °C?* — a partir de tu propia conducción y no de una tabla. Hace falta que los
 trayectos lleven una temperatura exterior (ver *Resumen*); con datos realistas el dibujo se lee al

@@ -1,8 +1,26 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v5.2.1 · **Langue :** Français
+> **Version de Mate :** v5.3.0 · **Langue :** Français
 
-## Nouveautés de la version 5.2.1
+## Nouveautés de la version 5.3.0
+
+**Le graphique de température lit les bons trajets et dit à quel point sa courbe est sûre.** Dans
+*Statistiques → Consommation en fonction de la température extérieure*, chaque point est un trajet des deux
+dernières années avec la consommation qu'affiche *Trajets*, un trajet fusionné est un seul point et les
+trajets longs pèsent davantage dans la courbe. Une bande ombrée dit à quel point la courbe est sûre, et en
+pointant le graphique on lit la valeur de la courbe à cette température avec son ±. Les quatre nombres
+envoyés à Home Assistant sont calculés de la même façon (@arekm, #503).
+
+**Trajets fusionnés d'une voiture à prolongateur d'autonomie, et pages plus légères.** Un trajet fusionné
+avec un plein entre ses segments ne compte plus le plein comme de l'essence brûlée, et un trajet dont le
+générateur a tourné dans un segment quelconque n'a pas de consommation électrique. *Aperçu*, *Trajets* et
+la page d'un trajet ne lisent que l'historique autour des trajets qu'ils affichent (@arekm, #502).
+
+**Les nouveaux trajets sont de nouveau complétés après une nuit chargée.** Quand la base de données était
+occupée au mauvais moment, la température extérieure, le dénivelé et le getEC des nouveaux trajets
+s'arrêtaient jusqu'au redémarrage de Mate ; le passage suivant les complète désormais (@arekm, #504).
+
+### Nouveautés de la version 5.2.1
 
 **Une charge derrière des données figées n'est plus écartée.** Quand le cloud continue de servir les
 mêmes données pendant des jours et que la voiture est chargée entre-temps, la seule trace est un niveau de
@@ -1841,12 +1859,17 @@ terminés — pas le compteur de la voiture) et nombre de trajets,
 recharge**, avec les **tendances** correspondantes (efficacité et récupération dans le temps). Les totaux
 incluent désormais une carte **Total V2L** avec l'énergie cumulée soutirée via V2L sur tout l'historique.
 
-**Consommation en fonction de la température extérieure 🆕** — un point par trajet terminé : sa
-consommation face à la température de l'air dans laquelle il a été parcouru, avec une courbe de
+**Consommation en fonction de la température extérieure 🆕** — un point par trajet d'au moins 3 km des deux dernières années (un trajet fusionné est un seul
+point) : sa consommation, celle qu'affiche *Trajets*, face à la température de l'air dans laquelle il a
+été parcouru, avec une courbe de
 tendance en pointillés qui les traverse, a·T³ + b·T² + c·T + d avec T en °C, tracée entre le trajet le
 plus froid et le plus chaud. Sous le graphique figurent ses quatre nombres et son r² (la part de la
 dispersion que la courbe explique, de 0 à 1) ; elle apparaît à partir de 8 trajets sur au moins 4
-températures différentes. Sur une voiture à prolongateur d'autonomie, l'essence a la sienne. C'est la réponse à la question que se pose tout propriétaire
+températures différentes. Les trajets longs pèsent davantage, si bien que la courbe se lit comme
+l'énergie par kilomètre réellement parcouru. La bande ombrée autour d'elle dit à quel point la courbe
+est sûre : avec 95 % de confiance la tendance réelle s'y trouve, étroite là où les trajets ont été
+nombreux. En pointant le graphique, un encadré donne la température sous le curseur et la valeur de
+la courbe à cet endroit, avec son ± ; sur un point, il liste aussi ses trajets. Sur une voiture à prolongateur d'autonomie, l'essence a la sienne. C'est la réponse à la question que se pose tout propriétaire
 quand le froid arrive — *combien MA voiture consomme-t-elle vraiment à 5 °C ?* — à partir de votre
 conduite et non d'un tableau. Il faut que les trajets portent une température extérieure (voir
 *Aperçu*) ; sur des données réalistes, la tendance se lit après un mois de conduite environ.

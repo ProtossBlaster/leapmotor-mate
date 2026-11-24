@@ -1,8 +1,26 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v5.2.1 · **Sprache:** Deutsch
+> **Mate-Version:** v5.3.0 · **Sprache:** Deutsch
 
-## Neu in Version 5.2.1
+## Neu in Version 5.3.0
+
+**Das Temperaturdiagramm liest die richtigen Fahrten und zeigt, wie sicher seine Kurve ist.** In
+*Statistik → Verbrauch über der Außentemperatur* ist jeder Punkt eine Fahrt der letzten zwei Jahre mit dem
+Verbrauch, den *Fahrten* zeigt, eine zusammengeführte Fahrt ist ein Punkt, und längere Fahrten wiegen in
+der Kurve mehr. Ein schattiertes Band zeigt, wie sicher die Kurve ist, und zeigt man auf das Diagramm,
+erscheint der Wert der Kurve bei dieser Temperatur mit seinem ±. Die vier Zahlen für Home Assistant werden
+genauso berechnet (@arekm, #503).
+
+**Zusammengeführte Fahrten mit Range Extender, und leichtere Seiten.** Eine zusammengeführte Fahrt mit
+einem Tankstopp zwischen ihren Abschnitten zählt das Tanken nicht mehr als verbranntes Benzin, und eine,
+in der der Generator in irgendeinem Abschnitt lief, hat keinen elektrischen Verbrauch. *Übersicht*,
+*Fahrten* und die Seite einer Fahrt lesen nur die Historie um die gezeigten Fahrten (@arekm, #502).
+
+**Neue Fahrten werden nach einer arbeitsreichen Nacht wieder ergänzt.** War die Datenbank im falschen
+Moment belegt, blieben Außentemperatur, Höhenmeter und getEC neuer Fahrten bis zu einem Neustart von Mate
+aus; jetzt ergänzt sie der nächste Durchlauf (@arekm, #504).
+
+### Neu in Version 5.2.1
 
 **Ein Ladevorgang hinter eingefrorenen Daten wird nicht mehr verworfen.** Liefert die Cloud tagelang
 dieselben Daten und wird das Auto in der Zeit geladen, bleibt als einzige Spur ein Ladestand, der in einer
@@ -1821,11 +1839,15 @@ Anzahl der **Ladesitzungen**, mit den entsprechenden **Trends** (Effizienz und R
 Summen enthalten jetzt auch eine Karte **V2L gesamt** mit der über die gesamte Historie via V2L entnommenen
 kumulierten Energie.
 
-**Verbrauch über der Außentemperatur 🆕** — ein Punkt je abgeschlossener Fahrt: ihr Verbrauch über
-der Lufttemperatur, in der sie gefahren wurde, mit einer gestrichelten Trendkurve hindurch,
+**Verbrauch über der Außentemperatur 🆕** — ein Punkt je Fahrt ab 3 km aus den letzten zwei Jahren (eine zusammengeführte Fahrt ist ein
+Punkt): ihr Verbrauch, wie ihn *Fahrten* zeigt, über der Lufttemperatur, in der sie gefahren wurde, mit einer gestrichelten Trendkurve hindurch,
 a·T³ + b·T² + c·T + d mit T in °C, gezeichnet zwischen der kältesten und der wärmsten Fahrt. Unter dem
 Diagramm stehen ihre vier Zahlen und ihr r² (wie viel der Streuung die Kurve erklärt, von 0 bis 1); sie
-erscheint ab 8 Fahrten bei mindestens 4 verschiedenen Temperaturen. Bei einem Range Extender hat Benzin
+erscheint ab 8 Fahrten bei mindestens 4 verschiedenen Temperaturen. Längere Fahrten wiegen mehr, so
+liest sich die Kurve als Energie je tatsächlich gefahrenem Kilometer. Das schattierte Band um sie zeigt,
+wie sicher die Kurve ist: mit 95 % Konfidenz liegt der wahre Trend darin, schmal, wo es viele Fahrten
+gab. Zeigt man auf das Diagramm, nennt ein Kasten die Temperatur unter dem Zeiger und den Wert der
+Kurve dort mit seinem ±; auf einem Punkt listet er auch dessen Fahrten. Bei einem Range Extender hat Benzin
 seine eigene. Das ist
 die Antwort auf die Frage, die sich jeder Besitzer stellt, wenn es kalt wird — *wie viel schluckt
 MEIN Auto wirklich bei 5 °C?* — aus Ihrem eigenen Fahren statt aus einer Tabelle. Die Fahrten müssen
