@@ -137,8 +137,8 @@ def maybe_sweep() -> None:
         with _lock:
             if _running or now - last < _SWEEP_TTL_S:
                 return
+            db_reader.set_setting("ec_sweep_at", str(now))   # before _running: a failed write must not leave it set
             _running = True
-            db_reader.set_setting("ec_sweep_at", str(now))
     except Exception as e:  # noqa: BLE001
         log.debug("ec_enrich maybe_sweep skipped: %s", e)
         return
