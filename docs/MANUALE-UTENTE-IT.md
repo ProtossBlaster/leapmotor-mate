@@ -1,8 +1,35 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v5.2.0 · **Lingua:** Italiano
+> **Versione di Mate:** v5.3.0 · **Lingua:** Italiano
 
-## Novità della 5.2.0
+## Novità della 5.3.0
+
+**Il grafico della temperatura legge i viaggi giusti e dice quanto è sicura la sua curva.** In
+*Statistiche → Consumo contro temperatura esterna* ogni punto è un viaggio degli ultimi due anni con il
+consumo che mostra *Viaggi*, un viaggio unito è un punto solo e i viaggi lunghi pesano di più nella curva.
+Una fascia ombreggiata dice quanto è sicura la curva, e puntando il grafico si legge il valore della curva
+a quella temperatura con il suo ±. I quattro numeri che vanno a Home Assistant sono calcolati allo stesso
+modo (@arekm, #503).
+
+**I viaggi uniti di un'auto con range extender, e pagine più leggere.** Un viaggio unito con un
+rifornimento fra i suoi tratti non conta più il rifornimento come benzina bruciata, e uno in cui il
+generatore ha girato in un tratto qualsiasi non ha un consumo elettrico. *Panoramica*, *Viaggi* e la pagina
+di un viaggio leggono solo lo storico intorno ai viaggi che mostrano (@arekm, #502).
+
+**I viaggi nuovi tornano a essere completati dopo una notte intensa.** Quando il database era occupato
+nel momento sbagliato, temperatura esterna, dislivello e getEC dei viaggi nuovi si fermavano fino a un
+riavvio di Mate; ora li completa il giro successivo (@arekm, #504).
+
+### Novità della 5.2.1
+
+**Una ricarica dietro un dato fermo non viene più scartata.** Quando il cloud continua a servire lo stesso
+dato per giorni e intanto l'auto viene ricaricata, l'unica traccia è un livello della batteria che salta in
+una lettura. Mate misurava quella ricarica dalla lettura precedente, 30 secondi, e la scartava come
+impossibile. Ora parte dalla prima lettura del livello da cui è partita; inizio e durata sono un limite, non
+quelli veri. Anche *Impostazioni → Recupera ricariche perse* la trova, anche per una ricarica persa prima
+della 5.2.1 (@matttiaromano, #501).
+
+### Novità della 5.2.0
 
 **La tendenza del consumo con la temperatura è una curva, e i suoi numeri arrivano a Home Assistant.**
 In *Statistiche*, la tendenza di *Consumo contro temperatura esterna* era una retta; ora è una curva,
@@ -1770,11 +1797,15 @@ Veicolo"** 🆕 — energia totale, chilometraggio e media kWh/100 km **da conse
 dell'auto, quindi non intaccata dai rari viaggi che il cloud non registra), con una barra
 **Guida / A·C / Altro / Da-fermo**.
 
-**Consumo contro temperatura esterna 🆕** — un punto per ogni viaggio concluso: il suo consumo contro
-la temperatura dell'aria in cui è stato guidato, con una curva di tendenza tratteggiata a
+**Consumo contro temperatura esterna 🆕** — un punto per ogni viaggio di almeno 3 km degli ultimi due anni (un viaggio unito è un punto solo):
+il suo consumo, quello che mostra *Viaggi*, contro la temperatura dell'aria in cui è stato guidato, con una curva di tendenza tratteggiata a
 attraversarli, a·T³ + b·T² + c·T + d con T in °C, disegnata fra il viaggio più freddo e il più caldo.
 Sotto il grafico ci sono i suoi quattro numeri e il suo r² (quanto della dispersione la curva spiega,
-da 0 a 1); compare con almeno 8 viaggi su almeno 4 temperature diverse. Su un'auto con range
+da 0 a 1); compare con almeno 8 viaggi su almeno 4 temperature diverse. I viaggi lunghi pesano di più, così la
+curva si legge come l'energia per chilometro davvero percorso. La fascia ombreggiata intorno dice
+quanto è sicura la curva: con il 95 % di confidenza la tendenza vera è al suo interno, stretta dove i
+viaggi sono stati molti. Puntando il grafico, un riquadro dà la temperatura sotto il cursore e il
+valore della curva lì, con il suo ±; su un punto elenca anche i suoi viaggi. Su un'auto con range
 extender la benzina ha la sua. Risponde alla domanda che si fa ogni proprietario quando arriva il freddo — *quanto
 beve davvero la MIA auto a 5 °C?* — partendo dalla tua guida invece che da una tabella. Serve che i
 viaggi portino una temperatura esterna (vedi *Panoramica*); su dati realistici il disegno si legge

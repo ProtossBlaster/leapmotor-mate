@@ -655,6 +655,9 @@ def ensure_schema(conn) -> None:
     tcols = {r[1] for r in conn.execute("PRAGMA table_info(trips)").fetchall()}
     if "merged_into_id" not in tcols:
         _add_column(conn, "ALTER TABLE trips ADD COLUMN merged_into_id INTEGER DEFAULT NULL")
+    # A merged trip's segments are read by their parent; only segments carry one, so the index stays small.
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_trips_merged_into ON trips(merged_into_id)"
+                 " WHERE merged_into_id IS NOT NULL")
     # migration: flag trips RECONSTRUCTED from an odometer jump (car offline/asleep to the cloud —
     # or poller down — for the whole drive, so no DRIVING poll ever fired). Twin of charges.reconstructed.
     if "reconstructed" not in tcols:

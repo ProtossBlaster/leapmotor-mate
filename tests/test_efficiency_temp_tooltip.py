@@ -6,11 +6,9 @@ from pathlib import Path
 TEMPLATE = (Path(__file__).resolve().parents[1] / "web" / "templates" / "statistics.html")
 
 
-def test_efficiency_temperature_tooltip_uses_plotted_y_and_hides_trend_points():
+def test_efficiency_temperature_tooltip_uses_plotted_y():
     source = TEMPLATE.read_text(encoding="utf-8")
 
-    assert "filter: function (item)" in source
-    assert "return item.raw && item.raw.km != null;" in source
-    assert "var value = c.parsed && c.parsed.y != null ? c.parsed.y : p.y;" in source
+    assert "one(p.y) + ' ' + c.dataset.unit" in source
     assert "p.l + ' L/100km" not in source
     assert "p.e + ' kWh/100km" not in source

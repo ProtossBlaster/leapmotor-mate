@@ -1,8 +1,33 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v5.2.0 · **Language:** English
+> **Mate version:** v5.3.0 · **Language:** English
 
-## New in 5.2.0
+## New in 5.3.0
+
+**The temperature chart reads the right trips, and shows how sure its curve is.** On *Statistics →
+Consumption against outside temperature* each dot is a trip of the last two years with the consumption
+*Trips* shows, a merged trip is one dot, and longer trips weigh more in the curve. A shaded band shows how
+sure the curve is, and pointing at the chart gives the curve's value at that temperature with its ±. The
+four numbers that go to Home Assistant are fitted the same way (@arekm, #503).
+
+**Merged trips of a range extender, and lighter pages.** A merged trip refuelled between its segments no
+longer counts the refuel as petrol burned, and one whose generator ran in any segment has no electric
+consumption. *Overview*, *Trips* and a trip's page read only the history around the trips they show
+(@arekm, #502).
+
+**New trips are filled in again after a busy night.** When the database was busy at the wrong moment, the
+outside temperature, elevation and getEC of new trips stopped until Mate was restarted; the next sweep now
+fills them in (@arekm, #504).
+
+### New in 5.2.1
+
+**A charge behind a frozen frame is no longer thrown away.** When the cloud keeps serving the same data for
+days and the car is charged in the meantime, the only trace is a battery level that jumps in one poll. Mate
+measured that charge from the poll before, 30 seconds, and threw it away as impossible. It now starts at the
+first reading of the level it started from; its start and length are a bound, not the real ones. *Settings →
+Recover missed charges* finds it too, also for a charge lost before 5.2.1 (@matttiaromano, #501).
+
+### New in 5.2.0
 
 **The consumption-vs-temperature trend is a curve, and its numbers reach Home Assistant.** On
 *Statistics*, the trend through *Consumption against outside temperature* was a straight line; it is
@@ -1687,11 +1712,15 @@ odometer) and number of trips,
 with the related **trends** (efficiency and regen over time). The totals also include a **Total V2L**
 card showing the cumulative energy drawn via V2L over all time.
 
-**Consumption against outside temperature 🆕** — one dot per finished trip: its consumption against
-the air temperature it was driven in, with a dashed trend curve through them,
+**Consumption against outside temperature 🆕** — one dot per trip of at least 3 km from the last two years (a merged trip is one dot): its
+consumption, the one *Trips* shows, against the air temperature it was driven in, with a dashed trend curve through them,
 a·T³ + b·T² + c·T + d with T in °C, drawn between the coldest and the warmest trip. Under the chart
 are its four numbers and its r² (how much of the spread the curve explains, from 0 to 1); it appears
-with at least 8 trips on at least 4 different temperatures. On a range extender petrol has its own. It answers the question
+with at least 8 trips on at least 4 different temperatures. Longer trips weigh more, so the curve
+reads as the energy per kilometre actually driven. The shaded band around it is how sure the curve is:
+with 95 % confidence the true trend lies inside it, narrow where there were many trips. Point at the
+chart and a box gives the temperature under the cursor and the curve's value there, with its ±; on a
+dot it also lists that dot's trips. On a range extender petrol has its own. It answers the question
 every owner asks when the cold arrives — *how much does my car really drink at 5 °C?* — out of your
 own driving rather than a table. It needs the trips to carry an outside temperature (see *Overview*),
 and on realistic data the pattern is legible after about a month of driving.

@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v5.2.0:** the consumption-vs-temperature trend on Statistics is a curve, a·T³ + b·T² + c·T + d, and its four numbers go to Home Assistant over MQTT ([D#498](https://github.com/ProtossBlaster/leapmotor-mate/discussions/498), @hristouzunovaz).
-See [release notes and upgrade impact](docs/releases/v5.2.0.md).
+**v5.3.0:** on Statistics the consumption-vs-temperature chart reads two years of trips with the consumption *Trips* shows, weighs the curve by distance and shades how sure it is; merged range-extender trips and lighter pages ([#503](https://github.com/ProtossBlaster/leapmotor-mate/pull/503), [#502](https://github.com/ProtossBlaster/leapmotor-mate/pull/502), [#504](https://github.com/ProtossBlaster/leapmotor-mate/pull/504), @arekm).
+See [release notes and upgrade impact](docs/releases/v5.3.0.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -381,8 +381,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v5.2.0:** la tendenza del consumo con la temperatura in Statistiche è una curva, a·T³ + b·T² + c·T + d, e i suoi quattro numeri vanno a Home Assistant via MQTT ([D#498](https://github.com/ProtossBlaster/leapmotor-mate/discussions/498), @hristouzunovaz).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v5.2.0.md#italiano).
+**v5.3.0:** in Statistiche il grafico del consumo con la temperatura legge due anni di viaggi con il consumo che mostra *Viaggi*, pesa la curva per la distanza e ombreggia quanto è sicura; viaggi uniti con range extender e pagine più leggere ([#503](https://github.com/ProtossBlaster/leapmotor-mate/pull/503), [#502](https://github.com/ProtossBlaster/leapmotor-mate/pull/502), [#504](https://github.com/ProtossBlaster/leapmotor-mate/pull/504), @arekm).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v5.3.0.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

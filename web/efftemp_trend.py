@@ -2,7 +2,7 @@
 
 The trend changes when a trip gets its temperature (elevation_enrich), its cloud energy (ec_enrich),
 is merged or deleted — all of them here, in the web. Rather than hook each of those, a daemon thread
-recomputes it every few minutes: one query of at most 500 trips per car, and a write only when the
+recomputes it every few minutes: one query of two years of trips per car, and a write only when the
 numbers moved (db_reader.store_efftemp_trends)."""
 import logging
 import threading

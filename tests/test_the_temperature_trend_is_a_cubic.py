@@ -64,6 +64,21 @@ def test_the_trend_recovers_a_known_cubic(tmp_path, monkeypatch):
     assert (trend["n"], trend["t_min"], trend["t_max"]) == (15, -5.0, 37.0)
 
 
+def test_the_curve_is_the_same_wherever_its_temperatures_sit(tmp_path, monkeypatch):
+    """Trips between 29 and 31 °C are the same fit as the same trips thirty degrees colder: a narrow
+    range far from 0 °C must not turn the sums into near-copies of one another and bend the curve."""
+    def curve(shift):
+        (tmp_path / str(shift)).mkdir()
+        db = _setup(tmp_path / str(shift), monkeypatch)
+        for i in range(21):
+            t = -1.0 + 0.1 * i
+            _trip(db, i + 1, 16 + 0.05 * (t + 1) ** 2 + ((i * 7) % 5 - 2) * 0.4, round(t + shift, 1))
+        tr = db_reader.get_efficiency_vs_temp()["trend"]
+        return [tr["a"] * t ** 3 + tr["b"] * t ** 2 + tr["c"] * t + tr["d"]
+                for t in (-1.0 + shift, shift, 1.0 + shift)]
+    assert curve(30) == pytest.approx(curve(0), abs=1e-6)
+
+
 def test_the_slope_is_gone(tmp_path, monkeypatch):
     """«≈X every 10 °C» has no single value on a curve: the old keys must not linger beside the new."""
     db = _setup(tmp_path, monkeypatch)

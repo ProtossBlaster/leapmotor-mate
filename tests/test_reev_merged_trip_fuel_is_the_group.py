@@ -103,3 +103,72 @@ def test_the_group_reads_the_segments_that_actually_have_a_counter(reev):
     _seg(reev, 2, hour=14, km=30.0, fuel_from_l=31.4, fuel_to_l=30.0,
          fuel_from_pct=63.0, fuel_to_pct=60.0, parent=1)
     assert db_reader.get_trip_detail(1)["fuel_used_l"] == pytest.approx(1.4, abs=0.01)
+
+
+def _pair(db, segments):
+    """`segments` = [(start, end)] tank readings in one unit, one per segment, oldest first."""
+    for k, (start, end) in enumerate(segments, start=1):
+        _seg(db, k, hour=13 + k, km=20.0, fuel_from_l=None, fuel_to_l=None,
+             fuel_from_pct=start, fuel_to_pct=end, parent=None if k == 1 else 1)
+    group, _ = db_reader.trip_group(1)
+    return group["fuel_start_pct"], group["fuel_end_pct"]
+
+
+@pytest.mark.parametrize("segments,want", [
+    ([(None, 60.0), (70.0, None)], (None, None)),            # refuelled between: the start comes after the end
+    ([(None, None), (60.0, None), (None, 58.0)], (60.0, 58.0)),  # inner segments still pair forward
+    ([(60.0, None), (None, None)], (60.0, None)),            # one reading is not a pair, and is kept
+], ids=["backwards", "inner-forward", "start-only"])
+def test_the_groups_tank_readings_run_forward_in_time(reev, segments, want):
+    assert _pair(reev, segments) == want
+
+
+def test_litres_are_paired_on_their_own(reev):
+    _seg(reev, 1, hour=13, km=20.0, fuel_from_l=None, fuel_to_l=30.0, fuel_from_pct=60.0, fuel_to_pct=None)
+    _seg(reev, 2, hour=14, km=20.0, fuel_from_l=35.0, fuel_to_l=None, fuel_from_pct=None, fuel_to_pct=58.0,
+         parent=1)
+    group, _ = db_reader.trip_group(1)
+    assert (group["fuel_start_l"], group["fuel_end_l"]) == (None, None)
+    assert (group["fuel_start_pct"], group["fuel_end_pct"]) == (60.0, 58.0)
+
+
+def test_a_merged_trip_keeps_its_litres_without_a_percentage_pair(reev):
+    """The litre counter reads 28.52 → 28.50 → 28.48 L while the coarser percentage gauge has only
+    the inner readings (NULL → 60, 60 → NULL): no percentage pair, a litre pair all the same, and
+    its 0.04 L reach the list, the trip page and the chart's petrol series."""
+    _seg(reev, 1, hour=13, km=20.0, fuel_from_l=28.52, fuel_to_l=28.50, fuel_from_pct=None, fuel_to_pct=60.0)
+    _seg(reev, 2, hour=14, km=20.0, fuel_from_l=28.50, fuel_to_l=28.48, fuel_from_pct=60.0, fuel_to_pct=None)
+    reev._conn.execute("UPDATE trips SET started_at='2026-08-07T13:32:00+00:00', ended_at='2026-08-07T14:02:00+00:00',"
+                       " start_soc=63, end_soc=60, outside_temp_start_c=10, outside_temp_end_c=10 WHERE id=2")
+    reev._conn.execute("UPDATE trips SET outside_temp_start_c=10, outside_temp_end_c=10 WHERE id=1")
+    reev._conn.commit()
+    assert db_reader.merge_trips(1, 2)["ok"]
+    assert next(r for r in db_reader.get_trips() if r["id"] == 1)["fuel_used_l"] == pytest.approx(0.04)
+    assert db_reader.get_trip_detail(1)["fuel_used_l"] == pytest.approx(0.04)
+    assert [p["id"] for p in db_reader.get_efficiency_vs_temp(include_fuel=True)["fuel_points"]] == [1]
+
+
+@pytest.mark.parametrize("second", [
+    dict(fuel_from_l=None, fuel_to_l=None, fuel_from_pct=None, fuel_to_pct=None),
+    dict(fuel_from_l=42.8, fuel_to_l=42.3, fuel_from_pct=90.0, fuel_to_pct=89.0),
+], ids=["no-reading-after", "refuelled-between"])
+def test_a_group_whose_generator_ran_has_no_electric_consumption(reev, second):
+    """The generator ran in the group if it ran in any segment, or across them by the group's tank.
+    Read off the bare first and last segment, a later piece without a reading hid it, and so did a
+    refuel between two generator segments (60 → 59 %, then 90 → 89 %); either way the group got a
+    kWh/100km from the battery's net SoC, which the generator had topped up."""
+    _seg(reev, 1, hour=13, km=30.0, fuel_from_l=28.5, fuel_to_l=28.0,
+         fuel_from_pct=60.0, fuel_to_pct=59.0)
+    _seg(reev, 2, hour=14, km=30.0, parent=1, **second)
+    row = next(r for r in db_reader.get_trips() if r["id"] == 1)
+    assert row["efficiency_kwh_100km"] is None
+
+
+def test_a_refuel_between_segments_that_burned_nothing_keeps_the_electric_figure(reev):
+    """60 % at the end of the first segment, 70 % at the start of the second: a refuel, not petrol
+    burned — the group's tank has no forward pair, no segment dropped, so the battery figure stands."""
+    _seg(reev, 1, hour=13, km=30.0, fuel_from_l=None, fuel_to_l=None, fuel_from_pct=None, fuel_to_pct=60.0)
+    _seg(reev, 2, hour=14, km=30.0, fuel_from_l=None, fuel_to_l=None, fuel_from_pct=70.0, fuel_to_pct=None,
+         parent=1)
+    row = next(r for r in db_reader.get_trips() if r["id"] == 1)
+    assert row["efficiency_kwh_100km"] is not None
