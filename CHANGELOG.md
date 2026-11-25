@@ -3,6 +3,13 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.3.1] — 2026-11-25
+
+See [the notes](docs/releases/v5.3.1.md).
+
+- **Croatian is the tenth language** ([#506](https://github.com/ProtossBlaster/leapmotor-mate/pull/506), @daleonidas).
+  *Settings → Language → Hrvatski*; the setup wizard follows a browser set to Croatian.
+
 ## [5.3.0] — 2026-11-25
 
 See [the notes](docs/releases/v5.3.0.md).

@@ -1,8 +1,12 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v5.3.0 · **Idioma:** Español
+> **Versión de Mate:** v5.3.1 · **Idioma:** Español
 
-## Novedades de la versión 5.3.0
+## Novedades de la versión 5.3.1
+
+**El croata.** Mate habla croata: *Ajustes → Idioma → Hrvatski* (gracias a @daleonidas).
+
+### Novedades de la versión 5.3.0
 
 **El gráfico de temperatura lee los trayectos correctos y dice lo segura que es su curva.** En
 *Estadísticas → Consumo frente a temperatura exterior* cada punto es un trayecto de los dos últimos años
@@ -1386,7 +1390,7 @@ al mes actual. **Salud de la batería** hace lo mismo con las vistas elegidas en
 
 **El idioma, la moneda y las unidades** se cambian desde *Ajustes → 🌍 Idioma y moneda*:
 
-- **Idioma:** English, Italiano, Français, Deutsch, Polski, Nederlands, Português, Español, Čeština.
+- **Idioma:** English, Italiano, Français, Deutsch, Polski, Nederlands, Português, Español, Čeština, Hrvatski.
   *(Un manual escrito como este existe en inglés, italiano, francés, alemán y español.)*
 - **Moneda:** para los costes (€, £, …).
 - **Unidades:** métricas (km, °C) o imperiales RU/EE. UU. (millas, °F). Los datos se guardan siempre en
