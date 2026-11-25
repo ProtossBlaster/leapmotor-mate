@@ -28,7 +28,7 @@ import pytest
 
 WEB = pathlib.Path(__file__).resolve().parent.parent / "web"
 LOCALES = WEB / "locales"
-LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs")
+LANGS = ("en", "it", "fr", "de", "pl", "pt-PT", "nl", "es", "cs", "hr")
 
 
 def _flat(d, prefix=""):
