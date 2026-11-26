@@ -3225,6 +3225,58 @@ def update_manual_charge(charge_id: int, started_at: str, energy_kwh: float,
         db.close()
 
 
+# The poller's ceiling for a reconstructed charge (poller/db.py _RECONSTRUCT_MAX_KW): above it the
+# ΔSoC over the span is a glitch, not a charge. The trees cannot import each other.
+_RECONSTRUCT_MAX_KW = 250.0
+
+
+def set_reconstructed_charge_times(charge_id: int, started_at: str, ended_at: str) -> Optional[str]:
+    """Move the start and end of a RECONSTRUCTED charge (#501, @matttiaromano). Returns None when
+    saved, else the key of the message that says why not; nothing is written then.
+
+    A recovered charge spans the gap between the last reading before the car went quiet and the
+    first after it: 19/11 17:17 → 23/11 09:53 for a charge his wallbox ran on Saturday at 22:00. The
+    owner knows when; Mate does not. Only the two times move: the SoC and the energy are the readings
+    at the two ends of the gap, and they stay as the car reported them.
+
+    The new span must lie inside the current one. The readings prove only that much, and the scan of
+    "Recover missed charges" finds the charge again by its overlap with the gap — a charge moved out
+    of it would be recovered a second time. Inside means a correction can only narrow; deleting the
+    charge and recovering it again brings the whole gap back.
+
+    Refused too: an end not after the start, a span that would need more than the poller's ceiling
+    power to add the energy, and a merged charge, whose span is its pieces'. A cost Mate computed is
+    computed again for the new start (a start-band tariff prices by it); one typed by hand is kept."""
+    def _dt(s):
+        """UTC, as the database stores it; an older zone-less value is UTC too."""
+        try:
+            d = datetime.fromisoformat(str(s).replace(" ", "T").replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            return None
+        return d.replace(tzinfo=timezone.utc) if d.tzinfo is None else d.astimezone(timezone.utc)
+
+    with _conn_rw() as db:
+        row = db.execute("SELECT * FROM charges WHERE id=?", (charge_id,)).fetchone()
+        if (not row or not ("reconstructed" in row.keys() and row["reconstructed"])
+                or ("manual_entry" in row.keys() and row["manual_entry"])):
+            return "charge_times_not_reconstructed"
+        if _merged_piece_ids(db, charge_id):
+            return "charge_times_merged"
+        new_s, new_e, old_s, old_e = _dt(started_at), _dt(ended_at), _dt(row["started_at"]), _dt(row["ended_at"])
+        if new_s is None or new_e is None or new_e <= new_s:
+            return "charge_times_order"
+        if old_s is None or old_e is None or new_s < old_s or new_e > old_e:
+            return "charge_times_outside"
+        hours = (new_e - new_s).total_seconds() / 3600.0
+        if (row["energy_added_kwh"] or 0) / hours > _RECONSTRUCT_MAX_KW:
+            return "charge_times_power"
+        db.execute("UPDATE charges SET started_at=?, ended_at=?, duration_min=? WHERE id=?",
+                   (new_s.isoformat(), new_e.isoformat(), _span_minutes(started_at, ended_at), charge_id))
+        if row["location_type"] in CHARGE_TYPES:
+            _update_charge_type(db, charge_id, row["location_type"])
+    return None
+
+
 TZ_REPAIR_ZONE_KEY = "charge_tz_repair_zone"      # which zone the conversion was made in
 TZ_REPAIR_MAXID_KEY = "charge_tz_repair_max_id"   # the last row it covered
 
@@ -6215,6 +6267,25 @@ def _cubic_trend(ts: list, ys: list, ws: Optional[list] = None) -> Optional[dict
             "k": round(_t975(n - 4), 3)}
 
 
+def _linear_trend(ts: list, ys: list, ws: list) -> Optional[dict]:
+    """The straight line through the same trips, weighed the same way (D#498, @Dawe02): the one
+    figure an owner carries away, so much consumption for every 10 °C. `slope10` is that change per
+    +10 °C, unrounded; `r2` says how little of the spread a line explains, so the page can print
+    both. Not drawn, not on MQTT: the curve is the trend, this is its summary."""
+    sw = sum(ws)
+    if not ts or sw <= 0:
+        return None
+    tm = sum(w * t for t, w in zip(ts, ws)) / sw
+    ym = sum(w * y for y, w in zip(ys, ws)) / sw
+    stt = sum(w * (t - tm) ** 2 for t, w in zip(ts, ws))
+    if stt <= 0:
+        return None
+    slope = sum(w * (t - tm) * (y - ym) for t, y, w in zip(ts, ys, ws)) / stt
+    ss_tot = sum(w * (y - ym) ** 2 for y, w in zip(ys, ws))
+    ss_res = sum(w * (y - ym - slope * (t - tm)) ** 2 for t, y, w in zip(ts, ys, ws))
+    return {"slope10": slope * 10.0, "r2": round(1 - ss_res / ss_tot, 2) if ss_tot else 0.0}
+
+
 def efftemp_trend_key(vin: str) -> str:
     """Where one car's trend waits for the poller to publish it. 🔴 The poller spells the same key
     (poller/main.py): the trees cannot import each other, a test holds the two together."""
@@ -6287,8 +6358,10 @@ def get_efficiency_vs_temp(include_fuel: bool = False, min_km: float = 3.0) -> d
                 for lo, v in sorted(acc.items())]
         # Each trip weighs its kilometres: a 3 km hop says less about consumption per 100 km than a
         # 60 km drive, and short trips run high in the cold (warm-up, heating).
-        return {"bins": bins, "trend": _cubic_trend([p["t"] for p in pts], [p[ykey] for p in pts],
-                                                    [p["km"] for p in pts])}
+        ts, ys, ws = [p["t"] for p in pts], [p[ykey] for p in pts], [p["km"] for p in pts]
+        trend = _cubic_trend(ts, ys, ws)
+        # The line is printed beside the curve, so it exists exactly where the curve does.
+        return {"bins": bins, "trend": trend, "line": _linear_trend(ts, ys, ws) if trend else None}
 
 
     groups = [_trip_group_stats(dict(r), kids.get(r["id"], [])) for r in rows]

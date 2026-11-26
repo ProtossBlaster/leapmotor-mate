@@ -4219,6 +4219,29 @@ async def edit_manual_charge_api(request: Request, charge_id: int):
                         headers={"HX-Trigger": "chargeAdded"})
 
 
+@app.post("/api/charges/{charge_id}/times", response_class=HTMLResponse)
+async def reconstructed_charge_times_api(request: Request, charge_id: int):
+    """Correct the start and end of a reconstructed charge (#501). Only the two times: its SoC and
+    energy are readings. The rules — inside the reconstructed span, end after start, a power a
+    charger can give — live in db_reader, which is the gate."""
+    form = await request.form()
+    t = i18n.get_t(db_reader.get_language())
+    from datetime import datetime
+    texts = []
+    for d, h in (("date", "time"), ("end_date", "end_time")):
+        text = f"{(form.get(d) or '').strip()}T{(form.get(h) or '').strip()}:00"
+        try:
+            datetime.fromisoformat(text)
+        except ValueError:
+            return HTMLResponse(f'<span style="color:#ef4444">✗ {t("manual_charge_bad_date")}</span>', status_code=400)
+        texts.append(db_reader.local_to_utc_iso(text))
+    error = db_reader.set_reconstructed_charge_times(charge_id, texts[0], texts[1])
+    if error:
+        return HTMLResponse(f'<span style="color:#ef4444">✗ {t(error)}</span>', status_code=400)
+    return HTMLResponse(f'<span style="color:#22c55e">✓ {t("charge_edit_saved")}</span>',
+                        headers={"HX-Trigger": "chargeAdded"})
+
+
 @app.get("/api/charges/import-template.csv")
 async def charges_import_template():
     """The empty, self-documenting CSV the user fills in and re-imports (idea from #111)."""

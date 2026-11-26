@@ -175,6 +175,11 @@
     <p>📈 {{ t('stats_efftemp_trend_formula') }}</p>
     {% if efftemp.trend %}<p>{{ t('stats_efftemp_trend_elec').format(lo=efftemp.trend.t_min, hi=efftemp.trend.t_max, coeffs=_coeffs(efftemp.trend)) }}</p>{% endif %}
     {% if efftemp.fuel_trend %}<p>{{ t('stats_efftemp_trend_fuel').format(lo=efftemp.fuel_trend.t_min, hi=efftemp.fuel_trend.t_max, coeffs=_coeffs(efftemp.fuel_trend)) }}</p>{% endif %}
+    {# D#498 (@Dawe02): the one figure to carry away, the slope of a straight line through the same
+       trips. Not drawn; its own r² says how little of the spread a line explains. #}
+    {% macro _slope(l) %}{{ '+' if l.slope10 > 0 else '' }}{{ l.slope10|dec(2) }}{% endmacro %}
+    {% if efftemp.line %}<p>📏 {{ t('stats_efftemp_line_elec').format(slope=_slope(efftemp.line), r2=efftemp.line.r2) }}</p>{% endif %}
+    {% if efftemp.fuel_line %}<p>📏 {{ t('stats_efftemp_line_fuel').format(slope=_slope(efftemp.fuel_line), r2=efftemp.fuel_line.r2) }}</p>{% endif %}
     <p>{{ t('stats_efftemp_band') }}</p>
   </div>
   {% endif %}

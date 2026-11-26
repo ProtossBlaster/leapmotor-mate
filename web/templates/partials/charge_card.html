@@ -195,6 +195,14 @@
               onmouseover="this.style.color='#38bdf8'" onmouseout="this.style.color='#64748b'">
         ✏️ {{ t('charge_edit') }}</button>
       {% endif %}
+      {# #501: a RECONSTRUCTED charge spans the whole gap the car was quiet for; its owner may know
+         when it really ran. Only the two times — its SoC and energy are readings. #}
+      {% if c.reconstructed and not c.manual_entry and not c.is_merged %}
+      <button type="button" onclick="document.getElementById('ctimes-{{ c.id }}').classList.toggle('hidden')"
+              style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
+              onmouseover="this.style.color='#38bdf8'" onmouseout="this.style.color='#64748b'">
+        ✏️ {{ t('charge_times_edit') }}</button>
+      {% endif %}
       <button hx-delete="api/charges/{{ c.id }}" hx-confirm="{{ t('charge_delete_confirm') }}"
               style="background:transparent;border:none;cursor:pointer;font-size:11px;color:#64748b"
               onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'">
@@ -291,6 +299,34 @@
       {% endif %}
       <button type="submit" class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:opacity-90 active:scale-95 transition">{{ t('note_save') }}</button>
       <span id="cedit-msg-{{ c.id }}" class="text-sm font-medium"></span>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if c.reconstructed and not c.manual_entry %}
+  <div id="ctimes-{{ c.id }}" class="hidden mt-2 pt-3" style="border-top:1px solid #1e293b">
+    <p class="text-[11px] text-slate-500 mb-2">{{ t('charge_times_hint') }}</p>
+    <form hx-post="api/charges/{{ c.id }}/times" hx-target="#ctimes-msg-{{ c.id }}" hx-swap="innerHTML"
+          hx-on::after-request="if(event.detail.successful){setTimeout(function(){location.reload();},900);}"
+          class="flex flex-wrap items-end gap-3">
+      <label class="text-xs text-slate-400">{{ t('charge_times_start') }}
+        <span class="flex gap-1 mt-1">
+          <input type="date" name="date" required value="{{ c.started_at[:10] if c.started_at }}"
+                 class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+          <input type="time" name="time" required value="{{ c.started_at[11:16] if c.started_at }}"
+                 class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+        </span>
+      </label>
+      <label class="text-xs text-slate-400">{{ t('charge_times_end') }}
+        <span class="flex gap-1 mt-1">
+          <input type="date" name="end_date" required value="{{ c.ended_at[:10] if c.ended_at }}"
+                 class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+          <input type="time" name="end_time" required value="{{ c.ended_at[11:16] if c.ended_at }}"
+                 class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5">
+        </span>
+      </label>
+      <button type="submit" class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:opacity-90 active:scale-95 transition">{{ t('note_save') }}</button>
+      <span id="ctimes-msg-{{ c.id }}" class="text-sm font-medium"></span>
     </form>
   </div>
   {% endif %}
