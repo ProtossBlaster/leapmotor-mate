@@ -1,8 +1,22 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v5.3.1 · **Language:** English
+> **Mate version:** v5.4.0 · **Language:** English
 
-## New in 5.3.1
+## New in 5.4.0
+
+**The times of a recovered charge can be corrected.** A charge marked *✨ auto-detected* starts
+and ends at the two readings Mate saw it between, not when the car really charged. Now *✏️ Correct the
+times* moves its start and end inside that span: energy and battery levels stay as read, and a cost Mate
+computed follows the new start (with a time-of-use tariff the start time counts). A cost typed by hand
+stays as it is. The span can only narrow, so *Recover missed charges* does not find the charge a second
+time; to go back to the full span, delete the charge and recover it again (@matttiaromano, #501).
+
+**Under the temperature chart, the slope of a straight line.** On *Statistics → Consumption vs outside
+temperature*, under the curve, a line says by how many kWh/100 km consumption changes for every
+10 °C warmer according to a straight line through the same trips, with its r². With a range extender
+there is one for fuel too. It is not sent to Home Assistant (D#498).
+
+### New in 5.3.1
 
 **Croatian.** Mate speaks Croatian: *Settings → Language → Hrvatski* (thanks to @daleonidas).
 

@@ -1,8 +1,21 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v5.3.1 · **Sprache:** Deutsch
+> **Mate-Version:** v5.4.0 · **Sprache:** Deutsch
 
-## Neu in Version 5.3.1
+## Neu in Version 5.4.0
+
+**Die Zeiten eines wiederhergestellten Ladevorgangs lassen sich korrigieren.** Ein *✨ automatisch
+erkannter* Ladevorgang beginnt und endet an den zwei Messungen, zwischen denen Mate ihn gesehen hat. Mit
+*✏️ Zeiten korrigieren* werden Beginn und Ende innerhalb dieser Spanne verschoben: Energie und
+Akkustand bleiben wie gemessen, von Mate berechnete Kosten folgen dem neuen Beginn. Von Hand
+eingetragene Kosten bleiben. Die Spanne kann nur kleiner werden; für die volle Spanne den Ladevorgang
+löschen und erneut wiederherstellen (@matttiaromano, #501).
+
+**Unter dem Temperaturdiagramm die Steigung einer Geraden.** In *Statistik → Verbrauch vs.
+Außentemperatur* sagt eine Zeile, um wie viele kWh/100 km sich der Verbrauch je 10 °C wärmer laut einer
+Geraden durch dieselben Fahrten ändert, mit ihrem r². Sie geht nicht an Home Assistant (D#498).
+
+### Neu in Version 5.3.1
 
 **Kroatisch.** Mate spricht Kroatisch: *Einstellungen → Sprache → Hrvatski* (danke an @daleonidas).
 

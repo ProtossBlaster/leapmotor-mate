@@ -1,8 +1,23 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v5.3.1 · **Lingua:** Italiano
+> **Versione di Mate:** v5.4.0 · **Lingua:** Italiano
 
-## Novità della 5.3.1
+## Novità della 5.4.0
+
+**Gli orari di una ricarica recuperata si possono correggere.** Una ricarica *✨ rilevata automaticamente*
+parte e finisce nelle due letture fra cui Mate l'ha vista, non quando l'auto ha caricato davvero. Ora
+*✏️ Correggi gli orari* sposta inizio e fine dentro quell'intervallo: energia e livelli della batteria
+restano quelli letti, e un costo calcolato da Mate segue il nuovo inizio (con una tariffa a fasce conta
+l'ora di inizio). Un costo scritto a mano resta com'è. L'intervallo si può solo restringere, così
+*Recupera ricariche perse* non la trova una seconda volta; per tornare all'intervallo intero si elimina
+la ricarica e la si recupera di nuovo (@matttiaromano, #501).
+
+**Sotto il grafico della temperatura, la pendenza di una retta.** In *Statistiche → Consumi vs temperatura
+esterna*, sotto la curva, una riga dice di quanti kWh/100 km cambia il consumo ogni 10 °C in
+più secondo una retta tracciata sugli stessi viaggi, con il suo r². Con un range extender c'è anche quella
+della benzina. Non va a Home Assistant (D#498).
+
+### Novità della 5.3.1
 
 **Il croato.** Mate parla croato: *Impostazioni → Lingua → Hrvatski* (grazie a @daleonidas).
 

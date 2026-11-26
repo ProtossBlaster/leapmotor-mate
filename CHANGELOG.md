@@ -3,6 +3,17 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.4.0] — 2026-11-26
+
+See [the notes](docs/releases/v5.4.0.md).
+
+- **The times of a charge Mate recovered can be corrected** ([#501](https://github.com/ProtossBlaster/leapmotor-mate/issues/501)).
+  On a charge marked *auto-detected*, *Correct the times* narrows its start and end inside the
+  span Mate measured; energy and SoC stay as read, a computed cost follows the new start.
+- **The slope of a straight line under the temperature chart** ([D#498](https://github.com/ProtossBlaster/leapmotor-mate/discussions/498)).
+  *Statistics → Consumption against outside temperature* also says how many kWh/100 km a straight line
+  adds for every 10 °C warmer, with its r². It is not sent to Home Assistant.
+
 ## [5.3.1] — 2026-11-25
 
 See [the notes](docs/releases/v5.3.1.md).

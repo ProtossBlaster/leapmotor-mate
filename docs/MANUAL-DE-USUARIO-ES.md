@@ -1,8 +1,21 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v5.3.1 · **Idioma:** Español
+> **Versión de Mate:** v5.4.0 · **Idioma:** Español
 
-## Novedades de la versión 5.3.1
+## Novedades de la versión 5.4.0
+
+**Los horarios de una carga recuperada se pueden corregir.** Una carga *✨ detectada sola*
+empieza y termina en las dos lecturas entre las que Mate la vio. *✏️ Corregir las horas* mueve el
+inicio y el fin dentro de ese intervalo: la energía y los niveles de batería quedan como se leyeron, y un
+coste calculado por Mate sigue el nuevo inicio. Un coste escrito a mano se mantiene. El intervalo solo
+puede reducirse; para volver al intervalo completo, borra la carga y recupérala de nuevo
+(@matttiaromano, #501).
+
+**Bajo el gráfico de la temperatura, la pendiente de una recta.** En *Estadísticas → Consumo vs
+temperatura exterior*, una línea dice en cuántos kWh/100 km cambia el consumo por cada 10 °C más según una
+recta trazada sobre los mismos viajes, con su r². No se envía a Home Assistant (D#498).
+
+### Novedades de la versión 5.3.1
 
 **El croata.** Mate habla croata: *Ajustes → Idioma → Hrvatski* (gracias a @daleonidas).
 
