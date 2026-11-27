@@ -3,6 +3,15 @@
 All notable changes to LeapMotor Mate are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [5.4.1] — 2026-11-27
+
+See [the notes](docs/releases/v5.4.1.md).
+
+- **A form Mate refuses says why, in the form** ([#501](https://github.com/ProtossBlaster/leapmotor-mate/issues/501), @matttiaromano).
+  *Correct the times* with a wider span, an *Edit* of a typed-in charge with a missing value and the other
+  forms that refuse a value showed only *This part could not be loaded. (400)* with a *Retry* that sent the
+  same values again. The reason now appears in red under the form.
+
 ## [5.4.0] — 2026-11-26
 
 See [the notes](docs/releases/v5.4.0.md).

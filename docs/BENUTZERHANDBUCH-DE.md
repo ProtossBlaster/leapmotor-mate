@@ -1,8 +1,15 @@
 # LeapMotor Mate — Benutzerhandbuch
 
-> **Mate-Version:** v5.4.0 · **Sprache:** Deutsch
+> **Mate-Version:** v5.4.1 · **Sprache:** Deutsch
 
-## Neu in Version 5.4.0
+## Neu in Version 5.4.1
+
+**Ein abgelehntes Formular sagt, warum.** Lehnt Mate ein Formular ab — *Zeiten korrigieren* mit einem
+breiteren Zeitraum, *Bearbeiten* einer von Hand eingetragenen Ladung mit fehlendem Wert und die anderen —,
+erscheint der Grund rot unter dem Formular statt *Dieser Teil konnte nicht geladen werden. (400)*
+(danke an @matttiaromano).
+
+### Neu in Version 5.4.0
 
 **Die Zeiten eines wiederhergestellten Ladevorgangs lassen sich korrigieren.** Ein *✨ automatisch
 erkannter* Ladevorgang beginnt und endet an den zwei Messungen, zwischen denen Mate ihn gesehen hat. Mit

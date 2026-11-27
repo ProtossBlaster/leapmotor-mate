@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manual de usuario
 
-> **Versión de Mate:** v5.4.0 · **Idioma:** Español
+> **Versión de Mate:** v5.4.1 · **Idioma:** Español
 
-## Novedades de la versión 5.4.0
+## Novedades de la versión 5.4.1
+
+**Un formulario rechazado dice por qué.** Cuando Mate rechaza un formulario — *Corregir las horas* con un
+intervalo más amplio, *Editar* una carga introducida a mano con un valor que falta, y los demás — el motivo
+aparece en rojo bajo el formulario, en lugar de *Esta parte no se ha podido cargar. (400)* (gracias a
+@matttiaromano).
+
+### Novedades de la versión 5.4.0
 
 **Los horarios de una carga recuperada se pueden corregir.** Una carga *✨ detectada sola*
 empieza y termina en las dos lecturas entre las que Mate la vio. *✏️ Corregir las horas* mueve el

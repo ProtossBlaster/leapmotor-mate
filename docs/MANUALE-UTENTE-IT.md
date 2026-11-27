@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuale utente
 
-> **Versione di Mate:** v5.4.0 · **Lingua:** Italiano
+> **Versione di Mate:** v5.4.1 · **Lingua:** Italiano
 
-## Novità della 5.4.0
+## Novità della 5.4.1
+
+**Un modulo rifiutato dice perché.** Quando Mate rifiuta un modulo — *Correggi gli orari* con un
+intervallo più largo, *Modifica* di una ricarica inserita a mano con un valore mancante, e gli altri —
+il motivo compare in rosso sotto il modulo, invece di *Questa parte non si è caricata. (400)* (grazie a
+@matttiaromano).
+
+### Novità della 5.4.0
 
 **Gli orari di una ricarica recuperata si possono correggere.** Una ricarica *✨ rilevata automaticamente*
 parte e finisce nelle due letture fra cui Mate l'ha vista, non quando l'auto ha caricato davvero. Ora

@@ -1,7 +1,7 @@
 # LeapMotor Mate
 
-**v5.4.0:** the start and end of a charge Mate recovered can be corrected, and under the temperature chart a straight line says how much consumption changes every 10 °C ([#501](https://github.com/ProtossBlaster/leapmotor-mate/issues/501), [D#498](https://github.com/ProtossBlaster/leapmotor-mate/discussions/498)).
-See [release notes and upgrade impact](docs/releases/v5.4.0.md).
+**v5.4.1:** a form Mate refuses says why, in red under the form, instead of *This part could not be loaded. (400)* ([#501](https://github.com/ProtossBlaster/leapmotor-mate/issues/501), @matttiaromano).
+See [release notes and upgrade impact](docs/releases/v5.4.1.md).
 
 [![CI](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/ci.yml)
 [![Docker](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ProtossBlaster/leapmotor-mate/actions/workflows/docker-publish.yml)
@@ -381,8 +381,8 @@ Works with any MQTT broker (e.g. the Mosquitto add‑on). Use **Test connection*
 
 # LeapMotor Mate · Italiano
 
-**v5.4.0:** l'inizio e la fine di una ricarica recuperata da Mate si possono correggere, e sotto il grafico della temperatura una retta dice quanto cambia il consumo ogni 10 °C ([#501](https://github.com/ProtossBlaster/leapmotor-mate/issues/501), [D#498](https://github.com/ProtossBlaster/leapmotor-mate/discussions/498)).
-Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v5.4.0.md#italiano).
+**v5.4.1:** un modulo che Mate rifiuta dice perché, in rosso sotto il modulo, invece di *Questa parte non si è caricata. (400)* ([#501](https://github.com/ProtossBlaster/leapmotor-mate/issues/501), @matttiaromano).
+Vedi [note di rilascio e impatto dell'aggiornamento](docs/releases/v5.4.1.md#italiano).
 
 **Tracciamento viaggi, registro ricariche e controllo remoto per veicoli Leapmotor** — un companion self‑hosted (un *TeslaMate* per Leapmotor). Funziona come **add‑on di Home Assistant** o come **container Docker standalone**.
 

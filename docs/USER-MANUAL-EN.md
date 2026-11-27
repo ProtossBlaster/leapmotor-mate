@@ -1,8 +1,14 @@
 # LeapMotor Mate — User Manual
 
-> **Mate version:** v5.4.0 · **Language:** English
+> **Mate version:** v5.4.1 · **Language:** English
 
-## New in 5.4.0
+## New in 5.4.1
+
+**A refused form says why.** When Mate refuses a form — *Correct the times* with a wider span, *Edit*
+of a typed-in charge with a missing value, and the others — the reason appears in red under the form,
+instead of *This part could not be loaded. (400)* (thanks to @matttiaromano).
+
+### New in 5.4.0
 
 **The times of a recovered charge can be corrected.** A charge marked *✨ auto-detected* starts
 and ends at the two readings Mate saw it between, not when the car really charged. Now *✏️ Correct the

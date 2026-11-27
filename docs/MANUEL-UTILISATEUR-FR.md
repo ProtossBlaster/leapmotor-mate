@@ -1,8 +1,15 @@
 # LeapMotor Mate — Manuel utilisateur
 
-> **Version de Mate :** v5.4.0 · **Langue :** Français
+> **Version de Mate :** v5.4.1 · **Langue :** Français
 
-## Nouveautés de la version 5.4.0
+## Nouveautés de la version 5.4.1
+
+**Un formulaire refusé dit pourquoi.** Quand Mate refuse un formulaire — *Corriger les heures* avec un
+intervalle plus large, *Modifier* une recharge saisie à la main avec une valeur manquante, et les autres —
+la raison apparaît en rouge sous le formulaire, au lieu de *Cette partie n'a pas pu être chargée. (400)*
+(merci à @matttiaromano).
+
+### Nouveautés de la version 5.4.0
 
 **Les horaires d'une recharge récupérée peuvent être corrigés.** Une recharge *✨ détectée
 automatiquement* commence et finit aux deux relevés entre lesquels Mate l'a vue. *✏️ Corriger les
