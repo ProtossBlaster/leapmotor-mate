@@ -1173,8 +1173,22 @@
   // Deliberately ADDITIVE: it never replaces the target's contents, because a failed month-nav
   // must not wipe the month you are already reading. One strip, under the block that failed.
   (function () {
+    // A 400 that carries HTML is a REFUSAL the server wrote for that place — "✗ the times must stay
+    // inside…" for a form's message slot — not a block that failed to load. htmx would drop it, and
+    // the strip below would say "did not load" with a Retry that sends the same refused values again
+    // (#501). It goes where the request was aimed; it stays a failure (isError), so a form that
+    // reloads the page on success does not reload on it.
+    function refusal(xhr) {
+      return !!xhr && xhr.status === 400 &&
+        /^text\/html/i.test(xhr.getResponseHeader('Content-Type') || '') &&
+        !!(xhr.responseText || '').trim();
+    }
+    document.body.addEventListener('htmx:beforeSwap', function (e) {
+      if (refusal(e.detail.xhr)) e.detail.shouldSwap = true;
+    });
     function failed(e) {
       var d = e.detail || {};
+      if (refusal(d.xhr)) return;                 // already shown, in its own place
       var tgt = d.target || d.elt;
       if (!tgt || !tgt.parentElement || tgt === document.body) return;
       var host = tgt.parentElement;
